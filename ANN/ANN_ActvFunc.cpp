@@ -31,14 +31,14 @@ std::string ActvFunc::typeToName(const ActvFuncType& actvFuncType) {
 
 //===================================================================================================================//
 
-float ActvFunc::calculate(float x, ActvFuncType type, bool derivative) {
+float ActvFunc::calculate(float x, ActvFuncType type, bool isDerivative) {
   switch(type) {
     case ActvFuncType::RELU:
-      return !derivative ? ActvFunc::relu(x) : ActvFunc::drelu(x);
+      return !isDerivative ? ActvFunc::relu(x) : ActvFunc::drelu(x);
     case ActvFuncType::SIGMOID:
-      return !derivative ? ActvFunc::sigmoid(x) : ActvFunc::dsigmoid(x);
+      return !isDerivative ? ActvFunc::sigmoid(x) : ActvFunc::dsigmoid(x);
     case ActvFuncType::TANH:
-      return !derivative ? ActvFunc::tanh(x) : ActvFunc::tanh(x);
+      return !isDerivative ? ActvFunc::tanh(x) : ActvFunc::dtanh(x);
     default:
       throw std::invalid_argument("Unknown actv function");
   }
@@ -74,7 +74,7 @@ float ActvFunc::drelu(float x) {
 
 // Derivative of Sigmoid
 float ActvFunc::dsigmoid(float x) {
-  double sig = ActvFunc::sigmoid(x);
+  float sig = ActvFunc::sigmoid(x);
   return sig * (1.0 - sig);
 }
 
@@ -82,7 +82,7 @@ float ActvFunc::dsigmoid(float x) {
 
 // Derivative of Tanh
 float ActvFunc::dtanh(float x) {
-  double tanh_x = std::tanh(x);
+  float tanh_x = std::tanh(x);
   return 1.0 - (tanh_x * tanh_x);
 }
 

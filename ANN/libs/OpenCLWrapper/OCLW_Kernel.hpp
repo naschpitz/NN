@@ -16,9 +16,10 @@ namespace OpenCLWrapper
   struct Kernel
   {
     std::string name;
-    cl_uint nElements;
+    cl_ulong nElements;
+    cl_ulong offset = 0;
     cl::Kernel kernel;
-    uint argsCount = 0;
+    cl_ulong argsCount = 0;
   };
 }
 

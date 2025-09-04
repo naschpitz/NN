@@ -1,7 +1,55 @@
 #ifndef KERNELS_CPP_CL
 #define KERNELS_CPP_CL
 
-#define TYPE float
+#include "../ActvFunc.cpp.cl"
+#include "../Defines.hpp.cl"
+#include "../IdxHelper.cpp.cl"
+
+//===================================================================================================================//
+
+kernel void calculate_zs(
+  global TYPE* zs,
+  global TYPE* weights,
+  global TYPE* actvs,
+  ulong l,
+  constant LayersConfig* layersConfig,
+  ulong numLayers
+  ) {
+  size_t idx = get_global_id(0);
+
+  ulong l, j;
+  getLJfrom2dIdx(&l, &j, idx, layersConfig, numLayers);
+
+  ulong prevNumNeurons = layersConfig[l - 1].numNeurons;
+
+  TYPE sum = 0;
+
+  for (ulong k = 0; k < prevNumNeurons; k++) {
+    ulong layer3dIdx = get3dIdxFromLJK(l, j, k, layersConfig);
+    ulong prevLayer2dIdx = get2dIdxFromLJ(l - 1, k, layersConfig);
+
+    sum += weights[layer3dIdx] * actvs[prevLayer2dIdx];
+  }
+
+  zs[idx] = sum;
+}
+
+//===================================================================================================================//
+
+kernerl void calculate_actvs(
+  global TYPE* actvs,
+  global TYPE* zs,
+  ulong l,
+  constant LayersConfig* layersConfig,
+  ulong numLayers
+  ) {
+  size_t idx = get_global_id(0);
+
+  TYPE z = zs[idx];
+
+  ActvFuncType actvFuncType = layersConfig[l].actvFuncType;
+  actvs[idx] = actvFunc_calculate(z, actvFuncType, false);
+}
 
 //===================================================================================================================//
 
@@ -30,7 +78,7 @@ kernel void accumulate_dCost_dWeights(
 kernel void update_dCost_dBiases(
     global TYPE* dCost_dBiases,
     global TYPE* accum_dCost_dBiases,
-    uint numSamples,
+    ulong numSamples,
     float learningRate
   ) {
   size_t idx = get_global_id(0);
@@ -43,7 +91,7 @@ kernel void update_dCost_dBiases(
 kernel void update_dCost_dBWeights(
     global TYPE* dCost_dWeights,
     global TYPE* accum_dCost_dWeights,
-    uint numSamples,
+    ulong numSamples,
     float learningRate
   ) {
   size_t idx = get_global_id(0);
@@ -53,47 +101,49 @@ kernel void update_dCost_dBWeights(
 
 //===================================================================================================================//
 
-kernel void calc_dCost_dActv(
+kernel void calculate_dCost_dActv_last_layer(
     global TYPE* dCost_dAcvts,
     global TYPE* acvts,
     global TYPE* outputs,
-    uint numOutputNeurons,
-    uint outputOffset,
-    constant LayersConfig* layersConfig
-    ) {
+    ulong numOutputNeurons,
+    constant LayersConfig* layersConfig,
+    ulong numLayers
+  ) {
   size_t idx = get_global_id(0);
 
-  uint j = getJfrom2dIdx(idx, layersConfig);
-  uint outputIdx = outputOffset + j;
+  ulong j;
+  getLJfrom2dIdx(null, &j, idx, layersConfig, numLayers);
+  ulong outputIdx = outputOffset + j;
 
   return 2 * (this->actvs[idx] - outputs[j]);
 }
 
 //===================================================================================================================//
 
-kernel void calc_dCost_dActv(
+kernel void calculate_dCost_dActv(
     global TYPE* dCost_dAcvts,
     global TYPE* acvts,
     global TYPE* weights,
     global TYPE* zs,
-    uint l,
-    constant LayersConfig* layersConfig
-    ) {
+    ulong l,
+    constant LayersConfig* layersConfig,
+    ulong numLayers
+  ) {
   size_t idx = get_global_id(0);
 
-  uint k = getJfrom2dIdx(idx, layersConfig);
+  ulong l, k
+  getLJfrom2dIdx(&l, &k, idx, layersConfig, numLayers);
 
-  const Layer& nextLayer = layersConfig[l + 1];
-  uint nextNumNeurons = nextLayer.numNeurons;
+  ulong nextNumNeurons = layersConfig[l + 1].numNeurons;
 
   TYPE sum = 0;
 
-  for (uint j = 0; j < nextNumNeurons; j++) {
-    uint nextLayer2dIdx = get2dIdxFromLJ(l + 1, j);
-    uint nextLayer3dIdx = get3dIdxFromLJK(l + 1, j, k, layersConfig);
+  for (ulong j = 0; j < nextNumNeurons; j++) {
+    ulong nextLayer2dIdx = get2dIdxFromLJ(l + 1, j, layersConfig);
+    ulong nextLayer3dIdx = get3dIdxFromLJK(l + 1, j, k, layersConfig);
 
-    TYPE& weight = weights[nextLayer3dIdx];
-    TYPE& z = zs[nextLayer2dIdx];
+    TYPE weight = weights[nextLayer3dIdx];
+    TYPE z = zs[nextLayer2dIdx];
 
     ActvFuncType actvFuncType = layersConfig[l + 1].actvFuncType;
     TYPE dActvFunc_z = actvFunc_calculate(z, actvFuncType, true);
@@ -108,24 +158,25 @@ kernel void calc_dCost_dActv(
 
 //===================================================================================================================//
 
-kernel void calc_dCost_dWeight(
+kernel void calculate_dCost_dWeight(
     global TYPE* dCost_dWeights,
     global TYPE* acvts,
     global TYPE* zs,
     global TYPE* dCost_dAcvts,
-    uint l,
-    constant LayersConfig* layersConfig
-    ) {
+    ulong l,
+    constant LayersConfig* layersConfig,
+    ulong numLayers
+  ) {
   size_t idx = get_global_id(0);
 
-  uint l, j k;
-  getLJKfrom3dIdx(l, j, k, idx, layersConfig);
+  ulong l, j k;
+  getLJKfrom3dIdx(&l, &j, &k, idx, layersConfig, numLayers);
 
-  uint prevLayer2dIdx = get2dIdxFromLJ(l - 1, k);
-  TYPE& actv = this->actvs(prevLayer2dIdx);
+  ulong prevLayer2dIdx = get2dIdxFromLJ(l - 1, k, layersConfig);
+  TYPE actv = this->actvs[prevLayer2dIdx];
 
-  uint layer2dIdx = get2dIdxFromLJ(l, j);
-  TYPE& z = zs[layer2dIdx];
+  ulong layer2dIdx = get2dIdxFromLJ(l, j, layersConfig);
+  TYPE z = zs[layer2dIdx];
 
   ActvFuncType actvFuncType = layersConfig[l].actvFuncType;
   TYPE dActvFunc_z = actvFunc_calculate(z, actvFuncType, true);
@@ -137,13 +188,13 @@ kernel void calc_dCost_dWeight(
 
 //===================================================================================================================//
 
-kernel void calc_dCost_Bias(
+kernel void calculate_dCost_dBias(
     global TYPE* dCost_dBiases,
     global TYPE* zs,
     global TYPE* dCost_dActvs,
-    uint l,
+    ulong l,
     constant LayersConfig* layersConfig
-    ) {
+  ) {
   size_t idx = get_global_id(0);
 
   TYPE& z = zs[idx];

@@ -3,7 +3,10 @@
 
 #include "ANN_ActvFunc.hpp"
 #include "ANN_CoreMode.hpp"
+#include "ANN_CoreType.hpp"
+#include "ANN_LayersConfig.hpp"
 
+#include <memory>
 #include <vector>
 
 //==============================================================================//
@@ -30,16 +33,9 @@ namespace ANN {
   template <typename T>
   using Tensor3D = std::vector<std::vector<std::vector<T>>>;
 
-  struct Layer {
-    uint numNeurons;
-    ActvFuncType actvFuncType;
-  };
-
-  using LayersConfig = std::vector<Layer>;
-
   template <typename T>
   struct TrainingConfig {
-    uint numEpochs;
+    ulong numEpochs;
     float learningRate;
   };
 
@@ -51,6 +47,7 @@ namespace ANN {
 
   template <typename T>
   struct CoreConfig {
+    CoreTypeType coreTypeType;
     CoreModeType coreModeType;
     LayersConfig layersConfig;
     TrainingConfig<T> trainingConfig;
@@ -69,13 +66,16 @@ namespace ANN {
   template <typename T>
   class Core {
     public:
-      Core(const CoreConfig<T>& config);
-      void init(const CoreConfig<T>& config);
+      static std::unique_ptr<Core<T>> makeCore(const CoreConfig<T>& config);
 
-      Output<T> run(const Input<T>& input);
-      void train(const Samples<T>& samples);
+      virtual Output<T> run(const Input<T>& input);
+      virtual void train(const Samples<T>& samples);
 
-    private:
+    protected:
+      explicit Core(const CoreConfig<T>& coreConfig);
+      void sanityCheck(const CoreConfig<T>& coreConfig);
+
+      CoreTypeType coreTypeType;
       CoreModeType coreModeType;
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
@@ -83,31 +83,6 @@ namespace ANN {
 
       Tensor2D<T> actvs;
       Tensor2D<T> zs;
-
-      Tensor2D<T> dCost_dActvs;
-      Tensor3D<T> dCost_dWeights, accum_dCost_dWeights;
-      Tensor2D<T> dCost_dBiases, accum_dCost_dBiases;
-
-      // Functions used in init()
-      void sanityCheck();
-      void allocateCommon();
-      void allocateTraining();
-
-      // Functions used by run()
-      void propagate(const Input<T>& input);
-      Output<T> getOutput();
-
-      // Functions used by train()
-      void backpropagate(const Output<T>& output);
-      void accumulate();
-      void update(uint numSamples);
-
-      // Functions used in backpropagate()
-      T calc_dCost_dActv(uint j, const Output<T>& output);
-      T calc_dCost_dActv(uint l, uint k);
-
-      T calc_dCost_dWeight(uint l, uint j, uint k);
-      T calc_dCost_dBias(uint l, uint j);
   };
 }
 

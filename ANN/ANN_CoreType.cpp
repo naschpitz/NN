@@ -1,14 +1,14 @@
-#include "ANN_CoreMode.hpp"
+#include "ANN_CoreType.hpp"
 
 using namespace ANN;
 
 //===================================================================================================================//
 
-CoreModeType CoreMode::nameToType(const std::string& name) {
-  auto it = coreModeMap.find(name);
+CoreTypeType CoreType::nameToType(const std::string& name) {
+  auto it = coreTypeMap.find(name);
 
-  if (it == coreModeMap.end()) {
-    return CoreModeType::UNKNOWN;
+  if (it == coreTypeMap.end()) {
+    return CoreTypeType::UNKNOWN;
   } else {
     return it->second;
   }
@@ -16,9 +16,9 @@ CoreModeType CoreMode::nameToType(const std::string& name) {
 
 //===================================================================================================================//
 
-std::string CoreMode::typeToName(const CoreModeType& coreModeType) {
-  for (const auto& pair : coreModeMap) {
-    if (pair.second == coreModeType) {
+std::string CoreType::typeToName(const CoreTypeType& coreTypeType) {
+  for (const auto& pair : coreTypeMap) {
+    if (pair.second == coreTypeType) {
       return pair.first;
     }
   }

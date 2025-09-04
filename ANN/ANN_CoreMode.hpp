@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_map>
 
+//===================================================================================================================//
+
 namespace ANN {
   enum class CoreModeType {
     TRAIN,
@@ -11,7 +13,7 @@ namespace ANN {
     UNKNOWN
   };
 
-  const std::unordered_map<std::string, CoreModeType> coreMap = {
+  const std::unordered_map<std::string, CoreModeType> coreModeMap = {
     {"train", CoreModeType::TRAIN},
     {"run", CoreModeType::RUN},
   };

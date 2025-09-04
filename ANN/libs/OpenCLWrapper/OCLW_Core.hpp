@@ -10,7 +10,6 @@
 #define OCLW_CORE_H
 
 #include <CL/opencl.hpp>
-#include <iostream>
 #include <mutex>
 #include <unistd.h>
 
@@ -51,13 +50,22 @@ namespace OpenCLWrapper
       ~Core();
 
       void addSourceFile(std::string fileName);
-      void addKernel(const std::string& kernelName, uint nElements);
+      void addKernel(const std::string& kernelName, ulong nElements, ulong offset);
       void clearKernels();
 
-      template<class T> void writeBuffer(std::vector<T>& hBuffer);
+      template<class T> void allocateBuffer(const std::string& name, ulong size);
+
+      template<class T> void writeBuffer(const std::vector<T>& hBuffer);
+      template<class T> void writeBuffer(const std::string& name, const std::vector<T>& hBuffer, ulong dBufferOffset);
+
       template<class T> void readBuffer(std::vector<T>& hBuffer);
+      template<class T> void readBuffer(const std::string& name, std::vector<T>& hBuffer, ulong dBufferOffset);
+
       template<class T> void syncDevicesBuffers(std::vector<T>& hBuffer);
-      template<class T> void addArgument(std::string kernelName, std::vector<T>& hBuffer);
+
+      template<class T> void addArgument(const std::string& kernelName, const std::string& bufferName);
+      template<class T> void addArgument(const std::string& kernelName, const std::vector<T>& hBuffer);
+      template<class T> void addArgument(const std::string& kernelName, const T& variable);
 
       void run();
 
@@ -65,10 +73,31 @@ namespace OpenCLWrapper
       static std::map<const cl::Device*, uint>& getDevicesUsage();
   };
 
-  template<class T> void Core::writeBuffer(std::vector<T>& hBuffer)
+  template<class T> void Core::allocateBuffer(const std::string& name, ulong size)
+  {
+    for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
+      it->allocateBuffer<T>(name, size);
+    }
+
+    for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
+      it->waitFinish();
+    }
+  }
+
+  template<class T> void Core::writeBuffer(const std::vector<T>& hBuffer)
   {
     for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
       it->writeBuffer<T>(hBuffer);
+    }
+
+    for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
+      it->waitFinish();
+    }
+  }
+
+  template<class T> void Core::writeBuffer(const std::string& name, const std::vector<T>& hBuffer, ulong dBufferOffset) {
+    for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
+      it->writeBuffer<T>(name, hBuffer, dBufferOffset);
     }
 
     for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
@@ -87,16 +116,41 @@ namespace OpenCLWrapper
     }
   }
 
+  template<class T> void Core::readBuffer(const std::string& name, std::vector<T>& hBuffer, ulong dBufferOffset)
+  {
+    for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
+      it->readBuffer<T>(name, hBuffer, dBufferOffset);
+    }
+
+    for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
+      it->waitFinish();
+    }
+  }
+
   template<class T> void Core::syncDevicesBuffers(std::vector<T>& hBuffer)
   {
     this->readBuffer<T>(hBuffer);
     this->writeBuffer<T>(hBuffer);
   }
 
-  template<class T> void Core::addArgument(std::string kernelName, std::vector<T>& hBuffer)
+  template<class T> void Core::addArgument(const std::string& kernelName, const std::string& bufferName)
+  {
+    for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
+      it->addArgument<T>(kernelName, bufferName);
+    }
+  }
+
+  template<class T> void Core::addArgument(const std::string& kernelName, const std::vector<T>& hBuffer)
   {
     for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
       it->addArgument(kernelName, hBuffer);
+    }
+  }
+
+  template<class T> void Core::addArgument(const std::string& kernelName, const T& variable)
+  {
+    for(std::vector<ComputeUnit>::iterator it = this->computeUnits.begin(); it != this->computeUnits.end(); it++) {
+      it->addArgument(kernelName, variable);
     }
   }
 }

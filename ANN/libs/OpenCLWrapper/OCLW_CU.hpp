@@ -10,7 +10,6 @@
 #define OCLW_CU_H
 
 #include <CL/opencl.hpp>
-#include <iostream>
 #include <unistd.h>
 #include <map>
 
@@ -39,7 +38,8 @@ namespace OpenCLWrapper
 
       cl::Program::Sources sources;
 
-      std::map<void*, cl::Buffer> bufferMap;
+      std::map<void*, cl::Buffer> hdBufferMap;
+      std::map<std::string, cl::Buffer> dBufferMap;
 
       void buildContext();
       void buildQueue();
@@ -47,36 +47,74 @@ namespace OpenCLWrapper
 
     public:
       void addSource(const std::string& sourceCode);
-      void addKernel(const std::string& kernelName, uint nElements);
+      void addKernel(const std::string& kernelName, ulong nElements, ulong offset);
       void clearKernels();
 
-      template<class T> void writeBuffer(std::vector<T>& hBuffer);
+      template<class T> void allocateBuffer(const std::string& name, ulong size);
+
+      template<class T> void writeBuffer(const std::vector<T>& hBuffer);
+      template<class T> void writeBuffer(const std::string& name, const std::vector<T>& hBuffer, ulong dBufferOffset);
+
       template<class T> void readBuffer(std::vector<T>& hBuffer);
-      template<class T> void addArgument(const std::string& kernelName, std::vector<T>& hBuffer);
+      template<class T> void readBuffer(const std::string& name, std::vector<T>& hBuffer, ulong dBufferOffset);
+
+      template<class T> void addArgument(const std::string& kernelName, const std::string& bufferName);
+      template<class T> void addArgument(const std::string& kernelName, const std::vector<T>& hBuffer);
+      template<class T> void addArgument(const std::string& kernelName, const T& variable);
 
       void run();
       void waitFinish();
   };
 
-  template<class T> void ComputeUnit::writeBuffer(std::vector<T> &hBuffer)
+  template<class T> void ComputeUnit::allocateBuffer(const std::string& name, ulong size)
   {
-    std::map<void*, cl::Buffer>::const_iterator it = this->bufferMap.find(&hBuffer);
+    std::map<std::string, cl::Buffer>::const_iterator it = this->dBufferMap.find(name);
     cl::Buffer dBuffer;
 
-    if(it != this->bufferMap.end())
+    if(it != this->dBufferMap.end())
+      dBuffer = it->second;
+
+    else {
+      dBuffer = cl::Buffer(this->context, CL_MEM_READ_WRITE, sizeof(T) * size);
+      this->dBufferMap[name] = dBuffer;
+    }
+  }
+
+  template<class T> void ComputeUnit::writeBuffer(const std::vector<T> &hBuffer)
+  {
+    std::map<void*, cl::Buffer>::const_iterator it = this->hdBufferMap.find(&hBuffer);
+    cl::Buffer dBuffer;
+
+    if(it != this->hdBufferMap.end())
       dBuffer = it->second;
 
     else {
       dBuffer = cl::Buffer(this->context, CL_MEM_READ_WRITE, sizeof(T) * hBuffer.size());
-      this->bufferMap[&hBuffer] = dBuffer;
+      this->hdBufferMap[&hBuffer] = dBuffer;
     }
 
     this->queue.enqueueWriteBuffer(dBuffer, CL_FALSE, 0, sizeof(T) * hBuffer.size(), hBuffer.data());
   }
 
+  template<class T> void ComputeUnit::writeBuffer(const std::string& name, const std::vector<T>& hBuffer, ulong dBufferOffset)
+  {
+    std::map<std::string, cl::Buffer>::const_iterator it = this->dBufferMap.find(name);
+    cl::Buffer dBuffer;
+
+    if(it != this->dBufferMap.end())
+      dBuffer = it->second;
+
+    else {
+      dBuffer = cl::Buffer(this->context, CL_MEM_READ_WRITE, sizeof(T) * hBuffer.size());
+      this->dBufferMap[name] = dBuffer;
+    }
+
+    this->queue.enqueueWriteBuffer(dBuffer, CL_FALSE, sizeof(T) * dBufferOffset, sizeof(T) * hBuffer.size(), hBuffer.data());
+  }
+
   template<class T> void ComputeUnit::readBuffer(std::vector<T>& hBuffer)
   {
-    cl::Buffer dBuffer = this->bufferMap[&hBuffer];
+    cl::Buffer dBuffer = this->hdBufferMap[&hBuffer];
 
     uint count = hBuffer.size() * this->fraction;
     uint offset = this->index * count;
@@ -87,13 +125,48 @@ namespace OpenCLWrapper
     this->queue.enqueueReadBuffer(dBuffer, CL_TRUE, sizeof(T) * offset, sizeof(T) * count, hBuffer.data() + offset);
   }
 
-  template<class T> void ComputeUnit::addArgument(const std::string& kernelName, std::vector<T>& hBuffer)
+  template<class T> void ComputeUnit::readBuffer(const std::string& name, std::vector<T>& hBuffer, ulong dBufferOffset)
   {
-    cl::Buffer dBuffer = this->bufferMap[&hBuffer];
+    cl::Buffer dBuffer = this->dBufferMap[name];
+
+    uint count = hBuffer.size() * this->fraction;
+    uint offset = this->index * count + dBufferOffset;
+
+    if(this->last)
+      count = hBuffer.size() - offset;
+
+    this->queue.enqueueReadBuffer(dBuffer, CL_TRUE, sizeof(T) * offset, sizeof(T) * count, hBuffer.data() + offset);
+  }
+
+  template<class T> void ComputeUnit::addArgument(const std::string& kernelName, const std::string& bufferName)
+  {
+    cl::Buffer dBuffer = this->dBufferMap[bufferName];
 
     for(std::vector<Kernel>::iterator it = this->kernels.begin(); it != this->kernels.end(); it++) {
       if(it->name.compare(kernelName) == 0) {
         it->kernel.setArg(it->argsCount, dBuffer);
+        it->argsCount++;
+      }
+    }
+  }
+
+  template<class T> void ComputeUnit::addArgument(const std::string& kernelName, const std::vector<T>& hBuffer)
+  {
+    cl::Buffer dBuffer = this->hdBufferMap[&hBuffer];
+
+    for(std::vector<Kernel>::iterator it = this->kernels.begin(); it != this->kernels.end(); it++) {
+      if(it->name.compare(kernelName) == 0) {
+        it->kernel.setArg(it->argsCount, dBuffer);
+        it->argsCount++;
+      }
+    }
+  }
+
+  template<class T> void ComputeUnit::addArgument(const std::string& kernelName, const T& variable)
+  {
+    for(std::vector<Kernel>::iterator it = this->kernels.begin(); it != this->kernels.end(); it++) {
+      if(it->name.compare(kernelName) == 0) {
+        it->kernel.setArg(it->argsCount, variable);
         it->argsCount++;
       }
     }

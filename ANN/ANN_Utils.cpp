@@ -48,7 +48,7 @@ LayersConfig Utils<T>::loadLayersConfig(const nlohmann::json& json) {
   foreach (nlohmann::json layerJson, layersConfigJsonArray) {
     Layer layer;
 
-    layer.numNeurons = layerJson.at("numNeurons").get<uint>();
+    layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
 
     std::string actvFuncName = layerJson.at("actvFunc").get<std::string>();
     layer.actvFuncType = ActvFunc::nameToType(actvFuncName);
@@ -71,7 +71,7 @@ TrainingConfig<T> Utils<T>::loadTrainingConfig(const nlohmann::json& json) {
 
   const nlohmann::json& trainingConfigJsonObject = json.at("trainingConfig");
 
-  trainingConfig.numEpochs = trainingConfigJsonObject.at("numEpochs").get<uint>();
+  trainingConfig.numEpochs = trainingConfigJsonObject.at("numEpochs").get<ulong>();
   trainingConfig.learningRate = trainingConfigJsonObject.at("learningRate").get<float>();
 
   return trainingConfig;
@@ -138,7 +138,7 @@ nlohmann::json Utils<T>::getLayersConfigJson(const LayersConfig& layersConfig) {
   nlohmann::json layerConfigJsonArray = nlohmann::json::array();
 
   for (const Layer& layer : layersConfig) {
-    uint numNeurons = layer.numNeurons;
+    ulong numNeurons = layer.numNeurons;
     std::string actvFuncName = ActvFunc::typeToName(layer.actvFuncType);
 
     layerConfigJsonArray.push_back({

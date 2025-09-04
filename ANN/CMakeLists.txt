@@ -12,16 +12,19 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
 add_library(ANN STATIC
-  ANN_Core.cpp
-  ANN_Core.hpp
-
-
-  ANN_ActvFunc.hpp
-  ANN_ActvFunc.cpp
+  ANN_Core.hpp ANN_Core.cpp
+  ANN_ActvFunc.hpp ANN_ActvFunc.cpp
   ANN_Utils.hpp ANN_Utils.cpp
   ANN_CoreMode.hpp ANN_CoreMode.cpp
+  ANN_CoreCPU.hpp ANN_CoreCPU.cpp
+  ANN_CoreGPU.hpp ANN_CoreGPU.cpp
+  ANN_CoreType.hpp ANN_CoreType.cpp
+  ANN_LayersConfig.hpp ANN_LayersConfig.cpp
   Kernels.cpp.cl
-
+  IdxHelper.cpp.cl
+  ActvFunc.hpp.cl ActvFunc.cpp.cl
+  Defines.hpp..cl
+  LICENSE.md
 )
 
 target_link_libraries(ANN PRIVATE Qt${QT_VERSION_MAJOR}::Core)
