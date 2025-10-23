@@ -38,7 +38,6 @@ include_directories(${LIB_OPENCL_WRAPPER_DIR})
 target_link_libraries(ANN PRIVATE "${LIB_OPENCL_WRAPPER_DIR}/libOpenCLWrapper.a")
 #End add the OpenCLWrapper library
 
-
 #Begin add the nlohmann library
 set(LIB_NLOHMANN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann")
 
