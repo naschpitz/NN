@@ -140,6 +140,12 @@ ANN-CLI --config model.json --mode train --type gpu --samples training_data.json
 ANN-CLI --config trained_model.json --mode run --input test_input.json
 ```
 
+### Running inference on GPU
+
+```bash
+ANN-CLI --config trained_model.json --mode run --type gpu --input test_input.json
+```
+
 ## License
 
 See [LICENSE.md](LICENSE.md) for details.
