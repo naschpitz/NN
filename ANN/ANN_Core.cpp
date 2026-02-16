@@ -45,6 +45,23 @@ void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig) {
 
 //===================================================================================================================//
 
+template <typename T>
+T Core<T>::calculateLoss(const Output<T>& expected) {
+  ulong numLayers = this->layersConfig.size();
+  const Output<T>& actual = this->actvs[numLayers - 1];
+
+  T loss = 0;
+  
+  for (ulong i = 0; i < expected.size(); i++) {
+    T diff = actual[i] - expected[i];
+    loss += diff * diff;
+  }
+
+  return loss / static_cast<T>(expected.size());
+}
+
+//===================================================================================================================//
+
 // (Optional) Explicit template instantiations.
 template class ANN::Core<int>;
 template class ANN::Core<double>;

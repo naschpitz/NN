@@ -40,20 +40,49 @@ Output<T> CoreCPU<T>::run(const Input<T>& input) {
 template <typename T>
 void CoreCPU<T>::train(const Samples<T>& samples) {
   ulong numSamples = samples.size();
-
   ulong numEpochs = this->trainingConfig.numEpochs;
 
   for (ulong e = 0; e < numEpochs; e++) {
+    T epochLoss = 0;
+
     for (ulong s = 0; s < numSamples; s++) {
       const Input<T>& input = samples[s].input;
       const Output<T>& output = samples[s].output;
 
       this->propagate(input);
+
+      T sampleLoss = this->calculateLoss(output);
+      epochLoss += sampleLoss;
+
+      // Call progress callback if set
+      if (this->trainingCallback) {
+        TrainingProgress<T> progress;
+        progress.currentEpoch = e + 1;
+        progress.totalEpochs = numEpochs;
+        progress.currentSample = s + 1;
+        progress.totalSamples = numSamples;
+        progress.sampleLoss = sampleLoss;
+        progress.epochLoss = 0;  // Not complete yet
+        this->trainingCallback(progress);
+      }
+
       this->backpropagate(output);
       this->accumulate();
     }
 
     this->update(numSamples);
+
+    // Call callback with epoch completion (sample at max, epochLoss set)
+    if (this->trainingCallback) {
+      TrainingProgress<T> progress;
+      progress.currentEpoch = e + 1;
+      progress.totalEpochs = numEpochs;
+      progress.currentSample = numSamples;
+      progress.totalSamples = numSamples;
+      progress.sampleLoss = 0;
+      progress.epochLoss = epochLoss / static_cast<T>(numSamples);
+      this->trainingCallback(progress);
+    }
   }
 }
 

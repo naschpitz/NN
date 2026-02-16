@@ -6,6 +6,7 @@
 #include "ANN_CoreType.hpp"
 #include "ANN_LayersConfig.hpp"
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -63,6 +64,21 @@ namespace ANN {
   template <typename T>
   using Samples = std::vector<Sample<T>>;
 
+  // Training progress information passed to callbacks
+  template <typename T>
+  struct TrainingProgress {
+    ulong currentEpoch;
+    ulong totalEpochs;
+    ulong currentSample;
+    ulong totalSamples;
+    T epochLoss;        // Average loss for completed epoch (0 if epoch not complete)
+    T sampleLoss;       // Loss for current sample
+  };
+
+  // Callback type for training progress
+  template <typename T>
+  using TrainingCallback = std::function<void(const TrainingProgress<T>&)>;
+
   template <typename T>
   class Core {
     public:
@@ -75,9 +91,15 @@ namespace ANN {
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
       const Parameters<T>& getParameters() const { return parameters; }
 
+      // Set a callback to receive training progress updates
+      void setTrainingCallback(TrainingCallback<T> callback) { trainingCallback = callback; }
+
     protected:
       explicit Core(const CoreConfig<T>& coreConfig);
       void sanityCheck(const CoreConfig<T>& coreConfig);
+
+      // Calculate MSE loss between output activations and expected output
+      T calculateLoss(const Output<T>& expected);
 
       CoreTypeType coreTypeType;
       CoreModeType coreModeType;
@@ -87,6 +109,8 @@ namespace ANN {
 
       Tensor2D<T> actvs;
       Tensor2D<T> zs;
+
+      TrainingCallback<T> trainingCallback;
   };
 }
 
