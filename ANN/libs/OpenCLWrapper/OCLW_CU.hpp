@@ -47,7 +47,7 @@ namespace OpenCLWrapper
 
     public:
       void addSource(const std::string& sourceCode);
-      void addKernel(const std::string& kernelName, ulong nElements, ulong offset);
+      void addKernel(const std::string& kernelName, ulong nElements, ulong offset = 0);
       void clearKernels();
 
       template<class T> void allocateBuffer(const std::string& name, ulong size);
@@ -82,7 +82,8 @@ namespace OpenCLWrapper
 
   template<class T> void ComputeUnit::writeBuffer(const std::vector<T> &hBuffer)
   {
-    std::map<void*, cl::Buffer>::const_iterator it = this->hdBufferMap.find(&hBuffer);
+    void* hBufferKey = static_cast<void*>(const_cast<std::vector<T>*>(&hBuffer));
+    std::map<void*, cl::Buffer>::const_iterator it = this->hdBufferMap.find(hBufferKey);
     cl::Buffer dBuffer;
 
     if(it != this->hdBufferMap.end())
@@ -90,7 +91,7 @@ namespace OpenCLWrapper
 
     else {
       dBuffer = cl::Buffer(this->context, CL_MEM_READ_WRITE, sizeof(T) * hBuffer.size());
-      this->hdBufferMap[&hBuffer] = dBuffer;
+      this->hdBufferMap[hBufferKey] = dBuffer;
     }
 
     this->queue.enqueueWriteBuffer(dBuffer, CL_FALSE, 0, sizeof(T) * hBuffer.size(), hBuffer.data());
@@ -114,7 +115,8 @@ namespace OpenCLWrapper
 
   template<class T> void ComputeUnit::readBuffer(std::vector<T>& hBuffer)
   {
-    cl::Buffer dBuffer = this->hdBufferMap[&hBuffer];
+    void* hBufferKey = static_cast<void*>(const_cast<std::vector<T>*>(&hBuffer));
+    cl::Buffer dBuffer = this->hdBufferMap[hBufferKey];
 
     uint count = hBuffer.size() * this->fraction;
     uint offset = this->index * count;
@@ -152,7 +154,8 @@ namespace OpenCLWrapper
 
   template<class T> void ComputeUnit::addArgument(const std::string& kernelName, const std::vector<T>& hBuffer)
   {
-    cl::Buffer dBuffer = this->hdBufferMap[&hBuffer];
+    void* hBufferKey = static_cast<void*>(const_cast<std::vector<T>*>(&hBuffer));
+    cl::Buffer dBuffer = this->hdBufferMap[hBufferKey];
 
     for(std::vector<Kernel>::iterator it = this->kernels.begin(); it != this->kernels.end(); it++) {
       if(it->name.compare(kernelName) == 0) {
