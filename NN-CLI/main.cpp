@@ -11,8 +11,44 @@
 #include "ANN-CLI_Loader.hpp"
 #include "ANN-CLI_Utils.hpp"
 
+#include <iomanip>
 #include <iostream>
 #include <memory>
+#include <sstream>
+
+// Progress bar helper function
+void printProgressBar(const ANN::TrainingProgress<float>& progress) {
+  const int barWidth = 40;
+
+  // Calculate progress percentage
+  float samplePercent = static_cast<float>(progress.currentSample) / progress.totalSamples;
+  int filledWidth = static_cast<int>(samplePercent * barWidth);
+
+  // Build progress bar
+  std::ostringstream bar;
+  bar << "\rEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
+
+  for (int i = 0; i < barWidth; i++) {
+    if (i < filledWidth) {
+      bar << "█";
+    } else {
+      bar << "░";
+    }
+  }
+
+  bar << "] " << std::setw(3) << static_cast<int>(samplePercent * 100) << "%";
+
+  // Show loss information
+  if (progress.epochLoss > 0) {
+    // Epoch complete - show average loss and newline
+    bar << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss << std::endl;
+  } else {
+    // In-progress - show current sample loss
+    bar << " - Sample Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss;
+  }
+
+  std::cout << bar.str() << std::flush;
+}
 
 void printUsage() {
   std::cout << "ANN-CLI - Artificial Neural Network Command Line Interface\n\n";
@@ -189,8 +225,12 @@ int main(int argc, char *argv[]) {
       std::cout << "Loaded " << samples.size() << " training samples.\n";
 
       std::cout << "Starting training...\n";
+
+      // Set up progress callback
+      core->setTrainingCallback(printProgressBar);
+
       core->train(samples);
-      std::cout << "Training completed.\n";
+      std::cout << "\nTraining completed.\n";
 
       // Save the trained model if output file specified
       if (parser.isSet(outputOption)) {
