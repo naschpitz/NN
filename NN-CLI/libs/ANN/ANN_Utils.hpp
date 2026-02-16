@@ -14,7 +14,7 @@ namespace ANN {
   class Utils
   {
     public:
-      static Core<T> load(const std::string& configFilePath);
+      static std::unique_ptr<Core<T>> load(const std::string& configFilePath);
       static void save(const Core<T>& core, const std::string& configFilePath);
 
       static std::string save(const Core<T>& core);
