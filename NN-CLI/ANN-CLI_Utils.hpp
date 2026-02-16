@@ -15,17 +15,17 @@ namespace ANN_CLI {
   class Utils {
     public:
       /**
-       * Load MNIST dataset from idx1 (labels) and idx3 (images) files.
-       * @param imagesPath Path to the idx3-ubyte images file
+       * Load dataset from IDX format files (idx1 for labels, idx3 for data).
+       * @param dataPath Path to the idx3-ubyte data file (e.g., images, feature vectors)
        * @param labelsPath Path to the idx1-ubyte labels file
-       * @return Samples with normalized pixel values (0-1) and one-hot encoded labels
+       * @return Samples with normalized values (0-1) and one-hot encoded labels
        */
-      static ANN::Samples<T> loadMNIST(const std::string& imagesPath, const std::string& labelsPath);
+      static ANN::Samples<T> loadIDX(const std::string& dataPath, const std::string& labelsPath);
 
     private:
       static uint32_t readBigEndianUInt32(std::ifstream& stream);
-      static std::vector<std::vector<unsigned char>> loadMNISTImages(const std::string& path);
-      static std::vector<unsigned char> loadMNISTLabels(const std::string& path);
+      static std::vector<std::vector<unsigned char>> loadIDXData(const std::string& path);
+      static std::vector<unsigned char> loadIDXLabels(const std::string& path);
   };
 
 } // namespace ANN_CLI
