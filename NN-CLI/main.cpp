@@ -1,17 +1,14 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
 #include <QCommandLineOption>
-#include <QFile>
 #include <QDebug>
 
 #include <ANN_Core.hpp>
 #include <ANN_CoreMode.hpp>
 #include <ANN_CoreType.hpp>
-#include <ANN_ActvFunc.hpp>
-#include <ANN_LayersConfig.hpp>
 #include <ANN_Utils.hpp>
 
-#include <json.hpp>
+#include "ANN-CLI_Loader.hpp"
 
 #include <iostream>
 #include <memory>
@@ -24,90 +21,10 @@ void printUsage() {
     std::cout << "  --config, -c <file>    Path to JSON configuration file\n";
     std::cout << "  --mode, -m <mode>      Mode: 'train' or 'run'\n";
     std::cout << "  --type, -t <type>      Core type: 'cpu' or 'gpu' (default: cpu)\n";
-    std::cout << "  --input, -i <values>   Input values for run mode (comma-separated)\n";
+    std::cout << "  --input, -i <file>     Path to JSON file with input values for run mode\n";
     std::cout << "  --samples, -s <file>   Path to JSON file with training samples\n";
     std::cout << "  --output, -o <file>    Output file for saving trained model\n";
     std::cout << "  --help, -h             Show this help message\n";
-}
-
-ANN::CoreConfig<float> loadConfig(const std::string& configFilePath,
-                                   ANN::CoreModeType modeType,
-                                   ANN::CoreTypeType coreType) {
-    QFile file(QString::fromStdString(configFilePath));
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        throw std::runtime_error("Failed to open config file: " + configFilePath);
-    }
-
-    QByteArray fileData = file.readAll();
-    std::string jsonString = fileData.toStdString();
-
-    nlohmann::json json = nlohmann::json::parse(jsonString);
-
-    ANN::CoreConfig<float> coreConfig;
-    coreConfig.coreModeType = modeType;
-    coreConfig.coreTypeType = coreType;
-
-    // Load layers config
-    const nlohmann::json& layersConfigJson = json.at("layersConfig");
-    for (const auto& layerJson : layersConfigJson) {
-        ANN::Layer layer;
-        layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
-        std::string actvFuncName = layerJson.at("actvFunc").get<std::string>();
-        layer.actvFuncType = ANN::ActvFunc::nameToType(actvFuncName);
-        coreConfig.layersConfig.push_back(layer);
-    }
-
-    // Load training config (optional)
-    if (json.contains("trainingConfig")) {
-        const nlohmann::json& trainingConfigJson = json.at("trainingConfig");
-        coreConfig.trainingConfig.numEpochs = trainingConfigJson.at("numEpochs").get<ulong>();
-        coreConfig.trainingConfig.learningRate = trainingConfigJson.at("learningRate").get<float>();
-    }
-
-    // Load parameters (optional - for pre-trained models)
-    if (json.contains("parameters")) {
-        const nlohmann::json& parametersJson = json.at("parameters");
-        coreConfig.parameters.weights = parametersJson.at("weights").get<ANN::Tensor3D<float>>();
-        coreConfig.parameters.biases = parametersJson.at("biases").get<ANN::Tensor2D<float>>();
-    }
-
-    return coreConfig;
-}
-
-ANN::Samples<float> loadSamples(const std::string& samplesFilePath) {
-    QFile file(QString::fromStdString(samplesFilePath));
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        throw std::runtime_error("Failed to open samples file: " + samplesFilePath);
-    }
-
-    QByteArray fileData = file.readAll();
-    std::string jsonString = fileData.toStdString();
-
-    nlohmann::json json = nlohmann::json::parse(jsonString);
-
-    ANN::Samples<float> samples;
-
-    for (const auto& sampleJson : json.at("samples")) {
-        ANN::Sample<float> sample;
-        sample.input = sampleJson.at("input").get<std::vector<float>>();
-        sample.output = sampleJson.at("output").get<std::vector<float>>();
-        samples.push_back(sample);
-    }
-
-    return samples;
-}
-
-ANN::Input<float> parseInput(const QString& inputStr) {
-    ANN::Input<float> input;
-    QStringList values = inputStr.split(',');
-
-    for (const QString& val : values) {
-        input.push_back(val.toFloat());
-    }
-
-    return input;
 }
 
 int main(int argc, char *argv[])
@@ -146,11 +63,11 @@ int main(int argc, char *argv[])
     );
     parser.addOption(typeOption);
 
-    // Input values for run mode
+    // Input file for run mode
     QCommandLineOption inputOption(
         QStringList() << "i" << "input",
-        "Input values for run mode (comma-separated).",
-        "values"
+        "Path to JSON file with input values for run mode.",
+        "file"
     );
     parser.addOption(inputOption);
 
@@ -210,7 +127,7 @@ int main(int argc, char *argv[])
         std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
         std::cout << "Mode: " << mode.toStdString() << ", Core type: " << coreTypeStr.toStdString() << "\n";
 
-        ANN::CoreConfig<float> coreConfig = loadConfig(configPath.toStdString(), modeType, coreType);
+        ANN::CoreConfig<float> coreConfig = ANN_CLI::Loader::loadConfig(configPath.toStdString(), modeType, coreType);
         auto core = ANN::Core<float>::makeCore(coreConfig);
 
         if (mode == "train") {
@@ -223,7 +140,7 @@ int main(int argc, char *argv[])
             QString samplesPath = parser.value(samplesOption);
             std::cout << "Loading training samples from: " << samplesPath.toStdString() << "\n";
 
-            ANN::Samples<float> samples = loadSamples(samplesPath.toStdString());
+            ANN::Samples<float> samples = ANN_CLI::Loader::loadSamples(samplesPath.toStdString());
             std::cout << "Loaded " << samples.size() << " training samples.\n";
 
             std::cout << "Starting training...\n";
@@ -244,7 +161,10 @@ int main(int argc, char *argv[])
                 return 1;
             }
 
-            ANN::Input<float> input = parseInput(parser.value(inputOption));
+            QString inputPath = parser.value(inputOption);
+            std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
+
+            ANN::Input<float> input = ANN_CLI::Loader::loadInput(inputPath.toStdString());
             std::cout << "Running ANN with input: ";
             for (size_t i = 0; i < input.size(); ++i) {
                 std::cout << input[i];

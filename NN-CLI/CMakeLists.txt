@@ -14,6 +14,8 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
 add_executable(ANN-CLI
   main.cpp
+  ANN-CLI_Utils.cpp
+  ANN-CLI_Loader.cpp
 )
 
 # Add include directories for dependencies
