@@ -9,7 +9,7 @@ using namespace ANN;
 //===================================================================================================================//
 
 template <typename T>
-Core<T> Utils<T>::load(const std::string& configFilePath) {
+std::unique_ptr<Core<T>> Utils<T>::load(const std::string& configFilePath) {
   QFile file(QString::fromStdString(configFilePath));
 
   bool result = file.open(QIODevice::ReadOnly);
@@ -34,7 +34,7 @@ Core<T> Utils<T>::load(const std::string& configFilePath) {
     qCritical() << "Config file JSON parse error: " << e.what();
   }
 
-  return Core<T>(coreConfig);
+  return Core<T>::makeCore(coreConfig);
 }
 
 //===================================================================================================================//
@@ -154,23 +154,9 @@ nlohmann::json Utils<T>::getLayersConfigJson(const LayersConfig& layersConfig) {
 
 template <typename T>
 nlohmann::json Utils<T>::getTrainingConfigJson(const TrainingConfig<T>& trainingConfig) {
-  if (!trainingConfig.isPresent) {
-    return nlohmann::json();  // Empty JSON object if no training config
-  }
-
   nlohmann::json trainingConfigJsonObject;
   trainingConfigJsonObject["numEpochs"] = trainingConfig.numEpochs;
-
-  nlohmann::json samplesJsonArray = nlohmann::json::array();
-
-  for (const Sample<T>& sample : trainingConfig.samples) {
-    samplesJsonArray.push_back({
-      {"input", sample.input},
-      {"output", sample.output}
-    });
-  }
-
-  trainingConfigJsonObject["samples"] = samplesJsonArray;
+  trainingConfigJsonObject["learningRate"] = trainingConfig.learningRate;
 
   return trainingConfigJsonObject;
 }
@@ -179,10 +165,6 @@ nlohmann::json Utils<T>::getTrainingConfigJson(const TrainingConfig<T>& training
 
 template <typename T>
 nlohmann::json Utils<T>::getParametersJson(const Parameters<T>& parameters) {
-  if (!parameters.isPresent) {
-    return nlohmann::json();  // Empty JSON object if no parameters
-  }
-
   return {
     {"weights", parameters.weights},
     {"biases", parameters.biases}
@@ -190,3 +172,8 @@ nlohmann::json Utils<T>::getParametersJson(const Parameters<T>& parameters) {
 }
 
 //===================================================================================================================//
+
+// Explicit template instantiations.
+template class ANN::Utils<int>;
+template class ANN::Utils<double>;
+template class ANN::Utils<float>;

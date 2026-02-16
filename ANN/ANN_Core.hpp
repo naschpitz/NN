@@ -68,8 +68,12 @@ namespace ANN {
     public:
       static std::unique_ptr<Core<T>> makeCore(const CoreConfig<T>& config);
 
-      virtual Output<T> run(const Input<T>& input);
-      virtual void train(const Samples<T>& samples);
+      virtual Output<T> run(const Input<T>& input) = 0;
+      virtual void train(const Samples<T>& samples) = 0;
+
+      const LayersConfig& getLayersConfig() const { return layersConfig; }
+      const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
+      const Parameters<T>& getParameters() const { return parameters; }
 
     protected:
       explicit Core(const CoreConfig<T>& coreConfig);
