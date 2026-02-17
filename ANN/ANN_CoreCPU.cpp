@@ -65,25 +65,20 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
   // Mutex for serializing callback calls (prevents I/O contention)
   QMutex callbackMutex;
 
+  // Pre-allocate sample indices vector (reused across epochs)
+  QVector<ulong> sampleIndices(numSamples);
+  for (ulong s = 0; s < numSamples; s++) {
+    sampleIndices[s] = s;
+  }
+
   for (ulong e = 0; e < numEpochs; e++) {
     // Reset global accumulators at the start of each epoch
     this->resetAccumulators();
 
-    // Reset worker accumulators at the start of each epoch
+    // Reset worker accumulators at the start of each epoch (including loss)
     for (int i = 0; i < numThreads; i++) {
       this->resetWorkerAccumulators(workers[i]);
-    }
-
-    // Atomic counters for thread-safe tracking
-    std::atomic<T> epochLoss{0};
-    std::atomic<ulong> completedSamples{0};
-    std::atomic<ulong> lastReportedSample{0};
-
-    // Process samples in parallel using QtConcurrent::map
-    // Each sample is processed by a worker from the pool
-    QVector<ulong> sampleIndices(numSamples);
-    for (ulong s = 0; s < numSamples; s++) {
-      sampleIndices[s] = s;
+      workers[i].accum_loss = 0;
     }
 
     // Use blockingMap to process all samples in parallel
@@ -100,35 +95,24 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
       this->backpropagate(sample.output, worker.actvs, worker.zs,
                           worker.dCost_dActvs, worker.dCost_dWeights, worker.dCost_dBiases);
 
-      // Thread-safe accumulation of loss
-      T currentLoss = epochLoss.load();
-      while (!epochLoss.compare_exchange_weak(currentLoss, currentLoss + worker.sampleLoss)) {
-        // Retry if another thread modified the value
-      }
+      // Accumulate loss to worker's local accumulator (no atomic needed - each thread has its own worker)
+      worker.accum_loss += worker.sampleLoss;
 
       // Accumulate gradients to worker's local accumulators (no mutex needed)
       this->accumulateToWorker(worker);
-
-      // Increment completed samples counter
-      ulong completed = ++completedSamples;
-
-      // Report progress periodically (thread-safe check with minimal contention)
-      ulong lastReported = lastReportedSample.load();
-      if (completed >= lastReported + progressInterval &&
-          lastReportedSample.compare_exchange_strong(lastReported, completed)) {
-        this->reportProgress(e + 1, numEpochs, completed, numSamples, worker.sampleLoss, 0, callbackMutex);
-      }
     });
 
-    // Merge all worker accumulators into global accumulators (only numThreads mutex locks per epoch)
+    // Merge all worker accumulators into global accumulators
+    T epochLoss = 0;
     for (int i = 0; i < numThreads; i++) {
       this->mergeWorkerAccumulators(workers[i]);
+      epochLoss += workers[i].accum_loss;
     }
 
     this->update(numSamples);
 
     // Report epoch completion
-    T avgEpochLoss = epochLoss.load() / static_cast<T>(numSamples);
+    T avgEpochLoss = epochLoss / static_cast<T>(numSamples);
     this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss, callbackMutex);
   }
 }

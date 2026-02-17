@@ -21,6 +21,7 @@ namespace ANN {
     // Thread-local accumulators to reduce mutex contention
     Tensor3D<T> accum_dCost_dWeights;
     Tensor2D<T> accum_dCost_dBiases;
+    T accum_loss;  // Thread-local loss accumulator
   };
 
   template <typename T>
