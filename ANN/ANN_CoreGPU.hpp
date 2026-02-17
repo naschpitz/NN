@@ -21,9 +21,17 @@ namespace ANN {
 
       Tensor1D<T> flatActvs;
 
+      // Kernel setup flags - kernels are set up once and reused
+      bool sampleKernelsSetup = false;
+      bool updateKernelsSetup = false;
+
       // Functions used in init()
       void allocateCommon();
       void allocateTraining();
+
+      // Kernel setup functions - called once to create all kernels
+      void setupSampleKernels();   // propagate + backpropagate + accumulate kernels
+      void setupUpdateKernels(ulong numSamples);  // update kernels (per epoch)
 
       // Functions used by run()
       void propagate(const Input<T>& input);

@@ -44,6 +44,12 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
+  // Set up all kernels once before training loop
+  if (!this->sampleKernelsSetup) {
+    this->setupSampleKernels();
+    this->sampleKernelsSetup = true;
+  }
+
   for (ulong e = 0; e < numEpochs; e++) {
     T epochLoss = 0;
 
@@ -213,18 +219,19 @@ void CoreGPU<T>::allocateTraining() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPU<T>::propagate(const Input<T>& input) {
+void CoreGPU<T>::setupSampleKernels() {
   ulong numLayers = this->layersConfig.size();
 
-  // Set the actvs values of the Neurons of the first layer the same values as the input.
-  this->oclwCore. template writeBuffer<T>("actvs", input, 0);
+  std::cout << "Setting up sample kernels (propagate + backpropagate + accumulate)...\n";
 
-  // Propagate from the second layer on, as the first layer is input only.
+  // Clear any existing kernels
+  this->oclwCore.clearKernels();
+
+  // === PROPAGATE KERNELS ===
+  // Add kernels for all layers (layer 1 to N-1)
   for (ulong l = 1; l < numLayers; l++) {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
-
-    this->oclwCore.clearKernels();
 
     // calculate_zs kernel: computes weighted sum + bias for each neuron
     this->oclwCore.addKernel("calculate_zs", numNeurons, 0);
@@ -243,6 +250,141 @@ void CoreGPU<T>::propagate(const Input<T>& input) {
     this->oclwCore. template addArgument<ulong>("calculate_actvs", l);
     this->oclwCore. template addArgument<Layer>("calculate_actvs", "layers");
     this->oclwCore. template addArgument<ulong>("calculate_actvs", numLayers);
+  }
+
+  // === BACKPROPAGATE KERNELS ===
+  // Last layer kernels
+  ulong l = numLayers - 1;
+  const Layer& lastLayer = this->layersConfig[l];
+  ulong numNeurons = lastLayer.numNeurons;
+  ulong numBiases = numNeurons;
+  ulong numWeights = Utils<T>::count(this->parameters.weights[l]);
+
+  // Allocate outputs buffer for backpropagation
+  this->oclwCore. template allocateBuffer<T>("outputs", this->layersConfig[numLayers - 1].numNeurons);
+
+  // calculate_dCost_dActv_last_layer
+  this->oclwCore.addKernel("calculate_dCost_dActv_last_layer", numNeurons, 0);
+  this->oclwCore. template addArgument<T>("calculate_dCost_dActv_last_layer", "dCost_dActvs");
+  this->oclwCore. template addArgument<T>("calculate_dCost_dActv_last_layer", "actvs");
+  this->oclwCore. template addArgument<T>("calculate_dCost_dActv_last_layer", "outputs");
+  this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv_last_layer", this->layersConfig[numLayers - 1].numNeurons);
+  this->oclwCore. template addArgument<Layer>("calculate_dCost_dActv_last_layer", "layers");
+  this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv_last_layer", numLayers);
+
+  // calculate_dCost_dBias for last layer
+  this->oclwCore.addKernel("calculate_dCost_dBias", numBiases, 0);
+  this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dBiases");
+  this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "zs");
+  this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dActvs");
+  this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", l);
+  this->oclwCore. template addArgument<Layer>("calculate_dCost_dBias", "layers");
+  this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", numLayers);
+
+  // calculate_dCost_dWeight for last layer
+  this->oclwCore.addKernel("calculate_dCost_dWeight", numWeights, 0);
+  this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dWeights");
+  this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "actvs");
+  this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "zs");
+  this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dActvs");
+  this->oclwCore. template addArgument<ulong>("calculate_dCost_dWeight", l);
+  this->oclwCore. template addArgument<Layer>("calculate_dCost_dWeight", "layers");
+  this->oclwCore. template addArgument<ulong>("calculate_dCost_dWeight", numLayers);
+
+  // Backpropagate through hidden layers (from second-to-last to first hidden layer)
+  for (ulong layer_idx = numLayers - 2; layer_idx >= 1; layer_idx--) {
+    const Layer& curr_layer = this->layersConfig[layer_idx];
+    ulong curr_numNeurons = curr_layer.numNeurons;
+    ulong curr_numBiases = curr_numNeurons;
+    ulong curr_numWeights = Utils<T>::count(this->parameters.weights[layer_idx]);
+
+    // calculate_dCost_dActv
+    this->oclwCore.addKernel("calculate_dCost_dActv", curr_numNeurons, 0);
+    this->oclwCore. template addArgument<T>("calculate_dCost_dActv", "dCost_dActvs");
+    this->oclwCore. template addArgument<T>("calculate_dCost_dActv", "weights");
+    this->oclwCore. template addArgument<T>("calculate_dCost_dActv", "zs");
+    this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv", layer_idx);
+    this->oclwCore. template addArgument<Layer>("calculate_dCost_dActv", "layers");
+    this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv", numLayers);
+
+    // calculate_dCost_dBias
+    this->oclwCore.addKernel("calculate_dCost_dBias", curr_numBiases, 0);
+    this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dBiases");
+    this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "zs");
+    this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dActvs");
+    this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", layer_idx);
+    this->oclwCore. template addArgument<Layer>("calculate_dCost_dBias", "layers");
+    this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", numLayers);
+
+    // calculate_dCost_dWeight
+    this->oclwCore.addKernel("calculate_dCost_dWeight", curr_numWeights, 0);
+    this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dWeights");
+    this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "actvs");
+    this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "zs");
+    this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dActvs");
+    this->oclwCore. template addArgument<ulong>("calculate_dCost_dWeight", layer_idx);
+    this->oclwCore. template addArgument<Layer>("calculate_dCost_dWeight", "layers");
+    this->oclwCore. template addArgument<ulong>("calculate_dCost_dWeight", numLayers);
+
+    // Break condition for ulong loop (can't go negative)
+    if (layer_idx == 1) break;
+  }
+
+  // === ACCUMULATE KERNELS ===
+  ulong totalNumBiases = Utils<T>::count(this->parameters.biases);
+  ulong totalNumWeights = Utils<T>::count(this->parameters.weights);
+
+  this->oclwCore.addKernel("accumulate_dCost_dBiases", totalNumBiases, 0);
+  this->oclwCore. template addArgument<T>("accumulate_dCost_dBiases", "accum_dCost_dBiases");
+  this->oclwCore. template addArgument<T>("accumulate_dCost_dBiases", "dCost_dBiases");
+  this->oclwCore. template addArgument<ulong>("accumulate_dCost_dBiases", totalNumBiases);
+
+  this->oclwCore.addKernel("accumulate_dCost_dWeights", totalNumWeights, 0);
+  this->oclwCore. template addArgument<T>("accumulate_dCost_dWeights", "accum_dCost_dWeights");
+  this->oclwCore. template addArgument<T>("accumulate_dCost_dWeights", "dCost_dWeights");
+  this->oclwCore. template addArgument<ulong>("accumulate_dCost_dWeights", totalNumWeights);
+
+  std::cout << "Sample kernels setup done.\n";
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPU<T>::propagate(const Input<T>& input) {
+  // Write input to actvs buffer (first layer)
+  this->oclwCore. template writeBuffer<T>("actvs", input, 0);
+
+  // If kernels are set up, just run them
+  // Otherwise, this is being called outside of train() (e.g., from run())
+  if (this->sampleKernelsSetup) {
+    // Kernels will be run at the end of sample processing (after backpropagate and accumulate)
+    // This is handled by the train() loop
+    return;
+  }
+
+  // Fallback for run() mode - set up and run kernels per layer (old behavior)
+  ulong numLayers = this->layersConfig.size();
+  for (ulong l = 1; l < numLayers; l++) {
+    const Layer& layer = this->layersConfig[l];
+    ulong numNeurons = layer.numNeurons;
+
+    this->oclwCore.clearKernels();
+
+    this->oclwCore.addKernel("calculate_zs", numNeurons, 0);
+    this->oclwCore. template addArgument<T>("calculate_zs", "zs");
+    this->oclwCore. template addArgument<T>("calculate_zs", "weights");
+    this->oclwCore. template addArgument<T>("calculate_zs", "actvs");
+    this->oclwCore. template addArgument<T>("calculate_zs", "biases");
+    this->oclwCore. template addArgument<ulong>("calculate_zs", l);
+    this->oclwCore. template addArgument<Layer>("calculate_zs", "layers");
+    this->oclwCore. template addArgument<ulong>("calculate_zs", numLayers);
+
+    this->oclwCore.addKernel("calculate_actvs", numNeurons, 0);
+    this->oclwCore. template addArgument<T>("calculate_actvs", "actvs");
+    this->oclwCore. template addArgument<T>("calculate_actvs", "zs");
+    this->oclwCore. template addArgument<ulong>("calculate_actvs", l);
+    this->oclwCore. template addArgument<Layer>("calculate_actvs", "layers");
+    this->oclwCore. template addArgument<ulong>("calculate_actvs", numLayers);
 
     this->oclwCore.run();
   }
@@ -252,24 +394,27 @@ void CoreGPU<T>::propagate(const Input<T>& input) {
 
 template <typename T>
 void CoreGPU<T>::backpropagate(const Output<T>& output) {
-  ulong numLayers = this->layersConfig.size();
-
-  // Write output to a temporary buffer for kernel use
-  this->oclwCore. template allocateBuffer<T>("outputs", output.size());
+  // Write expected output to buffer for kernel use
   this->oclwCore. template writeBuffer<T>("outputs", output, 0);
 
-  // For the last layer, calculate dCost_dActv
-  ulong l = numLayers - 1;
+  // If kernels are set up, just write buffer - run() will be called by accumulate()
+  if (this->sampleKernelsSetup) {
+    return;
+  }
 
+  // Fallback for non-training mode (old behavior)
+  ulong numLayers = this->layersConfig.size();
+
+  this->oclwCore. template allocateBuffer<T>("outputs", output.size());
+
+  ulong l = numLayers - 1;
   const Layer& layer = this->layersConfig[l];
   ulong numNeurons = layer.numNeurons;
-
   ulong numBiases = numNeurons;
   ulong numWeights = Utils<T>::count(this->parameters.weights[l]);
 
   this->oclwCore.clearKernels();
 
-  // calculate_dCost_dActv_last_layer: dCost_dActvs, actvs, outputs, numOutputNeurons, layers, numLayers
   this->oclwCore.addKernel("calculate_dCost_dActv_last_layer", numNeurons, 0);
   this->oclwCore. template addArgument<T>("calculate_dCost_dActv_last_layer", "dCost_dActvs");
   this->oclwCore. template addArgument<T>("calculate_dCost_dActv_last_layer", "actvs");
@@ -278,7 +423,6 @@ void CoreGPU<T>::backpropagate(const Output<T>& output) {
   this->oclwCore. template addArgument<Layer>("calculate_dCost_dActv_last_layer", "layers");
   this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv_last_layer", numLayers);
 
-  // calculate_dCost_dBias: dCost_dBiases, zs, dCost_dActvs, layerIdx, layers, numLayers
   this->oclwCore.addKernel("calculate_dCost_dBias", numBiases, 0);
   this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dBiases");
   this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "zs");
@@ -287,7 +431,6 @@ void CoreGPU<T>::backpropagate(const Output<T>& output) {
   this->oclwCore. template addArgument<Layer>("calculate_dCost_dBias", "layers");
   this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", numLayers);
 
-  // calculate_dCost_dWeight: dCost_dWeights, actvs, zs, dCost_dActvs, layerIdx, layers, numLayers
   this->oclwCore.addKernel("calculate_dCost_dWeight", numWeights, 0);
   this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dWeights");
   this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "actvs");
@@ -299,17 +442,14 @@ void CoreGPU<T>::backpropagate(const Output<T>& output) {
 
   this->oclwCore.run();
 
-  // Backpropagate through hidden layers (from second-to-last to first hidden layer)
   for (ulong layer_idx = numLayers - 2; layer_idx >= 1; layer_idx--) {
     const Layer& curr_layer = this->layersConfig[layer_idx];
     ulong curr_numNeurons = curr_layer.numNeurons;
-
     ulong curr_numBiases = curr_numNeurons;
     ulong curr_numWeights = Utils<T>::count(this->parameters.weights[layer_idx]);
 
     this->oclwCore.clearKernels();
 
-    // calculate_dCost_dActv: dCost_dActvs, weights, zs, layerIdx, layers, numLayers
     this->oclwCore.addKernel("calculate_dCost_dActv", curr_numNeurons, 0);
     this->oclwCore. template addArgument<T>("calculate_dCost_dActv", "dCost_dActvs");
     this->oclwCore. template addArgument<T>("calculate_dCost_dActv", "weights");
@@ -318,7 +458,6 @@ void CoreGPU<T>::backpropagate(const Output<T>& output) {
     this->oclwCore. template addArgument<Layer>("calculate_dCost_dActv", "layers");
     this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv", numLayers);
 
-    // calculate_dCost_dBias: dCost_dBiases, zs, dCost_dActvs, layerIdx, layers, numLayers
     this->oclwCore.addKernel("calculate_dCost_dBias", curr_numBiases, 0);
     this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dBiases");
     this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "zs");
@@ -327,7 +466,6 @@ void CoreGPU<T>::backpropagate(const Output<T>& output) {
     this->oclwCore. template addArgument<Layer>("calculate_dCost_dBias", "layers");
     this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", numLayers);
 
-    // calculate_dCost_dWeight: dCost_dWeights, actvs, zs, dCost_dActvs, layerIdx, layers, numLayers
     this->oclwCore.addKernel("calculate_dCost_dWeight", curr_numWeights, 0);
     this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dWeights");
     this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "actvs");
@@ -339,7 +477,6 @@ void CoreGPU<T>::backpropagate(const Output<T>& output) {
 
     this->oclwCore.run();
 
-    // Break condition for ulong loop (can't go negative)
     if (layer_idx == 1) break;
   }
 }
@@ -348,18 +485,23 @@ void CoreGPU<T>::backpropagate(const Output<T>& output) {
 
 template <typename T>
 void CoreGPU<T>::accumulate() {
+  // If kernels are set up, run all sample kernels (propagate + backpropagate + accumulate)
+  if (this->sampleKernelsSetup) {
+    this->oclwCore.run();
+    return;
+  }
+
+  // Fallback for non-training mode (old behavior)
   this->oclwCore.clearKernels();
 
   ulong numBiases = Utils<T>::count(this->parameters.biases);
   ulong numWeights = Utils<T>::count(this->parameters.weights);
 
-  // accumulate_dCost_dBiases: accum_dCost_dBiases, dCost_dBiases, size
   this->oclwCore.addKernel("accumulate_dCost_dBiases", numBiases, 0);
   this->oclwCore. template addArgument<T>("accumulate_dCost_dBiases", "accum_dCost_dBiases");
   this->oclwCore. template addArgument<T>("accumulate_dCost_dBiases", "dCost_dBiases");
   this->oclwCore. template addArgument<ulong>("accumulate_dCost_dBiases", numBiases);
 
-  // accumulate_dCost_dWeights: accum_dCost_dWeights, dCost_dWeights, size
   this->oclwCore.addKernel("accumulate_dCost_dWeights", numWeights, 0);
   this->oclwCore. template addArgument<T>("accumulate_dCost_dWeights", "accum_dCost_dWeights");
   this->oclwCore. template addArgument<T>("accumulate_dCost_dWeights", "dCost_dWeights");
@@ -371,13 +513,15 @@ void CoreGPU<T>::accumulate() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPU<T>::update(ulong numSamples) {
-  this->oclwCore.clearKernels();
-
+void CoreGPU<T>::setupUpdateKernels(ulong numSamples) {
   ulong numBiases = Utils<T>::count(this->parameters.biases);
   ulong numWeights = Utils<T>::count(this->parameters.weights);
 
-  // update_biases: biases, accum_dCost_dBiases, numSamples, learningRate, size
+  std::cout << "Setting up update kernels...\n";
+
+  // Clear sample kernels and set up update kernels
+  this->oclwCore.clearKernels();
+
   this->oclwCore.addKernel("update_biases", numBiases, 0);
   this->oclwCore. template addArgument<T>("update_biases", "biases");
   this->oclwCore. template addArgument<T>("update_biases", "accum_dCost_dBiases");
@@ -385,7 +529,6 @@ void CoreGPU<T>::update(ulong numSamples) {
   this->oclwCore. template addArgument<float>("update_biases", this->trainingConfig.learningRate);
   this->oclwCore. template addArgument<ulong>("update_biases", numBiases);
 
-  // update_weights: weights, accum_dCost_dWeights, numSamples, learningRate, size
   this->oclwCore.addKernel("update_weights", numWeights, 0);
   this->oclwCore. template addArgument<T>("update_weights", "weights");
   this->oclwCore. template addArgument<T>("update_weights", "accum_dCost_dWeights");
@@ -393,7 +536,26 @@ void CoreGPU<T>::update(ulong numSamples) {
   this->oclwCore. template addArgument<float>("update_weights", this->trainingConfig.learningRate);
   this->oclwCore. template addArgument<ulong>("update_weights", numWeights);
 
+  std::cout << "Update kernels setup done.\n";
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPU<T>::update(ulong numSamples) {
+  // Set up update kernels if not done yet (this clears sample kernels)
+  if (!this->updateKernelsSetup) {
+    this->setupUpdateKernels(numSamples);
+    this->updateKernelsSetup = true;
+  }
+
+  // Run update kernels
   this->oclwCore.run();
+
+  // After update, we need to re-setup sample kernels for next epoch
+  // Reset the flag so they get set up again on first sample of next epoch
+  this->sampleKernelsSetup = false;
+  this->updateKernelsSetup = false;  // Reset so it gets set up with potentially new numSamples
 }
 
 //===================================================================================================================//
