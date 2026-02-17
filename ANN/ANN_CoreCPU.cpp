@@ -56,12 +56,25 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
     this->allocateWorker(workers[i]);
   }
 
+  // Progress reporting interval (report ~1000 times per epoch)
+  const ulong progressInterval = std::max(ulong(1), numSamples / 1000);
+
+  // Mutex for serializing callback calls (prevents I/O contention)
+  QMutex callbackMutex;
+
   for (ulong e = 0; e < numEpochs; e++) {
-    // Reset accumulators at the start of each epoch
+    // Reset global accumulators at the start of each epoch
     this->resetAccumulators();
 
-    // Atomic for thread-safe loss accumulation
+    // Reset worker accumulators at the start of each epoch
+    for (int i = 0; i < numThreads; i++) {
+      this->resetWorkerAccumulators(workers[i]);
+    }
+
+    // Atomic counters for thread-safe tracking
     std::atomic<T> epochLoss{0};
+    std::atomic<ulong> completedSamples{0};
+    std::atomic<ulong> lastReportedSample{0};
 
     // Process samples in parallel using QtConcurrent::map
     // Each sample is processed by a worker from the pool
@@ -80,7 +93,7 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
       const Sample<T>& sample = samples[sampleIndex];
       this->propagate(sample.input, worker.actvs, worker.zs);
       worker.sampleLoss = this->calculateLoss(sample.output, worker.actvs);
-      
+
       this->backpropagate(sample.output, worker.actvs, worker.zs,
                           worker.dCost_dActvs, worker.dCost_dWeights, worker.dCost_dBiases);
 
@@ -90,23 +103,30 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
         // Retry if another thread modified the value
       }
 
-      // Thread-safe accumulation of gradients
-      this->accumulate(worker);
+      // Accumulate gradients to worker's local accumulators (no mutex needed)
+      this->accumulateToWorker(worker);
+
+      // Increment completed samples counter
+      ulong completed = ++completedSamples;
+
+      // Report progress periodically (thread-safe check with minimal contention)
+      ulong lastReported = lastReportedSample.load();
+      if (completed >= lastReported + progressInterval &&
+          lastReportedSample.compare_exchange_strong(lastReported, completed)) {
+        this->reportProgress(e + 1, numEpochs, completed, numSamples, worker.sampleLoss, 0, callbackMutex);
+      }
     });
+
+    // Merge all worker accumulators into global accumulators (only numThreads mutex locks per epoch)
+    for (int i = 0; i < numThreads; i++) {
+      this->mergeWorkerAccumulators(workers[i]);
+    }
 
     this->update(numSamples);
 
-    // Call callback with epoch completion
-    if (this->trainingCallback) {
-      TrainingProgress<T> progress;
-      progress.currentEpoch = e + 1;
-      progress.totalEpochs = numEpochs;
-      progress.currentSample = numSamples;
-      progress.totalSamples = numSamples;
-      progress.sampleLoss = 0;
-      progress.epochLoss = epochLoss.load() / static_cast<T>(numSamples);
-      this->trainingCallback(progress);
-    }
+    // Report epoch completion
+    T avgEpochLoss = epochLoss.load() / static_cast<T>(numSamples);
+    this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss, callbackMutex);
   }
 }
 
@@ -224,6 +244,8 @@ void CoreCPU<T>::allocateWorker(SampleWorker<T>& worker) {
   worker.dCost_dActvs.resize(numLayers);
   worker.dCost_dWeights.resize(numLayers);
   worker.dCost_dBiases.resize(numLayers);
+  worker.accum_dCost_dWeights.resize(numLayers);
+  worker.accum_dCost_dBiases.resize(numLayers);
 
   for (ulong l = 0; l < numLayers; l++) {
     Layer layer = this->layersConfig[l];
@@ -241,9 +263,12 @@ void CoreCPU<T>::allocateWorker(SampleWorker<T>& worker) {
     worker.dCost_dActvs[l].resize(numNeurons);
     worker.dCost_dWeights[l].resize(numNeurons);
     worker.dCost_dBiases[l].resize(numNeurons);
+    worker.accum_dCost_dWeights[l].resize(numNeurons);
+    worker.accum_dCost_dBiases[l].resize(numNeurons);
 
     for (ulong j = 0; j < numNeurons; j++) {
       worker.dCost_dWeights[l][j].resize(prevNumNeurons);
+      worker.accum_dCost_dWeights[l][j].resize(prevNumNeurons);
     }
   }
 }
@@ -414,7 +439,55 @@ void CoreCPU<T>::resetAccumulators() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::accumulate(const SampleWorker<T>& worker) {
+void CoreCPU<T>::resetWorkerAccumulators(SampleWorker<T>& worker) {
+  ulong numLayers = this->layersConfig.size();
+
+  for (ulong l = 1; l < numLayers; l++) {
+    const Layer& layer = this->layersConfig[l];
+    ulong numNeurons = layer.numNeurons;
+
+    for (ulong j = 0; j < numNeurons; j++) {
+      const Layer& prevLayer = this->layersConfig[l - 1];
+      ulong prevNumNeurons = prevLayer.numNeurons;
+
+      worker.accum_dCost_dBiases[l][j] = static_cast<T>(0);
+
+      for (ulong k = 0; k < prevNumNeurons; k++) {
+        worker.accum_dCost_dWeights[l][j][k] = static_cast<T>(0);
+      }
+    }
+  }
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreCPU<T>::accumulateToWorker(SampleWorker<T>& worker) {
+  // No mutex needed - each worker accumulates to its own local accumulators
+  ulong numLayers = this->layersConfig.size();
+
+  for (ulong l = 1; l < numLayers; l++) {
+    const Layer& layer = this->layersConfig[l];
+    ulong numNeurons = layer.numNeurons;
+
+    for (ulong j = 0; j < numNeurons; j++) {
+      const Layer& prevLayer = this->layersConfig[l - 1];
+      ulong prevNumNeurons = prevLayer.numNeurons;
+
+      worker.accum_dCost_dBiases[l][j] += worker.dCost_dBiases[l][j];
+
+      for (ulong k = 0; k < prevNumNeurons; k++) {
+        worker.accum_dCost_dWeights[l][j][k] += worker.dCost_dWeights[l][j][k];
+      }
+    }
+  }
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreCPU<T>::mergeWorkerAccumulators(const SampleWorker<T>& worker) {
+  // Called once per worker per epoch - minimal mutex contention
   QMutexLocker locker(&this->accumulatorMutex);
 
   ulong numLayers = this->layersConfig.size();
@@ -427,10 +500,10 @@ void CoreCPU<T>::accumulate(const SampleWorker<T>& worker) {
       const Layer& prevLayer = this->layersConfig[l - 1];
       ulong prevNumNeurons = prevLayer.numNeurons;
 
-      this->accum_dCost_dBiases[l][j] += worker.dCost_dBiases[l][j];
+      this->accum_dCost_dBiases[l][j] += worker.accum_dCost_dBiases[l][j];
 
       for (ulong k = 0; k < prevNumNeurons; k++) {
-        this->accum_dCost_dWeights[l][j][k] += worker.dCost_dWeights[l][j][k];
+        this->accum_dCost_dWeights[l][j][k] += worker.accum_dCost_dWeights[l][j][k];
       }
     }
   }
@@ -474,6 +547,28 @@ void CoreCPU<T>::update(ulong numSamples) {
       }
     }
   }
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
+                                 T sampleLoss, T epochLoss, QMutex& callbackMutex) {
+  if (!this->trainingCallback) {
+    return;
+  }
+
+  QMutexLocker locker(&callbackMutex);
+
+  TrainingProgress<T> progress;
+  progress.currentEpoch = currentEpoch;
+  progress.totalEpochs = totalEpochs;
+  progress.currentSample = currentSample;
+  progress.totalSamples = totalSamples;
+  progress.sampleLoss = sampleLoss;
+  progress.epochLoss = epochLoss;
+
+  this->trainingCallback(progress);
 }
 
 //===================================================================================================================//
