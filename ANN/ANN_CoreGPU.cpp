@@ -23,10 +23,6 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig), oclw
     case CoreModeType::UNKNOWN:
       break;
   }
-
-  if (this->coreModeType == CoreModeType::TRAIN) {
-    this->allocateTraining();
-  }
 }
 
 //===================================================================================================================//

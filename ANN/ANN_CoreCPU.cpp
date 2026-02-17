@@ -19,10 +19,6 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
     case CoreModeType::UNKNOWN:
       break;
   }
-
-  if (this->coreModeType == CoreModeType::TRAIN) {
-    this->allocateTraining();
-  }
 }
 
 //===================================================================================================================//
@@ -132,17 +128,19 @@ void CoreCPU<T>::allocateTraining() {
   this->accum_dCost_dWeights.resize(numLayers);
 
   this->dCost_dWeights.resize(numLayers);
+  this->dCost_dBiases.resize(numLayers);
   this->accum_dCost_dBiases.resize(numLayers);
 
   for (ulong l = 1; l < numLayers; l++) {
     Layer layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
+    this->dCost_dActvs[l].resize(numNeurons);
     this->dCost_dWeights[l].resize(numNeurons);
     this->accum_dCost_dWeights[l].resize(numNeurons);
 
     this->dCost_dBiases[l].resize(numNeurons);
-    this->accum_dCost_dBiases[l].resize(numLayers);
+    this->accum_dCost_dBiases[l].resize(numNeurons);
 
     // The number of neurons is the same as the number of activations.
     ulong prevNumNeurons = this->actvs[l - 1].size();
