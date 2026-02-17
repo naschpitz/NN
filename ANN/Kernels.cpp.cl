@@ -73,7 +73,7 @@ kernel void calculate_actvs(
   TYPE z = zs[idx];
 
   ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
-  actvs[idx] = actvFunc_calculate(z, actvFuncType, false);
+  actvs[idx] = actvFunc_calculate(z, actvFuncType);
 }
 
 //===================================================================================================================//
@@ -193,7 +193,7 @@ kernel void calculate_dCost_dActv(
     TYPE z = zs[nextLayer2dIdx];
 
     ActvFuncType actvFuncType = layers[layerIdx + 1].actvFuncType;
-    TYPE dActvFunc_z = actvFunc_calculate(z, actvFuncType, true);
+    TYPE dActvFunc_z = actvFunc_derivative(z, actvFuncType);
 
     TYPE dCost_dActv_next = dCost_dActvs[nextLayer2dIdx];
 
@@ -241,7 +241,7 @@ kernel void calculate_dCost_dWeight(
   TYPE z = zs[layer2dOffset + j];
 
   ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
-  TYPE dActvFunc_z = actvFunc_calculate(z, actvFuncType, true);
+  TYPE dActvFunc_z = actvFunc_derivative(z, actvFuncType);
 
   TYPE dCost_dActv = dCost_dActvs[layer2dOffset + j];
 
@@ -270,7 +270,7 @@ kernel void calculate_dCost_dBias(
   TYPE z = zs[idx];
 
   ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
-  TYPE dActvFunc_z = actvFunc_calculate(z, actvFuncType, true);
+  TYPE dActvFunc_z = actvFunc_derivative(z, actvFuncType);
 
   TYPE dCost_dActv = dCost_dActvs[idx];
 
