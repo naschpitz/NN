@@ -46,6 +46,11 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
         if (trainingConfigJson.contains("numThreads")) {
             coreConfig.trainingConfig.numThreads = trainingConfigJson.at("numThreads").get<int>();
         }
+
+        // progressReports is optional, defaults to 1000 reports per epoch
+        if (trainingConfigJson.contains("progressReports")) {
+            coreConfig.trainingConfig.progressReports = trainingConfigJson.at("progressReports").get<ulong>();
+        }
     }
 
     // Load parameters (optional - for pre-trained models)
