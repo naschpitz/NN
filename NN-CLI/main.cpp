@@ -20,6 +20,14 @@
 void printProgressBar(const ANN::TrainingProgress<float>& progress) {
   const int barWidth = 40;
 
+  // Only update every 100 samples (or at epoch completion) to avoid flooding output
+  bool isEpochComplete = (progress.epochLoss > 0);
+  bool shouldPrint = isEpochComplete || (progress.currentSample % 100 == 0) || (progress.currentSample == 1);
+
+  if (!shouldPrint) {
+    return;
+  }
+
   // Calculate progress percentage
   float samplePercent = static_cast<float>(progress.currentSample) / progress.totalSamples;
   int filledWidth = static_cast<int>(samplePercent * barWidth);
@@ -39,7 +47,7 @@ void printProgressBar(const ANN::TrainingProgress<float>& progress) {
   bar << "] " << std::setw(3) << static_cast<int>(samplePercent * 100) << "%";
 
   // Show loss information
-  if (progress.epochLoss > 0) {
+  if (isEpochComplete) {
     // Epoch complete - show average loss and newline
     bar << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss << std::endl;
   } else {
