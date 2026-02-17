@@ -31,6 +31,7 @@ namespace ANN {
       // Functions used by train()
       void backpropagate(const Output<T>& output);
       void accumulate();
+      void resetAccumulators();
       void update(ulong numSamples);
 
       // Functions used in backpropagate()

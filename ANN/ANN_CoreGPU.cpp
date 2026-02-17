@@ -1,7 +1,9 @@
 #include "ANN_CoreGPU.hpp"
 #include "ANN_Utils.hpp"
-\
+
+#include <cmath>
 #include <iostream>
+#include <random>
 
 #include <OCLW_Core.hpp>
 #include <QFile>
@@ -45,6 +47,9 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
 
   for (ulong e = 0; e < numEpochs; e++) {
     T epochLoss = 0;
+
+    // Reset accumulators at the start of each epoch
+    this->resetAccumulators();
 
     for (ulong s = 0; s < numSamples; s++) {
       const Input<T>& input = samples[s].input;
@@ -93,22 +98,49 @@ template <typename T>
 void CoreGPU<T>::allocateCommon() {
   ulong numLayers = this->layersConfig.size();
 
+  // Check if parameters were loaded from file (non-empty)
+  bool hasLoadedParameters = !this->parameters.weights.empty() &&
+                             this->parameters.weights.size() == numLayers;
+
   this->parameters.weights.resize(numLayers);
   this->parameters.biases.resize(numLayers);
 
-  for (ulong l = 1; l < numLayers; l++) {
-    Layer layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
+  // Random number generator for weight initialization
+  std::random_device rd;
+  std::mt19937 gen(rd());
 
-    // Get the layer l activation function type and set it.
-    this->parameters.weights[l].resize(numNeurons);
-    this->parameters.biases[l].resize(numNeurons);
+  for (ulong l = 1; l < numLayers; l++) {
+    const Layer& layer = this->layersConfig[l];
+    ulong numNeurons = layer.numNeurons;
 
     // The number of neurons is the same as the number of activations.
     ulong prevNumNeurons = this->actvs[l - 1].size();
 
+    // He initialization for ReLU, Xavier for sigmoid/tanh
+    ActvFuncType actvFuncType = layer.actvFuncType;
+    double stddev;
+    if (actvFuncType == ActvFuncType::RELU) {
+      stddev = std::sqrt(2.0 / static_cast<double>(prevNumNeurons));
+    } else {
+      stddev = std::sqrt(1.0 / static_cast<double>(prevNumNeurons));
+    }
+
+    std::normal_distribution<double> dist(0.0, stddev);
+
+    this->parameters.weights[l].resize(numNeurons);
+    this->parameters.biases[l].resize(numNeurons);
+
     for (ulong j = 0; j < numNeurons; j++) {
       this->parameters.weights[l][j].resize(prevNumNeurons);
+
+      // Initialize weights randomly if not loaded from file
+      if (!hasLoadedParameters) {
+        for (ulong k = 0; k < prevNumNeurons; k++) {
+          this->parameters.weights[l][j][k] = static_cast<T>(dist(gen));
+        }
+        // Initialize biases to zero
+        this->parameters.biases[l][j] = static_cast<T>(0);
+      }
     }
   }
 
@@ -124,6 +156,12 @@ void CoreGPU<T>::allocateCommon() {
   this->oclwCore. template allocateBuffer<T>("biases", Utils<T>::count(this->parameters.biases));
   this->oclwCore. template allocateBuffer<T>("zs", totalNumNeurons);
   std::cout << "Common buffers allocation done.";
+
+  // Write initialized weights and biases to GPU buffers
+  std::vector<T> flatWeights = Utils<T>::flatten(this->parameters.weights);
+  std::vector<T> flatBiases = Utils<T>::flatten(this->parameters.biases);
+  this->oclwCore. template writeBuffer<T>("weights", flatWeights, 0);
+  this->oclwCore. template writeBuffer<T>("biases", flatBiases, 0);
 }
 
 //===================================================================================================================//
@@ -350,6 +388,22 @@ Output<T> CoreGPU<T>::readOutput() {
   this->oclwCore.readBuffer("actvs", output, outputOffset);
 
   return output;
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPU<T>::resetAccumulators() {
+  ulong numBiases = Utils<T>::count(this->parameters.biases);
+  ulong numWeights = Utils<T>::count(this->parameters.weights);
+
+  // Create zero-filled vectors
+  std::vector<T> zeroBiases(numBiases, static_cast<T>(0));
+  std::vector<T> zeroWeights(numWeights, static_cast<T>(0));
+
+  // Write zeros to GPU accumulator buffers
+  this->oclwCore. template writeBuffer<T>("accum_dCost_dBiases", zeroBiases, 0);
+  this->oclwCore. template writeBuffer<T>("accum_dCost_dWeights", zeroWeights, 0);
 }
 
 //===================================================================================================================//

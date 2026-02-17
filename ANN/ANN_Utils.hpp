@@ -46,10 +46,17 @@ namespace ANN {
       static nlohmann::json getTrainingConfigJson(const TrainingConfig<T>& trainingConfig);
       static nlohmann::json getParametersJson(const Parameters<T>& parameters);
 
+      // Helper to detect if a type is a std::vector
+      template <typename U>
+      struct is_vector : std::false_type {};
+
+      template <typename U, typename A>
+      struct is_vector<std::vector<U, A>> : std::true_type {};
+
       template <typename V>
       static void flattenHelper(Tensor1D<T>& result, const V& nestedVec) {
-        for (auto nestedVecItem : nestedVec) {
-          if constexpr (std::is_same_v<std::decay_t<decltype(nestedVecItem)>, std::vector<T>>) {
+        for (const auto& nestedVecItem : nestedVec) {
+          if constexpr (is_vector<std::decay_t<decltype(nestedVecItem)>>::value) {
             Utils<T>::flattenHelper(result, nestedVecItem);
           } else {
             result.push_back(nestedVecItem);
@@ -59,8 +66,8 @@ namespace ANN {
 
       template <typename V>
       static void countHelper(ulong& result, const V& nestedVec) {
-        for (auto nestedVecItem : nestedVec) {
-          if constexpr (std::is_same_v<std::decay_t<decltype(nestedVecItem)>, std::vector<T>>) {
+        for (const auto& nestedVecItem : nestedVec) {
+          if constexpr (is_vector<std::decay_t<decltype(nestedVecItem)>>::value) {
             Utils<T>::countHelper(result, nestedVecItem);
           } else {
             result++;

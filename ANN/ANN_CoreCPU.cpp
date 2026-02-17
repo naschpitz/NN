@@ -2,6 +2,8 @@
 
 #include <OCLW_Core.hpp>
 #include <QFile>
+#include <random>
+#include <cmath>
 
 using namespace ANN;
 
@@ -40,6 +42,9 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
 
   for (ulong e = 0; e < numEpochs; e++) {
     T epochLoss = 0;
+
+    // Reset accumulators at the start of each epoch
+    this->resetAccumulators();
 
     for (ulong s = 0; s < numSamples; s++) {
       const Input<T>& input = samples[s].input;
@@ -88,10 +93,18 @@ template <typename T>
 void CoreCPU<T>::allocateCommon() {
   ulong numLayers = this->layersConfig.size();
 
+  // Check if parameters were loaded from file (non-empty)
+  bool hasLoadedParameters = !this->parameters.weights.empty() &&
+                             this->parameters.weights.size() == numLayers;
+
   this->actvs.resize(numLayers);
-  this->parameters.weights.resize(numLayers);
-  this->parameters.biases.resize(numLayers);
   this->zs.resize(numLayers);
+
+  // Only resize parameters if not loaded from file
+  if (!hasLoadedParameters) {
+    this->parameters.weights.resize(numLayers);
+    this->parameters.biases.resize(numLayers);
+  }
 
   for (ulong l = 0; l < numLayers; l++) {
     Layer layer = this->layersConfig[l];
@@ -100,20 +113,43 @@ void CoreCPU<T>::allocateCommon() {
     this->actvs[l].resize(numNeurons);
   }
 
+  // Random number generator for weight initialization
+  std::random_device rd;
+  std::mt19937 gen(rd());
+
   for (ulong l = 1; l < numLayers; l++) {
     Layer layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
-
-    // Get the layer l activation function type and set it.
-    this->parameters.weights[l].resize(numNeurons);
-    this->parameters.biases[l].resize(numNeurons);
-    this->zs[l].resize(numNeurons);
-
-    // The number of neurons is the same as the number of activations.
     ulong prevNumNeurons = this->actvs[l - 1].size();
 
-    for (ulong j = 0; j < numNeurons; j++) {
-      this->parameters.weights[l][j].resize(prevNumNeurons);
+    this->zs[l].resize(numNeurons);
+
+    // Only initialize weights if not loaded from file
+    if (!hasLoadedParameters) {
+      this->parameters.weights[l].resize(numNeurons);
+      this->parameters.biases[l].resize(numNeurons, static_cast<T>(0));
+
+      // He initialization for ReLU, Xavier for sigmoid/tanh
+      // stddev = sqrt(2 / fan_in) for He, sqrt(1 / fan_in) for Xavier
+      ActvFuncType actvFuncType = layer.actvFuncType;
+      double stddev;
+      if (actvFuncType == ActvFuncType::RELU) {
+        stddev = std::sqrt(2.0 / static_cast<double>(prevNumNeurons));
+      } else {
+        stddev = std::sqrt(1.0 / static_cast<double>(prevNumNeurons));
+      }
+
+      // Use double for the distribution, then cast to T
+      std::normal_distribution<double> dist(0.0, stddev);
+
+      for (ulong j = 0; j < numNeurons; j++) {
+        this->parameters.weights[l][j].resize(prevNumNeurons);
+
+        // Initialize weights with random values
+        for (ulong k = 0; k < prevNumNeurons; k++) {
+          this->parameters.weights[l][j][k] = static_cast<T>(dist(gen));
+        }
+      }
     }
   }
 }
@@ -253,6 +289,29 @@ void CoreCPU<T>::accumulate() {
 
       for (ulong k = 0; k < prevNumNeurons; k++) {
         this->accum_dCost_dWeights[l][j][k] += this->dCost_dWeights[l][j][k];
+      }
+    }
+  }
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreCPU<T>::resetAccumulators() {
+  ulong numLayers = this->layersConfig.size();
+
+  for (ulong l = 1; l < numLayers; l++) {
+    const Layer& layer = this->layersConfig[l];
+    ulong numNeurons = layer.numNeurons;
+
+    for (ulong j = 0; j < numNeurons; j++) {
+      const Layer& prevLayer = this->layersConfig[l - 1];
+      ulong prevNumNeurons = prevLayer.numNeurons;
+
+      this->accum_dCost_dBiases[l][j] = static_cast<T>(0);
+
+      for (ulong k = 0; k < prevNumNeurons; k++) {
+        this->accum_dCost_dWeights[l][j][k] = static_cast<T>(0);
       }
     }
   }
