@@ -160,9 +160,13 @@ void CoreGPU<T>::allocateCommon() {
     }
   }
 
-  std::cout << "Loading OpenCL kernel...";
+  std::cout << "Loading OpenCL kernels...\n";
+  // Load source files in order - they will be concatenated by OpenCL
+  this->oclwCore.addSourceFile("extern/ANN/Defines.hpp.cl");
+  this->oclwCore.addSourceFile("extern/ANN/ActvFunc.cpp.cl");
+  this->oclwCore.addSourceFile("extern/ANN/IdxHelper.cpp.cl");
   this->oclwCore.addSourceFile("extern/ANN/Kernels.cpp.cl");
-  std::cout << "OpenCL kernel loaded.";
+  std::cout << "OpenCL kernels loaded.\n";
 
   ulong totalNumNeurons = this->layersConfig.getTotalNumNeurons();
 
