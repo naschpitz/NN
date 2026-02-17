@@ -46,7 +46,9 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
 
   // Progress reporting interval (configurable, default ~1000 times per epoch)
   ulong progressReports = this->trainingConfig.progressReports;
+
   if (progressReports == 0) progressReports = 1000;  // Default if not set
+  
   const ulong progressInterval = std::max(ulong(1), numSamples / progressReports);
   ulong lastReportedSample = 0;
 
@@ -111,6 +113,9 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
       this->trainingCallback(progress);
     }
   }
+
+  // Sync updated weights and biases from GPU back to CPU parameters
+  this->syncParametersFromGPU();
 }
 
 //===================================================================================================================//
@@ -626,6 +631,27 @@ void CoreGPU<T>::resetAccumulators() {
   // Write zeros to GPU accumulator buffers
   this->oclwCore. template writeBuffer<T>("accum_dCost_dBiases", zeroBiases, 0);
   this->oclwCore. template writeBuffer<T>("accum_dCost_dWeights", zeroWeights, 0);
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPU<T>::syncParametersFromGPU() {
+  // Read updated weights and biases from GPU back to CPU parameters
+  ulong numBiases = Utils<T>::count(this->parameters.biases);
+  ulong numWeights = Utils<T>::count(this->parameters.weights);
+
+  // Create flat vectors to read GPU data
+  std::vector<T> flatBiases(numBiases);
+  std::vector<T> flatWeights(numWeights);
+
+  // Read from GPU buffers
+  this->oclwCore. template readBuffer<T>("biases", flatBiases, 0);
+  this->oclwCore. template readBuffer<T>("weights", flatWeights, 0);
+
+  // Unflatten back to nested tensor structure
+  Utils<T>::unflatten(flatBiases, this->parameters.biases);
+  Utils<T>::unflatten(flatWeights, this->parameters.weights);
 }
 
 //===================================================================================================================//

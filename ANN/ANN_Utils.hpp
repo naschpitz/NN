@@ -37,6 +37,30 @@ namespace ANN {
         return result;
       }
 
+      // Unflatten a 1D vector into a 2D tensor (for biases) using the shape template
+      static void unflatten(const Tensor1D<T>& flat, Tensor2D<T>& target) {
+        ulong idx = 0;
+
+        for (auto& row : target) {
+          for (auto& elem : row) {
+            elem = flat[idx++];
+          }
+        }
+      }
+
+      // Unflatten a 1D vector into a 3D tensor (for weights) using the shape template
+      static void unflatten(const Tensor1D<T>& flat, Tensor3D<T>& target) {
+        ulong idx = 0;
+        
+        for (auto& layer : target) {
+          for (auto& row : layer) {
+            for (auto& elem : row) {
+              elem = flat[idx++];
+            }
+          }
+        }
+      }
+
     private:
       static LayersConfig loadLayersConfig(const nlohmann::json& json);
       static TrainingConfig<T> loadTrainingConfig(const nlohmann::json& json);

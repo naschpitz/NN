@@ -46,6 +46,7 @@ namespace ANN {
       Output<T> readOutput();
 
       void resetAccumulators();
+      void syncParametersFromGPU();
   };
 }
 
