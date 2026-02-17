@@ -48,8 +48,8 @@ void printProgressBar(const ANN::TrainingProgress<float>& progress) {
 
   // Show loss information
   if (isEpochComplete) {
-    // Epoch complete - show average loss and newline
-    bar << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss << std::endl;
+    // Epoch complete - show average loss and newline (with padding to clear previous line)
+    bar << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss << "              " << std::endl;
   } else {
     // In-progress - show current sample loss
     bar << " - Sample Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss << "   ";
