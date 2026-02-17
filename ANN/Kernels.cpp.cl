@@ -59,7 +59,7 @@ kernel void accumulate_dCost_dBiases(
   ) {
   size_t idx = get_global_id(0);
 
-  accum_dCost_dBiases[idx] += accum_dCost_dBiases[idx];
+  accum_dCost_dBiases[idx] += dCost_dBiases[idx];
 }
 
 //===================================================================================================================//
