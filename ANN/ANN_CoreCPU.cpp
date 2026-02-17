@@ -46,12 +46,14 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
 
   // Use configured numThreads, or all available cores if 0
   int numThreads = this->trainingConfig.numThreads;
+
   if (numThreads <= 0) {
     numThreads = QThreadPool::globalInstance()->maxThreadCount();
   }
 
   // Pre-allocate workers for each thread
   std::vector<SampleWorker<T>> workers(numThreads);
+
   for (int i = 0; i < numThreads; i++) {
     this->allocateWorker(workers[i]);
   }
@@ -59,14 +61,18 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
   // Atomic counter for assigning unique worker indices to threads
   std::atomic<int> nextWorkerIndex{0};
 
-  // Progress reporting interval (report ~100 times per epoch)
-  const ulong progressInterval = std::max(ulong(1), numSamples / 100);
+  // Progress reporting interval (configurable, default ~1000 times per epoch)
+  ulong progressReports = this->trainingConfig.progressReports;
+
+  if (progressReports == 0) progressReports = 1000;  // Default if not set
+  const ulong progressInterval = std::max(ulong(1), numSamples / progressReports);
 
   // Mutex for serializing callback calls (prevents I/O contention)
   QMutex callbackMutex;
 
   // Pre-allocate sample indices vector (reused across epochs)
   QVector<ulong> sampleIndices(numSamples);
+
   for (ulong s = 0; s < numSamples; s++) {
     sampleIndices[s] = s;
   }
@@ -108,6 +114,7 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
       // Increment completed samples counter and report progress periodically
       ulong completed = ++completedSamples;
       ulong lastReported = lastReportedSample.load();
+
       if (completed >= lastReported + progressInterval &&
           lastReportedSample.compare_exchange_strong(lastReported, completed)) {
         this->reportProgress(e + 1, numEpochs, completed, numSamples, worker.sampleLoss, 0, callbackMutex);
@@ -116,6 +123,7 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
 
     // Merge all worker accumulators into global accumulators
     T epochLoss = 0;
+
     for (int i = 0; i < numThreads; i++) {
       this->mergeWorkerAccumulators(workers[i]);
       epochLoss += workers[i].accum_loss;
@@ -177,6 +185,7 @@ void CoreCPU<T>::allocateCommon() {
       // stddev = sqrt(2 / fan_in) for He, sqrt(1 / fan_in) for Xavier
       ActvFuncType actvFuncType = layer.actvFuncType;
       double stddev;
+      
       if (actvFuncType == ActvFuncType::RELU) {
         stddev = std::sqrt(2.0 / static_cast<double>(prevNumNeurons));
       } else {
