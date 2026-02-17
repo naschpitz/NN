@@ -12,32 +12,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Concurrent)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent)
 
+# Add dependencies as subdirectories (order matters: OpenCLWrapper before ANN)
+add_subdirectory(extern/OpenCLWrapper)
+add_subdirectory(extern/ANN)
+
 add_executable(ANN-CLI
   main.cpp
   ANN-CLI_Utils.cpp
   ANN-CLI_Loader.cpp
 )
 
-# Add include directories for dependencies
-set(LIB_ANN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/ANN")
-include_directories(${LIB_ANN_DIR})
-
-set(LIB_NLOHMANN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann")
-include_directories(${LIB_NLOHMANN_DIR})
-
-set(LIB_OPENCL_WRAPPER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/OpenCLWrapper")
-include_directories(${LIB_OPENCL_WRAPPER_DIR})
-
-# OpenCL library
-find_package(OpenCL REQUIRED)
-
-# Link libraries in correct order (dependents first, then their dependencies)
+# Link only to ANN - OpenCLWrapper, Qt::Core, OpenCL are propagated automatically via PUBLIC
 target_link_libraries(ANN-CLI
-    "${LIB_ANN_DIR}/libANN.a"
-    "${LIB_OPENCL_WRAPPER_DIR}/libOpenCLWrapper.a"
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Concurrent
-    OpenCL::OpenCL
+    PRIVATE ANN
+    PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent
 )
 
 include(GNUInstallDirs)
