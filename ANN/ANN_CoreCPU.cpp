@@ -216,7 +216,7 @@ void CoreCPU<T>::backpropagate(const Output<T>& output) {
   }
 
   // For the remaining layers, calculate backwards
-  for (ulong l = numLayers - 1; l >= 1; l--) {
+  for (ulong l = numLayers - 2; l >= 1; l--) {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
