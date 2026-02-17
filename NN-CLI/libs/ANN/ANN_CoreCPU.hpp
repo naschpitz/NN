@@ -9,7 +9,7 @@
 //==============================================================================//
 
 namespace ANN {
-  // Worker struct that holds thread-local data for processing a sample
+  // Worker struct that holds thread-local data for processing samples
   template <typename T>
   struct SampleWorker {
     Tensor2D<T> actvs;
@@ -18,6 +18,9 @@ namespace ANN {
     Tensor3D<T> dCost_dWeights;
     Tensor2D<T> dCost_dBiases;
     T sampleLoss;
+    // Thread-local accumulators to reduce mutex contention
+    Tensor3D<T> accum_dCost_dWeights;
+    Tensor2D<T> accum_dCost_dBiases;
   };
 
   template <typename T>
@@ -54,9 +57,13 @@ namespace ANN {
 
       // Functions used by train()
       void resetAccumulators();
-      void accumulate(const SampleWorker<T>& worker);
+      void resetWorkerAccumulators(SampleWorker<T>& worker);
+      void accumulateToWorker(SampleWorker<T>& worker);
+      void mergeWorkerAccumulators(const SampleWorker<T>& worker);
       T calculateLoss(const Output<T>& expected, const Tensor2D<T>& actvs);
       void update(ulong numSamples);
+      void reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
+                          T sampleLoss, T epochLoss, QMutex& callbackMutex);
 
       // Convenience wrappers using member data (for run())
       void propagate(const Input<T>& input);
