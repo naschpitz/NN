@@ -1,7 +1,8 @@
 #ifndef ACTVFUNC_CPP_CL
 #define ACTVFUNC_CPP_CL
 
-#include "Defines.hpp.cl"
+// Note: Depends on Defines.hpp.cl (TYPE, ActvFuncType)
+// Files are concatenated by C++ code in load order
 
 //===================================================================================================================//
 

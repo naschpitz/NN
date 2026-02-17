@@ -1,7 +1,8 @@
 #ifndef IDXHELPER_CPP_CL
 #define IDXHELPER_CPP_CL
 
-#include "Defines.hpp.cl"
+// Note: Depends on Defines.hpp.cl (Layer)
+// Files are concatenated by C++ code in load order
 
 //===================================================================================================================//
 

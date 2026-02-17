@@ -1,9 +1,8 @@
 #ifndef KERNELS_CPP_CL
 #define KERNELS_CPP_CL
 
-#include "Defines.hpp.cl"
-#include "ActvFunc.cpp.cl"
-#include "IdxHelper.cpp.cl"
+// Note: Depends on Defines.hpp.cl, ActvFunc.cpp.cl, IdxHelper.cpp.cl
+// Files are concatenated by C++ code in load order
 
 //===================================================================================================================//
 // Kernels
