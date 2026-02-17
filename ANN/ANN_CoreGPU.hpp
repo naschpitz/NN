@@ -29,6 +29,7 @@ namespace ANN {
       void propagate(const Input<T>& input);
 
       // Functions used by train()
+      T calculateLoss(const Output<T>& expected);
       void backpropagate(const Output<T>& output);
       void accumulate();
       void update(ulong numSamples);
