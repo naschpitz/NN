@@ -77,3 +77,4 @@ build/
 
 # Augment Agent instructions
 .augment/
+INSTRUCTIONS.md

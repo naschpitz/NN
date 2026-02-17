@@ -7,7 +7,8 @@
   ],
   "trainingConfig": {
     "numEpochs": 100,
-    "learningRate": 0.01
+    "learningRate": 0.01,
+    "numThreads": 0
   }
 }
 
