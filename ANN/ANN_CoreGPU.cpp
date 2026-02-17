@@ -60,8 +60,14 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
       const Input<T>& input = samples[s].input;
       const Output<T>& output = samples[s].output;
 
+      // Write input and output buffers
       this->propagate(input);
+      this->backpropagate(output);
 
+      // Run all sample kernels (propagate + backpropagate + accumulate)
+      this->accumulate();
+
+      // Calculate loss after kernels have run (activations are now computed)
       T sampleLoss = this->calculateLoss(output);
       epochLoss += sampleLoss;
 
@@ -76,9 +82,6 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
         progress.epochLoss = 0;  // Not complete yet
         this->trainingCallback(progress);
       }
-
-      this->backpropagate(output);
-      this->accumulate();
     }
 
     this->update(numSamples);
