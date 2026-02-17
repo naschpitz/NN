@@ -50,6 +50,9 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
     if (!this->sampleKernelsSetup) {
       this->setupSampleKernels();
       this->sampleKernelsSetup = true;
+
+      // Disable verbose output after first setup to keep epoch lines visible
+      this->oclwCore.setVerbose(false);
     }
     T epochLoss = 0;
 
