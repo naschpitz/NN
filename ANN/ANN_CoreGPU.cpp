@@ -305,17 +305,17 @@ void CoreGPU<T>::update(ulong numSamples) {
 
   this->oclwCore.clearKernels();
 
-  this->oclwCore.addKernel("update_dCost_dBiases", numBiases, 0);
-  this->oclwCore. template addArgument<T>("update_dCost_dBiases", "dCost_dBiases");
-  this->oclwCore. template addArgument<T>("update_dCost_dBiases", "accum_dCost_dBiases");
-  this->oclwCore. template addArgument<ulong>("update_dCost_dBiases", numSamples);
-  this->oclwCore. template addArgument<float>("update_dCost_dBiases", this->trainingConfig.learningRate);
+  this->oclwCore.addKernel("update_biases", numBiases, 0);
+  this->oclwCore. template addArgument<T>("update_biases", "biases");
+  this->oclwCore. template addArgument<T>("update_biases", "accum_dCost_dBiases");
+  this->oclwCore. template addArgument<ulong>("update_biases", numSamples);
+  this->oclwCore. template addArgument<float>("update_biases", this->trainingConfig.learningRate);
 
-  this->oclwCore.addKernel("update_dCost_dBWeights", numWeights, 0);
-  this->oclwCore. template addArgument<T>("update_dCost_dBWeights", "dCost_dWeights");
-  this->oclwCore. template addArgument<T>("update_dCost_dBWeights", "accum_dCost_dWeights");
-  this->oclwCore. template addArgument<ulong>("update_dCost_dBWeights", numSamples);
-  this->oclwCore. template addArgument<float>("update_dCost_dBWeights", this->trainingConfig.learningRate);
+  this->oclwCore.addKernel("update_weights", numWeights, 0);
+  this->oclwCore. template addArgument<T>("update_weights", "weights");
+  this->oclwCore. template addArgument<T>("update_weights", "accum_dCost_dWeights");
+  this->oclwCore. template addArgument<ulong>("update_weights", numSamples);
+  this->oclwCore. template addArgument<float>("update_weights", this->trainingConfig.learningRate);
 
   this->oclwCore.run();
 }

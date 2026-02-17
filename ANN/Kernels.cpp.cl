@@ -75,28 +75,28 @@ kernel void accumulate_dCost_dWeights(
 
 //===================================================================================================================//
 
-kernel void update_dCost_dBiases(
-    global TYPE* dCost_dBiases,
+kernel void update_biases(
+    global TYPE* biases,
     global TYPE* accum_dCost_dBiases,
     ulong numSamples,
     float learningRate
   ) {
   size_t idx = get_global_id(0);
 
-  dCost_dBiases[idx] = learningRate * (accum_dCost_dBiases[idx] / numSamples);
+  biases[idx] -= learningRate * (accum_dCost_dBiases[idx] / numSamples);
 }
 
 //===================================================================================================================//
 
-kernel void update_dCost_dBWeights(
-    global TYPE* dCost_dWeights,
+kernel void update_weights(
+    global TYPE* weights,
     global TYPE* accum_dCost_dWeights,
     ulong numSamples,
     float learningRate
   ) {
   size_t idx = get_global_id(0);
 
-  dCost_dWeights[idx] = learningRate * (accum_dCost_dWeights[idx] / numSamples);
+  weights[idx] -= learningRate * (accum_dCost_dWeights[idx] / numSamples);
 }
 
 //===================================================================================================================//

@@ -273,10 +273,10 @@ void CoreCPU<T>::update(ulong numSamples) {
       const Layer& prevLayer = this->layersConfig[l - 1];
       ulong prevNumNeurons = prevLayer.numNeurons;
 
-      this->dCost_dBiases[l][j] += learningRate * (this->accum_dCost_dBiases[l][j] / numSamples);
+      this->parameters.biases[l][j] -= learningRate * (this->accum_dCost_dBiases[l][j] / numSamples);
 
       for (ulong k = 0; k < prevNumNeurons; k++) {
-        this->dCost_dWeights[l][j][k] = learningRate * (this->accum_dCost_dWeights[l][j][k] / numSamples);
+        this->parameters.weights[l][j][k] -= learningRate * (this->accum_dCost_dWeights[l][j][k] / numSamples);
       }
     }
   }
