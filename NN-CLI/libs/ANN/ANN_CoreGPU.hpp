@@ -35,6 +35,8 @@ namespace ANN {
 
       void writeInput(const Input<T>& input);
       Output<T> readOutput();
+
+      void resetAccumulators();
   };
 }
 
