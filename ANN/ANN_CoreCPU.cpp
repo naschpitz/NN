@@ -56,8 +56,11 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
     this->allocateWorker(workers[i]);
   }
 
-  // Progress reporting interval (report ~1000 times per epoch)
-  const ulong progressInterval = std::max(ulong(1), numSamples / 1000);
+  // Atomic counter for assigning unique worker indices to threads
+  std::atomic<int> nextWorkerIndex{0};
+
+  // Progress reporting interval (report ~100 times per epoch)
+  const ulong progressInterval = std::max(ulong(1), numSamples / 100);
 
   // Mutex for serializing callback calls (prevents I/O contention)
   QMutex callbackMutex;
@@ -84,10 +87,10 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
     }
 
     // Use blockingMap to process all samples in parallel
-    QtConcurrent::blockingMap(sampleIndices, [&](ulong sampleIndex) {
-      // Get a thread-local worker using thread ID
-      int threadIndex = static_cast<int>(reinterpret_cast<uintptr_t>(QThread::currentThreadId()) % numThreads);
-      SampleWorker<T>& worker = workers[threadIndex];
+    QtConcurrent::blockingMap(sampleIndices, [&, numThreads](ulong sampleIndex) {
+      // Each thread gets a unique worker index on first use (thread_local persists for thread lifetime)
+      thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+      SampleWorker<T>& worker = workers[workerIndex];
 
       // Process the sample using the shared computation functions
       const Sample<T>& sample = samples[sampleIndex];
@@ -293,7 +296,7 @@ void CoreCPU<T>::propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T
     ulong numNeurons = layer.numNeurons;
 
     for (ulong j = 0; j < numNeurons; j++) {
-      zs[l][j] = 0;
+      zs[l][j] = this->parameters.biases[l][j];  // Start with bias
 
       for (ulong k = 0; k < prevNumNeurons; k++) {
         zs[l][j] += this->parameters.weights[l][j][k] * actvs[l - 1][k];
