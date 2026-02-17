@@ -44,13 +44,13 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
-  // Set up all kernels once before training loop
-  if (!this->sampleKernelsSetup) {
-    this->setupSampleKernels();
-    this->sampleKernelsSetup = true;
-  }
-
   for (ulong e = 0; e < numEpochs; e++) {
+    // Set up sample kernels at the start of each epoch
+    // (they get cleared by update() at the end of each epoch)
+    if (!this->sampleKernelsSetup) {
+      this->setupSampleKernels();
+      this->sampleKernelsSetup = true;
+    }
     T epochLoss = 0;
 
     // Reset accumulators at the start of each epoch
