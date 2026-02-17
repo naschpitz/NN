@@ -36,8 +36,9 @@ namespace ANN {
 
   template <typename T>
   struct TrainingConfig {
-    ulong numEpochs;
-    float learningRate;
+    ulong numEpochs = 0;
+    float learningRate = 0.01f;
+    int numThreads = 0;  // 0 = use all available cores
   };
 
   template <typename T>

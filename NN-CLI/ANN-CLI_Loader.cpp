@@ -41,6 +41,11 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
         const nlohmann::json& trainingConfigJson = json.at("trainingConfig");
         coreConfig.trainingConfig.numEpochs = trainingConfigJson.at("numEpochs").get<ulong>();
         coreConfig.trainingConfig.learningRate = trainingConfigJson.at("learningRate").get<float>();
+
+        // numThreads is optional, defaults to 0 (use all available cores)
+        if (trainingConfigJson.contains("numThreads")) {
+            coreConfig.trainingConfig.numThreads = trainingConfigJson.at("numThreads").get<int>();
+        }
     }
 
     // Load parameters (optional - for pre-trained models)

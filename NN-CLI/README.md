@@ -46,7 +46,8 @@ The configuration file defines the neural network architecture and training para
   ],
   "trainingConfig": {
     "numEpochs": 100,
-    "learningRate": 0.01
+    "learningRate": 0.01,
+    "numThreads": 0
   }
 }
 ```
@@ -63,6 +64,7 @@ The configuration file defines the neural network architecture and training para
 
 - `numEpochs`: Number of training epochs
 - `learningRate`: Learning rate for gradient descent
+- `numThreads`: Number of CPU threads to use for training (default: 0 = use all available cores). Set to 1 for single-threaded execution.
 
 #### Pre-trained Parameters (optional)
 
