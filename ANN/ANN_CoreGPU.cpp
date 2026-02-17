@@ -233,23 +233,27 @@ void CoreGPU<T>::setupSampleKernels() {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
+    // Create unique IDs for this layer's kernels
+    std::string calculate_zs_id = "calculate_zs_layer" + std::to_string(l);
+    std::string calculate_actvs_id = "calculate_actvs_layer" + std::to_string(l);
+
     // calculate_zs kernel: computes weighted sum + bias for each neuron
-    this->oclwCore.addKernel("calculate_zs", numNeurons, 0);
-    this->oclwCore. template addArgument<T>("calculate_zs", "zs");
-    this->oclwCore. template addArgument<T>("calculate_zs", "weights");
-    this->oclwCore. template addArgument<T>("calculate_zs", "actvs");
-    this->oclwCore. template addArgument<T>("calculate_zs", "biases");
-    this->oclwCore. template addArgument<ulong>("calculate_zs", l);
-    this->oclwCore. template addArgument<Layer>("calculate_zs", "layers");
-    this->oclwCore. template addArgument<ulong>("calculate_zs", numLayers);
+    this->oclwCore.addKernel(calculate_zs_id, "calculate_zs", numNeurons, 0);
+    this->oclwCore. template addArgument<T>(calculate_zs_id, "zs");
+    this->oclwCore. template addArgument<T>(calculate_zs_id, "weights");
+    this->oclwCore. template addArgument<T>(calculate_zs_id, "actvs");
+    this->oclwCore. template addArgument<T>(calculate_zs_id, "biases");
+    this->oclwCore. template addArgument<ulong>(calculate_zs_id, l);
+    this->oclwCore. template addArgument<Layer>(calculate_zs_id, "layers");
+    this->oclwCore. template addArgument<ulong>(calculate_zs_id, numLayers);
 
     // calculate_actvs kernel: applies activation function
-    this->oclwCore.addKernel("calculate_actvs", numNeurons, 0);
-    this->oclwCore. template addArgument<T>("calculate_actvs", "actvs");
-    this->oclwCore. template addArgument<T>("calculate_actvs", "zs");
-    this->oclwCore. template addArgument<ulong>("calculate_actvs", l);
-    this->oclwCore. template addArgument<Layer>("calculate_actvs", "layers");
-    this->oclwCore. template addArgument<ulong>("calculate_actvs", numLayers);
+    this->oclwCore.addKernel(calculate_actvs_id, "calculate_actvs", numNeurons, 0);
+    this->oclwCore. template addArgument<T>(calculate_actvs_id, "actvs");
+    this->oclwCore. template addArgument<T>(calculate_actvs_id, "zs");
+    this->oclwCore. template addArgument<ulong>(calculate_actvs_id, l);
+    this->oclwCore. template addArgument<Layer>(calculate_actvs_id, "layers");
+    this->oclwCore. template addArgument<ulong>(calculate_actvs_id, numLayers);
   }
 
   // === BACKPROPAGATE KERNELS ===
@@ -263,7 +267,7 @@ void CoreGPU<T>::setupSampleKernels() {
   // Allocate outputs buffer for backpropagation
   this->oclwCore. template allocateBuffer<T>("outputs", this->layersConfig[numLayers - 1].numNeurons);
 
-  // calculate_dCost_dActv_last_layer
+  // calculate_dCost_dActv_last_layer (unique, only one instance)
   this->oclwCore.addKernel("calculate_dCost_dActv_last_layer", numNeurons, 0);
   this->oclwCore. template addArgument<T>("calculate_dCost_dActv_last_layer", "dCost_dActvs");
   this->oclwCore. template addArgument<T>("calculate_dCost_dActv_last_layer", "actvs");
@@ -272,24 +276,28 @@ void CoreGPU<T>::setupSampleKernels() {
   this->oclwCore. template addArgument<Layer>("calculate_dCost_dActv_last_layer", "layers");
   this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv_last_layer", numLayers);
 
+  // Create unique IDs for last layer's kernels
+  std::string dCost_dBias_last_id = "calculate_dCost_dBias_layer" + std::to_string(l);
+  std::string dCost_dWeight_last_id = "calculate_dCost_dWeight_layer" + std::to_string(l);
+
   // calculate_dCost_dBias for last layer
-  this->oclwCore.addKernel("calculate_dCost_dBias", numBiases, 0);
-  this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dBiases");
-  this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "zs");
-  this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dActvs");
-  this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", l);
-  this->oclwCore. template addArgument<Layer>("calculate_dCost_dBias", "layers");
-  this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", numLayers);
+  this->oclwCore.addKernel(dCost_dBias_last_id, "calculate_dCost_dBias", numBiases, 0);
+  this->oclwCore. template addArgument<T>(dCost_dBias_last_id, "dCost_dBiases");
+  this->oclwCore. template addArgument<T>(dCost_dBias_last_id, "zs");
+  this->oclwCore. template addArgument<T>(dCost_dBias_last_id, "dCost_dActvs");
+  this->oclwCore. template addArgument<ulong>(dCost_dBias_last_id, l);
+  this->oclwCore. template addArgument<Layer>(dCost_dBias_last_id, "layers");
+  this->oclwCore. template addArgument<ulong>(dCost_dBias_last_id, numLayers);
 
   // calculate_dCost_dWeight for last layer
-  this->oclwCore.addKernel("calculate_dCost_dWeight", numWeights, 0);
-  this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dWeights");
-  this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "actvs");
-  this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "zs");
-  this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dActvs");
-  this->oclwCore. template addArgument<ulong>("calculate_dCost_dWeight", l);
-  this->oclwCore. template addArgument<Layer>("calculate_dCost_dWeight", "layers");
-  this->oclwCore. template addArgument<ulong>("calculate_dCost_dWeight", numLayers);
+  this->oclwCore.addKernel(dCost_dWeight_last_id, "calculate_dCost_dWeight", numWeights, 0);
+  this->oclwCore. template addArgument<T>(dCost_dWeight_last_id, "dCost_dWeights");
+  this->oclwCore. template addArgument<T>(dCost_dWeight_last_id, "actvs");
+  this->oclwCore. template addArgument<T>(dCost_dWeight_last_id, "zs");
+  this->oclwCore. template addArgument<T>(dCost_dWeight_last_id, "dCost_dActvs");
+  this->oclwCore. template addArgument<ulong>(dCost_dWeight_last_id, l);
+  this->oclwCore. template addArgument<Layer>(dCost_dWeight_last_id, "layers");
+  this->oclwCore. template addArgument<ulong>(dCost_dWeight_last_id, numLayers);
 
   // Backpropagate through hidden layers (from second-to-last to first hidden layer)
   for (ulong layer_idx = numLayers - 2; layer_idx >= 1; layer_idx--) {
@@ -298,33 +306,38 @@ void CoreGPU<T>::setupSampleKernels() {
     ulong curr_numBiases = curr_numNeurons;
     ulong curr_numWeights = Utils<T>::count(this->parameters.weights[layer_idx]);
 
+    // Create unique IDs for this layer's kernels
+    std::string dCost_dActv_id = "calculate_dCost_dActv_layer" + std::to_string(layer_idx);
+    std::string dCost_dBias_id = "calculate_dCost_dBias_layer" + std::to_string(layer_idx);
+    std::string dCost_dWeight_id = "calculate_dCost_dWeight_layer" + std::to_string(layer_idx);
+
     // calculate_dCost_dActv
-    this->oclwCore.addKernel("calculate_dCost_dActv", curr_numNeurons, 0);
-    this->oclwCore. template addArgument<T>("calculate_dCost_dActv", "dCost_dActvs");
-    this->oclwCore. template addArgument<T>("calculate_dCost_dActv", "weights");
-    this->oclwCore. template addArgument<T>("calculate_dCost_dActv", "zs");
-    this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv", layer_idx);
-    this->oclwCore. template addArgument<Layer>("calculate_dCost_dActv", "layers");
-    this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv", numLayers);
+    this->oclwCore.addKernel(dCost_dActv_id, "calculate_dCost_dActv", curr_numNeurons, 0);
+    this->oclwCore. template addArgument<T>(dCost_dActv_id, "dCost_dActvs");
+    this->oclwCore. template addArgument<T>(dCost_dActv_id, "weights");
+    this->oclwCore. template addArgument<T>(dCost_dActv_id, "zs");
+    this->oclwCore. template addArgument<ulong>(dCost_dActv_id, layer_idx);
+    this->oclwCore. template addArgument<Layer>(dCost_dActv_id, "layers");
+    this->oclwCore. template addArgument<ulong>(dCost_dActv_id, numLayers);
 
     // calculate_dCost_dBias
-    this->oclwCore.addKernel("calculate_dCost_dBias", curr_numBiases, 0);
-    this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dBiases");
-    this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "zs");
-    this->oclwCore. template addArgument<T>("calculate_dCost_dBias", "dCost_dActvs");
-    this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", layer_idx);
-    this->oclwCore. template addArgument<Layer>("calculate_dCost_dBias", "layers");
-    this->oclwCore. template addArgument<ulong>("calculate_dCost_dBias", numLayers);
+    this->oclwCore.addKernel(dCost_dBias_id, "calculate_dCost_dBias", curr_numBiases, 0);
+    this->oclwCore. template addArgument<T>(dCost_dBias_id, "dCost_dBiases");
+    this->oclwCore. template addArgument<T>(dCost_dBias_id, "zs");
+    this->oclwCore. template addArgument<T>(dCost_dBias_id, "dCost_dActvs");
+    this->oclwCore. template addArgument<ulong>(dCost_dBias_id, layer_idx);
+    this->oclwCore. template addArgument<Layer>(dCost_dBias_id, "layers");
+    this->oclwCore. template addArgument<ulong>(dCost_dBias_id, numLayers);
 
     // calculate_dCost_dWeight
-    this->oclwCore.addKernel("calculate_dCost_dWeight", curr_numWeights, 0);
-    this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dWeights");
-    this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "actvs");
-    this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "zs");
-    this->oclwCore. template addArgument<T>("calculate_dCost_dWeight", "dCost_dActvs");
-    this->oclwCore. template addArgument<ulong>("calculate_dCost_dWeight", layer_idx);
-    this->oclwCore. template addArgument<Layer>("calculate_dCost_dWeight", "layers");
-    this->oclwCore. template addArgument<ulong>("calculate_dCost_dWeight", numLayers);
+    this->oclwCore.addKernel(dCost_dWeight_id, "calculate_dCost_dWeight", curr_numWeights, 0);
+    this->oclwCore. template addArgument<T>(dCost_dWeight_id, "dCost_dWeights");
+    this->oclwCore. template addArgument<T>(dCost_dWeight_id, "actvs");
+    this->oclwCore. template addArgument<T>(dCost_dWeight_id, "zs");
+    this->oclwCore. template addArgument<T>(dCost_dWeight_id, "dCost_dActvs");
+    this->oclwCore. template addArgument<ulong>(dCost_dWeight_id, layer_idx);
+    this->oclwCore. template addArgument<Layer>(dCost_dWeight_id, "layers");
+    this->oclwCore. template addArgument<ulong>(dCost_dWeight_id, numLayers);
 
     // Break condition for ulong loop (can't go negative)
     if (layer_idx == 1) break;
