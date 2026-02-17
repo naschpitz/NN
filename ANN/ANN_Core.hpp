@@ -38,7 +38,8 @@ namespace ANN {
   struct TrainingConfig {
     ulong numEpochs = 0;
     float learningRate = 0.01f;
-    int numThreads = 0;  // 0 = use all available cores
+    int numThreads = 0;           // 0 = use all available cores
+    ulong progressReports = 1000; // Number of progress reports per epoch (0 = no reports, default = 1000)
   };
 
   template <typename T>

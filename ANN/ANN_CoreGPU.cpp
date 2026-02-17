@@ -44,8 +44,10 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
-  // Progress reporting interval (report ~1000 times per epoch to avoid GPU/CPU sync overhead)
-  const ulong progressInterval = std::max(ulong(1), numSamples / 1000);
+  // Progress reporting interval (configurable, default ~1000 times per epoch)
+  ulong progressReports = this->trainingConfig.progressReports;
+  if (progressReports == 0) progressReports = 1000;  // Default if not set
+  const ulong progressInterval = std::max(ulong(1), numSamples / progressReports);
   ulong lastReportedSample = 0;
 
   for (ulong e = 0; e < numEpochs; e++) {
