@@ -228,8 +228,6 @@ template <typename T>
 void CoreGPU<T>::setupSampleKernels() {
   ulong numLayers = this->layersConfig.size();
 
-  std::cout << "Setting up sample kernels (propagate + backpropagate + accumulate)...\n";
-
   // Clear any existing kernels
   this->oclwCore.clearKernels();
 
@@ -363,7 +361,6 @@ void CoreGPU<T>::setupSampleKernels() {
   this->oclwCore. template addArgument<T>("accumulate_dCost_dWeights", "dCost_dWeights");
   this->oclwCore. template addArgument<ulong>("accumulate_dCost_dWeights", totalNumWeights);
 
-  std::cout << "Sample kernels setup done.\n";
 }
 
 //===================================================================================================================//
