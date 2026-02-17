@@ -44,7 +44,7 @@ void printProgressBar(const ANN::TrainingProgress<float>& progress) {
     }
   }
 
-  bar << "] " << std::setw(3) << static_cast<int>(samplePercent * 100) << "%";
+  bar << "] " << std::fixed << std::setprecision(1) << std::setw(5) << (samplePercent * 100) << "%";
 
   // Show loss information
   if (isEpochComplete) {
@@ -52,7 +52,7 @@ void printProgressBar(const ANN::TrainingProgress<float>& progress) {
     bar << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss << std::endl;
   } else {
     // In-progress - show current sample loss
-    bar << " - Sample Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss;
+    bar << " - Sample Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss << "   ";
   }
 
   std::cout << bar.str() << std::flush;
