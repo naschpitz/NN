@@ -12,7 +12,6 @@ using namespace ANN;
 
 //===================================================================================================================//
 
-// oclwCore(false) is in the member initializer list to avoid double OpenCLWrapper::Core initialization.
 template <typename T>
 CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig), oclwCore(false) {
   this->allocateCommon();
@@ -113,8 +112,9 @@ void CoreGPU<T>::allocateCommon() {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
-    // The number of neurons is the same as the number of activations.
-    ulong prevNumNeurons = this->actvs[l - 1].size();
+    // Get previous layer's neuron count from layersConfig
+    const Layer& prevLayer = this->layersConfig[l - 1];
+    ulong prevNumNeurons = prevLayer.numNeurons;
 
     // He initialization for ReLU, Xavier for sigmoid/tanh
     ActvFuncType actvFuncType = layer.actvFuncType;
@@ -145,7 +145,7 @@ void CoreGPU<T>::allocateCommon() {
   }
 
   std::cout << "Loading OpenCL kernel...";
-  this->oclwCore.addSourceFile("../Kernels.cpp.cl");
+  this->oclwCore.addSourceFile("extern/ANN/Kernels.cpp.cl");
   std::cout << "OpenCL kernel loaded.";
 
   ulong totalNumNeurons = this->layersConfig.getTotalNumNeurons();
