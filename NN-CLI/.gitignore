@@ -78,3 +78,8 @@ build/
 # Augment Agent instructions
 .augment/
 INSTRUCTIONS.md
+
+# Examples output
+# ---------------
+examples/MNIST/output/*
+!examples/MNIST/output/.gitkeep
