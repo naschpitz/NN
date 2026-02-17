@@ -11,6 +11,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Concurrent)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent)
 
+# Include OpenCLWrapper as a subdirectory if not already included
+# This allows ANN to be built standalone or as part of a larger project
+if(NOT TARGET OpenCLWrapper)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../OpenCLWrapper ${CMAKE_CURRENT_BINARY_DIR}/OpenCLWrapper)
+endif()
+
 add_library(ANN STATIC
   ANN_Core.hpp ANN_Core.cpp
   ANN_ActvFunc.hpp ANN_ActvFunc.cpp
@@ -27,19 +33,18 @@ add_library(ANN STATIC
   LICENSE.md
 )
 
-target_link_libraries(ANN PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Concurrent)
+# PUBLIC: Consumers of ANN need access to ANN headers
+target_include_directories(ANN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# PUBLIC: Consumers of ANN will also need OpenCLWrapper (it's part of our public API)
+# PRIVATE: Qt Concurrent is only used internally
+target_link_libraries(ANN
+  PUBLIC OpenCLWrapper
+  PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent
+)
 
 target_compile_definitions(ANN PRIVATE ANN_LIBRARY)
 
-#Begin add the OpenCLWrapper library
-set(LIB_OPENCL_WRAPPER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/OpenCLWrapper")
-
-include_directories(${LIB_OPENCL_WRAPPER_DIR})
-target_link_libraries(ANN PRIVATE "${LIB_OPENCL_WRAPPER_DIR}/libOpenCLWrapper.a")
-#End add the OpenCLWrapper library
-
-#Begin add the nlohmann library
+# nlohmann JSON library (header-only)
 set(LIB_NLOHMANN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann")
-
-include_directories(${LIB_NLOHMANN_DIR})
-#End add the nlohmann library
+target_include_directories(ANN PUBLIC ${LIB_NLOHMANN_DIR})
