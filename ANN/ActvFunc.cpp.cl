@@ -1,7 +1,7 @@
 #ifndef ACTVFUNC_CPP_CL
 #define ACTVFUNC_CPP_CL
 
-// Note: Defines.hpp.cl must be loaded before this file
+#include "Defines.hpp.cl"
 
 //===================================================================================================================//
 

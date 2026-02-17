@@ -1,10 +1,9 @@
 #ifndef KERNELS_CPP_CL
 #define KERNELS_CPP_CL
 
-// Note: The following files must be loaded before this file (in order):
-//   1. Defines.hpp.cl
-//   2. ActvFunc.cpp.cl
-//   3. IdxHelper.cpp.cl
+#include "Defines.hpp.cl"
+#include "ActvFunc.cpp.cl"
+#include "IdxHelper.cpp.cl"
 
 //===================================================================================================================//
 // Kernels

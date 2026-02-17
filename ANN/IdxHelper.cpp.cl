@@ -1,7 +1,7 @@
 #ifndef IDXHELPER_CPP_CL
 #define IDXHELPER_CPP_CL
 
-// Note: Defines.hpp.cl must be loaded before this file
+#include "Defines.hpp.cl"
 
 //===================================================================================================================//
 
