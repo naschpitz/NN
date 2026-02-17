@@ -44,6 +44,10 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
+  // Progress reporting interval (report ~1000 times per epoch to avoid GPU/CPU sync overhead)
+  const ulong progressInterval = std::max(ulong(1), numSamples / 1000);
+  ulong lastReportedSample = 0;
+
   for (ulong e = 0; e < numEpochs; e++) {
     // Set up sample kernels at the start of each epoch
     // (they get cleared by update() at the end of each epoch)
@@ -58,6 +62,7 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
 
     // Reset accumulators at the start of each epoch
     this->resetAccumulators();
+    lastReportedSample = 0;
 
     for (ulong s = 0; s < numSamples; s++) {
       const Input<T>& input = samples[s].input;
@@ -74,12 +79,15 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
       T sampleLoss = this->calculateLoss(output);
       epochLoss += sampleLoss;
 
-      // Call progress callback if set
-      if (this->trainingCallback) {
+      // Report progress periodically (reduces GPU/CPU sync overhead)
+      ulong currentSample = s + 1;
+      
+      if (this->trainingCallback && currentSample >= lastReportedSample + progressInterval) {
+        lastReportedSample = currentSample;
         TrainingProgress<T> progress;
         progress.currentEpoch = e + 1;
         progress.totalEpochs = numEpochs;
-        progress.currentSample = s + 1;
+        progress.currentSample = currentSample;
         progress.totalSamples = numSamples;
         progress.sampleLoss = sampleLoss;
         progress.epochLoss = 0;  // Not complete yet
