@@ -79,6 +79,11 @@ TrainingConfig<T> Utils<T>::loadTrainingConfig(const nlohmann::json& json) {
     trainingConfig.numThreads = trainingConfigJsonObject.at("numThreads").get<int>();
   }
 
+  // progressReports is optional, defaults to 1000 reports per epoch
+  if (trainingConfigJsonObject.contains("progressReports")) {
+    trainingConfig.progressReports = trainingConfigJsonObject.at("progressReports").get<ulong>();
+  }
+
   return trainingConfig;
 }
 
