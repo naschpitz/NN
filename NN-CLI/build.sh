@@ -12,6 +12,10 @@ if [ ! -f "extern/ANN/CMakeLists.txt" ] || [ ! -f "extern/OpenCLWrapper/CMakeLis
     git submodule update --init --recursive
 fi
 
+# Update submodules to latest remote commits
+echo "Updating submodules to latest..."
+git submodule update --remote --merge
+
 echo "Building ANN-CLI (with dependencies)..."
 mkdir -p build
 cd build
