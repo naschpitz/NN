@@ -2,6 +2,8 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 #include <QDebug>
+#include <QDir>
+#include <QFileInfo>
 
 #include <ANN_Core.hpp>
 #include <ANN_CoreMode.hpp>
@@ -11,10 +13,41 @@
 #include "ANN-CLI_Loader.hpp"
 #include "ANN-CLI_Utils.hpp"
 
+#include <chrono>
+#include <ctime>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
+
+// Generate default output filename with timestamp
+std::string generateTimestampedFilename() {
+  auto now = std::chrono::system_clock::now();
+  std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
+  std::tm* localTime = std::localtime(&nowTime);
+
+  std::ostringstream oss;
+  oss << "trained_model_"
+      << std::put_time(localTime, "%Y-%m-%d_%H-%M-%S")
+      << ".json";
+
+  return oss.str();
+}
+
+// Generate default output path based on config file location
+std::string generateDefaultOutputPath(const QString& configPath) {
+  QFileInfo configInfo(configPath);
+  QDir configDir = configInfo.absoluteDir();
+  QDir outputDir(configDir.filePath("output"));
+
+  // Create output directory if it doesn't exist
+  if (!outputDir.exists()) {
+    configDir.mkdir("output");
+  }
+
+  QString outputPath = outputDir.filePath(QString::fromStdString(generateTimestampedFilename()));
+  return outputPath.toStdString();
+}
 
 // Progress bar helper function
 void printProgressBar(const ANN::TrainingProgress<float>& progress) {
@@ -144,7 +177,7 @@ int main(int argc, char *argv[]) {
   // Output file for saving trained model
   QCommandLineOption outputOption(
     QStringList() << "o" << "output",
-    "Output file for saving trained model.",
+    "Output file for saving trained model (default: <config_dir>/output/trained_model_[timestamp].json).",
     "file"
   );
   parser.addOption(outputOption);
@@ -240,12 +273,17 @@ int main(int argc, char *argv[]) {
       core->train(samples);
       std::cout << "\nTraining completed.\n";
 
-      // Save the trained model if output file specified
+      // Save the trained model (uses default timestamped filename in output/ folder if not specified)
+      std::string outputPathStr;
+
       if (parser.isSet(outputOption)) {
-        QString outputPath = parser.value(outputOption);
-        ANN::Utils<float>::save(*core, outputPath.toStdString());
-        std::cout << "Model saved to: " << outputPath.toStdString() << "\n";
+        outputPathStr = parser.value(outputOption).toStdString();
+      } else {
+        outputPathStr = generateDefaultOutputPath(configPath);
       }
+      
+      ANN::Utils<float>::save(*core, outputPathStr);
+      std::cout << "Model saved to: " << outputPathStr << "\n";
 
     } else if (mode == "run") {
       // Run mode
