@@ -81,6 +81,10 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
       workers[i].accum_loss = 0;
     }
 
+    // Atomic counters for progress tracking
+    std::atomic<ulong> completedSamples{0};
+    std::atomic<ulong> lastReportedSample{0};
+
     // Use blockingMap to process all samples in parallel
     QtConcurrent::blockingMap(sampleIndices, [&, numThreads](ulong sampleIndex) {
       // Each thread gets a unique worker index on first use (thread_local persists for thread lifetime)
@@ -100,6 +104,14 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
 
       // Accumulate gradients to worker's local accumulators (no mutex needed)
       this->accumulateToWorker(worker);
+
+      // Increment completed samples counter and report progress periodically
+      ulong completed = ++completedSamples;
+      ulong lastReported = lastReportedSample.load();
+      if (completed >= lastReported + progressInterval &&
+          lastReportedSample.compare_exchange_strong(lastReported, completed)) {
+        this->reportProgress(e + 1, numEpochs, completed, numSamples, worker.sampleLoss, 0, callbackMutex);
+      }
     });
 
     // Merge all worker accumulators into global accumulators
