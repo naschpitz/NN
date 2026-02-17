@@ -74,6 +74,11 @@ TrainingConfig<T> Utils<T>::loadTrainingConfig(const nlohmann::json& json) {
   trainingConfig.numEpochs = trainingConfigJsonObject.at("numEpochs").get<ulong>();
   trainingConfig.learningRate = trainingConfigJsonObject.at("learningRate").get<float>();
 
+  // numThreads is optional, defaults to 0 (use all available cores)
+  if (trainingConfigJsonObject.contains("numThreads")) {
+    trainingConfig.numThreads = trainingConfigJsonObject.at("numThreads").get<int>();
+  }
+
   return trainingConfig;
 }
 
