@@ -210,7 +210,7 @@ void CoreCPU<T>::backpropagate(const Output<T>& output) {
     const Layer& prevLayer = this->layersConfig[l - 1];
     ulong prevNumNeurons = prevLayer.numNeurons;
 
-    for (ulong k = 0; k < prevNumNeurons - 1; k++) {
+    for (ulong k = 0; k < prevNumNeurons; k++) {
       this->dCost_dWeights[l][j][k] = this->calc_dCost_dWeight(l, j, k);
     }
   }
@@ -220,7 +220,7 @@ void CoreCPU<T>::backpropagate(const Output<T>& output) {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
-    for (ulong j = 0; j < numNeurons - 1; j++) {
+    for (ulong j = 0; j < numNeurons; j++) {
       // First we need to compute the
       this->dCost_dActvs[l][j] = this->calc_dCost_dActv(l, j);
       this->dCost_dBiases[l][j] = this->calc_dCost_dBias(l, j);
@@ -245,7 +245,7 @@ void CoreCPU<T>::accumulate() {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
-    for (ulong j = 0; j < numNeurons - 1; j++) {
+    for (ulong j = 0; j < numNeurons; j++) {
       const Layer& prevLayer = this->layersConfig[l - 1];
       ulong prevNumNeurons = prevLayer.numNeurons;
 
@@ -269,7 +269,7 @@ void CoreCPU<T>::update(ulong numSamples) {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
-    for (ulong j = 0; j < numNeurons - 1; j++) {
+    for (ulong j = 0; j < numNeurons; j++) {
       const Layer& prevLayer = this->layersConfig[l - 1];
       ulong prevNumNeurons = prevLayer.numNeurons;
 
