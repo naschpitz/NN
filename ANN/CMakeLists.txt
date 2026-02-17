@@ -29,7 +29,7 @@ add_library(ANN STATIC
   Kernels.cpp.cl
   IdxHelper.cpp.cl
   ActvFunc.hpp.cl ActvFunc.cpp.cl
-  Defines.hpp..cl
+  Defines.hpp.cl
   LICENSE.md
 )
 
