@@ -75,3 +75,7 @@ CMakeLists.txt.user*
 # Build directories
 # ----------------
 build/
+
+# Augment
+# -------
+.augment/
