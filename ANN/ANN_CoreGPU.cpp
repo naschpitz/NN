@@ -533,8 +533,6 @@ void CoreGPU<T>::setupUpdateKernels(ulong numSamples) {
   ulong numBiases = Utils<T>::count(this->parameters.biases);
   ulong numWeights = Utils<T>::count(this->parameters.weights);
 
-  std::cout << "Setting up update kernels...\n";
-
   // Clear sample kernels and set up update kernels
   this->oclwCore.clearKernels();
 
@@ -551,8 +549,6 @@ void CoreGPU<T>::setupUpdateKernels(ulong numSamples) {
   this->oclwCore. template addArgument<ulong>("update_weights", numSamples);
   this->oclwCore. template addArgument<float>("update_weights", this->trainingConfig.learningRate);
   this->oclwCore. template addArgument<ulong>("update_weights", numWeights);
-
-  std::cout << "Update kernels setup done.\n";
 }
 
 //===================================================================================================================//
