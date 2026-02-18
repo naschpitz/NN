@@ -147,8 +147,8 @@ void ProgressBar::renderMultiGpuBar(std::ostream& out, const std::vector<float>&
   out << "(";
   for (int gpu = 0; gpu < numGPUs; gpu++) {
     float gpuPercent = (gpu < static_cast<int>(gpuProg.size())) ? gpuProg[gpu] : 0.0f;
-    out << "G" << gpu << ":" << std::setw(3) << static_cast<int>(gpuPercent * 100) << "%";
-    if (gpu < numGPUs - 1) out << " ";
+    out << gpu << ":" << std::setw(3) << static_cast<int>(gpuPercent * 100) << "%";
+    if (gpu < numGPUs - 1) out << " | ";
   }
   out << ")";
 }
