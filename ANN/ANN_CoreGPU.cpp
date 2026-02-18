@@ -56,6 +56,18 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
             << numEpochs << " epochs, " << this->numGPUs << " GPU"
             << (this->numGPUs > 1 ? "s" : "") << "\n";
 
+  // Create per-GPU wrapper callbacks that inject GPU index into progress reports
+  auto createGpuCallback = [this](size_t gpuIdx) -> TrainingCallback<T> {
+    if (!this->trainingCallback) return nullptr;
+
+    return [this, gpuIdx](const TrainingProgress<T>& progress) {
+      TrainingProgress<T> gpuProgress = progress;
+      gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
+      gpuProgress.totalGPUs = static_cast<int>(this->numGPUs);
+      this->trainingCallback(gpuProgress);
+    };
+  };
+
   for (ulong e = 0; e < numEpochs; e++) {
     // Calculate sample ranges for each GPU
     ulong samplesPerGPU = numSamples / this->numGPUs;
@@ -79,9 +91,9 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
     std::vector<T> gpuLosses(this->numGPUs, 0);
 
     // Use QtConcurrent to process each GPU's work in parallel
-    QtConcurrent::blockingMap(workItems, [this, &samples, &gpuLosses, e, numEpochs](const GPUWorkItem& item) {
+    QtConcurrent::blockingMap(workItems, [this, &samples, &gpuLosses, e, numEpochs, &createGpuCallback](const GPUWorkItem& item) {
       gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->trainSubset(
-          samples, item.startIdx, item.endIdx, e + 1, numEpochs, this->trainingCallback);
+          samples, item.startIdx, item.endIdx, e + 1, numEpochs, createGpuCallback(item.gpuIdx));
     });
 
     // Sum up losses from all GPUs
@@ -97,7 +109,7 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
     // Update weights on all workers
     this->update(numSamples);
 
-    // Report epoch completion
+    // Report epoch completion (gpuIndex = -1 indicates combined result)
     if (this->trainingCallback) {
       TrainingProgress<T> progress;
       progress.currentEpoch = e + 1;
@@ -106,6 +118,8 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
       progress.totalSamples = numSamples;
       progress.sampleLoss = 0;
       progress.epochLoss = totalLoss / static_cast<T>(numSamples);
+      progress.gpuIndex = -1;  // Epoch completion is not GPU-specific
+      progress.totalGPUs = static_cast<int>(this->numGPUs);
       this->trainingCallback(progress);
     }
   }
