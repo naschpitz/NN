@@ -16,6 +16,9 @@ template <typename T>
 CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig)
     : Core<T>(coreConfig) {
 
+  // Initialize OpenCL before querying device information
+  OpenCLWrapper::Core::initialize();
+
   // Determine number of GPUs to use
   int requestedGPUs = coreConfig.trainingConfig.numGPUs;
   size_t availableGPUs = OpenCLWrapper::Core::getDevicesUsage().size();
