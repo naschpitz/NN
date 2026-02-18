@@ -11,6 +11,7 @@
 #include <ANN_Utils.hpp>
 
 #include "ANN-CLI_Loader.hpp"
+#include "ANN-CLI_ProgressBar.hpp"
 #include "ANN-CLI_Utils.hpp"
 
 #include <chrono>
@@ -47,48 +48,6 @@ std::string generateDefaultOutputPath(const QString& configPath) {
 
   QString outputPath = outputDir.filePath(QString::fromStdString(generateTimestampedFilename()));
   return outputPath.toStdString();
-}
-
-// Progress bar helper function
-void printProgressBar(const ANN::TrainingProgress<float>& progress) {
-  const int barWidth = 40;
-
-  // Only update every 100 samples (or at epoch completion) to avoid flooding output
-  bool isEpochComplete = (progress.epochLoss > 0);
-  bool shouldPrint = isEpochComplete || (progress.currentSample % 100 == 0) || (progress.currentSample == 1);
-
-  if (!shouldPrint) {
-    return;
-  }
-
-  // Calculate progress percentage
-  float samplePercent = static_cast<float>(progress.currentSample) / progress.totalSamples;
-  int filledWidth = static_cast<int>(samplePercent * barWidth);
-
-  // Build progress bar
-  std::ostringstream bar;
-  bar << "\rEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
-
-  for (int i = 0; i < barWidth; i++) {
-    if (i < filledWidth) {
-      bar << "█";
-    } else {
-      bar << "░";
-    }
-  }
-
-  bar << "] " << std::fixed << std::setprecision(1) << std::setw(5) << (samplePercent * 100) << "%";
-
-  // Show loss information
-  if (isEpochComplete) {
-    // Epoch complete - show average loss and newline (with padding to clear previous line)
-    bar << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss << "              " << std::endl;
-  } else {
-    // In-progress - show current sample loss
-    bar << " - Sample Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss << "   ";
-  }
-
-  std::cout << bar.str() << std::flush;
 }
 
 void printUsage() {
@@ -267,8 +226,12 @@ int main(int argc, char *argv[]) {
 
       std::cout << "Starting training...\n";
 
-      // Set up progress callback
-      core->setTrainingCallback(printProgressBar);
+      // Set up progress callback with ProgressBar instance
+      ANN_CLI::ProgressBar progressBar;
+      
+      core->setTrainingCallback([&progressBar](const ANN::TrainingProgress<float>& progress) {
+        progressBar.update(progress);
+      });
 
       core->train(samples);
       std::cout << "\nTraining completed.\n";

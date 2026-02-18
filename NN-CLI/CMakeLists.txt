@@ -18,8 +18,9 @@ add_subdirectory(extern/ANN)
 
 add_executable(ANN-CLI
   main.cpp
-  ANN-CLI_Utils.cpp
   ANN-CLI_Loader.cpp
+  ANN-CLI_ProgressBar.cpp
+  ANN-CLI_Utils.cpp
 )
 
 # Link only to ANN - OpenCLWrapper, Qt::Core, OpenCL are propagated automatically via PUBLIC
