@@ -23,10 +23,12 @@ Core<T>::Core(const CoreConfig<T>& coreConfig) {
 
 template <typename T>
 std::unique_ptr<Core<T>> Core<T>::makeCore(const CoreConfig<T>& coreConfig) {
-  if (coreConfig.coreTypeType == CoreTypeType::CPU) {
-    return std::make_unique<CoreCPU<T>>(coreConfig);
-  } else {
-    return std::make_unique<CoreGPU<T>>(coreConfig);
+  switch (coreConfig.coreTypeType) {
+    case CoreTypeType::CPU:
+      return std::make_unique<CoreCPU<T>>(coreConfig);
+    case CoreTypeType::GPU:
+    default:
+      return std::make_unique<CoreGPU<T>>(coreConfig);
   }
 }
 

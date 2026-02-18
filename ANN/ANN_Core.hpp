@@ -38,7 +38,8 @@ namespace ANN {
   struct TrainingConfig {
     ulong numEpochs = 0;
     float learningRate = 0.01f;
-    int numThreads = 0;           // 0 = use all available cores
+    int numThreads = 0;           // 0 = use all available cores (for CPU mode)
+    int numGPUs = 0;              // 0 = use all available GPUs, 1 = single GPU (default behavior)
     ulong progressReports = 1000; // Number of progress reports per epoch (0 = no reports, default = 1000)
   };
 
@@ -92,6 +93,9 @@ namespace ANN {
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
       const Parameters<T>& getParameters() const { return parameters; }
+
+      // Set parameters (for multi-GPU weight synchronization)
+      void setParameters(const Parameters<T>& params) { parameters = params; }
 
       // Set a callback to receive training progress updates
       void setTrainingCallback(TrainingCallback<T> callback) { trainingCallback = callback; }

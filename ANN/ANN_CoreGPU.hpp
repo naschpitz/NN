@@ -2,8 +2,10 @@
 #define ANN_COREGPU_H
 
 #include "ANN_Core.hpp"
+#include "ANN_CoreGPUWorker.hpp"
 
-#include <OCLW_Core.hpp>
+#include <memory>
+#include <vector>
 
 //===================================================================================================================//
 
@@ -13,40 +15,20 @@ namespace ANN {
     public:
       CoreGPU(const CoreConfig<T>& config);
 
-      Output<T> run(const Input<T>& input);
-      void train(const Samples<T>& samples);
+      Output<T> run(const Input<T>& input) override;
+      void train(const Samples<T>& samples) override;
 
     private:
-      OpenCLWrapper::Core oclwCore;
+      //-- GPU workers (one per GPU) --//
+      std::vector<std::unique_ptr<CoreGPUWorker<T>>> gpuWorkers;
+      size_t numGPUs = 1;
 
-      Tensor1D<T> flatActvs;
+      //-- Initialization --//
+      void initializeWorkers();
 
-      // Kernel setup flags - kernels are set up once and reused
-      bool sampleKernelsSetup = false;
-      bool updateKernelsSetup = false;
-
-      // Functions used in init()
-      void allocateCommon();
-      void allocateTraining();
-
-      // Kernel setup functions - called once to create all kernels
-      void setupSampleKernels();   // propagate + backpropagate + accumulate kernels
-      void setupUpdateKernels(ulong numSamples);  // update kernels (per epoch)
-
-      // Functions used by run()
-      void propagate(const Input<T>& input);
-
-      // Functions used by train()
-      T calculateLoss(const Output<T>& expected);
-      void backpropagate(const Output<T>& output);
-      void accumulate();
+      //-- Training coordination --//
+      void mergeGradients();
       void update(ulong numSamples);
-
-      void writeInput(const Input<T>& input);
-      Output<T> readOutput();
-
-      void resetAccumulators();
-      void syncParametersFromGPU();
   };
 }
 
