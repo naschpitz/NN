@@ -23,6 +23,9 @@ namespace ANN {
       // Format current time as ISO 8601 string
       static std::string formatISO8601();
 
+      // Format duration in seconds as human-readable string (e.g., "1y 2mo 3d 4h 5m 6s")
+      static std::string formatDuration(double totalSeconds);
+
       template <typename V>
       static ulong count(const V& nestedVec) {
         ulong result = 0;

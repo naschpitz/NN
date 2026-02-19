@@ -1,6 +1,7 @@
 #include "ANN_Core.hpp"
 #include "ANN_CoreCPU.hpp"
 #include "ANN_CoreGPU.hpp"
+#include "ANN_Utils.hpp"
 
 #include <OCLW_Core.hpp>
 #include <QFile>
@@ -60,6 +61,30 @@ T Core<T>::calculateLoss(const Output<T>& expected) {
   }
 
   return loss / static_cast<T>(expected.size());
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void Core<T>::trainingStart(ulong numSamples) {
+  this->trainingStartTime = std::chrono::system_clock::now();
+  this->trainingMetadata.startTime = Utils<T>::formatISO8601();
+  this->trainingMetadata.device = CoreType::typeToName(this->coreTypeType);
+  this->trainingMetadata.numSamples = numSamples;
+}
+
+//===================================================================================================================//
+
+template <typename T>
+TrainingMetadata<T> Core<T>::trainingEnd() {
+  auto endTime = std::chrono::system_clock::now();
+  this->trainingMetadata.endTime = Utils<T>::formatISO8601();
+
+  std::chrono::duration<double> duration = endTime - this->trainingStartTime;
+  this->trainingMetadata.durationSeconds = duration.count();
+  this->trainingMetadata.durationFormatted = Utils<T>::formatDuration(this->trainingMetadata.durationSeconds);
+
+  return this->trainingMetadata;
 }
 
 //===================================================================================================================//

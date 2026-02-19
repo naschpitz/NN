@@ -112,6 +112,77 @@ std::string Utils<T>::formatISO8601() {
 //===================================================================================================================//
 
 template <typename T>
+std::string Utils<T>::formatDuration(double totalSeconds) {
+  // Handle negative or zero durations
+  if (totalSeconds <= 0) {
+    return "0s";
+  }
+
+  // Constants for time calculations
+  constexpr int SECONDS_PER_MINUTE = 60;
+  constexpr int SECONDS_PER_HOUR = 3600;
+  constexpr int SECONDS_PER_DAY = 86400;
+  constexpr int DAYS_PER_MONTH = 30;  // Approximate
+  constexpr int DAYS_PER_YEAR = 365;  // Approximate
+
+  // Calculate each unit
+  long long totalSecs = static_cast<long long>(totalSeconds);
+
+  long long years = totalSecs / (DAYS_PER_YEAR * SECONDS_PER_DAY);
+  totalSecs %= (DAYS_PER_YEAR * SECONDS_PER_DAY);
+
+  long long months = totalSecs / (DAYS_PER_MONTH * SECONDS_PER_DAY);
+  totalSecs %= (DAYS_PER_MONTH * SECONDS_PER_DAY);
+
+  long long days = totalSecs / SECONDS_PER_DAY;
+  totalSecs %= SECONDS_PER_DAY;
+
+  long long hours = totalSecs / SECONDS_PER_HOUR;
+  totalSecs %= SECONDS_PER_HOUR;
+
+  long long minutes = totalSecs / SECONDS_PER_MINUTE;
+  long long seconds = totalSecs % SECONDS_PER_MINUTE;
+
+  // Build the formatted string, only including non-zero units
+  std::ostringstream oss;
+
+  if (years > 0) {
+    oss << years << "y ";
+  }
+
+  if (months > 0) {
+    oss << months << "mo ";
+  }
+
+  if (days > 0) {
+    oss << days << "d ";
+  }
+
+  if (hours > 0) {
+    oss << hours << "h ";
+  }
+
+  if (minutes > 0) {
+    oss << minutes << "m ";
+  }
+
+  if (seconds > 0 || oss.str().empty()) {
+    oss << seconds << "s";
+  }
+
+  std::string result = oss.str();
+
+  // Trim trailing space if present
+  if (!result.empty() && result.back() == ' ') {
+    result.pop_back();
+  }
+
+  return result;
+}
+
+//===================================================================================================================//
+
+template <typename T>
 LayersConfig Utils<T>::loadLayersConfig(const nlohmann::json& json) {
   const nlohmann::json& layersConfigJsonArray = json.at("layersConfig");
 
@@ -215,6 +286,7 @@ nlohmann::json Utils<T>::getTrainingMetadataJson(const TrainingMetadata<T>& meta
     {"startTime", metadata.startTime},
     {"endTime", metadata.endTime},
     {"durationSeconds", metadata.durationSeconds},
+    {"durationFormatted", metadata.durationFormatted},
     {"device", metadata.device},
     {"numSamples", metadata.numSamples},
     {"finalLoss", metadata.finalLoss}

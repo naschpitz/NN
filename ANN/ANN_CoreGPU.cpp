@@ -50,11 +50,7 @@ Output<T> CoreGPU<T>::run(const Input<T>& input) {
 
 template <typename T>
 void CoreGPU<T>::train(const Samples<T>& samples) {
-  // Capture training start time
-  auto startTime = std::chrono::system_clock::now();
-  this->trainingMetadata.startTime = Utils<T>::formatISO8601();
-  this->trainingMetadata.device = "GPU";
-  this->trainingMetadata.numSamples = samples.size();
+  this->trainingStart(samples.size());
 
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
@@ -137,11 +133,7 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
     }
   }
 
-  // Capture training end time and duration
-  auto endTime = std::chrono::system_clock::now();
-  this->trainingMetadata.endTime = Utils<T>::formatISO8601();
-  std::chrono::duration<double> duration = endTime - startTime;
-  this->trainingMetadata.durationSeconds = duration.count();
+  this->trainingEnd();
 
   // Sync final parameters from any worker (all have the same weights now)
   this->gpuWorkers[0]->syncParametersFromGPU();

@@ -6,6 +6,7 @@
 #include "ANN_CoreType.hpp"
 #include "ANN_LayersConfig.hpp"
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -92,6 +93,7 @@ namespace ANN {
     std::string startTime;      // ISO 8601 format (e.g., "2026-02-19T10:30:00")
     std::string endTime;        // ISO 8601 format
     double durationSeconds;     // Total training duration in seconds
+    std::string durationFormatted; // Human-readable duration (e.g., "1y 2mo 3d 4h 5m 6s")
     std::string device;         // "CPU" or "GPU"
     ulong numSamples;           // Number of training samples used
     T finalLoss;                // Average loss at the end of training
@@ -132,6 +134,10 @@ namespace ANN {
       // Calculate MSE loss between output activations and expected output
       T calculateLoss(const Output<T>& expected);
 
+      // Training timing helpers - called at start/end of training
+      void trainingStart(ulong numSamples);
+      TrainingMetadata<T> trainingEnd();
+
       CoreTypeType coreTypeType;
       CoreModeType coreModeType;
       LayersConfig layersConfig;
@@ -143,6 +149,9 @@ namespace ANN {
       Tensor2D<T> zs;
 
       TrainingCallback<T> trainingCallback;
+
+    private:
+      std::chrono::time_point<std::chrono::system_clock> trainingStartTime;
   };
 }
 

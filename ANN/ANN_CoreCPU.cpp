@@ -43,11 +43,7 @@ Output<T> CoreCPU<T>::run(const Input<T>& input) {
 
 template <typename T>
 void CoreCPU<T>::train(const Samples<T>& samples) {
-  // Capture training start time
-  auto startTime = std::chrono::system_clock::now();
-  this->trainingMetadata.startTime = Utils<T>::formatISO8601();
-  this->trainingMetadata.device = "CPU";
-  this->trainingMetadata.numSamples = samples.size();
+  this->trainingStart(samples.size());
 
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
@@ -147,11 +143,7 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
     this->trainingMetadata.finalLoss = avgEpochLoss;
   }
 
-  // Capture training end time and duration
-  auto endTime = std::chrono::system_clock::now();
-  this->trainingMetadata.endTime = Utils<T>::formatISO8601();
-  std::chrono::duration<double> duration = endTime - startTime;
-  this->trainingMetadata.durationSeconds = duration.count();
+  this->trainingEnd();
 }
 
 //===================================================================================================================//
