@@ -22,22 +22,20 @@
 #include <optional>
 #include <sstream>
 
-// Generate default output filename with timestamp
-std::string generateTimestampedFilename() {
-  auto now = std::chrono::system_clock::now();
-  std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
-  std::tm* localTime = std::localtime(&nowTime);
-
+// Generate default output filename with training info
+std::string generateTrainingFilename(ulong epochs, ulong samples, float loss) {
   std::ostringstream oss;
   oss << "trained_model_"
-      << std::put_time(localTime, "%Y-%m-%d_%H-%M-%S")
+      << epochs << "_"
+      << samples << "_"
+      << std::fixed << std::setprecision(6) << loss
       << ".json";
 
   return oss.str();
 }
 
 // Generate default output path based on config file location
-std::string generateDefaultOutputPath(const QString& configPath) {
+std::string generateDefaultOutputPath(const QString& configPath, ulong epochs, ulong samples, float loss) {
   QFileInfo configInfo(configPath);
   QDir configDir = configInfo.absoluteDir();
   QDir outputDir(configDir.filePath("output"));
@@ -47,7 +45,7 @@ std::string generateDefaultOutputPath(const QString& configPath) {
     configDir.mkdir("output");
   }
 
-  QString outputPath = outputDir.filePath(QString::fromStdString(generateTimestampedFilename()));
+  QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainingFilename(epochs, samples, loss)));
   return outputPath.toStdString();
 }
 
@@ -139,7 +137,7 @@ int main(int argc, char *argv[]) {
   // Output file for saving trained model
   QCommandLineOption outputOption(
     QStringList() << "o" << "output",
-    "Output file for saving trained model (default: <config_dir>/output/trained_model_[timestamp].json).",
+    "Output file for saving trained model (default: <config_dir>/output/trained_model_[epochs]_[samples]_[loss].json).",
     "file"
   );
   parser.addOption(outputOption);
@@ -270,13 +268,22 @@ int main(int argc, char *argv[]) {
       core->train(samples);
       std::cout << "\nTraining completed.\n";
 
-      // Save the trained model (uses default timestamped filename in output/ folder if not specified)
+      // Get training info for filename generation
+      const auto& trainingConfig = core->getTrainingConfig();
+      const auto& trainingMetadata = core->getTrainingMetadata();
+
+      // Save the trained model (uses training info in filename if not specified)
       std::string outputPathStr;
 
       if (parser.isSet(outputOption)) {
         outputPathStr = parser.value(outputOption).toStdString();
       } else {
-        outputPathStr = generateDefaultOutputPath(configPath);
+        outputPathStr = generateDefaultOutputPath(
+          configPath,
+          trainingConfig.numEpochs,
+          trainingMetadata.numSamples,
+          trainingMetadata.finalLoss
+        );
       }
 
       ANN::Utils<float>::save(*core, outputPathStr);
