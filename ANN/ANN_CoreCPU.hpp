@@ -29,8 +29,9 @@ namespace ANN {
     public:
       CoreCPU(const CoreConfig<T>& config);
 
-      Output<T> run(const Input<T>& input);
-      void train(const Samples<T>& samples);
+      Output<T> run(const Input<T>& input) override;
+      void train(const Samples<T>& samples) override;
+      TestResult<T> test(const Samples<T>& samples) override;
 
     private:
       Tensor2D<T> dCost_dActvs;

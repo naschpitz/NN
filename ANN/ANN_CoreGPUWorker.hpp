@@ -21,6 +21,9 @@ namespace ANN {
       T trainSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx, ulong epoch, ulong totalEpochs,
                     const TrainingCallback<T>& callback);
 
+      //-- Testing (called by CoreGPU orchestrator) --//
+      T testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);
+
       //-- Gradient access (for multi-GPU merging) --//
       void readAccumulatedGradients(Tensor1D<T>& accumWeights, Tensor1D<T>& accumBiases);
       void setAccumulators(const Tensor1D<T>& accumWeights, const Tensor1D<T>& accumBiases);

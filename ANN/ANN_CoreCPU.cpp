@@ -138,6 +138,87 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
 }
 
 //===================================================================================================================//
+
+template <typename T>
+TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
+  ulong numSamples = samples.size();
+
+  // Use configured numThreads, or all available cores if 0
+  int numThreads = this->trainingConfig.numThreads;
+
+  if (numThreads <= 0) {
+    numThreads = QThreadPool::globalInstance()->maxThreadCount();
+  }
+
+  // Pre-allocate workers for each thread (only need actvs and zs for forward pass)
+  struct TestWorker {
+    Tensor2D<T> actvs;
+    Tensor2D<T> zs;
+    T accum_loss;
+  };
+
+  std::vector<TestWorker> workers(numThreads);
+  ulong numLayers = this->layersConfig.size();
+
+  for (int i = 0; i < numThreads; i++) {
+    workers[i].actvs.resize(numLayers);
+    workers[i].zs.resize(numLayers);
+    workers[i].accum_loss = 0;
+
+    for (ulong l = 0; l < numLayers; l++) {
+      Layer layer = this->layersConfig[l];
+      ulong numNeurons = layer.numNeurons;
+      workers[i].actvs[l].resize(numNeurons);
+    }
+
+    for (ulong l = 1; l < numLayers; l++) {
+      Layer layer = this->layersConfig[l];
+      ulong numNeurons = layer.numNeurons;
+      workers[i].zs[l].resize(numNeurons);
+    }
+  }
+
+  // Atomic counter for assigning unique worker indices to threads
+  std::atomic<int> nextWorkerIndex{0};
+
+  // Pre-allocate sample indices vector
+  QVector<ulong> sampleIndices(numSamples);
+
+  for (ulong s = 0; s < numSamples; s++) {
+    sampleIndices[s] = s;
+  }
+
+  // Use blockingMap to process all samples in parallel
+  QtConcurrent::blockingMap(sampleIndices, [&, numThreads](ulong sampleIndex) {
+    // Each thread gets a unique worker index on first use
+    thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+    TestWorker& worker = workers[workerIndex];
+
+    // Process the sample - forward pass only
+    const Sample<T>& sample = samples[sampleIndex];
+    this->propagate(sample.input, worker.actvs, worker.zs);
+    T sampleLoss = this->calculateLoss(sample.output, worker.actvs);
+
+    // Accumulate loss
+    worker.accum_loss += sampleLoss;
+  });
+
+  // Sum up losses from all workers
+  T totalLoss = 0;
+
+  for (int i = 0; i < numThreads; i++) {
+    totalLoss += workers[i].accum_loss;
+  }
+
+  TestResult<T> result;
+  result.numSamples = numSamples;
+  result.totalLoss = totalLoss;
+  result.averageLoss = totalLoss / static_cast<T>(numSamples);
+
+  return result;
+}
+
+//===================================================================================================================//
 // Functions used in init()
 //===================================================================================================================//
 

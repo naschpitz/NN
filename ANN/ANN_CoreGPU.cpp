@@ -130,6 +130,55 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
 }
 
 //===================================================================================================================//
+//-- Testing --//
+//===================================================================================================================//
+
+template <typename T>
+TestResult<T> CoreGPU<T>::test(const Samples<T>& samples) {
+  ulong numSamples = samples.size();
+
+  // Calculate sample ranges for each GPU
+  ulong samplesPerGPU = numSamples / this->numGPUs;
+  ulong remainder = numSamples % this->numGPUs;
+
+  // Build list of GPU indices and their sample ranges
+  struct GPUWorkItem {
+    size_t gpuIdx;
+    ulong startIdx;
+    ulong endIdx;
+  };
+
+  QVector<GPUWorkItem> workItems;
+
+  for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
+    ulong startIdx = gpuIdx * samplesPerGPU + std::min(gpuIdx, remainder);
+    ulong endIdx = startIdx + samplesPerGPU + (gpuIdx < remainder ? 1 : 0);
+    workItems.append({gpuIdx, startIdx, endIdx});
+  }
+
+  std::vector<T> gpuLosses(this->numGPUs, 0);
+
+  // Use QtConcurrent to process each GPU's work in parallel
+  QtConcurrent::blockingMap(workItems, [this, &samples, &gpuLosses](const GPUWorkItem& item) {
+    gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->testSubset(samples, item.startIdx, item.endIdx);
+  });
+
+  // Sum up losses from all GPUs
+  T totalLoss = 0;
+
+  for (size_t i = 0; i < this->numGPUs; i++) {
+    totalLoss += gpuLosses[i];
+  }
+
+  TestResult<T> result;
+  result.numSamples = numSamples;
+  result.totalLoss = totalLoss;
+  result.averageLoss = totalLoss / static_cast<T>(numSamples);
+
+  return result;
+}
+
+//===================================================================================================================//
 //-- Initialization --//
 //===================================================================================================================//
 

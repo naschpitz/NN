@@ -109,6 +109,38 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, ulong startIdx, ulong
 }
 
 //===================================================================================================================//
+//-- Testing (called by CoreGPU orchestrator) --//
+//===================================================================================================================//
+
+template <typename T>
+T CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx) {
+  // Set up inference kernels if not done yet (forward pass only)
+  if (!this->inferenceKernelsSetup) {
+    this->setupInferenceKernels();
+    this->inferenceKernelsSetup = true;
+  }
+
+  T subsetLoss = 0;
+
+  for (ulong s = startIdx; s < endIdx; s++) {
+    const Input<T>& input = samples[s].input;
+    const Output<T>& output = samples[s].output;
+
+    // Write input to GPU buffer
+    this->oclwCore. template writeBuffer<T>("actvs", input, 0);
+
+    // Execute forward pass kernels only
+    this->oclwCore.run();
+
+    // Calculate loss after forward pass
+    T sampleLoss = this->calculateLoss(output);
+    subsetLoss += sampleLoss;
+  }
+
+  return subsetLoss;
+}
+
+//===================================================================================================================//
 //-- Gradient access (for multi-GPU merging) --//
 //===================================================================================================================//
 

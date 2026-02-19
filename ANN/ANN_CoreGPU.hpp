@@ -17,6 +17,7 @@ namespace ANN {
 
       Output<T> run(const Input<T>& input) override;
       void train(const Samples<T>& samples) override;
+      TestResult<T> test(const Samples<T>& samples) override;
 
     private:
       //-- GPU workers (one per GPU) --//

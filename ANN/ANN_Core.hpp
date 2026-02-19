@@ -86,6 +86,14 @@ namespace ANN {
   template <typename T>
   using TrainingCallback = std::function<void(const TrainingProgress<T>&)>;
 
+  // Test result information
+  template <typename T>
+  struct TestResult {
+    ulong numSamples;     // Total number of samples tested
+    T totalLoss;          // Sum of all sample losses
+    T averageLoss;        // Average loss per sample (totalLoss / numSamples)
+  };
+
   template <typename T>
   class Core {
     public:
@@ -93,6 +101,7 @@ namespace ANN {
 
       virtual Output<T> run(const Input<T>& input) = 0;
       virtual void train(const Samples<T>& samples) = 0;
+      virtual TestResult<T> test(const Samples<T>& samples) = 0;
 
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
