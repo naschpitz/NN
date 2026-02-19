@@ -79,7 +79,6 @@ build/
 .augment/
 INSTRUCTIONS.md
 
-# Examples output
-# ---------------
-examples/MNIST/output/*
-!examples/MNIST/output/.gitkeep
+# Examples output (generated files)
+# ----------------------------------
+examples/**/output/
