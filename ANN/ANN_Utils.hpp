@@ -15,9 +15,13 @@ namespace ANN {
   {
     public:
       static std::unique_ptr<Core<T>> load(const std::string& configFilePath);
-      static void save(const Core<T>& core, const std::string& configFilePath);
 
+      // Save model with training metadata (read from core)
+      static void save(const Core<T>& core, const std::string& filePath);
       static std::string save(const Core<T>& core);
+
+      // Format current time as ISO 8601 string
+      static std::string formatISO8601();
 
       template <typename V>
       static ulong count(const V& nestedVec) {
@@ -68,6 +72,7 @@ namespace ANN {
 
       static nlohmann::json getLayersConfigJson(const LayersConfig& layersConfig);
       static nlohmann::json getTrainingConfigJson(const TrainingConfig<T>& trainingConfig);
+      static nlohmann::json getTrainingMetadataJson(const TrainingMetadata<T>& metadata);
       static nlohmann::json getParametersJson(const Parameters<T>& parameters);
 
       // Helper to detect if a type is a std::vector

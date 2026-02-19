@@ -1,6 +1,7 @@
 #include "ANN_CoreGPU.hpp"
 #include "ANN_Utils.hpp"
 
+#include <chrono>
 #include <iostream>
 
 #include <OCLW_Core.hpp>
@@ -49,6 +50,12 @@ Output<T> CoreGPU<T>::run(const Input<T>& input) {
 
 template <typename T>
 void CoreGPU<T>::train(const Samples<T>& samples) {
+  // Capture training start time
+  auto startTime = std::chrono::system_clock::now();
+  this->trainingMetadata.startTime = Utils<T>::formatISO8601();
+  this->trainingMetadata.device = "GPU";
+  this->trainingMetadata.numSamples = samples.size();
+
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
@@ -109,6 +116,12 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
     // Update weights on all workers
     this->update(numSamples);
 
+    // Calculate average epoch loss
+    T avgEpochLoss = totalLoss / static_cast<T>(numSamples);
+
+    // Store final loss from the last epoch
+    this->trainingMetadata.finalLoss = avgEpochLoss;
+
     // Report epoch completion (gpuIndex = -1 indicates combined result)
     if (this->trainingCallback) {
       TrainingProgress<T> progress;
@@ -117,12 +130,18 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
       progress.currentSample = numSamples;
       progress.totalSamples = numSamples;
       progress.sampleLoss = 0;
-      progress.epochLoss = totalLoss / static_cast<T>(numSamples);
+      progress.epochLoss = avgEpochLoss;
       progress.gpuIndex = -1;  // Epoch completion is not GPU-specific
       progress.totalGPUs = static_cast<int>(this->numGPUs);
       this->trainingCallback(progress);
     }
   }
+
+  // Capture training end time and duration
+  auto endTime = std::chrono::system_clock::now();
+  this->trainingMetadata.endTime = Utils<T>::formatISO8601();
+  std::chrono::duration<double> duration = endTime - startTime;
+  this->trainingMetadata.durationSeconds = duration.count();
 
   // Sync final parameters from any worker (all have the same weights now)
   this->gpuWorkers[0]->syncParametersFromGPU();

@@ -4,6 +4,11 @@
 #include <QDebug>
 #include <QFile>
 
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+
 using namespace ANN;
 
 //===================================================================================================================//
@@ -108,11 +113,11 @@ Parameters<T> Utils<T>::loadParameters(const nlohmann::json& json) {
 //===================================================================================================================//
 
 template <typename T>
-void Utils<T>::save(const Core<T>& core, const std::string& configFilePath) {
-  QFile file(QString::fromStdString(configFilePath));
+void Utils<T>::save(const Core<T>& core, const std::string& filePath) {
+  QFile file(QString::fromStdString(filePath));
 
   if (!file.open(QIODevice::WriteOnly)) {
-    throw std::runtime_error("Failed to open config file for writing: " + configFilePath);
+    throw std::runtime_error("Failed to open file for writing: " + filePath);
   }
 
   // Convert the core object to a JSON string
@@ -135,10 +140,41 @@ std::string Utils<T>::save(const Core<T>& core) {
   // Save TrainingConfig
   json["trainingConfig"] = getTrainingConfigJson(core.getTrainingConfig());
 
+  // Save TrainingMetadata (before parameters for readability)
+  json["trainingMetadata"] = getTrainingMetadataJson(core.getTrainingMetadata());
+
   // Save Parameters
   json["parameters"] = getParametersJson(core.getParameters());
 
   return json.dump(4);  // Pretty-print with 4 spaces indentation
+}
+
+//===================================================================================================================//
+
+template <typename T>
+std::string Utils<T>::formatISO8601() {
+  auto now = std::chrono::system_clock::now();
+  std::time_t time = std::chrono::system_clock::to_time_t(now);
+  std::tm* localTime = std::localtime(&time);
+
+  std::ostringstream oss;
+  oss << std::put_time(localTime, "%Y-%m-%dT%H:%M:%S");
+
+  // Add UTC offset in ISO 8601 format (e.g., +01:00)
+  // %z gives +0100, we need to insert the colon
+  char tzOffset[8];
+  std::strftime(tzOffset, sizeof(tzOffset), "%z", localTime);
+
+  // Insert colon: "+0100" -> "+01:00"
+  std::string offset(tzOffset);
+
+  if (offset.length() >= 5) {
+    offset.insert(3, ":");
+  }
+
+  oss << offset;
+
+  return oss.str();
 }
 
 //===================================================================================================================//
@@ -169,6 +205,20 @@ nlohmann::json Utils<T>::getTrainingConfigJson(const TrainingConfig<T>& training
   trainingConfigJsonObject["learningRate"] = trainingConfig.learningRate;
 
   return trainingConfigJsonObject;
+}
+
+//===================================================================================================================//
+
+template <typename T>
+nlohmann::json Utils<T>::getTrainingMetadataJson(const TrainingMetadata<T>& metadata) {
+  return {
+    {"startTime", metadata.startTime},
+    {"endTime", metadata.endTime},
+    {"durationSeconds", metadata.durationSeconds},
+    {"device", metadata.device},
+    {"numSamples", metadata.numSamples},
+    {"finalLoss", metadata.finalLoss}
+  };
 }
 
 //===================================================================================================================//

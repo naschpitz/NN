@@ -1,4 +1,5 @@
 #include "ANN_CoreCPU.hpp"
+#include "ANN_Utils.hpp"
 
 #include <OCLW_Core.hpp>
 #include <QFile>
@@ -6,6 +7,7 @@
 #include <QThreadPool>
 #include <QtConcurrent>
 #include <atomic>
+#include <chrono>
 #include <random>
 #include <cmath>
 
@@ -41,6 +43,12 @@ Output<T> CoreCPU<T>::run(const Input<T>& input) {
 
 template <typename T>
 void CoreCPU<T>::train(const Samples<T>& samples) {
+  // Capture training start time
+  auto startTime = std::chrono::system_clock::now();
+  this->trainingMetadata.startTime = Utils<T>::formatISO8601();
+  this->trainingMetadata.device = "CPU";
+  this->trainingMetadata.numSamples = samples.size();
+
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
@@ -134,7 +142,16 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
     // Report epoch completion
     T avgEpochLoss = epochLoss / static_cast<T>(numSamples);
     this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss, callbackMutex);
+
+    // Store final loss from the last epoch
+    this->trainingMetadata.finalLoss = avgEpochLoss;
   }
+
+  // Capture training end time and duration
+  auto endTime = std::chrono::system_clock::now();
+  this->trainingMetadata.endTime = Utils<T>::formatISO8601();
+  std::chrono::duration<double> duration = endTime - startTime;
+  this->trainingMetadata.durationSeconds = duration.count();
 }
 
 //===================================================================================================================//

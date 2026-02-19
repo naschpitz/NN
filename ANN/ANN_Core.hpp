@@ -86,6 +86,17 @@ namespace ANN {
   template <typename T>
   using TrainingCallback = std::function<void(const TrainingProgress<T>&)>;
 
+  // Training metadata (captured at runtime, saved with the model)
+  template <typename T>
+  struct TrainingMetadata {
+    std::string startTime;      // ISO 8601 format (e.g., "2026-02-19T10:30:00")
+    std::string endTime;        // ISO 8601 format
+    double durationSeconds;     // Total training duration in seconds
+    std::string device;         // "CPU" or "GPU"
+    ulong numSamples;           // Number of training samples used
+    T finalLoss;                // Average loss at the end of training
+  };
+
   // Test result information
   template <typename T>
   struct TestResult {
@@ -105,6 +116,7 @@ namespace ANN {
 
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
+      const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }
       const Parameters<T>& getParameters() const { return parameters; }
 
       // Set parameters (for multi-GPU weight synchronization)
@@ -124,6 +136,7 @@ namespace ANN {
       CoreModeType coreModeType;
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
+      TrainingMetadata<T> trainingMetadata;
       Parameters<T> parameters;
 
       Tensor2D<T> actvs;
