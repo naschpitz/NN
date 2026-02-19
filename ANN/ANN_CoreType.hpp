@@ -7,22 +7,22 @@
 //===================================================================================================================//
 
 namespace ANN {
-  enum class CoreTypeType {
+  enum class DeviceType {
     CPU,
     GPU,
     UNKNOWN
   };
 
-  const std::unordered_map<std::string, CoreTypeType> coreTypeMap = {
-    {"cpu", CoreTypeType::CPU},
-    {"gpu", CoreTypeType::GPU},
+  const std::unordered_map<std::string, DeviceType> deviceTypeMap = {
+    {"cpu", DeviceType::CPU},
+    {"gpu", DeviceType::GPU},
   };
 
   class CoreType
   {
     public:
-      static CoreTypeType nameToType(const std::string& name);
-      static std::string typeToName(const CoreTypeType& actvFuncType);
+      static DeviceType nameToType(const std::string& name);
+      static std::string typeToName(const DeviceType& deviceType);
   };
 }
 

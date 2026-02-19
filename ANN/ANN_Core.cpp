@@ -12,7 +12,7 @@ using namespace ANN;
 
 template <typename T>
 Core<T>::Core(const CoreConfig<T>& coreConfig) {
-  this->coreTypeType = coreConfig.coreTypeType;
+  this->deviceType = coreConfig.deviceType;
   this->coreModeType = coreConfig.coreModeType;
 
   this->layersConfig = coreConfig.layersConfig;
@@ -24,10 +24,10 @@ Core<T>::Core(const CoreConfig<T>& coreConfig) {
 
 template <typename T>
 std::unique_ptr<Core<T>> Core<T>::makeCore(const CoreConfig<T>& coreConfig) {
-  switch (coreConfig.coreTypeType) {
-    case CoreTypeType::CPU:
+  switch (coreConfig.deviceType) {
+    case DeviceType::CPU:
       return std::make_unique<CoreCPU<T>>(coreConfig);
-    case CoreTypeType::GPU:
+    case DeviceType::GPU:
     default:
       return std::make_unique<CoreGPU<T>>(coreConfig);
   }
@@ -37,8 +37,8 @@ std::unique_ptr<Core<T>> Core<T>::makeCore(const CoreConfig<T>& coreConfig) {
 
 template <typename T>
 void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig) {
-  if (coreConfig.coreTypeType == CoreTypeType::UNKNOWN) {
-    throw std::runtime_error("Unkown coreTypeType");
+  if (coreConfig.deviceType == DeviceType::UNKNOWN) {
+    throw std::runtime_error("Unknown deviceType");
   }
 
   if (coreConfig.coreModeType == CoreModeType::UNKNOWN) {
@@ -69,7 +69,7 @@ template <typename T>
 void Core<T>::trainingStart(ulong numSamples) {
   this->trainingStartTime = std::chrono::system_clock::now();
   this->trainingMetadata.startTime = Utils<T>::formatISO8601();
-  this->trainingMetadata.device = CoreType::typeToName(this->coreTypeType);
+  this->trainingMetadata.device = CoreType::typeToName(this->deviceType);
   this->trainingMetadata.numSamples = numSamples;
 }
 

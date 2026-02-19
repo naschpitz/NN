@@ -52,7 +52,7 @@ namespace ANN {
 
   template <typename T>
   struct CoreConfig {
-    CoreTypeType coreTypeType;
+    DeviceType deviceType;
     CoreModeType coreModeType;
     LayersConfig layersConfig;
     TrainingConfig<T> trainingConfig;
@@ -94,7 +94,7 @@ namespace ANN {
     std::string endTime;        // ISO 8601 format
     double durationSeconds;     // Total training duration in seconds
     std::string durationFormatted; // Human-readable duration (e.g., "1y 2mo 3d 4h 5m 6s")
-    std::string device;         // "CPU" or "GPU"
+    std::string device;         // "cpu" or "gpu"
     ulong numSamples;           // Number of training samples used
     T finalLoss;                // Average loss at the end of training
   };
@@ -138,7 +138,7 @@ namespace ANN {
       void trainingStart(ulong numSamples);
       TrainingMetadata<T> trainingEnd();
 
-      CoreTypeType coreTypeType;
+      DeviceType deviceType;
       CoreModeType coreModeType;
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;

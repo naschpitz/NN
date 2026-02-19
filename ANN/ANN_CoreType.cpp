@@ -4,11 +4,11 @@ using namespace ANN;
 
 //===================================================================================================================//
 
-CoreTypeType CoreType::nameToType(const std::string& name) {
-  auto it = coreTypeMap.find(name);
+DeviceType CoreType::nameToType(const std::string& name) {
+  auto it = deviceTypeMap.find(name);
 
-  if (it == coreTypeMap.end()) {
-    return CoreTypeType::UNKNOWN;
+  if (it == deviceTypeMap.end()) {
+    return DeviceType::UNKNOWN;
   } else {
     return it->second;
   }
@@ -16,9 +16,9 @@ CoreTypeType CoreType::nameToType(const std::string& name) {
 
 //===================================================================================================================//
 
-std::string CoreType::typeToName(const CoreTypeType& coreTypeType) {
-  for (const auto& pair : coreTypeMap) {
-    if (pair.second == coreTypeType) {
+std::string CoreType::typeToName(const DeviceType& deviceType) {
+  for (const auto& pair : deviceTypeMap) {
+    if (pair.second == deviceType) {
       return pair.first;
     }
   }
