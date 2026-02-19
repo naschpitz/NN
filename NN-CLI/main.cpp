@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <sstream>
 
 // Generate default output filename with timestamp
@@ -53,14 +54,14 @@ std::string generateDefaultOutputPath(const QString& configPath) {
 void printUsage() {
   std::cout << "ANN-CLI - Artificial Neural Network Command Line Interface\n\n";
   std::cout << "Usage:\n";
-  std::cout << "  ANN-CLI --mode train --config <file> [options]\n";
-  std::cout << "  ANN-CLI --mode run --model <file> --input <file> [options]\n";
-  std::cout << "  ANN-CLI --mode test --model <file> --samples <file> [options]\n\n";
+  std::cout << "  ANN-CLI --config <file> [options]           # Train mode (mode from config or --mode)\n";
+  std::cout << "  ANN-CLI --model <file> --input <file>       # Run mode (inference)\n";
+  std::cout << "  ANN-CLI --model <file> --mode test [options] # Test mode (evaluation)\n\n";
   std::cout << "Options:\n";
-  std::cout << "  --mode, -m <mode>      Mode: 'train', 'run', or 'test'\n";
-  std::cout << "  --config, -c <file>    Path to JSON configuration file (train mode)\n";
-  std::cout << "  --model <file>         Path to trained model file (run/test modes)\n";
-  std::cout << "  --device, -d <device>  Device: 'cpu' or 'gpu' (default: cpu)\n";
+  std::cout << "  --mode, -m <mode>      Mode: 'train', 'run', or 'test' (overrides config file)\n";
+  std::cout << "  --config, -c <file>    Path to JSON configuration file\n";
+  std::cout << "  --model <file>         Path to trained model file\n";
+  std::cout << "  --device, -d <device>  Device: 'cpu' or 'gpu' (overrides config file)\n";
   std::cout << "  --input, -i <file>     Path to JSON file with input values (run mode)\n";
   std::cout << "  --samples, -s <file>   Path to JSON file with samples (train/test modes)\n";
   std::cout << "  --idx-data <file>      Path to IDX3 data file (alternative to --samples)\n";
@@ -154,66 +155,100 @@ int main(int argc, char *argv[]) {
 
   parser.process(app);
 
-  // Validate required options
-  if (!parser.isSet(modeOption)) {
-    std::cerr << "Error: --mode option is required.\n\n";
+  // Validate that at least one of --config or --model is provided
+  if (!parser.isSet(configOption) && !parser.isSet(modelOption)) {
+    std::cerr << "Error: Either --config or --model must be provided.\n\n";
     printUsage();
     return 1;
   }
 
-  QString mode = parser.value(modeOption).toLower();
-  QString deviceStr = parser.value(deviceOption).toLower();
+  // Build optional mode override (only if --mode was explicitly provided)
+  std::optional<ANN::CoreModeType> modeOverride;
+  QString modeStr;  // For display and validation
 
-  if (mode != "train" && mode != "run" && mode != "test") {
-    std::cerr << "Error: Mode must be 'train', 'run', or 'test'.\n";
-    return 1;
+  if (parser.isSet(modeOption)) {
+    modeStr = parser.value(modeOption).toLower();
+    if (modeStr != "train" && modeStr != "run" && modeStr != "test") {
+      std::cerr << "Error: Mode must be 'train', 'run', or 'test'.\n";
+      return 1;
+    }
+    if (modeStr == "train") {
+      modeOverride = ANN::CoreModeType::TRAIN;
+    } else if (modeStr == "test") {
+      modeOverride = ANN::CoreModeType::TEST;
+    } else {
+      modeOverride = ANN::CoreModeType::RUN;
+    }
   }
 
-  if (deviceStr != "cpu" && deviceStr != "gpu") {
-    std::cerr << "Error: Device must be 'cpu' or 'gpu'.\n";
-    return 1;
+  // Build optional device override (only if --device was explicitly provided)
+  std::optional<ANN::DeviceType> deviceOverride;
+
+  if (parser.isSet(deviceOption)) {
+    QString deviceStr = parser.value(deviceOption).toLower();
+    if (deviceStr != "cpu" && deviceStr != "gpu") {
+      std::cerr << "Error: Device must be 'cpu' or 'gpu'.\n";
+      return 1;
+    }
+    deviceOverride = (deviceStr == "gpu") ? ANN::DeviceType::GPU : ANN::DeviceType::CPU;
   }
 
-  // Validate mode-specific required options
-  if (mode == "train" && !parser.isSet(configOption)) {
-    std::cerr << "Error: --config option is required for train mode.\n\n";
-    printUsage();
+  // Determine which file to use based on what's provided
+  // --config is for training (new models), --model is for run/test (pre-trained models)
+  bool useConfigFile = parser.isSet(configOption);
+  bool useModelFile = parser.isSet(modelOption);
+
+  if (useConfigFile && useModelFile) {
+    std::cerr << "Error: Cannot use both --config and --model. Choose one.\n";
     return 1;
   }
-
-  if ((mode == "run" || mode == "test") && !parser.isSet(modelOption)) {
-    std::cerr << "Error: --model option is required for " << mode.toStdString() << " mode.\n\n";
-    printUsage();
-    return 1;
-  }
-
-  // Convert device string to enum
-  ANN::CoreTypeType coreType = (deviceStr == "gpu") ? ANN::CoreTypeType::GPU : ANN::CoreTypeType::CPU;
 
   try {
     std::unique_ptr<ANN::Core<float>> core;
     QString configPath;  // Used for train mode (needed later for default output path)
+    ANN::CoreConfig<float> coreConfig;
 
-    if (mode == "train") {
-      // Train mode: load config file (architecture + training settings)
-      configPath = parser.value(configOption);
-      std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
-      std::cout << "Mode: " << mode.toStdString() << ", Device: " << deviceStr.toStdString() << "\n";
+    // Get device string for display (from CLI if provided, otherwise will be from config file)
+    std::string deviceDisplay = deviceOverride.has_value()
+        ? (deviceOverride.value() == ANN::DeviceType::GPU ? "gpu (CLI)" : "cpu (CLI)")
+        : "from config file";
 
-      ANN::CoreConfig<float> coreConfig = ANN_CLI::Loader::loadConfig(configPath.toStdString(),
-                                                                       ANN::CoreModeType::TRAIN, coreType);
-      core = ANN::Core<float>::makeCore(coreConfig);
+    // Get mode string for display (from CLI if provided, otherwise will be from config file)
+    std::string modeDisplay;
+    if (modeOverride.has_value()) {
+      switch (modeOverride.value()) {
+        case ANN::CoreModeType::TRAIN: modeDisplay = "train (CLI)"; break;
+        case ANN::CoreModeType::TEST:  modeDisplay = "test (CLI)";  break;
+        case ANN::CoreModeType::RUN:   modeDisplay = "run (CLI)";   break;
+        default:                       modeDisplay = "unknown (CLI)"; break;
+      }
     } else {
-      // Run/Test modes: load model file (architecture + trained weights)
-      QString modelPath = parser.value(modelOption);
-      std::cout << "Loading model from: " << modelPath.toStdString() << "\n";
-      std::cout << "Mode: " << mode.toStdString() << ", Device: " << deviceStr.toStdString() << "\n";
-
-      ANN::CoreConfig<float> coreConfig = ANN_CLI::Loader::loadModel(modelPath.toStdString(), coreType);
-      core = ANN::Core<float>::makeCore(coreConfig);
+      modeDisplay = "from config file";
     }
 
-    if (mode == "train") {
+    if (useConfigFile) {
+      // Load config file (architecture + training settings, optionally pre-trained weights)
+      configPath = parser.value(configOption);
+      std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
+      std::cout << "Mode: " << modeDisplay << ", Device: " << deviceDisplay << "\n";
+
+      coreConfig = ANN_CLI::Loader::loadConfig(configPath.toStdString(), modeOverride, deviceOverride);
+    } else {
+      // Load model file (architecture + trained weights)
+      QString modelPath = parser.value(modelOption);
+      std::cout << "Loading model from: " << modelPath.toStdString() << "\n";
+      std::cout << "Mode: " << modeDisplay << ", Device: " << deviceDisplay << "\n";
+
+      coreConfig = ANN_CLI::Loader::loadModel(modelPath.toStdString(), deviceOverride);
+    }
+
+    // Get the actual mode from the loaded config (may have come from file or CLI override)
+    bool isTrainMode = (coreConfig.coreModeType == ANN::CoreModeType::TRAIN);
+    bool isTestMode = (coreConfig.coreModeType == ANN::CoreModeType::TEST);
+
+    core = ANN::Core<float>::makeCore(coreConfig);
+
+    if (isTrainMode) {
       // Training mode
       ANN::Samples<float> samples;
 
@@ -257,7 +292,7 @@ int main(int argc, char *argv[]) {
 
       // Set up progress callback with ProgressBar instance
       ANN_CLI::ProgressBar progressBar;
-      
+
       core->setTrainingCallback([&progressBar](const ANN::TrainingProgress<float>& progress) {
         progressBar.update(progress);
       });
@@ -273,42 +308,11 @@ int main(int argc, char *argv[]) {
       } else {
         outputPathStr = generateDefaultOutputPath(configPath);
       }
-      
+
       ANN::Utils<float>::save(*core, outputPathStr);
       std::cout << "Model saved to: " << outputPathStr << "\n";
 
-    } else if (mode == "run") {
-      // Run mode
-      if (!parser.isSet(inputOption)) {
-        std::cerr << "Error: --input option is required for run mode.\n";
-        return 1;
-      }
-
-      QString inputPath = parser.value(inputOption);
-      std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
-
-      ANN::Input<float> input = ANN_CLI::Loader::loadInput(inputPath.toStdString());
-      std::cout << "Running ANN with input: ";
-
-      for (size_t i = 0; i < input.size(); ++i) {
-        std::cout << input[i];
-        if (i < input.size() - 1) std::cout << ", ";
-      }
-
-      std::cout << "\n";
-
-      ANN::Output<float> output = core->run(input);
-
-      std::cout << "Output: ";
-
-      for (size_t i = 0; i < output.size(); ++i) {
-        std::cout << output[i];
-        if (i < output.size() - 1) std::cout << ", ";
-      }
-
-      std::cout << "\n";
-
-    } else if (mode == "test") {
+    } else if (isTestMode) {
       // Test mode - evaluate model on test samples
       ANN::Samples<float> samples;
 
@@ -355,6 +359,37 @@ int main(int argc, char *argv[]) {
       std::cout << "  Samples evaluated: " << result.numSamples << "\n";
       std::cout << "  Total loss:        " << result.totalLoss << "\n";
       std::cout << "  Average loss:      " << result.averageLoss << "\n";
+
+    } else {
+      // Run mode (default for non-train, non-test)
+      if (!parser.isSet(inputOption)) {
+        std::cerr << "Error: --input option is required for run mode.\n";
+        return 1;
+      }
+
+      QString inputPath = parser.value(inputOption);
+      std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
+
+      ANN::Input<float> input = ANN_CLI::Loader::loadInput(inputPath.toStdString());
+      std::cout << "Running ANN with input: ";
+
+      for (size_t i = 0; i < input.size(); ++i) {
+        std::cout << input[i];
+        if (i < input.size() - 1) std::cout << ", ";
+      }
+
+      std::cout << "\n";
+
+      ANN::Output<float> output = core->run(input);
+
+      std::cout << "Output: ";
+
+      for (size_t i = 0; i < output.size(); ++i) {
+        std::cout << output[i];
+        if (i < output.size() - 1) std::cout << ", ";
+      }
+
+      std::cout << "\n";
     }
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << "\n";

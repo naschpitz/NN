@@ -8,8 +8,8 @@
 namespace ANN_CLI {
 
 ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
-                                           ANN::CoreModeType modeType,
-                                           ANN::CoreTypeType coreType) {
+                                           std::optional<ANN::CoreModeType> modeType,
+                                           std::optional<ANN::DeviceType> deviceType) {
     QFile file(QString::fromStdString(configFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -22,12 +22,34 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
     nlohmann::json json = nlohmann::json::parse(jsonString);
 
     ANN::CoreConfig<float> coreConfig;
-    coreConfig.coreModeType = modeType;
-    coreConfig.coreTypeType = coreType;
+
+    // Load device type from JSON (optional, defaults to CPU)
+    if (json.contains("device")) {
+        std::string deviceName = json.at("device").get<std::string>();
+        coreConfig.deviceType = ANN::CoreType::nameToType(deviceName);
+    } else {
+        coreConfig.deviceType = ANN::DeviceType::CPU;
+    }
+
+    // Load mode type from JSON (optional, defaults to RUN)
+    if (json.contains("mode")) {
+        std::string modeName = json.at("mode").get<std::string>();
+        coreConfig.coreModeType = ANN::CoreMode::nameToType(modeName);
+    } else {
+        coreConfig.coreModeType = ANN::CoreModeType::RUN;
+    }
+
+    // Override with CLI arguments if explicitly provided
+    if (modeType.has_value()) {
+        coreConfig.coreModeType = modeType.value();
+    }
+    if (deviceType.has_value()) {
+        coreConfig.deviceType = deviceType.value();
+    }
 
     // Load layers config
     const nlohmann::json& layersConfigJson = json.at("layersConfig");
-    
+
     for (const auto& layerJson : layersConfigJson) {
         ANN::Layer layer;
         layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
@@ -64,7 +86,7 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
 }
 
 ANN::CoreConfig<float> Loader::loadModel(const std::string& modelFilePath,
-                                          ANN::CoreTypeType coreType) {
+                                          std::optional<ANN::DeviceType> deviceType) {
     QFile file(QString::fromStdString(modelFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -78,7 +100,19 @@ ANN::CoreConfig<float> Loader::loadModel(const std::string& modelFilePath,
 
     ANN::CoreConfig<float> coreConfig;
     coreConfig.coreModeType = ANN::CoreModeType::RUN;  // Run/test modes don't need backpropagation
-    coreConfig.coreTypeType = coreType;
+
+    // Load device type from JSON (optional, defaults to CPU)
+    if (json.contains("device")) {
+        std::string deviceName = json.at("device").get<std::string>();
+        coreConfig.deviceType = ANN::CoreType::nameToType(deviceName);
+    } else {
+        coreConfig.deviceType = ANN::DeviceType::CPU;
+    }
+
+    // Override with CLI argument if explicitly provided
+    if (deviceType.has_value()) {
+        coreConfig.deviceType = deviceType.value();
+    }
 
     // Load layers config (required)
     if (!json.contains("layersConfig")) {
