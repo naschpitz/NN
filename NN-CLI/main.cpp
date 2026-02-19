@@ -53,16 +53,19 @@ std::string generateDefaultOutputPath(const QString& configPath) {
 void printUsage() {
   std::cout << "ANN-CLI - Artificial Neural Network Command Line Interface\n\n";
   std::cout << "Usage:\n";
-  std::cout << "  ANN-CLI --config <file> --mode <train|run> [options]\n\n";
+  std::cout << "  ANN-CLI --mode train --config <file> [options]\n";
+  std::cout << "  ANN-CLI --mode run --model <file> --input <file> [options]\n";
+  std::cout << "  ANN-CLI --mode test --model <file> --samples <file> [options]\n\n";
   std::cout << "Options:\n";
-  std::cout << "  --config, -c <file>    Path to JSON configuration file\n";
-  std::cout << "  --mode, -m <mode>      Mode: 'train' or 'run'\n";
-  std::cout << "  --type, -t <type>      Core type: 'cpu' or 'gpu' (default: cpu)\n";
-  std::cout << "  --input, -i <file>     Path to JSON file with input values for run mode\n";
-  std::cout << "  --samples, -s <file>   Path to JSON file with training samples\n";
+  std::cout << "  --mode, -m <mode>      Mode: 'train', 'run', or 'test'\n";
+  std::cout << "  --config, -c <file>    Path to JSON configuration file (train mode)\n";
+  std::cout << "  --model <file>         Path to trained model file (run/test modes)\n";
+  std::cout << "  --device, -d <device>  Device: 'cpu' or 'gpu' (default: cpu)\n";
+  std::cout << "  --input, -i <file>     Path to JSON file with input values (run mode)\n";
+  std::cout << "  --samples, -s <file>   Path to JSON file with samples (train/test modes)\n";
   std::cout << "  --idx-data <file>      Path to IDX3 data file (alternative to --samples)\n";
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
-  std::cout << "  --output, -o <file>    Output file for saving trained model\n";
+  std::cout << "  --output, -o <file>    Output file for saving trained model (train mode)\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
 
@@ -84,22 +87,22 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(configOption);
 
-  // Mode option (train or run)
+  // Mode option (train, run, or test)
   QCommandLineOption modeOption(
     QStringList() << "m" << "mode",
-    "Mode: 'train' or 'run'.",
+    "Mode: 'train', 'run', or 'test'.",
     "mode"
   );
   parser.addOption(modeOption);
 
-  // Core type option (cpu or gpu)
-  QCommandLineOption typeOption(
-    QStringList() << "t" << "type",
-    "Core type: 'cpu' or 'gpu' (default: cpu).",
-    "type",
+  // Device option (cpu or gpu)
+  QCommandLineOption deviceOption(
+    QStringList() << "d" << "device",
+    "Device: 'cpu' or 'gpu' (default: cpu).",
+    "device",
     "cpu"
   );
-  parser.addOption(typeOption);
+  parser.addOption(deviceOption);
 
   // Input file for run mode
   QCommandLineOption inputOption(
@@ -109,10 +112,10 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(inputOption);
 
-  // Samples file for training (JSON format)
+  // Samples file for training/testing (JSON format)
   QCommandLineOption samplesOption(
     QStringList() << "s" << "samples",
-    "Path to JSON file with training samples.",
+    "Path to JSON file with samples (for train/test modes).",
     "file"
   );
   parser.addOption(samplesOption);
@@ -141,48 +144,74 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(outputOption);
 
+  // Model file for run/test modes
+  QCommandLineOption modelOption(
+    QStringList() << "model",
+    "Path to trained model file (for run/test modes).",
+    "file"
+  );
+  parser.addOption(modelOption);
+
   parser.process(app);
 
   // Validate required options
-  if (!parser.isSet(configOption)) {
-    std::cerr << "Error: --config option is required.\n\n";
-    printUsage();
-    return 1;
-  }
-
   if (!parser.isSet(modeOption)) {
     std::cerr << "Error: --mode option is required.\n\n";
     printUsage();
     return 1;
   }
 
-  QString configPath = parser.value(configOption);
   QString mode = parser.value(modeOption).toLower();
-  QString coreTypeStr = parser.value(typeOption).toLower();
+  QString deviceStr = parser.value(deviceOption).toLower();
 
-  if (mode != "train" && mode != "run") {
-    std::cerr << "Error: Mode must be 'train' or 'run'.\n";
+  if (mode != "train" && mode != "run" && mode != "test") {
+    std::cerr << "Error: Mode must be 'train', 'run', or 'test'.\n";
     return 1;
   }
 
-  if (coreTypeStr != "cpu" && coreTypeStr != "gpu") {
-    std::cerr << "Error: Type must be 'cpu' or 'gpu'.\n";
+  if (deviceStr != "cpu" && deviceStr != "gpu") {
+    std::cerr << "Error: Device must be 'cpu' or 'gpu'.\n";
     return 1;
   }
 
-  // Convert mode string to enum
-  ANN::CoreModeType modeType = (mode == "train") ? ANN::CoreModeType::TRAIN : ANN::CoreModeType::RUN;
+  // Validate mode-specific required options
+  if (mode == "train" && !parser.isSet(configOption)) {
+    std::cerr << "Error: --config option is required for train mode.\n\n";
+    printUsage();
+    return 1;
+  }
 
-  // Convert core type string to enum
-  ANN::CoreTypeType coreType = (coreTypeStr == "gpu") ? ANN::CoreTypeType::GPU : ANN::CoreTypeType::CPU;
+  if ((mode == "run" || mode == "test") && !parser.isSet(modelOption)) {
+    std::cerr << "Error: --model option is required for " << mode.toStdString() << " mode.\n\n";
+    printUsage();
+    return 1;
+  }
+
+  // Convert device string to enum
+  ANN::CoreTypeType coreType = (deviceStr == "gpu") ? ANN::CoreTypeType::GPU : ANN::CoreTypeType::CPU;
 
   try {
-    // Load the ANN configuration from JSON file
-    std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
-    std::cout << "Mode: " << mode.toStdString() << ", Core type: " << coreTypeStr.toStdString() << "\n";
+    std::unique_ptr<ANN::Core<float>> core;
+    QString configPath;  // Used for train mode (needed later for default output path)
 
-    ANN::CoreConfig<float> coreConfig = ANN_CLI::Loader::loadConfig(configPath.toStdString(), modeType, coreType);
-    auto core = ANN::Core<float>::makeCore(coreConfig);
+    if (mode == "train") {
+      // Train mode: load config file (architecture + training settings)
+      configPath = parser.value(configOption);
+      std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
+      std::cout << "Mode: " << mode.toStdString() << ", Device: " << deviceStr.toStdString() << "\n";
+
+      ANN::CoreConfig<float> coreConfig = ANN_CLI::Loader::loadConfig(configPath.toStdString(),
+                                                                       ANN::CoreModeType::TRAIN, coreType);
+      core = ANN::Core<float>::makeCore(coreConfig);
+    } else {
+      // Run/Test modes: load model file (architecture + trained weights)
+      QString modelPath = parser.value(modelOption);
+      std::cout << "Loading model from: " << modelPath.toStdString() << "\n";
+      std::cout << "Mode: " << mode.toStdString() << ", Device: " << deviceStr.toStdString() << "\n";
+
+      ANN::CoreConfig<float> coreConfig = ANN_CLI::Loader::loadModel(modelPath.toStdString(), coreType);
+      core = ANN::Core<float>::makeCore(coreConfig);
+    }
 
     if (mode == "train") {
       // Training mode
@@ -278,6 +307,54 @@ int main(int argc, char *argv[]) {
       }
 
       std::cout << "\n";
+
+    } else if (mode == "test") {
+      // Test mode - evaluate model on test samples
+      ANN::Samples<float> samples;
+
+      bool hasJsonSamples = parser.isSet(samplesOption);
+      bool hasIdxData = parser.isSet(idxDataOption);
+      bool hasIdxLabels = parser.isSet(idxLabelsOption);
+
+      if (hasJsonSamples && hasIdxData) {
+        std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
+        return 1;
+      }
+
+      if (hasJsonSamples) {
+        // Load from JSON format
+        QString samplesPath = parser.value(samplesOption);
+        std::cout << "Loading test samples from JSON: " << samplesPath.toStdString() << "\n";
+        samples = ANN_CLI::Loader::loadSamples(samplesPath.toStdString());
+      } else if (hasIdxData) {
+        // Load from IDX format
+        if (!hasIdxLabels) {
+          std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
+          return 1;
+        }
+
+        QString idxDataPath = parser.value(idxDataOption);
+        QString idxLabelsPath = parser.value(idxLabelsOption);
+
+        std::cout << "Loading test samples from IDX:\n";
+        std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
+        std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
+
+        samples = ANN_CLI::Utils<float>::loadIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString());
+      } else {
+        std::cerr << "Error: Test mode requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
+        return 1;
+      }
+
+      std::cout << "Loaded " << samples.size() << " test samples.\n";
+      std::cout << "Running evaluation...\n";
+
+      ANN::TestResult<float> result = core->test(samples);
+
+      std::cout << "\nTest Results:\n";
+      std::cout << "  Samples evaluated: " << result.numSamples << "\n";
+      std::cout << "  Total loss:        " << result.totalLoss << "\n";
+      std::cout << "  Average loss:      " << result.averageLoss << "\n";
     }
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << "\n";

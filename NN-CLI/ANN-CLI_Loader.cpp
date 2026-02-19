@@ -63,6 +63,50 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
     return coreConfig;
 }
 
+ANN::CoreConfig<float> Loader::loadModel(const std::string& modelFilePath,
+                                          ANN::CoreTypeType coreType) {
+    QFile file(QString::fromStdString(modelFilePath));
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        throw std::runtime_error("Failed to open model file: " + modelFilePath);
+    }
+
+    QByteArray fileData = file.readAll();
+    std::string jsonString = fileData.toStdString();
+
+    nlohmann::json json = nlohmann::json::parse(jsonString);
+
+    ANN::CoreConfig<float> coreConfig;
+    coreConfig.coreModeType = ANN::CoreModeType::RUN;  // Run/test modes don't need backpropagation
+    coreConfig.coreTypeType = coreType;
+
+    // Load layers config (required)
+    if (!json.contains("layersConfig")) {
+        throw std::runtime_error("Model file missing 'layersConfig': " + modelFilePath);
+    }
+
+    const nlohmann::json& layersConfigJson = json.at("layersConfig");
+
+    for (const auto& layerJson : layersConfigJson) {
+        ANN::Layer layer;
+        layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
+        std::string actvFuncName = layerJson.at("actvFunc").get<std::string>();
+        layer.actvFuncType = ANN::ActvFunc::nameToType(actvFuncName);
+        coreConfig.layersConfig.push_back(layer);
+    }
+
+    // Load parameters (required for model files)
+    if (!json.contains("parameters")) {
+        throw std::runtime_error("Model file missing 'parameters' (weights/biases): " + modelFilePath);
+    }
+
+    const nlohmann::json& parametersJson = json.at("parameters");
+    coreConfig.parameters.weights = parametersJson.at("weights").get<ANN::Tensor3D<float>>();
+    coreConfig.parameters.biases = parametersJson.at("biases").get<ANN::Tensor2D<float>>();
+
+    return coreConfig;
+}
+
 ANN::Samples<float> Loader::loadSamples(const std::string& samplesFilePath) {
     QFile file(QString::fromStdString(samplesFilePath));
 
