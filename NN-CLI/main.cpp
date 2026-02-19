@@ -64,7 +64,7 @@ void printUsage() {
   std::cout << "  --idx-data <file>      Path to IDX3 data file (alternative to --samples)\n";
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
   std::cout << "  --output, -o <file>    Output file for saving trained model (train mode)\n";
-  std::cout << "  --verbose, -v          Print detailed initialization and processing info\n";
+  std::cout << "  --verbose              Print detailed initialization and processing info\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
 
@@ -143,9 +143,9 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(outputOption);
 
-  // Verbose option
+  // Verbose option (no short form since -v is used by Qt's version option)
   QCommandLineOption verboseOption(
-    QStringList() << "v" << "verbose",
+    "verbose",
     "Print detailed initialization and processing information."
   );
   parser.addOption(verboseOption);
