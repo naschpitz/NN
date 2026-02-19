@@ -36,6 +36,10 @@ namespace ANN {
       // Set a callback to receive training progress updates
       void setTrainingCallback(TrainingCallback<T> callback) { trainingCallback = callback; }
 
+      // Verbose control
+      void setVerbose(bool v) { verbose = v; }
+      bool isVerbose() const { return verbose; }
+
     protected:
       explicit Core(const CoreConfig<T>& coreConfig);
       void sanityCheck(const CoreConfig<T>& coreConfig);
@@ -53,6 +57,7 @@ namespace ANN {
       TrainingConfig<T> trainingConfig;
       TrainingMetadata<T> trainingMetadata;
       Parameters<T> parameters;
+      bool verbose = false;
 
       Tensor2D<T> actvs;
       Tensor2D<T> zs;

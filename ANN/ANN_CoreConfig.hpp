@@ -17,6 +17,7 @@ namespace ANN {
     LayersConfig layersConfig;
     TrainingConfig<T> trainingConfig;
     Parameters<T> parameters;
+    bool verbose = false;
   };
 }
 

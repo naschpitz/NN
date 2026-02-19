@@ -18,7 +18,7 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig)
     : Core<T>(coreConfig) {
 
   // Initialize OpenCL before querying device information
-  OpenCLWrapper::Core::initialize();
+  OpenCLWrapper::Core::initialize(this->verbose);
 
   // Determine number of GPUs to use
   int requestedGPUs = coreConfig.trainingConfig.numGPUs;
@@ -55,9 +55,11 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
-  std::cout << "Starting GPU training: " << numSamples << " samples, "
-            << numEpochs << " epochs, " << this->numGPUs << " GPU"
-            << (this->numGPUs > 1 ? "s" : "") << "\n";
+  if (this->verbose) {
+    std::cout << "Starting GPU training: " << numSamples << " samples, "
+              << numEpochs << " epochs, " << this->numGPUs << " GPU"
+              << (this->numGPUs > 1 ? "s" : "") << "\n";
+  }
 
   // Create per-GPU wrapper callbacks that inject GPU index into progress reports
   auto createGpuCallback = [this](size_t gpuIdx) -> TrainingCallback<T> {
@@ -195,17 +197,21 @@ TestResult<T> CoreGPU<T>::test(const Samples<T>& samples) {
 
 template <typename T>
 void CoreGPU<T>::initializeWorkers() {
-  std::cout << "Initializing GPU training with " << this->numGPUs << " GPU"
-            << (this->numGPUs > 1 ? "s" : "") << "...\n";
+  if (this->verbose) {
+    std::cout << "Initializing GPU training with " << this->numGPUs << " GPU"
+              << (this->numGPUs > 1 ? "s" : "") << "...\n";
+  }
 
   // Create CoreGPUWorker instances - each will get assigned to a different GPU
   // via OpenCLWrapper's automatic device load balancing
   for (size_t i = 0; i < this->numGPUs; i++) {
-    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters);
+    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters, this->verbose);
     this->gpuWorkers.push_back(std::move(worker));
   }
 
-  std::cout << "GPU initialization complete.\n";
+  if (this->verbose) {
+    std::cout << "GPU initialization complete.\n";
+  }
 }
 
 //===================================================================================================================//

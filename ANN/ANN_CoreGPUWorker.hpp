@@ -12,7 +12,7 @@ namespace ANN {
   class CoreGPUWorker {
     public:
       CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                    const Parameters<T>& parameters);
+                    const Parameters<T>& parameters, bool verbose = false);
 
       //-- Inference --//
       Output<T> run(const Input<T>& input);
@@ -42,6 +42,7 @@ namespace ANN {
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
       Parameters<T> parameters;
+      bool verbose = false;
 
       //-- OpenCL state --//
       OpenCLWrapper::Core oclwCore;

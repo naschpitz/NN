@@ -13,12 +13,14 @@ using namespace ANN;
 
 template <typename T>
 CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                                 const Parameters<T>& parameters)
+                                 const Parameters<T>& parameters, bool verbose)
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
+      verbose(verbose),
       oclwCore(OpenCLWrapper::Core(false)) {
 
+  this->oclwCore.setVerbose(this->verbose);
   this->allocateCommon();
   this->allocateTraining();
 }
@@ -58,7 +60,6 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, ulong startIdx, ulong
   if (!this->trainingKernelsSetup) {
     this->setupTrainingKernels();
     this->trainingKernelsSetup = true;
-    this->oclwCore.setVerbose(false);
   }
 
   T subsetLoss = 0;
@@ -266,17 +267,17 @@ void CoreGPUWorker<T>::allocateCommon() {
     }
   }
 
-  std::cout << "Loading OpenCL kernels...\n";
+  if (this->verbose) std::cout << "Loading OpenCL kernels...\n";
   // Load source files in order - they will be concatenated by OpenCL
   this->oclwCore.addSourceFile("extern/ANN/Defines.hpp.cl");
   this->oclwCore.addSourceFile("extern/ANN/ActvFunc.cpp.cl");
   this->oclwCore.addSourceFile("extern/ANN/IdxHelper.cpp.cl");
   this->oclwCore.addSourceFile("extern/ANN/Kernels.cpp.cl");
-  std::cout << "OpenCL kernels loaded.\n";
+  if (this->verbose) std::cout << "OpenCL kernels loaded.\n";
 
   ulong totalNumNeurons = this->layersConfig.getTotalNumNeurons();
 
-  std::cout << "Allocating common buffers...";
+  if (this->verbose) std::cout << "Allocating common buffers...";
   this->oclwCore. template allocateBuffer<T>("actvs", totalNumNeurons);
   this->oclwCore. template allocateBuffer<T>("weights", Utils<T>::count(this->parameters.weights));
   this->oclwCore. template allocateBuffer<T>("biases", Utils<T>::count(this->parameters.biases));
@@ -291,7 +292,7 @@ void CoreGPUWorker<T>::allocateCommon() {
   std::vector<Layer> layersVec(this->layersConfig.begin(), this->layersConfig.end());
   this->oclwCore. template writeBuffer<Layer>("layers", layersVec, 0);
 
-  std::cout << "Common buffers allocation done.";
+  if (this->verbose) std::cout << "Common buffers allocation done.\n";
 
   // Write initialized weights and biases to GPU buffers
   std::vector<T> flatWeights = Utils<T>::flatten(this->parameters.weights);
@@ -307,13 +308,13 @@ void CoreGPUWorker<T>::allocateTraining() {
   ulong totalNumWeights = Utils<T>::count(this->parameters.weights);
   ulong totalNumBiases = Utils<T>::count(this->parameters.biases);
 
-  std::cout << "Allocating training buffers...";
+  if (this->verbose) std::cout << "Allocating training buffers...";
   this->oclwCore. template allocateBuffer<T>("dCost_dWeights", totalNumWeights);
   this->oclwCore. template allocateBuffer<T>("accum_dCost_dWeights", totalNumWeights);
 
   this->oclwCore. template allocateBuffer<T>("dCost_dBiases", totalNumBiases);
   this->oclwCore. template allocateBuffer<T>("accum_dCost_dBiases", totalNumBiases);
-  std::cout << "Training buffers allocation done.";
+  if (this->verbose) std::cout << "Training buffers allocation done.\n";
 }
 
 //===================================================================================================================//
