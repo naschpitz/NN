@@ -47,7 +47,11 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
         coreConfig.deviceType = deviceType.value();
     }
 
-    // Load layers config
+    // Load layers config (required for all modes)
+    if (!json.contains("layersConfig")) {
+        throw std::runtime_error("Config file missing 'layersConfig': " + configFilePath);
+    }
+
     const nlohmann::json& layersConfigJson = json.at("layersConfig");
 
     for (const auto& layerJson : layersConfigJson) {
@@ -58,7 +62,7 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
         coreConfig.layersConfig.push_back(layer);
     }
 
-    // Load training config (optional)
+    // Load training config (optional - only relevant for TRAIN mode)
     if (json.contains("trainingConfig")) {
         const nlohmann::json& trainingConfigJson = json.at("trainingConfig");
         coreConfig.trainingConfig.numEpochs = trainingConfigJson.at("numEpochs").get<ulong>();
@@ -75,68 +79,20 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
         }
     }
 
-    // Load parameters (optional - for pre-trained models)
+    // Load parameters (optional for TRAIN mode to allow resuming, required for RUN/TEST modes)
     if (json.contains("parameters")) {
         const nlohmann::json& parametersJson = json.at("parameters");
         coreConfig.parameters.weights = parametersJson.at("weights").get<ANN::Tensor3D<float>>();
         coreConfig.parameters.biases = parametersJson.at("biases").get<ANN::Tensor2D<float>>();
     }
 
-    return coreConfig;
-}
+    // Validate: RUN and TEST modes require parameters (trained weights/biases)
+    bool isRunOrTestMode = (coreConfig.coreModeType == ANN::CoreModeType::RUN ||
+                            coreConfig.coreModeType == ANN::CoreModeType::TEST);
 
-ANN::CoreConfig<float> Loader::loadModel(const std::string& modelFilePath,
-                                          std::optional<ANN::DeviceType> deviceType) {
-    QFile file(QString::fromStdString(modelFilePath));
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        throw std::runtime_error("Failed to open model file: " + modelFilePath);
+    if (isRunOrTestMode && !json.contains("parameters")) {
+        throw std::runtime_error("Config file missing 'parameters' (weights/biases) required for run/test modes: " + configFilePath);
     }
-
-    QByteArray fileData = file.readAll();
-    std::string jsonString = fileData.toStdString();
-
-    nlohmann::json json = nlohmann::json::parse(jsonString);
-
-    ANN::CoreConfig<float> coreConfig;
-    coreConfig.coreModeType = ANN::CoreModeType::RUN;  // Run/test modes don't need backpropagation
-
-    // Load device type from JSON (optional, defaults to CPU)
-    if (json.contains("device")) {
-        std::string deviceName = json.at("device").get<std::string>();
-        coreConfig.deviceType = ANN::CoreType::nameToType(deviceName);
-    } else {
-        coreConfig.deviceType = ANN::DeviceType::CPU;
-    }
-
-    // Override with CLI argument if explicitly provided
-    if (deviceType.has_value()) {
-        coreConfig.deviceType = deviceType.value();
-    }
-
-    // Load layers config (required)
-    if (!json.contains("layersConfig")) {
-        throw std::runtime_error("Model file missing 'layersConfig': " + modelFilePath);
-    }
-
-    const nlohmann::json& layersConfigJson = json.at("layersConfig");
-
-    for (const auto& layerJson : layersConfigJson) {
-        ANN::Layer layer;
-        layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
-        std::string actvFuncName = layerJson.at("actvFunc").get<std::string>();
-        layer.actvFuncType = ANN::ActvFunc::nameToType(actvFuncName);
-        coreConfig.layersConfig.push_back(layer);
-    }
-
-    // Load parameters (required for model files)
-    if (!json.contains("parameters")) {
-        throw std::runtime_error("Model file missing 'parameters' (weights/biases): " + modelFilePath);
-    }
-
-    const nlohmann::json& parametersJson = json.at("parameters");
-    coreConfig.parameters.weights = parametersJson.at("weights").get<ANN::Tensor3D<float>>();
-    coreConfig.parameters.biases = parametersJson.at("biases").get<ANN::Tensor2D<float>>();
 
     return coreConfig;
 }
