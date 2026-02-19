@@ -6,8 +6,8 @@
 #include <QFileInfo>
 
 #include <ANN_Core.hpp>
-#include <ANN_CoreMode.hpp>
-#include <ANN_CoreType.hpp>
+#include <ANN_Mode.hpp>
+#include <ANN_Device.hpp>
 #include <ANN_Utils.hpp>
 
 #include "ANN-CLI_Loader.hpp"
@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Build optional mode override (only if --mode was explicitly provided)
-  std::optional<ANN::CoreModeType> modeOverride;
+  std::optional<ANN::ModeType> modeOverride;
   QString modeStr;  // For display and validation
 
   if (parser.isSet(modeOption)) {
@@ -164,11 +164,11 @@ int main(int argc, char *argv[]) {
       return 1;
     }
     if (modeStr == "train") {
-      modeOverride = ANN::CoreModeType::TRAIN;
+      modeOverride = ANN::ModeType::TRAIN;
     } else if (modeStr == "test") {
-      modeOverride = ANN::CoreModeType::TEST;
+      modeOverride = ANN::ModeType::TEST;
     } else {
-      modeOverride = ANN::CoreModeType::RUN;
+      modeOverride = ANN::ModeType::RUN;
     }
   }
 
@@ -198,10 +198,10 @@ int main(int argc, char *argv[]) {
     std::string modeDisplay;
     if (modeOverride.has_value()) {
       switch (modeOverride.value()) {
-        case ANN::CoreModeType::TRAIN: modeDisplay = "train (CLI)"; break;
-        case ANN::CoreModeType::TEST:  modeDisplay = "test (CLI)";  break;
-        case ANN::CoreModeType::RUN:   modeDisplay = "run (CLI)";   break;
-        default:                       modeDisplay = "unknown (CLI)"; break;
+        case ANN::ModeType::TRAIN: modeDisplay = "train (CLI)"; break;
+        case ANN::ModeType::TEST:  modeDisplay = "test (CLI)";  break;
+        case ANN::ModeType::RUN:   modeDisplay = "run (CLI)";   break;
+        default:                   modeDisplay = "unknown (CLI)"; break;
       }
     } else {
       modeDisplay = "from config file";
@@ -213,8 +213,8 @@ int main(int argc, char *argv[]) {
     coreConfig = ANN_CLI::Loader::loadConfig(configPath.toStdString(), modeOverride, deviceOverride);
 
     // Get the actual mode from the loaded config (may have come from file or CLI override)
-    bool isTrainMode = (coreConfig.coreModeType == ANN::CoreModeType::TRAIN);
-    bool isTestMode = (coreConfig.coreModeType == ANN::CoreModeType::TEST);
+    bool isTrainMode = (coreConfig.modeType == ANN::ModeType::TRAIN);
+    bool isTestMode = (coreConfig.modeType == ANN::ModeType::TEST);
 
     core = ANN::Core<float>::makeCore(coreConfig);
 

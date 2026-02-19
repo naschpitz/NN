@@ -8,7 +8,7 @@
 namespace ANN_CLI {
 
 ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
-                                           std::optional<ANN::CoreModeType> modeType,
+                                           std::optional<ANN::ModeType> modeType,
                                            std::optional<ANN::DeviceType> deviceType) {
     QFile file(QString::fromStdString(configFilePath));
 
@@ -26,7 +26,7 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
     // Load device type from JSON (optional, defaults to CPU)
     if (json.contains("device")) {
         std::string deviceName = json.at("device").get<std::string>();
-        coreConfig.deviceType = ANN::CoreType::nameToType(deviceName);
+        coreConfig.deviceType = ANN::Device::nameToType(deviceName);
     } else {
         coreConfig.deviceType = ANN::DeviceType::CPU;
     }
@@ -34,14 +34,14 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
     // Load mode type from JSON (optional, defaults to RUN)
     if (json.contains("mode")) {
         std::string modeName = json.at("mode").get<std::string>();
-        coreConfig.coreModeType = ANN::CoreMode::nameToType(modeName);
+        coreConfig.modeType = ANN::Mode::nameToType(modeName);
     } else {
-        coreConfig.coreModeType = ANN::CoreModeType::RUN;
+        coreConfig.modeType = ANN::ModeType::RUN;
     }
 
     // Override with CLI arguments if explicitly provided
     if (modeType.has_value()) {
-        coreConfig.coreModeType = modeType.value();
+        coreConfig.modeType = modeType.value();
     }
     if (deviceType.has_value()) {
         coreConfig.deviceType = deviceType.value();
@@ -87,8 +87,8 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
     }
 
     // Validate: RUN and TEST modes require parameters (trained weights/biases)
-    bool isRunOrTestMode = (coreConfig.coreModeType == ANN::CoreModeType::RUN ||
-                            coreConfig.coreModeType == ANN::CoreModeType::TEST);
+    bool isRunOrTestMode = (coreConfig.modeType == ANN::ModeType::RUN ||
+                            coreConfig.modeType == ANN::ModeType::TEST);
 
     if (isRunOrTestMode && !json.contains("parameters")) {
         throw std::runtime_error("Config file missing 'parameters' (weights/biases) required for run/test modes: " + configFilePath);

@@ -1,4 +1,6 @@
 {
+  "mode": "train",
+  "device": "gpu",
   "layersConfig": [
     { "numNeurons": 784, "actvFunc": "relu" },
     { "numNeurons": 128, "actvFunc": "relu" },

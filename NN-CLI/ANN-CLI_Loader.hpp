@@ -2,8 +2,8 @@
 #define ANN_CLI_LOADER_HPP
 
 #include <ANN_Core.hpp>
-#include <ANN_CoreMode.hpp>
-#include <ANN_CoreType.hpp>
+#include <ANN_Mode.hpp>
+#include <ANN_Device.hpp>
 #include <ANN_ActvFunc.hpp>
 #include <ANN_LayersConfig.hpp>
 
@@ -23,7 +23,7 @@ public:
   // If modeType or deviceType are not provided, values from the JSON config file are used.
   // If provided, they override the JSON config values.
   static ANN::CoreConfig<float> loadConfig(const std::string& configFilePath,
-                                           std::optional<ANN::CoreModeType> modeType = std::nullopt,
+                                           std::optional<ANN::ModeType> modeType = std::nullopt,
                                            std::optional<ANN::DeviceType> deviceType = std::nullopt);
 
   static ANN::Samples<float> loadSamples(const std::string& samplesFilePath);
