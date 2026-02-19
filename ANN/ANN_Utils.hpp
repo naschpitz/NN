@@ -17,8 +17,8 @@ namespace ANN {
       static std::unique_ptr<Core<T>> load(const std::string& configFilePath);
 
       // Save model with training metadata (read from core)
-      static void save(const Core<T>& core, const std::string& filePath);
       static std::string save(const Core<T>& core);
+      static void save(const Core<T>& core, const std::string& filePath);
 
       // Format current time as ISO 8601 string
       static std::string formatISO8601();

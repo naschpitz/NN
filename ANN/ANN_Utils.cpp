@@ -48,24 +48,6 @@ std::unique_ptr<Core<T>> Utils<T>::load(const std::string& configFilePath) {
 //===================================================================================================================//
 
 template <typename T>
-void Utils<T>::save(const Core<T>& core, const std::string& filePath) {
-  QFile file(QString::fromStdString(filePath));
-
-  if (!file.open(QIODevice::WriteOnly)) {
-    throw std::runtime_error("Failed to open file for writing: " + filePath);
-  }
-
-  // Convert the core object to a JSON string
-  std::string jsonString = save(core);
-
-  // Write to file
-  file.write(jsonString.c_str());
-  file.close();
-}
-
-//===================================================================================================================//
-
-template <typename T>
 std::string Utils<T>::save(const Core<T>& core) {
   nlohmann::ordered_json json;
 
@@ -86,6 +68,24 @@ std::string Utils<T>::save(const Core<T>& core) {
   json["parameters"] = getParametersJson(core.getParameters());
 
   return json.dump(4);  // Pretty-print with 4 spaces indentation
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void Utils<T>::save(const Core<T>& core, const std::string& filePath) {
+  QFile file(QString::fromStdString(filePath));
+
+  if (!file.open(QIODevice::WriteOnly)) {
+    throw std::runtime_error("Failed to open file for writing: " + filePath);
+  }
+
+  // Convert the core object to a JSON string
+  std::string jsonString = save(core);
+
+  // Write to file
+  file.write(jsonString.c_str());
+  file.close();
 }
 
 //===================================================================================================================//

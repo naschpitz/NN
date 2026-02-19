@@ -28,8 +28,8 @@ namespace ANN {
       DeviceType getDeviceType() const { return deviceType; }
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
-      const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }
       const RunMetadata<T>& getRunMetadata() const { return runMetadata; }
+      const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }
       const Parameters<T>& getParameters() const { return parameters; }
 
       // Set parameters (for multi-GPU weight synchronization)
