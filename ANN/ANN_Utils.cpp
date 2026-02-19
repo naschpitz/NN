@@ -64,7 +64,7 @@ void Utils<T>::save(const Core<T>& core, const std::string& filePath) {
 
 template <typename T>
 std::string Utils<T>::save(const Core<T>& core) {
-  nlohmann::json json;
+  nlohmann::ordered_json json;
 
   // Save LayersConfig
   json["layersConfig"] = getLayersConfigJson(core.getLayersConfig());
@@ -251,17 +251,17 @@ Parameters<T> Utils<T>::loadParameters(const nlohmann::json& json) {
 //===================================================================================================================//
 
 template <typename T>
-nlohmann::json Utils<T>::getLayersConfigJson(const LayersConfig& layersConfig) {
-  nlohmann::json layerConfigJsonArray = nlohmann::json::array();
+nlohmann::ordered_json Utils<T>::getLayersConfigJson(const LayersConfig& layersConfig) {
+  nlohmann::ordered_json layerConfigJsonArray = nlohmann::ordered_json::array();
 
   for (const Layer& layer : layersConfig) {
     ulong numNeurons = layer.numNeurons;
     std::string actvFuncName = ActvFunc::typeToName(layer.actvFuncType);
 
-    layerConfigJsonArray.push_back({
-        {"numNeurons", numNeurons},
-        {"actvFunc", actvFuncName}
-    });
+    nlohmann::ordered_json layerJson;
+    layerJson["numNeurons"] = numNeurons;
+    layerJson["actvFunc"] = actvFuncName;
+    layerConfigJsonArray.push_back(layerJson);
   }
 
   return layerConfigJsonArray;
@@ -270,8 +270,8 @@ nlohmann::json Utils<T>::getLayersConfigJson(const LayersConfig& layersConfig) {
 //===================================================================================================================//
 
 template <typename T>
-nlohmann::json Utils<T>::getTrainingConfigJson(const TrainingConfig<T>& trainingConfig) {
-  nlohmann::json trainingConfigJsonObject;
+nlohmann::ordered_json Utils<T>::getTrainingConfigJson(const TrainingConfig<T>& trainingConfig) {
+  nlohmann::ordered_json trainingConfigJsonObject;
   trainingConfigJsonObject["numEpochs"] = trainingConfig.numEpochs;
   trainingConfigJsonObject["learningRate"] = trainingConfig.learningRate;
 
@@ -281,26 +281,28 @@ nlohmann::json Utils<T>::getTrainingConfigJson(const TrainingConfig<T>& training
 //===================================================================================================================//
 
 template <typename T>
-nlohmann::json Utils<T>::getTrainingMetadataJson(const TrainingMetadata<T>& metadata) {
-  return {
-    {"startTime", metadata.startTime},
-    {"endTime", metadata.endTime},
-    {"durationSeconds", metadata.durationSeconds},
-    {"durationFormatted", metadata.durationFormatted},
-    {"device", metadata.device},
-    {"numSamples", metadata.numSamples},
-    {"finalLoss", metadata.finalLoss}
-  };
+nlohmann::ordered_json Utils<T>::getTrainingMetadataJson(const TrainingMetadata<T>& metadata) {
+  nlohmann::ordered_json json;
+  json["startTime"] = metadata.startTime;
+  json["endTime"] = metadata.endTime;
+  json["durationSeconds"] = metadata.durationSeconds;
+  json["durationFormatted"] = metadata.durationFormatted;
+  json["device"] = metadata.device;
+  json["numSamples"] = metadata.numSamples;
+  json["finalLoss"] = metadata.finalLoss;
+
+  return json;
 }
 
 //===================================================================================================================//
 
 template <typename T>
-nlohmann::json Utils<T>::getParametersJson(const Parameters<T>& parameters) {
-  return {
-    {"weights", parameters.weights},
-    {"biases", parameters.biases}
-  };
+nlohmann::ordered_json Utils<T>::getParametersJson(const Parameters<T>& parameters) {
+  nlohmann::ordered_json json;
+  json["weights"] = parameters.weights;
+  json["biases"] = parameters.biases;
+
+  return json;
 }
 
 //===================================================================================================================//

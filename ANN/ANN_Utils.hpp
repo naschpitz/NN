@@ -73,10 +73,10 @@ namespace ANN {
       static TrainingConfig<T> loadTrainingConfig(const nlohmann::json& json);
       static Parameters<T> loadParameters(const nlohmann::json& json);
 
-      static nlohmann::json getLayersConfigJson(const LayersConfig& layersConfig);
-      static nlohmann::json getTrainingConfigJson(const TrainingConfig<T>& trainingConfig);
-      static nlohmann::json getTrainingMetadataJson(const TrainingMetadata<T>& metadata);
-      static nlohmann::json getParametersJson(const Parameters<T>& parameters);
+      static nlohmann::ordered_json getLayersConfigJson(const LayersConfig& layersConfig);
+      static nlohmann::ordered_json getTrainingConfigJson(const TrainingConfig<T>& trainingConfig);
+      static nlohmann::ordered_json getTrainingMetadataJson(const TrainingMetadata<T>& metadata);
+      static nlohmann::ordered_json getParametersJson(const Parameters<T>& parameters);
 
       // Helper to detect if a type is a std::vector
       template <typename U>
