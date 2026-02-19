@@ -6,6 +6,7 @@
 #include "ANN_Sample.hpp"
 #include "ANN_TrainingProgress.hpp"
 #include "ANN_TrainingMetadata.hpp"
+#include "ANN_RunMetadata.hpp"
 #include "ANN_TestResult.hpp"
 
 #include <chrono>
@@ -28,6 +29,7 @@ namespace ANN {
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
       const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }
+      const RunMetadata<T>& getRunMetadata() const { return runMetadata; }
       const Parameters<T>& getParameters() const { return parameters; }
 
       // Set parameters (for multi-GPU weight synchronization)
@@ -51,11 +53,16 @@ namespace ANN {
       void trainingStart(ulong numSamples);
       TrainingMetadata<T> trainingEnd();
 
+      // Run timing helpers - called at start/end of run
+      void runStart();
+      RunMetadata<T> runEnd();
+
       DeviceType deviceType;
       ModeType modeType;
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
       TrainingMetadata<T> trainingMetadata;
+      RunMetadata<T> runMetadata;
       Parameters<T> parameters;
       bool verbose = false;
 
@@ -66,6 +73,7 @@ namespace ANN {
 
     private:
       std::chrono::time_point<std::chrono::system_clock> trainingStartTime;
+      std::chrono::time_point<std::chrono::system_clock> runStartTime;
   };
 }
 

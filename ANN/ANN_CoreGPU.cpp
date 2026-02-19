@@ -40,8 +40,14 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig)
 
 template <typename T>
 Output<T> CoreGPU<T>::run(const Input<T>& input) {
+  this->runStart();
+
   // Delegate to the first worker
-  return this->gpuWorkers[0]->run(input);
+  Output<T> output = this->gpuWorkers[0]->run(input);
+
+  this->runEnd();
+
+  return output;
 }
 
 //===================================================================================================================//

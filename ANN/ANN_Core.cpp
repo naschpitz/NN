@@ -89,6 +89,28 @@ TrainingMetadata<T> Core<T>::trainingEnd() {
 
 //===================================================================================================================//
 
+template <typename T>
+void Core<T>::runStart() {
+  this->runStartTime = std::chrono::system_clock::now();
+  this->runMetadata.startTime = Utils<T>::formatISO8601();
+}
+
+//===================================================================================================================//
+
+template <typename T>
+RunMetadata<T> Core<T>::runEnd() {
+  auto endTime = std::chrono::system_clock::now();
+  this->runMetadata.endTime = Utils<T>::formatISO8601();
+
+  std::chrono::duration<double> duration = endTime - this->runStartTime;
+  this->runMetadata.durationSeconds = duration.count();
+  this->runMetadata.durationFormatted = Utils<T>::formatDuration(this->runMetadata.durationSeconds);
+
+  return this->runMetadata;
+}
+
+//===================================================================================================================//
+
 // (Optional) Explicit template instantiations.
 template class ANN::Core<int>;
 template class ANN::Core<double>;

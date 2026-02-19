@@ -34,8 +34,12 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
 
 template <typename T>
 Output<T> CoreCPU<T>::run(const Input<T>& input) {
+  this->runStart();
+
   this->propagate(input);
   Output<T> output = this->getOutput();
+
+  this->runEnd();
 
   return output;
 }
