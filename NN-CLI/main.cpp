@@ -64,6 +64,7 @@ void printUsage() {
   std::cout << "  --idx-data <file>      Path to IDX3 data file (alternative to --samples)\n";
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
   std::cout << "  --output, -o <file>    Output file for saving trained model (train mode)\n";
+  std::cout << "  --verbose, -v          Print detailed initialization and processing info\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
 
@@ -142,7 +143,17 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(outputOption);
 
+  // Verbose option
+  QCommandLineOption verboseOption(
+    QStringList() << "v" << "verbose",
+    "Print detailed initialization and processing information."
+  );
+  parser.addOption(verboseOption);
+
   parser.process(app);
+
+  // Get verbose flag early - it controls all output
+  bool verbose = parser.isSet(verboseOption);
 
   // Validate that --config is provided
   if (!parser.isSet(configOption)) {
@@ -205,10 +216,13 @@ int main(int argc, char *argv[]) {
       modeDisplay = "from config file";
     }
 
-    std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
-    std::cout << "Mode: " << modeDisplay << ", Device: " << deviceDisplay << "\n";
+    if (verbose) {
+      std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
+      std::cout << "Mode: " << modeDisplay << ", Device: " << deviceDisplay << "\n";
+    }
 
     coreConfig = ANN_CLI::Loader::loadConfig(configPath.toStdString(), modeOverride, deviceOverride);
+    coreConfig.verbose = verbose;
 
     // Get the actual mode from the loaded config (may have come from file or CLI override)
     bool isTrainMode = (coreConfig.modeType == ANN::ModeType::TRAIN);
@@ -232,7 +246,7 @@ int main(int argc, char *argv[]) {
       if (hasJsonSamples) {
         // Load from JSON format
         QString samplesPath = parser.value(samplesOption);
-        std::cout << "Loading training samples from JSON: " << samplesPath.toStdString() << "\n";
+        if (verbose) std::cout << "Loading training samples from JSON: " << samplesPath.toStdString() << "\n";
         samples = ANN_CLI::Loader::loadSamples(samplesPath.toStdString());
       } else if (hasIdxData) {
         // Load from IDX format
@@ -244,9 +258,11 @@ int main(int argc, char *argv[]) {
         QString idxDataPath = parser.value(idxDataOption);
         QString idxLabelsPath = parser.value(idxLabelsOption);
 
-        std::cout << "Loading training samples from IDX:\n";
-        std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
-        std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
+        if (verbose) {
+          std::cout << "Loading training samples from IDX:\n";
+          std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
+          std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
+        }
 
         samples = ANN_CLI::Utils<float>::loadIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString());
       } else {
@@ -254,9 +270,9 @@ int main(int argc, char *argv[]) {
         return 1;
       }
 
-      std::cout << "Loaded " << samples.size() << " training samples.\n";
+      if (verbose) std::cout << "Loaded " << samples.size() << " training samples.\n";
 
-      std::cout << "Starting training...\n";
+      if (verbose) std::cout << "Starting training...\n";
 
       // Set up progress callback with ProgressBar instance
       ANN_CLI::ProgressBar progressBar;
@@ -305,7 +321,7 @@ int main(int argc, char *argv[]) {
       if (hasJsonSamples) {
         // Load from JSON format
         QString samplesPath = parser.value(samplesOption);
-        std::cout << "Loading test samples from JSON: " << samplesPath.toStdString() << "\n";
+        if (verbose) std::cout << "Loading test samples from JSON: " << samplesPath.toStdString() << "\n";
         samples = ANN_CLI::Loader::loadSamples(samplesPath.toStdString());
       } else if (hasIdxData) {
         // Load from IDX format
@@ -317,9 +333,11 @@ int main(int argc, char *argv[]) {
         QString idxDataPath = parser.value(idxDataOption);
         QString idxLabelsPath = parser.value(idxLabelsOption);
 
-        std::cout << "Loading test samples from IDX:\n";
-        std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
-        std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
+        if (verbose) {
+          std::cout << "Loading test samples from IDX:\n";
+          std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
+          std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
+        }
 
         samples = ANN_CLI::Utils<float>::loadIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString());
       } else {
@@ -327,11 +345,14 @@ int main(int argc, char *argv[]) {
         return 1;
       }
 
-      std::cout << "Loaded " << samples.size() << " test samples.\n";
-      std::cout << "Running evaluation...\n";
+      if (verbose) {
+        std::cout << "Loaded " << samples.size() << " test samples.\n";
+        std::cout << "Running evaluation...\n";
+      }
 
       ANN::TestResult<float> result = core->test(samples);
 
+      // Test results are always shown (not verbose)
       std::cout << "\nTest Results:\n";
       std::cout << "  Samples evaluated: " << result.numSamples << "\n";
       std::cout << "  Total loss:        " << result.totalLoss << "\n";
@@ -345,20 +366,22 @@ int main(int argc, char *argv[]) {
       }
 
       QString inputPath = parser.value(inputOption);
-      std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
+      if (verbose) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
 
       ANN::Input<float> input = ANN_CLI::Loader::loadInput(inputPath.toStdString());
-      std::cout << "Running ANN with input: ";
 
-      for (size_t i = 0; i < input.size(); ++i) {
-        std::cout << input[i];
-        if (i < input.size() - 1) std::cout << ", ";
+      if (verbose) {
+        std::cout << "Running ANN with input: ";
+        for (size_t i = 0; i < input.size(); ++i) {
+          std::cout << input[i];
+          if (i < input.size() - 1) std::cout << ", ";
+        }
+        std::cout << "\n";
       }
-
-      std::cout << "\n";
 
       ANN::Output<float> output = core->run(input);
 
+      // Output result is always shown (not verbose)
       std::cout << "Output: ";
 
       for (size_t i = 0; i < output.size(); ++i) {
