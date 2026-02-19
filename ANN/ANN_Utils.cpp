@@ -45,6 +45,73 @@ std::unique_ptr<Core<T>> Utils<T>::load(const std::string& configFilePath) {
 //===================================================================================================================//
 
 template <typename T>
+void Utils<T>::save(const Core<T>& core, const std::string& filePath) {
+  QFile file(QString::fromStdString(filePath));
+
+  if (!file.open(QIODevice::WriteOnly)) {
+    throw std::runtime_error("Failed to open file for writing: " + filePath);
+  }
+
+  // Convert the core object to a JSON string
+  std::string jsonString = save(core);
+
+  // Write to file
+  file.write(jsonString.c_str());
+  file.close();
+}
+
+//===================================================================================================================//
+
+template <typename T>
+std::string Utils<T>::save(const Core<T>& core) {
+  nlohmann::json json;
+
+  // Save LayersConfig
+  json["layersConfig"] = getLayersConfigJson(core.getLayersConfig());
+
+  // Save TrainingConfig
+  json["trainingConfig"] = getTrainingConfigJson(core.getTrainingConfig());
+
+  // Save TrainingMetadata (before parameters for readability)
+  json["trainingMetadata"] = getTrainingMetadataJson(core.getTrainingMetadata());
+
+  // Save Parameters
+  json["parameters"] = getParametersJson(core.getParameters());
+
+  return json.dump(4);  // Pretty-print with 4 spaces indentation
+}
+
+//===================================================================================================================//
+
+template <typename T>
+std::string Utils<T>::formatISO8601() {
+  auto now = std::chrono::system_clock::now();
+  std::time_t time = std::chrono::system_clock::to_time_t(now);
+  std::tm* localTime = std::localtime(&time);
+
+  std::ostringstream oss;
+  oss << std::put_time(localTime, "%Y-%m-%dT%H:%M:%S");
+
+  // Add UTC offset in ISO 8601 format (e.g., +01:00)
+  // %z gives +0100, we need to insert the colon
+  char tzOffset[8];
+  std::strftime(tzOffset, sizeof(tzOffset), "%z", localTime);
+
+  // Insert colon: "+0100" -> "+01:00"
+  std::string offset(tzOffset);
+
+  if (offset.length() >= 5) {
+    offset.insert(3, ":");
+  }
+
+  oss << offset;
+
+  return oss.str();
+}
+
+//===================================================================================================================//
+
+template <typename T>
 LayersConfig Utils<T>::loadLayersConfig(const nlohmann::json& json) {
   const nlohmann::json& layersConfigJsonArray = json.at("layersConfig");
 
@@ -108,73 +175,6 @@ Parameters<T> Utils<T>::loadParameters(const nlohmann::json& json) {
   parameters.biases = parametersJsonObject.at("biases").get<Tensor2D<T>>();
 
   return parameters;
-}
-
-//===================================================================================================================//
-
-template <typename T>
-void Utils<T>::save(const Core<T>& core, const std::string& filePath) {
-  QFile file(QString::fromStdString(filePath));
-
-  if (!file.open(QIODevice::WriteOnly)) {
-    throw std::runtime_error("Failed to open file for writing: " + filePath);
-  }
-
-  // Convert the core object to a JSON string
-  std::string jsonString = save(core);
-
-  // Write to file
-  file.write(jsonString.c_str());
-  file.close();
-}
-
-//===================================================================================================================//
-
-template <typename T>
-std::string Utils<T>::save(const Core<T>& core) {
-  nlohmann::json json;
-
-  // Save LayersConfig
-  json["layersConfig"] = getLayersConfigJson(core.getLayersConfig());
-
-  // Save TrainingConfig
-  json["trainingConfig"] = getTrainingConfigJson(core.getTrainingConfig());
-
-  // Save TrainingMetadata (before parameters for readability)
-  json["trainingMetadata"] = getTrainingMetadataJson(core.getTrainingMetadata());
-
-  // Save Parameters
-  json["parameters"] = getParametersJson(core.getParameters());
-
-  return json.dump(4);  // Pretty-print with 4 spaces indentation
-}
-
-//===================================================================================================================//
-
-template <typename T>
-std::string Utils<T>::formatISO8601() {
-  auto now = std::chrono::system_clock::now();
-  std::time_t time = std::chrono::system_clock::to_time_t(now);
-  std::tm* localTime = std::localtime(&time);
-
-  std::ostringstream oss;
-  oss << std::put_time(localTime, "%Y-%m-%dT%H:%M:%S");
-
-  // Add UTC offset in ISO 8601 format (e.g., +01:00)
-  // %z gives +0100, we need to insert the colon
-  char tzOffset[8];
-  std::strftime(tzOffset, sizeof(tzOffset), "%z", localTime);
-
-  // Insert colon: "+0100" -> "+01:00"
-  std::string offset(tzOffset);
-
-  if (offset.length() >= 5) {
-    offset.insert(3, ":");
-  }
-
-  oss << offset;
-
-  return oss.str();
 }
 
 //===================================================================================================================//
