@@ -70,8 +70,8 @@ std::string Utils<T>::save(const Core<T>& core) {
   nlohmann::ordered_json json;
 
   // Save CoreConfig (device, mode) at the top level
-  json["device"] = CoreType::typeToName(core.getDeviceType());
-  json["mode"] = CoreMode::typeToName(core.getCoreModeType());
+  json["device"] = Device::typeToName(core.getDeviceType());
+  json["runMode"] = RunMode::typeToName(core.getRunModeType());
 
   // Save LayersConfig
   json["layersConfig"] = getLayersConfigJson(core.getLayersConfig());
@@ -194,17 +194,17 @@ void Utils<T>::loadCoreConfig(const nlohmann::json& json, CoreConfig<T>& coreCon
   // Load device type (optional, defaults to CPU)
   if (json.contains("device")) {
     std::string deviceName = json.at("device").get<std::string>();
-    coreConfig.deviceType = CoreType::nameToType(deviceName);
+    coreConfig.deviceType = Device::nameToType(deviceName);
   } else {
     coreConfig.deviceType = DeviceType::CPU;
   }
 
-  // Load mode type (optional, defaults to RUN)
-  if (json.contains("mode")) {
-    std::string modeName = json.at("mode").get<std::string>();
-    coreConfig.coreModeType = CoreMode::nameToType(modeName);
+  // Load run mode type (optional, defaults to RUN)
+  if (json.contains("runMode")) {
+    std::string runModeName = json.at("runMode").get<std::string>();
+    coreConfig.runModeType = RunMode::nameToType(runModeName);
   } else {
-    coreConfig.coreModeType = CoreModeType::RUN;
+    coreConfig.runModeType = RunModeType::RUN;
   }
 }
 

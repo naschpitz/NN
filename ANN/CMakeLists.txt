@@ -21,11 +21,11 @@ add_library(ANN STATIC
   ANN_Core.hpp ANN_Core.cpp
   ANN_ActvFunc.hpp ANN_ActvFunc.cpp
   ANN_Utils.hpp ANN_Utils.cpp
-  ANN_CoreMode.hpp ANN_CoreMode.cpp
+  ANN_RunMode.hpp ANN_RunMode.cpp
   ANN_CoreCPU.hpp ANN_CoreCPU.cpp
   ANN_CoreGPU.hpp ANN_CoreGPU.cpp
   ANN_CoreGPUWorker.hpp ANN_CoreGPUWorker.cpp
-  ANN_CoreType.hpp ANN_CoreType.cpp
+  ANN_Device.hpp ANN_Device.cpp
   ANN_LayersConfig.hpp ANN_LayersConfig.cpp
   Kernels.cpp.cl
   IdxHelper.cpp.cl

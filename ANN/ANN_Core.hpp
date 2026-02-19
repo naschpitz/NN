@@ -2,8 +2,8 @@
 #define ANN_CORE_H
 
 #include "ANN_ActvFunc.hpp"
-#include "ANN_CoreMode.hpp"
-#include "ANN_CoreType.hpp"
+#include "ANN_RunMode.hpp"
+#include "ANN_Device.hpp"
 #include "ANN_LayersConfig.hpp"
 
 #include <chrono>
@@ -52,7 +52,7 @@ namespace ANN {
 
   template <typename T>
   struct CoreConfig {
-    CoreModeType coreModeType;
+    RunModeType runModeType;
     DeviceType deviceType;
     LayersConfig layersConfig;
     TrainingConfig<T> trainingConfig;
@@ -115,7 +115,7 @@ namespace ANN {
       virtual void train(const Samples<T>& samples) = 0;
       virtual TestResult<T> test(const Samples<T>& samples) = 0;
 
-      CoreModeType getCoreModeType() const { return coreModeType; }
+      RunModeType getRunModeType() const { return runModeType; }
       DeviceType getDeviceType() const { return deviceType; }
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
@@ -140,7 +140,7 @@ namespace ANN {
       TrainingMetadata<T> trainingEnd();
 
       DeviceType deviceType;
-      CoreModeType coreModeType;
+      RunModeType runModeType;
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
       TrainingMetadata<T> trainingMetadata;

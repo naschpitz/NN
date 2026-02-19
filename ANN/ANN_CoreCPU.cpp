@@ -19,13 +19,13 @@ template <typename T>
 CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
   this->allocateCommon();
 
-  switch (this->coreModeType) {
-    case CoreModeType::TRAIN:
+  switch (this->runModeType) {
+    case RunModeType::TRAIN:
       this->allocateTraining();
       break;
-    case CoreModeType::RUN:
-    case CoreModeType::TEST:
-    case CoreModeType::UNKNOWN:
+    case RunModeType::RUN:
+    case RunModeType::TEST:
+    case RunModeType::UNKNOWN:
       break;
   }
 }

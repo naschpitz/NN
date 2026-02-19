@@ -1,14 +1,14 @@
-#include "ANN_CoreType.hpp"
+#include "ANN_RunMode.hpp"
 
 using namespace ANN;
 
 //===================================================================================================================//
 
-DeviceType CoreType::nameToType(const std::string& name) {
-  auto it = deviceTypeMap.find(name);
+RunModeType RunMode::nameToType(const std::string& name) {
+  auto it = runModeMap.find(name);
 
-  if (it == deviceTypeMap.end()) {
-    return DeviceType::UNKNOWN;
+  if (it == runModeMap.end()) {
+    return RunModeType::UNKNOWN;
   } else {
     return it->second;
   }
@@ -16,9 +16,9 @@ DeviceType CoreType::nameToType(const std::string& name) {
 
 //===================================================================================================================//
 
-std::string CoreType::typeToName(const DeviceType& deviceType) {
-  for (const auto& pair : deviceTypeMap) {
-    if (pair.second == deviceType) {
+std::string RunMode::typeToName(const RunModeType& runModeType) {
+  for (const auto& pair : runModeMap) {
+    if (pair.second == runModeType) {
       return pair.first;
     }
   }
@@ -27,3 +27,4 @@ std::string CoreType::typeToName(const DeviceType& deviceType) {
 }
 
 //===================================================================================================================//
+

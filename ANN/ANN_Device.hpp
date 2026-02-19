@@ -1,5 +1,5 @@
-#ifndef CORETYPE_HPP
-#define CORETYPE_HPP
+#ifndef ANN_DEVICE_HPP
+#define ANN_DEVICE_HPP
 
 #include <string>
 #include <unordered_map>
@@ -18,7 +18,7 @@ namespace ANN {
     {"gpu", DeviceType::GPU},
   };
 
-  class CoreType
+  class Device
   {
     public:
       static DeviceType nameToType(const std::string& name);
@@ -26,4 +26,7 @@ namespace ANN {
   };
 }
 
-#endif // CORETYPE_HPP
+//===================================================================================================================//
+
+#endif // ANN_DEVICE_HPP
+

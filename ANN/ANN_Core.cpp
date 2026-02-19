@@ -13,7 +13,7 @@ using namespace ANN;
 template <typename T>
 Core<T>::Core(const CoreConfig<T>& coreConfig) {
   this->deviceType = coreConfig.deviceType;
-  this->coreModeType = coreConfig.coreModeType;
+  this->runModeType = coreConfig.runModeType;
 
   this->layersConfig = coreConfig.layersConfig;
   this->trainingConfig = coreConfig.trainingConfig;
@@ -41,8 +41,8 @@ void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig) {
     throw std::runtime_error("Unknown deviceType");
   }
 
-  if (coreConfig.coreModeType == CoreModeType::UNKNOWN) {
-    throw std::runtime_error("Unkown coreModeType");
+  if (coreConfig.runModeType == RunModeType::UNKNOWN) {
+    throw std::runtime_error("Unknown runModeType");
   }
 }
 
