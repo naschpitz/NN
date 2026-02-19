@@ -3,6 +3,7 @@
 #include <QCommandLineOption>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 
 #include <ANN_Core.hpp>
@@ -14,9 +15,9 @@
 #include "ANN-CLI_ProgressBar.hpp"
 #include "ANN-CLI_Utils.hpp"
 
-#include <chrono>
-#include <ctime>
-#include <iomanip>
+#include <json.hpp>
+
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -34,15 +35,15 @@ std::string generateTrainingFilename(ulong epochs, ulong samples, float loss) {
   return oss.str();
 }
 
-// Generate default output path based on config file location
-std::string generateDefaultOutputPath(const QString& configPath, ulong epochs, ulong samples, float loss) {
-  QFileInfo configInfo(configPath);
-  QDir configDir = configInfo.absoluteDir();
-  QDir outputDir(configDir.filePath("output"));
+// Generate default output path based on input file location (samples or idx-data)
+std::string generateDefaultOutputPath(const QString& inputFilePath, ulong epochs, ulong samples, float loss) {
+  QFileInfo inputInfo(inputFilePath);
+  QDir inputDir = inputInfo.absoluteDir();
+  QDir outputDir(inputDir.filePath("output"));
 
   // Create output directory if it doesn't exist
   if (!outputDir.exists()) {
-    configDir.mkdir("output");
+    inputDir.mkdir("output");
   }
 
   QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainingFilename(epochs, samples, loss)));
@@ -59,11 +60,11 @@ void printUsage() {
   std::cout << "  --config, -c <file>    Path to JSON configuration file (required)\n";
   std::cout << "  --mode, -m <mode>      Mode: 'train', 'run', or 'test' (overrides config file)\n";
   std::cout << "  --device, -d <device>  Device: 'cpu' or 'gpu' (overrides config file)\n";
-  std::cout << "  --input, -i <file>     Path to JSON file with input values (run mode)\n";
+  std::cout << "  --input, -i <file>     Path to JSON file with input values (run mode, required)\n";
   std::cout << "  --samples, -s <file>   Path to JSON file with samples (train/test modes)\n";
   std::cout << "  --idx-data <file>      Path to IDX3 data file (alternative to --samples)\n";
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
-  std::cout << "  --output, -o <file>    Output file for saving trained model (train mode)\n";
+  std::cout << "  --output, -o <file>    Output file (default: run_<input>.json for run mode)\n";
   std::cout << "  --verbose, -v          Print detailed initialization and processing info\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
@@ -134,10 +135,10 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(idxLabelsOption);
 
-  // Output file for saving trained model
+  // Output file (train: model, run: inference result with metadata)
   QCommandLineOption outputOption(
     QStringList() << "o" << "output",
-    "Output file for saving trained model (default: <config_dir>/output/trained_model_[epochs]_[samples]_[loss].json).",
+    "Output file. Train mode: saves trained model. Run mode: saves inference result with model metadata.",
     "file"
   );
   parser.addOption(outputOption);
@@ -232,6 +233,7 @@ int main(int argc, char *argv[]) {
     if (isTrainMode) {
       // Training mode
       ANN::Samples<float> samples;
+      QString inputFilePath;  // Track input file path for default output location
 
       bool hasJsonSamples = parser.isSet(samplesOption);
       bool hasIdxData = parser.isSet(idxDataOption);
@@ -245,6 +247,7 @@ int main(int argc, char *argv[]) {
       if (hasJsonSamples) {
         // Load from JSON format
         QString samplesPath = parser.value(samplesOption);
+        inputFilePath = samplesPath;
         if (verbose) std::cout << "Loading training samples from JSON: " << samplesPath.toStdString() << "\n";
         samples = ANN_CLI::Loader::loadSamples(samplesPath.toStdString());
       } else if (hasIdxData) {
@@ -256,6 +259,7 @@ int main(int argc, char *argv[]) {
 
         QString idxDataPath = parser.value(idxDataOption);
         QString idxLabelsPath = parser.value(idxLabelsOption);
+        inputFilePath = idxDataPath;
 
         if (verbose) {
           std::cout << "Loading training samples from IDX:\n";
@@ -294,7 +298,7 @@ int main(int argc, char *argv[]) {
         outputPathStr = parser.value(outputOption).toStdString();
       } else {
         outputPathStr = generateDefaultOutputPath(
-          configPath,
+          inputFilePath,
           trainingConfig.numEpochs,
           trainingMetadata.numSamples,
           trainingMetadata.finalLoss
@@ -365,6 +369,25 @@ int main(int argc, char *argv[]) {
       }
 
       QString inputPath = parser.value(inputOption);
+
+      // Generate default output path if not specified: <input_dir>/output/run_[input_basename].json
+      QString outputPath;
+      if (parser.isSet(outputOption)) {
+        outputPath = parser.value(outputOption);
+      } else {
+        QFileInfo inputInfo(inputPath);
+        QString baseName = inputInfo.completeBaseName();  // filename without extension
+        QDir inputDir = inputInfo.absoluteDir();
+        QDir outputDir(inputDir.filePath("output"));
+
+        // Create output directory if it doesn't exist
+        if (!outputDir.exists()) {
+          inputDir.mkdir("output");
+        }
+
+        outputPath = outputDir.filePath("run_" + baseName + ".json");
+      }
+
       if (verbose) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
 
       ANN::Input<float> input = ANN_CLI::Loader::loadInput(inputPath.toStdString());
@@ -380,15 +403,34 @@ int main(int argc, char *argv[]) {
 
       ANN::Output<float> output = core->run(input);
 
-      // Output result is always shown (not verbose)
-      std::cout << "Output: ";
+      // Get run metadata from core (timing captured inside Core::run())
+      const auto& runMetadata = core->getRunMetadata();
 
-      for (size_t i = 0; i < output.size(); ++i) {
-        std::cout << output[i];
-        if (i < output.size() - 1) std::cout << ", ";
+      nlohmann::ordered_json resultJson;
+
+      // Add run metadata first
+      nlohmann::ordered_json runMetadataJson;
+      runMetadataJson["startTime"] = runMetadata.startTime;
+      runMetadataJson["endTime"] = runMetadata.endTime;
+      runMetadataJson["durationSeconds"] = runMetadata.durationSeconds;
+      runMetadataJson["durationFormatted"] = runMetadata.durationFormatted;
+      resultJson["runMetadata"] = runMetadataJson;
+
+      // Add inference result
+      resultJson["output"] = output;
+
+      // Write to file
+      QFile outputFile(outputPath);
+      if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        std::cerr << "Error: Failed to open output file: " << outputPath.toStdString() << "\n";
+        return 1;
       }
 
-      std::cout << "\n";
+      std::string jsonStr = resultJson.dump(2);
+      outputFile.write(jsonStr.c_str(), jsonStr.size());
+      outputFile.close();
+
+      std::cout << "Inference result saved to: " << outputPath.toStdString() << "\n";
     }
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << "\n";
