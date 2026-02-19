@@ -1,0 +1,106 @@
+# ANN - Neural Network Library
+
+A C++ neural network library supporting both CPU and GPU (OpenCL) execution.
+
+## Features
+
+- Multi-layer perceptron (MLP) neural networks
+- CPU and GPU execution via OpenCL
+- Training, inference, and evaluation modes
+- JSON-based configuration and model serialization
+- Multiple activation functions
+
+## Dependencies
+
+- Qt Core and Qt Concurrent
+- [OpenCLWrapper](https://github.com/naschpitz/OpenCLWrapper) (for GPU support)
+- [nlohmann/json](https://github.com/nlohmann/json)
+
+## Building
+
+```bash
+mkdir build && cd build
+cmake ..
+make
+```
+
+## Configuration File Format
+
+### Train Mode
+
+```json
+{
+  "mode": "train",
+  "device": "cpu",
+  "layersConfig": [
+    { "numNeurons": 784, "actvFunc": "none" },
+    { "numNeurons": 128, "actvFunc": "relu" },
+    { "numNeurons": 10, "actvFunc": "sigmoid" }
+  ],
+  "trainingConfig": {
+    "numEpochs": 100,
+    "learningRate": 0.01,
+    "numThreads": 0
+  }
+}
+```
+
+### Run Mode
+
+```json
+{
+  "mode": "run",
+  "device": "gpu",
+  "layersConfig": [
+    { "numNeurons": 784, "actvFunc": "none" },
+    { "numNeurons": 128, "actvFunc": "relu" },
+    { "numNeurons": 10, "actvFunc": "sigmoid" }
+  ],
+  "parameters": {
+    "weights": [...],
+    "biases": [...]
+  }
+}
+```
+
+### Test Mode
+
+```json
+{
+  "mode": "test",
+  "device": "cpu",
+  "layersConfig": [
+    { "numNeurons": 784, "actvFunc": "none" },
+    { "numNeurons": 128, "actvFunc": "relu" },
+    { "numNeurons": 10, "actvFunc": "sigmoid" }
+  ],
+  "parameters": {
+    "weights": [...],
+    "biases": [...]
+  }
+}
+```
+
+## Configuration Fields
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| `mode` | Operation mode: `train`, `run`, or `test` | Optional (default: `run`) |
+| `device` | Execution device: `cpu` or `gpu` | Optional (default: `cpu`) |
+| `layersConfig` | Array of layer definitions | Required |
+| `trainingConfig` | Training hyperparameters | Required for `train` mode |
+| `parameters` | Trained weights and biases | Required for `run`/`test` modes |
+
+## Activation Functions
+
+| Function | Description |
+|----------|-------------|
+| `none` | No activation (use for input layer) |
+| `relu` | Rectified Linear Unit |
+| `sigmoid` | Sigmoid function |
+| `tanh` | Hyperbolic tangent |
+
+## License
+
+See [LICENSE.md](LICENSE.md) for details.
+

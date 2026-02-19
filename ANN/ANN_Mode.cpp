@@ -1,14 +1,14 @@
-#include "ANN_RunMode.hpp"
+#include "ANN_Mode.hpp"
 
 using namespace ANN;
 
 //===================================================================================================================//
 
-RunModeType RunMode::nameToType(const std::string& name) {
-  auto it = runModeMap.find(name);
+ModeType Mode::nameToType(const std::string& name) {
+  auto it = modeMap.find(name);
 
-  if (it == runModeMap.end()) {
-    return RunModeType::UNKNOWN;
+  if (it == modeMap.end()) {
+    return ModeType::UNKNOWN;
   } else {
     return it->second;
   }
@@ -16,9 +16,9 @@ RunModeType RunMode::nameToType(const std::string& name) {
 
 //===================================================================================================================//
 
-std::string RunMode::typeToName(const RunModeType& runModeType) {
-  for (const auto& pair : runModeMap) {
-    if (pair.second == runModeType) {
+std::string Mode::typeToName(const ModeType& modeType) {
+  for (const auto& pair : modeMap) {
+    if (pair.second == modeType) {
       return pair.first;
     }
   }
