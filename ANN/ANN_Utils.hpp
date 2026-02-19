@@ -69,6 +69,7 @@ namespace ANN {
       }
 
     private:
+      static void loadCoreConfig(const nlohmann::json& json, CoreConfig<T>& coreConfig);
       static LayersConfig loadLayersConfig(const nlohmann::json& json);
       static TrainingConfig<T> loadTrainingConfig(const nlohmann::json& json);
       static Parameters<T> loadParameters(const nlohmann::json& json);

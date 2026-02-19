@@ -31,6 +31,9 @@ std::unique_ptr<Core<T>> Utils<T>::load(const std::string& configFilePath) {
   try {
     nlohmann::json json = nlohmann::json::parse(jsonString);
 
+    // Load core config (device, mode) - these have defaults if not present
+    Utils::loadCoreConfig(json, coreConfig);
+
     coreConfig.layersConfig = Utils::loadLayersConfig(json);
     coreConfig.trainingConfig = Utils::loadTrainingConfig(json);
     coreConfig.parameters = Utils::loadParameters(json);
@@ -65,6 +68,10 @@ void Utils<T>::save(const Core<T>& core, const std::string& filePath) {
 template <typename T>
 std::string Utils<T>::save(const Core<T>& core) {
   nlohmann::ordered_json json;
+
+  // Save CoreConfig (device, mode) at the top level
+  json["device"] = CoreType::typeToName(core.getDeviceType());
+  json["mode"] = CoreMode::typeToName(core.getCoreModeType());
 
   // Save LayersConfig
   json["layersConfig"] = getLayersConfigJson(core.getLayersConfig());
@@ -183,6 +190,27 @@ std::string Utils<T>::formatDuration(double totalSeconds) {
 //===================================================================================================================//
 
 template <typename T>
+void Utils<T>::loadCoreConfig(const nlohmann::json& json, CoreConfig<T>& coreConfig) {
+  // Load device type (optional, defaults to CPU)
+  if (json.contains("device")) {
+    std::string deviceName = json.at("device").get<std::string>();
+    coreConfig.deviceType = CoreType::nameToType(deviceName);
+  } else {
+    coreConfig.deviceType = DeviceType::CPU;
+  }
+
+  // Load mode type (optional, defaults to RUN)
+  if (json.contains("mode")) {
+    std::string modeName = json.at("mode").get<std::string>();
+    coreConfig.coreModeType = CoreMode::nameToType(modeName);
+  } else {
+    coreConfig.coreModeType = CoreModeType::RUN;
+  }
+}
+
+//===================================================================================================================//
+
+template <typename T>
 LayersConfig Utils<T>::loadLayersConfig(const nlohmann::json& json) {
   const nlohmann::json& layersConfigJsonArray = json.at("layersConfig");
 
@@ -287,7 +315,6 @@ nlohmann::ordered_json Utils<T>::getTrainingMetadataJson(const TrainingMetadata<
   json["endTime"] = metadata.endTime;
   json["durationSeconds"] = metadata.durationSeconds;
   json["durationFormatted"] = metadata.durationFormatted;
-  json["device"] = metadata.device;
   json["numSamples"] = metadata.numSamples;
   json["finalLoss"] = metadata.finalLoss;
 

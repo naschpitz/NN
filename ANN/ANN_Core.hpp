@@ -52,8 +52,8 @@ namespace ANN {
 
   template <typename T>
   struct CoreConfig {
-    DeviceType deviceType;
     CoreModeType coreModeType;
+    DeviceType deviceType;
     LayersConfig layersConfig;
     TrainingConfig<T> trainingConfig;
     Parameters<T> parameters;
@@ -94,7 +94,6 @@ namespace ANN {
     std::string endTime;        // ISO 8601 format
     double durationSeconds;     // Total training duration in seconds
     std::string durationFormatted; // Human-readable duration (e.g., "1y 2mo 3d 4h 5m 6s")
-    std::string device;         // "cpu" or "gpu"
     ulong numSamples;           // Number of training samples used
     T finalLoss;                // Average loss at the end of training
   };
@@ -116,6 +115,8 @@ namespace ANN {
       virtual void train(const Samples<T>& samples) = 0;
       virtual TestResult<T> test(const Samples<T>& samples) = 0;
 
+      CoreModeType getCoreModeType() const { return coreModeType; }
+      DeviceType getDeviceType() const { return deviceType; }
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
       const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }

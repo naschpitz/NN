@@ -24,6 +24,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
       this->allocateTraining();
       break;
     case CoreModeType::RUN:
+    case CoreModeType::TEST:
     case CoreModeType::UNKNOWN:
       break;
   }

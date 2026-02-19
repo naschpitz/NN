@@ -69,7 +69,6 @@ template <typename T>
 void Core<T>::trainingStart(ulong numSamples) {
   this->trainingStartTime = std::chrono::system_clock::now();
   this->trainingMetadata.startTime = Utils<T>::formatISO8601();
-  this->trainingMetadata.device = CoreType::typeToName(this->deviceType);
   this->trainingMetadata.numSamples = numSamples;
 }
 

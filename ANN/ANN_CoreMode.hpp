@@ -10,12 +10,14 @@ namespace ANN {
   enum class CoreModeType {
     TRAIN,
     RUN,
+    TEST,
     UNKNOWN
   };
 
   const std::unordered_map<std::string, CoreModeType> coreModeMap = {
     {"train", CoreModeType::TRAIN},
     {"run", CoreModeType::RUN},
+    {"test", CoreModeType::TEST},
   };
 
   class CoreMode
@@ -25,5 +27,7 @@ namespace ANN {
       static std::string typeToName(const CoreModeType& actvFuncType);
   };
 }
+
+//===================================================================================================================//
 
 #endif // ANN_COREMODE_H
