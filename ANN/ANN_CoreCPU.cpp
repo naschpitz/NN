@@ -33,13 +33,13 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreCPU<T>::run(const Input<T>& input) {
-  this->runStart();
+Output<T> CoreCPU<T>::inference(const Input<T>& input) {
+  this->inferenceStart();
 
   this->propagate(input);
   Output<T> output = this->getOutput();
 
-  this->runEnd();
+  this->inferenceEnd();
 
   return output;
 }
@@ -675,7 +675,7 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 }
 
 //===================================================================================================================//
-// Convenience wrappers using member data (for run())
+// Convenience wrappers using member data (for inference())
 //===================================================================================================================//
 
 template <typename T>

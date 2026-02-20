@@ -20,7 +20,7 @@ namespace ANN {
     public:
       static std::unique_ptr<Core<T>> makeCore(const CoreConfig<T>& config);
 
-      virtual Output<T> run(const Input<T>& input) = 0;
+      virtual Output<T> inference(const Input<T>& input) = 0;
       virtual void train(const Samples<T>& samples) = 0;
       virtual TestResult<T> test(const Samples<T>& samples) = 0;
 
@@ -28,7 +28,7 @@ namespace ANN {
       DeviceType getDeviceType() const { return deviceType; }
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
-      const RunMetadata<T>& getRunMetadata() const { return runMetadata; }
+      const RunMetadata<T>& getInferenceMetadata() const { return inferenceMetadata; }
       const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }
       const Parameters<T>& getParameters() const { return parameters; }
 
@@ -53,16 +53,16 @@ namespace ANN {
       void trainingStart(ulong numSamples);
       TrainingMetadata<T> trainingEnd();
 
-      // Run timing helpers - called at start/end of run
-      void runStart();
-      RunMetadata<T> runEnd();
+      // Inference timing helpers - called at start/end of inference
+      void inferenceStart();
+      RunMetadata<T> inferenceEnd();
 
       DeviceType deviceType;
       ModeType modeType;
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
       TrainingMetadata<T> trainingMetadata;
-      RunMetadata<T> runMetadata;
+      RunMetadata<T> inferenceMetadata;
       Parameters<T> parameters;
       bool verbose = false;
 
@@ -73,7 +73,7 @@ namespace ANN {
 
     private:
       std::chrono::time_point<std::chrono::system_clock> trainingStartTime;
-      std::chrono::time_point<std::chrono::system_clock> runStartTime;
+      std::chrono::time_point<std::chrono::system_clock> inferenceStartTime;
   };
 }
 

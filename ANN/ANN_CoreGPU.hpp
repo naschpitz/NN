@@ -15,7 +15,7 @@ namespace ANN {
     public:
       CoreGPU(const CoreConfig<T>& config);
 
-      Output<T> run(const Input<T>& input) override;
+      Output<T> inference(const Input<T>& input) override;
       void train(const Samples<T>& samples) override;
       TestResult<T> test(const Samples<T>& samples) override;
 

@@ -15,7 +15,7 @@ namespace ANN {
                     const Parameters<T>& parameters, bool verbose = false);
 
       //-- Inference --//
-      Output<T> run(const Input<T>& input);
+      Output<T> inference(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
       T trainSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx, ulong epoch, ulong totalEpochs,

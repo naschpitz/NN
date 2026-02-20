@@ -29,7 +29,7 @@ namespace ANN {
     public:
       CoreCPU(const CoreConfig<T>& config);
 
-      Output<T> run(const Input<T>& input) override;
+      Output<T> inference(const Input<T>& input) override;
       void train(const Samples<T>& samples) override;
       TestResult<T> test(const Samples<T>& samples) override;
 
@@ -67,7 +67,7 @@ namespace ANN {
       void reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
                           T sampleLoss, T epochLoss, QMutex& callbackMutex);
 
-      // Convenience wrappers using member data (for run())
+      // Convenience wrappers using member data (for inference())
       void propagate(const Input<T>& input);
       Output<T> getOutput();
   };

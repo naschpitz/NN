@@ -30,7 +30,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreGPUWorker<T>::run(const Input<T>& input) {
+Output<T> CoreGPUWorker<T>::inference(const Input<T>& input) {
   // Set up inference kernels if not done yet
   if (!this->inferenceKernelsSetup) {
     this->setupInferenceKernels();
@@ -40,7 +40,7 @@ Output<T> CoreGPUWorker<T>::run(const Input<T>& input) {
   // Write input to GPU and run forward pass
   this->oclwCore. template writeBuffer<T>("actvs", input, 0);
 
-  // Run inference kernels
+  // Execute inference kernels
   this->oclwCore.run();
 
   return this->readOutput();
