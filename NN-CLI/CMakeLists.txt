@@ -20,6 +20,7 @@ add_executable(ANN-CLI
   main.cpp
   ANN-CLI_Loader.cpp
   ANN-CLI_ProgressBar.cpp
+  ANN-CLI_Runner.cpp
   ANN-CLI_Utils.cpp
 )
 
