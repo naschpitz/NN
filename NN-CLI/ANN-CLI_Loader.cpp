@@ -31,12 +31,12 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
         coreConfig.deviceType = ANN::DeviceType::CPU;
     }
 
-    // Load mode type from JSON (optional, defaults to RUN)
+    // Load mode type from JSON (optional, defaults to INFERENCE)
     if (json.contains("mode")) {
         std::string modeName = json.at("mode").get<std::string>();
         coreConfig.modeType = ANN::Mode::nameToType(modeName);
     } else {
-        coreConfig.modeType = ANN::ModeType::RUN;
+        coreConfig.modeType = ANN::ModeType::INFERENCE;
     }
 
     // Override with CLI arguments if explicitly provided
@@ -79,19 +79,19 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
         }
     }
 
-    // Load parameters (optional for TRAIN mode to allow resuming, required for RUN/TEST modes)
+    // Load parameters (optional for TRAIN mode to allow resuming, required for INFERENCE/TEST modes)
     if (json.contains("parameters")) {
         const nlohmann::json& parametersJson = json.at("parameters");
         coreConfig.parameters.weights = parametersJson.at("weights").get<ANN::Tensor3D<float>>();
         coreConfig.parameters.biases = parametersJson.at("biases").get<ANN::Tensor2D<float>>();
     }
 
-    // Validate: RUN and TEST modes require parameters (trained weights/biases)
-    bool isRunOrTestMode = (coreConfig.modeType == ANN::ModeType::RUN ||
-                            coreConfig.modeType == ANN::ModeType::TEST);
+    // Validate: INFERENCE and TEST modes require parameters (trained weights/biases)
+    bool isInferenceOrTestMode = (coreConfig.modeType == ANN::ModeType::INFERENCE ||
+                                  coreConfig.modeType == ANN::ModeType::TEST);
 
-    if (isRunOrTestMode && !json.contains("parameters")) {
-        throw std::runtime_error("Config file missing 'parameters' (weights/biases) required for run/test modes: " + configFilePath);
+    if (isInferenceOrTestMode && !json.contains("parameters")) {
+        throw std::runtime_error("Config file missing 'parameters' (weights/biases) required for inference/test modes: " + configFilePath);
     }
 
     return coreConfig;

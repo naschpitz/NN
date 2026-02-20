@@ -18,7 +18,7 @@ public:
   // The modeType parameter determines validation requirements:
   //   - TRAIN: requires layersConfig; trainingConfig and parameters are optional
   //            (parameters allow resuming training from a saved model)
-  //   - RUN/TEST: requires layersConfig and parameters (trained weights/biases)
+  //   - INFERENCE/TEST: requires layersConfig and parameters (trained weights/biases)
   //
   // If modeType or deviceType are not provided, values from the JSON config file are used.
   // If provided, they override the JSON config values.

@@ -53,18 +53,18 @@ std::string generateDefaultOutputPath(const QString& inputFilePath, ulong epochs
 void printUsage() {
   std::cout << "ANN-CLI - Artificial Neural Network Command Line Interface\n\n";
   std::cout << "Usage:\n";
-  std::cout << "  ANN-CLI --config <file> --mode train [options]  # Training\n";
-  std::cout << "  ANN-CLI --config <file> --mode run --input <f>  # Inference\n";
-  std::cout << "  ANN-CLI --config <file> --mode test [options]   # Evaluation\n\n";
+  std::cout << "  ANN-CLI --config <file> --mode train [options]       # Training\n";
+  std::cout << "  ANN-CLI --config <file> --mode inference --input <f> # Inference\n";
+  std::cout << "  ANN-CLI --config <file> --mode test [options]        # Evaluation\n\n";
   std::cout << "Options:\n";
   std::cout << "  --config, -c <file>    Path to JSON configuration file (required)\n";
-  std::cout << "  --mode, -m <mode>      Mode: 'train', 'run', or 'test' (overrides config file)\n";
+  std::cout << "  --mode, -m <mode>      Mode: 'train', 'inference', or 'test' (overrides config file)\n";
   std::cout << "  --device, -d <device>  Device: 'cpu' or 'gpu' (overrides config file)\n";
-  std::cout << "  --input, -i <file>     Path to JSON file with input values (run mode, required)\n";
+  std::cout << "  --input, -i <file>     Path to JSON file with input values (inference mode, required)\n";
   std::cout << "  --samples, -s <file>   Path to JSON file with samples (train/test modes)\n";
   std::cout << "  --idx-data <file>      Path to IDX3 data file (alternative to --samples)\n";
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
-  std::cout << "  --output, -o <file>    Output file (default: run_<input>.json for run mode)\n";
+  std::cout << "  --output, -o <file>    Output file (default: inference_<input>.json for inference mode)\n";
   std::cout << "  --verbose, -v          Print detailed initialization and processing info\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
@@ -86,10 +86,10 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(configOption);
 
-  // Mode option (train, run, or test)
+  // Mode option (train, inference, or test)
   QCommandLineOption modeOption(
     QStringList() << "m" << "mode",
-    "Mode: 'train', 'run', or 'test'.",
+    "Mode: 'train', 'inference', or 'test'.",
     "mode"
   );
   parser.addOption(modeOption);
@@ -103,10 +103,10 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(deviceOption);
 
-  // Input file for run mode
+  // Input file for inference mode
   QCommandLineOption inputOption(
     QStringList() << "i" << "input",
-    "Path to JSON file with input values for run mode.",
+    "Path to JSON file with input values for inference mode.",
     "file"
   );
   parser.addOption(inputOption);
@@ -135,10 +135,10 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(idxLabelsOption);
 
-  // Output file (train: model, run: inference result with metadata)
+  // Output file (train: model, inference: inference result with metadata)
   QCommandLineOption outputOption(
     QStringList() << "o" << "output",
-    "Output file. Train mode: saves trained model. Run mode: saves inference result with model metadata.",
+    "Output file. Train mode: saves trained model. Inference mode: saves inference result with model metadata.",
     "file"
   );
   parser.addOption(outputOption);
@@ -168,8 +168,8 @@ int main(int argc, char *argv[]) {
 
   if (parser.isSet(modeOption)) {
     modeStr = parser.value(modeOption).toLower();
-    if (modeStr != "train" && modeStr != "run" && modeStr != "test") {
-      std::cerr << "Error: Mode must be 'train', 'run', or 'test'.\n";
+    if (modeStr != "train" && modeStr != "inference" && modeStr != "test") {
+      std::cerr << "Error: Mode must be 'train', 'inference', or 'test'.\n";
       return 1;
     }
     if (modeStr == "train") {
@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
     } else if (modeStr == "test") {
       modeOverride = ANN::ModeType::TEST;
     } else {
-      modeOverride = ANN::ModeType::RUN;
+      modeOverride = ANN::ModeType::INFERENCE;
     }
   }
 
@@ -207,10 +207,10 @@ int main(int argc, char *argv[]) {
     std::string modeDisplay;
     if (modeOverride.has_value()) {
       switch (modeOverride.value()) {
-        case ANN::ModeType::TRAIN: modeDisplay = "train (CLI)"; break;
-        case ANN::ModeType::TEST:  modeDisplay = "test (CLI)";  break;
-        case ANN::ModeType::RUN:   modeDisplay = "run (CLI)";   break;
-        default:                   modeDisplay = "unknown (CLI)"; break;
+        case ANN::ModeType::TRAIN:     modeDisplay = "train (CLI)";     break;
+        case ANN::ModeType::TEST:      modeDisplay = "test (CLI)";      break;
+        case ANN::ModeType::INFERENCE: modeDisplay = "inference (CLI)"; break;
+        default:                       modeDisplay = "unknown (CLI)";   break;
       }
     } else {
       modeDisplay = "from config file";
@@ -362,15 +362,15 @@ int main(int argc, char *argv[]) {
       std::cout << "  Average loss:      " << result.averageLoss << "\n";
 
     } else {
-      // Run mode (default for non-train, non-test)
+      // Inference mode (default for non-train, non-test)
       if (!parser.isSet(inputOption)) {
-        std::cerr << "Error: --input option is required for run mode.\n";
+        std::cerr << "Error: --input option is required for inference mode.\n";
         return 1;
       }
 
       QString inputPath = parser.value(inputOption);
 
-      // Generate default output path if not specified: <input_dir>/output/run_[input_basename].json
+      // Generate default output path if not specified: <input_dir>/output/inference_[input_basename].json
       QString outputPath;
       if (parser.isSet(outputOption)) {
         outputPath = parser.value(outputOption);
@@ -385,7 +385,7 @@ int main(int argc, char *argv[]) {
           inputDir.mkdir("output");
         }
 
-        outputPath = outputDir.filePath("run_" + baseName + ".json");
+        outputPath = outputDir.filePath("inference_" + baseName + ".json");
       }
 
       if (verbose) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
