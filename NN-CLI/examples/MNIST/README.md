@@ -1,6 +1,6 @@
 # MNIST Handwritten Digit Recognition Example
 
-This example demonstrates training, testing, and running inference on the MNIST dataset using ANN-CLI.
+This example demonstrates training, testing, and running predict on the MNIST dataset using ANN-CLI.
 
 ## Overview
 
@@ -26,9 +26,9 @@ MNIST/
 ├── test/
 │   ├── t10k-images.idx3-ubyte  # Test images (IDX format)
 │   └── t10k-labels.idx1-ubyte  # Test labels (IDX format)
-└── inference/
-    ├── mnist_digit_2_input.json # Sample input for inference
-    └── output/                  # Inference results saved here
+└── predict/
+    ├── mnist_digit_2_input.json # Sample input for predict
+    └── output/                  # Predict results saved here
 ```
 
 ## Usage
@@ -92,31 +92,31 @@ Test Results:
   Average loss:      0.01567
 ```
 
-### 3. Running Inference
+### 3. Running Predict
 
-Run inference on a single input image:
+Run predict on a single input image:
 
 ```bash
-# Inference on GPU
+# Predict on GPU
 ANN-CLI --config train/output/trained_model.json \
-        --mode inference \
+        --mode predict \
         --device gpu \
-        --input inference/mnist_digit_2_input.json \
-        --output inference/output/result.json \
+        --input predict/mnist_digit_2_input.json \
+        --output predict/output/result.json \
         --verbose
 
-# Inference on CPU
+# Predict on CPU
 ANN-CLI --config train/output/trained_model.json \
-        --mode inference \
+        --mode predict \
         --device cpu \
-        --input inference/mnist_digit_2_input.json \
+        --input predict/mnist_digit_2_input.json \
         --verbose
 ```
 
 The output will be a JSON file with the network's prediction:
 ```json
 {
-  "runMetadata": {
+  "predictMetadata": {
     "startTime": "2025-02-20T10:30:00",
     "endTime": "2025-02-20T10:30:00",
     "durationSeconds": 0.0012,

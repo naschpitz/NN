@@ -33,8 +33,8 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
       modeOverride = ANN::ModeType::TRAIN;
     } else if (modeStr == "test") {
       modeOverride = ANN::ModeType::TEST;
-    } else if (modeStr == "inference") {
-      modeOverride = ANN::ModeType::INFERENCE;
+    } else if (modeStr == "predict") {
+      modeOverride = ANN::ModeType::PREDICT;
     }
   }
 
@@ -57,7 +57,7 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
     switch (modeOverride.value()) {
       case ANN::ModeType::TRAIN:     modeDisplay = "train (CLI)";     break;
       case ANN::ModeType::TEST:      modeDisplay = "test (CLI)";      break;
-      case ANN::ModeType::INFERENCE: modeDisplay = "inference (CLI)"; break;
+      case ANN::ModeType::PREDICT:   modeDisplay = "predict (CLI)";   break;
       default:                       modeDisplay = "unknown (CLI)";   break;
     }
   } else {
@@ -82,7 +82,7 @@ int Runner::run() {
   } else if (coreConfig_.modeType == ANN::ModeType::TEST) {
     return runTest();
   } else {
-    return runInference();
+    return runPredict();
   }
 }
 
@@ -154,9 +154,9 @@ int Runner::runTest() {
 
 //===================================================================================================================//
 
-int Runner::runInference() {
+int Runner::runPredict() {
   if (!parser_.isSet("input")) {
-    std::cerr << "Error: --input option is required for inference mode.\n";
+    std::cerr << "Error: --input option is required for predict mode.\n";
     return 1;
   }
 
@@ -177,7 +177,7 @@ int Runner::runInference() {
       inputDir.mkdir("output");
     }
 
-    outputPath = outputDir.filePath("inference_" + baseName + ".json");
+    outputPath = outputDir.filePath("predict_" + baseName + ".json");
   }
 
   if (verbose_) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
@@ -193,19 +193,19 @@ int Runner::runInference() {
     std::cout << "\n";
   }
 
-  ANN::Output<float> output = core_->run(input);
+  ANN::Output<float> output = core_->predict(input);
 
-  // Get run metadata from core
-  const auto& runMetadata = core_->getRunMetadata();
+  // Get predict metadata from core
+  const auto& predictMetadata = core_->getPredictMetadata();
 
   nlohmann::ordered_json resultJson;
 
-  nlohmann::ordered_json runMetadataJson;
-  runMetadataJson["startTime"] = runMetadata.startTime;
-  runMetadataJson["endTime"] = runMetadata.endTime;
-  runMetadataJson["durationSeconds"] = runMetadata.durationSeconds;
-  runMetadataJson["durationFormatted"] = runMetadata.durationFormatted;
-  resultJson["runMetadata"] = runMetadataJson;
+  nlohmann::ordered_json predictMetadataJson;
+  predictMetadataJson["startTime"] = predictMetadata.startTime;
+  predictMetadataJson["endTime"] = predictMetadata.endTime;
+  predictMetadataJson["durationSeconds"] = predictMetadata.durationSeconds;
+  predictMetadataJson["durationFormatted"] = predictMetadata.durationFormatted;
+  resultJson["predictMetadata"] = predictMetadataJson;
 
   resultJson["output"] = output;
 
@@ -221,7 +221,7 @@ int Runner::runInference() {
   outputFile.write(jsonStr.c_str(), jsonStr.size());
   outputFile.close();
 
-  std::cout << "Inference result saved to: " << outputPath.toStdString() << "\n";
+  std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
 
   return 0;
 }

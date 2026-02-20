@@ -16,7 +16,7 @@
 namespace ANN_CLI {
 
 /**
- * Runner class handles the execution of different ANN modes (train, test, inference).
+ * Runner class handles the execution of different ANN modes (train, test, predict).
  * Encapsulates mode-specific logic that was previously in main().
  */
 class Runner {
@@ -48,10 +48,10 @@ class Runner {
     int runTest();
 
     /**
-     * Execute inference mode.
+     * Execute predict mode.
      * @return Exit code (0 for success, non-zero for error)
      */
-    int runInference();
+    int runPredict();
 
     /**
      * Load samples from either JSON or IDX format based on CLI options.

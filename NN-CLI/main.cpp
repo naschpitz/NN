@@ -10,17 +10,17 @@ void printUsage() {
   std::cout << "ANN-CLI - Artificial Neural Network Command Line Interface\n\n";
   std::cout << "Usage:\n";
   std::cout << "  ANN-CLI --config <file> --mode train [options]       # Training\n";
-  std::cout << "  ANN-CLI --config <file> --mode inference --input <f> # Inference\n";
+  std::cout << "  ANN-CLI --config <file> --mode predict --input <f>   # Predict\n";
   std::cout << "  ANN-CLI --config <file> --mode test [options]        # Evaluation\n\n";
   std::cout << "Options:\n";
   std::cout << "  --config, -c <file>    Path to JSON configuration file (required)\n";
-  std::cout << "  --mode, -m <mode>      Mode: 'train', 'inference', or 'test' (overrides config file)\n";
+  std::cout << "  --mode, -m <mode>      Mode: 'train', 'predict', or 'test' (overrides config file)\n";
   std::cout << "  --device, -d <device>  Device: 'cpu' or 'gpu' (overrides config file)\n";
-  std::cout << "  --input, -i <file>     Path to JSON file with input values (inference mode, required)\n";
+  std::cout << "  --input, -i <file>     Path to JSON file with input values (predict mode, required)\n";
   std::cout << "  --samples, -s <file>   Path to JSON file with samples (train/test modes)\n";
   std::cout << "  --idx-data <file>      Path to IDX3 data file (alternative to --samples)\n";
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
-  std::cout << "  --output, -o <file>    Output file (default: inference_<input>.json for inference mode)\n";
+  std::cout << "  --output, -o <file>    Output file (default: predict_<input>.json for predict mode)\n";
   std::cout << "  --verbose, -v          Print detailed initialization and processing info\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
@@ -42,10 +42,10 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(configOption);
 
-  // Mode option (train, inference, or test)
+  // Mode option (train, predict, or test)
   QCommandLineOption modeOption(
     QStringList() << "m" << "mode",
-    "Mode: 'train', 'inference', or 'test'.",
+    "Mode: 'train', 'predict', or 'test'.",
     "mode"
   );
   parser.addOption(modeOption);
@@ -59,10 +59,10 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(deviceOption);
 
-  // Input file for inference mode
+  // Input file for predict mode
   QCommandLineOption inputOption(
     QStringList() << "i" << "input",
-    "Path to JSON file with input values for inference mode.",
+    "Path to JSON file with input values for predict mode.",
     "file"
   );
   parser.addOption(inputOption);
@@ -91,10 +91,10 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(idxLabelsOption);
 
-  // Output file (train: model, inference: inference result with metadata)
+  // Output file (train: model, predict: predict result with metadata)
   QCommandLineOption outputOption(
     QStringList() << "o" << "output",
-    "Output file. Train mode: saves trained model. Inference mode: saves inference result with model metadata.",
+    "Output file. Train mode: saves trained model. Predict mode: saves predict result with model metadata.",
     "file"
   );
   parser.addOption(outputOption);
@@ -121,8 +121,8 @@ int main(int argc, char *argv[]) {
   // Validate mode if provided
   if (parser.isSet(modeOption)) {
     QString modeStr = parser.value(modeOption).toLower();
-    if (modeStr != "train" && modeStr != "inference" && modeStr != "test") {
-      std::cerr << "Error: Mode must be 'train', 'inference', or 'test'.\n";
+    if (modeStr != "train" && modeStr != "predict" && modeStr != "test") {
+      std::cerr << "Error: Mode must be 'train', 'predict', or 'test'.\n";
       return 1;
     }
   }

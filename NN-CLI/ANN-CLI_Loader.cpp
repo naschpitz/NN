@@ -31,12 +31,12 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
         coreConfig.deviceType = ANN::DeviceType::CPU;
     }
 
-    // Load mode type from JSON (optional, defaults to INFERENCE)
+    // Load mode type from JSON (optional, defaults to PREDICT)
     if (json.contains("mode")) {
         std::string modeName = json.at("mode").get<std::string>();
         coreConfig.modeType = ANN::Mode::nameToType(modeName);
     } else {
-        coreConfig.modeType = ANN::ModeType::INFERENCE;
+        coreConfig.modeType = ANN::ModeType::PREDICT;
     }
 
     // Override with CLI arguments if explicitly provided
@@ -79,19 +79,19 @@ ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath,
         }
     }
 
-    // Load parameters (optional for TRAIN mode to allow resuming, required for INFERENCE/TEST modes)
+    // Load parameters (optional for TRAIN mode to allow resuming, required for PREDICT/TEST modes)
     if (json.contains("parameters")) {
         const nlohmann::json& parametersJson = json.at("parameters");
         coreConfig.parameters.weights = parametersJson.at("weights").get<ANN::Tensor3D<float>>();
         coreConfig.parameters.biases = parametersJson.at("biases").get<ANN::Tensor2D<float>>();
     }
 
-    // Validate: INFERENCE and TEST modes require parameters (trained weights/biases)
-    bool isInferenceOrTestMode = (coreConfig.modeType == ANN::ModeType::INFERENCE ||
-                                  coreConfig.modeType == ANN::ModeType::TEST);
+    // Validate: PREDICT and TEST modes require parameters (trained weights/biases)
+    bool isPredictOrTestMode = (coreConfig.modeType == ANN::ModeType::PREDICT ||
+                                coreConfig.modeType == ANN::ModeType::TEST);
 
-    if (isInferenceOrTestMode && !json.contains("parameters")) {
-        throw std::runtime_error("Config file missing 'parameters' (weights/biases) required for inference/test modes: " + configFilePath);
+    if (isPredictOrTestMode && !json.contains("parameters")) {
+        throw std::runtime_error("Config file missing 'parameters' (weights/biases) required for predict/test modes: " + configFilePath);
     }
 
     return coreConfig;
