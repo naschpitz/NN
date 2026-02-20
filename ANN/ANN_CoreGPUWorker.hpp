@@ -14,8 +14,8 @@ namespace ANN {
       CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
                     const Parameters<T>& parameters, bool verbose = false);
 
-      //-- Inference --//
-      Output<T> inference(const Input<T>& input);
+      //-- Predict --//
+      Output<T> predict(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
       T trainSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx, ulong epoch, ulong totalEpochs,
@@ -48,7 +48,7 @@ namespace ANN {
       OpenCLWrapper::Core oclwCore;
 
       //-- Kernel setup flags --//
-      bool inferenceKernelsSetup = false;
+      bool predictKernelsSetup = false;
       bool trainingKernelsSetup = false;
       bool updateKernelsSetup = false;
 
@@ -57,7 +57,7 @@ namespace ANN {
       void allocateTraining();
 
       //-- Kernel setup --//
-      void setupInferenceKernels();
+      void setupPredictKernels();
       void setupTrainingKernels();
       void setupUpdateKernels(ulong numSamples);
 

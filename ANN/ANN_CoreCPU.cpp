@@ -23,7 +23,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
     case ModeType::TRAIN:
       this->allocateTraining();
       break;
-    case ModeType::INFERENCE:
+    case ModeType::PREDICT:
     case ModeType::TEST:
     case ModeType::UNKNOWN:
       break;
@@ -33,13 +33,13 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreCPU<T>::inference(const Input<T>& input) {
-  this->inferenceStart();
+Output<T> CoreCPU<T>::predict(const Input<T>& input) {
+  this->predictStart();
 
   this->propagate(input);
   Output<T> output = this->getOutput();
 
-  this->inferenceEnd();
+  this->predictEnd();
 
   return output;
 }
@@ -675,7 +675,7 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 }
 
 //===================================================================================================================//
-// Convenience wrappers using member data (for inference())
+// Convenience wrappers using member data (for predict())
 //===================================================================================================================//
 
 template <typename T>

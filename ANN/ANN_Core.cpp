@@ -90,23 +90,23 @@ TrainingMetadata<T> Core<T>::trainingEnd() {
 //===================================================================================================================//
 
 template <typename T>
-void Core<T>::inferenceStart() {
-  this->inferenceStartTime = std::chrono::system_clock::now();
-  this->inferenceMetadata.startTime = Utils<T>::formatISO8601();
+void Core<T>::predictStart() {
+  this->predictStartTime = std::chrono::system_clock::now();
+  this->predictMetadata.startTime = Utils<T>::formatISO8601();
 }
 
 //===================================================================================================================//
 
 template <typename T>
-RunMetadata<T> Core<T>::inferenceEnd() {
+PredictMetadata<T> Core<T>::predictEnd() {
   auto endTime = std::chrono::system_clock::now();
-  this->inferenceMetadata.endTime = Utils<T>::formatISO8601();
+  this->predictMetadata.endTime = Utils<T>::formatISO8601();
 
-  std::chrono::duration<double> duration = endTime - this->inferenceStartTime;
-  this->inferenceMetadata.durationSeconds = duration.count();
-  this->inferenceMetadata.durationFormatted = Utils<T>::formatDuration(this->inferenceMetadata.durationSeconds);
+  std::chrono::duration<double> duration = endTime - this->predictStartTime;
+  this->predictMetadata.durationSeconds = duration.count();
+  this->predictMetadata.durationFormatted = Utils<T>::formatDuration(this->predictMetadata.durationSeconds);
 
-  return this->inferenceMetadata;
+  return this->predictMetadata;
 }
 
 //===================================================================================================================//

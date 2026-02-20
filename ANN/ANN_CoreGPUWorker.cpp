@@ -26,21 +26,21 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
 }
 
 //===================================================================================================================//
-//-- Inference --//
+//-- Predict --//
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreGPUWorker<T>::inference(const Input<T>& input) {
-  // Set up inference kernels if not done yet
-  if (!this->inferenceKernelsSetup) {
-    this->setupInferenceKernels();
-    this->inferenceKernelsSetup = true;
+Output<T> CoreGPUWorker<T>::predict(const Input<T>& input) {
+  // Set up predict kernels if not done yet
+  if (!this->predictKernelsSetup) {
+    this->setupPredictKernels();
+    this->predictKernelsSetup = true;
   }
 
   // Write input to GPU and run forward pass
   this->oclwCore. template writeBuffer<T>("actvs", input, 0);
 
-  // Execute inference kernels
+  // Execute predict kernels
   this->oclwCore.run();
 
   return this->readOutput();
@@ -115,10 +115,10 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, ulong startIdx, ulong
 
 template <typename T>
 T CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx) {
-  // Set up inference kernels if not done yet (forward pass only)
-  if (!this->inferenceKernelsSetup) {
-    this->setupInferenceKernels();
-    this->inferenceKernelsSetup = true;
+  // Set up predict kernels if not done yet (forward pass only)
+  if (!this->predictKernelsSetup) {
+    this->setupPredictKernels();
+    this->predictKernelsSetup = true;
   }
 
   T subsetLoss = 0;
@@ -181,10 +181,10 @@ void CoreGPUWorker<T>::update(ulong numSamples) {
   // Run update kernels
   this->oclwCore.run();
 
-  // After update, we need to re-setup kernels for next epoch/inference
+  // After update, we need to re-setup kernels for next epoch/predict
   // Reset the flags so they get set up again when needed
   this->trainingKernelsSetup = false;
-  this->inferenceKernelsSetup = false;
+  this->predictKernelsSetup = false;
   this->updateKernelsSetup = false;  // Reset so it gets set up with potentially new numSamples
 }
 
@@ -464,7 +464,7 @@ void CoreGPUWorker<T>::setupTrainingKernels() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPUWorker<T>::setupInferenceKernels() {
+void CoreGPUWorker<T>::setupPredictKernels() {
   ulong numLayers = this->layersConfig.size();
 
   // Clear any existing kernels

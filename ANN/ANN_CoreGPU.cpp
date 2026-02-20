@@ -35,17 +35,17 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig)
   this->initializeWorkers();
 }
 //===================================================================================================================//
-//-- Inference --//
+//-- Predict --//
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreGPU<T>::inference(const Input<T>& input) {
-  this->inferenceStart();
+Output<T> CoreGPU<T>::predict(const Input<T>& input) {
+  this->predictStart();
 
   // Delegate to the first worker
-  Output<T> output = this->gpuWorkers[0]->inference(input);
+  Output<T> output = this->gpuWorkers[0]->predict(input);
 
-  this->inferenceEnd();
+  this->predictEnd();
 
   return output;
 }

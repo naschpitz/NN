@@ -6,7 +6,7 @@
 #include "ANN_Sample.hpp"
 #include "ANN_TrainingProgress.hpp"
 #include "ANN_TrainingMetadata.hpp"
-#include "ANN_RunMetadata.hpp"
+#include "ANN_PredictMetadata.hpp"
 #include "ANN_TestResult.hpp"
 
 #include <chrono>
@@ -20,7 +20,7 @@ namespace ANN {
     public:
       static std::unique_ptr<Core<T>> makeCore(const CoreConfig<T>& config);
 
-      virtual Output<T> inference(const Input<T>& input) = 0;
+      virtual Output<T> predict(const Input<T>& input) = 0;
       virtual void train(const Samples<T>& samples) = 0;
       virtual TestResult<T> test(const Samples<T>& samples) = 0;
 
@@ -28,7 +28,7 @@ namespace ANN {
       DeviceType getDeviceType() const { return deviceType; }
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
-      const RunMetadata<T>& getInferenceMetadata() const { return inferenceMetadata; }
+      const PredictMetadata<T>& getPredictMetadata() const { return predictMetadata; }
       const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }
       const Parameters<T>& getParameters() const { return parameters; }
 
@@ -53,16 +53,16 @@ namespace ANN {
       void trainingStart(ulong numSamples);
       TrainingMetadata<T> trainingEnd();
 
-      // Inference timing helpers - called at start/end of inference
-      void inferenceStart();
-      RunMetadata<T> inferenceEnd();
+      // Predict timing helpers - called at start/end of predict
+      void predictStart();
+      PredictMetadata<T> predictEnd();
 
       DeviceType deviceType;
       ModeType modeType;
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
       TrainingMetadata<T> trainingMetadata;
-      RunMetadata<T> inferenceMetadata;
+      PredictMetadata<T> predictMetadata;
       Parameters<T> parameters;
       bool verbose = false;
 
@@ -73,7 +73,7 @@ namespace ANN {
 
     private:
       std::chrono::time_point<std::chrono::system_clock> trainingStartTime;
-      std::chrono::time_point<std::chrono::system_clock> inferenceStartTime;
+      std::chrono::time_point<std::chrono::system_clock> predictStartTime;
   };
 }
 

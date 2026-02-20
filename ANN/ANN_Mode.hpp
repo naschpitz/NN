@@ -9,14 +9,14 @@
 namespace ANN {
   enum class ModeType {
     TRAIN,
-    INFERENCE,
+    PREDICT,
     TEST,
     UNKNOWN
   };
 
   const std::unordered_map<std::string, ModeType> modeMap = {
     {"train", ModeType::TRAIN},
-    {"inference", ModeType::INFERENCE},
+    {"predict", ModeType::PREDICT},
     {"test", ModeType::TEST},
   };
 

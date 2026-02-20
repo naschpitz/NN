@@ -6,7 +6,7 @@ A C++ neural network library supporting both CPU and GPU (OpenCL) execution.
 
 - Multi-layer perceptron (MLP) neural networks
 - CPU and GPU execution via OpenCL
-- Training, inference, and evaluation modes
+- Training, predict, and evaluation modes
 - JSON-based configuration and model serialization
 - Multiple activation functions
 
@@ -45,11 +45,11 @@ make
 }
 ```
 
-### Inference Mode
+### Predict Mode
 
 ```json
 {
-  "mode": "inference",
+  "mode": "predict",
   "device": "gpu",
   "layersConfig": [
     { "numNeurons": 784, "actvFunc": "none" },
@@ -85,11 +85,11 @@ make
 
 | Field | Description | Required |
 |-------|-------------|----------|
-| `mode` | Operation mode: `train`, `inference`, or `test` | Optional (default: `inference`) |
+| `mode` | Operation mode: `train`, `predict`, or `test` | Optional (default: `predict`) |
 | `device` | Execution device: `cpu` or `gpu` | Optional (default: `cpu`) |
 | `layersConfig` | Array of layer definitions | Required |
 | `trainingConfig` | Training hyperparameters | Required for `train` mode |
-| `parameters` | Trained weights and biases | Required for `inference`/`test` modes |
+| `parameters` | Trained weights and biases | Required for `predict`/`test` modes |
 
 ## Activation Functions
 
@@ -136,13 +136,13 @@ After training, the model file contains the network architecture and learned par
 }
 ```
 
-### Inference Output
+### Predict Output
 
-The inference output contains the run metadata and the network output:
+The predict output contains the predict metadata and the network output:
 
 ```json
 {
-  "runMetadata": {
+  "predictMetadata": {
     "startTime": "2025-02-20T11:00:00",
     "endTime": "2025-02-20T11:00:00",
     "durationSeconds": 0.0012,
@@ -191,7 +191,7 @@ Test mode returns evaluation metrics:
 }
 ```
 
-### Input File (for inference)
+### Input File (for predict)
 
 ```json
 {
