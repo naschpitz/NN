@@ -100,6 +100,105 @@ make
 | `sigmoid` | Sigmoid function |
 | `tanh` | Hyperbolic tangent |
 
+## Output File Formats
+
+### Trained Model Output (from training)
+
+After training, the model file contains the network architecture and learned parameters:
+
+```json
+{
+  "layersConfig": [
+    { "numNeurons": 784, "actvFunc": "none" },
+    { "numNeurons": 128, "actvFunc": "relu" },
+    { "numNeurons": 10, "actvFunc": "sigmoid" }
+  ],
+  "parameters": {
+    "weights": [
+      [[...], [...], ...],
+      [[...], [...], ...]
+    ],
+    "biases": [
+      [...],
+      [...]
+    ]
+  },
+  "trainingMetadata": {
+    "startTime": "2025-02-20T10:30:00",
+    "endTime": "2025-02-20T10:45:30",
+    "durationSeconds": 930.5,
+    "durationFormatted": "15m 30.5s",
+    "numEpochs": 100,
+    "learningRate": 0.01,
+    "numSamples": 60000,
+    "finalLoss": 0.0234
+  }
+}
+```
+
+### Inference Output
+
+The inference output contains the run metadata and the network output:
+
+```json
+{
+  "runMetadata": {
+    "startTime": "2025-02-20T11:00:00",
+    "endTime": "2025-02-20T11:00:00",
+    "durationSeconds": 0.0012,
+    "durationFormatted": "1.2ms"
+  },
+  "output": [0.01, 0.02, 0.95, 0.01, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0]
+}
+```
+
+### Test/Evaluation Output
+
+Test mode returns evaluation metrics:
+
+```json
+{
+  "testMetadata": {
+    "startTime": "2025-02-20T11:05:00",
+    "endTime": "2025-02-20T11:05:45",
+    "durationSeconds": 45.3,
+    "durationFormatted": "45.3s"
+  },
+  "results": {
+    "numSamples": 10000,
+    "totalLoss": 234.5,
+    "averageLoss": 0.02345
+  }
+}
+```
+
+## Input File Formats
+
+### Samples File (for training/testing)
+
+```json
+{
+  "samples": [
+    {
+      "input": [0.0, 0.5, 1.0, 0.75, ...],
+      "output": [1.0, 0.0, 0.0, ...]
+    },
+    {
+      "input": [1.0, 0.25, 0.0, 0.5, ...],
+      "output": [0.0, 1.0, 0.0, ...]
+    }
+  ]
+}
+```
+
+### Input File (for inference)
+
+```json
+{
+  "input": [0.0, 0.5, 1.0, 0.75, ...]
+}
+```
+
 ## License
 
 See [LICENSE.md](LICENSE.md) for details.
