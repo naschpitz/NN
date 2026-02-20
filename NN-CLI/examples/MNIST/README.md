@@ -128,15 +128,6 @@ The output will be a JSON file with the network's prediction:
 
 The output array represents probabilities for digits 0-9. The highest value indicates the predicted digit (in this example, index 2 has value 0.95, so the prediction is digit "2").
 
-## Pre-trained Models
-
-The `train/output/` directory contains pre-trained models with different epoch counts:
-- `trained_model_100_60000_*.json` - 100 epochs
-- `trained_model_1000_60000_*.json` - 1000 epochs
-- `trained_model_10000_60000_*.json` - 10000 epochs
-
-The filename format is: `trained_model_{epochs}_{samples}_{final_loss}.json`
-
 ## Tips
 
 - **GPU vs CPU**: GPU training is significantly faster (10-100x) for large datasets
