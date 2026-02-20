@@ -45,11 +45,11 @@ make
 }
 ```
 
-### Run Mode
+### Inference Mode
 
 ```json
 {
-  "mode": "run",
+  "mode": "inference",
   "device": "gpu",
   "layersConfig": [
     { "numNeurons": 784, "actvFunc": "none" },
@@ -85,11 +85,11 @@ make
 
 | Field | Description | Required |
 |-------|-------------|----------|
-| `mode` | Operation mode: `train`, `run`, or `test` | Optional (default: `run`) |
+| `mode` | Operation mode: `train`, `inference`, or `test` | Optional (default: `inference`) |
 | `device` | Execution device: `cpu` or `gpu` | Optional (default: `cpu`) |
 | `layersConfig` | Array of layer definitions | Required |
 | `trainingConfig` | Training hyperparameters | Required for `train` mode |
-| `parameters` | Trained weights and biases | Required for `run`/`test` modes |
+| `parameters` | Trained weights and biases | Required for `inference`/`test` modes |
 
 ## Activation Functions
 

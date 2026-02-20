@@ -23,7 +23,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
     case ModeType::TRAIN:
       this->allocateTraining();
       break;
-    case ModeType::RUN:
+    case ModeType::INFERENCE:
     case ModeType::TEST:
     case ModeType::UNKNOWN:
       break;

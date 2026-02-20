@@ -199,12 +199,12 @@ void Utils<T>::loadCoreConfig(const nlohmann::json& json, CoreConfig<T>& coreCon
     coreConfig.deviceType = DeviceType::CPU;
   }
 
-  // Load mode type (optional, defaults to RUN)
+  // Load mode type (optional, defaults to INFERENCE)
   if (json.contains("mode")) {
     std::string modeName = json.at("mode").get<std::string>();
     coreConfig.modeType = Mode::nameToType(modeName);
   } else {
-    coreConfig.modeType = ModeType::RUN;
+    coreConfig.modeType = ModeType::INFERENCE;
   }
 }
 
