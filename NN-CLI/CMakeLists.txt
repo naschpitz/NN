@@ -36,3 +36,12 @@ install(TARGETS NN-CLI
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# Test executable — uses QProcess to invoke NN-CLI binary, no ANN/CNN linking needed
+add_executable(test_nncli
+  tests/test_main.cpp
+  tests/test_ann.cpp
+  tests/test_cnn.cpp
+  tests/test_errors.cpp
+)
+target_link_libraries(test_nncli PRIVATE Qt${QT_VERSION_MAJOR}::Core)
