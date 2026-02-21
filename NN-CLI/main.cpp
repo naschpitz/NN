@@ -2,16 +2,16 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 
-#include "ANN-CLI_Runner.hpp"
+#include "NN-CLI_Runner.hpp"
 
 #include <iostream>
 
 void printUsage() {
-  std::cout << "ANN-CLI - Artificial Neural Network Command Line Interface\n\n";
+  std::cout << "NN-CLI - Neural Network Command Line Interface (ANN + CNN)\n\n";
   std::cout << "Usage:\n";
-  std::cout << "  ANN-CLI --config <file> --mode train [options]       # Training\n";
-  std::cout << "  ANN-CLI --config <file> --mode predict --input <f>   # Predict\n";
-  std::cout << "  ANN-CLI --config <file> --mode test [options]        # Evaluation\n\n";
+  std::cout << "  NN-CLI --config <file> --mode train [options]       # Training\n";
+  std::cout << "  NN-CLI --config <file> --mode predict --input <f>   # Predict\n";
+  std::cout << "  NN-CLI --config <file> --mode test [options]        # Evaluation\n\n";
   std::cout << "Options:\n";
   std::cout << "  --config, -c <file>    Path to JSON configuration file (required)\n";
   std::cout << "  --mode, -m <mode>      Mode: 'train', 'predict', or 'test' (overrides config file)\n";
@@ -27,11 +27,11 @@ void printUsage() {
 
 int main(int argc, char *argv[]) {
   QCoreApplication app(argc, argv);
-  QCoreApplication::setApplicationName("ANN-CLI");
+  QCoreApplication::setApplicationName("NN-CLI");
   QCoreApplication::setApplicationVersion("1.0");
 
   QCommandLineParser parser;
-  parser.setApplicationDescription("Artificial Neural Network CLI");
+  parser.setApplicationDescription("Neural Network CLI (ANN + CNN)");
   parser.addHelpOption();
 
   // Config file option
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    ANN_CLI::Runner runner(parser, verbose);
+    NN_CLI::Runner runner(parser, verbose);
     return runner.run();
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << "\n";

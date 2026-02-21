@@ -1,13 +1,19 @@
-#include "ANN-CLI_Utils.hpp"
+#include "NN-CLI_Utils.hpp"
 
 #include <stdexcept>
 
-using namespace ANN_CLI;
+using namespace NN_CLI;
 
+//===================================================================================================================//
+// ANN and CNN use fundamentally different input representations:
+//   - ANN expects a flat std::vector<T> per sample (e.g. 784 values for a 28×28 image).
+//   - CNN expects a Tensor3D<T> per sample with explicit (C, H, W) shape (e.g. 1×28×28).
+// IDX files store raw flat byte arrays, so we need two loaders: one that keeps the data flat
+// for ANN, and one that reshapes it into the 3D tensor layout that CNN requires.
 //===================================================================================================================//
 
 template <typename T>
-ANN::Samples<T> Utils<T>::loadIDX(const std::string& dataPath, const std::string& labelsPath) {
+ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::string& labelsPath) {
   std::vector<std::vector<unsigned char>> data = loadIDXData(dataPath);
   std::vector<unsigned char> labels = loadIDXLabels(labelsPath);
 
@@ -118,8 +124,57 @@ std::vector<unsigned char> Utils<T>::loadIDXLabels(const std::string& path) {
 
 //===================================================================================================================//
 
+template <typename T>
+CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::string& labelsPath,
+                                      const CNN::Shape3D& inputShape) {
+  std::vector<std::vector<unsigned char>> data = loadIDXData(dataPath);
+  std::vector<unsigned char> labels = loadIDXLabels(labelsPath);
+
+  if (data.size() != labels.size()) {
+    throw std::runtime_error("IDX data and labels count mismatch");
+  }
+
+  // Determine the number of unique labels for one-hot encoding
+  unsigned char maxLabel = 0;
+  for (unsigned char label : labels) {
+    if (label > maxLabel) {
+      maxLabel = label;
+    }
+  }
+  size_t numClasses = static_cast<size_t>(maxLabel) + 1;
+
+  CNN::Samples<T> samples;
+  samples.reserve(data.size());
+
+  for (size_t i = 0; i < data.size(); ++i) {
+    CNN::Sample<T> sample;
+
+    // Validate data size matches input shape
+    if (data[i].size() != inputShape.size()) {
+      throw std::runtime_error("IDX data item size (" + std::to_string(data[i].size()) +
+        ") does not match expected input shape size (" + std::to_string(inputShape.size()) + ")");
+    }
+
+    // Reshape flat data into Tensor3D with given shape
+    sample.input = CNN::Tensor3D<T>(inputShape);
+    for (size_t j = 0; j < data[i].size(); ++j) {
+      sample.input.data[j] = static_cast<T>(data[i][j]) / static_cast<T>(255);
+    }
+
+    // Convert label to one-hot encoded output
+    sample.output.resize(numClasses, static_cast<T>(0));
+    sample.output[labels[i]] = static_cast<T>(1);
+
+    samples.push_back(std::move(sample));
+  }
+
+  return samples;
+}
+
+//===================================================================================================================//
+
 // Explicit template instantiations
-template class ANN_CLI::Utils<int>;
-template class ANN_CLI::Utils<float>;
-template class ANN_CLI::Utils<double>;
+template class NN_CLI::Utils<int>;
+template class NN_CLI::Utils<float>;
+template class NN_CLI::Utils<double>;
 

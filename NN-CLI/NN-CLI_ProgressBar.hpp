@@ -1,19 +1,32 @@
-#ifndef ANN_CLI_PROGRESSBAR_HPP
-#define ANN_CLI_PROGRESSBAR_HPP
-
-#include <ANN_Core.hpp>
+#ifndef NN_CLI_PROGRESSBAR_HPP
+#define NN_CLI_PROGRESSBAR_HPP
 
 #include <mutex>
+#include <ostream>
 #include <vector>
 
-namespace ANN_CLI {
+#include <sys/types.h>
+
+namespace NN_CLI {
+
+// Common progress info struct used by both ANN and CNN training callbacks
+struct ProgressInfo {
+  ulong currentEpoch;
+  ulong totalEpochs;
+  ulong currentSample;
+  ulong totalSamples;
+  float epochLoss;
+  float sampleLoss;
+  int gpuIndex;
+  int totalGPUs;
+};
 
 class ProgressBar {
   public:
     ProgressBar(int barWidth = 50);
 
     // Update and display progress (call from training callback)
-    void update(const ANN::TrainingProgress<float>& progress);
+    void update(const ProgressInfo& progress);
 
     // Reset state (call before starting a new training session)
     void reset();
@@ -40,10 +53,10 @@ class ProgressBar {
     void renderSingleBar(std::ostream& out, float percent);
     void renderMultiGpuBar(std::ostream& out, const std::vector<float>& gpuProgress, int numGPUs);
 
-    bool shouldPrint(const ANN::TrainingProgress<float>& progress, bool isEpochComplete);
+    bool shouldPrint(const ProgressInfo& progress, bool isEpochComplete);
 };
 
-}  // namespace ANN_CLI
+}  // namespace NN_CLI
 
-#endif  // ANN_CLI_PROGRESSBAR_HPP
+#endif  // NN_CLI_PROGRESSBAR_HPP
 

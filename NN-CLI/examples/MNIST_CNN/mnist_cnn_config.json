@@ -1,0 +1,23 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "inputShape": { "c": 1, "h": 28, "w": 28 },
+  "cnnLayersConfig": [
+    { "type": "conv", "numFilters": 8, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
+    { "type": "relu" },
+    { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
+    { "type": "conv", "numFilters": 16, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
+    { "type": "relu" },
+    { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
+    { "type": "flatten" }
+  ],
+  "denseLayersConfig": [
+    { "numNeurons": 128, "actvFunc": "relu" },
+    { "numNeurons": 10, "actvFunc": "sigmoid" }
+  ],
+  "trainingConfig": {
+    "numEpochs": 10,
+    "learningRate": 0.01
+  }
+}
+

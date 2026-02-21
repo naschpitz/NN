@@ -1,11 +1,11 @@
-#include "ANN-CLI_ProgressBar.hpp"
+#include "NN-CLI_ProgressBar.hpp"
 
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 
-namespace ANN_CLI {
+namespace NN_CLI {
 
 //===================================================================================================================//
 //-- Constructor --//
@@ -17,7 +17,7 @@ ProgressBar::ProgressBar(int barWidth) : barWidth(barWidth) {}
 //-- Public Interface --//
 //===================================================================================================================//
 
-void ProgressBar::update(const ANN::TrainingProgress<float>& progress) {
+void ProgressBar::update(const ProgressInfo& progress) {
   bool isEpochComplete = (progress.epochLoss > 0);
   bool isMultiGPU = (progress.totalGPUs > 1);
 
@@ -153,12 +153,12 @@ void ProgressBar::renderMultiGpuBar(std::ostream& out, const std::vector<float>&
   out << ")";
 }
 
-bool ProgressBar::shouldPrint(const ANN::TrainingProgress<float>& progress, bool isEpochComplete) {
+bool ProgressBar::shouldPrint(const ProgressInfo& progress, bool isEpochComplete) {
   return isEpochComplete ||
          (progress.currentEpoch != this->lastPrintedEpoch) ||
          (progress.currentSample >= this->lastPrintedSample + 500) ||
          (progress.currentSample == 1);
 }
 
-}  // namespace ANN_CLI
+}  // namespace NN_CLI
 
