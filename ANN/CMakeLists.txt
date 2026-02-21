@@ -57,3 +57,16 @@ target_compile_definitions(ANN PRIVATE ANN_LIBRARY)
 # nlohmann JSON library (header-only)
 set(LIB_NLOHMANN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann")
 target_include_directories(ANN PUBLIC ${LIB_NLOHMANN_DIR})
+
+
+# --- Test executable ---
+add_executable(test_ann
+  tests/test_main.cpp
+  tests/test_actvfunc.cpp
+  tests/test_utils.cpp
+  tests/test_core.cpp
+  tests/test_serialization.cpp
+  tests/test_gpu.cpp
+)
+
+target_link_libraries(test_ann PRIVATE ANN Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Concurrent)

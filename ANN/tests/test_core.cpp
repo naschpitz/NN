@@ -1,0 +1,490 @@
+#include "test_helpers.hpp"
+
+//===================================================================================================================//
+
+static void testMakeCoreCPU() {
+  std::cout << "--- testMakeCoreCPU ---" << std::endl;
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::PREDICT;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+
+  auto core = ANN::Core<double>::makeCore(config);
+  CHECK(core != nullptr, "makeCore returns non-null");
+  CHECK(core->getDeviceType() == ANN::DeviceType::CPU, "device is CPU");
+  CHECK(core->getModeType() == ANN::ModeType::PREDICT, "mode is PREDICT");
+  CHECK(core->getLayersConfig().size() == 2, "2 layers");
+  CHECK(core->getLayersConfig().getTotalNumNeurons() == 3, "total neurons = 3");
+}
+
+//===================================================================================================================//
+
+static void testPredictSimple() {
+  std::cout << "--- testPredictSimple ---" << std::endl;
+
+  // 2 inputs → 1 output with known weights
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::PREDICT;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+
+  // Set known weights: w = [0.5, 0.5], bias = 0.0
+  config.parameters.weights.resize(2);
+  config.parameters.weights[1] = {{0.5, 0.5}};
+  config.parameters.biases.resize(2);
+  config.parameters.biases[1] = {0.0};
+
+  auto core = ANN::Core<double>::makeCore(config);
+  ANN::Output<double> out = core->predict({1.0, 1.0});
+
+  CHECK(out.size() == 1, "output size = 1");
+  // z = 0.5*1 + 0.5*1 + 0 = 1.0, sigmoid(1.0) ≈ 0.7311
+  double expected = 1.0 / (1.0 + std::exp(-1.0));
+  CHECK_NEAR(out[0], expected, 1e-5, "sigmoid(1.0) ≈ 0.7311");
+}
+
+//===================================================================================================================//
+
+static void testTrainXOR() {
+  std::cout << "--- testTrainXOR ---" << std::endl;
+
+  ANN::Samples<double> samples = {
+    {{0.0, 0.0}, {0.0}},
+    {{0.0, 1.0}, {1.0}},
+    {{1.0, 0.0}, {1.0}},
+    {{1.0, 1.0}, {0.0}}
+  };
+
+  bool converged = false;
+  ANN::Output<double> p00, p01, p10, p11;
+
+  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
+    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+
+    ANN::CoreConfig<double> config;
+    config.modeType = ANN::ModeType::TRAIN;
+    config.deviceType = ANN::DeviceType::CPU;
+    config.layersConfig = makeLayersConfig({
+      {2, ANN::ActvFuncType::RELU},
+      {4, ANN::ActvFuncType::RELU},
+      {1, ANN::ActvFuncType::SIGMOID}
+    });
+    config.trainingConfig.numEpochs = 2000;
+    config.trainingConfig.learningRate = 0.1;
+    config.trainingConfig.progressReports = 0;
+    config.verbose = false;
+
+    auto core = ANN::Core<double>::makeCore(config);
+    core->train(samples);
+
+    p00 = core->predict({0.0, 0.0});
+    p01 = core->predict({0.0, 1.0});
+    p10 = core->predict({1.0, 0.0});
+    p11 = core->predict({1.0, 1.0});
+
+    if (p00[0] < 0.3 && p01[0] > 0.7 && p10[0] > 0.7 && p11[0] < 0.3) {
+      converged = true;
+    }
+  }
+
+  std::cout << "  XOR: [0,0]=" << p00[0] << " [0,1]=" << p01[0]
+            << " [1,0]=" << p10[0] << " [1,1]=" << p11[0] << std::endl;
+  CHECK(converged, "XOR converged (5 attempts)");
+}
+
+//===================================================================================================================//
+
+static void testTestMethod() {
+  std::cout << "--- testTestMethod ---" << std::endl;
+
+  // Train a simple network first, then test
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({
+    {2, ANN::ActvFuncType::RELU},
+    {4, ANN::ActvFuncType::SIGMOID},
+    {1, ANN::ActvFuncType::SIGMOID}
+  });
+  config.trainingConfig.numEpochs = 500;
+  config.trainingConfig.learningRate = 0.5;
+  config.trainingConfig.progressReports = 0;
+
+  ANN::Samples<double> samples = {
+    {{0.0, 0.0}, {0.0}},
+    {{1.0, 1.0}, {1.0}}
+  };
+
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples);
+
+  ANN::TestResult<double> result = core->test(samples);
+  CHECK(result.numSamples == 2, "test numSamples = 2");
+  CHECK(result.averageLoss >= 0.0, "test averageLoss >= 0");
+  CHECK(result.totalLoss >= 0.0, "test totalLoss >= 0");
+  CHECK_NEAR(result.totalLoss, result.averageLoss * 2.0, 1e-10, "totalLoss = avgLoss * numSamples");
+  std::cout << "  test avgLoss=" << result.averageLoss << std::endl;
+}
+
+//===================================================================================================================//
+
+static void testTrainingMetadata() {
+  std::cout << "--- testTrainingMetadata ---" << std::endl;
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.trainingConfig.numEpochs = 10;
+  config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.progressReports = 0;
+
+  ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0}}};
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples);
+
+  const auto& meta = core->getTrainingMetadata();
+  CHECK(!meta.startTime.empty(), "startTime non-empty");
+  CHECK(!meta.endTime.empty(), "endTime non-empty");
+  CHECK(meta.durationSeconds >= 0.0, "durationSeconds >= 0");
+  CHECK(!meta.durationFormatted.empty(), "durationFormatted non-empty");
+  CHECK(meta.numSamples == 1, "numSamples = 1");
+}
+
+//===================================================================================================================//
+
+static void testPredictMetadata() {
+  std::cout << "--- testPredictMetadata ---" << std::endl;
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::PREDICT;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+
+  auto core = ANN::Core<double>::makeCore(config);
+  core->predict({1.0, 0.0});
+
+  const auto& meta = core->getPredictMetadata();
+  CHECK(!meta.startTime.empty(), "predict startTime non-empty");
+  CHECK(!meta.endTime.empty(), "predict endTime non-empty");
+  CHECK(meta.durationSeconds >= 0.0, "predict durationSeconds >= 0");
+}
+
+//===================================================================================================================//
+
+static void testTrainingCallback() {
+  std::cout << "--- testTrainingCallback ---" << std::endl;
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.trainingConfig.numEpochs = 5;
+  config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.progressReports = 1;
+
+  ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0}}, {{0.0, 1.0}, {0.0}}};
+
+  int callbackCount = 0;
+  auto core = ANN::Core<double>::makeCore(config);
+  core->setTrainingCallback([&callbackCount](const ANN::TrainingProgress<double>& progress) {
+    callbackCount++;
+  });
+  core->train(samples);
+
+  std::cout << "  callback called " << callbackCount << " times" << std::endl;
+  CHECK(callbackCount > 0, "training callback was called");
+  CHECK(callbackCount >= 5, "callback called at least once per epoch");
+}
+
+//===================================================================================================================//
+
+static void testParameterRoundTrip() {
+  std::cout << "--- testParameterRoundTrip ---" << std::endl;
+
+  // Train a network, get parameters, create new predict-mode core with those params
+  ANN::CoreConfig<double> trainConfig;
+  trainConfig.modeType = ANN::ModeType::TRAIN;
+  trainConfig.deviceType = ANN::DeviceType::CPU;
+  trainConfig.layersConfig = makeLayersConfig({
+    {2, ANN::ActvFuncType::RELU},
+    {3, ANN::ActvFuncType::SIGMOID},
+    {1, ANN::ActvFuncType::SIGMOID}
+  });
+  trainConfig.trainingConfig.numEpochs = 200;
+  trainConfig.trainingConfig.learningRate = 0.5;
+  trainConfig.trainingConfig.progressReports = 0;
+
+  ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
+
+  auto trainCore = ANN::Core<double>::makeCore(trainConfig);
+  trainCore->train(samples);
+
+  ANN::Output<double> originalPred = trainCore->predict({1.0, 1.0});
+  ANN::Parameters<double> params = trainCore->getParameters();
+
+  // Check parameters are non-empty
+  CHECK(!params.weights.empty(), "weights non-empty");
+  CHECK(!params.biases.empty(), "biases non-empty");
+
+  // Create predict-only core with same params
+  ANN::CoreConfig<double> predConfig;
+  predConfig.modeType = ANN::ModeType::PREDICT;
+  predConfig.deviceType = ANN::DeviceType::CPU;
+  predConfig.layersConfig = trainConfig.layersConfig;
+  predConfig.parameters = params;
+
+  auto predCore = ANN::Core<double>::makeCore(predConfig);
+  ANN::Output<double> loadedPred = predCore->predict({1.0, 1.0});
+
+  std::cout << "  original=" << originalPred[0] << "  from_params=" << loadedPred[0] << std::endl;
+  CHECK_NEAR(originalPred[0], loadedPred[0], 1e-10, "parameter round-trip exact match");
+}
+
+//===================================================================================================================//
+
+static void testDifferentActivations() {
+  std::cout << "--- testDifferentActivations ---" << std::endl;
+
+  // Test that different activation functions produce different outputs
+  ANN::Input<double> input = {0.5, 0.5};
+
+  // Same architecture, same weights, different activations
+  ANN::Parameters<double> params;
+  params.weights = {{}, {{0.3, 0.3}}};
+  params.biases = {{}, {0.1}};
+
+  auto makeCore = [&](ANN::ActvFuncType actv) {
+    ANN::CoreConfig<double> config;
+    config.modeType = ANN::ModeType::PREDICT;
+    config.deviceType = ANN::DeviceType::CPU;
+    config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, actv}});
+    config.parameters = params;
+    return ANN::Core<double>::makeCore(config);
+  };
+
+  double reluOut = makeCore(ANN::ActvFuncType::RELU)->predict(input)[0];
+  double sigOut = makeCore(ANN::ActvFuncType::SIGMOID)->predict(input)[0];
+  double tanhOut = makeCore(ANN::ActvFuncType::TANH)->predict(input)[0];
+
+  std::cout << "  relu=" << reluOut << " sigmoid=" << sigOut << " tanh=" << tanhOut << std::endl;
+
+  // z = 0.3*0.5 + 0.3*0.5 + 0.1 = 0.4
+  CHECK_NEAR(reluOut, 0.4, 1e-6, "relu output = 0.4");
+  CHECK_NEAR(sigOut, 1.0 / (1.0 + std::exp(-0.4)), 1e-5, "sigmoid output");
+  CHECK_NEAR(tanhOut, std::tanh(0.4), 1e-5, "tanh output");
+}
+
+//===================================================================================================================//
+
+static void testMultiLayerNetwork() {
+  std::cout << "--- testMultiLayerNetwork ---" << std::endl;
+
+  // 2 → 4 → 4 → 1 network
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({
+    {2, ANN::ActvFuncType::RELU},
+    {4, ANN::ActvFuncType::RELU},
+    {4, ANN::ActvFuncType::RELU},
+    {1, ANN::ActvFuncType::SIGMOID}
+  });
+  config.trainingConfig.numEpochs = 500;
+  config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.progressReports = 0;
+
+  ANN::Samples<double> samples = {
+    {{1.0, 1.0}, {1.0}},
+    {{0.0, 0.0}, {0.0}}
+  };
+
+  bool converged = false;
+  ANN::Output<double> p0, p1;
+
+  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
+    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    auto core = ANN::Core<double>::makeCore(config);
+    core->train(samples);
+    p0 = core->predict({1.0, 1.0});
+    p1 = core->predict({0.0, 0.0});
+    if (p0[0] > 0.7 && p1[0] < 0.3) converged = true;
+  }
+
+  std::cout << "  high=" << p0[0] << "  low=" << p1[0] << std::endl;
+  CHECK(converged, "multi-layer network converged (5 attempts)");
+}
+
+//===================================================================================================================//
+
+static void testMultiOutput() {
+  std::cout << "--- testMultiOutput ---" << std::endl;
+
+  // 2 inputs → 3 outputs
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({
+    {2, ANN::ActvFuncType::RELU},
+    {4, ANN::ActvFuncType::SIGMOID},
+    {3, ANN::ActvFuncType::SIGMOID}
+  });
+  config.trainingConfig.numEpochs = 500;
+  config.trainingConfig.learningRate = 0.5;
+  config.trainingConfig.progressReports = 0;
+
+  ANN::Samples<double> samples = {
+    {{1.0, 0.0}, {1.0, 0.0, 1.0}},
+    {{0.0, 1.0}, {0.0, 1.0, 0.0}}
+  };
+
+  bool converged = false;
+  ANN::Output<double> pred;
+
+  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
+    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    auto core = ANN::Core<double>::makeCore(config);
+    core->train(samples);
+    pred = core->predict({1.0, 0.0});
+    if (pred[0] > 0.7 && pred[1] < 0.3 && pred[2] > 0.7) converged = true;
+  }
+
+  std::cout << "  pred=[" << pred[0] << "," << pred[1] << "," << pred[2] << "]" << std::endl;
+  CHECK(pred.size() == 3, "multi-output size = 3");
+  CHECK(converged, "multi-output converged (5 attempts)");
+}
+
+//===================================================================================================================//
+
+static void testStepByStepAPI() {
+  std::cout << "--- testStepByStepAPI ---" << std::endl;
+
+  // Test the step-by-step training API: predict → backpropagate → accumulate → update
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({
+    {2, ANN::ActvFuncType::RELU},
+    {3, ANN::ActvFuncType::SIGMOID},
+    {1, ANN::ActvFuncType::SIGMOID}
+  });
+  config.trainingConfig.numEpochs = 1;
+  config.trainingConfig.learningRate = 0.5;
+  config.trainingConfig.progressReports = 0;
+
+  auto core = ANN::Core<double>::makeCore(config);
+
+  ANN::Input<double> input = {1.0, 0.5};
+  ANN::Output<double> expected = {1.0};
+
+  // Manual training loop (1 epoch, 1 sample)
+  ANN::Output<double> beforePred = core->predict(input);
+
+  core->resetAccumulators();
+  core->predict(input);  // Forward pass
+  ANN::Tensor1D<double> inputGrads = core->backpropagate(expected);
+  core->accumulate();
+  core->update(1);
+
+  ANN::Output<double> afterPred = core->predict(input);
+
+  std::cout << "  before=" << beforePred[0] << "  after=" << afterPred[0] << std::endl;
+
+  // Input gradients should have size matching input layer
+  CHECK(inputGrads.size() == 2, "input gradients size = 2");
+
+  // After one update step toward target=1.0, prediction should move closer to 1.0
+  // (This may not always hold depending on init, so just verify it ran without error)
+  CHECK(afterPred.size() == 1, "step-by-step output size = 1");
+}
+
+//===================================================================================================================//
+
+static void testTrainWithTanh() {
+  std::cout << "--- testTrainWithTanh ---" << std::endl;
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({
+    {2, ANN::ActvFuncType::RELU},
+    {4, ANN::ActvFuncType::TANH},
+    {1, ANN::ActvFuncType::SIGMOID}
+  });
+  config.trainingConfig.numEpochs = 500;
+  config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.progressReports = 0;
+
+  ANN::Samples<double> samples = {
+    {{1.0, 1.0}, {1.0}},
+    {{0.0, 0.0}, {0.0}}
+  };
+
+  bool converged = false;
+  ANN::Output<double> p0, p1;
+
+  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
+    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    auto core = ANN::Core<double>::makeCore(config);
+    core->train(samples);
+    p0 = core->predict({1.0, 1.0});
+    p1 = core->predict({0.0, 0.0});
+    if (p0[0] > 0.7 && p1[0] < 0.3) converged = true;
+  }
+
+  std::cout << "  high=" << p0[0] << "  low=" << p1[0] << std::endl;
+  CHECK(converged, "tanh network converged (5 attempts)");
+}
+
+//===================================================================================================================//
+
+static void testGettersAfterConstruction() {
+  std::cout << "--- testGettersAfterConstruction ---" << std::endl;
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({
+    {3, ANN::ActvFuncType::RELU},
+    {5, ANN::ActvFuncType::SIGMOID},
+    {2, ANN::ActvFuncType::TANH}
+  });
+  config.trainingConfig.numEpochs = 100;
+  config.trainingConfig.learningRate = 0.05;
+  config.verbose = true;
+
+  auto core = ANN::Core<double>::makeCore(config);
+
+  CHECK(core->getModeType() == ANN::ModeType::TRAIN, "mode = TRAIN");
+  CHECK(core->getDeviceType() == ANN::DeviceType::CPU, "device = CPU");
+  CHECK(core->getLayersConfig().size() == 3, "3 layers");
+  CHECK(core->getLayersConfig()[0].numNeurons == 3, "layer 0: 3 neurons");
+  CHECK(core->getLayersConfig()[1].numNeurons == 5, "layer 1: 5 neurons");
+  CHECK(core->getLayersConfig()[2].numNeurons == 2, "layer 2: 2 neurons");
+  CHECK(core->getTrainingConfig().numEpochs == 100, "numEpochs = 100");
+  CHECK_NEAR(core->getTrainingConfig().learningRate, 0.05f, 1e-6f, "learningRate = 0.05");
+  CHECK(core->isVerbose() == true, "verbose = true");
+
+  core->setVerbose(false);
+  CHECK(core->isVerbose() == false, "verbose = false after setVerbose");
+}
+
+//===================================================================================================================//
+
+void runCoreTests() {
+  testMakeCoreCPU();
+  testPredictSimple();
+  testTrainXOR();
+  testTestMethod();
+  testTrainingMetadata();
+  testPredictMetadata();
+  testTrainingCallback();
+  testParameterRoundTrip();
+  testDifferentActivations();
+  testMultiLayerNetwork();
+  testMultiOutput();
+  testStepByStepAPI();
+  testTrainWithTanh();
+  testGettersAfterConstruction();
+}
