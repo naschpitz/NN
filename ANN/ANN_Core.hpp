@@ -24,6 +24,13 @@ namespace ANN {
       virtual void train(const Samples<T>& samples) = 0;
       virtual TestResult<T> test(const Samples<T>& samples) = 0;
 
+      // Step-by-step training methods (for external orchestration, e.g., CNN)
+      // Usage flow: predict(input) → backpropagate(output) → [other layers backprop] → accumulate() → update(numSamples)
+      virtual Tensor1D<T> backpropagate(const Output<T>& output) = 0;
+      virtual void accumulate() = 0;
+      virtual void resetAccumulators() = 0;
+      virtual void update(ulong numSamples) = 0;
+
       ModeType getModeType() const { return modeType; }
       DeviceType getDeviceType() const { return deviceType; }
       const LayersConfig& getLayersConfig() const { return layersConfig; }

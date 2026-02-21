@@ -268,6 +268,33 @@ void CoreGPU<T>::update(ulong numSamples) {
 }
 
 //===================================================================================================================//
+//-- Step-by-step training methods (for external orchestration, e.g., CNN) --//
+//===================================================================================================================//
+
+template <typename T>
+Tensor1D<T> CoreGPU<T>::backpropagate(const Output<T>& output) {
+  // Delegate to the first worker (same as predict)
+  return this->gpuWorkers[0]->backpropagate(output);
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPU<T>::accumulate() {
+  // Delegate to the first worker (same as predict)
+  this->gpuWorkers[0]->accumulate();
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPU<T>::resetAccumulators() {
+  for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
+    this->gpuWorkers[gpuIdx]->resetAccumulators();
+  }
+}
+
+//===================================================================================================================//
 // (Optional) Explicit template instantiations.
 template class ANN::CoreGPU<int>;
 template class ANN::CoreGPU<double>;

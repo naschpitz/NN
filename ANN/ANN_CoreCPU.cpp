@@ -315,6 +315,9 @@ void CoreCPU<T>::allocateTraining() {
   this->dCost_dBiases.resize(numLayers);
   this->accum_dCost_dBiases.resize(numLayers);
 
+  // Allocate dCost_dActvs for input layer (needed for backpropagate() to return input gradients)
+  this->dCost_dActvs[0].resize(this->layersConfig[0].numNeurons);
+
   for (ulong l = 1; l < numLayers; l++) {
     Layer layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
@@ -690,6 +693,52 @@ Output<T> CoreCPU<T>::getOutput() {
   ulong numLayers = this->layersConfig.size();
 
   return this->actvs[numLayers - 1];
+}
+
+//===================================================================================================================//
+// Step-by-step training methods (for external orchestration, e.g., CNN)
+//===================================================================================================================//
+
+template <typename T>
+Tensor1D<T> CoreCPU<T>::backpropagate(const Output<T>& output) {
+  // Uses stored actvs/zs from the last predict() call
+  // Computes gradients into member dCost_dActvs, dCost_dWeights, dCost_dBiases
+  this->backpropagate(output, this->actvs, this->zs,
+                      this->dCost_dActvs, this->dCost_dWeights, this->dCost_dBiases);
+
+  // Additionally compute dCost_dActvs for the input layer (layer 0)
+  // This is needed by external orchestrators (e.g., CNN) to continue backpropagation
+  ulong inputNumNeurons = this->layersConfig[0].numNeurons;
+
+  for (ulong k = 0; k < inputNumNeurons; k++) {
+    this->dCost_dActvs[0][k] = this->calc_dCost_dActv(0, k, this->zs, this->dCost_dActvs);
+  }
+
+  return this->dCost_dActvs[0];
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreCPU<T>::accumulate() {
+  // Accumulates computed gradients (from backpropagate) into the member accumulators
+  ulong numLayers = this->layersConfig.size();
+
+  for (ulong l = 1; l < numLayers; l++) {
+    const Layer& layer = this->layersConfig[l];
+    ulong numNeurons = layer.numNeurons;
+
+    for (ulong j = 0; j < numNeurons; j++) {
+      const Layer& prevLayer = this->layersConfig[l - 1];
+      ulong prevNumNeurons = prevLayer.numNeurons;
+
+      this->accum_dCost_dBiases[l][j] += this->dCost_dBiases[l][j];
+
+      for (ulong k = 0; k < prevNumNeurons; k++) {
+        this->accum_dCost_dWeights[l][j][k] += this->dCost_dWeights[l][j][k];
+      }
+    }
+  }
 }
 
 //===================================================================================================================//

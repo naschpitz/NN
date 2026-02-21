@@ -33,6 +33,12 @@ namespace ANN {
       void train(const Samples<T>& samples) override;
       TestResult<T> test(const Samples<T>& samples) override;
 
+      // Step-by-step training methods (for external orchestration, e.g., CNN)
+      Tensor1D<T> backpropagate(const Output<T>& output) override;
+      void accumulate() override;
+      void resetAccumulators() override;
+      void update(ulong numSamples) override;
+
     private:
       Tensor2D<T> dCost_dActvs;
       Tensor3D<T> dCost_dWeights, accum_dCost_dWeights;
@@ -58,12 +64,10 @@ namespace ANN {
       T calc_dCost_dBias(ulong l, ulong j, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs);
 
       // Functions used by train()
-      void resetAccumulators();
       void resetWorkerAccumulators(SampleWorker<T>& worker);
       void accumulateToWorker(SampleWorker<T>& worker);
       void mergeWorkerAccumulators(const SampleWorker<T>& worker);
       T calculateLoss(const Output<T>& expected, const Tensor2D<T>& actvs);
-      void update(ulong numSamples);
       void reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
                           T sampleLoss, T epochLoss, QMutex& callbackMutex);
 

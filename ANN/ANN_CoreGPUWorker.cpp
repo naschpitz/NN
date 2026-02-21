@@ -142,6 +142,56 @@ T CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulong startIdx, ulong 
 }
 
 //===================================================================================================================//
+//-- Step-by-step training methods (for external orchestration, e.g., CNN) --//
+//===================================================================================================================//
+
+template <typename T>
+Tensor1D<T> CoreGPUWorker<T>::backpropagate(const Output<T>& output) {
+  // Set up backpropagate kernels if not done yet
+  if (!this->backpropagateKernelsSetup) {
+    this->setupBackpropagateKernels();
+  }
+
+  // Write input and expected output to GPU buffers
+  this->oclwCore. template writeBuffer<T>("outputs", output, 0);
+
+  // Execute forward pass + backpropagation + input gradient kernels
+  this->oclwCore.run();
+
+  // Read and return input layer gradients
+  return this->readInputGradients();
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::accumulate() {
+  // Set up accumulate kernels if not done yet
+  if (!this->accumulateKernelsSetup) {
+    this->setupAccumulateKernels();
+  }
+
+  // Execute accumulation kernels
+  this->oclwCore.run();
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::resetAccumulators() {
+  ulong numBiases = Utils<T>::count(this->parameters.biases);
+  ulong numWeights = Utils<T>::count(this->parameters.weights);
+
+  // Create zero-filled vectors
+  std::vector<T> zeroBiases(numBiases, static_cast<T>(0));
+  std::vector<T> zeroWeights(numWeights, static_cast<T>(0));
+
+  // Write zeros to GPU accumulator buffers
+  this->oclwCore. template writeBuffer<T>("accum_dCost_dBiases", zeroBiases, 0);
+  this->oclwCore. template writeBuffer<T>("accum_dCost_dWeights", zeroWeights, 0);
+}
+
+//===================================================================================================================//
 //-- Gradient access (for multi-GPU merging) --//
 //===================================================================================================================//
 
@@ -183,9 +233,7 @@ void CoreGPUWorker<T>::update(ulong numSamples) {
 
   // After update, we need to re-setup kernels for next epoch/predict
   // Reset the flags so they get set up again when needed
-  this->trainingKernelsSetup = false;
-  this->predictKernelsSetup = false;
-  this->updateKernelsSetup = false;  // Reset so it gets set up with potentially new numSamples
+  this->invalidateAllKernelFlags();
 }
 
 //===================================================================================================================//
@@ -305,6 +353,7 @@ void CoreGPUWorker<T>::allocateCommon() {
 
 template <typename T>
 void CoreGPUWorker<T>::allocateTraining() {
+  ulong numLayers = this->layersConfig.size();
   ulong totalNumWeights = Utils<T>::count(this->parameters.weights);
   ulong totalNumBiases = Utils<T>::count(this->parameters.biases);
 
@@ -314,6 +363,9 @@ void CoreGPUWorker<T>::allocateTraining() {
 
   this->oclwCore. template allocateBuffer<T>("dCost_dBiases", totalNumBiases);
   this->oclwCore. template allocateBuffer<T>("accum_dCost_dBiases", totalNumBiases);
+
+  // Allocate outputs buffer for backpropagation (expected output values)
+  this->oclwCore. template allocateBuffer<T>("outputs", this->layersConfig[numLayers - 1].numNeurons);
   if (this->verbose) std::cout << "Training buffers allocation done.\n";
 }
 
@@ -322,19 +374,91 @@ void CoreGPUWorker<T>::allocateTraining() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPUWorker<T>::setupTrainingKernels() {
-  ulong numLayers = this->layersConfig.size();
+void CoreGPUWorker<T>::setupPredictKernels() {
+  this->oclwCore.clearKernels();
+  this->invalidateAllKernelFlags();
 
-  // Clear any existing kernels
+  this->addPropagateKernels();
+
+  this->predictKernelsSetup = true;
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::setupTrainingKernels() {
+  this->oclwCore.clearKernels();
+  this->invalidateAllKernelFlags();
+
+  this->addPropagateKernels();
+  this->addBackpropagateKernels(false);
+  this->addAccumulateKernels();
+
+  this->trainingKernelsSetup = true;
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::setupBackpropagateKernels() {
+  this->oclwCore.clearKernels();
+  this->invalidateAllKernelFlags();
+
+  this->addPropagateKernels();
+  this->addBackpropagateKernels(true);
+
+  this->backpropagateKernelsSetup = true;
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::setupAccumulateKernels() {
+  this->oclwCore.clearKernels();
+  this->invalidateAllKernelFlags();
+
+  this->addAccumulateKernels();
+
+  this->accumulateKernelsSetup = true;
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::setupUpdateKernels(ulong numSamples) {
+  ulong numBiases = Utils<T>::count(this->parameters.biases);
+  ulong numWeights = Utils<T>::count(this->parameters.weights);
+
+  // Clear sample kernels and set up update kernels
   this->oclwCore.clearKernels();
 
-  // === PROPAGATE KERNELS ===
-  // Add kernels for all layers (layer 1 to N-1)
+  this->oclwCore.addKernel("update_biases", numBiases, 0);
+  this->oclwCore. template addArgument<T>("update_biases", "biases");
+  this->oclwCore. template addArgument<T>("update_biases", "accum_dCost_dBiases");
+  this->oclwCore. template addArgument<ulong>("update_biases", numSamples);
+  this->oclwCore. template addArgument<float>("update_biases", this->trainingConfig.learningRate);
+  this->oclwCore. template addArgument<ulong>("update_biases", numBiases);
+
+  this->oclwCore.addKernel("update_weights", numWeights, 0);
+  this->oclwCore. template addArgument<T>("update_weights", "weights");
+  this->oclwCore. template addArgument<T>("update_weights", "accum_dCost_dWeights");
+  this->oclwCore. template addArgument<ulong>("update_weights", numSamples);
+  this->oclwCore. template addArgument<float>("update_weights", this->trainingConfig.learningRate);
+  this->oclwCore. template addArgument<ulong>("update_weights", numWeights);
+}
+
+//===================================================================================================================//
+//-- Kernel building blocks --//
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::addPropagateKernels() {
+  ulong numLayers = this->layersConfig.size();
+
   for (ulong l = 1; l < numLayers; l++) {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
-    // Create unique IDs for this layer's kernels
     std::string calculate_zs_id = "calculate_zs_layer" + std::to_string(l);
     std::string calculate_actvs_id = "calculate_actvs_layer" + std::to_string(l);
 
@@ -356,8 +480,14 @@ void CoreGPUWorker<T>::setupTrainingKernels() {
     this->oclwCore. template addArgument<Layer>(calculate_actvs_id, "layers");
     this->oclwCore. template addArgument<ulong>(calculate_actvs_id, numLayers);
   }
+}
 
-  // === BACKPROPAGATE KERNELS ===
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
+  ulong numLayers = this->layersConfig.size();
+
   // Last layer kernels
   ulong l = numLayers - 1;
   const Layer& lastLayer = this->layersConfig[l];
@@ -366,10 +496,7 @@ void CoreGPUWorker<T>::setupTrainingKernels() {
   ulong numBiases = numNeurons;
   ulong numWeights = Utils<T>::count(this->parameters.weights[l]);
 
-  // Allocate outputs buffer for backpropagation
-  this->oclwCore. template allocateBuffer<T>("outputs", this->layersConfig[numLayers - 1].numNeurons);
-
-  // calculate_dCost_dActv_last_layer (unique, only one instance)
+  // calculate_dCost_dActv_last_layer
   this->oclwCore.addKernel("calculate_dCost_dActv_last_layer", numNeurons, 0);
   this->oclwCore. template addArgument<T>("calculate_dCost_dActv_last_layer", "dCost_dActvs");
   this->oclwCore. template addArgument<T>("calculate_dCost_dActv_last_layer", "actvs");
@@ -378,7 +505,6 @@ void CoreGPUWorker<T>::setupTrainingKernels() {
   this->oclwCore. template addArgument<Layer>("calculate_dCost_dActv_last_layer", "layers");
   this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv_last_layer", numLayers);
 
-  // Create unique IDs for last layer's kernels
   std::string dCost_dBias_last_id = "calculate_dCost_dBias_layer" + std::to_string(l);
   std::string dCost_dWeight_last_id = "calculate_dCost_dWeight_layer" + std::to_string(l);
 
@@ -401,7 +527,7 @@ void CoreGPUWorker<T>::setupTrainingKernels() {
   this->oclwCore. template addArgument<Layer>(dCost_dWeight_last_id, "layers");
   this->oclwCore. template addArgument<ulong>(dCost_dWeight_last_id, numLayers);
 
-  // Backpropagate through hidden layers (from second-to-last to first hidden layer)
+  // Hidden layers (from second-to-last to first hidden layer)
   for (ulong layer_idx = numLayers - 2; layer_idx >= 1; layer_idx--) {
     const Layer& curr_layer = this->layersConfig[layer_idx];
 
@@ -409,7 +535,6 @@ void CoreGPUWorker<T>::setupTrainingKernels() {
     ulong curr_numBiases = curr_numNeurons;
     ulong curr_numWeights = Utils<T>::count(this->parameters.weights[layer_idx]);
 
-    // Create unique IDs for this layer's kernels
     std::string dCost_dActv_id = "calculate_dCost_dActv_layer" + std::to_string(layer_idx);
     std::string dCost_dBias_id = "calculate_dCost_dBias_layer" + std::to_string(layer_idx);
     std::string dCost_dWeight_id = "calculate_dCost_dWeight_layer" + std::to_string(layer_idx);
@@ -446,7 +571,24 @@ void CoreGPUWorker<T>::setupTrainingKernels() {
     if (layer_idx == 1) break;
   }
 
-  // === ACCUMULATE KERNELS ===
+  // Optionally compute input layer gradients (layer 0) for external orchestrators (e.g., CNN)
+  if (includeInputGradients) {
+    ulong inputNumNeurons = this->layersConfig[0].numNeurons;
+
+    this->oclwCore.addKernel("calculate_dCost_dActv_layer0", "calculate_dCost_dActv", inputNumNeurons, 0);
+    this->oclwCore. template addArgument<T>("calculate_dCost_dActv_layer0", "dCost_dActvs");
+    this->oclwCore. template addArgument<T>("calculate_dCost_dActv_layer0", "weights");
+    this->oclwCore. template addArgument<T>("calculate_dCost_dActv_layer0", "zs");
+    this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv_layer0", static_cast<ulong>(0));
+    this->oclwCore. template addArgument<Layer>("calculate_dCost_dActv_layer0", "layers");
+    this->oclwCore. template addArgument<ulong>("calculate_dCost_dActv_layer0", numLayers);
+  }
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::addAccumulateKernels() {
   ulong totalNumBiases = Utils<T>::count(this->parameters.biases);
   ulong totalNumWeights = Utils<T>::count(this->parameters.weights);
 
@@ -462,66 +604,16 @@ void CoreGPUWorker<T>::setupTrainingKernels() {
 }
 
 //===================================================================================================================//
-
-template <typename T>
-void CoreGPUWorker<T>::setupPredictKernels() {
-  ulong numLayers = this->layersConfig.size();
-
-  // Clear any existing kernels
-  this->oclwCore.clearKernels();
-
-  // Add forward pass kernels for all layers (layer 1 to N-1)
-  for (ulong l = 1; l < numLayers; l++) {
-    const Layer& layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
-
-    // Create unique IDs for this layer's kernels
-    std::string calculate_zs_id = "calculate_zs_layer" + std::to_string(l);
-    std::string calculate_actvs_id = "calculate_actvs_layer" + std::to_string(l);
-
-    // calculate_zs kernel: computes weighted sum + bias for each neuron
-    this->oclwCore.addKernel(calculate_zs_id, "calculate_zs", numNeurons, 0);
-    this->oclwCore. template addArgument<T>(calculate_zs_id, "zs");
-    this->oclwCore. template addArgument<T>(calculate_zs_id, "weights");
-    this->oclwCore. template addArgument<T>(calculate_zs_id, "actvs");
-    this->oclwCore. template addArgument<T>(calculate_zs_id, "biases");
-    this->oclwCore. template addArgument<ulong>(calculate_zs_id, l);
-    this->oclwCore. template addArgument<Layer>(calculate_zs_id, "layers");
-    this->oclwCore. template addArgument<ulong>(calculate_zs_id, numLayers);
-
-    // calculate_actvs kernel: applies activation function
-    this->oclwCore.addKernel(calculate_actvs_id, "calculate_actvs", numNeurons, 0);
-    this->oclwCore. template addArgument<T>(calculate_actvs_id, "actvs");
-    this->oclwCore. template addArgument<T>(calculate_actvs_id, "zs");
-    this->oclwCore. template addArgument<ulong>(calculate_actvs_id, l);
-    this->oclwCore. template addArgument<Layer>(calculate_actvs_id, "layers");
-    this->oclwCore. template addArgument<ulong>(calculate_actvs_id, numLayers);
-  }
-}
-
+//-- Helpers --//
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPUWorker<T>::setupUpdateKernels(ulong numSamples) {
-  ulong numBiases = Utils<T>::count(this->parameters.biases);
-  ulong numWeights = Utils<T>::count(this->parameters.weights);
-
-  // Clear sample kernels and set up update kernels
-  this->oclwCore.clearKernels();
-
-  this->oclwCore.addKernel("update_biases", numBiases, 0);
-  this->oclwCore. template addArgument<T>("update_biases", "biases");
-  this->oclwCore. template addArgument<T>("update_biases", "accum_dCost_dBiases");
-  this->oclwCore. template addArgument<ulong>("update_biases", numSamples);
-  this->oclwCore. template addArgument<float>("update_biases", this->trainingConfig.learningRate);
-  this->oclwCore. template addArgument<ulong>("update_biases", numBiases);
-
-  this->oclwCore.addKernel("update_weights", numWeights, 0);
-  this->oclwCore. template addArgument<T>("update_weights", "weights");
-  this->oclwCore. template addArgument<T>("update_weights", "accum_dCost_dWeights");
-  this->oclwCore. template addArgument<ulong>("update_weights", numSamples);
-  this->oclwCore. template addArgument<float>("update_weights", this->trainingConfig.learningRate);
-  this->oclwCore. template addArgument<ulong>("update_weights", numWeights);
+void CoreGPUWorker<T>::invalidateAllKernelFlags() {
+  this->predictKernelsSetup = false;
+  this->trainingKernelsSetup = false;
+  this->backpropagateKernelsSetup = false;
+  this->accumulateKernelsSetup = false;
+  this->updateKernelsSetup = false;
 }
 
 //===================================================================================================================//
@@ -546,17 +638,18 @@ T CoreGPUWorker<T>::calculateLoss(const Output<T>& expected) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPUWorker<T>::resetAccumulators() {
-  ulong numBiases = Utils<T>::count(this->parameters.biases);
-  ulong numWeights = Utils<T>::count(this->parameters.weights);
+Tensor1D<T> CoreGPUWorker<T>::readInputGradients() {
+  // Read dCost_dActvs for the input layer (layer 0) from GPU
+  // The dCost_dActvs buffer is laid out with all neurons contiguously,
+  // and layer 0 starts at offset 0
+  ulong inputNumNeurons = this->layersConfig[0].numNeurons;
 
-  // Create zero-filled vectors
-  std::vector<T> zeroBiases(numBiases, static_cast<T>(0));
-  std::vector<T> zeroWeights(numWeights, static_cast<T>(0));
+  Tensor1D<T> inputGradients;
+  inputGradients.resize(inputNumNeurons);
 
-  // Write zeros to GPU accumulator buffers
-  this->oclwCore. template writeBuffer<T>("accum_dCost_dBiases", zeroBiases, 0);
-  this->oclwCore. template writeBuffer<T>("accum_dCost_dWeights", zeroWeights, 0);
+  this->oclwCore. template readBuffer<T>("dCost_dActvs", inputGradients, 0);
+
+  return inputGradients;
 }
 
 //===================================================================================================================//

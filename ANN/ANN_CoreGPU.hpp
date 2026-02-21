@@ -19,6 +19,12 @@ namespace ANN {
       void train(const Samples<T>& samples) override;
       TestResult<T> test(const Samples<T>& samples) override;
 
+      // Step-by-step training methods (for external orchestration, e.g., CNN)
+      Tensor1D<T> backpropagate(const Output<T>& output) override;
+      void accumulate() override;
+      void resetAccumulators() override;
+      void update(ulong numSamples) override;
+
     private:
       //-- GPU workers (one per GPU) --//
       std::vector<std::unique_ptr<CoreGPUWorker<T>>> gpuWorkers;
@@ -29,7 +35,6 @@ namespace ANN {
 
       //-- Training coordination --//
       void mergeGradients();
-      void update(ulong numSamples);
   };
 }
 
