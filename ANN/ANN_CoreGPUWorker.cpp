@@ -317,10 +317,10 @@ void CoreGPUWorker<T>::allocateCommon() {
 
   if (this->verbose) std::cout << "Loading OpenCL kernels...\n";
   // Load source files in order - they will be concatenated by OpenCL
-  this->oclwCore.addSourceFile("extern/ANN/Defines.hpp.cl");
-  this->oclwCore.addSourceFile("extern/ANN/ActvFunc.cpp.cl");
-  this->oclwCore.addSourceFile("extern/ANN/IdxHelper.cpp.cl");
-  this->oclwCore.addSourceFile("extern/ANN/Kernels.cpp.cl");
+  this->oclwCore.addSourceFile("extern/ANN/opencl/Defines.hpp.cl");
+  this->oclwCore.addSourceFile("extern/ANN/opencl/ActvFunc.cpp.cl");
+  this->oclwCore.addSourceFile("extern/ANN/opencl/IdxHelper.cpp.cl");
+  this->oclwCore.addSourceFile("extern/ANN/opencl/Kernels.cpp.cl");
   if (this->verbose) std::cout << "OpenCL kernels loaded.\n";
 
   ulong totalNumNeurons = this->layersConfig.getTotalNumNeurons();

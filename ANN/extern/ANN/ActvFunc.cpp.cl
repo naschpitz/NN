@@ -1,1 +1,0 @@
-../../ActvFunc.cpp.cl
