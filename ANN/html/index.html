@@ -44,22 +44,30 @@
       fully-connected (dense) neural networks on <strong>CPU</strong> and <strong>GPU</strong>.
     </p>
 
-    <div class="card" style="display:flex;gap:24px;flex-wrap:wrap;text-align:center;">
-      <div style="flex:1;min-width:160px;">
-        <div style="font-size:2rem;font-weight:700;color:var(--primary);">C++17</div>
-        <div style="font-size:.85rem;color:var(--text-light);">Modern Standard</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:2rem 0">
+      <div class="card" style="text-align:center">
+        <h3>🏭 Factory Pattern</h3>
+        <p><code>Core&lt;T&gt;::makeCore()</code> selects CPU or GPU backend</p>
       </div>
-      <div style="flex:1;min-width:160px;">
-        <div style="font-size:2rem;font-weight:700;color:var(--primary);">CPU+GPU</div>
-        <div style="font-size:.85rem;color:var(--text-light);">Dual Backend</div>
+      <div class="card" style="text-align:center">
+        <h3>📐 Template-based</h3>
+        <p>Works with <code>int</code>, <code>float</code>, <code>double</code></p>
       </div>
-      <div style="flex:1;min-width:160px;">
-        <div style="font-size:2rem;font-weight:700;color:var(--primary);">Multi-GPU</div>
-        <div style="font-size:.85rem;color:var(--text-light);">Gradient Merging</div>
+      <div class="card" style="text-align:center">
+        <h3>⚡ GPU Accelerated</h3>
+        <p>Multi-GPU training with gradient merging via OpenCL</p>
       </div>
-      <div style="flex:1;min-width:160px;">
-        <div style="font-size:2rem;font-weight:700;color:var(--primary);">Template</div>
-        <div style="font-size:.85rem;color:var(--text-light);">int · float · double</div>
+      <div class="card" style="text-align:center">
+        <h3>🧮 Step-by-step API</h3>
+        <p>predict → backpropagate → accumulate → update</p>
+      </div>
+      <div class="card" style="text-align:center">
+        <h3>🧵 Multi-threaded CPU</h3>
+        <p>Thread-local accumulators via Qt Concurrent</p>
+      </div>
+      <div class="card" style="text-align:center">
+        <h3>📈 Progress Callbacks</h3>
+        <p>Real-time epoch, sample, and loss reporting</p>
       </div>
     </div>
 
@@ -123,9 +131,7 @@
   </main>
 </div>
 
-<footer class="site-footer">
-  ANN Library Documentation · Generated 2025
-</footer>
+<footer class="site-footer">ANN Library Documentation</footer>
 </body>
 </html>
 
