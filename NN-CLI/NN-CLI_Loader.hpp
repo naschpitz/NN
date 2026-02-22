@@ -46,21 +46,25 @@ public:
 
   // Load ANN samples from JSON (supports image paths when ioConfig.inputType/outputType is IMAGE)
   static ANN::Samples<float> loadANNSamples(const std::string& samplesFilePath,
-                                             const IOConfig& ioConfig);
+                                             const IOConfig& ioConfig,
+                                             ulong progressReports = 1000);
 
   // Load CNN samples from JSON (supports image paths when ioConfig.inputType/outputType is IMAGE)
   static CNN::Samples<float> loadCNNSamples(const std::string& samplesFilePath,
                                              const CNN::Shape3D& inputShape,
-                                             const IOConfig& ioConfig);
+                                             const IOConfig& ioConfig,
+                                             ulong progressReports = 1000);
 
   // Load ANN inputs from JSON (batch: "inputs" array; supports image paths when ioConfig.inputType is IMAGE)
   static std::vector<ANN::Input<float>> loadANNInputs(const std::string& inputFilePath,
-                                                       const IOConfig& ioConfig);
+                                                       const IOConfig& ioConfig,
+                                                       ulong progressReports = 1000);
 
   // Load CNN inputs from JSON (batch: "inputs" array; supports image paths when ioConfig.inputType is IMAGE)
   static std::vector<CNN::Input<float>> loadCNNInputs(const std::string& inputFilePath,
                                                        const CNN::Shape3D& inputShape,
-                                                       const IOConfig& ioConfig);
+                                                       const IOConfig& ioConfig,
+                                                       ulong progressReports = 1000);
 };
 
 } // namespace NN_CLI

@@ -1,5 +1,6 @@
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ImageLoader.hpp"
+#include "NN-CLI_ProgressBar.hpp"
 
 #include <QFile>
 #include <QFileInfo>
@@ -133,8 +134,9 @@ ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath,
         coreConfig.trainingConfig.numEpochs = tc.at("numEpochs").get<ulong>();
         coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
         if (tc.contains("numThreads")) coreConfig.trainingConfig.numThreads = tc.at("numThreads").get<int>();
-        if (tc.contains("progressReports")) coreConfig.trainingConfig.progressReports = tc.at("progressReports").get<ulong>();
     }
+
+    if (json.contains("progressReports")) coreConfig.progressReports = json.at("progressReports").get<ulong>();
 
     if (json.contains("parameters")) {
         const auto& p = json.at("parameters");
@@ -250,8 +252,9 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
         coreConfig.trainingConfig.numEpochs = tc.at("numEpochs").get<ulong>();
         coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
         if (tc.contains("numThreads")) coreConfig.trainingConfig.numThreads = tc.at("numThreads").get<int>();
-        if (tc.contains("progressReports")) coreConfig.trainingConfig.progressReports = tc.at("progressReports").get<ulong>();
     }
+
+    if (json.contains("progressReports")) coreConfig.progressReports = json.at("progressReports").get<ulong>();
 
     // Parameters (for predict/test modes or resuming training)
     if (json.contains("parameters")) {
@@ -290,7 +293,8 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
 //===================================================================================================================//
 
 ANN::Samples<float> Loader::loadANNSamples(const std::string& samplesFilePath,
-                                             const IOConfig& ioConfig) {
+                                             const IOConfig& ioConfig,
+                                             ulong progressReports) {
     QFile file(QString::fromStdString(samplesFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -303,8 +307,14 @@ ANN::Samples<float> Loader::loadANNSamples(const std::string& samplesFilePath,
     // Resolve base directory for relative image paths
     std::string baseDir = QFileInfo(QString::fromStdString(samplesFilePath)).absolutePath().toStdString();
 
+    const auto& samplesArray = json.at("samples");
+    size_t totalSamples = samplesArray.size();
+
     ANN::Samples<float> samples;
-    for (const auto& sampleJson : json.at("samples")) {
+    samples.reserve(totalSamples);
+    size_t idx = 0;
+
+    for (const auto& sampleJson : samplesArray) {
         ANN::Sample<float> sample;
 
         // Input
@@ -338,6 +348,7 @@ ANN::Samples<float> Loader::loadANNSamples(const std::string& samplesFilePath,
         }
 
         samples.push_back(std::move(sample));
+        ProgressBar::printLoadingProgress("Loading samples:", ++idx, totalSamples, progressReports);
     }
     return samples;
 }
@@ -346,7 +357,8 @@ ANN::Samples<float> Loader::loadANNSamples(const std::string& samplesFilePath,
 
 CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath,
                                              const CNN::Shape3D& inputShape,
-                                             const IOConfig& ioConfig) {
+                                             const IOConfig& ioConfig,
+                                             ulong progressReports) {
     QFile file(QString::fromStdString(samplesFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -359,9 +371,11 @@ CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath,
     std::string baseDir = QFileInfo(QString::fromStdString(samplesFilePath)).absolutePath().toStdString();
 
     const nlohmann::json& samplesArray = json.at("samples");
+    size_t totalSamples = samplesArray.size();
 
     CNN::Samples<float> samples;
-    samples.reserve(samplesArray.size());
+    samples.reserve(totalSamples);
+    size_t idx = 0;
 
     for (const auto& sampleJson : samplesArray) {
         CNN::Sample<float> sample;
@@ -402,6 +416,7 @@ CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath,
         }
 
         samples.push_back(std::move(sample));
+        ProgressBar::printLoadingProgress("Loading samples:", ++idx, totalSamples, progressReports);
     }
 
     return samples;
@@ -410,7 +425,8 @@ CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath,
 //===================================================================================================================//
 
 std::vector<ANN::Input<float>> Loader::loadANNInputs(const std::string& inputFilePath,
-                                                       const IOConfig& ioConfig) {
+                                                       const IOConfig& ioConfig,
+                                                       ulong progressReports) {
     QFile file(QString::fromStdString(inputFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -426,8 +442,10 @@ std::vector<ANN::Input<float>> Loader::loadANNInputs(const std::string& inputFil
     }
 
     std::string baseDir = QFileInfo(QString::fromStdString(inputFilePath)).absolutePath().toStdString();
+    size_t totalInputs = inputsArray.size();
     std::vector<ANN::Input<float>> inputs;
-    inputs.reserve(inputsArray.size());
+    inputs.reserve(totalInputs);
+    size_t idx = 0;
 
     for (const auto& entry : inputsArray) {
         if (ioConfig.inputType == DataType::IMAGE) {
@@ -442,6 +460,7 @@ std::vector<ANN::Input<float>> Loader::loadANNInputs(const std::string& inputFil
         } else {
             inputs.push_back(entry.get<std::vector<float>>());
         }
+        ProgressBar::printLoadingProgress("Loading inputs:", ++idx, totalInputs, progressReports);
     }
 
     return inputs;
@@ -451,7 +470,8 @@ std::vector<ANN::Input<float>> Loader::loadANNInputs(const std::string& inputFil
 
 std::vector<CNN::Input<float>> Loader::loadCNNInputs(const std::string& inputFilePath,
                                                        const CNN::Shape3D& inputShape,
-                                                       const IOConfig& ioConfig) {
+                                                       const IOConfig& ioConfig,
+                                                       ulong progressReports) {
     QFile file(QString::fromStdString(inputFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -467,8 +487,10 @@ std::vector<CNN::Input<float>> Loader::loadCNNInputs(const std::string& inputFil
     }
 
     std::string baseDir = QFileInfo(QString::fromStdString(inputFilePath)).absolutePath().toStdString();
+    size_t totalInputs = inputsArray.size();
     std::vector<CNN::Input<float>> inputs;
-    inputs.reserve(inputsArray.size());
+    inputs.reserve(totalInputs);
+    size_t idx = 0;
 
     for (const auto& entry : inputsArray) {
         std::vector<float> flatInput;
@@ -491,6 +513,7 @@ std::vector<CNN::Input<float>> Loader::loadCNNInputs(const std::string& inputFil
         CNN::Input<float> input(inputShape);
         input.data = std::move(flatInput);
         inputs.push_back(std::move(input));
+        ProgressBar::printLoadingProgress("Loading inputs:", ++idx, totalInputs, progressReports);
     }
 
     return inputs;

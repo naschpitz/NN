@@ -1,4 +1,5 @@
 #include "NN-CLI_Utils.hpp"
+#include "NN-CLI_ProgressBar.hpp"
 
 #include <stdexcept>
 
@@ -13,7 +14,8 @@ using namespace NN_CLI;
 //===================================================================================================================//
 
 template <typename T>
-ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::string& labelsPath) {
+ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::string& labelsPath,
+                                      ulong progressReports) {
   std::vector<std::vector<unsigned char>> data = loadIDXData(dataPath);
   std::vector<unsigned char> labels = loadIDXLabels(labelsPath);
 
@@ -32,8 +34,9 @@ ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::str
 
   ANN::Samples<T> samples;
   samples.reserve(data.size());
+  size_t totalSamples = data.size();
 
-  for (size_t i = 0; i < data.size(); ++i) {
+  for (size_t i = 0; i < totalSamples; ++i) {
     ANN::Sample<T> sample;
 
     // Convert data to normalized input (0-1 range)
@@ -47,6 +50,7 @@ ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::str
     sample.output[labels[i]] = static_cast<T>(1);
 
     samples.push_back(std::move(sample));
+    ProgressBar::printLoadingProgress("Loading samples:", i + 1, totalSamples, progressReports);
   }
 
   return samples;
@@ -126,7 +130,7 @@ std::vector<unsigned char> Utils<T>::loadIDXLabels(const std::string& path) {
 
 template <typename T>
 CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::string& labelsPath,
-                                      const CNN::Shape3D& inputShape) {
+                                      const CNN::Shape3D& inputShape, ulong progressReports) {
   std::vector<std::vector<unsigned char>> data = loadIDXData(dataPath);
   std::vector<unsigned char> labels = loadIDXLabels(labelsPath);
 
@@ -145,8 +149,9 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
 
   CNN::Samples<T> samples;
   samples.reserve(data.size());
+  size_t totalSamples = data.size();
 
-  for (size_t i = 0; i < data.size(); ++i) {
+  for (size_t i = 0; i < totalSamples; ++i) {
     CNN::Sample<T> sample;
 
     // Validate data size matches input shape
@@ -166,6 +171,7 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
     sample.output[labels[i]] = static_cast<T>(1);
 
     samples.push_back(std::move(sample));
+    ProgressBar::printLoadingProgress("Loading samples:", i + 1, totalSamples, progressReports);
   }
 
   return samples;

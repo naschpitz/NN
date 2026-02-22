@@ -160,5 +160,46 @@ bool ProgressBar::shouldPrint(const ProgressInfo& progress, bool isEpochComplete
          (progress.currentSample == 1);
 }
 
+//===================================================================================================================//
+//-- Loading Progress --//
+//===================================================================================================================//
+
+void ProgressBar::printLoadingProgress(const std::string& label, size_t current, size_t total,
+                                        ulong progressReports, int barWidth) {
+  // Compute reporting interval from progressReports (number of reports desired)
+  ulong interval = (progressReports > 0) ? std::max(static_cast<size_t>(1), total / progressReports) : 0;
+
+  // If progressReports is 0, suppress all output
+  if (interval == 0) return;
+
+  // Throttle: only print at first, last, and every interval items
+  if (current != 1 && current != total && (current % interval) != 0) {
+    return;
+  }
+
+  float percent = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
+  int filledWidth = static_cast<int>(percent * barWidth);
+
+  std::ostringstream out;
+  out << "\r" << label << " [";
+
+  for (int i = 0; i < barWidth; i++) {
+    out << (i < filledWidth ? "█" : "░");
+  }
+
+  out << "] " << current << "/" << total
+      << "  " << std::fixed << std::setprecision(1) << (percent * 100.0f) << "%";
+
+  // Pad with spaces to clear any leftover characters from previous longer lines
+  out << "   ";
+
+  std::cout << out.str() << std::flush;
+
+  // Print newline when complete
+  if (current == total) {
+    std::cout << std::endl;
+  }
+}
+
 }  // namespace NN_CLI
 

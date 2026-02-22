@@ -186,7 +186,7 @@ int Runner::runANNPredict() {
 
   if (verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
-  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), ioConfig);
+  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), ioConfig, annCoreConfig.progressReports);
 
   if (verbose) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].size() << " values\n";
@@ -354,7 +354,7 @@ int Runner::runCNNPredict() {
   if (verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
   std::vector<CNN::Input<float>> inputs = Loader::loadCNNInputs(
-      inputPath.toStdString(), cnnCoreConfig.inputShape, ioConfig);
+      inputPath.toStdString(), cnnCoreConfig.inputShape, ioConfig, cnnCoreConfig.progressReports);
 
   if (verbose) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].data.size() << " values\n";
@@ -455,7 +455,7 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
     QString samplesPath = parser.value("samples");
     inputFilePath = samplesPath;
     if (verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadANNSamples(samplesPath.toStdString(), ioConfig);
+    samples = Loader::loadANNSamples(samplesPath.toStdString(), ioConfig, annCoreConfig.progressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
@@ -472,7 +472,7 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
     }
 
-    samples = Utils<float>::loadANNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString());
+    samples = Utils<float>::loadANNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), annCoreConfig.progressReports);
   } else {
     std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
     return {samples, false};
@@ -505,7 +505,7 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
     QString samplesPath = parser.value("samples");
     inputFilePath = samplesPath;
     if (verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, ioConfig);
+    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, ioConfig, cnnCoreConfig.progressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
@@ -522,7 +522,7 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
     }
 
-    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape);
+    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape, cnnCoreConfig.progressReports);
   } else {
     std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
     return {samples, false};

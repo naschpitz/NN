@@ -31,6 +31,13 @@ class ProgressBar {
     // Reset state (call before starting a new training session)
     void reset();
 
+    // Simple loading progress bar (static, self-contained)
+    // Prints: "Loading samples: [████████░░░░░░░░] 1234/5000  24.7%"
+    // progressReports controls frequency: how many updates to show (same as trainingConfig.progressReports).
+    // Always prints first and last item.
+    static void printLoadingProgress(const std::string& label, size_t current, size_t total,
+                                      ulong progressReports = 1000, int barWidth = 40);
+
   private:
     //-- Configuration --//
     int barWidth;
