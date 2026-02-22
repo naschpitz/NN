@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>CLI Usage — NN-CLI Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>NN-CLI</h1><span class="subtitle">Neural Network Command Line Interface</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="usage.html" class="active">CLI Usage</a>
+  <a href="formats.html">Data Formats</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html">End-to-End Examples</a>
+</nav></aside>
+<main class="main">
+
+<h1>CLI Usage</h1>
+
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#synopsis">Synopsis</a></li>
+    <li><a href="#options">All Options</a></li>
+    <li><a href="#modes">Modes</a></li>
+    <li><a href="#devices">Devices</a></li>
+    <li><a href="#detection">Network Type Detection</a></li>
+    <li><a href="#output">Output Behaviour</a></li>
+    <li><a href="#progress">Progress Bar</a></li>
+    <li><a href="#errors">Error Handling</a></li>
+  </ol>
+</div>
+
+<h2 id="synopsis">1. Synopsis</h2>
+<pre><code>NN-CLI --config &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&gt;]
+       [--samples &lt;file&gt;] [--idx-data &lt;file&gt; --idx-labels &lt;file&gt;]
+       [--input &lt;file&gt;] [--output &lt;file&gt;] [--verbose]
+</code></pre>
+
+<h2 id="options">2. All Options</h2>
+<table>
+  <tr><th>Option</th><th>Short</th><th>Argument</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>--config</code></td><td><code>-c</code></td><td>file</td><td><em>required</em></td><td>Path to JSON configuration file</td></tr>
+  <tr><td><code>--mode</code></td><td><code>-m</code></td><td>string</td><td>from config</td><td><code>train</code>, <code>predict</code>, or <code>test</code></td></tr>
+  <tr><td><code>--device</code></td><td><code>-d</code></td><td>string</td><td><code>cpu</code></td><td><code>cpu</code> or <code>gpu</code></td></tr>
+  <tr><td><code>--input</code></td><td><code>-i</code></td><td>file</td><td>—</td><td>Input JSON for predict mode</td></tr>
+  <tr><td><code>--samples</code></td><td><code>-s</code></td><td>file</td><td>—</td><td>Training/test samples (JSON)</td></tr>
+  <tr><td><code>--idx-data</code></td><td>—</td><td>file</td><td>—</td><td>IDX3 data file (e.g. MNIST images)</td></tr>
+  <tr><td><code>--idx-labels</code></td><td>—</td><td>file</td><td>—</td><td>IDX1 labels file (requires <code>--idx-data</code>)</td></tr>
+  <tr><td><code>--output</code></td><td><code>-o</code></td><td>file</td><td>auto</td><td>Output file path</td></tr>
+  <tr><td><code>--verbose</code></td><td><code>-v</code></td><td>flag</td><td>off</td><td>Print detailed info during execution</td></tr>
+  <tr><td><code>--help</code></td><td><code>-h</code></td><td>flag</td><td>—</td><td>Show help message</td></tr>
+</table>
+
+<h2 id="modes">3. Modes</h2>
+
+<div class="card">
+<h3><span class="badge-blue">train</span></h3>
+<p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model JSON to <code>--output</code> (or auto-generated path).</p>
+<pre><code>NN-CLI -c config.json -m train -s samples.json
+NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
+</code></pre>
+</div>
+
+<div class="card">
+<h3><span class="badge-green">predict</span></h3>
+<p>Runs inference on a single input. Requires <code>--input</code>. The config must include pre-trained <code>parameters</code>. Outputs prediction + metadata JSON.</p>
+<pre><code>NN-CLI -c trained_model.json -m predict -i input.json -o result.json
+</code></pre>
+</div>
+
+<div class="card">
+<h3><span class="badge-orange">test</span></h3>
+<p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files. The config must include pre-trained <code>parameters</code>. Prints test metrics (sample count, average loss).</p>
+<pre><code>NN-CLI -c trained_model.json -m test -s test_samples.json
+</code></pre>
+</div>
+
+<h2 id="devices">4. Devices</h2>
+<table>
+  <tr><th>Value</th><th>Backend</th><th>Notes</th></tr>
+  <tr><td><code>cpu</code></td><td>Multi-threaded CPU</td><td>Default. Uses <code>QtConcurrent</code>. Set <code>numThreads: 0</code> for auto.</td></tr>
+  <tr><td><code>gpu</code></td><td>OpenCL GPU</td><td>Requires OpenCL drivers. Set <code>numGPUs</code> in training config.</td></tr>
+</table>
+
+<h2 id="detection">5. Network Type Detection</h2>
+<p>NN-CLI automatically identifies whether a config defines an ANN or CNN:</p>
+<ul>
+  <li><strong>CNN</strong> — config contains <code>"inputShape"</code> or <code>"cnnLayersConfig"</code></li>
+  <li><strong>ANN</strong> — otherwise (uses <code>"layersConfig"</code> with <code>"numNeurons"</code>)</li>
+</ul>
+<p>No command-line flag is needed — the detection is transparent.</p>
+
+<h2 id="output">6. Output Behaviour</h2>
+
+<h3>Training Output</h3>
+<p>If <code>--output</code> is not specified, the trained model is saved to:</p>
+<pre><code>output/trained_model_&lt;epochs&gt;_&lt;samples&gt;_&lt;loss&gt;.json
+</code></pre>
+<p>The <code>output/</code> directory is created automatically relative to the input file's location.</p>
+
+<h3>Predict Output</h3>
+<p>JSON with prediction metadata and output vector:</p>
+<pre><code>{
+  <span class="string">"predictMetadata"</span>: {
+    <span class="string">"startTime"</span>: <span class="string">"2024-01-15 10:30:45"</span>,
+    <span class="string">"endTime"</span>: <span class="string">"2024-01-15 10:30:46"</span>,
+    <span class="string">"durationSeconds"</span>: <span class="number">0.042</span>,
+    <span class="string">"durationFormatted"</span>: <span class="string">"0.042s"</span>
+  },
+  <span class="string">"output"</span>: [<span class="number">0.05</span>, <span class="number">0.92</span>, <span class="number">0.03</span>, ...]
+}
+</code></pre>
+
+<h2 id="progress">7. Progress Bar</h2>
+<p>During training, NN-CLI displays a real-time progress bar:</p>
+<pre><code><span class="comment">Single GPU/CPU:</span>
+Epoch    1/1000 [████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░] 50.0% - Loss: 0.234567
+
+<span class="comment">Multi-GPU:</span>
+Epoch    1/1000 [████████░░░░│████████░░░░│████████░░░░] 50.0% (0: 50% | 1: 50% | 2: 50%)
+</code></pre>
+<p>Updates are throttled: prints on epoch completion, epoch change, every 500 samples, and on the first sample.</p>
+
+<h2 id="errors">8. Error Handling</h2>
+<p>NN-CLI validates all inputs and provides clear error messages:</p>
+<table>
+  <tr><th>Condition</th><th>Error</th></tr>
+  <tr><td>Missing <code>--config</code></td><td>"Config file is required"</td></tr>
+  <tr><td>Invalid JSON</td><td>"Failed to parse config file"</td></tr>
+  <tr><td>Predict without <code>--input</code></td><td>"Input file is required for predict mode"</td></tr>
+  <tr><td>Both <code>--samples</code> and <code>--idx-data</code></td><td>"Cannot use both --samples and --idx-data"</td></tr>
+  <tr><td>Invalid IDX magic number</td><td>"Invalid IDX file format"</td></tr>
+  <tr><td>CNN input size mismatch</td><td>"Input size does not match inputShape"</td></tr>
+  <tr><td>Predict/test without parameters</td><td>"Parameters required for predict/test mode"</td></tr>
+</table>
+<p>All errors print to <code>stderr</code> and exit with code 1.</p>
+
+</main>
+</div>
+<footer class="site-footer">NN-CLI Documentation</footer>
+</body></html>
+

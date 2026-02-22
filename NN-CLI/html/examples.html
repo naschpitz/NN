@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>End-to-End Examples — NN-CLI Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>NN-CLI</h1><span class="subtitle">Neural Network Command Line Interface</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="usage.html">CLI Usage</a>
+  <a href="formats.html">Data Formats</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html" class="active">End-to-End Examples</a>
+</nav></aside>
+<main class="main">
+
+<h1>End-to-End Examples</h1>
+<p>This page walks through complete workflows for training, testing, and predicting with both ANN and CNN models using NN-CLI. Each example includes configuration files, sample data, and command-line invocations.</p>
+
+<h2 id="xor">1. XOR Problem (ANN)</h2>
+<p>A classic example: training a simple 2-layer ANN to learn the XOR function.</p>
+
+<div class="card">
+<h3>Configuration</h3>
+<p>Create <code>xor_config.json</code> with a 2→4→1 architecture:</p>
+<pre><code><span class="comment">// xor_config.json</span>
+{
+  <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
+  <span class="keyword">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="keyword">"layersConfig"</span>: [
+    { <span class="keyword">"numNeurons"</span>: <span class="number">2</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">4</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">1</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
+  ],
+  <span class="keyword">"trainingConfig"</span>: {
+    <span class="keyword">"numEpochs"</span>: <span class="number">1000</span>,
+    <span class="keyword">"learningRate"</span>: <span class="number">0.1</span>,
+    <span class="keyword">"progressReports"</span>: <span class="number">100</span>
+  }
+}</code></pre>
+</div>
+
+<div class="card">
+<h3>Training Data</h3>
+<p>Create <code>xor_samples.json</code> with the XOR truth table:</p>
+<pre><code><span class="comment">// xor_samples.json</span>
+{
+  <span class="keyword">"samples"</span>: [
+    { <span class="keyword">"input"</span>: [<span class="number">0</span>, <span class="number">0</span>], <span class="keyword">"output"</span>: [<span class="number">0</span>] },
+    { <span class="keyword">"input"</span>: [<span class="number">0</span>, <span class="number">1</span>], <span class="keyword">"output"</span>: [<span class="number">1</span>] },
+    { <span class="keyword">"input"</span>: [<span class="number">1</span>, <span class="number">0</span>], <span class="keyword">"output"</span>: [<span class="number">1</span>] },
+    { <span class="keyword">"input"</span>: [<span class="number">1</span>, <span class="number">1</span>], <span class="keyword">"output"</span>: [<span class="number">0</span>] }
+  ]
+}</code></pre>
+</div>
+
+<div class="card">
+<h3>Training</h3>
+<pre><code><span class="func">NN-CLI</span> -c xor_config.json -m train -s xor_samples.json -o trained_xor.json -v</code></pre>
+<p><strong>Output:</strong> A trained model saved to <code>trained_xor.json</code> with updated weights and mode set to "predict".</p>
+</div>
+
+<div class="card">
+<h3>Prediction</h3>
+<p>Create <code>input.json</code>:</p>
+<pre><code>{ <span class="keyword">"input"</span>: [<span class="number">1</span>, <span class="number">0</span>] }</code></pre>
+<p>Run prediction:</p>
+<pre><code><span class="func">NN-CLI</span> -c trained_xor.json -m predict -i input.json -o prediction.json</code></pre>
+<p><strong>Expected output in <code>prediction.json</code>:</strong></p>
+<pre><code>{ <span class="keyword">"output"</span>: [<span class="number">0.95</span>] }</code></pre>
+</div>
+
+<h2 id="cnn-image">2. Image Classification (CNN)</h2>
+<p>Training a CNN on 8×8 grayscale images.</p>
+
+<div class="card">
+<h3>Configuration</h3>
+<p>Create <code>cnn_config.json</code>:</p>
+<pre><code>{
+  <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
+  <span class="keyword">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="keyword">"inputShape"</span>: { <span class="keyword">"c"</span>: <span class="number">1</span>, <span class="keyword">"h"</span>: <span class="number">8</span>, <span class="keyword">"w"</span>: <span class="number">8</span> },
+  <span class="keyword">"cnnLayersConfig"</span>: [
+    { <span class="keyword">"type"</span>: <span class="string">"conv"</span>, <span class="keyword">"numFilters"</span>: <span class="number">4</span>, <span class="keyword">"filterH"</span>: <span class="number">3</span>, <span class="keyword">"filterW"</span>: <span class="number">3</span>, <span class="keyword">"slidingStrategy"</span>: <span class="string">"valid"</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"pool"</span>, <span class="keyword">"poolType"</span>: <span class="string">"max"</span>, <span class="keyword">"poolH"</span>: <span class="number">2</span>, <span class="keyword">"poolW"</span>: <span class="number">2</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"flatten"</span> }
+  ],
+  <span class="keyword">"denseLayersConfig"</span>: [
+    { <span class="keyword">"numNeurons"</span>: <span class="number">16</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">2</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
+  ],
+  <span class="keyword">"trainingConfig"</span>: {
+    <span class="keyword">"numEpochs"</span>: <span class="number">100</span>,
+    <span class="keyword">"learningRate"</span>: <span class="number">0.01</span>
+  }
+}</code></pre>
+</div>
+
+<div class="card">
+<h3>Training</h3>
+<pre><code><span class="func">NN-CLI</span> -c cnn_config.json -m train -s cnn_samples.json -o trained_cnn.json -v</code></pre>
+</div>
+
+<div class="card">
+<h3>Testing</h3>
+<pre><code><span class="func">NN-CLI</span> -c trained_cnn.json -m test -s test_samples.json</code></pre>
+<p><strong>Output:</strong> Accuracy, precision, recall, and F1 score metrics.</p>
+</div>
+
+<h2 id="mnist-ann">3. MNIST with IDX Files (ANN)</h2>
+<p>Training on the classic MNIST dataset using binary IDX format.</p>
+
+<div class="card">
+<h3>Configuration</h3>
+<p>Create <code>mnist_config.json</code> for 784→128→10:</p>
+<pre><code>{
+  <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
+  <span class="keyword">"device"</span>: <span class="string">"gpu"</span>,
+  <span class="keyword">"layersConfig"</span>: [
+    { <span class="keyword">"numNeurons"</span>: <span class="number">784</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">128</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">64</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">10</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
+  ],
+  <span class="keyword">"trainingConfig"</span>: {
+    <span class="keyword">"numEpochs"</span>: <span class="number">1000</span>,
+    <span class="keyword">"learningRate"</span>: <span class="number">0.01</span>,
+    <span class="keyword">"progressReports"</span>: <span class="number">1000</span>
+  }
+}</code></pre>
+</div>
+
+<div class="card">
+<h3>Training with IDX Files</h3>
+<pre><code><span class="func">NN-CLI</span> -c mnist_config.json -m train \
+       --idx-data train-images.idx3-ubyte \
+       --idx-labels train-labels.idx1-ubyte -v</code></pre>
+</div>
+
+<div class="card">
+<h3>Testing</h3>
+<pre><code><span class="func">NN-CLI</span> -c trained_mnist.json -m test \
+       --idx-data t10k-images.idx3-ubyte \
+       --idx-labels t10k-labels.idx1-ubyte</code></pre>
+</div>
+
+<h2 id="mnist-cnn">4. MNIST with CNN</h2>
+<p>Using a convolutional network for better MNIST accuracy.</p>
+
+<div class="card">
+<h3>Configuration</h3>
+<p>Create <code>mnist_cnn_config.json</code>:</p>
+<pre><code>{
+  <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
+  <span class="keyword">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="keyword">"inputShape"</span>: { <span class="keyword">"c"</span>: <span class="number">1</span>, <span class="keyword">"h"</span>: <span class="number">28</span>, <span class="keyword">"w"</span>: <span class="number">28</span> },
+  <span class="keyword">"cnnLayersConfig"</span>: [
+    { <span class="keyword">"type"</span>: <span class="string">"conv"</span>, <span class="keyword">"numFilters"</span>: <span class="number">8</span>, <span class="keyword">"filterH"</span>: <span class="number">3</span>, <span class="keyword">"filterW"</span>: <span class="number">3</span>, <span class="keyword">"slidingStrategy"</span>: <span class="string">"valid"</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"pool"</span>, <span class="keyword">"poolType"</span>: <span class="string">"max"</span>, <span class="keyword">"poolH"</span>: <span class="number">2</span>, <span class="keyword">"poolW"</span>: <span class="number">2</span>, <span class="keyword">"strideY"</span>: <span class="number">2</span>, <span class="keyword">"strideX"</span>: <span class="number">2</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"conv"</span>, <span class="keyword">"numFilters"</span>: <span class="number">16</span>, <span class="keyword">"filterH"</span>: <span class="number">3</span>, <span class="keyword">"filterW"</span>: <span class="number">3</span>, <span class="keyword">"slidingStrategy"</span>: <span class="string">"valid"</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"pool"</span>, <span class="keyword">"poolType"</span>: <span class="string">"max"</span>, <span class="keyword">"poolH"</span>: <span class="number">2</span>, <span class="keyword">"poolW"</span>: <span class="number">2</span>, <span class="keyword">"strideY"</span>: <span class="number">2</span>, <span class="keyword">"strideX"</span>: <span class="number">2</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"flatten"</span> }
+  ],
+  <span class="keyword">"denseLayersConfig"</span>: [
+    { <span class="keyword">"numNeurons"</span>: <span class="number">128</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">10</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
+  ],
+  <span class="keyword">"trainingConfig"</span>: {
+    <span class="keyword">"numEpochs"</span>: <span class="number">10</span>,
+    <span class="keyword">"learningRate"</span>: <span class="number">0.01</span>
+  }
+}</code></pre>
+</div>
+
+<div class="card">
+<h3>Training</h3>
+<pre><code><span class="func">NN-CLI</span> -c mnist_cnn_config.json -m train \
+       --idx-data train-images.idx3-ubyte \
+       --idx-labels train-labels.idx1-ubyte -v</code></pre>
+</div>
+
+<h2 id="gpu-training">5. GPU Training</h2>
+<p>Accelerate training by switching to GPU.</p>
+
+<div class="card">
+<h3>In Configuration</h3>
+<p>Set <code>"device": "gpu"</code> in your config JSON:</p>
+<pre><code>{
+  <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
+  <span class="keyword">"device"</span>: <span class="string">"gpu"</span>,
+  <span class="comment">// ... rest of config</span>
+}</code></pre>
+</div>
+
+<div class="card">
+<h3>Via Command Line</h3>
+<p>Override device at runtime:</p>
+<pre><code><span class="func">NN-CLI</span> -c config.json -m train -s samples.json -d gpu -v</code></pre>
+<p>Or use CPU:</p>
+<pre><code><span class="func">NN-CLI</span> -c config.json -m train -s samples.json -d cpu -v</code></pre>
+</div>
+
+<h2 id="tips">6. Tips &amp; Best Practices</h2>
+
+<div class="tip-box">
+<strong>Learning Rate:</strong> Start with small values (0.001–0.1) and adjust based on training loss. Too high causes divergence; too low causes slow convergence.
+</div>
+
+<div class="tip-box">
+<strong>Activation Functions:</strong> Use ReLU for hidden layers (faster training, avoids vanishing gradients) and Sigmoid for output classification layers.
+</div>
+
+<div class="tip-box">
+<strong>CNN Padding:</strong> <code>"slidingStrategy": "valid"</code> shrinks spatial dimensions; <code>"same"</code> preserves them. Use VALID for feature extraction, SAME for maintaining resolution.
+</div>
+
+<div class="tip-box">
+<strong>Monitoring Training:</strong> Use the <code>-v</code> (verbose) flag to see loss at each progress report interval. Watch for plateauing or divergence.
+</div>
+
+<div class="info-box">
+<strong>Trained Model Reuse:</strong> The output of training automatically updates the mode to "predict" or "test". You can directly use the trained JSON for inference without manual edits.
+</div>
+
+</main>
+</div>
+<footer class="site-footer">NN-CLI Documentation</footer>
+</body></html>

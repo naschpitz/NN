@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>NN-CLI — Neural Network Command Line Interface</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>NN-CLI</h1><span class="subtitle">Neural Network Command Line Interface</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html" class="active">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="usage.html">CLI Usage</a>
+  <a href="formats.html">Data Formats</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html">End-to-End Examples</a>
+</nav></aside>
+<main class="main">
+
+<h1>NN-CLI — Neural Network Command Line Interface</h1>
+<p>A unified command-line tool for training, testing, and predicting with both <strong>ANN</strong> (Artificial Neural Networks) and <strong>CNN</strong> (Convolutional Neural Networks). NN-CLI auto-detects the network type from your configuration file and delegates to the appropriate library.</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:2rem 0">
+  <div class="card" style="text-align:center">
+    <h3>🤖 Auto-Detect</h3>
+    <p>Automatically identifies ANN vs CNN from config JSON</p>
+  </div>
+  <div class="card" style="text-align:center">
+    <h3>📊 IDX Support</h3>
+    <p>Native MNIST-style binary format loading</p>
+  </div>
+  <div class="card" style="text-align:center">
+    <h3>⚡ GPU Ready</h3>
+    <p>Single flag to switch between CPU and GPU</p>
+  </div>
+  <div class="card" style="text-align:center">
+    <h3>📈 Progress Bar</h3>
+    <p>Real-time training visualisation with multi-GPU support</p>
+  </div>
+</div>
+
+<h2>How It Works</h2>
+<ol>
+  <li><strong>Provide a JSON config</strong> — defines network architecture and training parameters</li>
+  <li><strong>NN-CLI detects</strong> whether it's an ANN or CNN configuration</li>
+  <li><strong>Choose a mode</strong> — <code>train</code>, <code>test</code>, or <code>predict</code></li>
+  <li><strong>Supply data</strong> — JSON samples, IDX binary files, or a single input</li>
+  <li><strong>Get results</strong> — trained model JSON, test metrics, or prediction output</li>
+</ol>
+
+<h2>Quick Example</h2>
+<pre><code><span class="comment"># Train a CNN on MNIST</span>
+NN-CLI --config mnist_cnn_config.json \
+       --mode train \
+       --idx-data train-images.idx3 \
+       --idx-labels train-labels.idx1
+
+<span class="comment"># Predict with the trained model</span>
+NN-CLI --config trained_model.json \
+       --mode predict \
+       --input digit.json
+</code></pre>
+
+<h2>Documentation</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin:1.5rem 0">
+  <a href="quickstart.html" class="card" style="text-decoration:none">
+    <h3>🚀 Quick Start &amp; Build</h3>
+    <p>Prerequisites, cloning, building from source</p>
+  </a>
+  <a href="usage.html" class="card" style="text-decoration:none">
+    <h3>📋 CLI Usage</h3>
+    <p>All command-line options, modes, and device selection</p>
+  </a>
+  <a href="formats.html" class="card" style="text-decoration:none">
+    <h3>📄 Data Formats</h3>
+    <p>JSON config, samples, IDX binary format specification</p>
+  </a>
+  <a href="examples.html" class="card" style="text-decoration:none">
+    <h3>💻 End-to-End Examples</h3>
+    <p>Complete ANN and CNN workflows from training to prediction</p>
+  </a>
+</div>
+
+<h2>Dependencies</h2>
+<table>
+  <tr><th>Dependency</th><th>Purpose</th><th>Included</th></tr>
+  <tr><td><a href="../../CNN/html/index.html">CNN</a></td><td>Convolutional network implementation</td><td>Git submodule</td></tr>
+  <tr><td><a href="../../ANN/html/index.html">ANN</a></td><td>Dense network implementation</td><td>Transitive (via CNN)</td></tr>
+  <tr><td><a href="https://github.com/naschpitz/openCLWrapper">OpenCLWrapper</a></td><td>OpenCL GPU abstraction</td><td>Transitive (via CNN→ANN)</td></tr>
+  <tr><td>Qt 5/6 Core + Concurrent</td><td>CLI parsing, threading, file I/O</td><td>System</td></tr>
+  <tr><td><a href="https://github.com/nlohmann/json">nlohmann/json</a></td><td>JSON parsing</td><td>Header-only (via CNN)</td></tr>
+</table>
+
+</main>
+</div>
+<footer class="site-footer">NN-CLI Documentation</footer>
+</body></html>
+

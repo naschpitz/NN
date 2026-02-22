@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Quick Start &amp; Build — NN-CLI Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>NN-CLI</h1><span class="subtitle">Neural Network Command Line Interface</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html" class="active">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="usage.html">CLI Usage</a>
+  <a href="formats.html">Data Formats</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html">End-to-End Examples</a>
+</nav></aside>
+<main class="main">
+
+<h1>Quick Start &amp; Build</h1>
+
+<h2>Prerequisites</h2>
+<table>
+  <tr><th>Requirement</th><th>Minimum</th><th>Notes</th></tr>
+  <tr><td>C++ Compiler</td><td>C++17</td><td>GCC 7+, Clang 5+, MSVC 2017+</td></tr>
+  <tr><td>CMake</td><td>3.14</td><td></td></tr>
+  <tr><td>Qt</td><td>5 or 6</td><td>Core + Concurrent modules</td></tr>
+  <tr><td>OpenCL</td><td>1.2</td><td>Optional — required only for <code>--device gpu</code></td></tr>
+</table>
+
+<h2>Clone &amp; Build</h2>
+<pre><code><span class="comment"># Clone with all submodules (CNN → ANN → OpenCLWrapper)</span>
+git clone --recursive https://github.com/naschpitz/NN-CLI.git
+<span class="keyword">cd</span> NN-CLI
+
+<span class="comment"># Build</span>
+mkdir build &amp;&amp; <span class="keyword">cd</span> build
+cmake ..
+make -j$(nproc)
+
+<span class="comment"># Run tests</span>
+./test_nncli
+
+<span class="comment"># The NN-CLI executable is ready</span>
+./NN-CLI --help
+</code></pre>
+
+<div class="info-box">
+  <strong>Submodule chain:</strong> NN-CLI includes <strong>CNN</strong> under <code>extern/CNN</code>, which in turn includes <strong>ANN</strong> under <code>extern/ANN</code>, which includes <strong>OpenCLWrapper</strong> under <code>extern/openCLWrapper</code>. The <code>--recursive</code> flag clones all of them.
+</div>
+
+<h2>Verify Installation</h2>
+<pre><code><span class="comment"># Check that it runs</span>
+./build/NN-CLI --help
+
+<span class="comment"># Expected output:</span>
+<span class="comment"># Usage: NN-CLI [options]</span>
+<span class="comment"># Neural Network Command Line Interface</span>
+<span class="comment"># </span>
+<span class="comment"># Options:</span>
+<span class="comment">#   -h, --help          Displays help</span>
+<span class="comment">#   -c, --config &lt;file&gt; Path to JSON configuration file</span>
+<span class="comment">#   -m, --mode &lt;mode&gt;   Mode: 'train', 'predict', 'test'</span>
+<span class="comment">#   ...</span>
+</code></pre>
+
+<h2>First Training Run</h2>
+<p>Here's the fastest way to verify everything works — train a small ANN:</p>
+
+<pre><code><span class="comment"># 1. Create a minimal config file</span>
+cat &gt; tiny_config.json &lt;&lt; <span class="string">'EOF'</span>
+{
+  <span class="string">"layersConfig"</span>: [
+    { <span class="string">"numNeurons"</span>: <span class="number">2</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="string">"numNeurons"</span>: <span class="number">4</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="string">"numNeurons"</span>: <span class="number">1</span>, <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
+  ],
+  <span class="string">"trainingConfig"</span>: {
+    <span class="string">"numEpochs"</span>: <span class="number">100</span>,
+    <span class="string">"learningRate"</span>: <span class="number">0.1</span>
+  }
+}
+<span class="string">EOF</span>
+
+<span class="comment"># 2. Create sample data (XOR problem)</span>
+cat &gt; xor_samples.json &lt;&lt; <span class="string">'EOF'</span>
+{
+  <span class="string">"samples"</span>: [
+    { <span class="string">"input"</span>: [<span class="number">0</span>,<span class="number">0</span>], <span class="string">"output"</span>: [<span class="number">0</span>] },
+    { <span class="string">"input"</span>: [<span class="number">0</span>,<span class="number">1</span>], <span class="string">"output"</span>: [<span class="number">1</span>] },
+    { <span class="string">"input"</span>: [<span class="number">1</span>,<span class="number">0</span>], <span class="string">"output"</span>: [<span class="number">1</span>] },
+    { <span class="string">"input"</span>: [<span class="number">1</span>,<span class="number">1</span>], <span class="string">"output"</span>: [<span class="number">0</span>] }
+  ]
+}
+<span class="string">EOF</span>
+
+<span class="comment"># 3. Train!</span>
+./build/NN-CLI -c tiny_config.json -m train -s xor_samples.json -v
+</code></pre>
+
+<h2>Project Structure</h2>
+<pre><code>NN-CLI/
+├── main.cpp                 <span class="comment"># Entry point, CLI argument parsing</span>
+├── NN-CLI_Runner.hpp/cpp    <span class="comment"># Core execution logic</span>
+├── NN-CLI_Loader.hpp/cpp    <span class="comment"># Config loading, network detection</span>
+├── NN-CLI_Utils.hpp/cpp     <span class="comment"># IDX file format loading</span>
+├── NN-CLI_ProgressBar.hpp/cpp <span class="comment"># Training progress display</span>
+├── extern/
+│   └── CNN/                 <span class="comment"># CNN submodule (includes ANN)</span>
+├── examples/
+│   ├── MNIST/               <span class="comment"># ANN MNIST example config</span>
+│   └── MNIST_CNN/           <span class="comment"># CNN MNIST example config</span>
+└── tests/                   <span class="comment"># Integration tests</span>
+</code></pre>
+
+</main>
+</div>
+<footer class="site-footer">NN-CLI Documentation</footer>
+</body></html>
+

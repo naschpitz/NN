@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Data Formats — NN-CLI Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>NN-CLI</h1><span class="subtitle">Neural Network Command Line Interface</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="usage.html">CLI Usage</a>
+  <a href="formats.html" class="active">Data Formats</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html">End-to-End Examples</a>
+</nav></aside>
+<main class="main">
+
+<h1>Data Formats</h1>
+
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#ann-config">ANN Configuration JSON</a></li>
+    <li><a href="#cnn-config">CNN Configuration JSON</a></li>
+    <li><a href="#samples">Samples JSON</a></li>
+    <li><a href="#input">Input JSON (Prediction)</a></li>
+    <li><a href="#idx">IDX Binary Format</a></li>
+    <li><a href="#output-format">Output Formats</a></li>
+  </ol>
+</div>
+
+<h2 id="ann-config">1. ANN Configuration JSON</h2>
+<pre><code>{
+  <span class="string">"mode"</span>: <span class="string">"train"</span>,
+  <span class="string">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="string">"layersConfig"</span>: [
+    { <span class="string">"numNeurons"</span>: <span class="number">784</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="string">"numNeurons"</span>: <span class="number">10</span>,  <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
+  ],
+  <span class="string">"trainingConfig"</span>: {
+    <span class="string">"numEpochs"</span>: <span class="number">100</span>,
+    <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
+    <span class="string">"numThreads"</span>: <span class="number">0</span>,
+    <span class="string">"progressReports"</span>: <span class="number">1000</span>
+  }
+}
+</code></pre>
+
+<table>
+  <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  <tr><td><code>mode</code></td><td>string</td><td>No</td><td><code>train</code>, <code>predict</code>, or <code>test</code></td></tr>
+  <tr><td><code>device</code></td><td>string</td><td>No</td><td><code>cpu</code> or <code>gpu</code></td></tr>
+  <tr><td><code>layersConfig</code></td><td>array</td><td>Yes</td><td>Layer definitions (first = input, last = output)</td></tr>
+  <tr><td><code>layersConfig[].numNeurons</code></td><td>int</td><td>Yes</td><td>Number of neurons</td></tr>
+  <tr><td><code>layersConfig[].actvFunc</code></td><td>string</td><td>Yes</td><td><code>relu</code>, <code>sigmoid</code>, or <code>tanh</code></td></tr>
+  <tr><td><code>trainingConfig.numEpochs</code></td><td>int</td><td>Train</td><td>Number of epochs</td></tr>
+  <tr><td><code>trainingConfig.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate</td></tr>
+  <tr><td><code>trainingConfig.numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
+  <tr><td><code>trainingConfig.progressReports</code></td><td>int</td><td>No</td><td>Progress callback frequency</td></tr>
+  <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
+</table>
+
+<h2 id="cnn-config">2. CNN Configuration JSON</h2>
+<pre><code>{
+  <span class="string">"mode"</span>: <span class="string">"train"</span>,
+  <span class="string">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="string">"inputShape"</span>: { <span class="string">"c"</span>: <span class="number">1</span>, <span class="string">"h"</span>: <span class="number">28</span>, <span class="string">"w"</span>: <span class="number">28</span> },
+  <span class="string">"cnnLayersConfig"</span>: [
+    { <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">8</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>,
+      <span class="string">"strideY"</span>: <span class="number">1</span>, <span class="string">"strideX"</span>: <span class="number">1</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"valid"</span> },
+    { <span class="string">"type"</span>: <span class="string">"relu"</span> },
+    { <span class="string">"type"</span>: <span class="string">"pool"</span>, <span class="string">"poolType"</span>: <span class="string">"max"</span>, <span class="string">"poolH"</span>: <span class="number">2</span>, <span class="string">"poolW"</span>: <span class="number">2</span>,
+      <span class="string">"strideY"</span>: <span class="number">2</span>, <span class="string">"strideX"</span>: <span class="number">2</span> },
+    { <span class="string">"type"</span>: <span class="string">"flatten"</span> }
+  ],
+  <span class="string">"denseLayersConfig"</span>: [
+    { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="string">"numNeurons"</span>: <span class="number">10</span>,  <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
+  ],
+  <span class="string">"trainingConfig"</span>: { <span class="string">"numEpochs"</span>: <span class="number">10</span>, <span class="string">"learningRate"</span>: <span class="number">0.01</span> }
+}
+</code></pre>
+
+<div class="info-box">
+  <strong>Detection rule:</strong> If the JSON contains <code>"inputShape"</code> or <code>"cnnLayersConfig"</code>, NN-CLI treats it as a CNN config. Otherwise it's ANN.
+</div>
+
+<h3>CNN Layer Type Fields</h3>
+<table>
+  <tr><th>Type</th><th>Fields</th></tr>
+  <tr><td><code>"conv"</code></td><td><code>numFilters</code>, <code>filterH</code>, <code>filterW</code>, <code>strideY</code>, <code>strideX</code>, <code>slidingStrategy</code> (<code>"valid"</code>/<code>"same"</code>)</td></tr>
+  <tr><td><code>"relu"</code></td><td><em>none</em></td></tr>
+  <tr><td><code>"pool"</code></td><td><code>poolType</code> (<code>"max"</code>/<code>"avg"</code>), <code>poolH</code>, <code>poolW</code>, <code>strideY</code>, <code>strideX</code></td></tr>
+  <tr><td><code>"flatten"</code></td><td><em>none</em></td></tr>
+</table>
+
+<h2 id="samples">3. Samples JSON</h2>
+<pre><code>{
+  <span class="string">"samples"</span>: [
+    {
+      <span class="string">"input"</span>:  [<span class="number">0.0</span>, <span class="number">0.5</span>, <span class="number">1.0</span>, ...],
+      <span class="string">"output"</span>: [<span class="number">1.0</span>, <span class="number">0.0</span>, <span class="number">0.0</span>, ...]
+    },
+    ...
+  ]
+}
+</code></pre>
+<p><strong>ANN:</strong> <code>input</code> is a flat vector of <code>numNeurons</code> in the first layer.<br>
+<strong>CNN:</strong> <code>input</code> is a flat vector of <code>C × H × W</code> values (reshaped using <code>inputShape</code>).<br>
+<strong>Both:</strong> <code>output</code> is typically one-hot encoded (e.g., [0,0,1,...,0] for class 2).</p>
+
+<h2 id="input">4. Input JSON (Prediction)</h2>
+<pre><code>{ <span class="string">"input"</span>: [<span class="number">0.0</span>, <span class="number">0.1</span>, <span class="number">0.2</span>, ...] }
+</code></pre>
+<p>A single flat vector. For CNN, must have exactly <code>C × H × W</code> elements.</p>
+
+<h2 id="idx">5. IDX Binary Format</h2>
+<p>The IDX format is a simple binary format used by MNIST and similar datasets. NN-CLI natively reads IDX3 (images) and IDX1 (labels).</p>
+
+<h3>IDX3 — Image Data</h3>
+<figure class="diagram">
+<svg viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" font-size="12">
+  <rect x="0" y="10" width="100" height="40" rx="4" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="50" y="35" text-anchor="middle" fill="#1a73e8" font-weight="600">Magic</text>
+  <text x="50" y="65" text-anchor="middle" fill="#5f6368" font-size="10">0x00000803</text>
+  <text x="50" y="80" text-anchor="middle" fill="#5f6368" font-size="10">4 bytes BE</text>
+
+  <rect x="110" y="10" width="100" height="40" rx="4" fill="#e6f4ea" stroke="#34a853" stroke-width="1.5"/>
+  <text x="160" y="35" text-anchor="middle" fill="#137333" font-weight="600">N items</text>
+  <text x="160" y="65" text-anchor="middle" fill="#5f6368" font-size="10">4 bytes BE</text>
+
+  <rect x="220" y="10" width="80" height="40" rx="4" fill="#e6f4ea" stroke="#34a853" stroke-width="1.5"/>
+  <text x="260" y="35" text-anchor="middle" fill="#137333" font-weight="600">Rows</text>
+  <text x="260" y="65" text-anchor="middle" fill="#5f6368" font-size="10">4 bytes BE</text>
+
+  <rect x="310" y="10" width="80" height="40" rx="4" fill="#e6f4ea" stroke="#34a853" stroke-width="1.5"/>
+  <text x="350" y="35" text-anchor="middle" fill="#137333" font-weight="600">Cols</text>
+  <text x="350" y="65" text-anchor="middle" fill="#5f6368" font-size="10">4 bytes BE</text>
+
+  <rect x="400" y="10" width="190" height="40" rx="4" fill="#fef7e0" stroke="#f9ab00" stroke-width="1.5"/>
+  <text x="495" y="35" text-anchor="middle" fill="#b06000" font-weight="600">Pixel Data (N×H×W bytes)</text>
+  <text x="495" y="65" text-anchor="middle" fill="#5f6368" font-size="10">unsigned bytes, 0–255</text>
+
+  <text x="300" y="110" text-anchor="middle" fill="#5f6368" font-size="11">All multi-byte integers are big-endian (MSB first)</text>
+</svg>
+</figure>
+
+<h3>IDX1 — Label Data</h3>
+<figure class="diagram">
+<svg viewBox="0 0 400 90" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" font-size="12">
+  <rect x="0" y="10" width="100" height="40" rx="4" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="50" y="35" text-anchor="middle" fill="#1a73e8" font-weight="600">Magic</text>
+  <text x="50" y="65" text-anchor="middle" fill="#5f6368" font-size="10">0x00000801</text>
+
+  <rect x="110" y="10" width="100" height="40" rx="4" fill="#e6f4ea" stroke="#34a853" stroke-width="1.5"/>
+  <text x="160" y="35" text-anchor="middle" fill="#137333" font-weight="600">N labels</text>
+  <text x="160" y="65" text-anchor="middle" fill="#5f6368" font-size="10">4 bytes BE</text>
+
+  <rect x="220" y="10" width="170" height="40" rx="4" fill="#fef7e0" stroke="#f9ab00" stroke-width="1.5"/>
+  <text x="305" y="35" text-anchor="middle" fill="#b06000" font-weight="600">Labels (N bytes)</text>
+  <text x="305" y="65" text-anchor="middle" fill="#5f6368" font-size="10">0–9 for MNIST</text>
+</svg>
+</figure>
+
+<h3>Processing Pipeline</h3>
+<ol>
+  <li><strong>Read</strong> magic number → validate format</li>
+  <li><strong>Read</strong> dimensions (items, rows, cols)</li>
+  <li><strong>Normalise</strong> pixel values: <code>value / 255.0</code> → range [0, 1]</li>
+  <li><strong>One-hot encode</strong> labels: label 3 → [0,0,0,1,0,0,0,0,0,0]</li>
+  <li><strong>For CNN:</strong> reshape flat data to 3D tensor using <code>inputShape</code></li>
+</ol>
+
+<h2 id="output-format">6. Output Formats</h2>
+
+<h3>Training Output</h3>
+<p>Complete model JSON with all parameters, suitable for predict/test:</p>
+<pre><code>{
+  <span class="string">"mode"</span>: <span class="string">"predict"</span>,
+  <span class="string">"layersConfig"</span>: [...],
+  <span class="string">"trainingConfig"</span>: {...},
+  <span class="string">"trainingMetadata"</span>: {
+    <span class="string">"startTime"</span>: <span class="string">"..."</span>, <span class="string">"endTime"</span>: <span class="string">"..."</span>,
+    <span class="string">"durationSeconds"</span>: <span class="number">123.4</span>,
+    <span class="string">"numSamples"</span>: <span class="number">60000</span>,
+    <span class="string">"finalLoss"</span>: <span class="number">0.0234</span>
+  },
+  <span class="string">"parameters"</span>: { <span class="string">"weights"</span>: [...], <span class="string">"biases"</span>: [...] }
+}
+</code></pre>
+
+</main>
+</div>
+<footer class="site-footer">NN-CLI Documentation</footer>
+</body></html>
+
