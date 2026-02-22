@@ -70,15 +70,18 @@ static void testANNPredictMNIST() {
     QJsonObject root = doc.object();
 
     CHECK(root.contains("predictMetadata"), "ANN predict MNIST: has 'predictMetadata'");
-    CHECK(root.contains("output"), "ANN predict MNIST: has 'output'");
+    CHECK(root.contains("outputs"), "ANN predict MNIST: has 'outputs'");
 
-    QJsonArray outputArray = root["output"].toArray();
-    CHECK(outputArray.size() == 10, "ANN predict MNIST: output has 10 elements");
+    QJsonArray outputsArray = root["outputs"].toArray();
+    CHECK(outputsArray.size() == 1, "ANN predict MNIST: outputs has 1 element (batch of 1)");
+
+    QJsonArray firstOutput = outputsArray[0].toArray();
+    CHECK(firstOutput.size() == 10, "ANN predict MNIST: first output has 10 elements");
 
     // Verify all outputs are valid numbers in [0, 1]
     bool allValid = true;
-    for (int i = 0; i < outputArray.size(); ++i) {
-      double v = outputArray[i].toDouble();
+    for (int i = 0; i < firstOutput.size(); ++i) {
+      double v = firstOutput[i].toDouble();
       if (v < 0.0 || v > 1.0) { allValid = false; break; }
     }
     CHECK(allValid, "ANN predict MNIST: all outputs in [0, 1]");
@@ -88,6 +91,7 @@ static void testANNPredictMNIST() {
     CHECK(meta.contains("endTime"), "ANN predict MNIST: metadata has 'endTime'");
     CHECK(meta.contains("durationSeconds"), "ANN predict MNIST: metadata has 'durationSeconds'");
     CHECK(meta.contains("durationFormatted"), "ANN predict MNIST: metadata has 'durationFormatted'");
+    CHECK(meta.contains("numInputs"), "ANN predict MNIST: metadata has 'numInputs'");
     file.close();
   } else {
     CHECK(false, "ANN predict MNIST: failed to open output file");

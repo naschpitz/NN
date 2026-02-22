@@ -409,8 +409,8 @@ CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath,
 
 //===================================================================================================================//
 
-ANN::Input<float> Loader::loadANNInput(const std::string& inputFilePath,
-                                         const IOConfig& ioConfig) {
+std::vector<ANN::Input<float>> Loader::loadANNInputs(const std::string& inputFilePath,
+                                                       const IOConfig& ioConfig) {
     QFile file(QString::fromStdString(inputFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -420,27 +420,38 @@ ANN::Input<float> Loader::loadANNInput(const std::string& inputFilePath,
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
 
-    if (ioConfig.inputType == DataType::IMAGE) {
-        if (!ioConfig.hasInputShape()) {
-            throw std::runtime_error("inputType is 'image' but no inputShape provided in config.");
-        }
-        std::string baseDir = QFileInfo(QString::fromStdString(inputFilePath)).absolutePath().toStdString();
-        std::string imgPath = ImageLoader::resolvePath(
-            json.at("input").get<std::string>(), baseDir);
-        return ImageLoader::loadImage(imgPath,
-            static_cast<int>(ioConfig.inputC),
-            static_cast<int>(ioConfig.inputH),
-            static_cast<int>(ioConfig.inputW));
+    const auto& inputsArray = json.at("inputs");
+    if (!inputsArray.is_array() || inputsArray.empty()) {
+        throw std::runtime_error("'inputs' must be a non-empty array in: " + inputFilePath);
     }
 
-    return json.at("input").get<std::vector<float>>();
+    std::string baseDir = QFileInfo(QString::fromStdString(inputFilePath)).absolutePath().toStdString();
+    std::vector<ANN::Input<float>> inputs;
+    inputs.reserve(inputsArray.size());
+
+    for (const auto& entry : inputsArray) {
+        if (ioConfig.inputType == DataType::IMAGE) {
+            if (!ioConfig.hasInputShape()) {
+                throw std::runtime_error("inputType is 'image' but no inputShape provided in config.");
+            }
+            std::string imgPath = ImageLoader::resolvePath(entry.get<std::string>(), baseDir);
+            inputs.push_back(ImageLoader::loadImage(imgPath,
+                static_cast<int>(ioConfig.inputC),
+                static_cast<int>(ioConfig.inputH),
+                static_cast<int>(ioConfig.inputW)));
+        } else {
+            inputs.push_back(entry.get<std::vector<float>>());
+        }
+    }
+
+    return inputs;
 }
 
 //===================================================================================================================//
 
-CNN::Input<float> Loader::loadCNNInput(const std::string& inputFilePath,
-                                         const CNN::Shape3D& inputShape,
-                                         const IOConfig& ioConfig) {
+std::vector<CNN::Input<float>> Loader::loadCNNInputs(const std::string& inputFilePath,
+                                                       const CNN::Shape3D& inputShape,
+                                                       const IOConfig& ioConfig) {
     QFile file(QString::fromStdString(inputFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -450,28 +461,39 @@ CNN::Input<float> Loader::loadCNNInput(const std::string& inputFilePath,
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
 
-    std::vector<float> flatInput;
-
-    if (ioConfig.inputType == DataType::IMAGE) {
-        std::string baseDir = QFileInfo(QString::fromStdString(inputFilePath)).absolutePath().toStdString();
-        std::string imgPath = ImageLoader::resolvePath(
-            json.at("input").get<std::string>(), baseDir);
-        flatInput = ImageLoader::loadImage(imgPath,
-            static_cast<int>(inputShape.c),
-            static_cast<int>(inputShape.h),
-            static_cast<int>(inputShape.w));
-    } else {
-        flatInput = json.at("input").get<std::vector<float>>();
+    const auto& inputsArray = json.at("inputs");
+    if (!inputsArray.is_array() || inputsArray.empty()) {
+        throw std::runtime_error("'inputs' must be a non-empty array in: " + inputFilePath);
     }
 
-    if (flatInput.size() != inputShape.size()) {
-        throw std::runtime_error("Input size (" + std::to_string(flatInput.size()) +
-          ") does not match expected input shape size (" + std::to_string(inputShape.size()) + ")");
+    std::string baseDir = QFileInfo(QString::fromStdString(inputFilePath)).absolutePath().toStdString();
+    std::vector<CNN::Input<float>> inputs;
+    inputs.reserve(inputsArray.size());
+
+    for (const auto& entry : inputsArray) {
+        std::vector<float> flatInput;
+
+        if (ioConfig.inputType == DataType::IMAGE) {
+            std::string imgPath = ImageLoader::resolvePath(entry.get<std::string>(), baseDir);
+            flatInput = ImageLoader::loadImage(imgPath,
+                static_cast<int>(inputShape.c),
+                static_cast<int>(inputShape.h),
+                static_cast<int>(inputShape.w));
+        } else {
+            flatInput = entry.get<std::vector<float>>();
+        }
+
+        if (flatInput.size() != inputShape.size()) {
+            throw std::runtime_error("Input size (" + std::to_string(flatInput.size()) +
+              ") does not match expected input shape size (" + std::to_string(inputShape.size()) + ")");
+        }
+
+        CNN::Input<float> input(inputShape);
+        input.data = std::move(flatInput);
+        inputs.push_back(std::move(input));
     }
 
-    CNN::Input<float> input(inputShape);
-    input.data = std::move(flatInput);
-    return input;
+    return inputs;
 }
 
 //===================================================================================================================//

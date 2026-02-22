@@ -73,11 +73,11 @@
 <div class="card">
 <h3>Prediction</h3>
 <p>Create <code>input.json</code>:</p>
-<pre><code>{ <span class="keyword">"input"</span>: [<span class="number">1</span>, <span class="number">0</span>] }</code></pre>
+<pre><code>{ <span class="keyword">"inputs"</span>: [[<span class="number">1</span>, <span class="number">0</span>]] }</code></pre>
 <p>Run prediction:</p>
 <pre><code><span class="func">NN-CLI</span> -c trained_xor.json -m predict -i input.json -o prediction.json</code></pre>
 <p><strong>Expected output in <code>prediction.json</code>:</strong></p>
-<pre><code>{ <span class="keyword">"output"</span>: [<span class="number">0.95</span>] }</code></pre>
+<pre><code>{ <span class="keyword">"outputs"</span>: [[<span class="number">0.95</span>]] }</code></pre>
 </div>
 
 <h2 id="cnn-image">2. Image Classification (CNN)</h2>
@@ -163,7 +163,7 @@
 <pre><code><span class="comment"># Train with image input</span>
 <span class="func">NN-CLI</span> -c image_config.json -m train -s samples.json -o trained_model.json -v
 
-<span class="comment"># Predict — input.json contains: { "input": "test_photo.png" }</span>
+<span class="comment"># Predict — input.json contains: { "inputs": ["test_photo.png"] }</span>
 <span class="func">NN-CLI</span> -c trained_model.json -m predict -i input.json -o result.json</code></pre>
 </div>
 

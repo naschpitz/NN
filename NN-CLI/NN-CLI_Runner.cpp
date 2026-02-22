@@ -9,8 +9,11 @@
 #include <QFile>
 #include <QFileInfo>
 
+#include <ANN_Utils.hpp>
+
 #include <json.hpp>
 
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -175,49 +178,78 @@ int Runner::runANNPredict() {
     if (!outputDir.exists()) inputDir.mkdir("output");
 
     if (ioConfig.outputType == DataType::IMAGE) {
-      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".png");
+      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName());
     } else {
       outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
     }
   }
 
-  if (verbose) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
+  if (verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
-  ANN::Input<float> input = Loader::loadANNInput(inputPath.toStdString(), ioConfig);
+  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), ioConfig);
 
   if (verbose) {
-    std::cout << "Running ANN with input (" << input.size() << " values)\n";
+    std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].size() << " values\n";
   }
 
-  ANN::Output<float> output = annCore->predict(input);
-  const auto& predictMetadata = annCore->getPredictMetadata();
+  // Track overall batch timing
+  auto batchStart = std::chrono::system_clock::now();
+  std::string startTimeStr = ANN::Utils<float>::formatISO8601();
 
-  // When outputType is IMAGE, save as image file
+  std::vector<ANN::Output<float>> outputs;
+  outputs.reserve(inputs.size());
+
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    ANN::Output<float> output = annCore->predict(inputs[i]);
+    outputs.push_back(std::move(output));
+    if (verbose && inputs.size() > 1) {
+      std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
+    }
+  }
+
+  auto batchEnd = std::chrono::system_clock::now();
+  std::string endTimeStr = ANN::Utils<float>::formatISO8601();
+  std::chrono::duration<double> batchElapsed = batchEnd - batchStart;
+  double batchDurationSeconds = batchElapsed.count();
+  std::string batchDurationFormatted = ANN::Utils<float>::formatDuration(batchDurationSeconds);
+
+  // When outputType is IMAGE, save images to a folder
   if (ioConfig.outputType == DataType::IMAGE) {
     if (!ioConfig.hasOutputShape()) {
       std::cerr << "Error: outputType is 'image' but no outputShape provided in config.\n";
       return 1;
     }
-    ImageLoader::saveImage(outputPath.toStdString(), output,
-        static_cast<int>(ioConfig.outputC),
-        static_cast<int>(ioConfig.outputH),
-        static_cast<int>(ioConfig.outputW));
 
-    std::cout << "Predict image saved to: " << outputPath.toStdString() << "\n";
+    // outputPath is a directory for batch image output
+    QDir outDir(outputPath);
+    if (!outDir.exists()) QDir().mkpath(outputPath);
+
+    for (size_t i = 0; i < outputs.size(); ++i) {
+      QString imgName = QString::number(i) + ".png";
+      std::string imgPath = outDir.filePath(imgName).toStdString();
+      ImageLoader::saveImage(imgPath, outputs[i],
+          static_cast<int>(ioConfig.outputC),
+          static_cast<int>(ioConfig.outputH),
+          static_cast<int>(ioConfig.outputW));
+    }
+
+    std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
+    std::cout << "  Images: " << outputs.size() << "\n";
     std::cout << "  Shape: " << ioConfig.outputC << "x" << ioConfig.outputH << "x" << ioConfig.outputW << "\n";
-    std::cout << "  Duration: " << predictMetadata.durationFormatted << "\n";
+    std::cout << "  Duration: " << batchDurationFormatted << "\n";
     return 0;
   }
 
-  // Standard vector output: save as JSON
+  // Standard vector output: save as JSON with "outputs" array
   nlohmann::ordered_json resultJson;
   nlohmann::ordered_json predictMetadataJson;
-  predictMetadataJson["startTime"] = predictMetadata.startTime;
-  predictMetadataJson["endTime"] = predictMetadata.endTime;
-  predictMetadataJson["durationSeconds"] = predictMetadata.durationSeconds;
-  predictMetadataJson["durationFormatted"] = predictMetadata.durationFormatted;
+  predictMetadataJson["startTime"] = startTimeStr;
+  predictMetadataJson["endTime"] = endTimeStr;
+  predictMetadataJson["durationSeconds"] = batchDurationSeconds;
+  predictMetadataJson["durationFormatted"] = batchDurationFormatted;
+  predictMetadataJson["numInputs"] = inputs.size();
   resultJson["predictMetadata"] = predictMetadataJson;
-  resultJson["output"] = output;
+  resultJson["outputs"] = outputs;
 
   QFile outputFile(outputPath);
   if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -313,45 +345,79 @@ int Runner::runCNNPredict() {
     if (!outputDir.exists()) inputDir.mkdir("output");
 
     if (ioConfig.outputType == DataType::IMAGE) {
-      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".png");
+      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName());
     } else {
       outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
     }
   }
 
-  if (verbose) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
+  if (verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
-  CNN::Input<float> input = Loader::loadCNNInput(inputPath.toStdString(), cnnCoreConfig.inputShape, ioConfig);
+  std::vector<CNN::Input<float>> inputs = Loader::loadCNNInputs(
+      inputPath.toStdString(), cnnCoreConfig.inputShape, ioConfig);
 
-  CNN::Output<float> output = cnnCore->predict(input);
-  const auto& predictMetadata = cnnCore->getPredictMetadata();
+  if (verbose) {
+    std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].data.size() << " values\n";
+  }
 
-  // When outputType is IMAGE, save as image file
+  // Track overall batch timing
+  auto batchStart = std::chrono::system_clock::now();
+  std::string startTimeStr = ANN::Utils<float>::formatISO8601();
+
+  std::vector<CNN::Output<float>> outputs;
+  outputs.reserve(inputs.size());
+
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    CNN::Output<float> output = cnnCore->predict(inputs[i]);
+    outputs.push_back(std::move(output));
+    if (verbose && inputs.size() > 1) {
+      std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
+    }
+  }
+
+  auto batchEnd = std::chrono::system_clock::now();
+  std::string endTimeStr = ANN::Utils<float>::formatISO8601();
+  std::chrono::duration<double> batchElapsed = batchEnd - batchStart;
+  double batchDurationSeconds = batchElapsed.count();
+  std::string batchDurationFormatted = ANN::Utils<float>::formatDuration(batchDurationSeconds);
+
+  // When outputType is IMAGE, save images to a folder
   if (ioConfig.outputType == DataType::IMAGE) {
     if (!ioConfig.hasOutputShape()) {
       std::cerr << "Error: outputType is 'image' but no outputShape provided in config.\n";
       return 1;
     }
-    ImageLoader::saveImage(outputPath.toStdString(), output,
-        static_cast<int>(ioConfig.outputC),
-        static_cast<int>(ioConfig.outputH),
-        static_cast<int>(ioConfig.outputW));
 
-    std::cout << "Predict image saved to: " << outputPath.toStdString() << "\n";
+    // outputPath is a directory for batch image output
+    QDir outDir(outputPath);
+    if (!outDir.exists()) QDir().mkpath(outputPath);
+
+    for (size_t i = 0; i < outputs.size(); ++i) {
+      QString imgName = QString::number(i) + ".png";
+      std::string imgPath = outDir.filePath(imgName).toStdString();
+      ImageLoader::saveImage(imgPath, outputs[i],
+          static_cast<int>(ioConfig.outputC),
+          static_cast<int>(ioConfig.outputH),
+          static_cast<int>(ioConfig.outputW));
+    }
+
+    std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
+    std::cout << "  Images: " << outputs.size() << "\n";
     std::cout << "  Shape: " << ioConfig.outputC << "x" << ioConfig.outputH << "x" << ioConfig.outputW << "\n";
-    std::cout << "  Duration: " << predictMetadata.durationFormatted << "\n";
+    std::cout << "  Duration: " << batchDurationFormatted << "\n";
     return 0;
   }
 
-  // Standard vector output: save as JSON
+  // Standard vector output: save as JSON with "outputs" array
   nlohmann::ordered_json resultJson;
   nlohmann::ordered_json predictMetadataJson;
-  predictMetadataJson["startTime"] = predictMetadata.startTime;
-  predictMetadataJson["endTime"] = predictMetadata.endTime;
-  predictMetadataJson["durationSeconds"] = predictMetadata.durationSeconds;
-  predictMetadataJson["durationFormatted"] = predictMetadata.durationFormatted;
+  predictMetadataJson["startTime"] = startTimeStr;
+  predictMetadataJson["endTime"] = endTimeStr;
+  predictMetadataJson["durationSeconds"] = batchDurationSeconds;
+  predictMetadataJson["durationFormatted"] = batchDurationFormatted;
+  predictMetadataJson["numInputs"] = inputs.size();
   resultJson["predictMetadata"] = predictMetadataJson;
-  resultJson["output"] = output;
+  resultJson["outputs"] = outputs;
 
   QFile outputFile(outputPath);
   if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {

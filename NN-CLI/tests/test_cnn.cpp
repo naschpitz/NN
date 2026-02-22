@@ -76,14 +76,18 @@ static void testCNNPredict() {
     QJsonObject root = doc.object();
 
     CHECK(root.contains("predictMetadata"), "CNN predict: has 'predictMetadata'");
-    CHECK(root.contains("output"), "CNN predict: has 'output'");
+    CHECK(root.contains("outputs"), "CNN predict: has 'outputs'");
 
-    QJsonArray outputArray = root["output"].toArray();
-    CHECK(outputArray.size() == 2, "CNN predict: output has 2 elements");
+    QJsonArray outputsArray = root["outputs"].toArray();
+    CHECK(outputsArray.size() == 1, "CNN predict: outputs has 1 element (batch of 1)");
+
+    QJsonArray firstOutput = outputsArray[0].toArray();
+    CHECK(firstOutput.size() == 2, "CNN predict: first output has 2 elements");
 
     QJsonObject meta = root["predictMetadata"].toObject();
     CHECK(meta.contains("startTime"), "CNN predict: metadata has 'startTime'");
     CHECK(meta.contains("durationSeconds"), "CNN predict: metadata has 'durationSeconds'");
+    CHECK(meta.contains("numInputs"), "CNN predict: metadata has 'numInputs'");
     file.close();
   } else {
     CHECK(false, "CNN predict: failed to open output file");

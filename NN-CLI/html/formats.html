@@ -146,16 +146,42 @@
 </code></pre>
 <p>Image paths can be absolute or relative to the samples file location. Images are loaded, resized to <code>inputShape</code> (or <code>outputShape</code>), normalised to [0, 1], and converted to NCHW layout. Input and output can independently be vector or image.</p>
 
-<h2 id="input">4. Input JSON (Prediction)</h2>
+<h2 id="input">4. Input JSON (Prediction — Batch)</h2>
+<p>The prediction input file uses an <code>"inputs"</code> array to support batch predictions (one or more inputs in a single run).</p>
 <h3>Vector format</h3>
-<pre><code>{ <span class="string">"input"</span>: [<span class="number">0.0</span>, <span class="number">0.1</span>, <span class="number">0.2</span>, ...] }
+<pre><code>{
+  <span class="string">"inputs"</span>: [
+    [<span class="number">0.0</span>, <span class="number">0.1</span>, <span class="number">0.2</span>, ...],
+    [<span class="number">0.5</span>, <span class="number">0.6</span>, <span class="number">0.7</span>, ...]
+  ]
+}
 </code></pre>
-<p>A single flat vector. For CNN, must have exactly <code>C × H × W</code> elements.</p>
+<p>Each element is a flat vector. For CNN, each must have exactly <code>C × H × W</code> elements.</p>
 
 <h3>Image format</h3>
-<pre><code>{ <span class="string">"input"</span>: <span class="string">"photo.png"</span> }
+<pre><code>{
+  <span class="string">"inputs"</span>: [<span class="string">"photo1.png"</span>, <span class="string">"photo2.png"</span>]
+}
 </code></pre>
-<p>When <code>inputType</code> is <code>"image"</code>, the <code>input</code> field is a path to an image file instead of a numeric array.</p>
+<p>When <code>inputType</code> is <code>"image"</code>, each element is a path to an image file instead of a numeric array.</p>
+
+<h3>Output format</h3>
+<p>For vector output, the result JSON contains an <code>"outputs"</code> array with one entry per input, plus batch metadata:</p>
+<pre><code>{
+  <span class="string">"predictMetadata"</span>: {
+    <span class="string">"startTime"</span>: <span class="string">"2026-02-22T10:30:00-03:00"</span>,
+    <span class="string">"endTime"</span>: <span class="string">"2026-02-22T10:30:01-03:00"</span>,
+    <span class="string">"durationSeconds"</span>: <span class="number">0.123</span>,
+    <span class="string">"durationFormatted"</span>: <span class="string">"0s"</span>,
+    <span class="string">"numInputs"</span>: <span class="number">2</span>
+  },
+  <span class="string">"outputs"</span>: [
+    [<span class="number">0.95</span>, <span class="number">0.05</span>],
+    [<span class="number">0.10</span>, <span class="number">0.90</span>]
+  ]
+}
+</code></pre>
+<p>For image output, numbered PNG images (<code>0.png</code>, <code>1.png</code>, ...) are saved to a folder.</p>
 
 <h2 id="idx">5. IDX Binary Format</h2>
 <p>The IDX format is a simple binary format used by MNIST and similar datasets. NN-CLI natively reads IDX3 (images) and IDX1 (labels).</p>

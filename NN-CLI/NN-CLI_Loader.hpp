@@ -53,14 +53,14 @@ public:
                                              const CNN::Shape3D& inputShape,
                                              const IOConfig& ioConfig);
 
-  // Load ANN input from JSON (supports image path when ioConfig.inputType is IMAGE)
-  static ANN::Input<float> loadANNInput(const std::string& inputFilePath,
-                                         const IOConfig& ioConfig);
+  // Load ANN inputs from JSON (batch: "inputs" array; supports image paths when ioConfig.inputType is IMAGE)
+  static std::vector<ANN::Input<float>> loadANNInputs(const std::string& inputFilePath,
+                                                       const IOConfig& ioConfig);
 
-  // Load CNN input from JSON (supports image path when ioConfig.inputType is IMAGE)
-  static CNN::Input<float> loadCNNInput(const std::string& inputFilePath,
-                                         const CNN::Shape3D& inputShape,
-                                         const IOConfig& ioConfig);
+  // Load CNN inputs from JSON (batch: "inputs" array; supports image paths when ioConfig.inputType is IMAGE)
+  static std::vector<CNN::Input<float>> loadCNNInputs(const std::string& inputFilePath,
+                                                       const CNN::Shape3D& inputShape,
+                                                       const IOConfig& ioConfig);
 };
 
 } // namespace NN_CLI

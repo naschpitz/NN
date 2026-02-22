@@ -217,11 +217,16 @@ Image paths can be absolute or relative to the samples file location. Images are
 
 ## Input File (for predict mode)
 
+The input file uses an `"inputs"` array to support batch predictions (one or more inputs in a single run).
+
 **Vector format** (default):
 
 ```json
 {
-  "input": [0.0, 0.5, 1.0, 0.75]
+  "inputs": [
+    [0.0, 0.5, 1.0, 0.75],
+    [1.0, 0.25, 0.0, 0.5]
+  ]
 }
 ```
 
@@ -229,13 +234,31 @@ Image paths can be absolute or relative to the samples file location. Images are
 
 ```json
 {
-  "input": "photo.png"
+  "inputs": ["photo1.png", "photo2.png"]
 }
 ```
 
 ## Predict Output
 
-When `outputType` is `"image"`, the prediction output is saved as a PNG image file instead of a JSON vector. When `outputType` is `"vector"` (default), the output is a JSON file with the prediction vector and metadata.
+When `outputType` is `"vector"` (default), the output is a JSON file with an `"outputs"` array (one entry per input) and batch metadata:
+
+```json
+{
+  "predictMetadata": {
+    "startTime": "2026-02-22T10:30:00-03:00",
+    "endTime": "2026-02-22T10:30:01-03:00",
+    "durationSeconds": 0.123,
+    "durationFormatted": "0s",
+    "numInputs": 2
+  },
+  "outputs": [
+    [0.95, 0.05],
+    [0.10, 0.90]
+  ]
+}
+```
+
+When `outputType` is `"image"`, the prediction outputs are saved as numbered PNG images (0.png, 1.png, ...) inside a folder instead of a JSON file.
 
 ## IDX File Format
 
