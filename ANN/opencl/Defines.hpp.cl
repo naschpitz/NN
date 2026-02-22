@@ -1,7 +1,10 @@
 #ifndef DEFINES_HPP_CL
 #define DEFINES_HPP_CL
 
+// Guard TYPE to avoid redefinition when loaded after another library's defines (e.g., CNN)
+#ifndef TYPE
 #define TYPE float
+#endif
 
 //===================================================================================================================//
 // ActvFuncType enum (must match C++ ANN::ActvFuncType)

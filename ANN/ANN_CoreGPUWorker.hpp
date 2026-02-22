@@ -5,14 +5,22 @@
 
 #include <OCLW_Core.hpp>
 
+#include <memory>
+
 //===================================================================================================================//
 
 namespace ANN {
   template <typename T>
   class CoreGPUWorker {
     public:
+      // Standalone constructor — creates its own OpenCL core
       CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
                     const Parameters<T>& parameters, bool verbose = false);
+
+      // Shared-core constructor — uses externally-provided OpenCL core (for CNN integration).
+      // Only initializes parameters. Caller must invoke loadSources() and allocateBuffers() manually.
+      CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
+                    const Parameters<T>& parameters, OpenCLWrapper::Core& sharedCore, bool verbose = false);
 
       //-- Predict --//
       Output<T> predict(const Input<T>& input);
@@ -42,6 +50,20 @@ namespace ANN {
       //-- Parameter access --//
       const Parameters<T>& getParameters() const { return parameters; }
 
+      //-- Shared-core integration: source loading and buffer allocation --//
+      void loadSources(bool skipDefines);
+      void allocateBuffers();
+
+      //-- Shared-core integration: kernel building blocks --//
+      void addPropagateKernels();
+      void addBackpropagateKernels(bool includeInputGradients);
+      void addAccumulateKernels();
+      void addUpdateKernels(ulong numSamples);
+
+      //-- Shared-core integration: data access --//
+      Output<T> readOutput();
+      Tensor1D<T> readInputGradients();
+
     private:
       //-- Configuration --//
       LayersConfig layersConfig;
@@ -50,7 +72,8 @@ namespace ANN {
       bool verbose = false;
 
       //-- OpenCL state --//
-      OpenCLWrapper::Core oclwCore;
+      std::unique_ptr<OpenCLWrapper::Core> ownedCore;  // Owned core (standalone mode)
+      OpenCLWrapper::Core* core = nullptr;              // Pointer to active core (owned or shared)
 
       //-- Kernel setup flags --//
       bool predictKernelsSetup = false;
@@ -60,28 +83,20 @@ namespace ANN {
       bool updateKernelsSetup = false;
 
       //-- Initialization --//
-      void allocateCommon();
-      void allocateTraining();
+      void initializeParameters();
 
-      //-- Kernel setup --//
+      //-- Kernel setup (standalone mode) --//
       void setupPredictKernels();
       void setupTrainingKernels();
       void setupBackpropagateKernels();
       void setupAccumulateKernels();
       void setupUpdateKernels(ulong numSamples);
 
-      //-- Kernel building blocks (used by setup methods) --//
-      void addPropagateKernels();
-      void addBackpropagateKernels(bool includeInputGradients);
-      void addAccumulateKernels();
-
       //-- Helpers --//
       void invalidateAllKernelFlags();
 
-      //-- Loss and output --//
+      //-- Loss --//
       T calculateLoss(const Output<T>& expected);
-      Tensor1D<T> readInputGradients();
-      Output<T> readOutput();
   };
 }
 
