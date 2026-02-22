@@ -11,7 +11,8 @@ namespace NN_CLI {
 //-- Constructor --//
 //===================================================================================================================//
 
-ProgressBar::ProgressBar(int barWidth) : barWidth(barWidth) {}
+ProgressBar::ProgressBar(ulong progressReports, int barWidth)
+    : progressReports(progressReports), barWidth(barWidth) {}
 
 //===================================================================================================================//
 //-- Public Interface --//
@@ -36,6 +37,16 @@ void ProgressBar::update(const ProgressInfo& progress) {
     gpuPercent = std::min(1.0f, std::max(0.0f, gpuPercent));
 
     this->updateGpuProgress(progress.gpuIndex, gpuPercent);
+  }
+
+  // Throttle output based on progressReports
+  if (!isEpochComplete && this->progressReports > 0) {
+    ulong interval = std::max(static_cast<ulong>(1), progress.totalSamples / this->progressReports);
+    if (progress.currentSample % interval != 0 && progress.currentSample != progress.totalSamples) {
+      return;
+    }
+  } else if (!isEpochComplete && this->progressReports == 0) {
+    return;  // Suppress all sample progress output
   }
 
   // Build output

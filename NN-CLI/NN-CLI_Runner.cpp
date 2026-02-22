@@ -109,7 +109,7 @@ int Runner::runANNTrain() {
 
   if (verbose) std::cout << "Starting ANN training...\n";
 
-  ProgressBar progressBar;
+  ProgressBar progressBar(annCoreConfig.progressReports);
   annCore->setTrainingCallback([&progressBar](const ANN::TrainingProgress<float>& progress) {
     ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
                       progress.currentSample, progress.totalSamples,
@@ -276,7 +276,7 @@ int Runner::runCNNTrain() {
 
   if (verbose) std::cout << "Starting CNN training...\n";
 
-  ProgressBar progressBar;
+  ProgressBar progressBar(cnnCoreConfig.progressReports);
   cnnCore->setTrainingCallback([&progressBar](const CNN::TrainingProgress<float>& progress) {
     ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
                       progress.currentSample, progress.totalSamples,

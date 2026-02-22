@@ -23,7 +23,7 @@ struct ProgressInfo {
 
 class ProgressBar {
   public:
-    ProgressBar(int barWidth = 50);
+    ProgressBar(ulong progressReports = 1000, int barWidth = 50);
 
     // Update and display progress (call from training callback)
     void update(const ProgressInfo& progress);
@@ -40,6 +40,7 @@ class ProgressBar {
 
   private:
     //-- Configuration --//
+    ulong progressReports;
     int barWidth;
 
     //-- Multi-GPU progress tracking --//
