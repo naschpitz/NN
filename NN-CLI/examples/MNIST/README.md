@@ -133,5 +133,5 @@ The output array represents probabilities for digits 0-9. The highest value indi
 - **GPU vs CPU**: GPU training is significantly faster (10-100x) for large datasets
 - **Learning rate**: The default 0.01 works well; lower values (0.001) may improve accuracy but take longer
 - **Epochs**: More epochs generally improve accuracy until overfitting occurs; monitor test loss
-- **Progress reports**: Set `progressReports` in the config to control how often progress is displayed
+- **Progress reports**: Set `progressReports` at the root level of the config to control how often progress is displayed (used across loading, training, testing, and predicting)
 

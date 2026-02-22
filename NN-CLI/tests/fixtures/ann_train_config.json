@@ -6,11 +6,11 @@
     { "numNeurons": 8, "actvFunc": "relu" },
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
+  "progressReports": 100,
   "trainingConfig": {
     "numEpochs": 100,
     "learningRate": 0.5,
-    "numThreads": 1,
-    "progressReports": 100
+    "numThreads": 1
   }
 }
 
