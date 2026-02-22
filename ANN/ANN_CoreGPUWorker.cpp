@@ -13,10 +13,11 @@ using namespace ANN;
 
 template <typename T>
 CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                                 const Parameters<T>& parameters, bool verbose)
+                                 const Parameters<T>& parameters, ulong progressReports, bool verbose)
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
+      progressReports(progressReports),
       verbose(verbose) {
 
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
@@ -32,10 +33,12 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
 
 template <typename T>
 CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                                 const Parameters<T>& parameters, OpenCLWrapper::Core& sharedCore, bool verbose)
+                                 const Parameters<T>& parameters, OpenCLWrapper::Core& sharedCore,
+                                 ulong progressReports, bool verbose)
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
+      progressReports(progressReports),
       verbose(verbose),
       core(&sharedCore) {
 
@@ -87,11 +90,11 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, ulong startIdx, ulong
   this->resetAccumulators();
 
   // Progress reporting
-  ulong progressReports = this->trainingConfig.progressReports;
+  ulong pReports = this->progressReports;
 
-  if (progressReports == 0) progressReports = 1000;
+  if (pReports == 0) pReports = 1000;
 
-  const ulong progressInterval = std::max(ulong(1), numSamplesInSubset / progressReports);
+  const ulong progressInterval = std::max(ulong(1), numSamplesInSubset / pReports);
   ulong lastReportedSample = 0;
 
   for (ulong s = startIdx; s < endIdx; s++) {

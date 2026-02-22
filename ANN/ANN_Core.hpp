@@ -71,6 +71,7 @@ namespace ANN {
       TrainingMetadata<T> trainingMetadata;
       PredictMetadata<T> predictMetadata;
       Parameters<T> parameters;
+      ulong progressReports = 1000;
       bool verbose = false;
 
       Tensor2D<T> actvs;

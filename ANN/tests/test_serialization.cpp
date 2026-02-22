@@ -16,7 +16,7 @@ static void testParameterRoundTrip() {
   });
   trainConfig.trainingConfig.numEpochs = 100;
   trainConfig.trainingConfig.learningRate = 0.5;
-  trainConfig.trainingConfig.progressReports = 0;
+  trainConfig.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 

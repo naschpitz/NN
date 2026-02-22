@@ -71,7 +71,7 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
   std::atomic<int> nextWorkerIndex{0};
 
   // Progress reporting interval (configurable, default ~1000 times per epoch)
-  ulong progressReports = this->trainingConfig.progressReports;
+  ulong progressReports = this->progressReports;
 
   if (progressReports == 0) progressReports = 1000;  // Default if not set
   const ulong progressInterval = std::max(ulong(1), numSamples / progressReports);

@@ -27,7 +27,7 @@ static void testGPUTrainSimple() {
     });
     config.trainingConfig.numEpochs = 500;
     config.trainingConfig.learningRate = 0.5f;
-    config.trainingConfig.progressReports = 0;
+    config.progressReports = 0;
     config.trainingConfig.numGPUs = 1;
     config.verbose = false;
 
@@ -87,7 +87,7 @@ static void testGPUvsCPUParity() {
   });
   trainConfig.trainingConfig.numEpochs = 200;
   trainConfig.trainingConfig.learningRate = 0.5f;
-  trainConfig.trainingConfig.progressReports = 0;
+  trainConfig.progressReports = 0;
   trainConfig.verbose = false;
 
   ANN::Samples<float> samples = {

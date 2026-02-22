@@ -72,7 +72,7 @@ static void testTrainXOR() {
     });
     config.trainingConfig.numEpochs = 2000;
     config.trainingConfig.learningRate = 0.1;
-    config.trainingConfig.progressReports = 0;
+    config.progressReports = 0;
     config.verbose = false;
 
     auto core = ANN::Core<double>::makeCore(config);
@@ -109,7 +109,7 @@ static void testTestMethod() {
   });
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5;
-  config.trainingConfig.progressReports = 0;
+  config.progressReports = 0;
 
   ANN::Samples<double> samples = {
     {{0.0, 0.0}, {0.0}},
@@ -138,7 +138,7 @@ static void testTrainingMetadata() {
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 10;
   config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.progressReports = 0;
+  config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0}}};
   auto core = ANN::Core<double>::makeCore(config);
@@ -182,7 +182,7 @@ static void testTrainingCallback() {
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 5;
   config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.progressReports = 1;
+  config.progressReports = 1;
 
   ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0}}, {{0.0, 1.0}, {0.0}}};
 
@@ -214,7 +214,7 @@ static void testParameterRoundTrip() {
   });
   trainConfig.trainingConfig.numEpochs = 200;
   trainConfig.trainingConfig.learningRate = 0.5;
-  trainConfig.trainingConfig.progressReports = 0;
+  trainConfig.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
@@ -293,7 +293,7 @@ static void testMultiLayerNetwork() {
   });
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.progressReports = 0;
+  config.progressReports = 0;
 
   ANN::Samples<double> samples = {
     {{1.0, 1.0}, {1.0}},
@@ -332,7 +332,7 @@ static void testMultiOutput() {
   });
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5;
-  config.trainingConfig.progressReports = 0;
+  config.progressReports = 0;
 
   ANN::Samples<double> samples = {
     {{1.0, 0.0}, {1.0, 0.0, 1.0}},
@@ -371,7 +371,7 @@ static void testStepByStepAPI() {
   });
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.learningRate = 0.5;
-  config.trainingConfig.progressReports = 0;
+  config.progressReports = 0;
 
   auto core = ANN::Core<double>::makeCore(config);
 
@@ -414,7 +414,7 @@ static void testTrainWithTanh() {
   });
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.progressReports = 0;
+  config.progressReports = 0;
 
   ANN::Samples<double> samples = {
     {{1.0, 1.0}, {1.0}},
