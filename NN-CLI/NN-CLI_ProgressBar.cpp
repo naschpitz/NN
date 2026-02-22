@@ -154,10 +154,11 @@ void ProgressBar::renderMultiGpuBar(std::ostream& out, const std::vector<float>&
 }
 
 bool ProgressBar::shouldPrint(const ProgressInfo& progress, bool isEpochComplete) {
-  return isEpochComplete ||
-         (progress.currentEpoch != this->lastPrintedEpoch) ||
-         (progress.currentSample >= this->lastPrintedSample + 500) ||
-         (progress.currentSample == 1);
+  // The library already throttles callbacks based on progressReports,
+  // so we always print when the callback fires.
+  (void)isEpochComplete;
+  (void)progress;
+  return true;
 }
 
 //===================================================================================================================//
