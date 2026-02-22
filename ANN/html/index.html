@@ -78,7 +78,7 @@
       <li><strong>Multi-threaded CPU</strong> — Thread-local accumulators eliminate lock contention during training</li>
       <li><strong>Multi-GPU</strong> — Automatic gradient merging across devices with per-GPU progress reporting</li>
       <li><strong>He / Xavier initialisation</strong> — Correct weight initialisation for ReLU and Sigmoid/Tanh</li>
-      <li><strong>JSON serialisation</strong> — Save &amp; load trained models via <a href="https://github.com/nlohmann/json">nlohmann/json</a></li>
+      <li><strong>Pure library</strong> — Accessible entirely via C++ function calls; no built-in file I/O</li>
       <li><strong>Step-by-step API</strong> — predict → backpropagate → accumulate → update for custom training loops</li>
       <li><strong>Progress callbacks</strong> — Real-time epoch/sample/loss reporting</li>
     </ul>
@@ -107,16 +107,15 @@
       </a>
       <a href="examples.html" class="card" style="text-decoration:none;color:inherit;">
         <h3 style="color:var(--primary);">💻 Examples</h3>
-        <p style="font-size:.9rem;">Training, prediction, testing, saving/loading models.</p>
+        <p style="font-size:.9rem;">Training, prediction, testing, step-by-step loops.</p>
       </a>
     </div>
 
     <h2 id="deps">Dependencies</h2>
     <table>
       <tr><th>Library</th><th>Purpose</th><th>Required</th></tr>
-      <tr><td>Qt 5 / 6 (Core + Concurrent)</td><td>Threading, file I/O, JSON helpers</td><td>Yes</td></tr>
+      <tr><td>Qt 5 / 6 (Core + Concurrent)</td><td>Threading &amp; utilities</td><td>Yes</td></tr>
       <tr><td><a href="https://github.com/naschpitz/openCLWrapper">OpenCLWrapper</a></td><td>GPU kernel management</td><td>Only for GPU</td></tr>
-      <tr><td><a href="https://github.com/nlohmann/json">nlohmann/json</a></td><td>JSON serialisation (header-only, bundled)</td><td>Yes (bundled)</td></tr>
     </table>
 
     <h2 id="license">License</h2>

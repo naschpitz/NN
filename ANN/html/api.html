@@ -39,7 +39,7 @@
     <li><a href="#corecpu">CoreCPU&lt;T&gt;</a></li>
     <li><a href="#coregpu">CoreGPU&lt;T&gt; &amp; CoreGPUWorker&lt;T&gt;</a></li>
     <li><a href="#actvfunc">ActvFunc</a></li>
-    <li><a href="#utils">Utils&lt;T&gt;</a></li>
+    <li><a href="#utils">Utils&lt;T&gt; (Helpers)</a></li>
   </ol>
 </div>
 
@@ -275,12 +275,10 @@
 <p>When <code>derivative = true</code>, returns the derivative evaluated at <code>x</code> (the pre-activation value <em>z</em>). See <a href="math.html#activations">Math → Activations</a>.</p>
 
 <!-- ========== UTILS ========== -->
-<h2 id="utils">8. Utils&lt;T&gt; <span class="badge badge-green">ANN_Utils.hpp</span></h2>
+<h2 id="utils">8. Utils&lt;T&gt; (Helpers) <span class="badge badge-green">ANN_Utils.hpp</span></h2>
+<p>Pure helper utilities — no file I/O. Serialisation is handled by the calling application (e.g. <a href="../../NN-CLI/html/index.html">NN-CLI</a>).</p>
 <table>
   <tr><th>Method</th><th>Description</th></tr>
-  <tr><td><code>static unique_ptr&lt;Core&lt;T&gt;&gt; load(const string&amp; path)</code></td><td>Load model from JSON file and create Core instance</td></tr>
-  <tr><td><code>static string save(const Core&lt;T&gt;&amp;)</code></td><td>Serialize model to JSON string</td></tr>
-  <tr><td><code>static void save(const Core&lt;T&gt;&amp;, const string&amp; path)</code></td><td>Save model to JSON file</td></tr>
   <tr><td><code>static string formatISO8601()</code></td><td>Current time as ISO 8601 string</td></tr>
   <tr><td><code>static string formatDuration(double seconds)</code></td><td>Human-readable duration (e.g. "2h 15m 3s")</td></tr>
   <tr><td><code>static ulong count(const V&amp; nested)</code></td><td>Count total elements in nested vector</td></tr>

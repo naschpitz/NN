@@ -35,7 +35,7 @@
     <li><a href="#clone">Clone &amp; Build</a></li>
     <li><a href="#integrate">Integrate into Your Project</a></li>
     <li><a href="#minimal">Minimal Example</a></li>
-    <li><a href="#json">JSON Configuration Format</a></li>
+
   </ol>
 </div>
 
@@ -93,46 +93,42 @@ sudo make install
 
 <h2 id="minimal">4. Minimal Example</h2>
 <pre><code><span class="keyword">#include</span> <span class="string">"ANN_Core.hpp"</span>
-<span class="keyword">#include</span> <span class="string">"ANN_Utils.hpp"</span>
+<span class="keyword">#include</span> <span class="string">"ANN_CoreConfig.hpp"</span>
+<span class="keyword">#include</span> <span class="string">"ANN_Sample.hpp"</span>
 
 <span class="type">int</span> <span class="func">main</span>() {
-    <span class="comment">// Load a pre-trained model</span>
-    <span class="keyword">auto</span> core = ANN::Utils&lt;<span class="type">float</span>&gt;::<span class="func">load</span>(<span class="string">"model.json"</span>);
+    <span class="comment">// Configure the network</span>
+    ANN::CoreConfig&lt;<span class="type">float</span>&gt; config;
+    config.modeType    = ANN::ModeType::TRAIN;
+    config.deviceType  = ANN::DeviceType::CPU;
+    config.layersConfig = makeLayersConfig({
+        {<span class="number">3</span>, ANN::ActvFuncType::NONE},
+        {<span class="number">4</span>, ANN::ActvFuncType::RELU},
+        {<span class="number">1</span>, ANN::ActvFuncType::SIGMOID}
+    });
+    config.trainingConfig.numEpochs    = <span class="number">100</span>;
+    config.trainingConfig.learningRate = <span class="number">0.01f</span>;
+
+    <span class="comment">// Create and train</span>
+    <span class="keyword">auto</span> core = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
+    core-&gt;<span class="func">train</span>(samples);
+
+    <span class="comment">// Extract trained parameters (for persistence by caller)</span>
+    <span class="keyword">const</span> <span class="keyword">auto</span>&amp; params = core-&gt;<span class="func">getParameters</span>();
 
     <span class="comment">// Run a prediction</span>
     ANN::Input&lt;<span class="type">float</span>&gt; input = { <span class="number">0.5</span>, <span class="number">0.3</span>, <span class="number">0.8</span> };
     ANN::Output&lt;<span class="type">float</span>&gt; output = core-&gt;<span class="func">predict</span>(input);
 
-    <span class="comment">// output now contains the network's prediction</span>
     <span class="keyword">return</span> <span class="number">0</span>;
 }
 </code></pre>
 
-<h2 id="json">5. JSON Configuration Format</h2>
-<p>The JSON file encodes the entire network — architecture, hyperparameters, and learned weights:</p>
-<pre><code>{
-  <span class="string">"device"</span>: <span class="string">"cpu"</span>,
-  <span class="string">"mode"</span>: <span class="string">"train"</span>,
-  <span class="string">"layersConfig"</span>: [
-    { <span class="string">"numNeurons"</span>: <span class="number">784</span>, <span class="string">"actvFuncType"</span>: <span class="string">"relu"</span> },
-    { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFuncType"</span>: <span class="string">"relu"</span> },
-    { <span class="string">"numNeurons"</span>: <span class="number">10</span>,  <span class="string">"actvFuncType"</span>: <span class="string">"sigmoid"</span> }
-  ],
-  <span class="string">"trainingConfig"</span>: {
-    <span class="string">"numEpochs"</span>: <span class="number">10</span>,
-    <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
-    <span class="string">"numThreads"</span>: <span class="number">0</span>,
-    <span class="string">"progressReports"</span>: <span class="number">1000</span>
-  }
-}
-</code></pre>
-
 <div class="tip-box">
-  When <code>"numThreads"</code> is <code>0</code>, the library uses all available CPU cores.
-  When <code>"numGPUs"</code> is <code>0</code>, it uses all available GPUs.
+  ANN is a pure computational library — it has no built-in file I/O. The calling application
+  (e.g. <a href="../../NN-CLI/html/index.html">NN-CLI</a>) is responsible for loading configuration
+  and saving trained models.
 </div>
-
-<p>After training, the <code>"parameters"</code> key is populated with learned <code>"weights"</code> and <code>"biases"</code>, which allows the model to be loaded later for prediction or further training.</p>
 
 </main>
 </div>

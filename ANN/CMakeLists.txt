@@ -54,9 +54,7 @@ target_link_libraries(ANN
 
 target_compile_definitions(ANN PRIVATE ANN_LIBRARY)
 
-# nlohmann JSON library (header-only)
-set(LIB_NLOHMANN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann")
-target_include_directories(ANN PUBLIC ${LIB_NLOHMANN_DIR})
+
 
 
 # --- Test executable ---

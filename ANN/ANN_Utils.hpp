@@ -1,9 +1,10 @@
 #ifndef ANN_UTILS_HPP
 #define ANN_UTILS_HPP
 
-#include <json.hpp>
-#include "ANN_Core.hpp"
+#include "ANN_Types.hpp"
 
+#include <string>
+#include <sys/types.h>
 #include <vector>
 #include <type_traits>
 
@@ -14,12 +15,6 @@ namespace ANN {
   class Utils
   {
     public:
-      static std::unique_ptr<Core<T>> load(const std::string& configFilePath);
-
-      // Save model with training metadata (read from core)
-      static std::string save(const Core<T>& core);
-      static void save(const Core<T>& core, const std::string& filePath);
-
       // Format current time as ISO 8601 string
       static std::string formatISO8601();
 
@@ -58,7 +53,7 @@ namespace ANN {
       // Unflatten a 1D vector into a 3D tensor (for weights) using the shape template
       static void unflatten(const Tensor1D<T>& flat, Tensor3D<T>& target) {
         ulong idx = 0;
-        
+
         for (auto& layer : target) {
           for (auto& row : layer) {
             for (auto& elem : row) {
@@ -69,16 +64,6 @@ namespace ANN {
       }
 
     private:
-      static void loadCoreConfig(const nlohmann::json& json, CoreConfig<T>& coreConfig);
-      static LayersConfig loadLayersConfig(const nlohmann::json& json);
-      static TrainingConfig<T> loadTrainingConfig(const nlohmann::json& json);
-      static Parameters<T> loadParameters(const nlohmann::json& json);
-
-      static nlohmann::ordered_json getLayersConfigJson(const LayersConfig& layersConfig);
-      static nlohmann::ordered_json getTrainingConfigJson(const TrainingConfig<T>& trainingConfig);
-      static nlohmann::ordered_json getTrainingMetadataJson(const TrainingMetadata<T>& metadata);
-      static nlohmann::ordered_json getParametersJson(const Parameters<T>& parameters);
-
       // Helper to detect if a type is a std::vector
       template <typename U>
       struct is_vector : std::false_type {};
