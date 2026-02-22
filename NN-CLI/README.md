@@ -257,13 +257,13 @@ NN-CLI --config ann_config.json --mode train --samples training_data.json --outp
 ### ANN: Training with IDX files (MNIST)
 
 ```bash
-NN-CLI --config examples/MNIST/mnist_config.json --mode train --idx-data train-images-idx3-ubyte --idx-labels train-labels-idx1-ubyte
+NN-CLI --config examples/MNIST/mnist_ann_config.json --mode train --idx-data train-images-idx3-ubyte --idx-labels train-labels-idx1-ubyte
 ```
 
 ### CNN: Training with IDX files (MNIST)
 
 ```bash
-NN-CLI --config examples/MNIST_CNN/mnist_cnn_config.json --mode train --idx-data train-images-idx3-ubyte --idx-labels train-labels-idx1-ubyte
+NN-CLI --config examples/MNIST/mnist_cnn_config.json --mode train --idx-data train-images-idx3-ubyte --idx-labels train-labels-idx1-ubyte
 ```
 
 ### Training on GPU

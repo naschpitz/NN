@@ -176,7 +176,7 @@
 
 <div class="card">
 <h3>Configuration</h3>
-<p>Create <code>mnist_config.json</code> for 784→128→10:</p>
+<p>Create <code>mnist_ann_config.json</code> for 784→128→10:</p>
 <pre><code>{
   <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
   <span class="keyword">"device"</span>: <span class="string">"gpu"</span>,
@@ -196,7 +196,7 @@
 
 <div class="card">
 <h3>Training with IDX Files</h3>
-<pre><code><span class="func">NN-CLI</span> -c mnist_config.json -m train \
+<pre><code><span class="func">NN-CLI</span> -c mnist_ann_config.json -m train \
        --idx-data train-images.idx3-ubyte \
        --idx-labels train-labels.idx1-ubyte -v</code></pre>
 </div>
