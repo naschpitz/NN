@@ -17,10 +17,12 @@ void printUsage() {
   std::cout << "  --mode, -m <mode>      Mode: 'train', 'predict', or 'test' (overrides config file)\n";
   std::cout << "  --device, -d <device>  Device: 'cpu' or 'gpu' (overrides config file)\n";
   std::cout << "  --input, -i <file>     Path to JSON file with input values (predict mode, required)\n";
+  std::cout << "  --input-type <type>    Input data type: 'vector' or 'image' (overrides config file)\n";
   std::cout << "  --samples, -s <file>   Path to JSON file with samples (train/test modes)\n";
   std::cout << "  --idx-data <file>      Path to IDX3 data file (alternative to --samples)\n";
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
   std::cout << "  --output, -o <file>    Output file (default: predict_<input>.json for predict mode)\n";
+  std::cout << "  --output-type <type>   Output data type: 'vector' or 'image' (overrides config file)\n";
   std::cout << "  --verbose, -v          Print detailed initialization and processing info\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
@@ -67,6 +69,14 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(inputOption);
 
+  // Input type option (vector or image)
+  QCommandLineOption inputTypeOption(
+    QStringList() << "input-type",
+    "Input data type: 'vector' or 'image' (overrides config file).",
+    "type"
+  );
+  parser.addOption(inputTypeOption);
+
   // Samples file for training/testing (JSON format)
   QCommandLineOption samplesOption(
     QStringList() << "s" << "samples",
@@ -98,6 +108,14 @@ int main(int argc, char *argv[]) {
     "file"
   );
   parser.addOption(outputOption);
+
+  // Output type option (vector or image)
+  QCommandLineOption outputTypeOption(
+    QStringList() << "output-type",
+    "Output data type: 'vector' or 'image' (overrides config file).",
+    "type"
+  );
+  parser.addOption(outputTypeOption);
 
   // Verbose option
   QCommandLineOption verboseOption(
@@ -132,6 +150,24 @@ int main(int argc, char *argv[]) {
     QString deviceStr = parser.value(deviceOption).toLower();
     if (deviceStr != "cpu" && deviceStr != "gpu") {
       std::cerr << "Error: Device must be 'cpu' or 'gpu'.\n";
+      return 1;
+    }
+  }
+
+  // Validate input-type if provided
+  if (parser.isSet(inputTypeOption)) {
+    QString typeStr = parser.value(inputTypeOption).toLower();
+    if (typeStr != "vector" && typeStr != "image") {
+      std::cerr << "Error: Input type must be 'vector' or 'image'.\n";
+      return 1;
+    }
+  }
+
+  // Validate output-type if provided
+  if (parser.isSet(outputTypeOption)) {
+    QString typeStr = parser.value(outputTypeOption).toLower();
+    if (typeStr != "vector" && typeStr != "image") {
+      std::cerr << "Error: Output type must be 'vector' or 'image'.\n";
       return 1;
     }
   }

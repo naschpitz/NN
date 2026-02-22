@@ -2,6 +2,8 @@
 #define NN_CLI_RUNNER_HPP
 
 #include "NN-CLI_Loader.hpp"
+#include "NN-CLI_NetworkType.hpp"
+#include "NN-CLI_IOConfig.hpp"
 
 #include <ANN_Core.hpp>
 #include <CNN_Core.hpp>
@@ -42,27 +44,30 @@ class Runner {
     std::pair<CNN::Samples<float>, bool> loadCNNSamplesFromOptions(
       const std::string& modeName, QString& inputFilePath);
 
-    // Model saving
-    static void saveANNModel(const ANN::Core<float>& core, const std::string& filePath);
-    static void saveCNNModel(const CNN::Core<float>& core, const std::string& filePath);
+    // Model saving (includes inputType/outputType/outputShape from ioConfig)
+    static void saveANNModel(const ANN::Core<float>& core, const std::string& filePath,
+                              const IOConfig& ioConfig);
+    static void saveCNNModel(const CNN::Core<float>& core, const std::string& filePath,
+                              const IOConfig& ioConfig);
 
     // Output path helpers
     static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);
     static std::string generateDefaultOutputPath(
       const QString& inputFilePath, ulong epochs, ulong samples, float loss);
 
-    const QCommandLineParser& parser_;
-    bool verbose_;
-    NetworkType networkType_;
-    std::string mode_;  // "train", "test", "predict"
+    const QCommandLineParser& parser;
+    bool verbose;
+    NetworkType networkType;
+    std::string mode;  // "train", "test", "predict"
+    IOConfig ioConfig;  // inputType / outputType / shapes (NN-CLI concept only)
 
-    // ANN members (used when networkType_ == ANN)
-    std::unique_ptr<ANN::Core<float>> annCore_;
-    ANN::CoreConfig<float> annCoreConfig_;
+    // ANN members (used when networkType == ANN)
+    std::unique_ptr<ANN::Core<float>> annCore;
+    ANN::CoreConfig<float> annCoreConfig;
 
-    // CNN members (used when networkType_ == CNN)
-    std::unique_ptr<CNN::Core<float>> cnnCore_;
-    CNN::CoreConfig<float> cnnCoreConfig_;
+    // CNN members (used when networkType == CNN)
+    std::unique_ptr<CNN::Core<float>> cnnCore;
+    CNN::CoreConfig<float> cnnCoreConfig;
 };
 
 } // namespace NN_CLI

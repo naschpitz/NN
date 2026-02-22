@@ -1,6 +1,8 @@
 #include "NN-CLI_Loader.hpp"
+#include "NN-CLI_ImageLoader.hpp"
 
 #include <QFile>
+#include <QFileInfo>
 #include <json.hpp>
 
 #include <stdexcept>
@@ -27,6 +29,59 @@ NetworkType Loader::detectNetworkType(const std::string& configFilePath) {
     }
 
     return NetworkType::ANN;
+}
+
+//===================================================================================================================//
+// I/O config loading
+//===================================================================================================================//
+
+IOConfig Loader::loadIOConfig(const std::string& configFilePath,
+                               std::optional<std::string> inputTypeOverride,
+                               std::optional<std::string> outputTypeOverride) {
+    QFile file(QString::fromStdString(configFilePath));
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        throw std::runtime_error("Failed to open config file: " + configFilePath);
+    }
+
+    QByteArray fileData = file.readAll();
+    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    IOConfig ioConfig;
+
+    // Read inputType / outputType (default to "vector")
+    if (json.contains("inputType")) {
+        ioConfig.inputType = dataTypeFromString(json.at("inputType").get<std::string>());
+    }
+    if (json.contains("outputType")) {
+        ioConfig.outputType = dataTypeFromString(json.at("outputType").get<std::string>());
+    }
+
+    // CLI overrides
+    if (inputTypeOverride.has_value()) {
+        ioConfig.inputType = dataTypeFromString(inputTypeOverride.value());
+    }
+    if (outputTypeOverride.has_value()) {
+        ioConfig.outputType = dataTypeFromString(outputTypeOverride.value());
+    }
+
+    // Input shape (for ANN image input — CNN uses CoreConfig.inputShape)
+    if (json.contains("inputShape")) {
+        const auto& s = json.at("inputShape");
+        ioConfig.inputC = s.at("c").get<ulong>();
+        ioConfig.inputH = s.at("h").get<ulong>();
+        ioConfig.inputW = s.at("w").get<ulong>();
+    }
+
+    // Output shape (for image output reconstruction)
+    if (json.contains("outputShape")) {
+        const auto& s = json.at("outputShape");
+        ioConfig.outputC = s.at("c").get<ulong>();
+        ioConfig.outputH = s.at("h").get<ulong>();
+        ioConfig.outputW = s.at("w").get<ulong>();
+    }
+
+    return ioConfig;
 }
 
 //===================================================================================================================//
@@ -234,7 +289,8 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
 // Sample and input loading
 //===================================================================================================================//
 
-ANN::Samples<float> Loader::loadANNSamples(const std::string& samplesFilePath) {
+ANN::Samples<float> Loader::loadANNSamples(const std::string& samplesFilePath,
+                                             const IOConfig& ioConfig) {
     QFile file(QString::fromStdString(samplesFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -243,18 +299,54 @@ ANN::Samples<float> Loader::loadANNSamples(const std::string& samplesFilePath) {
 
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    // Resolve base directory for relative image paths
+    std::string baseDir = QFileInfo(QString::fromStdString(samplesFilePath)).absolutePath().toStdString();
 
     ANN::Samples<float> samples;
     for (const auto& sampleJson : json.at("samples")) {
         ANN::Sample<float> sample;
-        sample.input = sampleJson.at("input").get<std::vector<float>>();
-        sample.output = sampleJson.at("output").get<std::vector<float>>();
-        samples.push_back(sample);
+
+        // Input
+        if (ioConfig.inputType == DataType::IMAGE) {
+            if (!ioConfig.hasInputShape()) {
+                throw std::runtime_error("inputType is 'image' but no inputShape provided in config.");
+            }
+            std::string imgPath = ImageLoader::resolvePath(
+                sampleJson.at("input").get<std::string>(), baseDir);
+            sample.input = ImageLoader::loadImage(imgPath,
+                static_cast<int>(ioConfig.inputC),
+                static_cast<int>(ioConfig.inputH),
+                static_cast<int>(ioConfig.inputW));
+        } else {
+            sample.input = sampleJson.at("input").get<std::vector<float>>();
+        }
+
+        // Output
+        if (ioConfig.outputType == DataType::IMAGE) {
+            if (!ioConfig.hasOutputShape()) {
+                throw std::runtime_error("outputType is 'image' but no outputShape provided in config.");
+            }
+            std::string imgPath = ImageLoader::resolvePath(
+                sampleJson.at("output").get<std::string>(), baseDir);
+            sample.output = ImageLoader::loadImage(imgPath,
+                static_cast<int>(ioConfig.outputC),
+                static_cast<int>(ioConfig.outputH),
+                static_cast<int>(ioConfig.outputW));
+        } else {
+            sample.output = sampleJson.at("output").get<std::vector<float>>();
+        }
+
+        samples.push_back(std::move(sample));
     }
     return samples;
 }
 
-CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath, const CNN::Shape3D& inputShape) {
+//===================================================================================================================//
+
+CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath,
+                                             const CNN::Shape3D& inputShape,
+                                             const IOConfig& ioConfig) {
     QFile file(QString::fromStdString(samplesFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -263,6 +355,8 @@ CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath, c
 
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    std::string baseDir = QFileInfo(QString::fromStdString(samplesFilePath)).absolutePath().toStdString();
 
     const nlohmann::json& samplesArray = json.at("samples");
 
@@ -272,16 +366,40 @@ CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath, c
     for (const auto& sampleJson : samplesArray) {
         CNN::Sample<float> sample;
 
-        std::vector<float> flatInput = sampleJson.at("input").get<std::vector<float>>();
-
-        if (flatInput.size() != inputShape.size()) {
-            throw std::runtime_error("Sample input size (" + std::to_string(flatInput.size()) +
-              ") does not match expected input shape size (" + std::to_string(inputShape.size()) + ")");
+        // Input
+        if (ioConfig.inputType == DataType::IMAGE) {
+            std::string imgPath = ImageLoader::resolvePath(
+                sampleJson.at("input").get<std::string>(), baseDir);
+            std::vector<float> flatInput = ImageLoader::loadImage(imgPath,
+                static_cast<int>(inputShape.c),
+                static_cast<int>(inputShape.h),
+                static_cast<int>(inputShape.w));
+            sample.input = CNN::Input<float>(inputShape);
+            sample.input.data = std::move(flatInput);
+        } else {
+            std::vector<float> flatInput = sampleJson.at("input").get<std::vector<float>>();
+            if (flatInput.size() != inputShape.size()) {
+                throw std::runtime_error("Sample input size (" + std::to_string(flatInput.size()) +
+                  ") does not match expected input shape size (" + std::to_string(inputShape.size()) + ")");
+            }
+            sample.input = CNN::Input<float>(inputShape);
+            sample.input.data = std::move(flatInput);
         }
 
-        sample.input = CNN::Input<float>(inputShape);
-        sample.input.data = std::move(flatInput);
-        sample.output = sampleJson.at("output").get<CNN::Output<float>>();
+        // Output
+        if (ioConfig.outputType == DataType::IMAGE) {
+            if (!ioConfig.hasOutputShape()) {
+                throw std::runtime_error("outputType is 'image' but no outputShape provided in config.");
+            }
+            std::string imgPath = ImageLoader::resolvePath(
+                sampleJson.at("output").get<std::string>(), baseDir);
+            sample.output = ImageLoader::loadImage(imgPath,
+                static_cast<int>(ioConfig.outputC),
+                static_cast<int>(ioConfig.outputH),
+                static_cast<int>(ioConfig.outputW));
+        } else {
+            sample.output = sampleJson.at("output").get<CNN::Output<float>>();
+        }
 
         samples.push_back(std::move(sample));
     }
@@ -289,7 +407,10 @@ CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath, c
     return samples;
 }
 
-ANN::Input<float> Loader::loadANNInput(const std::string& inputFilePath) {
+//===================================================================================================================//
+
+ANN::Input<float> Loader::loadANNInput(const std::string& inputFilePath,
+                                         const IOConfig& ioConfig) {
     QFile file(QString::fromStdString(inputFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -298,10 +419,28 @@ ANN::Input<float> Loader::loadANNInput(const std::string& inputFilePath) {
 
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    if (ioConfig.inputType == DataType::IMAGE) {
+        if (!ioConfig.hasInputShape()) {
+            throw std::runtime_error("inputType is 'image' but no inputShape provided in config.");
+        }
+        std::string baseDir = QFileInfo(QString::fromStdString(inputFilePath)).absolutePath().toStdString();
+        std::string imgPath = ImageLoader::resolvePath(
+            json.at("input").get<std::string>(), baseDir);
+        return ImageLoader::loadImage(imgPath,
+            static_cast<int>(ioConfig.inputC),
+            static_cast<int>(ioConfig.inputH),
+            static_cast<int>(ioConfig.inputW));
+    }
+
     return json.at("input").get<std::vector<float>>();
 }
 
-CNN::Input<float> Loader::loadCNNInput(const std::string& inputFilePath, const CNN::Shape3D& inputShape) {
+//===================================================================================================================//
+
+CNN::Input<float> Loader::loadCNNInput(const std::string& inputFilePath,
+                                         const CNN::Shape3D& inputShape,
+                                         const IOConfig& ioConfig) {
     QFile file(QString::fromStdString(inputFilePath));
 
     if (!file.open(QIODevice::ReadOnly)) {
@@ -311,7 +450,19 @@ CNN::Input<float> Loader::loadCNNInput(const std::string& inputFilePath, const C
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
 
-    std::vector<float> flatInput = json.at("input").get<std::vector<float>>();
+    std::vector<float> flatInput;
+
+    if (ioConfig.inputType == DataType::IMAGE) {
+        std::string baseDir = QFileInfo(QString::fromStdString(inputFilePath)).absolutePath().toStdString();
+        std::string imgPath = ImageLoader::resolvePath(
+            json.at("input").get<std::string>(), baseDir);
+        flatInput = ImageLoader::loadImage(imgPath,
+            static_cast<int>(inputShape.c),
+            static_cast<int>(inputShape.h),
+            static_cast<int>(inputShape.w));
+    } else {
+        flatInput = json.at("input").get<std::vector<float>>();
+    }
 
     if (flatInput.size() != inputShape.size()) {
         throw std::runtime_error("Input size (" + std::to_string(flatInput.size()) +
@@ -322,6 +473,8 @@ CNN::Input<float> Loader::loadCNNInput(const std::string& inputFilePath, const C
     input.data = std::move(flatInput);
     return input;
 }
+
+//===================================================================================================================//
 
 } // namespace NN_CLI
 

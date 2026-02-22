@@ -42,6 +42,8 @@
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"train"</span>,
   <span class="string">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="string">"inputType"</span>: <span class="string">"vector"</span>,
+  <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"layersConfig"</span>: [
     { <span class="string">"numNeurons"</span>: <span class="number">784</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
@@ -60,6 +62,10 @@
   <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
   <tr><td><code>mode</code></td><td>string</td><td>No</td><td><code>train</code>, <code>predict</code>, or <code>test</code></td></tr>
   <tr><td><code>device</code></td><td>string</td><td>No</td><td><code>cpu</code> or <code>gpu</code></td></tr>
+  <tr><td><code>inputType</code></td><td>string</td><td>No</td><td><code>vector</code> (default) or <code>image</code>; overridden by <code>--input-type</code></td></tr>
+  <tr><td><code>outputType</code></td><td>string</td><td>No</td><td><code>vector</code> (default) or <code>image</code>; overridden by <code>--output-type</code></td></tr>
+  <tr><td><code>inputShape</code></td><td>object</td><td>Image</td><td>Input image dimensions (<code>c</code>, <code>h</code>, <code>w</code>); required when <code>inputType</code> is <code>image</code></td></tr>
+  <tr><td><code>outputShape</code></td><td>object</td><td>Image</td><td>Output image dimensions (<code>c</code>, <code>h</code>, <code>w</code>); required when <code>outputType</code> is <code>image</code></td></tr>
   <tr><td><code>layersConfig</code></td><td>array</td><td>Yes</td><td>Layer definitions (first = input, last = output)</td></tr>
   <tr><td><code>layersConfig[].numNeurons</code></td><td>int</td><td>Yes</td><td>Number of neurons</td></tr>
   <tr><td><code>layersConfig[].actvFunc</code></td><td>string</td><td>Yes</td><td><code>relu</code>, <code>sigmoid</code>, or <code>tanh</code></td></tr>
@@ -74,6 +80,8 @@
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"train"</span>,
   <span class="string">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="string">"inputType"</span>: <span class="string">"image"</span>,
+  <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"inputShape"</span>: { <span class="string">"c"</span>: <span class="number">1</span>, <span class="string">"h"</span>: <span class="number">28</span>, <span class="string">"w"</span>: <span class="number">28</span> },
   <span class="string">"cnnLayersConfig"</span>: [
     { <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">8</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>,
@@ -91,6 +99,8 @@
 }
 </code></pre>
 
+<p>CNN configs also support <code>inputType</code>, <code>outputType</code>, and <code>outputShape</code>. The <code>inputShape</code> is always required for CNN (used by the network itself). When <code>outputType</code> is <code>"image"</code>, <code>outputShape</code> must be provided for image reconstruction.</p>
+
 <div class="info-box">
   <strong>Detection rule:</strong> If the JSON contains <code>"inputShape"</code> or <code>"cnnLayersConfig"</code>, NN-CLI treats it as a CNN config. Otherwise it's ANN.
 </div>
@@ -105,6 +115,7 @@
 </table>
 
 <h2 id="samples">3. Samples JSON</h2>
+<h3>Vector format (default)</h3>
 <pre><code>{
   <span class="string">"samples"</span>: [
     {
@@ -119,10 +130,32 @@
 <strong>CNN:</strong> <code>input</code> is a flat vector of <code>C × H × W</code> values (reshaped using <code>inputShape</code>).<br>
 <strong>Both:</strong> <code>output</code> is typically one-hot encoded (e.g., [0,0,1,...,0] for class 2).</p>
 
+<h3>Image format (when <code>inputType</code>/<code>outputType</code> is <code>"image"</code>)</h3>
+<pre><code>{
+  <span class="string">"samples"</span>: [
+    {
+      <span class="string">"input"</span>:  <span class="string">"images/cat_01.png"</span>,
+      <span class="string">"output"</span>: [<span class="number">1.0</span>, <span class="number">0.0</span>]
+    },
+    {
+      <span class="string">"input"</span>:  <span class="string">"images/dog_01.png"</span>,
+      <span class="string">"output"</span>: [<span class="number">0.0</span>, <span class="number">1.0</span>]
+    }
+  ]
+}
+</code></pre>
+<p>Image paths can be absolute or relative to the samples file location. Images are loaded, resized to <code>inputShape</code> (or <code>outputShape</code>), normalised to [0, 1], and converted to NCHW layout. Input and output can independently be vector or image.</p>
+
 <h2 id="input">4. Input JSON (Prediction)</h2>
+<h3>Vector format</h3>
 <pre><code>{ <span class="string">"input"</span>: [<span class="number">0.0</span>, <span class="number">0.1</span>, <span class="number">0.2</span>, ...] }
 </code></pre>
 <p>A single flat vector. For CNN, must have exactly <code>C × H × W</code> elements.</p>
+
+<h3>Image format</h3>
+<pre><code>{ <span class="string">"input"</span>: <span class="string">"photo.png"</span> }
+</code></pre>
+<p>When <code>inputType</code> is <code>"image"</code>, the <code>input</code> field is a path to an image file instead of a numeric array.</p>
 
 <h2 id="idx">5. IDX Binary Format</h2>
 <p>The IDX format is a simple binary format used by MNIST and similar datasets. NN-CLI natively reads IDX3 (images) and IDX1 (labels).</p>
@@ -184,9 +217,11 @@
 <h2 id="output-format">6. Output Formats</h2>
 
 <h3>Training Output</h3>
-<p>Complete model JSON with all parameters, suitable for predict/test:</p>
+<p>Complete model JSON with all parameters, suitable for predict/test. The <code>inputType</code> and <code>outputType</code> are persisted so predict/test can reload them automatically:</p>
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"predict"</span>,
+  <span class="string">"inputType"</span>: <span class="string">"image"</span>,
+  <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"layersConfig"</span>: [...],
   <span class="string">"trainingConfig"</span>: {...},
   <span class="string">"trainingMetadata"</span>: {
@@ -198,6 +233,12 @@
   <span class="string">"parameters"</span>: { <span class="string">"weights"</span>: [...], <span class="string">"biases"</span>: [...] }
 }
 </code></pre>
+
+<h3>Predict Output (vector)</h3>
+<p>When <code>outputType</code> is <code>"vector"</code> (default), prediction produces a JSON file with the output vector and metadata.</p>
+
+<h3>Predict Output (image)</h3>
+<p>When <code>outputType</code> is <code>"image"</code>, the output vector is reconstructed into an image using <code>outputShape</code> (<code>c</code>, <code>h</code>, <code>w</code>) and saved as a PNG/JPEG/BMP file. The output format is determined by the file extension of <code>--output</code> (default: PNG).</p>
 
 </main>
 </div>

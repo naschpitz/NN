@@ -32,11 +32,14 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 | `--config` | `-c` | Path to JSON configuration/model file (required) |
 | `--mode` | `-m` | Mode: `train`, `predict`, or `test` (overrides config file) |
 | `--device` | `-d` | Device: `cpu` or `gpu` (overrides config file) |
+| `--input` | `-i` | Path to JSON file with input values (predict mode) |
+| `--input-type` | | Input data type: `vector` or `image` (overrides config file) |
 | `--samples` | `-s` | Path to JSON file with samples (for train/test modes) |
 | `--idx-data` | | Path to IDX3 data file (alternative to `--samples`) |
 | `--idx-labels` | | Path to IDX1 labels file (requires `--idx-data`) |
-| `--input` | `-i` | Path to JSON file with input values (predict mode) |
-| `--output` | `-o` | Output file for saving trained model (train mode) |
+| `--output` | `-o` | Output file for saving trained model or prediction result |
+| `--output-type` | | Output data type: `vector` or `image` (overrides config file) |
+| `--verbose` | `-v` | Print detailed initialization and processing info |
 | `--help` | `-h` | Show help message |
 
 ### Modes
@@ -53,6 +56,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 {
   "mode": "train",
   "device": "cpu",
+  "inputType": "vector",
+  "outputType": "vector",
   "layersConfig": [
     { "numNeurons": 784, "actvFunc": "none" },
     { "numNeurons": 128, "actvFunc": "relu" },
@@ -73,6 +78,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 {
   "mode": "predict",
   "device": "gpu",
+  "inputType": "vector",
+  "outputType": "vector",
   "layersConfig": [
     { "numNeurons": 784, "actvFunc": "none" },
     { "numNeurons": 128, "actvFunc": "relu" },
@@ -90,6 +97,10 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 
 - `mode`: Operation mode (optional, default: `predict`) — *can be overridden by `--mode`*
 - `device`: Execution device (optional, default: `cpu`) — *can be overridden by `--device`*
+- `inputType`: Input data type — `"vector"` (default) or `"image"` — *can be overridden by `--input-type`*
+- `outputType`: Output data type — `"vector"` (default) or `"image"` — *can be overridden by `--output-type`*
+- `inputShape`: Input image dimensions (`c`, `h`, `w`) — required when `inputType` is `"image"`
+- `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
 
 #### ANN Layers Configuration
 
@@ -110,6 +121,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 {
   "mode": "train",
   "device": "cpu",
+  "inputType": "vector",
+  "outputType": "vector",
   "inputShape": { "c": 1, "h": 28, "w": 28 },
   "cnnLayersConfig": [
     { "type": "conv", "numFilters": 8, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
@@ -132,7 +145,10 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 
 - `mode`: Operation mode (optional, default: `predict`) — *can be overridden by `--mode`*
 - `device`: Execution device (optional, default: `cpu`) — *can be overridden by `--device`*
+- `inputType`: Input data type — `"vector"` (default) or `"image"` — *can be overridden by `--input-type`*
+- `outputType`: Output data type — `"vector"` (default) or `"image"` — *can be overridden by `--output-type`*
 - `inputShape`: Input tensor dimensions (`c` channels, `h` height, `w` width)
+- `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
 
 #### CNN Layers Configuration (`cnnLayersConfig`)
 
@@ -161,7 +177,9 @@ The trained model file contains the network architecture and learned parameters.
 
 ## Samples File (JSON format)
 
-Training samples with input/output pairs:
+Training samples with input/output pairs. Values can be numeric vectors or image file paths (when `inputType`/`outputType` is `"image"`):
+
+**Vector format** (default):
 
 ```json
 {
@@ -178,13 +196,46 @@ Training samples with input/output pairs:
 }
 ```
 
+**Image format** (when `inputType` and/or `outputType` is `"image"`):
+
+```json
+{
+  "samples": [
+    {
+      "input": "images/cat_01.png",
+      "output": [1.0, 0.0]
+    },
+    {
+      "input": "images/dog_01.png",
+      "output": [0.0, 1.0]
+    }
+  ]
+}
+```
+
+Image paths can be absolute or relative to the samples file location. Images are automatically loaded, resized to match `inputShape` (or `outputShape`), normalised to [0, 1], and converted to NCHW layout.
+
 ## Input File (for predict mode)
+
+**Vector format** (default):
 
 ```json
 {
   "input": [0.0, 0.5, 1.0, 0.75]
 }
 ```
+
+**Image format** (when `inputType` is `"image"`):
+
+```json
+{
+  "input": "photo.png"
+}
+```
+
+## Predict Output
+
+When `outputType` is `"image"`, the prediction output is saved as a PNG image file instead of a JSON vector. When `outputType` is `"vector"` (default), the output is a JSON file with the prediction vector and metadata.
 
 ## IDX File Format
 
@@ -238,6 +289,26 @@ NN-CLI --config trained_model.json --mode test --samples test_data.json
 ```bash
 NN-CLI --config trained_model.json --mode test --idx-data t10k-images-idx3-ubyte --idx-labels t10k-labels-idx1-ubyte
 ```
+
+### Training with image files
+
+```bash
+NN-CLI --config config.json --mode train --input-type image --samples image_samples.json
+```
+
+### Predicting with image input and output
+
+```bash
+NN-CLI --config trained_model.json --mode predict --input-type image --output-type image --input input.json
+```
+
+## Image Support
+
+NN-CLI supports image file paths in samples and input JSON files. Images are automatically loaded, resized, normalised to [0, 1], and converted to NCHW layout. Supported read formats: JPEG, PNG, BMP, GIF, TGA, PSD, HDR, PIC. Supported write formats: PNG, JPEG, BMP.
+
+Set `"inputType": "image"` and/or `"outputType": "image"` in the config JSON or use the `--input-type` / `--output-type` CLI options. When using image input for ANN, an `inputShape` with `c`, `h`, `w` must be provided. When using image output, an `outputShape` must be provided.
+
+Image loading uses the [stb](https://github.com/nothings/stb) header-only library (bundled in `libs/stb/`).
 
 ## License
 

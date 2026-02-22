@@ -19,6 +19,8 @@ endif()
 
 add_executable(NN-CLI
   main.cpp
+  NN-CLI_DataType.cpp
+  NN-CLI_ImageLoader.cpp
   NN-CLI_Loader.cpp
   NN-CLI_ProgressBar.cpp
   NN-CLI_Runner.cpp
@@ -26,7 +28,11 @@ add_executable(NN-CLI
 )
 
 # nlohmann JSON library (header-only, used directly by NN-CLI for config serialisation)
-target_include_directories(NN-CLI PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/extern/CNN/libs/nlohmann)
+# stb image library (header-only, used for image loading/saving)
+target_include_directories(NN-CLI PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/CNN/libs/nlohmann
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
+)
 
 # Link to CNN — ANN, OpenCLWrapper, Qt::Core, OpenCL are propagated automatically via PUBLIC
 target_link_libraries(NN-CLI

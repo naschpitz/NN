@@ -107,17 +107,23 @@ cat &gt; xor_samples.json &lt;&lt; <span class="string">'EOF'</span>
 
 <h2>Project Structure</h2>
 <pre><code>NN-CLI/
-├── main.cpp                 <span class="comment"># Entry point, CLI argument parsing</span>
-├── NN-CLI_Runner.hpp/cpp    <span class="comment"># Core execution logic</span>
-├── NN-CLI_Loader.hpp/cpp    <span class="comment"># Config loading, network detection</span>
-├── NN-CLI_Utils.hpp/cpp     <span class="comment"># IDX file format loading</span>
+├── main.cpp                   <span class="comment"># Entry point, CLI argument parsing</span>
+├── NN-CLI_Runner.hpp/cpp      <span class="comment"># Core execution logic</span>
+├── NN-CLI_Loader.hpp/cpp      <span class="comment"># Config loading, network detection</span>
+├── NN-CLI_NetworkType.hpp     <span class="comment"># NetworkType enum (ANN/CNN)</span>
+├── NN-CLI_DataType.hpp/cpp    <span class="comment"># DataType enum (VECTOR/IMAGE)</span>
+├── NN-CLI_IOConfig.hpp        <span class="comment"># IOConfig struct (input/output types &amp; shapes)</span>
+├── NN-CLI_ImageLoader.hpp/cpp <span class="comment"># Image loading/saving via stb</span>
+├── NN-CLI_Utils.hpp/cpp       <span class="comment"># IDX file format loading</span>
 ├── NN-CLI_ProgressBar.hpp/cpp <span class="comment"># Training progress display</span>
+├── libs/
+│   └── stb/                   <span class="comment"># stb image headers (read/write/resize)</span>
 ├── extern/
-│   └── CNN/                 <span class="comment"># CNN submodule (includes ANN)</span>
+│   └── CNN/                   <span class="comment"># CNN submodule (includes ANN)</span>
 ├── examples/
-│   ├── MNIST/               <span class="comment"># ANN MNIST example config</span>
-│   └── MNIST_CNN/           <span class="comment"># CNN MNIST example config</span>
-└── tests/                   <span class="comment"># Integration tests</span>
+│   ├── MNIST/                 <span class="comment"># ANN MNIST example config</span>
+│   └── MNIST_CNN/             <span class="comment"># CNN MNIST example config</span>
+└── tests/                     <span class="comment"># Integration tests</span>
 </code></pre>
 
 </main>

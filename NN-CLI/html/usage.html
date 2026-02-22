@@ -42,8 +42,9 @@
 
 <h2 id="synopsis">1. Synopsis</h2>
 <pre><code>NN-CLI --config &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&gt;]
+       [--input &lt;file&gt;] [--input-type &lt;type&gt;]
        [--samples &lt;file&gt;] [--idx-data &lt;file&gt; --idx-labels &lt;file&gt;]
-       [--input &lt;file&gt;] [--output &lt;file&gt;] [--verbose]
+       [--output &lt;file&gt;] [--output-type &lt;type&gt;] [--verbose]
 </code></pre>
 
 <h2 id="options">2. All Options</h2>
@@ -53,10 +54,12 @@
   <tr><td><code>--mode</code></td><td><code>-m</code></td><td>string</td><td>from config</td><td><code>train</code>, <code>predict</code>, or <code>test</code></td></tr>
   <tr><td><code>--device</code></td><td><code>-d</code></td><td>string</td><td><code>cpu</code></td><td><code>cpu</code> or <code>gpu</code></td></tr>
   <tr><td><code>--input</code></td><td><code>-i</code></td><td>file</td><td>—</td><td>Input JSON for predict mode</td></tr>
+  <tr><td><code>--input-type</code></td><td>—</td><td>string</td><td><code>vector</code></td><td><code>vector</code> or <code>image</code> (overrides config)</td></tr>
   <tr><td><code>--samples</code></td><td><code>-s</code></td><td>file</td><td>—</td><td>Training/test samples (JSON)</td></tr>
   <tr><td><code>--idx-data</code></td><td>—</td><td>file</td><td>—</td><td>IDX3 data file (e.g. MNIST images)</td></tr>
   <tr><td><code>--idx-labels</code></td><td>—</td><td>file</td><td>—</td><td>IDX1 labels file (requires <code>--idx-data</code>)</td></tr>
   <tr><td><code>--output</code></td><td><code>-o</code></td><td>file</td><td>auto</td><td>Output file path</td></tr>
+  <tr><td><code>--output-type</code></td><td>—</td><td>string</td><td><code>vector</code></td><td><code>vector</code> or <code>image</code> (overrides config)</td></tr>
   <tr><td><code>--verbose</code></td><td><code>-v</code></td><td>flag</td><td>off</td><td>Print detailed info during execution</td></tr>
   <tr><td><code>--help</code></td><td><code>-h</code></td><td>flag</td><td>—</td><td>Show help message</td></tr>
 </table>
@@ -109,7 +112,7 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 <p>The <code>output/</code> directory is created automatically relative to the input file's location.</p>
 
 <h3>Predict Output</h3>
-<p>JSON with prediction metadata and output vector:</p>
+<p>When <code>outputType</code> is <code>"vector"</code> (default), the result is JSON with prediction metadata and output vector. When <code>outputType</code> is <code>"image"</code>, the output vector is saved as a PNG/JPEG/BMP image file instead.</p>
 <pre><code>{
   <span class="string">"predictMetadata"</span>: {
     <span class="string">"startTime"</span>: <span class="string">"2024-01-15 10:30:45"</span>,

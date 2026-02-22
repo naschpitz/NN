@@ -1,6 +1,10 @@
 #ifndef NN_CLI_LOADER_HPP
 #define NN_CLI_LOADER_HPP
 
+#include "NN-CLI_NetworkType.hpp"
+#include "NN-CLI_DataType.hpp"
+#include "NN-CLI_IOConfig.hpp"
+
 #include <ANN_Core.hpp>
 #include <ANN_Mode.hpp>
 #include <ANN_Device.hpp>
@@ -20,14 +24,15 @@
 
 namespace NN_CLI {
 
-enum class NetworkType { ANN, CNN };
-
 class Loader {
 public:
   // Detect whether a config file defines an ANN or CNN network.
-  // CNN configs contain "inputShape" and/or "cnnLayersConfig".
-  // ANN configs contain "layersConfig" with "numNeurons".
   static NetworkType detectNetworkType(const std::string& configFilePath);
+
+  // Load I/O configuration (inputType, outputType, shapes) with optional CLI overrides
+  static IOConfig loadIOConfig(const std::string& configFilePath,
+                                std::optional<std::string> inputTypeOverride  = std::nullopt,
+                                std::optional<std::string> outputTypeOverride = std::nullopt);
 
   // Load ANN configuration with optional CLI overrides
   static ANN::CoreConfig<float> loadANNConfig(const std::string& configFilePath,
@@ -39,17 +44,23 @@ public:
                                                std::optional<std::string> modeOverride = std::nullopt,
                                                std::optional<std::string> deviceOverride = std::nullopt);
 
-  // Load ANN samples from JSON
-  static ANN::Samples<float> loadANNSamples(const std::string& samplesFilePath);
+  // Load ANN samples from JSON (supports image paths when ioConfig.inputType/outputType is IMAGE)
+  static ANN::Samples<float> loadANNSamples(const std::string& samplesFilePath,
+                                             const IOConfig& ioConfig);
 
-  // Load CNN samples from JSON (requires inputShape for reshaping flat data to 3D)
-  static CNN::Samples<float> loadCNNSamples(const std::string& samplesFilePath, const CNN::Shape3D& inputShape);
+  // Load CNN samples from JSON (supports image paths when ioConfig.inputType/outputType is IMAGE)
+  static CNN::Samples<float> loadCNNSamples(const std::string& samplesFilePath,
+                                             const CNN::Shape3D& inputShape,
+                                             const IOConfig& ioConfig);
 
-  // Load ANN input from JSON (flat vector)
-  static ANN::Input<float> loadANNInput(const std::string& inputFilePath);
+  // Load ANN input from JSON (supports image path when ioConfig.inputType is IMAGE)
+  static ANN::Input<float> loadANNInput(const std::string& inputFilePath,
+                                         const IOConfig& ioConfig);
 
-  // Load CNN input from JSON (flat vector reshaped to 3D tensor)
-  static CNN::Input<float> loadCNNInput(const std::string& inputFilePath, const CNN::Shape3D& inputShape);
+  // Load CNN input from JSON (supports image path when ioConfig.inputType is IMAGE)
+  static CNN::Input<float> loadCNNInput(const std::string& inputFilePath,
+                                         const CNN::Shape3D& inputShape,
+                                         const IOConfig& ioConfig);
 };
 
 } // namespace NN_CLI

@@ -1,5 +1,6 @@
 #include "NN-CLI_Runner.hpp"
 
+#include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 #include "NN-CLI_Utils.hpp"
@@ -19,35 +20,50 @@ using namespace NN_CLI;
 //===================================================================================================================//
 
 Runner::Runner(const QCommandLineParser& parser, bool verbose)
-    : parser_(parser), verbose_(verbose) {
-  QString configPath = parser_.value("config");
+    : parser(parser), verbose(verbose) {
+  QString configPath = this->parser.value("config");
 
   // Detect network type from config file
-  networkType_ = Loader::detectNetworkType(configPath.toStdString());
+  networkType = Loader::detectNetworkType(configPath.toStdString());
 
   // Build optional mode/device overrides as strings
   std::optional<std::string> modeOverride;
-  if (parser_.isSet("mode")) {
-    modeOverride = parser_.value("mode").toLower().toStdString();
+  if (this->parser.isSet("mode")) {
+    modeOverride = this->parser.value("mode").toLower().toStdString();
   }
 
   std::optional<std::string> deviceOverride;
-  if (parser_.isSet("device")) {
-    deviceOverride = parser_.value("device").toLower().toStdString();
+  if (this->parser.isSet("device")) {
+    deviceOverride = this->parser.value("device").toLower().toStdString();
   }
 
+  // Load I/O config (inputType, outputType, shapes) with optional CLI overrides
+  std::optional<std::string> inputTypeOverride;
+  if (this->parser.isSet("input-type")) {
+    inputTypeOverride = this->parser.value("input-type").toLower().toStdString();
+  }
+
+  std::optional<std::string> outputTypeOverride;
+  if (this->parser.isSet("output-type")) {
+    outputTypeOverride = this->parser.value("output-type").toLower().toStdString();
+  }
+
+  ioConfig = Loader::loadIOConfig(configPath.toStdString(), inputTypeOverride, outputTypeOverride);
+
   // Display info
-  std::string networkTypeStr = (networkType_ == NetworkType::CNN) ? "CNN" : "ANN";
+  std::string networkTypeStr = (networkType == NetworkType::CNN) ? "CNN" : "ANN";
   std::string modeDisplay = modeOverride.has_value() ? (modeOverride.value() + " (CLI)") : "from config file";
   std::string deviceDisplay = deviceOverride.has_value() ? (deviceOverride.value() + " (CLI)") : "from config file";
 
-  if (verbose_) {
+  if (this->verbose) {
     std::cout << "Network type: " << networkTypeStr << "\n";
     std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
     std::cout << "Mode: " << modeDisplay << ", Device: " << deviceDisplay << "\n";
+    std::cout << "Input type: " << dataTypeToString(ioConfig.inputType)
+              << ", Output type: " << dataTypeToString(ioConfig.outputType) << "\n";
   }
 
-  if (networkType_ == NetworkType::ANN) {
+  if (networkType == NetworkType::ANN) {
     // Convert string overrides to ANN enum overrides
     std::optional<ANN::ModeType> annModeOverride;
     if (modeOverride.has_value()) annModeOverride = ANN::Mode::nameToType(modeOverride.value());
@@ -55,28 +71,28 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
     std::optional<ANN::DeviceType> annDeviceOverride;
     if (deviceOverride.has_value()) annDeviceOverride = ANN::Device::nameToType(deviceOverride.value());
 
-    annCoreConfig_ = Loader::loadANNConfig(configPath.toStdString(), annModeOverride, annDeviceOverride);
-    annCoreConfig_.verbose = verbose_;
-    mode_ = ANN::Mode::typeToName(annCoreConfig_.modeType);
-    annCore_ = ANN::Core<float>::makeCore(annCoreConfig_);
+    annCoreConfig = Loader::loadANNConfig(configPath.toStdString(), annModeOverride, annDeviceOverride);
+    annCoreConfig.verbose = this->verbose;
+    mode = ANN::Mode::typeToName(annCoreConfig.modeType);
+    annCore = ANN::Core<float>::makeCore(annCoreConfig);
   } else {
-    cnnCoreConfig_ = Loader::loadCNNConfig(configPath.toStdString(), modeOverride, deviceOverride);
-    cnnCoreConfig_.verbose = verbose_;
-    mode_ = CNN::Mode::typeToName(cnnCoreConfig_.modeType);
-    cnnCore_ = CNN::Core<float>::makeCore(cnnCoreConfig_);
+    cnnCoreConfig = Loader::loadCNNConfig(configPath.toStdString(), modeOverride, deviceOverride);
+    cnnCoreConfig.verbose = this->verbose;
+    mode = CNN::Mode::typeToName(cnnCoreConfig.modeType);
+    cnnCore = CNN::Core<float>::makeCore(cnnCoreConfig);
   }
 }
 
 //===================================================================================================================//
 
 int Runner::run() {
-  if (networkType_ == NetworkType::ANN) {
-    if (mode_ == "train")   return runANNTrain();
-    if (mode_ == "test")    return runANNTest();
+  if (networkType == NetworkType::ANN) {
+    if (mode == "train")   return runANNTrain();
+    if (mode == "test")    return runANNTest();
     return runANNPredict();
   } else {
-    if (mode_ == "train")   return runCNNTrain();
-    if (mode_ == "test")    return runCNNTest();
+    if (mode == "train")   return runCNNTrain();
+    if (mode == "test")    return runCNNTest();
     return runCNNPredict();
   }
 }
@@ -88,10 +104,10 @@ int Runner::runANNTrain() {
   auto [samples, success] = loadANNSamplesFromOptions("training", inputFilePath);
   if (!success) return 1;
 
-  if (verbose_) std::cout << "Starting ANN training...\n";
+  if (verbose) std::cout << "Starting ANN training...\n";
 
   ProgressBar progressBar;
-  annCore_->setTrainingCallback([&progressBar](const ANN::TrainingProgress<float>& progress) {
+  annCore->setTrainingCallback([&progressBar](const ANN::TrainingProgress<float>& progress) {
     ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
                       progress.currentSample, progress.totalSamples,
                       progress.epochLoss, progress.sampleLoss,
@@ -99,22 +115,22 @@ int Runner::runANNTrain() {
     progressBar.update(info);
   });
 
-  annCore_->train(samples);
+  annCore->train(samples);
   std::cout << "\nTraining completed.\n";
 
-  const auto& trainingConfig = annCore_->getTrainingConfig();
-  const auto& trainingMetadata = annCore_->getTrainingMetadata();
+  const auto& trainingConfig = annCore->getTrainingConfig();
+  const auto& trainingMetadata = annCore->getTrainingMetadata();
 
   std::string outputPathStr;
-  if (parser_.isSet("output")) {
-    outputPathStr = parser_.value("output").toStdString();
+  if (parser.isSet("output")) {
+    outputPathStr = parser.value("output").toStdString();
   } else {
     outputPathStr = generateDefaultOutputPath(
       inputFilePath, trainingConfig.numEpochs,
       trainingMetadata.numSamples, trainingMetadata.finalLoss);
   }
 
-  saveANNModel(*annCore_, outputPathStr);
+  saveANNModel(*annCore, outputPathStr, ioConfig);
   std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
@@ -127,9 +143,9 @@ int Runner::runANNTest() {
   auto [samples, success] = loadANNSamplesFromOptions("test", inputFilePath);
   if (!success) return 1;
 
-  if (verbose_) std::cout << "Running ANN evaluation...\n";
+  if (verbose) std::cout << "Running ANN evaluation...\n";
 
-  ANN::TestResult<float> result = annCore_->test(samples);
+  ANN::TestResult<float> result = annCore->test(samples);
 
   std::cout << "\nTest Results:\n";
   std::cout << "  Samples evaluated: " << result.numSamples << "\n";
@@ -142,40 +158,58 @@ int Runner::runANNTest() {
 //===================================================================================================================//
 
 int Runner::runANNPredict() {
-  if (!parser_.isSet("input")) {
+  if (!parser.isSet("input")) {
     std::cerr << "Error: --input option is required for predict mode.\n";
     return 1;
   }
 
-  QString inputPath = parser_.value("input");
+  QString inputPath = parser.value("input");
   QString outputPath;
 
-  if (parser_.isSet("output")) {
-    outputPath = parser_.value("output");
+  if (parser.isSet("output")) {
+    outputPath = parser.value("output");
   } else {
     QFileInfo inputInfo(inputPath);
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
     if (!outputDir.exists()) inputDir.mkdir("output");
-    outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
-  }
 
-  if (verbose_) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
-
-  ANN::Input<float> input = Loader::loadANNInput(inputPath.toStdString());
-
-  if (verbose_) {
-    std::cout << "Running ANN with input: ";
-    for (size_t i = 0; i < input.size(); ++i) {
-      std::cout << input[i];
-      if (i < input.size() - 1) std::cout << ", ";
+    if (ioConfig.outputType == DataType::IMAGE) {
+      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".png");
+    } else {
+      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
     }
-    std::cout << "\n";
   }
 
-  ANN::Output<float> output = annCore_->predict(input);
-  const auto& predictMetadata = annCore_->getPredictMetadata();
+  if (verbose) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
 
+  ANN::Input<float> input = Loader::loadANNInput(inputPath.toStdString(), ioConfig);
+
+  if (verbose) {
+    std::cout << "Running ANN with input (" << input.size() << " values)\n";
+  }
+
+  ANN::Output<float> output = annCore->predict(input);
+  const auto& predictMetadata = annCore->getPredictMetadata();
+
+  // When outputType is IMAGE, save as image file
+  if (ioConfig.outputType == DataType::IMAGE) {
+    if (!ioConfig.hasOutputShape()) {
+      std::cerr << "Error: outputType is 'image' but no outputShape provided in config.\n";
+      return 1;
+    }
+    ImageLoader::saveImage(outputPath.toStdString(), output,
+        static_cast<int>(ioConfig.outputC),
+        static_cast<int>(ioConfig.outputH),
+        static_cast<int>(ioConfig.outputW));
+
+    std::cout << "Predict image saved to: " << outputPath.toStdString() << "\n";
+    std::cout << "  Shape: " << ioConfig.outputC << "x" << ioConfig.outputH << "x" << ioConfig.outputW << "\n";
+    std::cout << "  Duration: " << predictMetadata.durationFormatted << "\n";
+    return 0;
+  }
+
+  // Standard vector output: save as JSON
   nlohmann::ordered_json resultJson;
   nlohmann::ordered_json predictMetadataJson;
   predictMetadataJson["startTime"] = predictMetadata.startTime;
@@ -208,10 +242,10 @@ int Runner::runCNNTrain() {
   auto [samples, success] = loadCNNSamplesFromOptions("training", inputFilePath);
   if (!success) return 1;
 
-  if (verbose_) std::cout << "Starting CNN training...\n";
+  if (verbose) std::cout << "Starting CNN training...\n";
 
   ProgressBar progressBar;
-  cnnCore_->setTrainingCallback([&progressBar](const CNN::TrainingProgress<float>& progress) {
+  cnnCore->setTrainingCallback([&progressBar](const CNN::TrainingProgress<float>& progress) {
     ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
                       progress.currentSample, progress.totalSamples,
                       progress.epochLoss, progress.sampleLoss,
@@ -219,22 +253,22 @@ int Runner::runCNNTrain() {
     progressBar.update(info);
   });
 
-  cnnCore_->train(samples);
+  cnnCore->train(samples);
   std::cout << "\nTraining completed.\n";
 
-  const auto& trainingConfig = cnnCore_->getTrainingConfig();
-  const auto& trainingMetadata = cnnCore_->getTrainingMetadata();
+  const auto& trainingConfig = cnnCore->getTrainingConfig();
+  const auto& trainingMetadata = cnnCore->getTrainingMetadata();
 
   std::string outputPathStr;
-  if (parser_.isSet("output")) {
-    outputPathStr = parser_.value("output").toStdString();
+  if (parser.isSet("output")) {
+    outputPathStr = parser.value("output").toStdString();
   } else {
     outputPathStr = generateDefaultOutputPath(
       inputFilePath, trainingConfig.numEpochs,
       trainingMetadata.numSamples, trainingMetadata.finalLoss);
   }
 
-  saveCNNModel(*cnnCore_, outputPathStr);
+  saveCNNModel(*cnnCore, outputPathStr, ioConfig);
   std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
@@ -247,9 +281,9 @@ int Runner::runCNNTest() {
   auto [samples, success] = loadCNNSamplesFromOptions("test", inputFilePath);
   if (!success) return 1;
 
-  if (verbose_) std::cout << "Running CNN evaluation...\n";
+  if (verbose) std::cout << "Running CNN evaluation...\n";
 
-  CNN::TestResult<float> result = cnnCore_->test(samples);
+  CNN::TestResult<float> result = cnnCore->test(samples);
 
   std::cout << "\nTest Results:\n";
   std::cout << "  Samples evaluated: " << result.numSamples << "\n";
@@ -262,31 +296,54 @@ int Runner::runCNNTest() {
 //===================================================================================================================//
 
 int Runner::runCNNPredict() {
-  if (!parser_.isSet("input")) {
+  if (!parser.isSet("input")) {
     std::cerr << "Error: --input option is required for predict mode.\n";
     return 1;
   }
 
-  QString inputPath = parser_.value("input");
+  QString inputPath = parser.value("input");
   QString outputPath;
 
-  if (parser_.isSet("output")) {
-    outputPath = parser_.value("output");
+  if (parser.isSet("output")) {
+    outputPath = parser.value("output");
   } else {
     QFileInfo inputInfo(inputPath);
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
     if (!outputDir.exists()) inputDir.mkdir("output");
-    outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
+
+    if (ioConfig.outputType == DataType::IMAGE) {
+      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".png");
+    } else {
+      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
+    }
   }
 
-  if (verbose_) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
+  if (verbose) std::cout << "Loading input from: " << inputPath.toStdString() << "\n";
 
-  CNN::Input<float> input = Loader::loadCNNInput(inputPath.toStdString(), cnnCoreConfig_.inputShape);
+  CNN::Input<float> input = Loader::loadCNNInput(inputPath.toStdString(), cnnCoreConfig.inputShape, ioConfig);
 
-  CNN::Output<float> output = cnnCore_->predict(input);
-  const auto& predictMetadata = cnnCore_->getPredictMetadata();
+  CNN::Output<float> output = cnnCore->predict(input);
+  const auto& predictMetadata = cnnCore->getPredictMetadata();
 
+  // When outputType is IMAGE, save as image file
+  if (ioConfig.outputType == DataType::IMAGE) {
+    if (!ioConfig.hasOutputShape()) {
+      std::cerr << "Error: outputType is 'image' but no outputShape provided in config.\n";
+      return 1;
+    }
+    ImageLoader::saveImage(outputPath.toStdString(), output,
+        static_cast<int>(ioConfig.outputC),
+        static_cast<int>(ioConfig.outputH),
+        static_cast<int>(ioConfig.outputW));
+
+    std::cout << "Predict image saved to: " << outputPath.toStdString() << "\n";
+    std::cout << "  Shape: " << ioConfig.outputC << "x" << ioConfig.outputH << "x" << ioConfig.outputW << "\n";
+    std::cout << "  Duration: " << predictMetadata.durationFormatted << "\n";
+    return 0;
+  }
+
+  // Standard vector output: save as JSON
   nlohmann::ordered_json resultJson;
   nlohmann::ordered_json predictMetadataJson;
   predictMetadataJson["startTime"] = predictMetadata.startTime;
@@ -319,9 +376,9 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
     QString& inputFilePath) {
   ANN::Samples<float> samples;
 
-  bool hasJsonSamples = parser_.isSet("samples");
-  bool hasIdxData = parser_.isSet("idx-data");
-  bool hasIdxLabels = parser_.isSet("idx-labels");
+  bool hasJsonSamples = parser.isSet("samples");
+  bool hasIdxData = parser.isSet("idx-data");
+  bool hasIdxLabels = parser.isSet("idx-labels");
 
   if (hasJsonSamples && hasIdxData) {
     std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
@@ -329,21 +386,21 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
   }
 
   if (hasJsonSamples) {
-    QString samplesPath = parser_.value("samples");
+    QString samplesPath = parser.value("samples");
     inputFilePath = samplesPath;
-    if (verbose_) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadANNSamples(samplesPath.toStdString());
+    if (verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
+    samples = Loader::loadANNSamples(samplesPath.toStdString(), ioConfig);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
       return {samples, false};
     }
 
-    QString idxDataPath = parser_.value("idx-data");
-    QString idxLabelsPath = parser_.value("idx-labels");
+    QString idxDataPath = parser.value("idx-data");
+    QString idxLabelsPath = parser.value("idx-labels");
     inputFilePath = idxDataPath;
 
-    if (verbose_) {
+    if (verbose) {
       std::cout << "Loading " << modeName << " samples from IDX:\n";
       std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
@@ -355,7 +412,7 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
     return {samples, false};
   }
 
-  if (verbose_) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
+  if (verbose) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
 
   return {samples, true};
 }
@@ -367,33 +424,33 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
     QString& inputFilePath) {
   CNN::Samples<float> samples;
 
-  bool hasJsonSamples = parser_.isSet("samples");
-  bool hasIdxData = parser_.isSet("idx-data");
-  bool hasIdxLabels = parser_.isSet("idx-labels");
+  bool hasJsonSamples = parser.isSet("samples");
+  bool hasIdxData = parser.isSet("idx-data");
+  bool hasIdxLabels = parser.isSet("idx-labels");
 
   if (hasJsonSamples && hasIdxData) {
     std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
     return {samples, false};
   }
 
-  const CNN::Shape3D& inputShape = cnnCoreConfig_.inputShape;
+  const CNN::Shape3D& inputShape = cnnCoreConfig.inputShape;
 
   if (hasJsonSamples) {
-    QString samplesPath = parser_.value("samples");
+    QString samplesPath = parser.value("samples");
     inputFilePath = samplesPath;
-    if (verbose_) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape);
+    if (verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
+    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, ioConfig);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
       return {samples, false};
     }
 
-    QString idxDataPath = parser_.value("idx-data");
-    QString idxLabelsPath = parser_.value("idx-labels");
+    QString idxDataPath = parser.value("idx-data");
+    QString idxLabelsPath = parser.value("idx-labels");
     inputFilePath = idxDataPath;
 
-    if (verbose_) {
+    if (verbose) {
       std::cout << "Loading " << modeName << " samples from IDX:\n";
       std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
@@ -405,7 +462,7 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
     return {samples, false};
   }
 
-  if (verbose_) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
+  if (verbose) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
 
   return {samples, true};
 }
@@ -447,11 +504,32 @@ std::string Runner::generateDefaultOutputPath(
 //  Model save helpers
 //===================================================================================================================//
 
-void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& filePath) {
+void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& filePath,
+                           const IOConfig& ioConfig) {
   nlohmann::ordered_json json;
 
   json["device"] = ANN::Device::typeToName(core.getDeviceType());
   json["mode"] = ANN::Mode::typeToName(core.getModeType());
+
+  // I/O types (NN-CLI concept, persisted so predict/test can reload them)
+  json["inputType"] = dataTypeToString(ioConfig.inputType);
+  json["outputType"] = dataTypeToString(ioConfig.outputType);
+
+  if (ioConfig.hasInputShape()) {
+    nlohmann::ordered_json isJson;
+    isJson["c"] = ioConfig.inputC;
+    isJson["h"] = ioConfig.inputH;
+    isJson["w"] = ioConfig.inputW;
+    json["inputShape"] = isJson;
+  }
+
+  if (ioConfig.hasOutputShape()) {
+    nlohmann::ordered_json osJson;
+    osJson["c"] = ioConfig.outputC;
+    osJson["h"] = ioConfig.outputH;
+    osJson["w"] = ioConfig.outputW;
+    json["outputShape"] = osJson;
+  }
 
   // Layers config
   nlohmann::ordered_json layersArr = nlohmann::ordered_json::array();
@@ -498,19 +576,33 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
 
 //===================================================================================================================//
 
-void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& filePath) {
+void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& filePath,
+                           const IOConfig& ioConfig) {
   nlohmann::ordered_json json;
 
   json["device"] = CNN::Device::typeToName(core.getDeviceType());
   json["mode"] = CNN::Mode::typeToName(core.getModeType());
 
-  // Input shape
+  // I/O types (NN-CLI concept, persisted so predict/test can reload them)
+  json["inputType"] = dataTypeToString(ioConfig.inputType);
+  json["outputType"] = dataTypeToString(ioConfig.outputType);
+
+  // Input shape (CNN network shape, always present)
   const auto& shape = core.getInputShape();
   nlohmann::ordered_json shapeJson;
   shapeJson["c"] = shape.c;
   shapeJson["h"] = shape.h;
   shapeJson["w"] = shape.w;
   json["inputShape"] = shapeJson;
+
+  // Output shape (for image output reconstruction)
+  if (ioConfig.hasOutputShape()) {
+    nlohmann::ordered_json osJson;
+    osJson["c"] = ioConfig.outputC;
+    osJson["h"] = ioConfig.outputH;
+    osJson["w"] = ioConfig.outputW;
+    json["outputShape"] = osJson;
+  }
 
   // CNN layers config
   nlohmann::ordered_json cnnLayersArr = nlohmann::ordered_json::array();

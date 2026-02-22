@@ -118,7 +118,60 @@
 <p><strong>Output:</strong> Accuracy, precision, recall, and F1 score metrics.</p>
 </div>
 
-<h2 id="mnist-ann">3. MNIST with IDX Files (ANN)</h2>
+<h2 id="image-workflow">3. Image Classification with Image Files (CNN)</h2>
+<p>Training a CNN classifier using image file paths instead of numeric vectors.</p>
+
+<div class="card">
+<h3>Configuration</h3>
+<p>Create <code>image_config.json</code> with <code>inputType</code> set to <code>"image"</code>:</p>
+<pre><code>{
+  <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
+  <span class="keyword">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="keyword">"inputType"</span>: <span class="string">"image"</span>,
+  <span class="keyword">"outputType"</span>: <span class="string">"vector"</span>,
+  <span class="keyword">"inputShape"</span>: { <span class="keyword">"c"</span>: <span class="number">3</span>, <span class="keyword">"h"</span>: <span class="number">32</span>, <span class="keyword">"w"</span>: <span class="number">32</span> },
+  <span class="keyword">"cnnLayersConfig"</span>: [
+    { <span class="keyword">"type"</span>: <span class="string">"conv"</span>, <span class="keyword">"numFilters"</span>: <span class="number">8</span>, <span class="keyword">"filterH"</span>: <span class="number">3</span>, <span class="keyword">"filterW"</span>: <span class="number">3</span>, <span class="keyword">"slidingStrategy"</span>: <span class="string">"valid"</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"pool"</span>, <span class="keyword">"poolType"</span>: <span class="string">"max"</span>, <span class="keyword">"poolH"</span>: <span class="number">2</span>, <span class="keyword">"poolW"</span>: <span class="number">2</span> },
+    { <span class="keyword">"type"</span>: <span class="string">"flatten"</span> }
+  ],
+  <span class="keyword">"denseLayersConfig"</span>: [
+    { <span class="keyword">"numNeurons"</span>: <span class="number">64</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">2</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
+  ],
+  <span class="keyword">"trainingConfig"</span>: { <span class="keyword">"numEpochs"</span>: <span class="number">50</span>, <span class="keyword">"learningRate"</span>: <span class="number">0.01</span> }
+}</code></pre>
+</div>
+
+<div class="card">
+<h3>Training Data</h3>
+<p>Create <code>samples.json</code> with image paths (relative to the samples file):</p>
+<pre><code>{
+  <span class="keyword">"samples"</span>: [
+    { <span class="keyword">"input"</span>: <span class="string">"images/cat_01.png"</span>, <span class="keyword">"output"</span>: [<span class="number">1</span>, <span class="number">0</span>] },
+    { <span class="keyword">"input"</span>: <span class="string">"images/dog_01.png"</span>, <span class="keyword">"output"</span>: [<span class="number">0</span>, <span class="number">1</span>] },
+    { <span class="keyword">"input"</span>: <span class="string">"images/cat_02.png"</span>, <span class="keyword">"output"</span>: [<span class="number">1</span>, <span class="number">0</span>] },
+    { <span class="keyword">"input"</span>: <span class="string">"images/dog_02.png"</span>, <span class="keyword">"output"</span>: [<span class="number">0</span>, <span class="number">1</span>] }
+  ]
+}</code></pre>
+<p>Images are automatically loaded, resized to 32×32×3, normalised to [0, 1], and converted to NCHW layout.</p>
+</div>
+
+<div class="card">
+<h3>Training &amp; Prediction</h3>
+<pre><code><span class="comment"># Train with image input</span>
+<span class="func">NN-CLI</span> -c image_config.json -m train -s samples.json -o trained_model.json -v
+
+<span class="comment"># Predict — input.json contains: { "input": "test_photo.png" }</span>
+<span class="func">NN-CLI</span> -c trained_model.json -m predict -i input.json -o result.json</code></pre>
+</div>
+
+<div class="info-box">
+<strong>Image support:</strong> Use <code>--input-type image</code> or <code>--output-type image</code> on the command line to override the config file. Supported read formats: JPEG, PNG, BMP, GIF, TGA, PSD, HDR, PIC. Supported write formats: PNG, JPEG, BMP.
+</div>
+
+<h2 id="mnist-ann">4. MNIST with IDX Files (ANN)</h2>
 <p>Training on the classic MNIST dataset using binary IDX format.</p>
 
 <div class="card">
@@ -155,7 +208,7 @@
        --idx-labels t10k-labels.idx1-ubyte</code></pre>
 </div>
 
-<h2 id="mnist-cnn">4. MNIST with CNN</h2>
+<h2 id="mnist-cnn">5. MNIST with CNN</h2>
 <p>Using a convolutional network for better MNIST accuracy.</p>
 
 <div class="card">
@@ -192,7 +245,7 @@
        --idx-labels train-labels.idx1-ubyte -v</code></pre>
 </div>
 
-<h2 id="gpu-training">5. GPU Training</h2>
+<h2 id="gpu-training">6. GPU Training</h2>
 <p>Accelerate training by switching to GPU.</p>
 
 <div class="card">
@@ -213,7 +266,7 @@
 <pre><code><span class="func">NN-CLI</span> -c config.json -m train -s samples.json -d cpu -v</code></pre>
 </div>
 
-<h2 id="tips">6. Tips &amp; Best Practices</h2>
+<h2 id="tips">7. Tips &amp; Best Practices</h2>
 
 <div class="tip-box">
 <strong>Learning Rate:</strong> Start with small values (0.001–0.1) and adjust based on training loss. Too high causes divergence; too low causes slow convergence.
