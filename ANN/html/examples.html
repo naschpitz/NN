@@ -56,15 +56,15 @@ ANN::TrainingConfig&lt;<span class="type">float</span>&gt; trainingConfig;
 trainingConfig.numEpochs       = <span class="number">50</span>;
 trainingConfig.learningRate    = <span class="number">0.01f</span>;
 trainingConfig.numThreads      = <span class="number">0</span>;     <span class="comment">// Use all CPU cores</span>
-trainingConfig.progressReports = <span class="number">1000</span>;
 
 <span class="comment">// Assemble the core configuration</span>
 ANN::CoreConfig&lt;<span class="type">float</span>&gt; config;
-config.deviceType    = ANN::DeviceType::CPU;
-config.modeType      = ANN::ModeType::TRAIN;
-config.layersConfig  = layersConfig;
-config.trainingConfig = trainingConfig;
-config.verbose       = <span class="keyword">true</span>;
+config.deviceType      = ANN::DeviceType::CPU;
+config.modeType        = ANN::ModeType::TRAIN;
+config.layersConfig    = layersConfig;
+config.trainingConfig  = trainingConfig;
+config.progressReports = <span class="number">1000</span>;   <span class="comment">// Progress update frequency (all modes)</span>
+config.verbose         = <span class="keyword">true</span>;
 
 <span class="comment">// Create the core — factory returns CPU or GPU backend</span>
 <span class="keyword">auto</span> core = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);

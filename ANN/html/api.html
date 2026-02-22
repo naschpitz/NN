@@ -121,7 +121,6 @@
     <span class="type">float</span> learningRate   = <span class="number">0.01f</span>;  <span class="comment">// SGD learning rate</span>
     <span class="type">int</span>   numThreads     = <span class="number">0</span>;       <span class="comment">// CPU threads (0 = all cores)</span>
     <span class="type">int</span>   numGPUs        = <span class="number">0</span>;       <span class="comment">// GPUs to use (0 = all available)</span>
-    <span class="type">ulong</span> progressReports = <span class="number">1000</span>;  <span class="comment">// Callback frequency per epoch</span>
 };
 </code></pre>
 
@@ -141,6 +140,7 @@
     LayersConfig          layersConfig;
     TrainingConfig&lt;T&gt;     trainingConfig;
     Parameters&lt;T&gt;         parameters;
+    <span class="type">ulong</span>                 progressReports = <span class="number">1000</span>;  <span class="comment">// Progress frequency (all modes)</span>
     <span class="type">bool</span>                  verbose = <span class="keyword">false</span>;
 };
 </code></pre>
