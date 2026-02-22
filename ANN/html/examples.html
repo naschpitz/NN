@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Code Examples — ANN Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>ANN</h1><span class="subtitle">Artificial Neural Network Library</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <a href="examples.html" class="active">Code Examples</a>
+  <div class="section-title">Reference</div>
+  <a href="api.html">API Reference</a>
+  <a href="architecture.html">Architecture</a>
+  <div class="section-title">Deep Dive</div>
+  <a href="math.html">Mathematical Foundations</a>
+  <a href="gpu.html">GPU Implementation</a>
+</nav></aside>
+<main class="main">
+
+<h1>Code Examples</h1>
+
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#create">Creating a Network</a></li>
+    <li><a href="#train">Training</a></li>
+    <li><a href="#predict">Prediction</a></li>
+    <li><a href="#test">Testing</a></li>
+    <li><a href="#save-load">Saving &amp; Loading</a></li>
+    <li><a href="#step">Step-by-Step Training</a></li>
+    <li><a href="#gpu">GPU Training</a></li>
+    <li><a href="#xor">XOR Example</a></li>
+  </ol>
+</div>
+
+<h2 id="create">1. Creating a Network</h2>
+<pre><code><span class="keyword">#include</span> <span class="string">"ANN_Core.hpp"</span>
+
+<span class="comment">// Define the network architecture</span>
+ANN::LayersConfig layersConfig;
+layersConfig.push_back({<span class="number">784</span>, ANN::ActvFuncType::RELU});    <span class="comment">// Input layer (784 features)</span>
+layersConfig.push_back({<span class="number">128</span>, ANN::ActvFuncType::RELU});    <span class="comment">// Hidden layer 1</span>
+layersConfig.push_back({<span class="number">64</span>,  ANN::ActvFuncType::RELU});    <span class="comment">// Hidden layer 2</span>
+layersConfig.push_back({<span class="number">10</span>,  ANN::ActvFuncType::SIGMOID}); <span class="comment">// Output layer (10 classes)</span>
+
+<span class="comment">// Set training hyperparameters</span>
+ANN::TrainingConfig&lt;<span class="type">float</span>&gt; trainingConfig;
+trainingConfig.numEpochs       = <span class="number">50</span>;
+trainingConfig.learningRate    = <span class="number">0.01f</span>;
+trainingConfig.numThreads      = <span class="number">0</span>;     <span class="comment">// Use all CPU cores</span>
+trainingConfig.progressReports = <span class="number">1000</span>;
+
+<span class="comment">// Assemble the core configuration</span>
+ANN::CoreConfig&lt;<span class="type">float</span>&gt; config;
+config.deviceType    = ANN::DeviceType::CPU;
+config.modeType      = ANN::ModeType::TRAIN;
+config.layersConfig  = layersConfig;
+config.trainingConfig = trainingConfig;
+config.verbose       = <span class="keyword">true</span>;
+
+<span class="comment">// Create the core — factory returns CPU or GPU backend</span>
+<span class="keyword">auto</span> core = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
+</code></pre>
+
+<h2 id="train">2. Training</h2>
+<pre><code><span class="comment">// Prepare training data</span>
+ANN::Samples&lt;<span class="type">float</span>&gt; samples;
+<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; [image, label] : dataset) {
+    samples.push_back({image, label});
+}
+
+<span class="comment">// Attach a progress callback</span>
+core-&gt;setTrainingCallback([](<span class="keyword">const</span> ANN::TrainingProgress&lt;<span class="type">float</span>&gt;&amp; p) {
+    std::cout &lt;&lt; <span class="string">"Epoch "</span> &lt;&lt; p.currentEpoch &lt;&lt; <span class="string">"/"</span> &lt;&lt; p.totalEpochs
+              &lt;&lt; <span class="string">"  Sample "</span> &lt;&lt; p.currentSample &lt;&lt; <span class="string">"/"</span> &lt;&lt; p.totalSamples
+              &lt;&lt; <span class="string">"  Loss: "</span> &lt;&lt; p.epochLoss &lt;&lt; <span class="string">"\r"</span> &lt;&lt; std::flush;
+});
+
+<span class="comment">// Train!</span>
+core-&gt;train(samples);
+
+<span class="comment">// Check results</span>
+<span class="keyword">auto</span> meta = core-&gt;getTrainingMetadata();
+std::cout &lt;&lt; <span class="string">"Done in "</span> &lt;&lt; meta.durationFormatted
+          &lt;&lt; <span class="string">" — Final loss: "</span> &lt;&lt; meta.finalLoss &lt;&lt; std::endl;
+</code></pre>
+
+<h2 id="predict">3. Prediction</h2>
+<pre><code><span class="comment">// Single inference</span>
+ANN::Input&lt;<span class="type">float</span>&gt; input = {<span class="number">0.5f</span>, <span class="number">0.3f</span>, <span class="number">0.8f</span>, <span class="comment">/* ... */</span>};
+ANN::Output&lt;<span class="type">float</span>&gt; output = core-&gt;predict(input);
+
+<span class="comment">// Find the predicted class (index of max output)</span>
+<span class="type">int</span> predicted = std::distance(output.begin(),
+    std::max_element(output.begin(), output.end()));
+std::cout &lt;&lt; <span class="string">"Predicted class: "</span> &lt;&lt; predicted &lt;&lt; std::endl;
+</code></pre>
+
+<h2 id="test">4. Testing</h2>
+<pre><code>ANN::Samples&lt;<span class="type">float</span>&gt; testSamples = <span class="comment">/* load test set */</span>;
+ANN::TestResult&lt;<span class="type">float</span>&gt; result = core-&gt;test(testSamples);
+std::cout &lt;&lt; <span class="string">"Test — Samples: "</span> &lt;&lt; result.numSamples
+          &lt;&lt; <span class="string">"  Avg Loss: "</span> &lt;&lt; result.averageLoss &lt;&lt; std::endl;
+</code></pre>
+
+<h2 id="save-load">5. Saving &amp; Loading</h2>
+<pre><code><span class="keyword">#include</span> <span class="string">"ANN_Utils.hpp"</span>
+
+<span class="comment">// Save trained model to JSON</span>
+ANN::Utils&lt;<span class="type">float</span>&gt;::save(*core, <span class="string">"trained_model.json"</span>);
+
+<span class="comment">// Load model later (creates a new Core in PREDICT mode)</span>
+<span class="keyword">auto</span> loaded = ANN::Utils&lt;<span class="type">float</span>&gt;::load(<span class="string">"trained_model.json"</span>);
+ANN::Output&lt;<span class="type">float</span>&gt; result = loaded-&gt;predict(someInput);
+</code></pre>
+
+<h2 id="step">6. Step-by-Step Training</h2>
+<p>For fine-grained control, you can call each phase of the training loop manually:</p>
+<pre><code><span class="comment">// Step-by-step: predict → backpropagate → accumulate → update</span>
+<span class="keyword">for</span> (<span class="type">int</span> epoch = <span class="number">0</span>; epoch &lt; numEpochs; epoch++) {
+    <span class="comment">// Reset accumulated gradients</span>
+    core-&gt;resetAccumulators();
+
+    <span class="keyword">for</span> (<span class="keyword">auto</span>&amp; sample : samples) {
+        <span class="comment">// 1. Forward pass</span>
+        ANN::Output&lt;<span class="type">float</span>&gt; output = core-&gt;predict(sample.input);
+
+        <span class="comment">// 2. Backward pass — computes gradients for this sample</span>
+        core-&gt;backpropagate(sample.output);
+
+        <span class="comment">// 3. Add gradients to running accumulators</span>
+        core-&gt;accumulate();
+    }
+
+    <span class="comment">// 4. Apply SGD update (divides by numSamples internally)</span>
+    core-&gt;update(samples.size());
+}
+</code></pre>
+
+<div class="info-box">
+  <strong>When to use:</strong> Step-by-step mode is used internally by the CNN library, where the forward pass goes through CNN layers first, then through the ANN dense layers. The ANN's <code>backpropagate()</code> returns input gradients that flow back into the CNN layers.
+</div>
+
+<h2 id="gpu">7. GPU Training</h2>
+<pre><code><span class="comment">// Switch to GPU by changing the device type</span>
+ANN::CoreConfig&lt;<span class="type">float</span>&gt; gpuConfig;
+gpuConfig.deviceType     = ANN::DeviceType::GPU;
+gpuConfig.modeType       = ANN::ModeType::TRAIN;
+gpuConfig.layersConfig   = layersConfig;
+gpuConfig.trainingConfig = trainingConfig;
+gpuConfig.trainingConfig.numGPUs = <span class="number">2</span>;  <span class="comment">// Use 2 GPUs</span>
+gpuConfig.verbose        = <span class="keyword">true</span>;
+
+<span class="keyword">auto</span> gpuCore = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(gpuConfig);
+
+<span class="comment">// Training works exactly the same way</span>
+gpuCore-&gt;train(samples);
+
+<span class="comment">// Predict also works the same</span>
+ANN::Output&lt;<span class="type">float</span>&gt; pred = gpuCore-&gt;predict(someInput);
+</code></pre>
+
+<div class="warn-box">
+  <strong>Requirements:</strong> GPU training requires OpenCL-capable hardware and the OpenCLWrapper library. The kernel files in <code>opencl/</code> must be accessible from the working directory via <code>extern/ANN/opencl/</code>.
+</div>
+
+<h2 id="xor">8. Complete XOR Example</h2>
+<p>A minimal end-to-end example that trains a network to learn the XOR function:</p>
+<pre><code><span class="keyword">#include</span> <span class="string">"ANN_Core.hpp"</span>
+<span class="keyword">#include</span> &lt;iostream&gt;
+
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="comment">// XOR has 2 inputs, 1 output</span>
+    ANN::LayersConfig layers;
+    layers.push_back({<span class="number">2</span>, ANN::ActvFuncType::RELU});     <span class="comment">// Input</span>
+    layers.push_back({<span class="number">4</span>, ANN::ActvFuncType::RELU});     <span class="comment">// Hidden</span>
+    layers.push_back({<span class="number">1</span>, ANN::ActvFuncType::SIGMOID});  <span class="comment">// Output</span>
+
+    ANN::TrainingConfig&lt;<span class="type">float</span>&gt; tc;
+    tc.numEpochs    = <span class="number">500</span>;
+    tc.learningRate = <span class="number">0.1f</span>;
+
+    ANN::CoreConfig&lt;<span class="type">float</span>&gt; cfg;
+    cfg.deviceType     = ANN::DeviceType::CPU;
+    cfg.modeType       = ANN::ModeType::TRAIN;
+    cfg.layersConfig   = layers;
+    cfg.trainingConfig = tc;
+
+    <span class="keyword">auto</span> core = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(cfg);
+
+    <span class="comment">// XOR training data</span>
+    ANN::Samples&lt;<span class="type">float</span>&gt; samples = {
+        {{<span class="number">0</span>, <span class="number">0</span>}, {<span class="number">0</span>}},
+        {{<span class="number">0</span>, <span class="number">1</span>}, {<span class="number">1</span>}},
+        {{<span class="number">1</span>, <span class="number">0</span>}, {<span class="number">1</span>}},
+        {{<span class="number">1</span>, <span class="number">1</span>}, {<span class="number">0</span>}}
+    };
+
+    core-&gt;train(samples);
+
+    <span class="comment">// Verify</span>
+    <span class="keyword">for</span> (<span class="keyword">auto</span>&amp; s : samples) {
+        <span class="keyword">auto</span> out = core-&gt;predict(s.input);
+        std::cout &lt;&lt; s.input[<span class="number">0</span>] &lt;&lt; <span class="string">" XOR "</span> &lt;&lt; s.input[<span class="number">1</span>]
+                  &lt;&lt; <span class="string">" = "</span> &lt;&lt; out[<span class="number">0</span>] &lt;&lt; std::endl;
+    }
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+</code></pre>
+
+<div class="tip-box">
+  <strong>Expected output:</strong> After training, the network should output values close to 0 for inputs (0,0) and (1,1), and values close to 1 for inputs (0,1) and (1,0).
+</div>
+
+</main>
+</div>
+<footer class="site-footer">ANN Library Documentation</footer>
+</body></html>
+

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>API Reference — ANN Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>ANN</h1><span class="subtitle">Artificial Neural Network Library</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <a href="examples.html">Code Examples</a>
+  <div class="section-title">Reference</div>
+  <a href="api.html" class="active">API Reference</a>
+  <a href="architecture.html">Architecture</a>
+  <div class="section-title">Deep Dive</div>
+  <a href="math.html">Mathematical Foundations</a>
+  <a href="gpu.html">GPU Implementation</a>
+</nav></aside>
+<main class="main">
+
+<h1>API Reference</h1>
+<p>Complete reference for every public class, struct, enum, and function in the ANN library. All types live in the <code>ANN</code> namespace.</p>
+
+<div class="toc">
+  <h4>Contents</h4>
+  <ol>
+    <li><a href="#types">Type Aliases</a></li>
+    <li><a href="#enums">Enumerations</a></li>
+    <li><a href="#structs">Structs &amp; Configs</a></li>
+    <li><a href="#core">Core&lt;T&gt; (Abstract Base)</a></li>
+    <li><a href="#corecpu">CoreCPU&lt;T&gt;</a></li>
+    <li><a href="#coregpu">CoreGPU&lt;T&gt; &amp; CoreGPUWorker&lt;T&gt;</a></li>
+    <li><a href="#actvfunc">ActvFunc</a></li>
+    <li><a href="#utils">Utils&lt;T&gt;</a></li>
+  </ol>
+</div>
+
+<!-- ========== TYPES ========== -->
+<h2 id="types">1. Type Aliases <span class="badge badge-blue">ANN_Types.hpp</span></h2>
+<table>
+  <tr><th>Alias</th><th>Definition</th><th>Description</th></tr>
+  <tr><td><code>Input&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Single input vector</td></tr>
+  <tr><td><code>Output&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Single output vector</td></tr>
+  <tr><td><code>Inputs&lt;T&gt;</code></td><td><code>std::vector&lt;Input&lt;T&gt;&gt;</code></td><td>Batch of inputs</td></tr>
+  <tr><td><code>Outputs&lt;T&gt;</code></td><td><code>std::vector&lt;Output&lt;T&gt;&gt;</code></td><td>Batch of outputs</td></tr>
+  <tr><td><code>Tensor1D&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>1-D tensor</td></tr>
+  <tr><td><code>Tensor2D&lt;T&gt;</code></td><td><code>std::vector&lt;std::vector&lt;T&gt;&gt;</code></td><td>2-D tensor (matrix)</td></tr>
+  <tr><td><code>Tensor3D&lt;T&gt;</code></td><td><code>std::vector&lt;std::vector&lt;std::vector&lt;T&gt;&gt;&gt;</code></td><td>3-D tensor</td></tr>
+</table>
+
+<h3>Sample&lt;T&gt; <span class="badge badge-blue">ANN_Sample.hpp</span></h3>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">struct</span> <span class="type">Sample</span> {
+    Input&lt;T&gt;  input;   <span class="comment">// Feature vector</span>
+    Output&lt;T&gt; output;  <span class="comment">// Expected label vector</span>
+};
+
+<span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">using</span> Samples = std::vector&lt;Sample&lt;T&gt;&gt;;
+</code></pre>
+
+<!-- ========== ENUMS ========== -->
+<h2 id="enums">2. Enumerations</h2>
+
+<h3>DeviceType <span class="badge badge-blue">ANN_Device.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>String</th><th>Meaning</th></tr>
+  <tr><td><code>CPU</code></td><td><code>"cpu"</code></td><td>Multi-threaded CPU execution</td></tr>
+  <tr><td><code>GPU</code></td><td><code>"gpu"</code></td><td>OpenCL GPU execution</td></tr>
+  <tr><td><code>UNKNOWN</code></td><td>—</td><td>Invalid / unset</td></tr>
+</table>
+<p>Helpers: <code>Device::nameToType(str)</code>, <code>Device::typeToName(type)</code></p>
+
+<h3>ModeType <span class="badge badge-blue">ANN_Mode.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>String</th><th>Meaning</th></tr>
+  <tr><td><code>TRAIN</code></td><td><code>"train"</code></td><td>Training mode — runs forward + backward passes</td></tr>
+  <tr><td><code>PREDICT</code></td><td><code>"predict"</code></td><td>Inference only — runs forward pass</td></tr>
+  <tr><td><code>TEST</code></td><td><code>"test"</code></td><td>Evaluation — forward pass + loss calculation</td></tr>
+  <tr><td><code>UNKNOWN</code></td><td>—</td><td>Invalid / unset</td></tr>
+</table>
+<p>Helpers: <code>Mode::nameToType(str)</code>, <code>Mode::typeToName(type)</code></p>
+
+<h3>ActvFuncType <span class="badge badge-blue">ANN_ActvFunc.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>String</th><th>Function</th><th>Derivative</th></tr>
+  <tr><td><code>RELU</code></td><td><code>"relu"</code></td><td>max(0, x)</td><td>1 if x &gt; 0, else 0</td></tr>
+  <tr><td><code>SIGMOID</code></td><td><code>"sigmoid"</code></td><td>1 / (1 + e⁻ˣ)</td><td>σ(x) · (1 − σ(x))</td></tr>
+  <tr><td><code>TANH</code></td><td><code>"tanh"</code></td><td>tanh(x)</td><td>1 − tanh²(x)</td></tr>
+</table>
+
+<!-- ========== STRUCTS ========== -->
+<h2 id="structs">3. Structs &amp; Configurations</h2>
+
+<h3>Layer <span class="badge badge-blue">ANN_LayersConfig.hpp</span></h3>
+<pre><code><span class="keyword">struct</span> <span class="type">Layer</span> {
+    <span class="type">ulong</span> numNeurons;            <span class="comment">// Number of neurons in this layer</span>
+    ActvFuncType actvFuncType;   <span class="comment">// Activation function type</span>
+};
+</code></pre>
+
+<h3>LayersConfig <span class="badge badge-blue">ANN_LayersConfig.hpp</span></h3>
+<p>Inherits <code>std::vector&lt;Layer&gt;</code>. Represents the full network architecture.</p>
+<pre><code><span class="keyword">class</span> <span class="type">LayersConfig</span> : <span class="keyword">public</span> std::vector&lt;Layer&gt; {
+<span class="keyword">public</span>:
+    <span class="type">ulong</span> <span class="func">getTotalNumNeurons</span>() <span class="keyword">const</span>;  <span class="comment">// Sum of all layers' neuron counts</span>
+};
+</code></pre>
+<h3>TrainingConfig&lt;T&gt; <span class="badge badge-blue">ANN_TrainingConfig.hpp</span></h3>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">struct</span> <span class="type">TrainingConfig</span> {
+    <span class="type">ulong</span> numEpochs      = <span class="number">0</span>;       <span class="comment">// Total training epochs</span>
+    <span class="type">float</span> learningRate   = <span class="number">0.01f</span>;  <span class="comment">// SGD learning rate</span>
+    <span class="type">int</span>   numThreads     = <span class="number">0</span>;       <span class="comment">// CPU threads (0 = all cores)</span>
+    <span class="type">int</span>   numGPUs        = <span class="number">0</span>;       <span class="comment">// GPUs to use (0 = all available)</span>
+    <span class="type">ulong</span> progressReports = <span class="number">1000</span>;  <span class="comment">// Callback frequency per epoch</span>
+};
+</code></pre>
+
+<h3>Parameters&lt;T&gt; <span class="badge badge-blue">ANN_Parameters.hpp</span></h3>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">struct</span> <span class="type">Parameters</span> {
+    Tensor3D&lt;T&gt; weights;  <span class="comment">// weights[layer][neuron][input]</span>
+    Tensor2D&lt;T&gt; biases;   <span class="comment">// biases[layer][neuron]</span>
+};
+</code></pre>
+
+<h3>CoreConfig&lt;T&gt; <span class="badge badge-blue">ANN_CoreConfig.hpp</span></h3>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">struct</span> <span class="type">CoreConfig</span> {
+    ModeType              modeType;
+    DeviceType            deviceType;
+    LayersConfig          layersConfig;
+    TrainingConfig&lt;T&gt;     trainingConfig;
+    Parameters&lt;T&gt;         parameters;
+    <span class="type">bool</span>                  verbose = <span class="keyword">false</span>;
+};
+</code></pre>
+
+<h3>TrainingProgress&lt;T&gt; <span class="badge badge-blue">ANN_TrainingProgress.hpp</span></h3>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">struct</span> <span class="type">TrainingProgress</span> {
+    <span class="type">ulong</span> currentEpoch, totalEpochs;
+    <span class="type">ulong</span> currentSample, totalSamples;
+    T     epochLoss;        <span class="comment">// Running average loss for the epoch</span>
+    T     sampleLoss;       <span class="comment">// Loss of the current sample</span>
+    <span class="type">int</span>   gpuIndex = <span class="number">-1</span>;   <span class="comment">// -1 = CPU or combined, ≥0 = specific GPU</span>
+    <span class="type">int</span>   totalGPUs = <span class="number">1</span>;
+};
+
+<span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">using</span> TrainingCallback = std::function&lt;<span class="type">void</span>(<span class="keyword">const</span> TrainingProgress&lt;T&gt;&amp;)&gt;;
+</code></pre>
+
+<h3>TrainingMetadata&lt;T&gt; <span class="badge badge-blue">ANN_TrainingMetadata.hpp</span></h3>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">struct</span> <span class="type">TrainingMetadata</span> {
+    std::string startTime;          <span class="comment">// ISO 8601</span>
+    std::string endTime;
+    <span class="type">double</span>      durationSeconds;
+    std::string durationFormatted;  <span class="comment">// e.g. "1h 23m 45s"</span>
+    <span class="type">ulong</span>       numSamples;
+    T           finalLoss;
+};
+</code></pre>
+
+<h3>PredictMetadata&lt;T&gt; <span class="badge badge-blue">ANN_PredictMetadata.hpp</span></h3>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">struct</span> <span class="type">PredictMetadata</span> {
+    std::string startTime, endTime;
+    <span class="type">double</span>      durationSeconds;
+    std::string durationFormatted;
+};
+</code></pre>
+
+<h3>TestResult&lt;T&gt; <span class="badge badge-blue">ANN_TestResult.hpp</span></h3>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">struct</span> <span class="type">TestResult</span> {
+    <span class="type">ulong</span> numSamples;
+    T     totalLoss;
+    T     averageLoss;
+};
+</code></pre>
+
+<!-- ========== CORE ========== -->
+<h2 id="core">4. Core&lt;T&gt; — Abstract Base Class <span class="badge badge-green">ANN_Core.hpp</span></h2>
+<p>The abstract base class for all ANN backends. Use the factory method to create instances:</p>
+<pre><code><span class="keyword">static</span> std::unique_ptr&lt;Core&lt;T&gt;&gt; <span class="func">makeCore</span>(<span class="keyword">const</span> CoreConfig&lt;T&gt;&amp; config);
+</code></pre>
+
+<h3>Public Methods</h3>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>Output&lt;T&gt;</code></td><td>Forward pass — produces network output</td></tr>
+  <tr><td><code>train(const Samples&lt;T&gt;&amp;)</code></td><td><code>void</code></td><td>Full training loop over all epochs</td></tr>
+  <tr><td><code>test(const Samples&lt;T&gt;&amp;)</code></td><td><code>TestResult&lt;T&gt;</code></td><td>Evaluate loss on a test set</td></tr>
+  <tr><td><code>backpropagate(const Output&lt;T&gt;&amp;)</code></td><td><code>Tensor1D&lt;T&gt;</code></td><td>Compute gradients; returns input-layer gradient</td></tr>
+  <tr><td><code>accumulate()</code></td><td><code>void</code></td><td>Add current gradients to running accumulators</td></tr>
+  <tr><td><code>resetAccumulators()</code></td><td><code>void</code></td><td>Zero out gradient accumulators</td></tr>
+  <tr><td><code>update(ulong numSamples)</code></td><td><code>void</code></td><td>SGD step: <code>params -= lr · (accum / n)</code></td></tr>
+</table>
+
+<h3>Accessors</h3>
+<table>
+  <tr><th>Method</th><th>Returns</th></tr>
+  <tr><td><code>getDeviceType()</code></td><td><code>DeviceType</code></td></tr>
+  <tr><td><code>getModeType()</code></td><td><code>ModeType</code></td></tr>
+  <tr><td><code>getLayersConfig()</code></td><td><code>const LayersConfig&amp;</code></td></tr>
+  <tr><td><code>getTrainingConfig()</code></td><td><code>const TrainingConfig&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getTrainingMetadata()</code></td><td><code>const TrainingMetadata&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getPredictMetadata()</code></td><td><code>const PredictMetadata&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getParameters()</code></td><td><code>const Parameters&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>setTrainingCallback(TrainingCallback&lt;T&gt;)</code></td><td><code>void</code></td></tr>
+</table>
+
+<!-- ========== CORECPU ========== -->
+<h2 id="corecpu">5. CoreCPU&lt;T&gt; <span class="badge badge-green">ANN_CoreCPU.hpp</span></h2>
+<p>Multi-threaded CPU implementation. See <a href="architecture.html">Architecture</a> for the internal worker structure.</p>
+<div class="info-box">
+  <strong>Thread model:</strong> Each thread has its own <code>SampleWorker&lt;T&gt;</code> struct containing private copies of activations, gradients, and accumulators. After processing its sample subset, the main thread merges worker accumulators into the global accumulators.
+</div>
+
+<h3>Key Internal Functions (called from <code>train</code>)</h3>
+<table>
+  <tr><th>Function</th><th>Purpose</th></tr>
+  <tr><td><code>propagate(input, actvs, zs)</code></td><td>Forward pass: compute z and activation for every layer</td></tr>
+  <tr><td><code>backpropagate(output, actvs, zs, dActvs, dWeights, dBiases)</code></td><td>Compute all gradients via chain rule</td></tr>
+  <tr><td><code>calc_dCost_dActv(j, output, actvs)</code></td><td>Output-layer activation gradient: 2·(a − y)</td></tr>
+  <tr><td><code>calc_dCost_dActv(l, k, zs, dActvs)</code></td><td>Hidden-layer activation gradient via chain rule</td></tr>
+  <tr><td><code>calc_dCost_dWeight(l, j, k, actvs, zs, dActvs)</code></td><td>Weight gradient: a[l-1][k] · f'(z[l][j]) · δ[l][j]</td></tr>
+  <tr><td><code>calc_dCost_dBias(l, j, zs, dActvs)</code></td><td>Bias gradient: f'(z[l][j]) · δ[l][j]</td></tr>
+</table>
+
+<!-- ========== COREGPU ========== -->
+<h2 id="coregpu">6. CoreGPU&lt;T&gt; &amp; CoreGPUWorker&lt;T&gt; <span class="badge badge-green">ANN_CoreGPU.hpp</span></h2>
+<p><code>CoreGPU</code> orchestrates multiple <code>CoreGPUWorker</code> instances (one per physical GPU). See <a href="gpu.html">GPU Deep Dive</a> for full details.</p>
+
+<h3>CoreGPU Coordination Methods</h3>
+<table>
+  <tr><th>Method</th><th>Description</th></tr>
+  <tr><td><code>initializeWorkers()</code></td><td>Create one CoreGPUWorker per GPU</td></tr>
+  <tr><td><code>mergeGradients()</code></td><td>Sum accumulated gradients from all GPUs</td></tr>
+</table>
+
+<h3>CoreGPUWorker Buffer Layout</h3>
+<table>
+  <tr><th>Buffer</th><th>Shape</th><th>Description</th></tr>
+  <tr><td><code>actvs</code></td><td>flat [total neurons]</td><td>Activations for all layers</td></tr>
+  <tr><td><code>zs</code></td><td>flat [total neurons]</td><td>Pre-activation values</td></tr>
+  <tr><td><code>weights</code></td><td>flat [total weights]</td><td>All connection weights</td></tr>
+  <tr><td><code>biases</code></td><td>flat [total neurons]</td><td>All biases</td></tr>
+  <tr><td><code>dCost_dActvs</code></td><td>flat [total neurons]</td><td>Activation gradients</td></tr>
+  <tr><td><code>dCost_dWeights</code></td><td>flat [total weights]</td><td>Weight gradients</td></tr>
+  <tr><td><code>dCost_dBiases</code></td><td>flat [total neurons]</td><td>Bias gradients</td></tr>
+  <tr><td><code>accum_*</code></td><td>same as above</td><td>Running gradient accumulators</td></tr>
+</table>
+
+<!-- ========== ACTVFUNC ========== -->
+<h2 id="actvfunc">7. ActvFunc <span class="badge badge-green">ANN_ActvFunc.hpp</span></h2>
+<pre><code><span class="keyword">class</span> <span class="type">ActvFunc</span> {
+<span class="keyword">public</span>:
+    <span class="keyword">static</span> <span class="type">float</span> <span class="func">calculate</span>(<span class="type">float</span> x, ActvFuncType type, <span class="type">bool</span> derivative = <span class="keyword">false</span>);
+    <span class="keyword">static</span> ActvFuncType <span class="func">nameToType</span>(<span class="keyword">const</span> std::string&amp; name);
+    <span class="keyword">static</span> std::string  <span class="func">typeToName</span>(<span class="keyword">const</span> ActvFuncType&amp; type);
+};
+</code></pre>
+<p>When <code>derivative = true</code>, returns the derivative evaluated at <code>x</code> (the pre-activation value <em>z</em>). See <a href="math.html#activations">Math → Activations</a>.</p>
+
+<!-- ========== UTILS ========== -->
+<h2 id="utils">8. Utils&lt;T&gt; <span class="badge badge-green">ANN_Utils.hpp</span></h2>
+<table>
+  <tr><th>Method</th><th>Description</th></tr>
+  <tr><td><code>static unique_ptr&lt;Core&lt;T&gt;&gt; load(const string&amp; path)</code></td><td>Load model from JSON file and create Core instance</td></tr>
+  <tr><td><code>static string save(const Core&lt;T&gt;&amp;)</code></td><td>Serialize model to JSON string</td></tr>
+  <tr><td><code>static void save(const Core&lt;T&gt;&amp;, const string&amp; path)</code></td><td>Save model to JSON file</td></tr>
+  <tr><td><code>static string formatISO8601()</code></td><td>Current time as ISO 8601 string</td></tr>
+  <tr><td><code>static string formatDuration(double seconds)</code></td><td>Human-readable duration (e.g. "2h 15m 3s")</td></tr>
+  <tr><td><code>static ulong count(const V&amp; nested)</code></td><td>Count total elements in nested vector</td></tr>
+  <tr><td><code>static Tensor1D&lt;T&gt; flatten(const V&amp; nested)</code></td><td>Flatten nested vector to 1D</td></tr>
+  <tr><td><code>static void unflatten(const Tensor1D&lt;T&gt;&amp;, Tensor2D&lt;T&gt;&amp;)</code></td><td>Reshape 1D → 2D</td></tr>
+  <tr><td><code>static void unflatten(const Tensor1D&lt;T&gt;&amp;, Tensor3D&lt;T&gt;&amp;)</code></td><td>Reshape 1D → 3D</td></tr>
+</table>
+
+</main>
+</div>
+<footer class="site-footer">ANN Library Documentation</footer>
+</body></html>
+

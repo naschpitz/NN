@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Mathematical Foundations — ANN Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>ANN</h1><span class="subtitle">Artificial Neural Network Library</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <a href="examples.html">Code Examples</a>
+  <div class="section-title">Reference</div>
+  <a href="api.html">API Reference</a>
+  <a href="architecture.html">Architecture</a>
+  <div class="section-title">Deep Dive</div>
+  <a href="math.html" class="active">Mathematical Foundations</a>
+  <a href="gpu.html">GPU Implementation</a>
+</nav></aside>
+<main class="main">
+
+<h1>Mathematical Foundations</h1>
+<p>This page connects every mathematical formula to the exact C++ function that implements it. Understanding these derivations is essential for anyone extending or debugging the library.</p>
+
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#neuron">The Neuron Model</a></li>
+    <li><a href="#activations">Activation Functions</a></li>
+    <li><a href="#forward">Forward Propagation</a></li>
+    <li><a href="#loss">Loss Function</a></li>
+    <li><a href="#backprop">Backpropagation</a></li>
+    <li><a href="#sgd">Stochastic Gradient Descent</a></li>
+    <li><a href="#init">Weight Initialisation</a></li>
+  </ol>
+</div>
+
+<!-- ========== NEURON ========== -->
+<h2 id="neuron">1. The Neuron Model</h2>
+
+<p>A single neuron in layer \( l \) computes a weighted sum of its inputs plus a bias, then applies a non-linear activation function:</p>
+
+<div class="math-block">
+\[
+  z_j^{(l)} = b_j^{(l)} + \sum_{k=0}^{n_{l-1}-1} w_{jk}^{(l)} \cdot a_k^{(l-1)}
+\]
+\[
+  a_j^{(l)} = f\!\left( z_j^{(l)} \right)
+\]
+</div>
+
+<p>where:</p>
+<ul>
+  <li>\( z_j^{(l)} \) — pre-activation value (stored in <code>zs[l][j]</code>)</li>
+  <li>\( a_j^{(l)} \) — activation output (stored in <code>actvs[l][j]</code>)</li>
+  <li>\( w_{jk}^{(l)} \) — weight connecting neuron \(k\) in layer \(l-1\) to neuron \(j\) in layer \(l\) (stored in <code>weights[l][j][k]</code>)</li>
+  <li>\( b_j^{(l)} \) — bias for neuron \(j\) in layer \(l\) (stored in <code>biases[l][j]</code>)</li>
+  <li>\( f \) — activation function</li>
+</ul>
+
+<div class="tip-box">
+  <strong>Code link:</strong> The forward computation is in <code>CoreCPU::propagate()</code>. On GPU, the kernels <code>calculate_zs</code> and <code>calculate_actvs</code> in <code>Kernels.cpp.cl</code> perform the same calculation.
+</div>
+
+<figure class="diagram">
+<svg viewBox="0 0 520 200" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif" font-size="13">
+  <defs>
+    <marker id="arM" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#1a73e8"/></marker>
+  </defs>
+  <!-- Inputs -->
+  <circle cx="50" cy="40" r="22" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="50" y="44" text-anchor="middle" font-size="12" fill="#1a73e8">a₀</text>
+  <circle cx="50" cy="100" r="22" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="50" y="104" text-anchor="middle" font-size="12" fill="#1a73e8">a₁</text>
+  <circle cx="50" cy="160" r="22" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="50" y="164" text-anchor="middle" font-size="12" fill="#1a73e8">aₖ</text>
+
+  <!-- Weights -->
+  <line x1="72" y1="40" x2="208" y2="95" stroke="#5f6368" stroke-width="1" marker-end="url(#arM)"/>
+  <line x1="72" y1="100" x2="208" y2="100" stroke="#5f6368" stroke-width="1" marker-end="url(#arM)"/>
+  <line x1="72" y1="160" x2="208" y2="105" stroke="#5f6368" stroke-width="1" marker-end="url(#arM)"/>
+  <text x="140" y="60" text-anchor="middle" font-size="11" fill="#5f6368">w₀</text>
+  <text x="140" y="95" text-anchor="middle" font-size="11" fill="#5f6368">w₁</text>
+  <text x="140" y="150" text-anchor="middle" font-size="11" fill="#5f6368">wₖ</text>
+
+  <!-- Summation node -->
+  <circle cx="230" cy="100" r="22" fill="#e6f4ea" stroke="#34a853" stroke-width="1.5"/>
+  <text x="230" y="105" text-anchor="middle" font-size="16" font-weight="700" fill="#137333">Σ</text>
+  <text x="230" y="140" text-anchor="middle" font-size="10" fill="#5f6368">+ bias</text>
+
+  <!-- Arrow to activation -->
+  <line x1="252" y1="100" x2="308" y2="100" stroke="#1a73e8" stroke-width="1.5" marker-end="url(#arM)"/>
+  <text x="280" y="92" text-anchor="middle" font-size="11" fill="#1a73e8">z</text>
+
+  <!-- Activation node -->
+  <circle cx="330" cy="100" r="22" fill="#fef7e0" stroke="#f9ab00" stroke-width="1.5"/>
+  <text x="330" y="105" text-anchor="middle" font-size="14" font-weight="700" fill="#b06000">f</text>
+
+  <!-- Output -->
+  <line x1="352" y1="100" x2="418" y2="100" stroke="#1a73e8" stroke-width="1.5" marker-end="url(#arM)"/>
+  <circle cx="440" cy="100" r="22" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+  <text x="440" y="104" text-anchor="middle" font-size="12" fill="#1a73e8">aⱼ</text>
+</svg>
+<figcaption>Figure 1 — A single neuron: weighted sum → bias → activation function.</figcaption>
+</figure>
+
+<!-- ========== ACTIVATIONS ========== -->
+<h2 id="activations">2. Activation Functions</h2>
+<p>Implemented in <code>ANN_ActvFunc.cpp</code> and mirrored in <code>opencl/ActvFunc.cpp.cl</code>.</p>
+
+<h3>ReLU (Rectified Linear Unit)</h3>
+<div class="math-block">
+\[
+  f(z) = \max(0,\, z)
+  \qquad\qquad
+  f'(z) = \begin{cases} 1 & z > 0 \\ 0 & z \le 0 \end{cases}
+\]
+</div>
+<p>Simple and efficient. Used with <strong>He initialisation</strong>. The derivative is discontinuous at \( z=0 \), but in practice the library uses 0 there.</p>
+
+<h3>Sigmoid</h3>
+<div class="math-block">
+\[
+  \sigma(z) = \frac{1}{1 + e^{-z}}
+  \qquad\qquad
+  \sigma'(z) = \sigma(z)\,(1 - \sigma(z))
+\]
+</div>
+<p>Maps inputs to \((0, 1)\). Used for output layers in binary classification. Use with <strong>Xavier initialisation</strong>.</p>
+
+<h3>Tanh (Hyperbolic Tangent)</h3>
+<div class="math-block">
+\[
+  f(z) = \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}
+  \qquad\qquad
+  f'(z) = 1 - \tanh^2(z)
+\]
+</div>
+<p>Maps inputs to \((-1, 1)\). Zero-centred outputs help gradient flow. Use with <strong>Xavier initialisation</strong>.</p>
+
+<!-- ========== FORWARD ========== -->
+<h2 id="forward">3. Forward Propagation</h2>
+<p>The forward pass transforms an input vector through the entire network. For a network with \( L \) layers (layer 0 is the input layer):</p>
+
+<div class="math-block">
+\[
+  \mathbf{a}^{(0)} = \mathbf{x} \qquad \text{(input is the first activation)}
+\]
+\[
+  \text{For } l = 1, 2, \ldots, L: \quad
+  \mathbf{z}^{(l)} = \mathbf{W}^{(l)} \mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}, \quad
+  \mathbf{a}^{(l)} = f^{(l)}\!\left(\mathbf{z}^{(l)}\right)
+\]
+</div>
+
+<div class="tip-box">
+  <strong>Code:</strong> In <code>CoreCPU::propagate()</code>, layer 0's activation is simply copied from the input. Then for each subsequent layer, a double loop computes each \( z_j^{(l)} \) and applies the activation function.
+</div>
+
+<!-- ========== LOSS ========== -->
+<h2 id="loss">4. Loss Function — Mean Squared Error</h2>
+<p>The library uses MSE (Mean Squared Error) as the loss function:</p>
+
+<div class="math-block">
+\[
+  \mathcal{L} = \frac{1}{n_L} \sum_{j=0}^{n_L - 1} \left( a_j^{(L)} - y_j \right)^2
+\]
+</div>
+
+<p>where \( n_L \) is the number of output neurons, \( a_j^{(L)} \) is the predicted output, and \( y_j \) is the expected output.</p>
+
+<div class="tip-box">
+  <strong>Code:</strong> Implemented in <code>Core&lt;T&gt;::calculateLoss()</code>. Also used in <code>CoreCPU::train()</code> to track per-sample and per-epoch loss.
+</div>
+
+<!-- ========== BACKPROP ========== -->
+<h2 id="backprop">5. Backpropagation</h2>
+<p>Backpropagation computes how each parameter affects the loss, using the <strong>chain rule</strong>. We derive the gradient for each type of parameter.</p>
+
+<h3>5.1 Output Layer Activation Gradient</h3>
+<p>The derivative of the MSE loss with respect to the last-layer activation:</p>
+
+<div class="math-block">
+\[
+  \frac{\partial \mathcal{L}}{\partial a_j^{(L)}} = \frac{2}{n_L} \left( a_j^{(L)} - y_j \right)
+\]
+</div>
+
+<div class="info-box">
+  <strong>Implementation note:</strong> In <code>CoreCPU::calc_dCost_dActv(j, output, actvs)</code> (the last-layer overload), the factor \( 2/n_L \) is simplified to just \( 2 \cdot (a_j^{(L)} - y_j) \). The \( 1/n_L \) normalisation is folded into the update step instead.
+</div>
+
+<h3>5.2 Hidden Layer Activation Gradient</h3>
+<p>For any hidden layer \( l \) (not the output layer), neuron \( k \):</p>
+
+<div class="math-block">
+\[
+  \frac{\partial \mathcal{L}}{\partial a_k^{(l)}} = \sum_{j=0}^{n_{l+1}-1} w_{jk}^{(l+1)} \cdot f'\!\left(z_j^{(l+1)}\right) \cdot \frac{\partial \mathcal{L}}{\partial a_j^{(l+1)}}
+\]
+</div>
+
+<p>This is the key recursive step — the gradient at layer \( l \) depends on the gradients at layer \( l+1 \). This is why we compute backwards from the output.</p>
+
+<div class="tip-box">
+  <strong>Code:</strong> <code>CoreCPU::calc_dCost_dActv(l, k, zs, dCost_dActvs)</code> — iterates over all neurons \( j \) in the next layer.
+  On GPU: the kernel <code>calculate_dCost_dActv</code> in <code>Kernels.cpp.cl</code>.
+</div>
+
+<h3>5.3 Weight Gradient</h3>
+<div class="math-block">
+\[
+  \frac{\partial \mathcal{L}}{\partial w_{jk}^{(l)}} = a_k^{(l-1)} \cdot f'\!\left(z_j^{(l)}\right) \cdot \frac{\partial \mathcal{L}}{\partial a_j^{(l)}}
+\]
+</div>
+
+<div class="tip-box">
+  <strong>Code:</strong> <code>CoreCPU::calc_dCost_dWeight(l, j, k, actvs, zs, dCost_dActvs)</code>.
+  On GPU: <code>calculate_dCost_dWeight</code> kernel.
+</div>
+
+<h3>5.4 Bias Gradient</h3>
+<div class="math-block">
+\[
+  \frac{\partial \mathcal{L}}{\partial b_j^{(l)}} = f'\!\left(z_j^{(l)}\right) \cdot \frac{\partial \mathcal{L}}{\partial a_j^{(l)}}
+\]
+</div>
+
+<p>Note: the bias gradient is identical to the weight gradient with \( a_k^{(l-1)} = 1 \), since the bias acts as a weight for a constant input of 1.</p>
+
+<div class="tip-box">
+  <strong>Code:</strong> <code>CoreCPU::calc_dCost_dBias(l, j, zs, dCost_dActvs)</code>.
+  On GPU: <code>calculate_dCost_dBias</code> kernel.
+</div>
+
+<h3>5.5 Input Gradient (for chaining)</h3>
+<p>The <code>backpropagate()</code> method also returns \( \partial \mathcal{L} / \partial a_k^{(0)} \) — the gradient with respect to the network's input. This is essential when the ANN is used as the dense-layer backend of a <a href="../CNN/html/index.html">CNN</a>, because these gradients flow back into the CNN layers.</p>
+
+<!-- ========== SGD ========== -->
+<h2 id="sgd">6. Stochastic Gradient Descent (SGD)</h2>
+<p>After accumulating gradients over all samples in an epoch, the parameters are updated:</p>
+
+<div class="math-block">
+\[
+  w_{jk}^{(l)} \leftarrow w_{jk}^{(l)} - \eta \cdot \frac{1}{N} \sum_{n=1}^{N} \frac{\partial \mathcal{L}_n}{\partial w_{jk}^{(l)}}
+\]
+\[
+  b_j^{(l)} \leftarrow b_j^{(l)} - \eta \cdot \frac{1}{N} \sum_{n=1}^{N} \frac{\partial \mathcal{L}_n}{\partial b_j^{(l)}}
+\]
+</div>
+
+<p>where \( \eta \) is the learning rate (from <code>TrainingConfig::learningRate</code>) and \( N \) is the number of samples.</p>
+
+<div class="tip-box">
+  <strong>Code:</strong> In <code>CoreCPU::update(numSamples)</code>, the accumulated gradients are divided by the number of samples and subtracted from the parameters scaled by the learning rate. On GPU: <code>update_weights</code> and <code>update_biases</code> kernels.
+</div>
+
+<!-- ========== INIT ========== -->
+<h2 id="init">7. Weight Initialisation</h2>
+<p>Proper initialisation prevents vanishing or exploding gradients during the early epochs of training.</p>
+
+<h3>He Initialisation (for ReLU layers)</h3>
+<div class="math-block">
+\[
+  w \sim \mathcal{N}\!\left(0,\; \sqrt{\frac{2}{n_{\text{in}}}}\right)
+\]
+</div>
+<p>where \( n_{\text{in}} \) is the number of inputs to the neuron (fan-in). Proposed by <em>He et al., 2015</em> ("Delving Deep into Rectifiers"). Accounts for the fact that ReLU zeroes out half the activations.</p>
+
+<h3>Xavier Initialisation (for Sigmoid/Tanh layers)</h3>
+<div class="math-block">
+\[
+  w \sim \mathcal{N}\!\left(0,\; \sqrt{\frac{1}{n_{\text{in}}}}\right)
+\]
+</div>
+<p>Proposed by <em>Glorot &amp; Bengio, 2010</em> ("Understanding the difficulty of training deep feedforward neural networks"). Keeps the variance of activations and gradients constant across layers.</p>
+
+<div class="tip-box">
+  <strong>Code:</strong> In <code>CoreCPU::allocateCommon()</code>, the standard deviation is computed as <code>sqrt(2.0/fanIn)</code> for ReLU or <code>sqrt(1.0/fanIn)</code> for Sigmoid/Tanh. Weights are sampled from a normal distribution using <code>std::normal_distribution</code>. Biases are initialised to <strong>zero</strong>.
+</div>
+
+<h3>Why it matters</h3>
+<p>Without proper initialisation:</p>
+<ul>
+  <li><strong>Vanishing gradients:</strong> If weights are too small, activations shrink towards zero through many layers, making learning extremely slow.</li>
+  <li><strong>Exploding gradients:</strong> If weights are too large, activations grow exponentially, causing numerical overflow.</li>
+  <li><strong>Dead neurons:</strong> With ReLU, large negative initialisations can cause neurons to permanently output zero.</li>
+</ul>
+
+</main>
+</div>
+<footer class="site-footer">ANN Library Documentation</footer>
+</body></html>
+
