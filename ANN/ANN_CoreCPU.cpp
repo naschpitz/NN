@@ -70,12 +70,6 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
   // Atomic counter for assigning unique worker indices to threads
   std::atomic<int> nextWorkerIndex{0};
 
-  // Progress reporting interval (configurable, default ~1000 times per epoch)
-  ulong progressReports = this->progressReports;
-
-  if (progressReports == 0) progressReports = 1000;  // Default if not set
-  const ulong progressInterval = std::max(ulong(1), numSamples / progressReports);
-
   // Mutex for serializing callback calls (prevents I/O contention)
   QMutex callbackMutex;
 
@@ -96,9 +90,8 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
       workers[i].accum_loss = 0;
     }
 
-    // Atomic counters for progress tracking
+    // Atomic counter for progress tracking
     std::atomic<ulong> completedSamples{0};
-    std::atomic<ulong> lastReportedSample{0};
 
     // Use blockingMap to process all samples in parallel
     QtConcurrent::blockingMap(sampleIndices, [&, numThreads](ulong sampleIndex) {
@@ -120,14 +113,9 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
       // Accumulate gradients to worker's local accumulators (no mutex needed)
       this->accumulateToWorker(worker);
 
-      // Increment completed samples counter and report progress periodically
+      // Increment completed samples counter and report progress
       ulong completed = ++completedSamples;
-      ulong lastReported = lastReportedSample.load();
-
-      if (completed >= lastReported + progressInterval &&
-          lastReportedSample.compare_exchange_strong(lastReported, completed)) {
-        this->reportProgress(e + 1, numEpochs, completed, numSamples, worker.sampleLoss, 0, callbackMutex);
-      }
+      this->reportProgress(e + 1, numEpochs, completed, numSamples, worker.sampleLoss, 0, callbackMutex);
     });
 
     // Merge all worker accumulators into global accumulators

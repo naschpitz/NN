@@ -89,14 +89,6 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, ulong startIdx, ulong
   // Reset accumulators at the start
   this->resetAccumulators();
 
-  // Progress reporting
-  ulong pReports = this->progressReports;
-
-  if (pReports == 0) pReports = 1000;
-
-  const ulong progressInterval = std::max(ulong(1), numSamplesInSubset / pReports);
-  ulong lastReportedSample = 0;
-
   for (ulong s = startIdx; s < endIdx; s++) {
     const Input<T>& input = samples[s].input;
     const Output<T>& output = samples[s].output;
@@ -112,11 +104,8 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, ulong startIdx, ulong
     T sampleLoss = this->calculateLoss(output);
     subsetLoss += sampleLoss;
 
-    // Report progress periodically
-    ulong currentSample = s - startIdx + 1;
-
-    if (callback && currentSample >= lastReportedSample + progressInterval) {
-      lastReportedSample = currentSample;
+    // Report progress
+    if (callback) {
       TrainingProgress<T> progress;
       progress.currentEpoch = epoch;
       progress.totalEpochs = totalEpochs;
