@@ -42,6 +42,10 @@ class Runner {
     std::pair<CNN::Samples<float>, bool> loadCNNSamplesFromOptions(
       const std::string& modeName, QString& inputFilePath);
 
+    // Model saving
+    static void saveANNModel(const ANN::Core<float>& core, const std::string& filePath);
+    static void saveCNNModel(const CNN::Core<float>& core, const std::string& filePath);
+
     // Output path helpers
     static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);
     static std::string generateDefaultOutputPath(

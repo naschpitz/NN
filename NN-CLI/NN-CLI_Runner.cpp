@@ -4,9 +4,6 @@
 #include "NN-CLI_ProgressBar.hpp"
 #include "NN-CLI_Utils.hpp"
 
-#include <ANN_Utils.hpp>
-#include <CNN_Utils.hpp>
-
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -117,7 +114,7 @@ int Runner::runANNTrain() {
       trainingMetadata.numSamples, trainingMetadata.finalLoss);
   }
 
-  ANN::Utils<float>::save(*annCore_, outputPathStr);
+  saveANNModel(*annCore_, outputPathStr);
   std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
@@ -237,7 +234,7 @@ int Runner::runCNNTrain() {
       trainingMetadata.numSamples, trainingMetadata.finalLoss);
   }
 
-  CNN::Utils<float>::save(*cnnCore_, outputPathStr);
+  saveCNNModel(*cnnCore_, outputPathStr);
   std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
@@ -444,6 +441,174 @@ std::string Runner::generateDefaultOutputPath(
 
   QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainingFilename(epochs, samples, loss)));
   return outputPath.toStdString();
+}
+
+//===================================================================================================================//
+//  Model save helpers
+//===================================================================================================================//
+
+void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& filePath) {
+  nlohmann::ordered_json json;
+
+  json["device"] = ANN::Device::typeToName(core.getDeviceType());
+  json["mode"] = ANN::Mode::typeToName(core.getModeType());
+
+  // Layers config
+  nlohmann::ordered_json layersArr = nlohmann::ordered_json::array();
+  for (const auto& layer : core.getLayersConfig()) {
+    nlohmann::ordered_json layerJson;
+    layerJson["numNeurons"] = layer.numNeurons;
+    layerJson["actvFunc"] = ANN::ActvFunc::typeToName(layer.actvFuncType);
+    layersArr.push_back(layerJson);
+  }
+  json["layersConfig"] = layersArr;
+
+  // Training config
+  nlohmann::ordered_json tcJson;
+  tcJson["numEpochs"] = core.getTrainingConfig().numEpochs;
+  tcJson["learningRate"] = core.getTrainingConfig().learningRate;
+  json["trainingConfig"] = tcJson;
+
+  // Training metadata
+  const auto& md = core.getTrainingMetadata();
+  nlohmann::ordered_json mdJson;
+  mdJson["startTime"] = md.startTime;
+  mdJson["endTime"] = md.endTime;
+  mdJson["durationSeconds"] = md.durationSeconds;
+  mdJson["durationFormatted"] = md.durationFormatted;
+  mdJson["numSamples"] = md.numSamples;
+  mdJson["finalLoss"] = md.finalLoss;
+  json["trainingMetadata"] = mdJson;
+
+  // Parameters
+  nlohmann::ordered_json paramsJson;
+  paramsJson["weights"] = core.getParameters().weights;
+  paramsJson["biases"] = core.getParameters().biases;
+  json["parameters"] = paramsJson;
+
+  // Write to file
+  QFile file(QString::fromStdString(filePath));
+  if (!file.open(QIODevice::WriteOnly)) {
+    throw std::runtime_error("Failed to open file for writing: " + filePath);
+  }
+  std::string jsonStr = json.dump(4);
+  file.write(jsonStr.c_str());
+  file.close();
+}
+
+//===================================================================================================================//
+
+void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& filePath) {
+  nlohmann::ordered_json json;
+
+  json["device"] = CNN::Device::typeToName(core.getDeviceType());
+  json["mode"] = CNN::Mode::typeToName(core.getModeType());
+
+  // Input shape
+  const auto& shape = core.getInputShape();
+  nlohmann::ordered_json shapeJson;
+  shapeJson["c"] = shape.c;
+  shapeJson["h"] = shape.h;
+  shapeJson["w"] = shape.w;
+  json["inputShape"] = shapeJson;
+
+  // CNN layers config
+  nlohmann::ordered_json cnnLayersArr = nlohmann::ordered_json::array();
+  for (const auto& layer : core.getLayersConfig().cnnLayers) {
+    nlohmann::ordered_json layerJson;
+    switch (layer.type) {
+      case CNN::LayerType::CONV: {
+        const auto& conv = std::get<CNN::ConvLayerConfig>(layer.config);
+        layerJson["type"] = "conv";
+        layerJson["numFilters"] = conv.numFilters;
+        layerJson["filterH"] = conv.filterH;
+        layerJson["filterW"] = conv.filterW;
+        layerJson["strideY"] = conv.strideY;
+        layerJson["strideX"] = conv.strideX;
+        layerJson["slidingStrategy"] = CNN::SlidingStrategy::typeToName(conv.slidingStrategy);
+        break;
+      }
+      case CNN::LayerType::RELU:
+        layerJson["type"] = "relu";
+        break;
+      case CNN::LayerType::POOL: {
+        const auto& pool = std::get<CNN::PoolLayerConfig>(layer.config);
+        layerJson["type"] = "pool";
+        layerJson["poolType"] = CNN::PoolType::typeToName(pool.poolType);
+        layerJson["poolH"] = pool.poolH;
+        layerJson["poolW"] = pool.poolW;
+        layerJson["strideY"] = pool.strideY;
+        layerJson["strideX"] = pool.strideX;
+        break;
+      }
+      case CNN::LayerType::FLATTEN:
+        layerJson["type"] = "flatten";
+        break;
+    }
+    cnnLayersArr.push_back(layerJson);
+  }
+  json["cnnLayersConfig"] = cnnLayersArr;
+
+  // Dense layers config
+  nlohmann::ordered_json denseLayersArr = nlohmann::ordered_json::array();
+  for (const auto& layer : core.getLayersConfig().denseLayers) {
+    nlohmann::ordered_json layerJson;
+    layerJson["numNeurons"] = layer.numNeurons;
+    layerJson["actvFunc"] = ANN::ActvFunc::typeToName(layer.actvFuncType);
+    denseLayersArr.push_back(layerJson);
+  }
+  json["denseLayersConfig"] = denseLayersArr;
+
+  // Training config
+  nlohmann::ordered_json tcJson;
+  tcJson["numEpochs"] = core.getTrainingConfig().numEpochs;
+  tcJson["learningRate"] = core.getTrainingConfig().learningRate;
+  json["trainingConfig"] = tcJson;
+
+  // Training metadata
+  const auto& md = core.getTrainingMetadata();
+  nlohmann::ordered_json mdJson;
+  mdJson["startTime"] = md.startTime;
+  mdJson["endTime"] = md.endTime;
+  mdJson["durationSeconds"] = md.durationSeconds;
+  mdJson["durationFormatted"] = md.durationFormatted;
+  mdJson["numSamples"] = md.numSamples;
+  mdJson["finalLoss"] = md.finalLoss;
+  json["trainingMetadata"] = mdJson;
+
+  // Parameters
+  nlohmann::ordered_json paramsJson;
+
+  // Conv parameters
+  nlohmann::ordered_json convArr = nlohmann::ordered_json::array();
+  for (const auto& cp : core.getParameters().convParams) {
+    nlohmann::ordered_json cpJson;
+    cpJson["numFilters"] = cp.numFilters;
+    cpJson["inputC"] = cp.inputC;
+    cpJson["filterH"] = cp.filterH;
+    cpJson["filterW"] = cp.filterW;
+    cpJson["filters"] = cp.filters;
+    cpJson["biases"] = cp.biases;
+    convArr.push_back(cpJson);
+  }
+  paramsJson["conv"] = convArr;
+
+  // Dense parameters
+  nlohmann::ordered_json denseParamsJson;
+  denseParamsJson["weights"] = core.getParameters().denseParams.weights;
+  denseParamsJson["biases"] = core.getParameters().denseParams.biases;
+  paramsJson["dense"] = denseParamsJson;
+
+  json["parameters"] = paramsJson;
+
+  // Write to file
+  QFile file(QString::fromStdString(filePath));
+  if (!file.open(QIODevice::WriteOnly)) {
+    throw std::runtime_error("Failed to open file for writing: " + filePath);
+  }
+  std::string jsonStr = json.dump(4);
+  file.write(jsonStr.c_str());
+  file.close();
 }
 
 //===================================================================================================================//

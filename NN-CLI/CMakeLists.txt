@@ -25,6 +25,9 @@ add_executable(NN-CLI
   NN-CLI_Utils.cpp
 )
 
+# nlohmann JSON library (header-only, used directly by NN-CLI for config serialisation)
+target_include_directories(NN-CLI PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/extern/CNN/libs/nlohmann)
+
 # Link to CNN — ANN, OpenCLWrapper, Qt::Core, OpenCL are propagated automatically via PUBLIC
 target_link_libraries(NN-CLI
     PRIVATE CNN

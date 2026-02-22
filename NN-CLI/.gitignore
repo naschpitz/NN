@@ -82,3 +82,4 @@ INSTRUCTIONS.md
 # Examples output (generated files)
 # ----------------------------------
 examples/**/output/
+examples/ISIC-MIL10k

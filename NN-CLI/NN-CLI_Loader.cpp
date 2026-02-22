@@ -1,7 +1,5 @@
 #include "NN-CLI_Loader.hpp"
 
-#include <CNN_Utils.hpp>
-
 #include <QFile>
 #include <json.hpp>
 
@@ -257,7 +255,38 @@ ANN::Samples<float> Loader::loadANNSamples(const std::string& samplesFilePath) {
 }
 
 CNN::Samples<float> Loader::loadCNNSamples(const std::string& samplesFilePath, const CNN::Shape3D& inputShape) {
-    return CNN::Utils<float>::loadSamples(samplesFilePath, inputShape);
+    QFile file(QString::fromStdString(samplesFilePath));
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        throw std::runtime_error("Failed to open samples file: " + samplesFilePath);
+    }
+
+    QByteArray fileData = file.readAll();
+    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    const nlohmann::json& samplesArray = json.at("samples");
+
+    CNN::Samples<float> samples;
+    samples.reserve(samplesArray.size());
+
+    for (const auto& sampleJson : samplesArray) {
+        CNN::Sample<float> sample;
+
+        std::vector<float> flatInput = sampleJson.at("input").get<std::vector<float>>();
+
+        if (flatInput.size() != inputShape.size()) {
+            throw std::runtime_error("Sample input size (" + std::to_string(flatInput.size()) +
+              ") does not match expected input shape size (" + std::to_string(inputShape.size()) + ")");
+        }
+
+        sample.input = CNN::Input<float>(inputShape);
+        sample.input.data = std::move(flatInput);
+        sample.output = sampleJson.at("output").get<CNN::Output<float>>();
+
+        samples.push_back(std::move(sample));
+    }
+
+    return samples;
 }
 
 ANN::Input<float> Loader::loadANNInput(const std::string& inputFilePath) {
