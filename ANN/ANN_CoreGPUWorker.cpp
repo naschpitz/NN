@@ -316,11 +316,15 @@ void CoreGPUWorker<T>::allocateCommon() {
   }
 
   if (this->verbose) std::cout << "Loading OpenCL kernels...\n";
+  // Resolve .cl file paths relative to the source file's directory (via __FILE__),
+  // so the kernels are found regardless of the current working directory.
+  std::string srcFile = __FILE__;
+  std::string srcDir = srcFile.substr(0, srcFile.find_last_of("/\\") + 1);
   // Load source files in order - they will be concatenated by OpenCL
-  this->oclwCore.addSourceFile("extern/ANN/opencl/Defines.hpp.cl");
-  this->oclwCore.addSourceFile("extern/ANN/opencl/ActvFunc.cpp.cl");
-  this->oclwCore.addSourceFile("extern/ANN/opencl/IdxHelper.cpp.cl");
-  this->oclwCore.addSourceFile("extern/ANN/opencl/Kernels.cpp.cl");
+  this->oclwCore.addSourceFile(srcDir + "opencl/Defines.hpp.cl");
+  this->oclwCore.addSourceFile(srcDir + "opencl/ActvFunc.cpp.cl");
+  this->oclwCore.addSourceFile(srcDir + "opencl/IdxHelper.cpp.cl");
+  this->oclwCore.addSourceFile(srcDir + "opencl/Kernels.cpp.cl");
   if (this->verbose) std::cout << "OpenCL kernels loaded.\n";
 
   ulong totalNumNeurons = this->layersConfig.getTotalNumNeurons();
