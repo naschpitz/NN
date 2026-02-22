@@ -48,10 +48,6 @@ class ProgressBar {
     int totalGPUs = 0;
     ulong currentEpoch = 0;
 
-    //-- Output throttling --//
-    ulong lastPrintedSample = 0;
-    ulong lastPrintedEpoch = 0;
-
     //-- Internal methods --//
     void resetGpuState(int numGPUs, ulong epoch);
     void updateGpuProgress(int gpuIndex, float percent);
@@ -60,7 +56,6 @@ class ProgressBar {
     void renderSingleBar(std::ostream& out, float percent);
     void renderMultiGpuBar(std::ostream& out, const std::vector<float>& gpuProgress, int numGPUs);
 
-    bool shouldPrint(const ProgressInfo& progress, bool isEpochComplete);
 };
 
 }  // namespace NN_CLI

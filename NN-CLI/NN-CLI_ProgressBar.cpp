@@ -38,14 +38,6 @@ void ProgressBar::update(const ProgressInfo& progress) {
     this->updateGpuProgress(progress.gpuIndex, gpuPercent);
   }
 
-  // Throttle output to avoid flooding
-  if (!this->shouldPrint(progress, isEpochComplete)) {
-    return;
-  }
-
-  this->lastPrintedSample = progress.currentSample;
-  this->lastPrintedEpoch = progress.currentEpoch;
-
   // Build output
   std::ostringstream out;
   out << "\rEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
@@ -74,8 +66,6 @@ void ProgressBar::reset() {
   this->gpuProgress.clear();
   this->totalGPUs = 0;
   this->currentEpoch = 0;
-  this->lastPrintedSample = 0;
-  this->lastPrintedEpoch = 0;
 }
 
 //===================================================================================================================//
@@ -151,14 +141,6 @@ void ProgressBar::renderMultiGpuBar(std::ostream& out, const std::vector<float>&
     if (gpu < numGPUs - 1) out << " | ";
   }
   out << ")";
-}
-
-bool ProgressBar::shouldPrint(const ProgressInfo& progress, bool isEpochComplete) {
-  // The library already throttles callbacks based on progressReports,
-  // so we always print when the callback fires.
-  (void)isEpochComplete;
-  (void)progress;
-  return true;
 }
 
 //===================================================================================================================//
