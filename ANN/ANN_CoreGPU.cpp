@@ -18,7 +18,7 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig)
     : Core<T>(coreConfig) {
 
   // Initialize OpenCL before querying device information
-  OpenCLWrapper::Core::initialize(this->verbose);
+  OpenCLWrapper::Core::initialize(this->logLevel >= LogLevel::DEBUG);
 
   // Determine number of GPUs to use
   int requestedGPUs = coreConfig.trainingConfig.numGPUs;
@@ -61,7 +61,7 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
-  if (this->verbose) {
+  if (this->logLevel >= LogLevel::INFO) {
     std::cout << "Starting GPU training: " << numSamples << " samples, "
               << numEpochs << " epochs, " << this->numGPUs << " GPU"
               << (this->numGPUs > 1 ? "s" : "") << "\n";
@@ -203,7 +203,7 @@ TestResult<T> CoreGPU<T>::test(const Samples<T>& samples) {
 
 template <typename T>
 void CoreGPU<T>::initializeWorkers() {
-  if (this->verbose) {
+  if (this->logLevel >= LogLevel::INFO) {
     std::cout << "Initializing GPU training with " << this->numGPUs << " GPU"
               << (this->numGPUs > 1 ? "s" : "") << "...\n";
   }
@@ -211,11 +211,11 @@ void CoreGPU<T>::initializeWorkers() {
   // Create CoreGPUWorker instances - each will get assigned to a different GPU
   // via OpenCLWrapper's automatic device load balancing
   for (size_t i = 0; i < this->numGPUs; i++) {
-    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters, this->progressReports, this->verbose);
+    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters, this->progressReports, this->logLevel);
     this->gpuWorkers.push_back(std::move(worker));
   }
 
-  if (this->verbose) {
+  if (this->logLevel >= LogLevel::INFO) {
     std::cout << "GPU initialization complete.\n";
   }
 }

@@ -29,7 +29,7 @@ static void testGPUTrainSimple() {
     config.trainingConfig.learningRate = 0.5f;
     config.progressReports = 0;
     config.trainingConfig.numGPUs = 1;
-    config.verbose = false;
+    config.logLevel = ANN::LogLevel::ERROR;
 
     auto core = ANN::Core<float>::makeCore(config);
     core->train(samples);
@@ -59,7 +59,7 @@ static void testGPUPredict() {
   config.parameters.weights[1] = {{0.5f, 0.5f}};
   config.parameters.biases.resize(2);
   config.parameters.biases[1] = {0.0f};
-  config.verbose = false;
+  config.logLevel = ANN::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
   ANN::Output<float> out = core->predict({1.0f, 1.0f});
@@ -88,7 +88,7 @@ static void testGPUvsCPUParity() {
   trainConfig.trainingConfig.numEpochs = 200;
   trainConfig.trainingConfig.learningRate = 0.5f;
   trainConfig.progressReports = 0;
-  trainConfig.verbose = false;
+  trainConfig.logLevel = ANN::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {
     {{1.0f, 1.0f}, {1.0f}},
@@ -106,7 +106,7 @@ static void testGPUvsCPUParity() {
   cpuConfig.deviceType = ANN::DeviceType::CPU;
   cpuConfig.layersConfig = trainConfig.layersConfig;
   cpuConfig.parameters = params;
-  cpuConfig.verbose = false;
+  cpuConfig.logLevel = ANN::LogLevel::ERROR;
 
   auto cpuCore = ANN::Core<float>::makeCore(cpuConfig);
   ANN::Output<float> cpuPred1 = cpuCore->predict({1.0f, 1.0f});
@@ -118,7 +118,7 @@ static void testGPUvsCPUParity() {
   gpuConfig.deviceType = ANN::DeviceType::GPU;
   gpuConfig.layersConfig = trainConfig.layersConfig;
   gpuConfig.parameters = params;
-  gpuConfig.verbose = false;
+  gpuConfig.logLevel = ANN::LogLevel::ERROR;
 
   auto gpuCore = ANN::Core<float>::makeCore(gpuConfig);
   ANN::Output<float> gpuPred1 = gpuCore->predict({1.0f, 1.0f});

@@ -45,9 +45,9 @@ namespace ANN {
       // Set a callback to receive training progress updates
       void setTrainingCallback(TrainingCallback<T> callback) { trainingCallback = callback; }
 
-      // Verbose control
-      void setVerbose(bool v) { verbose = v; }
-      bool isVerbose() const { return verbose; }
+      // Log level control
+      void setLogLevel(LogLevel level) { logLevel = level; }
+      LogLevel getLogLevel() const { return logLevel; }
 
     protected:
       explicit Core(const CoreConfig<T>& coreConfig);
@@ -72,7 +72,7 @@ namespace ANN {
       PredictMetadata<T> predictMetadata;
       Parameters<T> parameters;
       ulong progressReports = 1000;
-      bool verbose = false;
+      LogLevel logLevel = LogLevel::ERROR;
 
       Tensor2D<T> actvs;
       Tensor2D<T> zs;

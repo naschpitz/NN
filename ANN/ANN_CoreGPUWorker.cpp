@@ -13,16 +13,17 @@ using namespace ANN;
 
 template <typename T>
 CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                                 const Parameters<T>& parameters, ulong progressReports, bool verbose)
+                                 const Parameters<T>& parameters, ulong progressReports,
+                                 LogLevel logLevel)
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
       progressReports(progressReports),
-      verbose(verbose) {
+      logLevel(logLevel) {
 
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
   this->core = this->ownedCore.get();
-  this->core->setVerbose(this->verbose);
+  this->core->setVerbose(this->logLevel >= LogLevel::DEBUG);
 
   this->initializeParameters();
   this->loadSources(false);
@@ -34,12 +35,12 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
 template <typename T>
 CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
                                  const Parameters<T>& parameters, OpenCLWrapper::Core& sharedCore,
-                                 ulong progressReports, bool verbose)
+                                 ulong progressReports, LogLevel logLevel)
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
       progressReports(progressReports),
-      verbose(verbose),
+      logLevel(logLevel),
       core(&sharedCore) {
 
   // Shared-core mode: only initialize parameters.
@@ -331,7 +332,7 @@ void CoreGPUWorker<T>::initializeParameters() {
 
 template <typename T>
 void CoreGPUWorker<T>::loadSources(bool skipDefines) {
-  if (this->verbose) std::cout << "Loading OpenCL kernels...\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Loading OpenCL kernels...\n";
 
   // Resolve .cl file paths relative to the source file's directory (via __FILE__),
   // so the kernels are found regardless of the current working directory.
@@ -348,7 +349,7 @@ void CoreGPUWorker<T>::loadSources(bool skipDefines) {
   this->core->addSourceFile(srcDir + "opencl/IdxHelper.cpp.cl");
   this->core->addSourceFile(srcDir + "opencl/Kernels.cpp.cl");
 
-  if (this->verbose) std::cout << "OpenCL kernels loaded.\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "OpenCL kernels loaded.\n";
 }
 
 //===================================================================================================================//
@@ -361,7 +362,7 @@ void CoreGPUWorker<T>::allocateBuffers() {
   ulong totalNumBiases = Utils<T>::count(this->parameters.biases);
 
   // Common buffers
-  if (this->verbose) std::cout << "Allocating ANN buffers...";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Allocating ANN buffers...";
   this->core->template allocateBuffer<T>("actvs", totalNumNeurons);
   this->core->template allocateBuffer<T>("weights", totalNumWeights);
   this->core->template allocateBuffer<T>("biases", totalNumBiases);
@@ -382,7 +383,7 @@ void CoreGPUWorker<T>::allocateBuffers() {
   this->core->template allocateBuffer<T>("accum_dCost_dBiases", totalNumBiases);
   this->core->template allocateBuffer<T>("outputs", this->layersConfig[numLayers - 1].numNeurons);
 
-  if (this->verbose) std::cout << "ANN buffers allocation done.\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "ANN buffers allocation done.\n";
 
   // Write initialized weights and biases to GPU buffers
   std::vector<T> flatWeights = Utils<T>::flatten(this->parameters.weights);

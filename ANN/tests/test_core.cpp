@@ -73,7 +73,7 @@ static void testTrainXOR() {
     config.trainingConfig.numEpochs = 2000;
     config.trainingConfig.learningRate = 0.1;
     config.progressReports = 0;
-    config.verbose = false;
+    config.logLevel = ANN::LogLevel::ERROR;
 
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples);
@@ -452,7 +452,7 @@ static void testGettersAfterConstruction() {
   });
   config.trainingConfig.numEpochs = 100;
   config.trainingConfig.learningRate = 0.05;
-  config.verbose = true;
+  config.logLevel = ANN::LogLevel::INFO;
 
   auto core = ANN::Core<double>::makeCore(config);
 
@@ -464,10 +464,10 @@ static void testGettersAfterConstruction() {
   CHECK(core->getLayersConfig()[2].numNeurons == 2, "layer 2: 2 neurons");
   CHECK(core->getTrainingConfig().numEpochs == 100, "numEpochs = 100");
   CHECK_NEAR(core->getTrainingConfig().learningRate, 0.05f, 1e-6f, "learningRate = 0.05");
-  CHECK(core->isVerbose() == true, "verbose = true");
+  CHECK(core->getLogLevel() == ANN::LogLevel::INFO, "logLevel = INFO");
 
-  core->setVerbose(false);
-  CHECK(core->isVerbose() == false, "verbose = false after setVerbose");
+  core->setLogLevel(ANN::LogLevel::ERROR);
+  CHECK(core->getLogLevel() == ANN::LogLevel::ERROR, "logLevel = ERROR after setLogLevel");
 }
 
 //===================================================================================================================//

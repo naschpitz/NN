@@ -3,6 +3,7 @@
 
 #include "ANN_Mode.hpp"
 #include "ANN_Device.hpp"
+#include "ANN_LogLevel.hpp"
 #include "ANN_LayersConfig.hpp"
 #include "ANN_TrainingConfig.hpp"
 #include "ANN_Parameters.hpp"
@@ -18,7 +19,7 @@ namespace ANN {
     TrainingConfig<T> trainingConfig;
     Parameters<T> parameters;
     ulong progressReports = 1000; // Number of progress reports (0 = no reports, default = 1000)
-    bool verbose = false;
+    LogLevel logLevel = LogLevel::ERROR;
   };
 }
 
