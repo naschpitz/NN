@@ -18,19 +18,22 @@ namespace ANN {
   template <typename T>
   class Core {
     public:
+      //-- Factory --//
       static std::unique_ptr<Core<T>> makeCore(const CoreConfig<T>& config);
 
+      //-- Core interface --//
       virtual Output<T> predict(const Input<T>& input) = 0;
       virtual void train(const Samples<T>& samples) = 0;
       virtual TestResult<T> test(const Samples<T>& samples) = 0;
 
-      // Step-by-step training methods (for external orchestration, e.g., CNN)
+      //-- Step-by-step training (for external orchestration, e.g., CNN) --//
       // Usage flow: predict(input) → backpropagate(output) → [other layers backprop] → accumulate() → update(numSamples)
       virtual Tensor1D<T> backpropagate(const Output<T>& output) = 0;
       virtual void accumulate() = 0;
       virtual void resetAccumulators() = 0;
       virtual void update(ulong numSamples) = 0;
 
+      //-- Getters --//
       ModeType getModeType() const { return modeType; }
       DeviceType getDeviceType() const { return deviceType; }
       const LayersConfig& getLayersConfig() const { return layersConfig; }
@@ -40,31 +43,31 @@ namespace ANN {
       const Parameters<T>& getParameters() const { return parameters; }
       const LossFunctionConfig<T>& getLossFunctionConfig() const { return lossFunctionConfig; }
 
-      // Set parameters (for multi-GPU weight synchronization)
+      //-- Setters --//
       void setParameters(const Parameters<T>& params) { parameters = params; }
-
-      // Set a callback to receive training progress updates
       void setTrainingCallback(TrainingCallback<T> callback) { trainingCallback = callback; }
 
-      // Log level control
+      //-- Log level --//
       void setLogLevel(LogLevel level) { logLevel = level; }
       LogLevel getLogLevel() const { return logLevel; }
 
     protected:
+      //-- Constructor / Validation --//
       explicit Core(const CoreConfig<T>& coreConfig);
       void sanityCheck(const CoreConfig<T>& coreConfig);
 
-      // Calculate loss between output activations and expected output
+      //-- Loss calculation --//
       T calculateLoss(const Output<T>& expected);
 
-      // Training timing helpers - called at start/end of training
+      //-- Training timing --//
       void trainingStart(ulong numSamples);
       TrainingMetadata<T> trainingEnd();
 
-      // Predict timing helpers - called at start/end of predict
+      //-- Predict timing --//
       void predictStart();
       PredictMetadata<T> predictEnd();
 
+      //-- Configuration members --//
       DeviceType deviceType;
       ModeType modeType;
       LayersConfig layersConfig;
@@ -76,12 +79,14 @@ namespace ANN {
       ulong progressReports = 1000;
       LogLevel logLevel = LogLevel::ERROR;
 
+      //-- Internal state --//
       Tensor2D<T> actvs;
       Tensor2D<T> zs;
 
       TrainingCallback<T> trainingCallback;
 
     private:
+      //-- Timing state --//
       std::chrono::time_point<std::chrono::system_clock> trainingStartTime;
       std::chrono::time_point<std::chrono::system_clock> predictStartTime;
   };

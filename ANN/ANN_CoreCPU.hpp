@@ -27,43 +27,44 @@ namespace ANN {
   template <typename T>
   class CoreCPU : public Core<T> {
     public:
+      //-- Constructor --//
       CoreCPU(const CoreConfig<T>& config);
 
+      //-- Core interface --//
       Output<T> predict(const Input<T>& input) override;
       void train(const Samples<T>& samples) override;
       TestResult<T> test(const Samples<T>& samples) override;
 
-      // Step-by-step training methods (for external orchestration, e.g., CNN)
+      //-- Step-by-step training (for external orchestration, e.g., CNN) --//
       Tensor1D<T> backpropagate(const Output<T>& output) override;
       void accumulate() override;
       void resetAccumulators() override;
       void update(ulong numSamples) override;
 
     private:
+      //-- Gradient state --//
       Tensor2D<T> dCost_dActvs;
       Tensor3D<T> dCost_dWeights, accum_dCost_dWeights;
       Tensor2D<T> dCost_dBiases, accum_dCost_dBiases;
-
-      // Mutex for thread-safe accumulation
       QMutex accumulatorMutex;
 
-      // Functions used in init()
+      //-- Allocation --//
       void allocateCommon();
       void allocateTraining();
       void allocateWorker(SampleWorker<T>& worker);
 
-      // Core computation functions (operate on provided data structures)
+      //-- Forward / Backward pass --//
       void propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T>& zs);
       void backpropagate(const Output<T>& output, const Tensor2D<T>& actvs, const Tensor2D<T>& zs,
                          Tensor2D<T>& dCost_dActvs, Tensor3D<T>& dCost_dWeights, Tensor2D<T>& dCost_dBiases);
 
-      // Functions used in backpropagate() - parameterized versions
+      //-- Gradient helpers --//
       T calc_dCost_dActv(ulong j, const Output<T>& output, const Tensor2D<T>& actvs);
       T calc_dCost_dActv(ulong l, ulong k, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs);
       T calc_dCost_dWeight(ulong l, ulong j, ulong k, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs);
       T calc_dCost_dBias(ulong l, ulong j, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs);
 
-      // Functions used by train()
+      //-- Training helpers --//
       void resetWorkerAccumulators(SampleWorker<T>& worker);
       void accumulateToWorker(SampleWorker<T>& worker);
       void mergeWorkerAccumulators(const SampleWorker<T>& worker);
@@ -71,7 +72,7 @@ namespace ANN {
       void reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
                           T sampleLoss, T epochLoss, QMutex& callbackMutex);
 
-      // Convenience wrappers using member data (for predict())
+      //-- Convenience wrappers (for predict) --//
       void propagate(const Input<T>& input);
       Output<T> getOutput();
   };
