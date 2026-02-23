@@ -41,7 +41,7 @@ namespace ANN {
       const PredictMetadata<T>& getPredictMetadata() const { return predictMetadata; }
       const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }
       const Parameters<T>& getParameters() const { return parameters; }
-      const LossFunctionConfig<T>& getLossFunctionConfig() const { return lossFunctionConfig; }
+      const CostFunctionConfig<T>& getCostFunctionConfig() const { return costFunctionConfig; }
 
       //-- Setters --//
       void setParameters(const Parameters<T>& params) { parameters = params; }
@@ -75,7 +75,7 @@ namespace ANN {
       TrainingMetadata<T> trainingMetadata;
       PredictMetadata<T> predictMetadata;
       Parameters<T> parameters;
-      LossFunctionConfig<T> lossFunctionConfig;
+      CostFunctionConfig<T> costFunctionConfig;
       ulong progressReports = 1000;
       LogLevel logLevel = LogLevel::ERROR;
 

@@ -472,8 +472,8 @@ static void testGettersAfterConstruction() {
 
 //===================================================================================================================//
 
-static void testLossFunctionConfigDefault() {
-  std::cout << "--- testLossFunctionConfigDefault ---" << std::endl;
+static void testCostFunctionConfigDefault() {
+  std::cout << "--- testCostFunctionConfigDefault ---" << std::endl;
 
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::PREDICT;
@@ -482,48 +482,48 @@ static void testLossFunctionConfigDefault() {
 
   auto core = ANN::Core<double>::makeCore(config);
 
-  const auto& lfc = core->getLossFunctionConfig();
-  CHECK(lfc.type == ANN::LossFunctionType::SQUARED_DIFFERENCE, "default type is squaredDifference");
-  CHECK(lfc.weights.empty(), "default weights is empty");
+  const auto& cfc = core->getCostFunctionConfig();
+  CHECK(cfc.type == ANN::CostFunctionType::SQUARED_DIFFERENCE, "default type is squaredDifference");
+  CHECK(cfc.weights.empty(), "default weights is empty");
 }
 
 //===================================================================================================================//
 
-static void testLossFunctionConfigGetter() {
-  std::cout << "--- testLossFunctionConfigGetter ---" << std::endl;
+static void testCostFunctionConfigGetter() {
+  std::cout << "--- testCostFunctionConfigGetter ---" << std::endl;
 
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::PREDICT;
   config.deviceType = ANN::DeviceType::CPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SIGMOID}});
-  config.lossFunctionConfig.type = ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
-  config.lossFunctionConfig.weights = {3.0, 0.5};
+  config.costFunctionConfig.type = ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  config.costFunctionConfig.weights = {3.0, 0.5};
 
   auto core = ANN::Core<double>::makeCore(config);
 
-  const auto& lfc = core->getLossFunctionConfig();
-  CHECK(lfc.type == ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "type is weightedSquaredDifference");
-  CHECK(lfc.weights.size() == 2, "weights size = 2");
-  CHECK_NEAR(lfc.weights[0], 3.0, 1e-10, "weight[0] = 3.0");
-  CHECK_NEAR(lfc.weights[1], 0.5, 1e-10, "weight[1] = 0.5");
+  const auto& cfc = core->getCostFunctionConfig();
+  CHECK(cfc.type == ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "type is weightedSquaredDifference");
+  CHECK(cfc.weights.size() == 2, "weights size = 2");
+  CHECK_NEAR(cfc.weights[0], 3.0, 1e-10, "weight[0] = 3.0");
+  CHECK_NEAR(cfc.weights[1], 0.5, 1e-10, "weight[1] = 0.5");
 }
 
 //===================================================================================================================//
 
-static void testLossFunctionStringConversion() {
-  std::cout << "--- testLossFunctionStringConversion ---" << std::endl;
+static void testCostFunctionStringConversion() {
+  std::cout << "--- testCostFunctionStringConversion ---" << std::endl;
 
-  CHECK(ANN::LossFunction::nameToType("squaredDifference") == ANN::LossFunctionType::SQUARED_DIFFERENCE,
+  CHECK(ANN::CostFunction::nameToType("squaredDifference") == ANN::CostFunctionType::SQUARED_DIFFERENCE,
         "nameToType squaredDifference");
-  CHECK(ANN::LossFunction::nameToType("weightedSquaredDifference") == ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE,
+  CHECK(ANN::CostFunction::nameToType("weightedSquaredDifference") == ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE,
         "nameToType weightedSquaredDifference");
-  CHECK(ANN::LossFunction::typeToName(ANN::LossFunctionType::SQUARED_DIFFERENCE) == "squaredDifference",
+  CHECK(ANN::CostFunction::typeToName(ANN::CostFunctionType::SQUARED_DIFFERENCE) == "squaredDifference",
         "typeToName squaredDifference");
-  CHECK(ANN::LossFunction::typeToName(ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE) == "weightedSquaredDifference",
+  CHECK(ANN::CostFunction::typeToName(ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE) == "weightedSquaredDifference",
         "typeToName weightedSquaredDifference");
 
   bool threwException = false;
-  try { ANN::LossFunction::nameToType("invalidName"); } catch (const std::runtime_error&) { threwException = true; }
+  try { ANN::CostFunction::nameToType("invalidName"); } catch (const std::runtime_error&) { threwException = true; }
   CHECK(threwException, "nameToType throws on unknown name");
 }
 
@@ -555,8 +555,8 @@ static void testWeightedLossAffectsTraining() {
 
   // Train with weighted loss: output 0 weighted 10x more than output 1
   ANN::CoreConfig<double> configWeighted = configDefault;
-  configWeighted.lossFunctionConfig.type = ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
-  configWeighted.lossFunctionConfig.weights = {10.0, 1.0};
+  configWeighted.costFunctionConfig.type = ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  configWeighted.costFunctionConfig.weights = {10.0, 1.0};
 
   // Use test() to compare loss on each — the weighted network should report different total loss
   auto coreDefault = ANN::Core<double>::makeCore(configDefault);
@@ -600,8 +600,8 @@ void runCoreTests() {
   testStepByStepAPI();
   testTrainWithTanh();
   testGettersAfterConstruction();
-  testLossFunctionConfigDefault();
-  testLossFunctionConfigGetter();
-  testLossFunctionStringConversion();
+  testCostFunctionConfigDefault();
+  testCostFunctionConfigGetter();
+  testCostFunctionStringConversion();
   testWeightedLossAffectsTraining();
 }

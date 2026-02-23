@@ -211,7 +211,7 @@ void CoreGPU<T>::initializeWorkers() {
   // Create CoreGPUWorker instances - each will get assigned to a different GPU
   // via OpenCLWrapper's automatic device load balancing
   for (size_t i = 0; i < this->numGPUs; i++) {
-    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters, this->lossFunctionConfig, this->progressReports, this->logLevel);
+    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters, this->costFunctionConfig, this->progressReports, this->logLevel);
     this->gpuWorkers.push_back(std::move(worker));
   }
 

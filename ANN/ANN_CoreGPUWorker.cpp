@@ -13,12 +13,12 @@ using namespace ANN;
 
 template <typename T>
 CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                                 const Parameters<T>& parameters, const LossFunctionConfig<T>& lossFunctionConfig,
+                                 const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                                  ulong progressReports, LogLevel logLevel)
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
-      lossFunctionConfig(lossFunctionConfig),
+      costFunctionConfig(costFunctionConfig),
       progressReports(progressReports),
       logLevel(logLevel) {
 
@@ -35,13 +35,13 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
 
 template <typename T>
 CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                                 const Parameters<T>& parameters, const LossFunctionConfig<T>& lossFunctionConfig,
+                                 const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                                  OpenCLWrapper::Core& sharedCore,
                                  ulong progressReports, LogLevel logLevel)
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
-      lossFunctionConfig(lossFunctionConfig),
+      costFunctionConfig(costFunctionConfig),
       progressReports(progressReports),
       logLevel(logLevel),
       core(&sharedCore) {
@@ -392,8 +392,8 @@ void CoreGPUWorker<T>::allocateBuffers() {
   this->core->template allocateBuffer<T>("lossWeights", numOutputNeurons);
 
   std::vector<T> lossWeightsVec(numOutputNeurons, static_cast<T>(1));
-  if (!this->lossFunctionConfig.weights.empty()) {
-    lossWeightsVec = this->lossFunctionConfig.weights;
+  if (!this->costFunctionConfig.weights.empty()) {
+    lossWeightsVec = this->costFunctionConfig.weights;
   }
   this->core->template writeBuffer<T>("lossWeights", lossWeightsVec, 0);
 
@@ -677,7 +677,7 @@ T CoreGPUWorker<T>::calculateLoss(const Output<T>& expected) {
 
   for (ulong i = 0; i < expected.size(); i++) {
     T diff = actual[i] - expected[i];
-    T weight = (!this->lossFunctionConfig.weights.empty()) ? this->lossFunctionConfig.weights[i] : static_cast<T>(1);
+    T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
     loss += weight * diff * diff;
   }
 

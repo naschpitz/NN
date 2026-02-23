@@ -16,7 +16,7 @@ Core<T>::Core(const CoreConfig<T>& coreConfig) {
   this->modeType = coreConfig.modeType;
 
   this->layersConfig = coreConfig.layersConfig;
-  this->lossFunctionConfig = coreConfig.lossFunctionConfig;
+  this->costFunctionConfig = coreConfig.costFunctionConfig;
   this->trainingConfig = coreConfig.trainingConfig;
   this->parameters = coreConfig.parameters;
   this->progressReports = coreConfig.progressReports;

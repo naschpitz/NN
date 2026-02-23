@@ -15,14 +15,14 @@ namespace ANN {
     public:
       // Standalone constructor — creates its own OpenCL core
       CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                    const Parameters<T>& parameters, const LossFunctionConfig<T>& lossFunctionConfig = LossFunctionConfig<T>(),
+                    const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig = CostFunctionConfig<T>(),
                     ulong progressReports = 1000,
                     LogLevel logLevel = LogLevel::ERROR);
 
       // Shared-core constructor — uses externally-provided OpenCL core (for CNN integration).
       // Only initializes parameters. Caller must invoke loadSources() and allocateBuffers() manually.
       CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                    const Parameters<T>& parameters, const LossFunctionConfig<T>& lossFunctionConfig,
+                    const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                     OpenCLWrapper::Core& sharedCore,
                     ulong progressReports = 1000,
                     LogLevel logLevel = LogLevel::ERROR);
@@ -74,7 +74,7 @@ namespace ANN {
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
       Parameters<T> parameters;
-      LossFunctionConfig<T> lossFunctionConfig;
+      CostFunctionConfig<T> costFunctionConfig;
       ulong progressReports = 1000;
       LogLevel logLevel = LogLevel::ERROR;
 
