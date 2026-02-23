@@ -42,10 +42,10 @@
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"train"</span>,
   <span class="string">"device"</span>: <span class="string">"cpu"</span>,
-  <span class="string">"inputType"</span>: <span class="string">"vector"</span>,
-  <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"progressReports"</span>: <span class="number">1000</span>,
   <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
+  <span class="string">"inputType"</span>: <span class="string">"vector"</span>,
+  <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"layersConfig"</span>: [
     { <span class="string">"numNeurons"</span>: <span class="number">784</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
@@ -63,6 +63,8 @@
   <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
   <tr><td><code>mode</code></td><td>string</td><td>No</td><td><code>train</code>, <code>predict</code>, or <code>test</code></td></tr>
   <tr><td><code>device</code></td><td>string</td><td>No</td><td><code>cpu</code> or <code>gpu</code></td></tr>
+  <tr><td><code>progressReports</code></td><td>int</td><td>No</td><td>Progress update frequency for all modes (default 1000)</td></tr>
+  <tr><td><code>saveModelInterval</code></td><td>int</td><td>No</td><td>Save a checkpoint every N epochs during training (default 10; 0 = disabled)</td></tr>
   <tr><td><code>inputType</code></td><td>string</td><td>No</td><td><code>vector</code> (default) or <code>image</code>; overridden by <code>--input-type</code></td></tr>
   <tr><td><code>outputType</code></td><td>string</td><td>No</td><td><code>vector</code> (default) or <code>image</code>; overridden by <code>--output-type</code></td></tr>
   <tr><td><code>inputShape</code></td><td>object</td><td>Image</td><td>Input image dimensions (<code>c</code>, <code>h</code>, <code>w</code>); required when <code>inputType</code> is <code>image</code></td></tr>
@@ -73,8 +75,6 @@
   <tr><td><code>trainingConfig.numEpochs</code></td><td>int</td><td>Train</td><td>Number of epochs</td></tr>
   <tr><td><code>trainingConfig.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate</td></tr>
   <tr><td><code>trainingConfig.numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
-  <tr><td><code>progressReports</code></td><td>int</td><td>No</td><td>Progress update frequency for all modes (default 1000)</td></tr>
-  <tr><td><code>saveModelInterval</code></td><td>int</td><td>No</td><td>Save a checkpoint every N epochs during training (default 10; 0 = disabled)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
 </table>
 
@@ -82,12 +82,12 @@
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"train"</span>,
   <span class="string">"device"</span>: <span class="string">"cpu"</span>,
-  <span class="string">"inputType"</span>: <span class="string">"image"</span>,
-  <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"progressReports"</span>: <span class="number">1000</span>,
   <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
+  <span class="string">"inputType"</span>: <span class="string">"image"</span>,
+  <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"inputShape"</span>: { <span class="string">"c"</span>: <span class="number">1</span>, <span class="string">"h"</span>: <span class="number">28</span>, <span class="string">"w"</span>: <span class="number">28</span> },
-  <span class="string">"cnnLayersConfig"</span>: [
+  <span class="string">"convolutionalLayersConfig"</span>: [
     { <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">8</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>,
       <span class="string">"strideY"</span>: <span class="number">1</span>, <span class="string">"strideX"</span>: <span class="number">1</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"valid"</span> },
     { <span class="string">"type"</span>: <span class="string">"relu"</span> },
@@ -106,7 +106,7 @@
 <p>CNN configs also support <code>inputType</code>, <code>outputType</code>, and <code>outputShape</code>. The <code>inputShape</code> is always required for CNN (used by the network itself). When <code>outputType</code> is <code>"image"</code>, <code>outputShape</code> must be provided for image reconstruction.</p>
 
 <div class="info-box">
-  <strong>Detection rule:</strong> If the JSON contains <code>"inputShape"</code> or <code>"cnnLayersConfig"</code>, NN-CLI treats it as a CNN config. Otherwise it's ANN.
+  <strong>Detection rule:</strong> If the JSON contains <code>"inputShape"</code> or <code>"convolutionalLayersConfig"</code>, NN-CLI treats it as a CNN config. Otherwise it's ANN.
 </div>
 
 <h3>CNN Layer Type Fields</h3>
@@ -251,10 +251,10 @@
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"predict"</span>,
   <span class="string">"device"</span>: <span class="string">"cpu"</span>,
-  <span class="string">"inputType"</span>: <span class="string">"image"</span>,
-  <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"progressReports"</span>: <span class="number">1000</span>,
   <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
+  <span class="string">"inputType"</span>: <span class="string">"image"</span>,
+  <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"layersConfig"</span>: [...],
   <span class="string">"trainingConfig"</span>: {...},
   <span class="string">"trainingMetadata"</span>: {

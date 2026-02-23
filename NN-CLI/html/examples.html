@@ -91,7 +91,7 @@
   <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
   <span class="keyword">"device"</span>: <span class="string">"cpu"</span>,
   <span class="keyword">"inputShape"</span>: { <span class="keyword">"c"</span>: <span class="number">1</span>, <span class="keyword">"h"</span>: <span class="number">8</span>, <span class="keyword">"w"</span>: <span class="number">8</span> },
-  <span class="keyword">"cnnLayersConfig"</span>: [
+  <span class="keyword">"convolutionalLayersConfig"</span>: [
     { <span class="keyword">"type"</span>: <span class="string">"conv"</span>, <span class="keyword">"numFilters"</span>: <span class="number">4</span>, <span class="keyword">"filterH"</span>: <span class="number">3</span>, <span class="keyword">"filterW"</span>: <span class="number">3</span>, <span class="keyword">"slidingStrategy"</span>: <span class="string">"valid"</span> },
     { <span class="keyword">"type"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"type"</span>: <span class="string">"pool"</span>, <span class="keyword">"poolType"</span>: <span class="string">"max"</span>, <span class="keyword">"poolH"</span>: <span class="number">2</span>, <span class="keyword">"poolW"</span>: <span class="number">2</span> },
@@ -128,10 +128,12 @@
 <pre><code>{
   <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
   <span class="keyword">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="keyword">"progressReports"</span>: <span class="number">1000</span>,
+  <span class="keyword">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="keyword">"inputType"</span>: <span class="string">"image"</span>,
   <span class="keyword">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="keyword">"inputShape"</span>: { <span class="keyword">"c"</span>: <span class="number">3</span>, <span class="keyword">"h"</span>: <span class="number">32</span>, <span class="keyword">"w"</span>: <span class="number">32</span> },
-  <span class="keyword">"cnnLayersConfig"</span>: [
+  <span class="keyword">"convolutionalLayersConfig"</span>: [
     { <span class="keyword">"type"</span>: <span class="string">"conv"</span>, <span class="keyword">"numFilters"</span>: <span class="number">8</span>, <span class="keyword">"filterH"</span>: <span class="number">3</span>, <span class="keyword">"filterW"</span>: <span class="number">3</span>, <span class="keyword">"slidingStrategy"</span>: <span class="string">"valid"</span> },
     { <span class="keyword">"type"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"type"</span>: <span class="string">"pool"</span>, <span class="keyword">"poolType"</span>: <span class="string">"max"</span>, <span class="keyword">"poolH"</span>: <span class="number">2</span>, <span class="keyword">"poolW"</span>: <span class="number">2</span> },
@@ -220,7 +222,7 @@
   <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
   <span class="keyword">"device"</span>: <span class="string">"cpu"</span>,
   <span class="keyword">"inputShape"</span>: { <span class="keyword">"c"</span>: <span class="number">1</span>, <span class="keyword">"h"</span>: <span class="number">28</span>, <span class="keyword">"w"</span>: <span class="number">28</span> },
-  <span class="keyword">"cnnLayersConfig"</span>: [
+  <span class="keyword">"convolutionalLayersConfig"</span>: [
     { <span class="keyword">"type"</span>: <span class="string">"conv"</span>, <span class="keyword">"numFilters"</span>: <span class="number">8</span>, <span class="keyword">"filterH"</span>: <span class="number">3</span>, <span class="keyword">"filterW"</span>: <span class="number">3</span>, <span class="keyword">"slidingStrategy"</span>: <span class="string">"valid"</span> },
     { <span class="keyword">"type"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"type"</span>: <span class="string">"pool"</span>, <span class="keyword">"poolType"</span>: <span class="string">"max"</span>, <span class="keyword">"poolH"</span>: <span class="number">2</span>, <span class="keyword">"poolW"</span>: <span class="number">2</span>, <span class="keyword">"strideY"</span>: <span class="number">2</span>, <span class="keyword">"strideX"</span>: <span class="number">2</span> },

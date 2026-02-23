@@ -2,7 +2,7 @@
 
 A command-line interface for training, testing, and predicting with Neural Networks (ANN and CNN).
 
-The network type is **auto-detected** from the configuration file: if the config contains `inputShape` or `cnnLayersConfig`, it is treated as a CNN; otherwise as an ANN.
+The network type is **auto-detected** from the configuration file: if the config contains `inputShape` or `convolutionalLayersConfig`, it is treated as a CNN; otherwise as an ANN.
 
 ## Building
 
@@ -56,10 +56,10 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 {
   "mode": "train",
   "device": "cpu",
-  "inputType": "vector",
-  "outputType": "vector",
   "progressReports": 1000,
   "saveModelInterval": 10,
+  "inputType": "vector",
+  "outputType": "vector",
   "layersConfig": [
     { "numNeurons": 784, "actvFunc": "none" },
     { "numNeurons": 128, "actvFunc": "relu" },
@@ -99,12 +99,12 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 
 - `mode`: Operation mode (optional, default: `predict`) — *can be overridden by `--mode`*
 - `device`: Execution device (optional, default: `cpu`) — *can be overridden by `--device`*
+- `progressReports`: Progress update frequency for all modes (optional, default: `1000`)
+- `saveModelInterval`: Save a checkpoint every N epochs during training (optional, default: `10`; `0` = disabled)
 - `inputType`: Input data type — `"vector"` (default) or `"image"` — *can be overridden by `--input-type`*
 - `outputType`: Output data type — `"vector"` (default) or `"image"` — *can be overridden by `--output-type`*
 - `inputShape`: Input image dimensions (`c`, `h`, `w`) — required when `inputType` is `"image"`
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
-- `progressReports`: Progress update frequency for all modes (optional, default: `1000`)
-- `saveModelInterval`: Save a checkpoint every N epochs during training (optional, default: `10`; `0` = disabled)
 
 #### ANN Layers Configuration
 
@@ -125,12 +125,12 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 {
   "mode": "train",
   "device": "cpu",
-  "inputType": "vector",
-  "outputType": "vector",
   "progressReports": 1000,
   "saveModelInterval": 10,
+  "inputType": "vector",
+  "outputType": "vector",
   "inputShape": { "c": 1, "h": 28, "w": 28 },
-  "cnnLayersConfig": [
+  "convolutionalLayersConfig": [
     { "type": "conv", "numFilters": 8, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
     { "type": "relu" },
     { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
@@ -151,14 +151,14 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 
 - `mode`: Operation mode (optional, default: `predict`) — *can be overridden by `--mode`*
 - `device`: Execution device (optional, default: `cpu`) — *can be overridden by `--device`*
+- `progressReports`: Progress update frequency for all modes (optional, default: `1000`)
+- `saveModelInterval`: Save a checkpoint every N epochs during training (optional, default: `10`; `0` = disabled)
 - `inputType`: Input data type — `"vector"` (default) or `"image"` — *can be overridden by `--input-type`*
 - `outputType`: Output data type — `"vector"` (default) or `"image"` — *can be overridden by `--output-type`*
 - `inputShape`: Input tensor dimensions (`c` channels, `h` height, `w` width)
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
-- `progressReports`: Progress update frequency for all modes (optional, default: `1000`)
-- `saveModelInterval`: Save a checkpoint every N epochs during training (optional, default: `10`; `0` = disabled)
 
-#### CNN Layers Configuration (`cnnLayersConfig`)
+#### CNN Layers Configuration (`convolutionalLayersConfig`)
 
 Each layer has a `type` field:
 

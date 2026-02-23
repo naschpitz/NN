@@ -644,6 +644,10 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
   json["mode"] = ANN::Mode::typeToName(core.getModeType());
   json["device"] = ANN::Device::typeToName(core.getDeviceType());
 
+  // NN-CLI settings
+  json["progressReports"] = progressReports;
+  json["saveModelInterval"] = saveModelInterval;
+
   // I/O types (NN-CLI concept, persisted so predict/test can reload them)
   json["inputType"] = dataTypeToString(ioConfig.inputType);
   json["outputType"] = dataTypeToString(ioConfig.outputType);
@@ -663,10 +667,6 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
     osJson["w"] = ioConfig.outputW;
     json["outputShape"] = osJson;
   }
-
-  // NN-CLI settings
-  json["progressReports"] = progressReports;
-  json["saveModelInterval"] = saveModelInterval;
 
   // Layers config
   nlohmann::ordered_json layersArr = nlohmann::ordered_json::array();
@@ -720,13 +720,13 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
   json["mode"] = CNN::Mode::typeToName(core.getModeType());
   json["device"] = CNN::Device::typeToName(core.getDeviceType());
 
-  // I/O types (NN-CLI concept, persisted so predict/test can reload them)
-  json["inputType"] = dataTypeToString(ioConfig.inputType);
-  json["outputType"] = dataTypeToString(ioConfig.outputType);
-
   // NN-CLI settings
   json["progressReports"] = progressReports;
   json["saveModelInterval"] = saveModelInterval;
+
+  // I/O types (NN-CLI concept, persisted so predict/test can reload them)
+  json["inputType"] = dataTypeToString(ioConfig.inputType);
+  json["outputType"] = dataTypeToString(ioConfig.outputType);
 
   // Input shape (CNN network shape, always present)
   const auto& shape = core.getInputShape();
@@ -780,7 +780,7 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
     }
     cnnLayersArr.push_back(layerJson);
   }
-  json["cnnLayersConfig"] = cnnLayersArr;
+  json["convolutionalLayersConfig"] = cnnLayersArr;
 
   // Dense layers config
   nlohmann::ordered_json denseLayersArr = nlohmann::ordered_json::array();

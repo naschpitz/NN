@@ -24,8 +24,8 @@ NetworkType Loader::detectNetworkType(const std::string& configFilePath) {
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
 
-    // CNN configs have "inputShape" and/or "cnnLayersConfig"
-    if (json.contains("inputShape") || json.contains("cnnLayersConfig")) {
+    // CNN configs have "inputShape" and/or "convolutionalLayersConfig"
+    if (json.contains("inputShape") || json.contains("convolutionalLayersConfig")) {
         return NetworkType::CNN;
     }
 
@@ -196,8 +196,8 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
     coreConfig.inputShape.w = shapeJson.at("w").get<ulong>();
 
     // CNN layers
-    if (json.contains("cnnLayersConfig")) {
-        for (const auto& layerJson : json.at("cnnLayersConfig")) {
+    if (json.contains("convolutionalLayersConfig")) {
+        for (const auto& layerJson : json.at("convolutionalLayersConfig")) {
             std::string type = layerJson.at("type").get<std::string>();
             CNN::CNNLayerConfig layerConfig;
 
