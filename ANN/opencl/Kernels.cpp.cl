@@ -117,6 +117,7 @@ kernel void calculate_dCost_dActv_last_layer(
     global TYPE* dCost_dActvs,
     global TYPE* actvs,
     global TYPE* outputs,
+    global TYPE* lossWeights,
     ulong numOutputNeurons,
     constant Layer* layers,
     ulong numLayers
@@ -126,7 +127,7 @@ kernel void calculate_dCost_dActv_last_layer(
   ulong lastLayerIdx = numLayers - 1;
   ulong idx = getActvIndex(lastLayerIdx, j, layers, numLayers);
 
-  dCost_dActvs[idx] = 2.0f * (actvs[idx] - outputs[j]);
+  dCost_dActvs[idx] = 2.0f * lossWeights[j] * (actvs[idx] - outputs[j]);
 }
 
 //===================================================================================================================//

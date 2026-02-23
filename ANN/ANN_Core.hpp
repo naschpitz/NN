@@ -38,6 +38,7 @@ namespace ANN {
       const PredictMetadata<T>& getPredictMetadata() const { return predictMetadata; }
       const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }
       const Parameters<T>& getParameters() const { return parameters; }
+      const LossFunctionConfig<T>& getLossFunctionConfig() const { return lossFunctionConfig; }
 
       // Set parameters (for multi-GPU weight synchronization)
       void setParameters(const Parameters<T>& params) { parameters = params; }
@@ -53,7 +54,7 @@ namespace ANN {
       explicit Core(const CoreConfig<T>& coreConfig);
       void sanityCheck(const CoreConfig<T>& coreConfig);
 
-      // Calculate MSE loss between output activations and expected output
+      // Calculate loss between output activations and expected output
       T calculateLoss(const Output<T>& expected);
 
       // Training timing helpers - called at start/end of training
@@ -71,6 +72,7 @@ namespace ANN {
       TrainingMetadata<T> trainingMetadata;
       PredictMetadata<T> predictMetadata;
       Parameters<T> parameters;
+      LossFunctionConfig<T> lossFunctionConfig;
       ulong progressReports = 1000;
       LogLevel logLevel = LogLevel::ERROR;
 

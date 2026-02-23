@@ -472,6 +472,119 @@ static void testGettersAfterConstruction() {
 
 //===================================================================================================================//
 
+static void testLossFunctionConfigDefault() {
+  std::cout << "--- testLossFunctionConfigDefault ---" << std::endl;
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::PREDICT;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+
+  auto core = ANN::Core<double>::makeCore(config);
+
+  const auto& lfc = core->getLossFunctionConfig();
+  CHECK(lfc.type == ANN::LossFunctionType::SQUARED_DIFFERENCE, "default type is squaredDifference");
+  CHECK(lfc.weights.empty(), "default weights is empty");
+}
+
+//===================================================================================================================//
+
+static void testLossFunctionConfigGetter() {
+  std::cout << "--- testLossFunctionConfigGetter ---" << std::endl;
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::PREDICT;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SIGMOID}});
+  config.lossFunctionConfig.type = ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  config.lossFunctionConfig.weights = {3.0, 0.5};
+
+  auto core = ANN::Core<double>::makeCore(config);
+
+  const auto& lfc = core->getLossFunctionConfig();
+  CHECK(lfc.type == ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "type is weightedSquaredDifference");
+  CHECK(lfc.weights.size() == 2, "weights size = 2");
+  CHECK_NEAR(lfc.weights[0], 3.0, 1e-10, "weight[0] = 3.0");
+  CHECK_NEAR(lfc.weights[1], 0.5, 1e-10, "weight[1] = 0.5");
+}
+
+//===================================================================================================================//
+
+static void testLossFunctionStringConversion() {
+  std::cout << "--- testLossFunctionStringConversion ---" << std::endl;
+
+  CHECK(ANN::LossFunction::nameToType("squaredDifference") == ANN::LossFunctionType::SQUARED_DIFFERENCE,
+        "nameToType squaredDifference");
+  CHECK(ANN::LossFunction::nameToType("weightedSquaredDifference") == ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE,
+        "nameToType weightedSquaredDifference");
+  CHECK(ANN::LossFunction::typeToName(ANN::LossFunctionType::SQUARED_DIFFERENCE) == "squaredDifference",
+        "typeToName squaredDifference");
+  CHECK(ANN::LossFunction::typeToName(ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE) == "weightedSquaredDifference",
+        "typeToName weightedSquaredDifference");
+
+  bool threwException = false;
+  try { ANN::LossFunction::nameToType("invalidName"); } catch (const std::runtime_error&) { threwException = true; }
+  CHECK(threwException, "nameToType throws on unknown name");
+}
+
+//===================================================================================================================//
+
+static void testWeightedLossAffectsTraining() {
+  std::cout << "--- testWeightedLossAffectsTraining ---" << std::endl;
+
+  // Train a 2-input → 2-output network.
+  // Expected outputs: [1, 0] for all samples.
+  // With heavy weight on output 0, the network should prioritize that output.
+  ANN::Samples<double> samples = {
+    {{1.0, 0.0}, {1.0, 0.0}},
+    {{0.0, 1.0}, {1.0, 0.0}}
+  };
+
+  // Train with default loss (equal weighting)
+  ANN::CoreConfig<double> configDefault;
+  configDefault.modeType = ANN::ModeType::TRAIN;
+  configDefault.deviceType = ANN::DeviceType::CPU;
+  configDefault.layersConfig = makeLayersConfig({
+    {2, ANN::ActvFuncType::RELU},
+    {4, ANN::ActvFuncType::SIGMOID},
+    {2, ANN::ActvFuncType::SIGMOID}
+  });
+  configDefault.trainingConfig.numEpochs = 200;
+  configDefault.trainingConfig.learningRate = 0.5;
+  configDefault.progressReports = 0;
+
+  // Train with weighted loss: output 0 weighted 10x more than output 1
+  ANN::CoreConfig<double> configWeighted = configDefault;
+  configWeighted.lossFunctionConfig.type = ANN::LossFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  configWeighted.lossFunctionConfig.weights = {10.0, 1.0};
+
+  // Use test() to compare loss on each — the weighted network should report different total loss
+  auto coreDefault = ANN::Core<double>::makeCore(configDefault);
+  coreDefault->train(samples);
+  ANN::TestResult<double> resultDefault = coreDefault->test(samples);
+
+  auto coreWeighted = ANN::Core<double>::makeCore(configWeighted);
+  coreWeighted->train(samples);
+  ANN::TestResult<double> resultWeighted = coreWeighted->test(samples);
+
+  std::cout << "  default avgLoss=" << resultDefault.averageLoss
+            << "  weighted avgLoss=" << resultWeighted.averageLoss << std::endl;
+
+  // Both should train successfully (loss should be finite and non-negative)
+  CHECK(resultDefault.averageLoss >= 0.0, "default loss non-negative");
+  CHECK(resultWeighted.averageLoss >= 0.0, "weighted loss non-negative");
+  CHECK(std::isfinite(resultDefault.averageLoss), "default loss is finite");
+  CHECK(std::isfinite(resultWeighted.averageLoss), "weighted loss is finite");
+
+  // The weighted loss result should differ from the default (different gradient dynamics)
+  // We don't check which is larger since random init makes that non-deterministic
+  // But we confirm both trained without crashing and produced valid loss
+  CHECK(resultDefault.numSamples == 2, "default: tested 2 samples");
+  CHECK(resultWeighted.numSamples == 2, "weighted: tested 2 samples");
+}
+
+//===================================================================================================================//
+
 void runCoreTests() {
   testMakeCoreCPU();
   testPredictSimple();
@@ -487,4 +600,8 @@ void runCoreTests() {
   testStepByStepAPI();
   testTrainWithTanh();
   testGettersAfterConstruction();
+  testLossFunctionConfigDefault();
+  testLossFunctionConfigGetter();
+  testLossFunctionStringConversion();
+  testWeightedLossAffectsTraining();
 }

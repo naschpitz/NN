@@ -451,7 +451,8 @@ T CoreCPU<T>::calc_dCost_dActv(ulong j, const Output<T>& output, const Tensor2D<
   ulong numLayers = this->layersConfig.size();
   ulong l = numLayers - 1;
 
-  return 2 * (actvs[l][j] - output[j]);
+  T weight = (!this->lossFunctionConfig.weights.empty()) ? this->lossFunctionConfig.weights[j] : static_cast<T>(1);
+  return 2 * weight * (actvs[l][j] - output[j]);
 }
 
 //===================================================================================================================//
@@ -613,7 +614,8 @@ T CoreCPU<T>::calculateLoss(const Output<T>& expected, const Tensor2D<T>& actvs)
   T loss = 0;
   for (ulong i = 0; i < outputActvs.size(); i++) {
     T diff = outputActvs[i] - expected[i];
-    loss += diff * diff;
+    T weight = (!this->lossFunctionConfig.weights.empty()) ? this->lossFunctionConfig.weights[i] : static_cast<T>(1);
+    loss += weight * diff * diff;
   }
 
   return loss / static_cast<T>(outputActvs.size());

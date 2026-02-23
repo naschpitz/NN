@@ -13,11 +13,12 @@ using namespace ANN;
 
 template <typename T>
 CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                                 const Parameters<T>& parameters, ulong progressReports,
-                                 LogLevel logLevel)
+                                 const Parameters<T>& parameters, const LossFunctionConfig<T>& lossFunctionConfig,
+                                 ulong progressReports, LogLevel logLevel)
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
+      lossFunctionConfig(lossFunctionConfig),
       progressReports(progressReports),
       logLevel(logLevel) {
 
@@ -34,11 +35,13 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
 
 template <typename T>
 CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                                 const Parameters<T>& parameters, OpenCLWrapper::Core& sharedCore,
+                                 const Parameters<T>& parameters, const LossFunctionConfig<T>& lossFunctionConfig,
+                                 OpenCLWrapper::Core& sharedCore,
                                  ulong progressReports, LogLevel logLevel)
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
+      lossFunctionConfig(lossFunctionConfig),
       progressReports(progressReports),
       logLevel(logLevel),
       core(&sharedCore) {
@@ -383,6 +386,17 @@ void CoreGPUWorker<T>::allocateBuffers() {
   this->core->template allocateBuffer<T>("accum_dCost_dBiases", totalNumBiases);
   this->core->template allocateBuffer<T>("outputs", this->layersConfig[numLayers - 1].numNeurons);
 
+  // Loss weights buffer (one weight per output neuron).
+  // Always allocated: for squaredDifference, filled with 1.0 so the kernel needs no branching.
+  ulong numOutputNeurons = this->layersConfig[numLayers - 1].numNeurons;
+  this->core->template allocateBuffer<T>("lossWeights", numOutputNeurons);
+
+  std::vector<T> lossWeightsVec(numOutputNeurons, static_cast<T>(1));
+  if (!this->lossFunctionConfig.weights.empty()) {
+    lossWeightsVec = this->lossFunctionConfig.weights;
+  }
+  this->core->template writeBuffer<T>("lossWeights", lossWeightsVec, 0);
+
   if (this->logLevel >= LogLevel::INFO) std::cout << "ANN buffers allocation done.\n";
 
   // Write initialized weights and biases to GPU buffers
@@ -534,6 +548,7 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "dCost_dActvs");
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "actvs");
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "outputs");
+  this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "lossWeights");
   this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", this->layersConfig[numLayers - 1].numNeurons);
   this->core->template addArgument<Layer>("calculate_dCost_dActv_last_layer", "layers");
   this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", numLayers);
@@ -662,7 +677,8 @@ T CoreGPUWorker<T>::calculateLoss(const Output<T>& expected) {
 
   for (ulong i = 0; i < expected.size(); i++) {
     T diff = actual[i] - expected[i];
-    loss += diff * diff;
+    T weight = (!this->lossFunctionConfig.weights.empty()) ? this->lossFunctionConfig.weights[i] : static_cast<T>(1);
+    loss += weight * diff * diff;
   }
 
   return loss / static_cast<T>(expected.size());

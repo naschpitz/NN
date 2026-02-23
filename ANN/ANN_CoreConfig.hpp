@@ -5,6 +5,7 @@
 #include "ANN_Device.hpp"
 #include "ANN_LogLevel.hpp"
 #include "ANN_LayersConfig.hpp"
+#include "ANN_LossFunctionConfig.hpp"
 #include "ANN_TrainingConfig.hpp"
 #include "ANN_Parameters.hpp"
 
@@ -16,6 +17,7 @@ namespace ANN {
     ModeType modeType;
     DeviceType deviceType;
     LayersConfig layersConfig;
+    LossFunctionConfig<T> lossFunctionConfig;
     TrainingConfig<T> trainingConfig;
     Parameters<T> parameters;
     ulong progressReports = 1000; // Number of progress reports (0 = no reports, default = 1000)
