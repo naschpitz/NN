@@ -244,6 +244,50 @@ static void testParameterRoundTrip() {
 
 //===================================================================================================================//
 
+static void testParametersDuringTraining() {
+  std::cout << "--- testParametersDuringTraining ---" << std::endl;
+
+  // Train a network and verify that getParameters() returns non-empty data
+  // during training (in the epoch-completion callback), not just after training ends.
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({
+    {2, ANN::ActvFuncType::RELU},
+    {4, ANN::ActvFuncType::RELU},
+    {1, ANN::ActvFuncType::SIGMOID}
+  });
+  config.trainingConfig.numEpochs = 10;
+  config.trainingConfig.learningRate = 0.5;
+  config.progressReports = 0;
+
+  ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
+
+  auto core = ANN::Core<double>::makeCore(config);
+
+  bool paramsChecked = false;
+  bool weightsNonEmpty = false;
+  bool biasesNonEmpty = false;
+
+  core->setTrainingCallback([&](const ANN::TrainingProgress<double>& progress) {
+    // Detect epoch-completion callback: epochLoss > 0 and sampleLoss == 0
+    if (progress.epochLoss > 0 && progress.sampleLoss == 0 && !paramsChecked) {
+      const ANN::Parameters<double>& params = core->getParameters();
+      weightsNonEmpty = !params.weights.empty();
+      biasesNonEmpty = !params.biases.empty();
+      paramsChecked = true;
+    }
+  });
+
+  core->train(samples);
+
+  CHECK(paramsChecked, "epoch-completion callback fired");
+  CHECK(weightsNonEmpty, "parameters.weights non-empty during training");
+  CHECK(biasesNonEmpty, "parameters.biases non-empty during training");
+}
+
+//===================================================================================================================//
+
 static void testDifferentActivations() {
   std::cout << "--- testDifferentActivations ---" << std::endl;
 
@@ -594,6 +638,7 @@ void runCoreTests() {
   testPredictMetadata();
   testTrainingCallback();
   testParameterRoundTrip();
+  testParametersDuringTraining();
   testDifferentActivations();
   testMultiLayerNetwork();
   testMultiOutput();
