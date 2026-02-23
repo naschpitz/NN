@@ -13,6 +13,7 @@
 
 extern int testsPassed;
 extern int testsFailed;
+extern bool runFullTests;
 
 #define CHECK(cond, msg) do { \
   if (!(cond)) { \
@@ -62,6 +63,33 @@ inline QString tempDir() {
 inline void cleanupTemp() {
   QDir dir(QDir::temp().filePath("nncli_test"));
   if (dir.exists()) dir.removeRecursively();
+}
+
+// Check if GPU is available by running a tiny ANN training on GPU
+inline bool checkGPUAvailable() {
+  static int cached = -1;  // -1 = not checked, 0 = no, 1 = yes
+
+  if (cached >= 0) return cached == 1;
+
+  QString modelPath = tempDir() + "/gpu_probe.json";
+
+  QProcess process;
+  process.setWorkingDirectory(QCoreApplication::applicationDirPath() + "/..");
+  process.start(QCoreApplication::applicationDirPath() + "/NN-CLI", {
+    "--config", projectRoot() + "/tests/fixtures/ann_train_config.json",
+    "--mode", "train",
+    "--device", "gpu",
+    "--samples", projectRoot() + "/tests/fixtures/ann_train_samples.json",
+    "--output", modelPath,
+    "--log-level", "quiet"
+  });
+
+  if (!process.waitForStarted(5000)) { cached = 0; return false; }
+  if (!process.waitForFinished(30000)) { process.kill(); process.waitForFinished(3000); cached = 0; return false; }
+
+  QFile::remove(modelPath);
+  cached = (process.exitCode() == 0) ? 1 : 0;
+  return cached == 1;
 }
 
 // Run NN-CLI with arguments and capture output

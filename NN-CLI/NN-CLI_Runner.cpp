@@ -183,6 +183,9 @@ int Runner::runANNTest() {
     std::cout << "  Samples evaluated: " << result.numSamples << "\n";
     std::cout << "  Total loss:        " << result.totalLoss << "\n";
     std::cout << "  Average loss:      " << result.averageLoss << "\n";
+    std::cout << "  Correct:           " << result.numCorrect << " / " << result.numSamples << "\n";
+    std::cout << "  Accuracy:          " << std::fixed << std::setprecision(2) << result.accuracy << "%\n";
+    std::cout.unsetf(std::ios_base::floatfield);
   }
 
   return 0;
@@ -375,6 +378,9 @@ int Runner::runCNNTest() {
     std::cout << "  Samples evaluated: " << result.numSamples << "\n";
     std::cout << "  Total loss:        " << result.totalLoss << "\n";
     std::cout << "  Average loss:      " << result.averageLoss << "\n";
+    std::cout << "  Correct:           " << result.numCorrect << " / " << result.numSamples << "\n";
+    std::cout << "  Accuracy:          " << std::fixed << std::setprecision(2) << result.accuracy << "%\n";
+    std::cout.unsetf(std::ios_base::floatfield);
   }
 
   return 0;
