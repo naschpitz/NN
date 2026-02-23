@@ -1,0 +1,21 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "progressReports": 0,
+  "saveModelInterval": 0,
+  "inputShape": { "c": 1, "h": 28, "w": 28 },
+  "convolutionalLayersConfig": [
+    { "type": "conv", "numFilters": 4, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
+    { "type": "relu" },
+    { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
+    { "type": "flatten" }
+  ],
+  "denseLayersConfig": [
+    { "numNeurons": 10, "actvFunc": "sigmoid" }
+  ],
+  "trainingConfig": {
+    "numEpochs": 10,
+    "learningRate": 0.01
+  }
+}
+

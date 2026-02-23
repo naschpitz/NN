@@ -163,6 +163,59 @@ static void testCNNTrainWithWeightedLoss() {
   std::cout << std::endl;
 }
 
+static void testCNNTrainAndTestMNIST() {
+  std::cout << "  testCNNTrainAndTestMNIST... " << std::flush;
+
+  QString modelPath = tempDir() + "/cnn_mnist_trained.json";
+
+  // Step 1: Train on MNIST training data (10 epochs, 60k samples)
+  // CNN on 28×28 images is significantly slower than ANN, so fewer epochs
+  auto trainResult = runNNCLI({
+    "--config", fixturePath("mnist_cnn_train_config.json"),
+    "--mode", "train",
+    "--device", "cpu",
+    "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"),
+    "--idx-labels", examplePath("MNIST/train/train-labels.idx1-ubyte"),
+    "--output", modelPath,
+    "--log-level", "quiet"
+  }, 1800000);  // 30 min timeout
+
+  CHECK(trainResult.exitCode == 0, "CNN MNIST train+test: training exit code 0");
+  CHECK(QFile::exists(modelPath), "CNN MNIST train+test: trained model file exists");
+
+  if (trainResult.exitCode != 0 || !QFile::exists(modelPath)) {
+    std::cout << "(training failed, skipping test step)" << std::endl;
+    return;
+  }
+
+  // Step 2: Evaluate against MNIST test data (10k samples)
+  auto testResult = runNNCLI({
+    "--config", modelPath,
+    "--mode", "test",
+    "--device", "cpu",
+    "--idx-data", examplePath("MNIST/test/t10k-images.idx3-ubyte"),
+    "--idx-labels", examplePath("MNIST/test/t10k-labels.idx1-ubyte")
+  }, 600000);  // 10 min timeout
+
+  CHECK(testResult.exitCode == 0, "CNN MNIST train+test: test exit code 0");
+  CHECK(testResult.stdOut.contains("Test Results:"), "CNN MNIST train+test: 'Test Results:'");
+  CHECK(testResult.stdOut.contains("Samples evaluated: 10000"), "CNN MNIST train+test: 'Samples evaluated: 10000'");
+
+  // Extract and verify average loss is reasonable
+  double avgLoss = -1;
+  int idx = testResult.stdOut.indexOf("Average loss:");
+  if (idx >= 0) {
+    QString lossStr = testResult.stdOut.mid(idx + QString("Average loss:").length()).trimmed();
+    lossStr = lossStr.left(lossStr.indexOf('\n'));
+    avgLoss = lossStr.toDouble();
+  }
+  CHECK(avgLoss > 0 && avgLoss < 0.5, "CNN MNIST train+test: average loss < 0.5");
+
+  std::cout << "(loss=" << avgLoss << ") " << std::endl;
+}
+
+//===================================================================================================================//
+
 static void testCNNCheckpointParameters() {
   std::cout << "  testCNNCheckpointParameters... ";
 
@@ -271,6 +324,7 @@ void runCNNTests() {
   testCNNPredict();
   testCNNTest();
   testCNNTrainWithWeightedLoss();
+  testCNNTrainAndTestMNIST();
   testCNNCheckpointParameters();
 }
 
