@@ -1,5 +1,6 @@
 #include "test_helpers.hpp"
 
+#include <QDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -162,11 +163,114 @@ static void testCNNTrainWithWeightedLoss() {
   std::cout << std::endl;
 }
 
+static void testCNNCheckpointParameters() {
+  std::cout << "  testCNNCheckpointParameters... ";
+
+  // Write a custom config with enough epochs to trigger checkpoints
+  // (existing fixture has 5 epochs / interval 10, which produces no checkpoints)
+  QString configPath = tempDir() + "/cnn_ckpt_config.json";
+  QFile configFile(configPath);
+  if (configFile.exists()) configFile.remove();
+  if (configFile.open(QIODevice::WriteOnly)) {
+    const char* configJson = R"({
+  "mode": "train",
+  "device": "cpu",
+  "progressReports": 0,
+  "saveModelInterval": 5,
+  "inputShape": { "c": 1, "h": 4, "w": 4 },
+  "convolutionalLayersConfig": [
+    { "type": "conv", "numFilters": 1, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
+    { "type": "relu" },
+    { "type": "flatten" }
+  ],
+  "denseLayersConfig": [
+    { "numNeurons": 2, "actvFunc": "sigmoid" }
+  ],
+  "trainingConfig": {
+    "numEpochs": 20,
+    "learningRate": 0.1
+  }
+})";
+    configFile.write(configJson);
+    configFile.close();
+  } else {
+    CHECK(false, "CNN checkpoint params: failed to write config file");
+    std::cout << std::endl;
+    return;
+  }
+
+  // Copy samples to tempDir so checkpoints go to tempDir/output/
+  // (generateCheckpointPath uses the samples file directory, not the config directory)
+  QString samplesSrc = fixturePath("cnn_train_samples.json");
+  QString samplesDst = tempDir() + "/cnn_ckpt_samples.json";
+  QFile::remove(samplesDst);
+  QFile::copy(samplesSrc, samplesDst);
+
+  // Clean up any prior checkpoint output
+  QDir(tempDir() + "/output").removeRecursively();
+
+  QString modelPath = tempDir() + "/cnn_ckpt_model.json";
+
+  auto result = runNNCLI({
+    "--config", configPath,
+    "--mode", "train",
+    "--device", "cpu",
+    "--samples", samplesDst,
+    "--output", modelPath
+  });
+
+  CHECK(result.exitCode == 0, "CNN checkpoint params: exit code 0");
+  CHECK(result.stdOut.contains("Training completed."), "CNN checkpoint params: 'Training completed.'");
+
+  // Find checkpoint files in tempDir/output/
+  QDir outputDir(tempDir() + "/output");
+  QStringList checkpoints = outputDir.entryList({"checkpoint_epoch_*.json"}, QDir::Files);
+  CHECK(!checkpoints.isEmpty(), "CNN checkpoint params: checkpoint files exist");
+
+  if (!checkpoints.isEmpty()) {
+    QString checkpointPath = outputDir.filePath(checkpoints.first());
+    QFile file(checkpointPath);
+    if (file.open(QIODevice::ReadOnly)) {
+      QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+      QJsonObject root = doc.object();
+      CHECK(root.contains("parameters"), "CNN checkpoint params: has 'parameters'");
+
+      QJsonObject params = root["parameters"].toObject();
+
+      // Verify conv parameters are non-empty
+      QJsonArray convArr = params["conv"].toArray();
+      CHECK(!convArr.isEmpty(), "CNN checkpoint params: conv non-empty");
+      if (!convArr.isEmpty()) {
+        QJsonObject firstConv = convArr[0].toObject();
+        QJsonArray filters = firstConv["filters"].toArray();
+        CHECK(!filters.isEmpty(), "CNN checkpoint params: conv[0].filters non-empty");
+      }
+
+      // Verify dense parameters are non-empty
+      QJsonObject dense = params["dense"].toObject();
+      QJsonArray denseWeights = dense["weights"].toArray();
+      QJsonArray denseBiases = dense["biases"].toArray();
+      CHECK(!denseWeights.isEmpty(), "CNN checkpoint params: dense.weights non-empty");
+      CHECK(!denseBiases.isEmpty(), "CNN checkpoint params: dense.biases non-empty");
+
+      file.close();
+    } else {
+      CHECK(false, "CNN checkpoint params: failed to open checkpoint file");
+    }
+  }
+
+  // Cleanup checkpoint output dir
+  QDir(tempDir() + "/output").removeRecursively();
+
+  std::cout << std::endl;
+}
+
 void runCNNTests() {
   testCNNNetworkDetection();
   testCNNTrain();
   testCNNPredict();
   testCNNTest();
   testCNNTrainWithWeightedLoss();
+  testCNNCheckpointParameters();
 }
 
