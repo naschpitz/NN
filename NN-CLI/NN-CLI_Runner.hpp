@@ -46,9 +46,9 @@ class Runner {
 
     // Model saving (includes inputType/outputType/outputShape from ioConfig)
     static void saveANNModel(const ANN::Core<float>& core, const std::string& filePath,
-                              const IOConfig& ioConfig);
+                              const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval);
     static void saveCNNModel(const CNN::Core<float>& core, const std::string& filePath,
-                              const IOConfig& ioConfig);
+                              const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval);
 
     // Output path helpers
     static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);

@@ -134,7 +134,7 @@ int Runner::runANNTrain() {
       // An epoch boundary was crossed — lastCallbackEpoch is the completed epoch
       if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-        saveANNModel(*this->annCore, checkpointPath, this->ioConfig);
+        saveANNModel(*this->annCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
         std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
       lastCallbackEpoch = progress.currentEpoch;
@@ -159,7 +159,7 @@ int Runner::runANNTrain() {
       trainingMetadata.numSamples, trainingMetadata.finalLoss);
   }
 
-  saveANNModel(*this->annCore, outputPathStr, this->ioConfig);
+  saveANNModel(*this->annCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
   std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
@@ -319,7 +319,7 @@ int Runner::runCNNTrain() {
       // An epoch boundary was crossed — lastCallbackEpoch is the completed epoch
       if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-        saveCNNModel(*this->cnnCore, checkpointPath, this->ioConfig);
+        saveCNNModel(*this->cnnCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
         std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
       lastCallbackEpoch = progress.currentEpoch;
@@ -344,7 +344,7 @@ int Runner::runCNNTrain() {
       trainingMetadata.numSamples, trainingMetadata.finalLoss);
   }
 
-  saveCNNModel(*this->cnnCore, outputPathStr, this->ioConfig);
+  saveCNNModel(*this->cnnCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
   std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
@@ -638,11 +638,11 @@ std::string Runner::generateCheckpointPath(
 //===================================================================================================================//
 
 void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& filePath,
-                           const IOConfig& ioConfig) {
+                           const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval) {
   nlohmann::ordered_json json;
 
-  json["device"] = ANN::Device::typeToName(core.getDeviceType());
   json["mode"] = ANN::Mode::typeToName(core.getModeType());
+  json["device"] = ANN::Device::typeToName(core.getDeviceType());
 
   // I/O types (NN-CLI concept, persisted so predict/test can reload them)
   json["inputType"] = dataTypeToString(ioConfig.inputType);
@@ -663,6 +663,10 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
     osJson["w"] = ioConfig.outputW;
     json["outputShape"] = osJson;
   }
+
+  // NN-CLI settings
+  json["progressReports"] = progressReports;
+  json["saveModelInterval"] = saveModelInterval;
 
   // Layers config
   nlohmann::ordered_json layersArr = nlohmann::ordered_json::array();
@@ -710,15 +714,19 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
 //===================================================================================================================//
 
 void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& filePath,
-                           const IOConfig& ioConfig) {
+                           const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval) {
   nlohmann::ordered_json json;
 
-  json["device"] = CNN::Device::typeToName(core.getDeviceType());
   json["mode"] = CNN::Mode::typeToName(core.getModeType());
+  json["device"] = CNN::Device::typeToName(core.getDeviceType());
 
   // I/O types (NN-CLI concept, persisted so predict/test can reload them)
   json["inputType"] = dataTypeToString(ioConfig.inputType);
   json["outputType"] = dataTypeToString(ioConfig.outputType);
+
+  // NN-CLI settings
+  json["progressReports"] = progressReports;
+  json["saveModelInterval"] = saveModelInterval;
 
   // Input shape (CNN network shape, always present)
   const auto& shape = core.getInputShape();

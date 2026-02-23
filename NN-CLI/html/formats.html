@@ -247,11 +247,14 @@
 <h2 id="output-format">6. Output Formats</h2>
 
 <h3>Training Output</h3>
-<p>Complete model JSON with all parameters, suitable for predict/test. The <code>inputType</code> and <code>outputType</code> are persisted so predict/test can reload them automatically:</p>
+<p>Complete model JSON with all parameters, suitable for predict/test. The <code>inputType</code>, <code>outputType</code>, <code>progressReports</code>, and <code>saveModelInterval</code> are persisted so predict/test can reload them automatically:</p>
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"predict"</span>,
+  <span class="string">"device"</span>: <span class="string">"cpu"</span>,
   <span class="string">"inputType"</span>: <span class="string">"image"</span>,
   <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
+  <span class="string">"progressReports"</span>: <span class="number">1000</span>,
+  <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="string">"layersConfig"</span>: [...],
   <span class="string">"trainingConfig"</span>: {...},
   <span class="string">"trainingMetadata"</span>: {
