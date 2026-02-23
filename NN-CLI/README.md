@@ -58,14 +58,14 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
   "device": "cpu",
   "inputType": "vector",
   "outputType": "vector",
+  "progressReports": 1000,
+  "saveModelInterval": 10,
   "layersConfig": [
     { "numNeurons": 784, "actvFunc": "none" },
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
-  "progressReports": 1000,
-  "saveModelInterval": 10,
   "trainingConfig": {
     "numEpochs": 100,
     "learningRate": 0.01,
@@ -127,6 +127,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
   "device": "cpu",
   "inputType": "vector",
   "outputType": "vector",
+  "progressReports": 1000,
+  "saveModelInterval": 10,
   "inputShape": { "c": 1, "h": 28, "w": 28 },
   "cnnLayersConfig": [
     { "type": "conv", "numFilters": 8, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
@@ -138,8 +140,6 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
-  "progressReports": 1000,
-  "saveModelInterval": 10,
   "trainingConfig": {
     "numEpochs": 10,
     "learningRate": 0.01

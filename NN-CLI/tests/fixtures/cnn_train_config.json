@@ -1,6 +1,8 @@
 {
   "mode": "train",
   "device": "cpu",
+  "progressReports": 100,
+  "saveModelInterval": 10,
   "inputShape": { "c": 1, "h": 4, "w": 4 },
   "cnnLayersConfig": [
     { "type": "conv", "numFilters": 1, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
@@ -10,8 +12,6 @@
   "denseLayersConfig": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "progressReports": 100,
-  "saveModelInterval": 10,
   "trainingConfig": {
     "numEpochs": 5,
     "learningRate": 0.1

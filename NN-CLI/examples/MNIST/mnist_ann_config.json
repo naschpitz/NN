@@ -1,14 +1,14 @@
 {
   "mode": "train",
   "device": "gpu",
+  "progressReports": 1000,
+  "saveModelInterval": 10,
   "layersConfig": [
     { "numNeurons": 784, "actvFunc": "relu" },
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
-  "progressReports": 1000,
-  "saveModelInterval": 10,
   "trainingConfig": {
     "numEpochs": 1000,
     "learningRate": 0.01,

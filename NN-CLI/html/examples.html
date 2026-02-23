@@ -37,13 +37,13 @@
 {
   <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
   <span class="keyword">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="keyword">"progressReports"</span>: <span class="number">100</span>,
+  <span class="keyword">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="keyword">"layersConfig"</span>: [
     { <span class="keyword">"numNeurons"</span>: <span class="number">2</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">4</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">1</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="keyword">"progressReports"</span>: <span class="number">100</span>,
-  <span class="keyword">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="keyword">"trainingConfig"</span>: {
     <span class="keyword">"numEpochs"</span>: <span class="number">1000</span>,
     <span class="keyword">"learningRate"</span>: <span class="number">0.1</span>
@@ -181,14 +181,14 @@
 <pre><code>{
   <span class="keyword">"mode"</span>: <span class="string">"train"</span>,
   <span class="keyword">"device"</span>: <span class="string">"gpu"</span>,
+  <span class="keyword">"progressReports"</span>: <span class="number">1000</span>,
+  <span class="keyword">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="keyword">"layersConfig"</span>: [
     { <span class="keyword">"numNeurons"</span>: <span class="number">784</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">128</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">64</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">10</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="keyword">"progressReports"</span>: <span class="number">1000</span>,
-  <span class="keyword">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="keyword">"trainingConfig"</span>: {
     <span class="keyword">"numEpochs"</span>: <span class="number">1000</span>,
     <span class="keyword">"learningRate"</span>: <span class="number">0.01</span>
