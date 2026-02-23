@@ -25,39 +25,43 @@ namespace NN_CLI {
  */
 class Runner {
   public:
+    //-- Constructor --//
     Runner(const QCommandLineParser& parser, LogLevel logLevel);
+
+    //-- Entry point --//
     int run();
 
   private:
-    // ANN mode methods
+    //-- ANN mode methods --//
     int runANNTrain();
     int runANNTest();
     int runANNPredict();
 
-    // CNN mode methods
+    //-- CNN mode methods --//
     int runCNNTrain();
     int runCNNTest();
     int runCNNPredict();
 
-    // Load samples from JSON or IDX based on CLI options
+    //-- Sample loading --//
     std::pair<ANN::Samples<float>, bool> loadANNSamplesFromOptions(
       const std::string& modeName, QString& inputFilePath);
     std::pair<CNN::Samples<float>, bool> loadCNNSamplesFromOptions(
       const std::string& modeName, QString& inputFilePath);
 
-    // Model saving (includes inputType/outputType/outputShape from ioConfig)
+    //-- Model saving --//
     static void saveANNModel(const ANN::Core<float>& core, const std::string& filePath,
                               const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval);
     static void saveCNNModel(const CNN::Core<float>& core, const std::string& filePath,
                               const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval);
 
-    // Output path helpers
+    //-- Output path helpers --//
     static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);
     static std::string generateDefaultOutputPath(
       const QString& inputFilePath, ulong epochs, ulong samples, float loss);
     static std::string generateCheckpointPath(
       const QString& inputFilePath, ulong epoch, float loss);
 
+    //-- Configuration --//
     const QCommandLineParser& parser;
     LogLevel logLevel;
     NetworkType networkType;
@@ -66,11 +70,11 @@ class Runner {
     ulong progressReports = 1000;  // NN-CLI display frequency (not used by ANN/CNN libs)
     ulong saveModelInterval = 10;  // 0 = disabled
 
-    // ANN members (used when networkType == ANN)
+    //-- ANN members --//
     std::unique_ptr<ANN::Core<float>> annCore;
     ANN::CoreConfig<float> annCoreConfig;
 
-    // CNN members (used when networkType == CNN)
+    //-- CNN members --//
     std::unique_ptr<CNN::Core<float>> cnnCore;
     CNN::CoreConfig<float> cnnCoreConfig;
 };

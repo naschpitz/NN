@@ -596,63 +596,7 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
 }
 
 //===================================================================================================================//
-//  Utility methods
-//===================================================================================================================//
-
-std::string Runner::generateTrainingFilename(ulong epochs, ulong samples, float loss) {
-  std::ostringstream oss;
-  oss << "trained_model_"
-      << epochs << "_"
-      << samples << "_"
-      << std::fixed << std::setprecision(6) << loss
-      << ".json";
-  return oss.str();
-}
-
-//===================================================================================================================//
-
-std::string Runner::generateDefaultOutputPath(
-    const QString& inputFilePath,
-    ulong epochs,
-    ulong samples,
-    float loss) {
-  QFileInfo inputInfo(inputFilePath);
-  QDir inputDir = inputInfo.absoluteDir();
-  QDir outputDir(inputDir.filePath("output"));
-
-  if (!outputDir.exists()) {
-    inputDir.mkdir("output");
-  }
-
-  QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainingFilename(epochs, samples, loss)));
-  return outputPath.toStdString();
-}
-
-//===================================================================================================================//
-
-std::string Runner::generateCheckpointPath(
-    const QString& inputFilePath,
-    ulong epoch,
-    float loss) {
-  QFileInfo inputInfo(inputFilePath);
-  QDir inputDir = inputInfo.absoluteDir();
-  QDir outputDir(inputDir.filePath("output"));
-
-  if (!outputDir.exists()) {
-    inputDir.mkdir("output");
-  }
-
-  std::ostringstream oss;
-  oss << "checkpoint_epoch_" << epoch
-      << "_loss_" << std::fixed << std::setprecision(6) << loss
-      << ".json";
-
-  QString outputPath = outputDir.filePath(QString::fromStdString(oss.str()));
-  return outputPath.toStdString();
-}
-
-//===================================================================================================================//
-//  Model save helpers
+//  Model saving
 //===================================================================================================================//
 
 void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& filePath,
@@ -876,6 +820,62 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
   std::string jsonStr = json.dump(4);
   file.write(jsonStr.c_str());
   file.close();
+}
+
+//===================================================================================================================//
+//  Output path helpers
+//===================================================================================================================//
+
+std::string Runner::generateTrainingFilename(ulong epochs, ulong samples, float loss) {
+  std::ostringstream oss;
+  oss << "trained_model_"
+      << epochs << "_"
+      << samples << "_"
+      << std::fixed << std::setprecision(6) << loss
+      << ".json";
+  return oss.str();
+}
+
+//===================================================================================================================//
+
+std::string Runner::generateDefaultOutputPath(
+    const QString& inputFilePath,
+    ulong epochs,
+    ulong samples,
+    float loss) {
+  QFileInfo inputInfo(inputFilePath);
+  QDir inputDir = inputInfo.absoluteDir();
+  QDir outputDir(inputDir.filePath("output"));
+
+  if (!outputDir.exists()) {
+    inputDir.mkdir("output");
+  }
+
+  QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainingFilename(epochs, samples, loss)));
+  return outputPath.toStdString();
+}
+
+//===================================================================================================================//
+
+std::string Runner::generateCheckpointPath(
+    const QString& inputFilePath,
+    ulong epoch,
+    float loss) {
+  QFileInfo inputInfo(inputFilePath);
+  QDir inputDir = inputInfo.absoluteDir();
+  QDir outputDir(inputDir.filePath("output"));
+
+  if (!outputDir.exists()) {
+    inputDir.mkdir("output");
+  }
+
+  std::ostringstream oss;
+  oss << "checkpoint_epoch_" << epoch
+      << "_loss_" << std::fixed << std::setprecision(6) << loss
+      << ".json";
+
+  QString outputPath = outputDir.filePath(QString::fromStdString(oss.str()));
+  return outputPath.toStdString();
 }
 
 //===================================================================================================================//

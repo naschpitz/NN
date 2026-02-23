@@ -4,11 +4,15 @@
 
 namespace NN_CLI {
 
+//===================================================================================================================//
+
 DataType dataTypeFromString(const std::string& name) {
     if (name == "vector") return DataType::VECTOR;
     if (name == "image")  return DataType::IMAGE;
     throw std::runtime_error("Unknown data type: '" + name + "'. Expected 'vector' or 'image'.");
 }
+
+//===================================================================================================================//
 
 std::string dataTypeToString(DataType type) {
     switch (type) {
@@ -17,6 +21,8 @@ std::string dataTypeToString(DataType type) {
     }
     return "vector";
 }
+
+//===================================================================================================================//
 
 } // namespace NN_CLI
 
