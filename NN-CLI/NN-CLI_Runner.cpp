@@ -22,8 +22,8 @@ using namespace NN_CLI;
 
 //===================================================================================================================//
 
-Runner::Runner(const QCommandLineParser& parser, bool verbose)
-    : parser(parser), verbose(verbose) {
+Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel)
+    : parser(parser), logLevel(logLevel) {
   QString configPath = this->parser.value("config");
 
   // Detect network type from config file
@@ -53,12 +53,12 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
 
   this->ioConfig = Loader::loadIOConfig(configPath.toStdString(), inputTypeOverride, outputTypeOverride);
 
-  // Display info
+  // Display info (verbose level >= 1)
   std::string networkTypeStr = (this->networkType == NetworkType::CNN) ? "CNN" : "ANN";
   std::string modeDisplay = modeOverride.has_value() ? (modeOverride.value() + " (CLI)") : "from config file";
   std::string deviceDisplay = deviceOverride.has_value() ? (deviceOverride.value() + " (CLI)") : "from config file";
 
-  if (this->verbose) {
+  if (this->logLevel >= LogLevel::INFO) {
     std::cout << "Network type: " << networkTypeStr << "\n";
     std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
     std::cout << "Mode: " << modeDisplay << ", Device: " << deviceDisplay << "\n";
@@ -70,7 +70,7 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
   this->progressReports = Loader::loadProgressReports(configPath.toStdString());
   this->saveModelInterval = Loader::loadSaveModelInterval(configPath.toStdString());
 
-  if (this->verbose && this->saveModelInterval > 0) {
+  if (this->logLevel >= LogLevel::INFO && this->saveModelInterval > 0) {
     std::cout << "Save model interval: every " << this->saveModelInterval << " epoch(s)\n";
   }
 
@@ -83,12 +83,12 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
     if (deviceOverride.has_value()) annDeviceOverride = ANN::Device::nameToType(deviceOverride.value());
 
     this->annCoreConfig = Loader::loadANNConfig(configPath.toStdString(), annModeOverride, annDeviceOverride);
-    this->annCoreConfig.verbose = this->verbose;
+    this->annCoreConfig.logLevel = static_cast<ANN::LogLevel>(this->logLevel);
     this->mode = ANN::Mode::typeToName(this->annCoreConfig.modeType);
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
     this->cnnCoreConfig = Loader::loadCNNConfig(configPath.toStdString(), modeOverride, deviceOverride);
-    this->cnnCoreConfig.verbose = this->verbose;
+    this->cnnCoreConfig.logLevel = static_cast<CNN::LogLevel>(this->logLevel);
     this->mode = CNN::Mode::typeToName(this->cnnCoreConfig.modeType);
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
   }
@@ -115,7 +115,7 @@ int Runner::runANNTrain() {
   auto [samples, success] = this->loadANNSamplesFromOptions("training", inputFilePath);
   if (!success) return 1;
 
-  if (this->verbose) std::cout << "Starting ANN training...\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Starting ANN training...\n";
 
   ProgressBar progressBar(this->progressReports);
 
@@ -123,11 +123,13 @@ int Runner::runANNTrain() {
   float lastEpochLoss = 0.0f;
 
   this->annCore->setTrainingCallback([&](const ANN::TrainingProgress<float>& progress) {
-    ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
-                      progress.currentSample, progress.totalSamples,
-                      progress.epochLoss, progress.sampleLoss,
-                      progress.gpuIndex, progress.totalGPUs};
-    progressBar.update(info);
+    if (this->logLevel > LogLevel::QUIET) {
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
+                        progress.currentSample, progress.totalSamples,
+                        progress.epochLoss, progress.sampleLoss,
+                        progress.gpuIndex, progress.totalGPUs};
+      progressBar.update(info);
+    }
 
     // Checkpoint saving: detect epoch transition
     if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
@@ -135,7 +137,7 @@ int Runner::runANNTrain() {
       if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
         saveANNModel(*this->annCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
-        std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
+        if (this->logLevel > LogLevel::QUIET) std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
       lastCallbackEpoch = progress.currentEpoch;
     }
@@ -145,7 +147,7 @@ int Runner::runANNTrain() {
   });
 
   this->annCore->train(samples);
-  std::cout << "\nTraining completed.\n";
+  if (this->logLevel > LogLevel::QUIET) std::cout << "\nTraining completed.\n";
 
   const auto& trainingConfig = this->annCore->getTrainingConfig();
   const auto& trainingMetadata = this->annCore->getTrainingMetadata();
@@ -160,7 +162,7 @@ int Runner::runANNTrain() {
   }
 
   saveANNModel(*this->annCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
-  std::cout << "Model saved to: " << outputPathStr << "\n";
+  if (this->logLevel > LogLevel::QUIET) std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
 }
@@ -172,14 +174,16 @@ int Runner::runANNTest() {
   auto [samples, success] = this->loadANNSamplesFromOptions("test", inputFilePath);
   if (!success) return 1;
 
-  if (this->verbose) std::cout << "Running ANN evaluation...\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Running ANN evaluation...\n";
 
   ANN::TestResult<float> result = this->annCore->test(samples);
 
-  std::cout << "\nTest Results:\n";
-  std::cout << "  Samples evaluated: " << result.numSamples << "\n";
-  std::cout << "  Total loss:        " << result.totalLoss << "\n";
-  std::cout << "  Average loss:      " << result.averageLoss << "\n";
+  if (this->logLevel > LogLevel::QUIET) {
+    std::cout << "\nTest Results:\n";
+    std::cout << "  Samples evaluated: " << result.numSamples << "\n";
+    std::cout << "  Total loss:        " << result.totalLoss << "\n";
+    std::cout << "  Average loss:      " << result.averageLoss << "\n";
+  }
 
   return 0;
 }
@@ -210,11 +214,12 @@ int Runner::runANNPredict() {
     }
   }
 
-  if (this->verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
-  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), this->ioConfig, this->progressReports);
+  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
+  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
 
-  if (this->verbose) {
+  if (this->logLevel >= LogLevel::INFO) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].size() << " values\n";
   }
 
@@ -228,7 +233,7 @@ int Runner::runANNPredict() {
   for (size_t i = 0; i < inputs.size(); ++i) {
     ANN::Output<float> output = this->annCore->predict(inputs[i]);
     outputs.push_back(std::move(output));
-    if (this->verbose && inputs.size() > 1) {
+    if (this->logLevel >= LogLevel::INFO && inputs.size() > 1) {
       std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
     }
   }
@@ -259,10 +264,12 @@ int Runner::runANNPredict() {
           static_cast<int>(this->ioConfig.outputW));
     }
 
-    std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
-    std::cout << "  Images: " << outputs.size() << "\n";
-    std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x" << this->ioConfig.outputW << "\n";
-    std::cout << "  Duration: " << batchDurationFormatted << "\n";
+    if (this->logLevel > LogLevel::QUIET) {
+      std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
+      std::cout << "  Images: " << outputs.size() << "\n";
+      std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x" << this->ioConfig.outputW << "\n";
+      std::cout << "  Duration: " << batchDurationFormatted << "\n";
+    }
     return 0;
   }
 
@@ -287,7 +294,7 @@ int Runner::runANNPredict() {
   outputFile.write(jsonStr.c_str(), jsonStr.size());
   outputFile.close();
 
-  std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
+  if (this->logLevel > LogLevel::QUIET) std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
   return 0;
 }
 
@@ -300,7 +307,7 @@ int Runner::runCNNTrain() {
   auto [samples, success] = this->loadCNNSamplesFromOptions("training", inputFilePath);
   if (!success) return 1;
 
-  if (this->verbose) std::cout << "Starting CNN training...\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Starting CNN training...\n";
 
   ProgressBar progressBar(this->progressReports);
 
@@ -308,11 +315,13 @@ int Runner::runCNNTrain() {
   float lastEpochLoss = 0.0f;
 
   this->cnnCore->setTrainingCallback([&](const CNN::TrainingProgress<float>& progress) {
-    ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
-                      progress.currentSample, progress.totalSamples,
-                      progress.epochLoss, progress.sampleLoss,
-                      progress.gpuIndex, progress.totalGPUs};
-    progressBar.update(info);
+    if (this->logLevel > LogLevel::QUIET) {
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
+                        progress.currentSample, progress.totalSamples,
+                        progress.epochLoss, progress.sampleLoss,
+                        progress.gpuIndex, progress.totalGPUs};
+      progressBar.update(info);
+    }
 
     // Checkpoint saving: detect epoch transition
     if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
@@ -320,7 +329,7 @@ int Runner::runCNNTrain() {
       if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
         saveCNNModel(*this->cnnCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
-        std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
+        if (this->logLevel > LogLevel::QUIET) std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
       lastCallbackEpoch = progress.currentEpoch;
     }
@@ -330,7 +339,7 @@ int Runner::runCNNTrain() {
   });
 
   this->cnnCore->train(samples);
-  std::cout << "\nTraining completed.\n";
+  if (this->logLevel > LogLevel::QUIET) std::cout << "\nTraining completed.\n";
 
   const auto& trainingConfig = this->cnnCore->getTrainingConfig();
   const auto& trainingMetadata = this->cnnCore->getTrainingMetadata();
@@ -345,7 +354,7 @@ int Runner::runCNNTrain() {
   }
 
   saveCNNModel(*this->cnnCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
-  std::cout << "Model saved to: " << outputPathStr << "\n";
+  if (this->logLevel > LogLevel::QUIET) std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
 }
@@ -357,14 +366,16 @@ int Runner::runCNNTest() {
   auto [samples, success] = this->loadCNNSamplesFromOptions("test", inputFilePath);
   if (!success) return 1;
 
-  if (this->verbose) std::cout << "Running CNN evaluation...\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Running CNN evaluation...\n";
 
   CNN::TestResult<float> result = this->cnnCore->test(samples);
 
-  std::cout << "\nTest Results:\n";
-  std::cout << "  Samples evaluated: " << result.numSamples << "\n";
-  std::cout << "  Total loss:        " << result.totalLoss << "\n";
-  std::cout << "  Average loss:      " << result.averageLoss << "\n";
+  if (this->logLevel > LogLevel::QUIET) {
+    std::cout << "\nTest Results:\n";
+    std::cout << "  Samples evaluated: " << result.numSamples << "\n";
+    std::cout << "  Total loss:        " << result.totalLoss << "\n";
+    std::cout << "  Average loss:      " << result.averageLoss << "\n";
+  }
 
   return 0;
 }
@@ -395,12 +406,13 @@ int Runner::runCNNPredict() {
     }
   }
 
-  if (this->verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
+  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
   std::vector<CNN::Input<float>> inputs = Loader::loadCNNInputs(
-      inputPath.toStdString(), this->cnnCoreConfig.inputShape, this->ioConfig, this->progressReports);
+      inputPath.toStdString(), this->cnnCoreConfig.inputShape, this->ioConfig, displayProgressReports);
 
-  if (this->verbose) {
+  if (this->logLevel >= LogLevel::INFO) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].data.size() << " values\n";
   }
 
@@ -414,7 +426,7 @@ int Runner::runCNNPredict() {
   for (size_t i = 0; i < inputs.size(); ++i) {
     CNN::Output<float> output = this->cnnCore->predict(inputs[i]);
     outputs.push_back(std::move(output));
-    if (this->verbose && inputs.size() > 1) {
+    if (this->logLevel >= LogLevel::INFO && inputs.size() > 1) {
       std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
     }
   }
@@ -445,10 +457,12 @@ int Runner::runCNNPredict() {
           static_cast<int>(this->ioConfig.outputW));
     }
 
-    std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
-    std::cout << "  Images: " << outputs.size() << "\n";
-    std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x" << this->ioConfig.outputW << "\n";
-    std::cout << "  Duration: " << batchDurationFormatted << "\n";
+    if (this->logLevel > LogLevel::QUIET) {
+      std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
+      std::cout << "  Images: " << outputs.size() << "\n";
+      std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x" << this->ioConfig.outputW << "\n";
+      std::cout << "  Duration: " << batchDurationFormatted << "\n";
+    }
     return 0;
   }
 
@@ -473,7 +487,7 @@ int Runner::runCNNPredict() {
   outputFile.write(jsonStr.c_str(), jsonStr.size());
   outputFile.close();
 
-  std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
+  if (this->logLevel > LogLevel::QUIET) std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
   return 0;
 }
 
@@ -495,11 +509,13 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
     return {samples, false};
   }
 
+  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
+
   if (hasJsonSamples) {
     QString samplesPath = this->parser.value("samples");
     inputFilePath = samplesPath;
-    if (this->verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadANNSamples(samplesPath.toStdString(), this->ioConfig, this->progressReports);
+    if (this->logLevel >= LogLevel::INFO) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
+    samples = Loader::loadANNSamples(samplesPath.toStdString(), this->ioConfig, displayProgressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
@@ -510,19 +526,19 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
     QString idxLabelsPath = this->parser.value("idx-labels");
     inputFilePath = idxDataPath;
 
-    if (this->verbose) {
+    if (this->logLevel >= LogLevel::INFO) {
       std::cout << "Loading " << modeName << " samples from IDX:\n";
       std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
     }
 
-    samples = Utils<float>::loadANNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), this->progressReports);
+    samples = Utils<float>::loadANNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), displayProgressReports);
   } else {
     std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
     return {samples, false};
   }
 
-  if (this->verbose) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
 
   return {samples, true};
 }
@@ -545,11 +561,13 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
 
   const CNN::Shape3D& inputShape = this->cnnCoreConfig.inputShape;
 
+  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
+
   if (hasJsonSamples) {
     QString samplesPath = this->parser.value("samples");
     inputFilePath = samplesPath;
-    if (this->verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, this->ioConfig, this->progressReports);
+    if (this->logLevel >= LogLevel::INFO) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
+    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, this->ioConfig, displayProgressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
@@ -560,19 +578,19 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
     QString idxLabelsPath = this->parser.value("idx-labels");
     inputFilePath = idxDataPath;
 
-    if (this->verbose) {
+    if (this->logLevel >= LogLevel::INFO) {
       std::cout << "Loading " << modeName << " samples from IDX:\n";
       std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
     }
 
-    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape, this->progressReports);
+    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape, displayProgressReports);
   } else {
     std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
     return {samples, false};
   }
 
-  if (this->verbose) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
 
   return {samples, true};
 }

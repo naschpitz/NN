@@ -18,7 +18,7 @@ static void testANNNetworkDetection() {
     "--device", "cpu",
     "--input", examplePath("MNIST/predict/mnist_digit_2_input.json"),
     "--output", tempDir() + "/ann_detect_output.json",
-    "--verbose"
+    "--log-level", "info"
   });
 
   CHECK(result.exitCode == 0, "ANN detection: exit code 0");
@@ -130,7 +130,7 @@ static void testANNModeOverride() {
     "--device", "cpu",
     "--input", examplePath("MNIST/predict/mnist_digit_2_input.json"),
     "--output", outputPath,
-    "--verbose"
+    "--log-level", "info"
   });
 
   CHECK(result.exitCode == 0, "ANN mode override: exit code 0");

@@ -18,7 +18,7 @@ static void testCNNNetworkDetection() {
     "--device", "cpu",
     "--samples", fixturePath("cnn_train_samples.json"),
     "--output", tempDir() + "/cnn_detect_model.json",
-    "--verbose"
+    "--log-level", "info"
   });
 
   CHECK(result.exitCode == 0, "CNN detection: exit code 0");

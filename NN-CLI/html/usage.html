@@ -44,7 +44,7 @@
 <pre><code>NN-CLI --config &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&gt;]
        [--input &lt;file&gt;] [--input-type &lt;type&gt;]
        [--samples &lt;file&gt;] [--idx-data &lt;file&gt; --idx-labels &lt;file&gt;]
-       [--output &lt;file&gt;] [--output-type &lt;type&gt;] [--verbose]
+       [--output &lt;file&gt;] [--output-type &lt;type&gt;] [--log-level &lt;level&gt;]
 </code></pre>
 
 <h2 id="options">2. All Options</h2>
@@ -60,7 +60,7 @@
   <tr><td><code>--idx-labels</code></td><td>—</td><td>file</td><td>—</td><td>IDX1 labels file (requires <code>--idx-data</code>)</td></tr>
   <tr><td><code>--output</code></td><td><code>-o</code></td><td>file</td><td>auto</td><td>Output file path</td></tr>
   <tr><td><code>--output-type</code></td><td>—</td><td>string</td><td><code>vector</code></td><td><code>vector</code> or <code>image</code> (overrides config)</td></tr>
-  <tr><td><code>--verbose</code></td><td><code>-v</code></td><td>flag</td><td>off</td><td>Print detailed info during execution</td></tr>
+  <tr><td><code>--log-level</code></td><td><code>-l</code></td><td>string</td><td><code>error</code></td><td>Log level: <code>quiet</code>, <code>error</code>, <code>warning</code>, <code>info</code>, <code>debug</code>. Progress bars shown for all levels except <code>quiet</code>.</td></tr>
   <tr><td><code>--help</code></td><td><code>-h</code></td><td>flag</td><td>—</td><td>Show help message</td></tr>
 </table>
 

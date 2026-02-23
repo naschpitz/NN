@@ -39,7 +39,7 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 | `--idx-labels` | | Path to IDX1 labels file (requires `--idx-data`) |
 | `--output` | `-o` | Output file for saving trained model or prediction result |
 | `--output-type` | | Output data type: `vector` or `image` (overrides config file) |
-| `--verbose` | `-v` | Print detailed initialization and processing info |
+| `--log-level` | `-l` | Log level: `quiet`, `error`, `warning`, `info`, `debug` (default: `error`) |
 | `--help` | `-h` | Show help message |
 
 ### Modes

@@ -4,6 +4,7 @@
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_NetworkType.hpp"
 #include "NN-CLI_IOConfig.hpp"
+#include "NN-CLI_LogLevel.hpp"
 
 #include <ANN_Core.hpp>
 #include <CNN_Core.hpp>
@@ -24,7 +25,7 @@ namespace NN_CLI {
  */
 class Runner {
   public:
-    Runner(const QCommandLineParser& parser, bool verbose);
+    Runner(const QCommandLineParser& parser, LogLevel logLevel);
     int run();
 
   private:
@@ -58,7 +59,7 @@ class Runner {
       const QString& inputFilePath, ulong epoch, float loss);
 
     const QCommandLineParser& parser;
-    bool verbose;
+    LogLevel logLevel;
     NetworkType networkType;
     std::string mode;  // "train", "test", "predict"
     IOConfig ioConfig;  // inputType / outputType / shapes (NN-CLI concept only)

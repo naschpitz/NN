@@ -3,8 +3,10 @@
 #include <QCommandLineOption>
 
 #include "NN-CLI_Runner.hpp"
+#include "NN-CLI_LogLevel.hpp"
 
 #include <iostream>
+#include <string>
 
 void printUsage() {
   std::cout << "NN-CLI - Neural Network Command Line Interface (ANN + CNN)\n\n";
@@ -23,7 +25,7 @@ void printUsage() {
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
   std::cout << "  --output, -o <file>    Output file/dir (default: predict_<input>.json or folder for images)\n";
   std::cout << "  --output-type <type>   Output data type: 'vector' or 'image' (overrides config file)\n";
-  std::cout << "  --verbose, -v          Print detailed initialization and processing info\n";
+  std::cout << "  --log-level, -l <lvl>  Log level: quiet, error, warning, info, debug (default: error)\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
 
@@ -117,17 +119,16 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(outputTypeOption);
 
-  // Verbose option
-  QCommandLineOption verboseOption(
-    QStringList() << "v" << "verbose",
-    "Print detailed initialization and processing information."
+  // Log level option
+  QCommandLineOption logLevelOption(
+    QStringList() << "l" << "log-level",
+    "Log level: quiet, error, warning, info, debug (default: error).",
+    "level",
+    "error"
   );
-  parser.addOption(verboseOption);
+  parser.addOption(logLevelOption);
 
   parser.process(app);
-
-  // Get verbose flag early - it controls all output
-  bool verbose = parser.isSet(verboseOption);
 
   // Validate that --config is provided
   if (!parser.isSet(configOption)) {
@@ -172,8 +173,23 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Parse log level
+  NN_CLI::LogLevel logLevel = NN_CLI::LogLevel::ERROR;
+  if (parser.isSet(logLevelOption)) {
+    QString levelStr = parser.value(logLevelOption).toLower();
+    if (levelStr == "quiet")        logLevel = NN_CLI::LogLevel::QUIET;
+    else if (levelStr == "error")   logLevel = NN_CLI::LogLevel::ERROR;
+    else if (levelStr == "warning") logLevel = NN_CLI::LogLevel::WARNING;
+    else if (levelStr == "info")    logLevel = NN_CLI::LogLevel::INFO;
+    else if (levelStr == "debug")   logLevel = NN_CLI::LogLevel::DEBUG;
+    else {
+      std::cerr << "Error: Log level must be 'quiet', 'error', 'warning', 'info', or 'debug'.\n";
+      return 1;
+    }
+  }
+
   try {
-    NN_CLI::Runner runner(parser, verbose);
+    NN_CLI::Runner runner(parser, logLevel);
     return runner.run();
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << "\n";
