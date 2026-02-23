@@ -696,6 +696,14 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
   }
   json["layersConfig"] = layersArr;
 
+  // Loss function config
+  nlohmann::ordered_json lfcJson;
+  lfcJson["type"] = ANN::LossFunction::typeToName(core.getLossFunctionConfig().type);
+  if (!core.getLossFunctionConfig().weights.empty()) {
+    lfcJson["weights"] = core.getLossFunctionConfig().weights;
+  }
+  json["lossFunctionConfig"] = lfcJson;
+
   // Training config
   nlohmann::ordered_json tcJson;
   tcJson["numEpochs"] = core.getTrainingConfig().numEpochs;
@@ -809,6 +817,14 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
     denseLayersArr.push_back(layerJson);
   }
   json["denseLayersConfig"] = denseLayersArr;
+
+  // Loss function config
+  nlohmann::ordered_json lfcJson;
+  lfcJson["type"] = CNN::LossFunction::typeToName(core.getLossFunctionConfig().type);
+  if (!core.getLossFunctionConfig().weights.empty()) {
+    lfcJson["weights"] = core.getLossFunctionConfig().weights;
+  }
+  json["lossFunctionConfig"] = lfcJson;
 
   // Training config
   nlohmann::ordered_json tcJson;

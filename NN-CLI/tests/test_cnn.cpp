@@ -119,10 +119,54 @@ static void testCNNTest() {
   std::cout << std::endl;
 }
 
+static void testCNNTrainWithWeightedLoss() {
+  std::cout << "  testCNNTrainWithWeightedLoss... ";
+
+  QString modelPath = tempDir() + "/cnn_weighted_model.json";
+
+  auto result = runNNCLI({
+    "--config", fixturePath("cnn_train_weighted_config.json"),
+    "--mode", "train",
+    "--device", "cpu",
+    "--samples", fixturePath("cnn_train_samples.json"),
+    "--output", modelPath
+  });
+
+  CHECK(result.exitCode == 0, "CNN weighted train: exit code 0");
+  CHECK(result.stdOut.contains("Training completed."), "CNN weighted train: 'Training completed.'");
+  CHECK(result.stdOut.contains("Model saved to:"), "CNN weighted train: 'Model saved to:'");
+  CHECK(QFile::exists(modelPath), "CNN weighted train: model file exists");
+
+  // Verify saved model JSON contains lossFunctionConfig
+  QFile file(modelPath);
+  if (file.open(QIODevice::ReadOnly)) {
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    QJsonObject root = doc.object();
+
+    CHECK(root.contains("lossFunctionConfig"), "CNN weighted train: saved model has 'lossFunctionConfig'");
+
+    QJsonObject lfc = root["lossFunctionConfig"].toObject();
+    CHECK(lfc["type"].toString() == "weightedSquaredDifference",
+          "CNN weighted train: type is 'weightedSquaredDifference'");
+    CHECK(lfc.contains("weights"), "CNN weighted train: has 'weights'");
+
+    QJsonArray weights = lfc["weights"].toArray();
+    CHECK(weights.size() == 2, "CNN weighted train: weights has 2 elements");
+    CHECK_NEAR(weights[0].toDouble(), 5.0, 1e-6, "CNN weighted train: weight[0] = 5.0");
+    CHECK_NEAR(weights[1].toDouble(), 1.0, 1e-6, "CNN weighted train: weight[1] = 1.0");
+
+    file.close();
+  } else {
+    CHECK(false, "CNN weighted train: failed to open saved model file");
+  }
+  std::cout << std::endl;
+}
+
 void runCNNTests() {
   testCNNNetworkDetection();
   testCNNTrain();
   testCNNPredict();
   testCNNTest();
+  testCNNTrainWithWeightedLoss();
 }
 

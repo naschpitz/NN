@@ -46,7 +46,7 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 
 - **train**: Train a neural network using `--config` and samples, outputs a trained model file.
 - **predict**: Run predict using `--config` (trained model) with a single input.
-- **test**: Evaluate a trained model (`--config`) on test samples and report the loss (MSE).
+- **test**: Evaluate a trained model (`--config`) on test samples and report the loss.
 
 ## ANN Configuration
 
@@ -66,6 +66,10 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
+  "lossFunctionConfig": {
+    "type": "weightedSquaredDifference",
+    "weights": [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  },
   "trainingConfig": {
     "numEpochs": 100,
     "learningRate": 0.01,
@@ -106,6 +110,15 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 - `inputShape`: Input image dimensions (`c`, `h`, `w`) — required when `inputType` is `"image"`
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
 
+#### ANN Loss Function Configuration (`lossFunctionConfig`)
+
+Optional object placed between `layersConfig` and `trainingConfig`. Controls the loss function used during training:
+
+- `type`: `"squaredDifference"` (default) or `"weightedSquaredDifference"`
+- `weights`: Array of per-output-neuron weights (required when type is `"weightedSquaredDifference"`). Each weight multiplies the squared difference for the corresponding output neuron, allowing rare classes to receive higher penalty.
+
+If omitted, the default `squaredDifference` loss is used (equivalent to standard MSE).
+
 #### ANN Layers Configuration
 
 - `numNeurons`: Number of neurons in the layer
@@ -140,6 +153,10 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
+  "lossFunctionConfig": {
+    "type": "weightedSquaredDifference",
+    "weights": [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  },
   "trainingConfig": {
     "numEpochs": 10,
     "learningRate": 0.01
@@ -157,6 +174,13 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 - `outputType`: Output data type — `"vector"` (default) or `"image"` — *can be overridden by `--output-type`*
 - `inputShape`: Input tensor dimensions (`c` channels, `h` height, `w` width)
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
+
+#### CNN Loss Function Configuration (`lossFunctionConfig`)
+
+Same as ANN — optional object placed between `denseLayersConfig` and `trainingConfig`:
+
+- `type`: `"squaredDifference"` (default) or `"weightedSquaredDifference"`
+- `weights`: Array of per-output-neuron weights (required when type is `"weightedSquaredDifference"`)
 
 #### CNN Layers Configuration (`convolutionalLayersConfig`)
 

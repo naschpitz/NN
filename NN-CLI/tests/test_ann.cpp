@@ -138,11 +138,55 @@ static void testANNModeOverride() {
   std::cout << std::endl;
 }
 
+static void testANNTrainWithWeightedLoss() {
+  std::cout << "  testANNTrainWithWeightedLoss... ";
+
+  QString modelPath = tempDir() + "/ann_weighted_model.json";
+
+  auto result = runNNCLI({
+    "--config", fixturePath("ann_train_weighted_config.json"),
+    "--mode", "train",
+    "--device", "cpu",
+    "--samples", fixturePath("ann_train_samples.json"),
+    "--output", modelPath
+  });
+
+  CHECK(result.exitCode == 0, "ANN weighted train: exit code 0");
+  CHECK(result.stdOut.contains("Training completed."), "ANN weighted train: 'Training completed.'");
+  CHECK(result.stdOut.contains("Model saved to:"), "ANN weighted train: 'Model saved to:'");
+  CHECK(QFile::exists(modelPath), "ANN weighted train: model file exists");
+
+  // Verify saved model JSON contains lossFunctionConfig
+  QFile file(modelPath);
+  if (file.open(QIODevice::ReadOnly)) {
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    QJsonObject root = doc.object();
+
+    CHECK(root.contains("lossFunctionConfig"), "ANN weighted train: saved model has 'lossFunctionConfig'");
+
+    QJsonObject lfc = root["lossFunctionConfig"].toObject();
+    CHECK(lfc["type"].toString() == "weightedSquaredDifference",
+          "ANN weighted train: type is 'weightedSquaredDifference'");
+    CHECK(lfc.contains("weights"), "ANN weighted train: has 'weights'");
+
+    QJsonArray weights = lfc["weights"].toArray();
+    CHECK(weights.size() == 2, "ANN weighted train: weights has 2 elements");
+    CHECK_NEAR(weights[0].toDouble(), 3.0, 1e-6, "ANN weighted train: weight[0] = 3.0");
+    CHECK_NEAR(weights[1].toDouble(), 1.0, 1e-6, "ANN weighted train: weight[1] = 1.0");
+
+    file.close();
+  } else {
+    CHECK(false, "ANN weighted train: failed to open saved model file");
+  }
+  std::cout << std::endl;
+}
+
 void runANNTests() {
   testANNNetworkDetection();
   testANNTrainXOR();
   testANNPredictMNIST();
   testANNTestMNIST();
   testANNModeOverride();
+  testANNTrainWithWeightedLoss();
 }
 

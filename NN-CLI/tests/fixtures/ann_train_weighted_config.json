@@ -1,0 +1,21 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "progressReports": 100,
+  "saveModelInterval": 10,
+  "layersConfig": [
+    { "numNeurons": 2, "actvFunc": "relu" },
+    { "numNeurons": 8, "actvFunc": "relu" },
+    { "numNeurons": 2, "actvFunc": "sigmoid" }
+  ],
+  "lossFunctionConfig": {
+    "type": "weightedSquaredDifference",
+    "weights": [3.0, 1.0]
+  },
+  "trainingConfig": {
+    "numEpochs": 100,
+    "learningRate": 0.5,
+    "numThreads": 1
+  }
+}
+
