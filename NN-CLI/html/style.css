@@ -101,6 +101,7 @@ table { width: 100%; border-collapse: collapse; margin: 1em 0 1.5em; }
 th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: .9rem; }
 th { background: var(--bg); font-weight: 600; }
 tr:hover td { background: #f1f5ff; }
+.options-table td:first-child { white-space: nowrap; }
 
 
 /* ---------- SVG Diagrams ---------- */
