@@ -27,7 +27,7 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
   QString configPath = this->parser.value("config");
 
   // Detect network type from config file
-  networkType = Loader::detectNetworkType(configPath.toStdString());
+  this->networkType = Loader::detectNetworkType(configPath.toStdString());
 
   // Build optional mode/device overrides as strings
   std::optional<std::string> modeOverride;
@@ -51,10 +51,10 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
     outputTypeOverride = this->parser.value("output-type").toLower().toStdString();
   }
 
-  ioConfig = Loader::loadIOConfig(configPath.toStdString(), inputTypeOverride, outputTypeOverride);
+  this->ioConfig = Loader::loadIOConfig(configPath.toStdString(), inputTypeOverride, outputTypeOverride);
 
   // Display info
-  std::string networkTypeStr = (networkType == NetworkType::CNN) ? "CNN" : "ANN";
+  std::string networkTypeStr = (this->networkType == NetworkType::CNN) ? "CNN" : "ANN";
   std::string modeDisplay = modeOverride.has_value() ? (modeOverride.value() + " (CLI)") : "from config file";
   std::string deviceDisplay = deviceOverride.has_value() ? (deviceOverride.value() + " (CLI)") : "from config file";
 
@@ -62,19 +62,19 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
     std::cout << "Network type: " << networkTypeStr << "\n";
     std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
     std::cout << "Mode: " << modeDisplay << ", Device: " << deviceDisplay << "\n";
-    std::cout << "Input type: " << dataTypeToString(ioConfig.inputType)
-              << ", Output type: " << dataTypeToString(ioConfig.outputType) << "\n";
+    std::cout << "Input type: " << dataTypeToString(this->ioConfig.inputType)
+              << ", Output type: " << dataTypeToString(this->ioConfig.outputType) << "\n";
   }
 
   // Load NN-CLI-level settings from config root
-  progressReports = Loader::loadProgressReports(configPath.toStdString());
-  saveModelInterval = Loader::loadSaveModelInterval(configPath.toStdString());
-  
-  if (this->verbose && saveModelInterval > 0) {
-    std::cout << "Save model interval: every " << saveModelInterval << " epoch(s)\n";
+  this->progressReports = Loader::loadProgressReports(configPath.toStdString());
+  this->saveModelInterval = Loader::loadSaveModelInterval(configPath.toStdString());
+
+  if (this->verbose && this->saveModelInterval > 0) {
+    std::cout << "Save model interval: every " << this->saveModelInterval << " epoch(s)\n";
   }
 
-  if (networkType == NetworkType::ANN) {
+  if (this->networkType == NetworkType::ANN) {
     // Convert string overrides to ANN enum overrides
     std::optional<ANN::ModeType> annModeOverride;
     if (modeOverride.has_value()) annModeOverride = ANN::Mode::nameToType(modeOverride.value());
@@ -82,29 +82,29 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
     std::optional<ANN::DeviceType> annDeviceOverride;
     if (deviceOverride.has_value()) annDeviceOverride = ANN::Device::nameToType(deviceOverride.value());
 
-    annCoreConfig = Loader::loadANNConfig(configPath.toStdString(), annModeOverride, annDeviceOverride);
-    annCoreConfig.verbose = this->verbose;
-    mode = ANN::Mode::typeToName(annCoreConfig.modeType);
-    annCore = ANN::Core<float>::makeCore(annCoreConfig);
+    this->annCoreConfig = Loader::loadANNConfig(configPath.toStdString(), annModeOverride, annDeviceOverride);
+    this->annCoreConfig.verbose = this->verbose;
+    this->mode = ANN::Mode::typeToName(this->annCoreConfig.modeType);
+    this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
-    cnnCoreConfig = Loader::loadCNNConfig(configPath.toStdString(), modeOverride, deviceOverride);
-    cnnCoreConfig.verbose = this->verbose;
-    mode = CNN::Mode::typeToName(cnnCoreConfig.modeType);
-    cnnCore = CNN::Core<float>::makeCore(cnnCoreConfig);
+    this->cnnCoreConfig = Loader::loadCNNConfig(configPath.toStdString(), modeOverride, deviceOverride);
+    this->cnnCoreConfig.verbose = this->verbose;
+    this->mode = CNN::Mode::typeToName(this->cnnCoreConfig.modeType);
+    this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
   }
 }
 
 //===================================================================================================================//
 
 int Runner::run() {
-  if (networkType == NetworkType::ANN) {
-    if (mode == "train")   return runANNTrain();
-    if (mode == "test")    return runANNTest();
-    return runANNPredict();
+  if (this->networkType == NetworkType::ANN) {
+    if (this->mode == "train")   return this->runANNTrain();
+    if (this->mode == "test")    return this->runANNTest();
+    return this->runANNPredict();
   } else {
-    if (mode == "train")   return runCNNTrain();
-    if (mode == "test")    return runCNNTest();
-    return runCNNPredict();
+    if (this->mode == "train")   return this->runCNNTrain();
+    if (this->mode == "test")    return this->runCNNTest();
+    return this->runCNNPredict();
   }
 }
 
@@ -112,17 +112,17 @@ int Runner::run() {
 
 int Runner::runANNTrain() {
   QString inputFilePath;
-  auto [samples, success] = loadANNSamplesFromOptions("training", inputFilePath);
+  auto [samples, success] = this->loadANNSamplesFromOptions("training", inputFilePath);
   if (!success) return 1;
 
-  if (verbose) std::cout << "Starting ANN training...\n";
+  if (this->verbose) std::cout << "Starting ANN training...\n";
 
-  ProgressBar progressBar(progressReports);
+  ProgressBar progressBar(this->progressReports);
 
   ulong lastCallbackEpoch = 0;
   float lastEpochLoss = 0.0f;
 
-  annCore->setTrainingCallback([&](const ANN::TrainingProgress<float>& progress) {
+  this->annCore->setTrainingCallback([&](const ANN::TrainingProgress<float>& progress) {
     ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
                       progress.currentSample, progress.totalSamples,
                       progress.epochLoss, progress.sampleLoss,
@@ -130,11 +130,11 @@ int Runner::runANNTrain() {
     progressBar.update(info);
 
     // Checkpoint saving: detect epoch transition
-    if (saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+    if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
       // An epoch boundary was crossed — lastCallbackEpoch is the completed epoch
-      if (lastCallbackEpoch > 0 && lastCallbackEpoch % saveModelInterval == 0) {
+      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-        saveANNModel(*annCore, checkpointPath, ioConfig);
+        saveANNModel(*this->annCore, checkpointPath, this->ioConfig);
         std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
       lastCallbackEpoch = progress.currentEpoch;
@@ -144,22 +144,22 @@ int Runner::runANNTrain() {
     if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
   });
 
-  annCore->train(samples);
+  this->annCore->train(samples);
   std::cout << "\nTraining completed.\n";
 
-  const auto& trainingConfig = annCore->getTrainingConfig();
-  const auto& trainingMetadata = annCore->getTrainingMetadata();
+  const auto& trainingConfig = this->annCore->getTrainingConfig();
+  const auto& trainingMetadata = this->annCore->getTrainingMetadata();
 
   std::string outputPathStr;
-  if (parser.isSet("output")) {
-    outputPathStr = parser.value("output").toStdString();
+  if (this->parser.isSet("output")) {
+    outputPathStr = this->parser.value("output").toStdString();
   } else {
     outputPathStr = generateDefaultOutputPath(
       inputFilePath, trainingConfig.numEpochs,
       trainingMetadata.numSamples, trainingMetadata.finalLoss);
   }
 
-  saveANNModel(*annCore, outputPathStr, ioConfig);
+  saveANNModel(*this->annCore, outputPathStr, this->ioConfig);
   std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
@@ -169,12 +169,12 @@ int Runner::runANNTrain() {
 
 int Runner::runANNTest() {
   QString inputFilePath;
-  auto [samples, success] = loadANNSamplesFromOptions("test", inputFilePath);
+  auto [samples, success] = this->loadANNSamplesFromOptions("test", inputFilePath);
   if (!success) return 1;
 
-  if (verbose) std::cout << "Running ANN evaluation...\n";
+  if (this->verbose) std::cout << "Running ANN evaluation...\n";
 
-  ANN::TestResult<float> result = annCore->test(samples);
+  ANN::TestResult<float> result = this->annCore->test(samples);
 
   std::cout << "\nTest Results:\n";
   std::cout << "  Samples evaluated: " << result.numSamples << "\n";
@@ -187,34 +187,34 @@ int Runner::runANNTest() {
 //===================================================================================================================//
 
 int Runner::runANNPredict() {
-  if (!parser.isSet("input")) {
+  if (!this->parser.isSet("input")) {
     std::cerr << "Error: --input option is required for predict mode.\n";
     return 1;
   }
 
-  QString inputPath = parser.value("input");
+  QString inputPath = this->parser.value("input");
   QString outputPath;
 
-  if (parser.isSet("output")) {
-    outputPath = parser.value("output");
+  if (this->parser.isSet("output")) {
+    outputPath = this->parser.value("output");
   } else {
     QFileInfo inputInfo(inputPath);
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
     if (!outputDir.exists()) inputDir.mkdir("output");
 
-    if (ioConfig.outputType == DataType::IMAGE) {
+    if (this->ioConfig.outputType == DataType::IMAGE) {
       outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName());
     } else {
       outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
     }
   }
 
-  if (verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
+  if (this->verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
-  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), ioConfig, progressReports);
+  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), this->ioConfig, this->progressReports);
 
-  if (verbose) {
+  if (this->verbose) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].size() << " values\n";
   }
 
@@ -226,9 +226,9 @@ int Runner::runANNPredict() {
   outputs.reserve(inputs.size());
 
   for (size_t i = 0; i < inputs.size(); ++i) {
-    ANN::Output<float> output = annCore->predict(inputs[i]);
+    ANN::Output<float> output = this->annCore->predict(inputs[i]);
     outputs.push_back(std::move(output));
-    if (verbose && inputs.size() > 1) {
+    if (this->verbose && inputs.size() > 1) {
       std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
     }
   }
@@ -240,8 +240,8 @@ int Runner::runANNPredict() {
   std::string batchDurationFormatted = ANN::Utils<float>::formatDuration(batchDurationSeconds);
 
   // When outputType is IMAGE, save images to a folder
-  if (ioConfig.outputType == DataType::IMAGE) {
-    if (!ioConfig.hasOutputShape()) {
+  if (this->ioConfig.outputType == DataType::IMAGE) {
+    if (!this->ioConfig.hasOutputShape()) {
       std::cerr << "Error: outputType is 'image' but no outputShape provided in config.\n";
       return 1;
     }
@@ -254,14 +254,14 @@ int Runner::runANNPredict() {
       QString imgName = QString::number(i) + ".png";
       std::string imgPath = outDir.filePath(imgName).toStdString();
       ImageLoader::saveImage(imgPath, outputs[i],
-          static_cast<int>(ioConfig.outputC),
-          static_cast<int>(ioConfig.outputH),
-          static_cast<int>(ioConfig.outputW));
+          static_cast<int>(this->ioConfig.outputC),
+          static_cast<int>(this->ioConfig.outputH),
+          static_cast<int>(this->ioConfig.outputW));
     }
 
     std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
     std::cout << "  Images: " << outputs.size() << "\n";
-    std::cout << "  Shape: " << ioConfig.outputC << "x" << ioConfig.outputH << "x" << ioConfig.outputW << "\n";
+    std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x" << this->ioConfig.outputW << "\n";
     std::cout << "  Duration: " << batchDurationFormatted << "\n";
     return 0;
   }
@@ -297,17 +297,17 @@ int Runner::runANNPredict() {
 
 int Runner::runCNNTrain() {
   QString inputFilePath;
-  auto [samples, success] = loadCNNSamplesFromOptions("training", inputFilePath);
+  auto [samples, success] = this->loadCNNSamplesFromOptions("training", inputFilePath);
   if (!success) return 1;
 
-  if (verbose) std::cout << "Starting CNN training...\n";
+  if (this->verbose) std::cout << "Starting CNN training...\n";
 
-  ProgressBar progressBar(progressReports);
+  ProgressBar progressBar(this->progressReports);
 
   ulong lastCallbackEpoch = 0;
   float lastEpochLoss = 0.0f;
 
-  cnnCore->setTrainingCallback([&](const CNN::TrainingProgress<float>& progress) {
+  this->cnnCore->setTrainingCallback([&](const CNN::TrainingProgress<float>& progress) {
     ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
                       progress.currentSample, progress.totalSamples,
                       progress.epochLoss, progress.sampleLoss,
@@ -315,11 +315,11 @@ int Runner::runCNNTrain() {
     progressBar.update(info);
 
     // Checkpoint saving: detect epoch transition
-    if (saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+    if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
       // An epoch boundary was crossed — lastCallbackEpoch is the completed epoch
-      if (lastCallbackEpoch > 0 && lastCallbackEpoch % saveModelInterval == 0) {
+      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-        saveCNNModel(*cnnCore, checkpointPath, ioConfig);
+        saveCNNModel(*this->cnnCore, checkpointPath, this->ioConfig);
         std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
       lastCallbackEpoch = progress.currentEpoch;
@@ -329,22 +329,22 @@ int Runner::runCNNTrain() {
     if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
   });
 
-  cnnCore->train(samples);
+  this->cnnCore->train(samples);
   std::cout << "\nTraining completed.\n";
 
-  const auto& trainingConfig = cnnCore->getTrainingConfig();
-  const auto& trainingMetadata = cnnCore->getTrainingMetadata();
+  const auto& trainingConfig = this->cnnCore->getTrainingConfig();
+  const auto& trainingMetadata = this->cnnCore->getTrainingMetadata();
 
   std::string outputPathStr;
-  if (parser.isSet("output")) {
-    outputPathStr = parser.value("output").toStdString();
+  if (this->parser.isSet("output")) {
+    outputPathStr = this->parser.value("output").toStdString();
   } else {
     outputPathStr = generateDefaultOutputPath(
       inputFilePath, trainingConfig.numEpochs,
       trainingMetadata.numSamples, trainingMetadata.finalLoss);
   }
 
-  saveCNNModel(*cnnCore, outputPathStr, ioConfig);
+  saveCNNModel(*this->cnnCore, outputPathStr, this->ioConfig);
   std::cout << "Model saved to: " << outputPathStr << "\n";
 
   return 0;
@@ -354,12 +354,12 @@ int Runner::runCNNTrain() {
 
 int Runner::runCNNTest() {
   QString inputFilePath;
-  auto [samples, success] = loadCNNSamplesFromOptions("test", inputFilePath);
+  auto [samples, success] = this->loadCNNSamplesFromOptions("test", inputFilePath);
   if (!success) return 1;
 
-  if (verbose) std::cout << "Running CNN evaluation...\n";
+  if (this->verbose) std::cout << "Running CNN evaluation...\n";
 
-  CNN::TestResult<float> result = cnnCore->test(samples);
+  CNN::TestResult<float> result = this->cnnCore->test(samples);
 
   std::cout << "\nTest Results:\n";
   std::cout << "  Samples evaluated: " << result.numSamples << "\n";
@@ -372,35 +372,35 @@ int Runner::runCNNTest() {
 //===================================================================================================================//
 
 int Runner::runCNNPredict() {
-  if (!parser.isSet("input")) {
+  if (!this->parser.isSet("input")) {
     std::cerr << "Error: --input option is required for predict mode.\n";
     return 1;
   }
 
-  QString inputPath = parser.value("input");
+  QString inputPath = this->parser.value("input");
   QString outputPath;
 
-  if (parser.isSet("output")) {
-    outputPath = parser.value("output");
+  if (this->parser.isSet("output")) {
+    outputPath = this->parser.value("output");
   } else {
     QFileInfo inputInfo(inputPath);
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
     if (!outputDir.exists()) inputDir.mkdir("output");
 
-    if (ioConfig.outputType == DataType::IMAGE) {
+    if (this->ioConfig.outputType == DataType::IMAGE) {
       outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName());
     } else {
       outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
     }
   }
 
-  if (verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
+  if (this->verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
   std::vector<CNN::Input<float>> inputs = Loader::loadCNNInputs(
-      inputPath.toStdString(), cnnCoreConfig.inputShape, ioConfig, progressReports);
+      inputPath.toStdString(), this->cnnCoreConfig.inputShape, this->ioConfig, this->progressReports);
 
-  if (verbose) {
+  if (this->verbose) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].data.size() << " values\n";
   }
 
@@ -412,9 +412,9 @@ int Runner::runCNNPredict() {
   outputs.reserve(inputs.size());
 
   for (size_t i = 0; i < inputs.size(); ++i) {
-    CNN::Output<float> output = cnnCore->predict(inputs[i]);
+    CNN::Output<float> output = this->cnnCore->predict(inputs[i]);
     outputs.push_back(std::move(output));
-    if (verbose && inputs.size() > 1) {
+    if (this->verbose && inputs.size() > 1) {
       std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
     }
   }
@@ -426,8 +426,8 @@ int Runner::runCNNPredict() {
   std::string batchDurationFormatted = ANN::Utils<float>::formatDuration(batchDurationSeconds);
 
   // When outputType is IMAGE, save images to a folder
-  if (ioConfig.outputType == DataType::IMAGE) {
-    if (!ioConfig.hasOutputShape()) {
+  if (this->ioConfig.outputType == DataType::IMAGE) {
+    if (!this->ioConfig.hasOutputShape()) {
       std::cerr << "Error: outputType is 'image' but no outputShape provided in config.\n";
       return 1;
     }
@@ -440,14 +440,14 @@ int Runner::runCNNPredict() {
       QString imgName = QString::number(i) + ".png";
       std::string imgPath = outDir.filePath(imgName).toStdString();
       ImageLoader::saveImage(imgPath, outputs[i],
-          static_cast<int>(ioConfig.outputC),
-          static_cast<int>(ioConfig.outputH),
-          static_cast<int>(ioConfig.outputW));
+          static_cast<int>(this->ioConfig.outputC),
+          static_cast<int>(this->ioConfig.outputH),
+          static_cast<int>(this->ioConfig.outputW));
     }
 
     std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
     std::cout << "  Images: " << outputs.size() << "\n";
-    std::cout << "  Shape: " << ioConfig.outputC << "x" << ioConfig.outputH << "x" << ioConfig.outputW << "\n";
+    std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x" << this->ioConfig.outputW << "\n";
     std::cout << "  Duration: " << batchDurationFormatted << "\n";
     return 0;
   }
@@ -486,9 +486,9 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
     QString& inputFilePath) {
   ANN::Samples<float> samples;
 
-  bool hasJsonSamples = parser.isSet("samples");
-  bool hasIdxData = parser.isSet("idx-data");
-  bool hasIdxLabels = parser.isSet("idx-labels");
+  bool hasJsonSamples = this->parser.isSet("samples");
+  bool hasIdxData = this->parser.isSet("idx-data");
+  bool hasIdxLabels = this->parser.isSet("idx-labels");
 
   if (hasJsonSamples && hasIdxData) {
     std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
@@ -496,33 +496,33 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
   }
 
   if (hasJsonSamples) {
-    QString samplesPath = parser.value("samples");
+    QString samplesPath = this->parser.value("samples");
     inputFilePath = samplesPath;
-    if (verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadANNSamples(samplesPath.toStdString(), ioConfig, progressReports);
+    if (this->verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
+    samples = Loader::loadANNSamples(samplesPath.toStdString(), this->ioConfig, this->progressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
       return {samples, false};
     }
 
-    QString idxDataPath = parser.value("idx-data");
-    QString idxLabelsPath = parser.value("idx-labels");
+    QString idxDataPath = this->parser.value("idx-data");
+    QString idxLabelsPath = this->parser.value("idx-labels");
     inputFilePath = idxDataPath;
 
-    if (verbose) {
+    if (this->verbose) {
       std::cout << "Loading " << modeName << " samples from IDX:\n";
       std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
     }
 
-    samples = Utils<float>::loadANNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), progressReports);
+    samples = Utils<float>::loadANNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), this->progressReports);
   } else {
     std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
     return {samples, false};
   }
 
-  if (verbose) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
+  if (this->verbose) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
 
   return {samples, true};
 }
@@ -534,45 +534,45 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
     QString& inputFilePath) {
   CNN::Samples<float> samples;
 
-  bool hasJsonSamples = parser.isSet("samples");
-  bool hasIdxData = parser.isSet("idx-data");
-  bool hasIdxLabels = parser.isSet("idx-labels");
+  bool hasJsonSamples = this->parser.isSet("samples");
+  bool hasIdxData = this->parser.isSet("idx-data");
+  bool hasIdxLabels = this->parser.isSet("idx-labels");
 
   if (hasJsonSamples && hasIdxData) {
     std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
     return {samples, false};
   }
 
-  const CNN::Shape3D& inputShape = cnnCoreConfig.inputShape;
+  const CNN::Shape3D& inputShape = this->cnnCoreConfig.inputShape;
 
   if (hasJsonSamples) {
-    QString samplesPath = parser.value("samples");
+    QString samplesPath = this->parser.value("samples");
     inputFilePath = samplesPath;
-    if (verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, ioConfig, progressReports);
+    if (this->verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
+    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, this->ioConfig, this->progressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
       return {samples, false};
     }
 
-    QString idxDataPath = parser.value("idx-data");
-    QString idxLabelsPath = parser.value("idx-labels");
+    QString idxDataPath = this->parser.value("idx-data");
+    QString idxLabelsPath = this->parser.value("idx-labels");
     inputFilePath = idxDataPath;
 
-    if (verbose) {
+    if (this->verbose) {
       std::cout << "Loading " << modeName << " samples from IDX:\n";
       std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
     }
 
-    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape, progressReports);
+    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape, this->progressReports);
   } else {
     std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
     return {samples, false};
   }
 
-  if (verbose) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
+  if (this->verbose) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
 
   return {samples, true};
 }
