@@ -66,6 +66,14 @@ Runner::Runner(const QCommandLineParser& parser, bool verbose)
               << ", Output type: " << dataTypeToString(ioConfig.outputType) << "\n";
   }
 
+  // Load NN-CLI-level settings from config root
+  progressReports = Loader::loadProgressReports(configPath.toStdString());
+  saveModelInterval = Loader::loadSaveModelInterval(configPath.toStdString());
+  
+  if (this->verbose && saveModelInterval > 0) {
+    std::cout << "Save model interval: every " << saveModelInterval << " epoch(s)\n";
+  }
+
   if (networkType == NetworkType::ANN) {
     // Convert string overrides to ANN enum overrides
     std::optional<ANN::ModeType> annModeOverride;
@@ -109,13 +117,31 @@ int Runner::runANNTrain() {
 
   if (verbose) std::cout << "Starting ANN training...\n";
 
-  ProgressBar progressBar(annCoreConfig.progressReports);
-  annCore->setTrainingCallback([&progressBar](const ANN::TrainingProgress<float>& progress) {
+  ProgressBar progressBar(progressReports);
+
+  ulong lastCallbackEpoch = 0;
+  float lastEpochLoss = 0.0f;
+
+  annCore->setTrainingCallback([&](const ANN::TrainingProgress<float>& progress) {
     ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
                       progress.currentSample, progress.totalSamples,
                       progress.epochLoss, progress.sampleLoss,
                       progress.gpuIndex, progress.totalGPUs};
     progressBar.update(info);
+
+    // Checkpoint saving: detect epoch transition
+    if (saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+      // An epoch boundary was crossed — lastCallbackEpoch is the completed epoch
+      if (lastCallbackEpoch > 0 && lastCallbackEpoch % saveModelInterval == 0) {
+        std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+        saveANNModel(*annCore, checkpointPath, ioConfig);
+        std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
+      }
+      lastCallbackEpoch = progress.currentEpoch;
+    }
+
+    // Track epoch loss for checkpoint filename
+    if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
   });
 
   annCore->train(samples);
@@ -186,7 +212,7 @@ int Runner::runANNPredict() {
 
   if (verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
-  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), ioConfig, annCoreConfig.progressReports);
+  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), ioConfig, progressReports);
 
   if (verbose) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].size() << " values\n";
@@ -276,13 +302,31 @@ int Runner::runCNNTrain() {
 
   if (verbose) std::cout << "Starting CNN training...\n";
 
-  ProgressBar progressBar(cnnCoreConfig.progressReports);
-  cnnCore->setTrainingCallback([&progressBar](const CNN::TrainingProgress<float>& progress) {
+  ProgressBar progressBar(progressReports);
+
+  ulong lastCallbackEpoch = 0;
+  float lastEpochLoss = 0.0f;
+
+  cnnCore->setTrainingCallback([&](const CNN::TrainingProgress<float>& progress) {
     ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
                       progress.currentSample, progress.totalSamples,
                       progress.epochLoss, progress.sampleLoss,
                       progress.gpuIndex, progress.totalGPUs};
     progressBar.update(info);
+
+    // Checkpoint saving: detect epoch transition
+    if (saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+      // An epoch boundary was crossed — lastCallbackEpoch is the completed epoch
+      if (lastCallbackEpoch > 0 && lastCallbackEpoch % saveModelInterval == 0) {
+        std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+        saveCNNModel(*cnnCore, checkpointPath, ioConfig);
+        std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
+      }
+      lastCallbackEpoch = progress.currentEpoch;
+    }
+
+    // Track epoch loss for checkpoint filename
+    if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
   });
 
   cnnCore->train(samples);
@@ -354,7 +398,7 @@ int Runner::runCNNPredict() {
   if (verbose) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
   std::vector<CNN::Input<float>> inputs = Loader::loadCNNInputs(
-      inputPath.toStdString(), cnnCoreConfig.inputShape, ioConfig, cnnCoreConfig.progressReports);
+      inputPath.toStdString(), cnnCoreConfig.inputShape, ioConfig, progressReports);
 
   if (verbose) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].data.size() << " values\n";
@@ -455,7 +499,7 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
     QString samplesPath = parser.value("samples");
     inputFilePath = samplesPath;
     if (verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadANNSamples(samplesPath.toStdString(), ioConfig, annCoreConfig.progressReports);
+    samples = Loader::loadANNSamples(samplesPath.toStdString(), ioConfig, progressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
@@ -472,7 +516,7 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
     }
 
-    samples = Utils<float>::loadANNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), annCoreConfig.progressReports);
+    samples = Utils<float>::loadANNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), progressReports);
   } else {
     std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
     return {samples, false};
@@ -505,7 +549,7 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
     QString samplesPath = parser.value("samples");
     inputFilePath = samplesPath;
     if (verbose) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, ioConfig, cnnCoreConfig.progressReports);
+    samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, ioConfig, progressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
       std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
@@ -522,7 +566,7 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
     }
 
-    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape, cnnCoreConfig.progressReports);
+    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape, progressReports);
   } else {
     std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
     return {samples, false};
@@ -563,6 +607,29 @@ std::string Runner::generateDefaultOutputPath(
   }
 
   QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainingFilename(epochs, samples, loss)));
+  return outputPath.toStdString();
+}
+
+//===================================================================================================================//
+
+std::string Runner::generateCheckpointPath(
+    const QString& inputFilePath,
+    ulong epoch,
+    float loss) {
+  QFileInfo inputInfo(inputFilePath);
+  QDir inputDir = inputInfo.absoluteDir();
+  QDir outputDir(inputDir.filePath("output"));
+
+  if (!outputDir.exists()) {
+    inputDir.mkdir("output");
+  }
+
+  std::ostringstream oss;
+  oss << "checkpoint_epoch_" << epoch
+      << "_loss_" << std::fixed << std::setprecision(6) << loss
+      << ".json";
+
+  QString outputPath = outputDir.filePath(QString::fromStdString(oss.str()));
   return outputPath.toStdString();
 }
 

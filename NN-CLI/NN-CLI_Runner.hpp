@@ -54,12 +54,16 @@ class Runner {
     static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);
     static std::string generateDefaultOutputPath(
       const QString& inputFilePath, ulong epochs, ulong samples, float loss);
+    static std::string generateCheckpointPath(
+      const QString& inputFilePath, ulong epoch, float loss);
 
     const QCommandLineParser& parser;
     bool verbose;
     NetworkType networkType;
     std::string mode;  // "train", "test", "predict"
     IOConfig ioConfig;  // inputType / outputType / shapes (NN-CLI concept only)
+    ulong progressReports = 1000;  // NN-CLI display frequency (not used by ANN/CNN libs)
+    ulong saveModelInterval = 0;   // 0 = disabled
 
     // ANN members (used when networkType == ANN)
     std::unique_ptr<ANN::Core<float>> annCore;

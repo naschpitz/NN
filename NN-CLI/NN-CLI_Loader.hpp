@@ -65,6 +65,12 @@ public:
                                                        const CNN::Shape3D& inputShape,
                                                        const IOConfig& ioConfig,
                                                        ulong progressReports = 1000);
+
+  // Load progressReports from config root (returns 1000 if not present)
+  static ulong loadProgressReports(const std::string& configFilePath);
+
+  // Load saveModelInterval from config root (returns 0 if not present = disabled)
+  static ulong loadSaveModelInterval(const std::string& configFilePath);
 };
 
 } // namespace NN_CLI

@@ -136,8 +136,6 @@ ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath,
         if (tc.contains("numThreads")) coreConfig.trainingConfig.numThreads = tc.at("numThreads").get<int>();
     }
 
-    if (json.contains("progressReports")) coreConfig.progressReports = json.at("progressReports").get<ulong>();
-
     if (json.contains("parameters")) {
         const auto& p = json.at("parameters");
         coreConfig.parameters.weights = p.at("weights").get<ANN::Tensor3D<float>>();
@@ -253,8 +251,6 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
         coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
         if (tc.contains("numThreads")) coreConfig.trainingConfig.numThreads = tc.at("numThreads").get<int>();
     }
-
-    if (json.contains("progressReports")) coreConfig.progressReports = json.at("progressReports").get<ulong>();
 
     // Parameters (for predict/test modes or resuming training)
     if (json.contains("parameters")) {
@@ -517,6 +513,48 @@ std::vector<CNN::Input<float>> Loader::loadCNNInputs(const std::string& inputFil
     }
 
     return inputs;
+}
+
+//===================================================================================================================//
+// progressReports loading
+//===================================================================================================================//
+
+ulong Loader::loadProgressReports(const std::string& configFilePath) {
+    QFile file(QString::fromStdString(configFilePath));
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        throw std::runtime_error("Failed to open config file: " + configFilePath);
+    }
+
+    QByteArray fileData = file.readAll();
+    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    if (json.contains("progressReports")) {
+        return json.at("progressReports").get<ulong>();
+    }
+
+    return 1000; // default
+}
+
+//===================================================================================================================//
+// saveModelInterval loading
+//===================================================================================================================//
+
+ulong Loader::loadSaveModelInterval(const std::string& configFilePath) {
+    QFile file(QString::fromStdString(configFilePath));
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        throw std::runtime_error("Failed to open config file: " + configFilePath);
+    }
+
+    QByteArray fileData = file.readAll();
+    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    if (json.contains("saveModelInterval")) {
+        return json.at("saveModelInterval").get<ulong>();
+    }
+
+    return 0; // disabled by default
 }
 
 //===================================================================================================================//
