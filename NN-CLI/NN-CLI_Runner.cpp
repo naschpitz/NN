@@ -828,10 +828,9 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
 
 std::string Runner::generateTrainingFilename(ulong epochs, ulong samples, float loss) {
   std::ostringstream oss;
-  oss << "trained_model_"
-      << epochs << "_"
-      << samples << "_"
-      << std::fixed << std::setprecision(6) << loss
+  oss << "trained_E-" << epochs
+      << "_S-" << samples
+      << "_L-" << std::fixed << std::setprecision(6) << loss
       << ".json";
   return oss.str();
 }
@@ -870,8 +869,8 @@ std::string Runner::generateCheckpointPath(
   }
 
   std::ostringstream oss;
-  oss << "checkpoint_epoch_" << epoch
-      << "_loss_" << std::fixed << std::setprecision(6) << loss
+  oss << "checkpoint_E-" << epoch
+      << "_L-" << std::fixed << std::setprecision(6) << loss
       << ".json";
 
   QString outputPath = outputDir.filePath(QString::fromStdString(oss.str()));

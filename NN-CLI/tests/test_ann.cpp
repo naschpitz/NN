@@ -215,7 +215,7 @@ static void testANNCheckpointParameters() {
 
   // Find checkpoint files in tempDir/output/
   QDir outputDir(tempDir() + "/output");
-  QStringList checkpoints = outputDir.entryList({"checkpoint_epoch_*.json"}, QDir::Files);
+  QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.json"}, QDir::Files);
   CHECK(!checkpoints.isEmpty(), "ANN checkpoint params: checkpoint files exist");
 
   if (!checkpoints.isEmpty()) {
