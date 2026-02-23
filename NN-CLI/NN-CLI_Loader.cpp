@@ -554,7 +554,7 @@ ulong Loader::loadSaveModelInterval(const std::string& configFilePath) {
         return json.at("saveModelInterval").get<ulong>();
     }
 
-    return 0; // disabled by default
+    return 10; // default: save every 10 epochs
 }
 
 //===================================================================================================================//

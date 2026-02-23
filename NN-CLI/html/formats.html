@@ -50,6 +50,7 @@
     { <span class="string">"numNeurons"</span>: <span class="number">10</span>,  <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
   <span class="string">"progressReports"</span>: <span class="number">1000</span>,
+  <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="string">"trainingConfig"</span>: {
     <span class="string">"numEpochs"</span>: <span class="number">100</span>,
     <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
@@ -73,6 +74,7 @@
   <tr><td><code>trainingConfig.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate</td></tr>
   <tr><td><code>trainingConfig.numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>progressReports</code></td><td>int</td><td>No</td><td>Progress update frequency for all modes (default 1000)</td></tr>
+  <tr><td><code>saveModelInterval</code></td><td>int</td><td>No</td><td>Save a checkpoint every N epochs during training (default 10; 0 = disabled)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
 </table>
 
@@ -95,6 +97,8 @@
     { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">10</span>,  <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
+  <span class="string">"progressReports"</span>: <span class="number">1000</span>,
+  <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="string">"trainingConfig"</span>: { <span class="string">"numEpochs"</span>: <span class="number">10</span>, <span class="string">"learningRate"</span>: <span class="number">0.01</span> }
 }
 </code></pre>

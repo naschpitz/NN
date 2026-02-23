@@ -134,4 +134,5 @@ The output array represents probabilities for digits 0-9. The highest value indi
 - **Learning rate**: The default 0.01 works well; lower values (0.001) may improve accuracy but take longer
 - **Epochs**: More epochs generally improve accuracy until overfitting occurs; monitor test loss
 - **Progress reports**: Set `progressReports` at the root level of the config to control how often progress is displayed (used across loading, training, testing, and predicting)
+- **Model checkpoints**: Set `saveModelInterval` at the root level to save a checkpoint every N epochs during training (default 10; set to 0 to disable)
 

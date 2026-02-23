@@ -63,7 +63,7 @@ class Runner {
     std::string mode;  // "train", "test", "predict"
     IOConfig ioConfig;  // inputType / outputType / shapes (NN-CLI concept only)
     ulong progressReports = 1000;  // NN-CLI display frequency (not used by ANN/CNN libs)
-    ulong saveModelInterval = 0;   // 0 = disabled
+    ulong saveModelInterval = 10;  // 0 = disabled
 
     // ANN members (used when networkType == ANN)
     std::unique_ptr<ANN::Core<float>> annCore;

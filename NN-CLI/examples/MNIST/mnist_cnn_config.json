@@ -15,6 +15,8 @@
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
+  "progressReports": 1000,
+  "saveModelInterval": 10,
   "trainingConfig": {
     "numEpochs": 10,
     "learningRate": 0.01

@@ -69,7 +69,7 @@ public:
   // Load progressReports from config root (returns 1000 if not present)
   static ulong loadProgressReports(const std::string& configFilePath);
 
-  // Load saveModelInterval from config root (returns 0 if not present = disabled)
+  // Load saveModelInterval from config root (returns 10 if not present; 0 = disabled)
   static ulong loadSaveModelInterval(const std::string& configFilePath);
 };
 

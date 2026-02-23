@@ -83,3 +83,7 @@ INSTRUCTIONS.md
 # ----------------------------------
 examples/**/output/
 examples/ISIC-MIL10k
+
+# Test fixture output (generated during tests)
+# ---------------------------------------------
+tests/fixtures/output/

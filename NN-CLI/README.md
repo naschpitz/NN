@@ -64,6 +64,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
+  "progressReports": 1000,
+  "saveModelInterval": 10,
   "trainingConfig": {
     "numEpochs": 100,
     "learningRate": 0.01,
@@ -101,6 +103,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 - `outputType`: Output data type — `"vector"` (default) or `"image"` — *can be overridden by `--output-type`*
 - `inputShape`: Input image dimensions (`c`, `h`, `w`) — required when `inputType` is `"image"`
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
+- `progressReports`: Progress update frequency for all modes (optional, default: `1000`)
+- `saveModelInterval`: Save a checkpoint every N epochs during training (optional, default: `10`; `0` = disabled)
 
 #### ANN Layers Configuration
 
@@ -134,6 +138,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
+  "progressReports": 1000,
+  "saveModelInterval": 10,
   "trainingConfig": {
     "numEpochs": 10,
     "learningRate": 0.01
@@ -149,6 +155,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 - `outputType`: Output data type — `"vector"` (default) or `"image"` — *can be overridden by `--output-type`*
 - `inputShape`: Input tensor dimensions (`c` channels, `h` height, `w` width)
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
+- `progressReports`: Progress update frequency for all modes (optional, default: `1000`)
+- `saveModelInterval`: Save a checkpoint every N epochs during training (optional, default: `10`; `0` = disabled)
 
 #### CNN Layers Configuration (`cnnLayersConfig`)
 

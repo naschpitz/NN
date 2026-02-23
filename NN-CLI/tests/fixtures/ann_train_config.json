@@ -7,6 +7,7 @@
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
   "progressReports": 100,
+  "saveModelInterval": 10,
   "trainingConfig": {
     "numEpochs": 100,
     "learningRate": 0.5,
