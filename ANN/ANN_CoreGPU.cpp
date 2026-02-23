@@ -175,24 +175,28 @@ TestResult<T> CoreGPU<T>::test(const Samples<T>& samples) {
     workItems.append({gpuIdx, startIdx, endIdx});
   }
 
-  std::vector<T> gpuLosses(this->numGPUs, 0);
+  std::vector<std::pair<T, ulong>> gpuResults(this->numGPUs, {0, 0});
 
   // Use QtConcurrent to process each GPU's work in parallel
-  QtConcurrent::blockingMap(workItems, [this, &samples, &gpuLosses](const GPUWorkItem& item) {
-    gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->testSubset(samples, item.startIdx, item.endIdx);
+  QtConcurrent::blockingMap(workItems, [this, &samples, &gpuResults](const GPUWorkItem& item) {
+    gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->testSubset(samples, item.startIdx, item.endIdx);
   });
 
-  // Sum up losses from all GPUs
+  // Sum up losses and correct counts from all GPUs
   T totalLoss = 0;
+  ulong totalCorrect = 0;
 
   for (size_t i = 0; i < this->numGPUs; i++) {
-    totalLoss += gpuLosses[i];
+    totalLoss += gpuResults[i].first;
+    totalCorrect += gpuResults[i].second;
   }
 
   TestResult<T> result;
   result.numSamples = numSamples;
   result.totalLoss = totalLoss;
   result.averageLoss = totalLoss / static_cast<T>(numSamples);
+  result.numCorrect = totalCorrect;
+  result.accuracy = static_cast<T>(totalCorrect) / static_cast<T>(numSamples) * static_cast<T>(100);
 
   return result;
 }

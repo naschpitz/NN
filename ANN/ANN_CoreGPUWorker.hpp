@@ -6,6 +6,7 @@
 #include <OCLW_Core.hpp>
 
 #include <memory>
+#include <utility>
 
 //===================================================================================================================//
 
@@ -35,7 +36,7 @@ namespace ANN {
                     const TrainingCallback<T>& callback);
 
       //-- Testing (called by CoreGPU orchestrator) --//
-      T testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);
+      std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);
 
       //-- Step-by-step training methods (for external orchestration, e.g., CNN) --//
       Tensor1D<T> backpropagate(const Output<T>& output);

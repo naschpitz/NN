@@ -6,6 +6,7 @@
 #include <QThread>
 #include <QThreadPool>
 #include <QtConcurrent>
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <random>
@@ -157,6 +158,7 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
     Tensor2D<T> actvs;
     Tensor2D<T> zs;
     T accum_loss;
+    ulong accum_correct;
   };
 
   std::vector<TestWorker> workers(numThreads);
@@ -166,6 +168,7 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
     workers[i].actvs.resize(numLayers);
     workers[i].zs.resize(numLayers);
     workers[i].accum_loss = 0;
+    workers[i].accum_correct = 0;
 
     for (ulong l = 0; l < numLayers; l++) {
       Layer layer = this->layersConfig[l];
@@ -203,19 +206,31 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
 
     // Accumulate loss
     worker.accum_loss += sampleLoss;
+
+    // Accuracy: compare argmax of predicted vs expected
+    const auto& outputActvs = worker.actvs[numLayers - 1];
+    auto predIdx = std::distance(outputActvs.begin(), std::max_element(outputActvs.begin(), outputActvs.end()));
+    auto expIdx = std::distance(sample.output.begin(), std::max_element(sample.output.begin(), sample.output.end()));
+
+    if (predIdx == expIdx)
+      worker.accum_correct++;
   });
 
-  // Sum up losses from all workers
+  // Sum up losses and correct counts from all workers
   T totalLoss = 0;
+  ulong totalCorrect = 0;
 
   for (int i = 0; i < numThreads; i++) {
     totalLoss += workers[i].accum_loss;
+    totalCorrect += workers[i].accum_correct;
   }
 
   TestResult<T> result;
   result.numSamples = numSamples;
   result.totalLoss = totalLoss;
   result.averageLoss = totalLoss / static_cast<T>(numSamples);
+  result.numCorrect = totalCorrect;
+  result.accuracy = static_cast<T>(totalCorrect) / static_cast<T>(numSamples) * static_cast<T>(100);
 
   return result;
 }

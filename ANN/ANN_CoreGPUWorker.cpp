@@ -1,6 +1,7 @@
 #include "ANN_CoreGPUWorker.hpp"
 #include "ANN_Utils.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <random>
@@ -129,7 +130,7 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, ulong startIdx, ulong
 //===================================================================================================================//
 
 template <typename T>
-T CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx) {
+std::pair<T, ulong> CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx) {
   // Set up predict kernels if not done yet (forward pass only)
   if (!this->predictKernelsSetup) {
     this->setupPredictKernels();
@@ -137,6 +138,7 @@ T CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulong startIdx, ulong 
   }
 
   T subsetLoss = 0;
+  ulong subsetCorrect = 0;
 
   for (ulong s = startIdx; s < endIdx; s++) {
     const Input<T>& input = samples[s].input;
@@ -151,9 +153,17 @@ T CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulong startIdx, ulong 
     // Calculate loss after forward pass
     T sampleLoss = this->calculateLoss(output);
     subsetLoss += sampleLoss;
+
+    // Read predicted output for accuracy computation
+    Output<T> predicted = this->readOutput();
+    auto predIdx = std::distance(predicted.begin(), std::max_element(predicted.begin(), predicted.end()));
+    auto expIdx = std::distance(output.begin(), std::max_element(output.begin(), output.end()));
+
+    if (predIdx == expIdx)
+      subsetCorrect++;
   }
 
-  return subsetLoss;
+  return {subsetLoss, subsetCorrect};
 }
 
 //===================================================================================================================//

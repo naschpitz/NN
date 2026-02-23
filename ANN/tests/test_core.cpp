@@ -124,7 +124,9 @@ static void testTestMethod() {
   CHECK(result.averageLoss >= 0.0, "test averageLoss >= 0");
   CHECK(result.totalLoss >= 0.0, "test totalLoss >= 0");
   CHECK_NEAR(result.totalLoss, result.averageLoss * 2.0, 1e-10, "totalLoss = avgLoss * numSamples");
-  std::cout << "  test avgLoss=" << result.averageLoss << std::endl;
+  CHECK(result.numCorrect <= result.numSamples, "numCorrect <= numSamples");
+  CHECK(result.accuracy >= 0.0 && result.accuracy <= 100.0, "accuracy in [0, 100]");
+  std::cout << "  test avgLoss=" << result.averageLoss << " accuracy=" << result.accuracy << "%" << std::endl;
 }
 
 //===================================================================================================================//
@@ -625,6 +627,8 @@ static void testWeightedLossAffectsTraining() {
   // But we confirm both trained without crashing and produced valid loss
   CHECK(resultDefault.numSamples == 2, "default: tested 2 samples");
   CHECK(resultWeighted.numSamples == 2, "weighted: tested 2 samples");
+  CHECK(resultDefault.numCorrect <= 2, "default: numCorrect <= 2");
+  CHECK(resultWeighted.numCorrect <= 2, "weighted: numCorrect <= 2");
 }
 
 //===================================================================================================================//
