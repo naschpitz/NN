@@ -8,7 +8,7 @@
     { "numNeurons": 8, "actvFunc": "relu" },
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "lossFunctionConfig": {
+  "costFunctionConfig": {
     "type": "weightedSquaredDifference",
     "weights": [3.0, 1.0]
   },

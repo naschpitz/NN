@@ -12,7 +12,7 @@
   "denseLayersConfig": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "lossFunctionConfig": {
+  "costFunctionConfig": {
     "type": "weightedSquaredDifference",
     "weights": [5.0, 1.0]
   },

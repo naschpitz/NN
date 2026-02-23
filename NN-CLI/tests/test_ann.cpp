@@ -156,20 +156,20 @@ static void testANNTrainWithWeightedLoss() {
   CHECK(result.stdOut.contains("Model saved to:"), "ANN weighted train: 'Model saved to:'");
   CHECK(QFile::exists(modelPath), "ANN weighted train: model file exists");
 
-  // Verify saved model JSON contains lossFunctionConfig
+  // Verify saved model JSON contains costFunctionConfig
   QFile file(modelPath);
   if (file.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject root = doc.object();
 
-    CHECK(root.contains("lossFunctionConfig"), "ANN weighted train: saved model has 'lossFunctionConfig'");
+    CHECK(root.contains("costFunctionConfig"), "ANN weighted train: saved model has 'costFunctionConfig'");
 
-    QJsonObject lfc = root["lossFunctionConfig"].toObject();
-    CHECK(lfc["type"].toString() == "weightedSquaredDifference",
+    QJsonObject cfc = root["costFunctionConfig"].toObject();
+    CHECK(cfc["type"].toString() == "weightedSquaredDifference",
           "ANN weighted train: type is 'weightedSquaredDifference'");
-    CHECK(lfc.contains("weights"), "ANN weighted train: has 'weights'");
+    CHECK(cfc.contains("weights"), "ANN weighted train: has 'weights'");
 
-    QJsonArray weights = lfc["weights"].toArray();
+    QJsonArray weights = cfc["weights"].toArray();
     CHECK(weights.size() == 2, "ANN weighted train: weights has 2 elements");
     CHECK_NEAR(weights[0].toDouble(), 3.0, 1e-6, "ANN weighted train: weight[0] = 3.0");
     CHECK_NEAR(weights[1].toDouble(), 1.0, 1e-6, "ANN weighted train: weight[1] = 1.0");

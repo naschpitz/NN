@@ -640,13 +640,13 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
   }
   json["layersConfig"] = layersArr;
 
-  // Loss function config
-  nlohmann::ordered_json lfcJson;
-  lfcJson["type"] = ANN::LossFunction::typeToName(core.getLossFunctionConfig().type);
-  if (!core.getLossFunctionConfig().weights.empty()) {
-    lfcJson["weights"] = core.getLossFunctionConfig().weights;
+  // Cost function config
+  nlohmann::ordered_json cfcJson;
+  cfcJson["type"] = ANN::CostFunction::typeToName(core.getCostFunctionConfig().type);
+  if (!core.getCostFunctionConfig().weights.empty()) {
+    cfcJson["weights"] = core.getCostFunctionConfig().weights;
   }
-  json["lossFunctionConfig"] = lfcJson;
+  json["costFunctionConfig"] = cfcJson;
 
   // Training config
   nlohmann::ordered_json tcJson;
@@ -762,13 +762,13 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
   }
   json["denseLayersConfig"] = denseLayersArr;
 
-  // Loss function config
-  nlohmann::ordered_json lfcJson;
-  lfcJson["type"] = CNN::LossFunction::typeToName(core.getLossFunctionConfig().type);
-  if (!core.getLossFunctionConfig().weights.empty()) {
-    lfcJson["weights"] = core.getLossFunctionConfig().weights;
+  // Cost function config
+  nlohmann::ordered_json cfcJson;
+  cfcJson["type"] = CNN::CostFunction::typeToName(core.getCostFunctionConfig().type);
+  if (!core.getCostFunctionConfig().weights.empty()) {
+    cfcJson["weights"] = core.getCostFunctionConfig().weights;
   }
-  json["lossFunctionConfig"] = lfcJson;
+  json["costFunctionConfig"] = cfcJson;
 
   // Training config
   nlohmann::ordered_json tcJson;

@@ -129,11 +129,11 @@ ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath,
         coreConfig.layersConfig.push_back(layer);
     }
 
-    if (json.contains("lossFunctionConfig")) {
-        const auto& lfc = json.at("lossFunctionConfig");
-        coreConfig.lossFunctionConfig.type = ANN::LossFunction::nameToType(lfc.at("type").get<std::string>());
-        if (lfc.contains("weights")) {
-            coreConfig.lossFunctionConfig.weights = lfc.at("weights").get<std::vector<float>>();
+    if (json.contains("costFunctionConfig")) {
+        const auto& cfc = json.at("costFunctionConfig");
+        coreConfig.costFunctionConfig.type = ANN::CostFunction::nameToType(cfc.at("type").get<std::string>());
+        if (cfc.contains("weights")) {
+            coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
         }
     }
 
@@ -252,12 +252,12 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
         }
     }
 
-    // Loss function config
-    if (json.contains("lossFunctionConfig")) {
-        const auto& lfc = json.at("lossFunctionConfig");
-        coreConfig.lossFunctionConfig.type = CNN::LossFunction::nameToType(lfc.at("type").get<std::string>());
-        if (lfc.contains("weights")) {
-            coreConfig.lossFunctionConfig.weights = lfc.at("weights").get<std::vector<float>>();
+    // Cost function config
+    if (json.contains("costFunctionConfig")) {
+        const auto& cfc = json.at("costFunctionConfig");
+        coreConfig.costFunctionConfig.type = CNN::CostFunction::nameToType(cfc.at("type").get<std::string>());
+        if (cfc.contains("weights")) {
+            coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
         }
     }
 

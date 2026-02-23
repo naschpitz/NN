@@ -66,7 +66,7 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
-  "lossFunctionConfig": {
+  "costFunctionConfig": {
     "type": "weightedSquaredDifference",
     "weights": [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   },
@@ -110,9 +110,9 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 - `inputShape`: Input image dimensions (`c`, `h`, `w`) — required when `inputType` is `"image"`
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
 
-#### ANN Loss Function Configuration (`lossFunctionConfig`)
+#### ANN Cost Function Configuration (`costFunctionConfig`)
 
-Optional object placed between `layersConfig` and `trainingConfig`. Controls the loss function used during training:
+Optional object placed between `layersConfig` and `trainingConfig`. Controls the cost function used during training:
 
 - `type`: `"squaredDifference"` (default) or `"weightedSquaredDifference"`
 - `weights`: Array of per-output-neuron weights (required when type is `"weightedSquaredDifference"`). Each weight multiplies the squared difference for the corresponding output neuron, allowing rare classes to receive higher penalty.
@@ -153,7 +153,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
-  "lossFunctionConfig": {
+  "costFunctionConfig": {
     "type": "weightedSquaredDifference",
     "weights": [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   },
@@ -175,7 +175,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `inputShape`: Input tensor dimensions (`c` channels, `h` height, `w` width)
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
 
-#### CNN Loss Function Configuration (`lossFunctionConfig`)
+#### CNN Cost Function Configuration (`costFunctionConfig`)
 
 Same as ANN — optional object placed between `denseLayersConfig` and `trainingConfig`:
 

@@ -51,7 +51,7 @@
     { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">10</span>,  <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="string">"lossFunctionConfig"</span>: {
+  <span class="string">"costFunctionConfig"</span>: {
     <span class="string">"type"</span>: <span class="string">"weightedSquaredDifference"</span>,
     <span class="string">"weights"</span>: [<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">5.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>]
   },
@@ -76,9 +76,9 @@
   <tr><td><code>layersConfig</code></td><td>array</td><td>Yes</td><td>Layer definitions (first = input, last = output)</td></tr>
   <tr><td><code>layersConfig[].numNeurons</code></td><td>int</td><td>Yes</td><td>Number of neurons</td></tr>
   <tr><td><code>layersConfig[].actvFunc</code></td><td>string</td><td>Yes</td><td><code>relu</code>, <code>sigmoid</code>, or <code>tanh</code></td></tr>
-  <tr><td><code>lossFunctionConfig</code></td><td>object</td><td>No</td><td>Loss function configuration (default: squared difference)</td></tr>
-  <tr><td><code>lossFunctionConfig.type</code></td><td>string</td><td>No</td><td><code>squaredDifference</code> (default) or <code>weightedSquaredDifference</code></td></tr>
-  <tr><td><code>lossFunctionConfig.weights</code></td><td>array</td><td>Weighted</td><td>Per-output-neuron weights (required when type is <code>weightedSquaredDifference</code>)</td></tr>
+  <tr><td><code>costFunctionConfig</code></td><td>object</td><td>No</td><td>Cost function configuration (default: squared difference)</td></tr>
+  <tr><td><code>costFunctionConfig.type</code></td><td>string</td><td>No</td><td><code>squaredDifference</code> (default) or <code>weightedSquaredDifference</code></td></tr>
+  <tr><td><code>costFunctionConfig.weights</code></td><td>array</td><td>Weighted</td><td>Per-output-neuron weights (required when type is <code>weightedSquaredDifference</code>)</td></tr>
   <tr><td><code>trainingConfig.numEpochs</code></td><td>int</td><td>Train</td><td>Number of epochs</td></tr>
   <tr><td><code>trainingConfig.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate</td></tr>
   <tr><td><code>trainingConfig.numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
@@ -106,7 +106,7 @@
     { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">10</span>,  <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="string">"lossFunctionConfig"</span>: {
+  <span class="string">"costFunctionConfig"</span>: {
     <span class="string">"type"</span>: <span class="string">"weightedSquaredDifference"</span>,
     <span class="string">"weights"</span>: [<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">5.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>]
   },
@@ -267,7 +267,7 @@
   <span class="string">"inputType"</span>: <span class="string">"image"</span>,
   <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"layersConfig"</span>: [...],
-  <span class="string">"lossFunctionConfig"</span>: {
+  <span class="string">"costFunctionConfig"</span>: {
     <span class="string">"type"</span>: <span class="string">"squaredDifference"</span>
   },
   <span class="string">"trainingConfig"</span>: {...},

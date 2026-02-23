@@ -137,20 +137,20 @@ static void testCNNTrainWithWeightedLoss() {
   CHECK(result.stdOut.contains("Model saved to:"), "CNN weighted train: 'Model saved to:'");
   CHECK(QFile::exists(modelPath), "CNN weighted train: model file exists");
 
-  // Verify saved model JSON contains lossFunctionConfig
+  // Verify saved model JSON contains costFunctionConfig
   QFile file(modelPath);
   if (file.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject root = doc.object();
 
-    CHECK(root.contains("lossFunctionConfig"), "CNN weighted train: saved model has 'lossFunctionConfig'");
+    CHECK(root.contains("costFunctionConfig"), "CNN weighted train: saved model has 'costFunctionConfig'");
 
-    QJsonObject lfc = root["lossFunctionConfig"].toObject();
-    CHECK(lfc["type"].toString() == "weightedSquaredDifference",
+    QJsonObject cfc = root["costFunctionConfig"].toObject();
+    CHECK(cfc["type"].toString() == "weightedSquaredDifference",
           "CNN weighted train: type is 'weightedSquaredDifference'");
-    CHECK(lfc.contains("weights"), "CNN weighted train: has 'weights'");
+    CHECK(cfc.contains("weights"), "CNN weighted train: has 'weights'");
 
-    QJsonArray weights = lfc["weights"].toArray();
+    QJsonArray weights = cfc["weights"].toArray();
     CHECK(weights.size() == 2, "CNN weighted train: weights has 2 elements");
     CHECK_NEAR(weights[0].toDouble(), 5.0, 1e-6, "CNN weighted train: weight[0] = 5.0");
     CHECK_NEAR(weights[1].toDouble(), 1.0, 1e-6, "CNN weighted train: weight[1] = 1.0");
