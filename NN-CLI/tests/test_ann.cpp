@@ -194,7 +194,7 @@ static void testANNTrainAndTestMNIST() {
 
   QString modelPath = tempDir() + "/ann_mnist_trained.json";
 
-  // Step 1: Train on MNIST training data (500 epochs, 60k samples)
+  // Step 1: Train on MNIST training data on CPU (30 epochs, 60k samples, all cores)
   auto trainResult = runNNCLI({
     "--config", fixturePath("mnist_ann_train_config.json"),
     "--mode", "train",
@@ -203,7 +203,7 @@ static void testANNTrainAndTestMNIST() {
     "--idx-labels", examplePath("MNIST/train/train-labels.idx1-ubyte"),
     "--output", modelPath,
     "--log-level", "quiet"
-  }, 14400000);  // 4 hour timeout
+  }, 1800000);  // 30 min timeout
 
   CHECK(trainResult.exitCode == 0, "ANN MNIST train+test: training exit code 0");
   CHECK(QFile::exists(modelPath), "ANN MNIST train+test: trained model file exists");
@@ -236,7 +236,7 @@ static void testANNTrainAndTestMNIST() {
   }
   CHECK(avgLoss > 0 && avgLoss < 0.5, "ANN MNIST train+test: average loss < 0.5");
 
-  // Extract and verify accuracy is reasonable (> 30% for 500 epochs with full-batch GD)
+  // Extract and verify accuracy is reasonable (> 30% for 30 epochs with mini-batch SGD)
   double accuracy = -1;
   int accIdx = testResult.stdOut.indexOf("Accuracy:");
   if (accIdx >= 0) {
@@ -266,7 +266,7 @@ static void testANNTrainAndTestMNISTGPU() {
 
   QString modelPath = tempDir() + "/ann_mnist_trained_gpu.json";
 
-  // Step 1: Train on MNIST training data on GPU (500 epochs, 60k samples)
+  // Step 1: Train on MNIST training data on GPU (30 epochs, 60k samples, all GPUs)
   auto trainResult = runNNCLI({
     "--config", fixturePath("mnist_ann_train_config.json"),
     "--mode", "train",
@@ -275,7 +275,7 @@ static void testANNTrainAndTestMNISTGPU() {
     "--idx-labels", examplePath("MNIST/train/train-labels.idx1-ubyte"),
     "--output", modelPath,
     "--log-level", "quiet"
-  }, 14400000);  // 4 hour timeout
+  }, 1800000);  // 30 min timeout
 
   CHECK(trainResult.exitCode == 0, "ANN MNIST GPU train+test: training exit code 0");
   CHECK(QFile::exists(modelPath), "ANN MNIST GPU train+test: trained model file exists");
@@ -308,7 +308,7 @@ static void testANNTrainAndTestMNISTGPU() {
   }
   CHECK(avgLoss > 0 && avgLoss < 0.5, "ANN MNIST GPU train+test: average loss < 0.5");
 
-  // Extract and verify accuracy is reasonable (> 30% for 500 epochs with full-batch GD)
+  // Extract and verify accuracy is reasonable (> 30% for 30 epochs with mini-batch SGD)
   double accuracy = -1;
   int accIdx = testResult.stdOut.indexOf("Accuracy:");
   if (accIdx >= 0) {

@@ -24,9 +24,9 @@ int main(int argc, char* argv[]) {
   QCoreApplication app(argc, argv);
 
   if (runFullTests) {
-    std::cout << "Running ALL tests including full MNIST train+test (this may take hours)." << std::endl;
+    std::cout << "Running ALL tests including full MNIST train+test (this may take a few minutes)." << std::endl;
   } else {
-    std::cout << "Running quick tests only. Use --full to include MNIST train+test (may take hours)." << std::endl;
+    std::cout << "Running quick tests only. Use --full to include MNIST train+test (may take a few minutes)." << std::endl;
   }
   std::cout << std::endl;
 
