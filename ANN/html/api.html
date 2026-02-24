@@ -30,7 +30,7 @@
 <p>Complete reference for every public class, struct, enum, and function in the ANN library. All types live in the <code>ANN</code> namespace.</p>
 
 <div class="toc">
-  <h4>Contents</h4>
+  <h4>On this page</h4>
   <ol>
     <li><a href="#types">Type Aliases</a></li>
     <li><a href="#enums">Enumerations</a></li>
@@ -97,100 +97,124 @@
   <tr><td><code>TANH</code></td><td><code>"tanh"</code></td><td>tanh(x)</td><td>1 − tanh²(x)</td></tr>
 </table>
 
+<h3>CostFunctionType <span class="badge badge-blue">ANN_CostFunctionConfig.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>String</th><th>Description</th></tr>
+  <tr><td><code>SQUARED_DIFFERENCE</code></td><td><code>"squaredDifference"</code></td><td>Standard squared error: Σ(predicted − expected)²</td></tr>
+  <tr><td><code>WEIGHTED_SQUARED_DIFFERENCE</code></td><td><code>"weightedSquaredDifference"</code></td><td>Weighted squared error: Σ wᵢ·(predicted − expected)²</td></tr>
+</table>
+<p>Helpers: <code>CostFunction::nameToType(str)</code>, <code>CostFunction::typeToName(type)</code></p>
+
+<h3>LogLevel <span class="badge badge-blue">ANN_LogLevel.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>Int</th><th>Description</th></tr>
+  <tr><td><code>QUIET</code></td><td>0</td><td>No output</td></tr>
+  <tr><td><code>ERROR</code></td><td>1</td><td>Errors only (default)</td></tr>
+  <tr><td><code>WARNING</code></td><td>2</td><td>Errors + warnings</td></tr>
+  <tr><td><code>INFO</code></td><td>3</td><td>Errors + warnings + informational messages</td></tr>
+  <tr><td><code>DEBUG</code></td><td>4</td><td>All messages including debug output</td></tr>
+</table>
+
 <!-- ========== STRUCTS ========== -->
 <h2 id="structs">3. Structs &amp; Configurations</h2>
 
-<h3>Layer <span class="badge badge-blue">ANN_LayersConfig.hpp</span></h3>
-<pre><code><span class="keyword">struct</span> <span class="type">Layer</span> {
-    <span class="type">ulong</span> numNeurons;            <span class="comment">// Number of neurons in this layer</span>
-    ActvFuncType actvFuncType;   <span class="comment">// Activation function type</span>
-};
-</code></pre>
+<h3>CoreConfig&lt;T&gt; <span class="badge badge-blue">ANN_CoreConfig.hpp</span></h3>
+<p>Top-level configuration struct. Contains all settings needed to create and run a network.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>modeType</code></td><td><code>ModeType</code></td><td>TRAIN, PREDICT, or TEST</td></tr>
+  <tr><td><code>deviceType</code></td><td><code>DeviceType</code></td><td>CPU or GPU</td></tr>
+  <tr><td><code>numThreads</code></td><td><code>int</code></td><td>CPU threads (0 = all cores)</td></tr>
+  <tr><td><code>numGPUs</code></td><td><code>int</code></td><td>GPUs to use (0 = all available)</td></tr>
+  <tr><td><code>layersConfig</code></td><td><code>LayersConfig</code></td><td>Network architecture (layers and activation functions)</td></tr>
+  <tr><td><code>costFunctionConfig</code></td><td><code>CostFunctionConfig&lt;T&gt;</code></td><td>Cost function type and optional weights</td></tr>
+  <tr><td><code>trainingConfig</code></td><td><code>TrainingConfig&lt;T&gt;</code></td><td>Training hyperparameters (epochs, learning rate, batch size)</td></tr>
+  <tr><td><code>parameters</code></td><td><code>Parameters&lt;T&gt;</code></td><td>Pre-trained weights and biases (optional)</td></tr>
+  <tr><td><code>progressReports</code></td><td><code>ulong</code></td><td>Progress callback frequency for all modes (default 1000)</td></tr>
+  <tr><td><code>logLevel</code></td><td><code>LogLevel</code></td><td>Log verbosity level (default ERROR)</td></tr>
+</table>
+
+<h3>TrainingConfig&lt;T&gt; <span class="badge badge-blue">ANN_TrainingConfig.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>numEpochs</code></td><td><code>ulong</code></td><td>Total training epochs (default 0)</td></tr>
+  <tr><td><code>learningRate</code></td><td><code>float</code></td><td>SGD learning rate (default 0.01)</td></tr>
+  <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size (default 64)</td></tr>
+</table>
+
+<h3>CostFunctionConfig&lt;T&gt; <span class="badge badge-blue">ANN_CostFunctionConfig.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>type</code></td><td><code>CostFunctionType</code></td><td>Cost function type (default SQUARED_DIFFERENCE)</td></tr>
+  <tr><td><code>weights</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Per-output-neuron weights (only used for WEIGHTED_SQUARED_DIFFERENCE)</td></tr>
+</table>
 
 <h3>LayersConfig <span class="badge badge-blue">ANN_LayersConfig.hpp</span></h3>
-<p>Inherits <code>std::vector&lt;Layer&gt;</code>. Represents the full network architecture.</p>
-<pre><code><span class="keyword">class</span> <span class="type">LayersConfig</span> : <span class="keyword">public</span> std::vector&lt;Layer&gt; {
-<span class="keyword">public</span>:
-    <span class="type">ulong</span> <span class="func">getTotalNumNeurons</span>() <span class="keyword">const</span>;  <span class="comment">// Sum of all layers' neuron counts</span>
-};
-</code></pre>
-<h3>TrainingConfig&lt;T&gt; <span class="badge badge-blue">ANN_TrainingConfig.hpp</span></h3>
-<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">struct</span> <span class="type">TrainingConfig</span> {
-    <span class="type">ulong</span> numEpochs      = <span class="number">0</span>;       <span class="comment">// Total training epochs</span>
-    <span class="type">ulong</span> batchSize      = <span class="number">64</span>;      <span class="comment">// Mini-batch size (default 64)</span>
-    <span class="type">float</span> learningRate   = <span class="number">0.01f</span>;  <span class="comment">// SGD learning rate</span>
-};
-</code></pre>
+<p>Inherits <code>std::vector&lt;Layer&gt;</code>. Represents the full network architecture as an ordered list of layers.</p>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>getTotalNumNeurons()</code></td><td><code>ulong</code></td><td>Sum of all layers' neuron counts</td></tr>
+</table>
+
+<h3>Layer <span class="badge badge-blue">ANN_LayersConfig.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>numNeurons</code></td><td><code>ulong</code></td><td>Number of neurons in this layer</td></tr>
+  <tr><td><code>actvFuncType</code></td><td><code>ActvFuncType</code></td><td>Activation function (RELU, SIGMOID, or TANH)</td></tr>
+</table>
 
 <h3>Parameters&lt;T&gt; <span class="badge badge-blue">ANN_Parameters.hpp</span></h3>
-<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">struct</span> <span class="type">Parameters</span> {
-    Tensor3D&lt;T&gt; weights;  <span class="comment">// weights[layer][neuron][input]</span>
-    Tensor2D&lt;T&gt; biases;   <span class="comment">// biases[layer][neuron]</span>
-};
-</code></pre>
-
-<h3>CoreConfig&lt;T&gt; <span class="badge badge-blue">ANN_CoreConfig.hpp</span></h3>
-<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">struct</span> <span class="type">CoreConfig</span> {
-    ModeType              modeType;
-    DeviceType            deviceType;
-    <span class="type">int</span>                   numThreads = <span class="number">0</span>;          <span class="comment">// CPU threads (0 = all cores)</span>
-    <span class="type">int</span>                   numGPUs    = <span class="number">0</span>;          <span class="comment">// GPUs to use (0 = all available)</span>
-    LayersConfig          layersConfig;
-    CostFunctionConfig&lt;T&gt; costFunctionConfig;
-    TrainingConfig&lt;T&gt;     trainingConfig;
-    Parameters&lt;T&gt;         parameters;
-    <span class="type">ulong</span>                 progressReports = <span class="number">1000</span>;  <span class="comment">// Progress frequency (all modes)</span>
-    LogLevel              logLevel = LogLevel::ERROR;
-};
-</code></pre>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>weights</code></td><td><code>Tensor3D&lt;T&gt;</code></td><td>Connection weights — indexed as weights[layer][neuron][input]</td></tr>
+  <tr><td><code>biases</code></td><td><code>Tensor2D&lt;T&gt;</code></td><td>Neuron biases — indexed as biases[layer][neuron]</td></tr>
+</table>
 
 <h3>TrainingProgress&lt;T&gt; <span class="badge badge-blue">ANN_TrainingProgress.hpp</span></h3>
-<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">struct</span> <span class="type">TrainingProgress</span> {
-    <span class="type">ulong</span> currentEpoch, totalEpochs;
-    <span class="type">ulong</span> currentSample, totalSamples;
-    T     epochLoss;        <span class="comment">// Running average loss for the epoch</span>
-    T     sampleLoss;       <span class="comment">// Loss of the current sample</span>
-    <span class="type">int</span>   gpuIndex = <span class="number">-1</span>;   <span class="comment">// -1 = CPU or combined, ≥0 = specific GPU</span>
-    <span class="type">int</span>   totalGPUs = <span class="number">1</span>;
-};
-
-<span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">using</span> TrainingCallback = std::function&lt;<span class="type">void</span>(<span class="keyword">const</span> TrainingProgress&lt;T&gt;&amp;)&gt;;
-</code></pre>
+<p>Passed to the training callback at every progress report interval.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>currentEpoch</code></td><td><code>ulong</code></td><td>Current epoch number</td></tr>
+  <tr><td><code>totalEpochs</code></td><td><code>ulong</code></td><td>Total number of epochs</td></tr>
+  <tr><td><code>currentSample</code></td><td><code>ulong</code></td><td>Current sample number within the epoch</td></tr>
+  <tr><td><code>totalSamples</code></td><td><code>ulong</code></td><td>Total number of samples per epoch</td></tr>
+  <tr><td><code>epochLoss</code></td><td><code>T</code></td><td>Running average loss for the current epoch</td></tr>
+  <tr><td><code>sampleLoss</code></td><td><code>T</code></td><td>Loss of the current sample</td></tr>
+  <tr><td><code>gpuIndex</code></td><td><code>int</code></td><td>GPU index (−1 = CPU or combined, ≥0 = specific GPU)</td></tr>
+  <tr><td><code>totalGPUs</code></td><td><code>int</code></td><td>Total number of GPUs in use (default 1)</td></tr>
+</table>
+<p>Callback type alias: <code>TrainingCallback&lt;T&gt; = std::function&lt;void(const TrainingProgress&lt;T&gt;&amp;)&gt;</code></p>
 
 <h3>TrainingMetadata&lt;T&gt; <span class="badge badge-blue">ANN_TrainingMetadata.hpp</span></h3>
-<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">struct</span> <span class="type">TrainingMetadata</span> {
-    std::string startTime;          <span class="comment">// ISO 8601</span>
-    std::string endTime;
-    <span class="type">double</span>      durationSeconds;
-    std::string durationFormatted;  <span class="comment">// e.g. "1h 23m 45s"</span>
-    <span class="type">ulong</span>       numSamples;
-    T           finalLoss;
-};
-</code></pre>
+<p>Returned by <code>getTrainingMetadata()</code> after training completes.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>startTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when training started</td></tr>
+  <tr><td><code>endTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when training ended</td></tr>
+  <tr><td><code>durationSeconds</code></td><td><code>double</code></td><td>Total training duration in seconds</td></tr>
+  <tr><td><code>durationFormatted</code></td><td><code>std::string</code></td><td>Human-readable duration (e.g. "1h 23m 45s")</td></tr>
+  <tr><td><code>numSamples</code></td><td><code>ulong</code></td><td>Number of samples trained on</td></tr>
+  <tr><td><code>finalLoss</code></td><td><code>T</code></td><td>Loss at the end of training</td></tr>
+</table>
 
 <h3>PredictMetadata&lt;T&gt; <span class="badge badge-blue">ANN_PredictMetadata.hpp</span></h3>
-<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">struct</span> <span class="type">PredictMetadata</span> {
-    std::string startTime, endTime;
-    <span class="type">double</span>      durationSeconds;
-    std::string durationFormatted;
-};
-</code></pre>
+<p>Returned by <code>getPredictMetadata()</code> after prediction completes.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>startTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when prediction started</td></tr>
+  <tr><td><code>endTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when prediction ended</td></tr>
+  <tr><td><code>durationSeconds</code></td><td><code>double</code></td><td>Total prediction duration in seconds</td></tr>
+  <tr><td><code>durationFormatted</code></td><td><code>std::string</code></td><td>Human-readable duration</td></tr>
+</table>
 
 <h3>TestResult&lt;T&gt; <span class="badge badge-blue">ANN_TestResult.hpp</span></h3>
-<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">struct</span> <span class="type">TestResult</span> {
-    <span class="type">ulong</span> numSamples;
-    T     totalLoss;
-    T     averageLoss;
-};
-</code></pre>
+<p>Returned by <code>test()</code> after evaluation completes.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>numSamples</code></td><td><code>ulong</code></td><td>Number of test samples evaluated</td></tr>
+  <tr><td><code>totalLoss</code></td><td><code>T</code></td><td>Sum of losses across all samples</td></tr>
+  <tr><td><code>averageLoss</code></td><td><code>T</code></td><td>Mean loss per sample</td></tr>
+</table>
 
 <!-- ========== CORE ========== -->
 <h2 id="core">4. Core&lt;T&gt; — Abstract Base Class <span class="badge badge-green">ANN_Core.hpp</span></h2>
