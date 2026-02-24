@@ -42,6 +42,8 @@
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"train"</span>,
   <span class="string">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="string">"numThreads"</span>: <span class="number">0</span>,
+  <span class="string">"numGPUs"</span>: <span class="number">0</span>,
   <span class="string">"progressReports"</span>: <span class="number">1000</span>,
   <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="string">"inputType"</span>: <span class="string">"vector"</span>,
@@ -58,8 +60,7 @@
   <span class="string">"trainingConfig"</span>: {
     <span class="string">"numEpochs"</span>: <span class="number">100</span>,
     <span class="string">"batchSize"</span>: <span class="number">64</span>,
-    <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
-    <span class="string">"numThreads"</span>: <span class="number">0</span>
+    <span class="string">"learningRate"</span>: <span class="number">0.01</span>
   }
 }
 </code></pre>
@@ -83,7 +84,8 @@
   <tr><td><code>trainingConfig.numEpochs</code></td><td>int</td><td>Train</td><td>Number of epochs</td></tr>
   <tr><td><code>trainingConfig.batchSize</code></td><td>int</td><td>No</td><td>Mini-batch size (default 64)</td></tr>
   <tr><td><code>trainingConfig.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate</td></tr>
-  <tr><td><code>trainingConfig.numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
+  <tr><td><code>numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
+  <tr><td><code>numGPUs</code></td><td>int</td><td>No</td><td>Number of GPUs to use (0 = all available)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
 </table>
 
@@ -91,6 +93,8 @@
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"train"</span>,
   <span class="string">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="string">"numThreads"</span>: <span class="number">0</span>,
+  <span class="string">"numGPUs"</span>: <span class="number">0</span>,
   <span class="string">"progressReports"</span>: <span class="number">1000</span>,
   <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="string">"inputType"</span>: <span class="string">"image"</span>,
