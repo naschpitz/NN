@@ -72,6 +72,7 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
   },
   "trainingConfig": {
     "numEpochs": 100,
+    "batchSize": 64,
     "learningRate": 0.01,
     "numThreads": 0
   }
@@ -127,6 +128,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 #### ANN Training Configuration
 
 - `numEpochs`: Number of training epochs
+- `batchSize`: Mini-batch size (default: 64)
 - `learningRate`: Learning rate for gradient descent
 - `numThreads`: Number of CPU threads (default: 0 = all available cores)
 
@@ -159,6 +161,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   },
   "trainingConfig": {
     "numEpochs": 10,
+    "batchSize": 64,
     "learningRate": 0.01
   }
 }
@@ -201,6 +204,7 @@ Each layer has a `type` field:
 #### CNN Training Configuration
 
 - `numEpochs`: Number of training epochs
+- `batchSize`: Mini-batch size (default: 64)
 - `learningRate`: Learning rate for gradient descent
 
 ## Model File (output from training)
