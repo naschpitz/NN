@@ -56,6 +56,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 {
   "mode": "train",
   "device": "cpu",
+  "numThreads": 0,
+  "numGPUs": 0,
   "progressReports": 1000,
   "saveModelInterval": 10,
   "inputType": "vector",
@@ -73,8 +75,7 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
   "trainingConfig": {
     "numEpochs": 100,
     "batchSize": 64,
-    "learningRate": 0.01,
-    "numThreads": 0
+    "learningRate": 0.01
   }
 }
 ```
@@ -104,6 +105,8 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 
 - `mode`: Operation mode (optional, default: `predict`) — *can be overridden by `--mode`*
 - `device`: Execution device (optional, default: `cpu`) — *can be overridden by `--device`*
+- `numThreads`: Number of CPU threads for CPU mode (optional, default: `0` = all available cores)
+- `numGPUs`: Number of GPU devices for GPU mode (optional, default: `0` = all available GPUs)
 - `progressReports`: Progress update frequency for all modes (optional, default: `1000`)
 - `saveModelInterval`: Save a checkpoint every N epochs during training (optional, default: `10`; `0` = disabled)
 - `inputType`: Input data type — `"vector"` (default) or `"image"` — *can be overridden by `--input-type`*
@@ -130,7 +133,6 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `numEpochs`: Number of training epochs
 - `batchSize`: Mini-batch size (default: 64)
 - `learningRate`: Learning rate for gradient descent
-- `numThreads`: Number of CPU threads (default: 0 = all available cores)
 
 ## CNN Configuration
 
@@ -140,6 +142,8 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 {
   "mode": "train",
   "device": "cpu",
+  "numThreads": 0,
+  "numGPUs": 0,
   "progressReports": 1000,
   "saveModelInterval": 10,
   "inputType": "vector",
@@ -171,6 +175,8 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 
 - `mode`: Operation mode (optional, default: `predict`) — *can be overridden by `--mode`*
 - `device`: Execution device (optional, default: `cpu`) — *can be overridden by `--device`*
+- `numThreads`: Number of CPU threads for CPU mode (optional, default: `0` = all available cores)
+- `numGPUs`: Number of GPU devices for GPU mode (optional, default: `0` = all available GPUs)
 - `progressReports`: Progress update frequency for all modes (optional, default: `1000`)
 - `saveModelInterval`: Save a checkpoint every N epochs during training (optional, default: `10`; `0` = disabled)
 - `inputType`: Input data type — `"vector"` (default) or `"image"` — *can be overridden by `--input-type`*
