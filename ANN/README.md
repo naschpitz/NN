@@ -37,6 +37,8 @@ the calling application (e.g. [NN-CLI](https://github.com/naschpitz/NN-CLI)) han
 ANN::CoreConfig<float> config;
 config.modeType    = ANN::ModeType::TRAIN;
 config.deviceType  = ANN::DeviceType::CPU;
+config.numThreads  = 0;   // 0 = use all available CPU cores
+config.numGPUs     = 0;   // 0 = use all available GPUs (GPU mode)
 config.layersConfig = makeLayersConfig({{784, ANN::ActvFuncType::NONE},
                                          {128, ANN::ActvFuncType::RELU},
                                          { 10, ANN::ActvFuncType::SIGMOID}});
