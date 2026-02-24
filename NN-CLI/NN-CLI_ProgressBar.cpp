@@ -29,11 +29,9 @@ void ProgressBar::update(const ProgressInfo& progress) {
 
   // For multi-GPU, update per-GPU progress
   if (isMultiGPU && progress.gpuIndex >= 0) {
-    // Calculate this GPU's progress within its assigned subset
+    // currentSample is the cumulative number of samples this GPU has processed in this epoch
     ulong samplesPerGPU = progress.totalSamples / progress.totalGPUs;
-    ulong gpuStartIdx = progress.gpuIndex * samplesPerGPU;
-    ulong gpuSamplesProcessed = progress.currentSample - gpuStartIdx;
-    float gpuPercent = static_cast<float>(gpuSamplesProcessed) / samplesPerGPU;
+    float gpuPercent = static_cast<float>(progress.currentSample) / samplesPerGPU;
     gpuPercent = std::min(1.0f, std::max(0.0f, gpuPercent));
 
     this->updateGpuProgress(progress.gpuIndex, gpuPercent);

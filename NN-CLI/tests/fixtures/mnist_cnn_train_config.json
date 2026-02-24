@@ -14,7 +14,8 @@
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
   "trainingConfig": {
-    "numEpochs": 100,
+    "numEpochs": 30,
+    "batchSize": 512,
     "learningRate": 0.01
   }
 }
