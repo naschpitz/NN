@@ -67,7 +67,7 @@
 
 <div class="card">
 <h3>Training</h3>
-<pre><code><span class="func">NN-CLI</span> -c xor_config.json -m train -s xor_samples.json -o trained_xor.json -v</code></pre>
+<pre><code><span class="func">NN-CLI</span> -c xor_config.json -m train -s xor_samples.json -o trained_xor.json -l info</code></pre>
 <p><strong>Output:</strong> A trained model saved to <code>trained_xor.json</code> with updated weights and mode set to "predict".</p>
 </div>
 
@@ -111,7 +111,7 @@
 
 <div class="card">
 <h3>Training</h3>
-<pre><code><span class="func">NN-CLI</span> -c cnn_config.json -m train -s cnn_samples.json -o trained_cnn.json -v</code></pre>
+<pre><code><span class="func">NN-CLI</span> -c cnn_config.json -m train -s cnn_samples.json -o trained_cnn.json -l info</code></pre>
 </div>
 
 <div class="card">
@@ -165,7 +165,7 @@
 <div class="card">
 <h3>Training &amp; Prediction</h3>
 <pre><code><span class="comment"># Train with image input</span>
-<span class="func">NN-CLI</span> -c image_config.json -m train -s samples.json -o trained_model.json -v
+<span class="func">NN-CLI</span> -c image_config.json -m train -s samples.json -o trained_model.json -l info
 
 <span class="comment"># Predict — input.json contains: { "inputs": ["test_photo.png"] }</span>
 <span class="func">NN-CLI</span> -c trained_model.json -m predict -i input.json -o result.json</code></pre>
@@ -204,7 +204,7 @@
 <h3>Training with IDX Files</h3>
 <pre><code><span class="func">NN-CLI</span> -c mnist_ann_config.json -m train \
        --idx-data train-images.idx3-ubyte \
-       --idx-labels train-labels.idx1-ubyte -v</code></pre>
+       --idx-labels train-labels.idx1-ubyte -l info</code></pre>
 </div>
 
 <div class="card">
@@ -249,7 +249,7 @@
 <h3>Training</h3>
 <pre><code><span class="func">NN-CLI</span> -c mnist_cnn_config.json -m train \
        --idx-data train-images.idx3-ubyte \
-       --idx-labels train-labels.idx1-ubyte -v</code></pre>
+       --idx-labels train-labels.idx1-ubyte -l info</code></pre>
 </div>
 
 <h2 id="gpu-training">6. GPU Training</h2>
@@ -268,9 +268,9 @@
 <div class="card">
 <h3>Via Command Line</h3>
 <p>Override device at runtime:</p>
-<pre><code><span class="func">NN-CLI</span> -c config.json -m train -s samples.json -d gpu -v</code></pre>
+<pre><code><span class="func">NN-CLI</span> -c config.json -m train -s samples.json -d gpu -l info</code></pre>
 <p>Or use CPU:</p>
-<pre><code><span class="func">NN-CLI</span> -c config.json -m train -s samples.json -d cpu -v</code></pre>
+<pre><code><span class="func">NN-CLI</span> -c config.json -m train -s samples.json -d cpu -l info</code></pre>
 </div>
 
 <h2 id="tips">7. Tips &amp; Best Practices</h2>
