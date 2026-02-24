@@ -611,6 +611,8 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
 
   json["mode"] = ANN::Mode::typeToName(core.getModeType());
   json["device"] = ANN::Device::typeToName(core.getDeviceType());
+  json["numThreads"] = core.getNumThreads();
+  json["numGPUs"] = core.getNumGPUs();
 
   // NN-CLI settings
   json["progressReports"] = progressReports;
@@ -695,6 +697,8 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
 
   json["mode"] = CNN::Mode::typeToName(core.getModeType());
   json["device"] = CNN::Device::typeToName(core.getDeviceType());
+  json["numThreads"] = core.getNumThreads();
+  json["numGPUs"] = core.getNumGPUs();
 
   // NN-CLI settings
   json["progressReports"] = progressReports;

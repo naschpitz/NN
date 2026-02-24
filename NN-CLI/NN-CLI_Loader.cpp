@@ -109,6 +109,9 @@ ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath,
         coreConfig.deviceType = ANN::DeviceType::CPU;
     }
 
+    if (json.contains("numThreads")) coreConfig.numThreads = json.at("numThreads").get<int>();
+    if (json.contains("numGPUs")) coreConfig.numGPUs = json.at("numGPUs").get<int>();
+
     if (json.contains("mode")) {
         coreConfig.modeType = ANN::Mode::nameToType(json.at("mode").get<std::string>());
     } else {
@@ -142,7 +145,6 @@ ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath,
         coreConfig.trainingConfig.numEpochs = tc.at("numEpochs").get<ulong>();
         coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
         if (tc.contains("batchSize")) coreConfig.trainingConfig.batchSize = tc.at("batchSize").get<ulong>();
-        if (tc.contains("numThreads")) coreConfig.trainingConfig.numThreads = tc.at("numThreads").get<int>();
     }
 
     if (json.contains("parameters")) {
@@ -185,6 +187,9 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
     } else {
         coreConfig.deviceType = CNN::DeviceType::CPU;
     }
+
+    if (json.contains("numThreads")) coreConfig.numThreads = json.at("numThreads").get<int>();
+    if (json.contains("numGPUs")) coreConfig.numGPUs = json.at("numGPUs").get<int>();
 
     // Mode
     if (modeOverride.has_value()) {
@@ -268,7 +273,6 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
         coreConfig.trainingConfig.numEpochs = tc.at("numEpochs").get<ulong>();
         coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
         if (tc.contains("batchSize")) coreConfig.trainingConfig.batchSize = tc.at("batchSize").get<ulong>();
-        if (tc.contains("numThreads")) coreConfig.trainingConfig.numThreads = tc.at("numThreads").get<int>();
     }
 
     // Parameters (for predict/test modes or resuming training)

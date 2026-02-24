@@ -1,6 +1,7 @@
 {
   "mode": "train",
   "device": "cpu",
+  "numThreads": 1,
   "progressReports": 100,
   "saveModelInterval": 10,
   "layersConfig": [
@@ -14,8 +15,7 @@
   },
   "trainingConfig": {
     "numEpochs": 100,
-    "learningRate": 0.5,
-    "numThreads": 1
+    "learningRate": 0.5
   }
 }
 
