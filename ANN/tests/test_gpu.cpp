@@ -28,7 +28,7 @@ static void testGPUTrainSimple() {
     config.trainingConfig.numEpochs = 500;
     config.trainingConfig.learningRate = 0.5f;
     config.progressReports = 0;
-    config.trainingConfig.numGPUs = 1;
+    config.numGPUs = 1;
     config.logLevel = ANN::LogLevel::ERROR;
 
     auto core = ANN::Core<float>::makeCore(config);

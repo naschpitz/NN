@@ -14,6 +14,8 @@ template <typename T>
 Core<T>::Core(const CoreConfig<T>& coreConfig) {
   this->deviceType = coreConfig.deviceType;
   this->modeType = coreConfig.modeType;
+  this->numThreads = coreConfig.numThreads;
+  this->numGPUs = coreConfig.numGPUs;
 
   this->layersConfig = coreConfig.layersConfig;
   this->costFunctionConfig = coreConfig.costFunctionConfig;

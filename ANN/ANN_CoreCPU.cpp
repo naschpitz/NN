@@ -55,7 +55,7 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
   ulong numEpochs = this->trainingConfig.numEpochs;
 
   // Use configured numThreads, or all available cores if 0
-  int numThreads = this->trainingConfig.numThreads;
+  int numThreads = this->numThreads;
 
   if (numThreads <= 0) {
     numThreads = QThreadPool::globalInstance()->maxThreadCount();
@@ -159,7 +159,7 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
   ulong numSamples = samples.size();
 
   // Use configured numThreads, or all available cores if 0
-  int numThreads = this->trainingConfig.numThreads;
+  int numThreads = this->numThreads;
 
   if (numThreads <= 0) {
     numThreads = QThreadPool::globalInstance()->maxThreadCount();

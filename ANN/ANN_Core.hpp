@@ -36,6 +36,8 @@ namespace ANN {
       //-- Getters --//
       ModeType getModeType() const { return modeType; }
       DeviceType getDeviceType() const { return deviceType; }
+      int getNumThreads() const { return numThreads; }
+      int getNumGPUs() const { return numGPUs; }
       const LayersConfig& getLayersConfig() const { return layersConfig; }
       const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
       const PredictMetadata<T>& getPredictMetadata() const { return predictMetadata; }
@@ -70,6 +72,8 @@ namespace ANN {
       //-- Configuration members --//
       DeviceType deviceType;
       ModeType modeType;
+      int numThreads = 0;
+      int numGPUs = 0;
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
       TrainingMetadata<T> trainingMetadata;

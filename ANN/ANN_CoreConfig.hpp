@@ -16,6 +16,8 @@ namespace ANN {
   struct CoreConfig {
     ModeType modeType;
     DeviceType deviceType;
+    int numThreads = 0;            // 0 = use all available cores (for CPU mode)
+    int numGPUs = 0;               // 0 = use all available GPUs (for GPU mode)
     LayersConfig layersConfig;
     CostFunctionConfig<T> costFunctionConfig;
     TrainingConfig<T> trainingConfig;

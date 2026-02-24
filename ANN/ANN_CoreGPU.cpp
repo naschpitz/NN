@@ -21,7 +21,7 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig)
   OpenCLWrapper::Core::initialize(this->logLevel >= LogLevel::DEBUG);
 
   // Determine number of GPUs to use
-  int requestedGPUs = coreConfig.trainingConfig.numGPUs;
+  int requestedGPUs = coreConfig.numGPUs;
   size_t availableGPUs = OpenCLWrapper::Core::getDevicesUsage().size();
 
   if (requestedGPUs == 0) {
