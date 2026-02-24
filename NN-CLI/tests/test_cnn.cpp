@@ -379,7 +379,7 @@ static void testCNNCheckpointParameters() {
       QJsonObject params = root["parameters"].toObject();
 
       // Verify conv parameters are non-empty
-      QJsonArray convArr = params["conv"].toArray();
+      QJsonArray convArr = params["convolutional"].toArray();
       CHECK(!convArr.isEmpty(), "CNN checkpoint params: conv non-empty");
       if (!convArr.isEmpty()) {
         QJsonObject firstConv = convArr[0].toObject();

@@ -273,8 +273,8 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
     if (json.contains("parameters")) {
         const auto& paramsJson = json.at("parameters");
 
-        if (paramsJson.contains("conv")) {
-            for (const auto& convJson : paramsJson.at("conv")) {
+        if (paramsJson.contains("convolutional")) {
+            for (const auto& convJson : paramsJson.at("convolutional")) {
                 CNN::ConvParameters<float> cp;
                 cp.numFilters = convJson.at("numFilters").get<ulong>();
                 cp.inputC = convJson.at("inputC").get<ulong>();

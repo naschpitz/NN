@@ -808,7 +808,7 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
     cpJson["biases"] = cp.biases;
     convArr.push_back(cpJson);
   }
-  paramsJson["conv"] = convArr;
+  paramsJson["convolutional"] = convArr;
 
   // Dense parameters
   nlohmann::ordered_json denseParamsJson;
