@@ -63,8 +63,8 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
 
   // Adjust batch size to be divisible by numThreads (round down, minimum = numThreads)
   ulong batchSize = this->trainingConfig.batchSize;
-  ulong workers = static_cast<ulong>(numThreads);
-  batchSize = std::max(workers, (batchSize / workers) * workers);
+  ulong numWorkers = static_cast<ulong>(numThreads);
+  batchSize = std::max(numWorkers, (batchSize / numWorkers) * numWorkers);
 
   // Pre-allocate workers for each thread
   std::vector<SampleWorker<T>> workers(numThreads);
