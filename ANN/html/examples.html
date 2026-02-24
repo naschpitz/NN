@@ -56,16 +56,15 @@ ANN::TrainingConfig&lt;<span class="type">float</span>&gt; trainingConfig;
 trainingConfig.numEpochs       = <span class="number">50</span>;
 trainingConfig.batchSize       = <span class="number">64</span>;    <span class="comment">// Mini-batch size</span>
 trainingConfig.learningRate    = <span class="number">0.01f</span>;
-trainingConfig.numThreads      = <span class="number">0</span>;     <span class="comment">// Use all CPU cores</span>
 
 <span class="comment">// Assemble the core configuration</span>
 ANN::CoreConfig&lt;<span class="type">float</span>&gt; config;
 config.deviceType      = ANN::DeviceType::CPU;
 config.modeType        = ANN::ModeType::TRAIN;
+config.numThreads      = <span class="number">0</span>;      <span class="comment">// Use all CPU cores (0 = auto)</span>
 config.layersConfig    = layersConfig;
 config.trainingConfig  = trainingConfig;
 config.progressReports = <span class="number">1000</span>;   <span class="comment">// Progress update frequency (all modes)</span>
-config.verbose         = <span class="keyword">true</span>;
 
 <span class="comment">// Create the core — factory returns CPU or GPU backend</span>
 <span class="keyword">auto</span> core = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
@@ -144,10 +143,9 @@ std::cout &lt;&lt; <span class="string">"Test — Samples: "</span> &lt;&lt; res
 ANN::CoreConfig&lt;<span class="type">float</span>&gt; gpuConfig;
 gpuConfig.deviceType     = ANN::DeviceType::GPU;
 gpuConfig.modeType       = ANN::ModeType::TRAIN;
+gpuConfig.numGPUs        = <span class="number">2</span>;  <span class="comment">// Use 2 GPUs (0 = all available)</span>
 gpuConfig.layersConfig   = layersConfig;
 gpuConfig.trainingConfig = trainingConfig;
-gpuConfig.trainingConfig.numGPUs = <span class="number">2</span>;  <span class="comment">// Use 2 GPUs</span>
-gpuConfig.verbose        = <span class="keyword">true</span>;
 
 <span class="keyword">auto</span> gpuCore = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(gpuConfig);
 
