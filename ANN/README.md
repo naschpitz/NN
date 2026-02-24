@@ -41,6 +41,7 @@ config.layersConfig = makeLayersConfig({{784, ANN::ActvFuncType::NONE},
                                          {128, ANN::ActvFuncType::RELU},
                                          { 10, ANN::ActvFuncType::SIGMOID}});
 config.trainingConfig.numEpochs    = 100;
+config.trainingConfig.batchSize    = 64;
 config.trainingConfig.learningRate = 0.01f;
 
 // Create, train, and query

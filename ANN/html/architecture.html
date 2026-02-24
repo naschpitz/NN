@@ -158,23 +158,26 @@
 <p>The high-level training algorithm (implemented differently in CPU vs GPU):</p>
 
 <pre><code><span class="keyword">for</span> epoch = <span class="number">1</span> <span class="keyword">to</span> numEpochs:
-    <span class="func">resetAccumulators</span>()
+    shuffle(samples)
 
-    <span class="keyword">for each</span> sample <span class="keyword">in</span> shuffled(samples):
-        <span class="comment">// 1. Forward pass</span>
-        output = <span class="func">predict</span>(sample.input)
+    <span class="keyword">for each</span> batch <span class="keyword">of</span> batchSize samples:
+        <span class="func">resetAccumulators</span>()
 
-        <span class="comment">// 2. Compute loss (MSE)</span>
-        loss = (<span class="number">1</span>/n) × Σ (output[i] − expected[i])²
+        <span class="keyword">for each</span> sample <span class="keyword">in</span> batch:
+            <span class="comment">// 1. Forward pass</span>
+            output = <span class="func">predict</span>(sample.input)
 
-        <span class="comment">// 3. Backward pass — compute gradients</span>
-        <span class="func">backpropagate</span>(sample.output)
+            <span class="comment">// 2. Compute loss (MSE)</span>
+            loss = (<span class="number">1</span>/n) × Σ (output[i] − expected[i])²
 
-        <span class="comment">// 4. Add to running totals</span>
-        <span class="func">accumulate</span>()
+            <span class="comment">// 3. Backward pass — compute gradients</span>
+            <span class="func">backpropagate</span>(sample.output)
 
-    <span class="comment">// 5. SGD weight update</span>
-    <span class="func">update</span>(numSamples)
+            <span class="comment">// 4. Add to running totals</span>
+            <span class="func">accumulate</span>()
+
+        <span class="comment">// 5. SGD weight update (per batch)</span>
+        <span class="func">update</span>(batchSize)
 </code></pre>
 
 <h2 id="threading">5. Threading Model (CPU)</h2>

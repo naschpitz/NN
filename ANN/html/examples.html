@@ -54,6 +54,7 @@ layersConfig.push_back({<span class="number">10</span>,  ANN::ActvFuncType::SIGM
 <span class="comment">// Set training hyperparameters</span>
 ANN::TrainingConfig&lt;<span class="type">float</span>&gt; trainingConfig;
 trainingConfig.numEpochs       = <span class="number">50</span>;
+trainingConfig.batchSize       = <span class="number">64</span>;    <span class="comment">// Mini-batch size</span>
 trainingConfig.learningRate    = <span class="number">0.01f</span>;
 trainingConfig.numThreads      = <span class="number">0</span>;     <span class="comment">// Use all CPU cores</span>
 

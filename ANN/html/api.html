@@ -118,6 +118,7 @@
 <pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
 <span class="keyword">struct</span> <span class="type">TrainingConfig</span> {
     <span class="type">ulong</span> numEpochs      = <span class="number">0</span>;       <span class="comment">// Total training epochs</span>
+    <span class="type">ulong</span> batchSize      = <span class="number">64</span>;      <span class="comment">// Mini-batch size (default 64)</span>
     <span class="type">float</span> learningRate   = <span class="number">0.01f</span>;  <span class="comment">// SGD learning rate</span>
     <span class="type">int</span>   numThreads     = <span class="number">0</span>;       <span class="comment">// CPU threads (0 = all cores)</span>
     <span class="type">int</span>   numGPUs        = <span class="number">0</span>;       <span class="comment">// GPUs to use (0 = all available)</span>
