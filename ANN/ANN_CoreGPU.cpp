@@ -61,6 +61,10 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
   ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
+  // Adjust batch size to be divisible by numGPUs (round down, minimum = numGPUs)
+  ulong batchSize = this->trainingConfig.batchSize;
+  batchSize = std::max(this->numGPUs, (batchSize / this->numGPUs) * this->numGPUs);
+
   if (this->logLevel >= LogLevel::INFO) {
     std::cout << "Starting GPU training: " << numSamples << " samples, "
               << numEpochs << " epochs, " << this->numGPUs << " GPU"
@@ -79,53 +83,59 @@ void CoreGPU<T>::train(const Samples<T>& samples) {
     };
   };
 
+  // Build list of GPU indices and their sample ranges
+  struct GPUWorkItem {
+    size_t gpuIdx;
+    ulong startIdx;
+    ulong endIdx;
+  };
+
   for (ulong e = 0; e < numEpochs; e++) {
-    // Calculate sample ranges for each GPU
-    ulong samplesPerGPU = numSamples / this->numGPUs;
-    ulong remainder = numSamples % this->numGPUs;
+    T epochLoss = 0;
 
-    // Build list of GPU indices and their sample ranges
-    struct GPUWorkItem {
-      size_t gpuIdx;
-      ulong startIdx;
-      ulong endIdx;
-    };
+    // Process samples in mini-batches
+    for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize) {
+      ulong batchEnd = std::min(batchStart + batchSize, numSamples);
+      ulong currentBatchSize = batchEnd - batchStart;
 
-    QVector<GPUWorkItem> workItems;
+      // Distribute the batch across GPUs
+      ulong samplesPerGPU = currentBatchSize / this->numGPUs;
+      ulong remainder = currentBatchSize % this->numGPUs;
 
-    for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
-      ulong startIdx = gpuIdx * samplesPerGPU + std::min(gpuIdx, remainder);
-      ulong endIdx = startIdx + samplesPerGPU + (gpuIdx < remainder ? 1 : 0);
-      workItems.append({gpuIdx, startIdx, endIdx});
+      QVector<GPUWorkItem> workItems;
+
+      for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
+        ulong gpuStart = batchStart + gpuIdx * samplesPerGPU + std::min(gpuIdx, remainder);
+        ulong gpuEnd = gpuStart + samplesPerGPU + (gpuIdx < remainder ? 1 : 0);
+        workItems.append({gpuIdx, gpuStart, gpuEnd});
+      }
+
+      std::vector<T> gpuLosses(this->numGPUs, 0);
+
+      // Use QtConcurrent to process each GPU's work in parallel
+      QtConcurrent::blockingMap(workItems, [this, &samples, &gpuLosses, e, numEpochs, &createGpuCallback](const GPUWorkItem& item) {
+        gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->trainSubset(
+            samples, item.startIdx, item.endIdx, e + 1, numEpochs, createGpuCallback(item.gpuIdx));
+      });
+
+      // Sum up losses from all GPUs for this batch
+      for (size_t i = 0; i < this->numGPUs; i++) {
+        epochLoss += gpuLosses[i];
+      }
+
+      // Merge gradients from all workers and distribute back to all
+      this->mergeGradients();
+
+      // Update weights after each mini-batch
+      this->update(currentBatchSize);
     }
-
-    std::vector<T> gpuLosses(this->numGPUs, 0);
-
-    // Use QtConcurrent to process each GPU's work in parallel
-    QtConcurrent::blockingMap(workItems, [this, &samples, &gpuLosses, e, numEpochs, &createGpuCallback](const GPUWorkItem& item) {
-      gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->trainSubset(
-          samples, item.startIdx, item.endIdx, e + 1, numEpochs, createGpuCallback(item.gpuIdx));
-    });
-
-    // Sum up losses from all GPUs
-    T totalLoss = 0;
-
-    for (size_t i = 0; i < this->numGPUs; i++) {
-      totalLoss += gpuLosses[i];
-    }
-
-    // Merge gradients from all workers and distribute back to all
-    this->mergeGradients();
-
-    // Update weights on all workers
-    this->update(numSamples);
 
     // Sync parameters from GPU so getParameters() returns current values (e.g., for checkpoint saves)
     this->gpuWorkers[0]->syncParametersFromGPU();
     this->parameters = this->gpuWorkers[0]->getParameters();
 
     // Calculate average epoch loss
-    T avgEpochLoss = totalLoss / static_cast<T>(numSamples);
+    T avgEpochLoss = epochLoss / static_cast<T>(numSamples);
 
     // Store final loss from the last epoch
     this->trainingMetadata.finalLoss = avgEpochLoss;

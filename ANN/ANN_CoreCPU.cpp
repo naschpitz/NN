@@ -61,6 +61,11 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
     numThreads = QThreadPool::globalInstance()->maxThreadCount();
   }
 
+  // Adjust batch size to be divisible by numThreads (round down, minimum = numThreads)
+  ulong batchSize = this->trainingConfig.batchSize;
+  ulong workers = static_cast<ulong>(numThreads);
+  batchSize = std::max(workers, (batchSize / workers) * workers);
+
   // Pre-allocate workers for each thread
   std::vector<SampleWorker<T>> workers(numThreads);
 
@@ -74,60 +79,67 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
   // Mutex for serializing callback calls (prevents I/O contention)
   QMutex callbackMutex;
 
-  // Pre-allocate sample indices vector (reused across epochs)
-  QVector<ulong> sampleIndices(numSamples);
-
-  for (ulong s = 0; s < numSamples; s++) {
-    sampleIndices[s] = s;
-  }
-
   for (ulong e = 0; e < numEpochs; e++) {
-    // Reset global accumulators at the start of each epoch
-    this->resetAccumulators();
-
-    // Reset worker accumulators at the start of each epoch (including loss)
-    for (int i = 0; i < numThreads; i++) {
-      this->resetWorkerAccumulators(workers[i]);
-      workers[i].accum_loss = 0;
-    }
+    T epochLoss = 0;
 
     // Atomic counter for progress tracking
     std::atomic<ulong> completedSamples{0};
 
-    // Use blockingMap to process all samples in parallel
-    QtConcurrent::blockingMap(sampleIndices, [&, numThreads](ulong sampleIndex) {
-      // Each thread gets a unique worker index on first use (thread_local persists for thread lifetime)
-      thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
-      SampleWorker<T>& worker = workers[workerIndex];
+    // Process samples in mini-batches
+    for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize) {
+      ulong batchEnd = std::min(batchStart + batchSize, numSamples);
+      ulong currentBatchSize = batchEnd - batchStart;
 
-      // Process the sample using the shared computation functions
-      const Sample<T>& sample = samples[sampleIndex];
-      this->propagate(sample.input, worker.actvs, worker.zs);
-      worker.sampleLoss = this->calculateLoss(sample.output, worker.actvs);
+      // Reset global accumulators at the start of each batch
+      this->resetAccumulators();
 
-      this->backpropagate(sample.output, worker.actvs, worker.zs,
-                          worker.dCost_dActvs, worker.dCost_dWeights, worker.dCost_dBiases);
+      // Reset worker accumulators at the start of each batch (including loss)
+      for (int i = 0; i < numThreads; i++) {
+        this->resetWorkerAccumulators(workers[i]);
+        workers[i].accum_loss = 0;
+      }
 
-      // Accumulate loss to worker's local accumulator (no atomic needed - each thread has its own worker)
-      worker.accum_loss += worker.sampleLoss;
+      // Build batch indices
+      QVector<ulong> batchIndices(currentBatchSize);
 
-      // Accumulate gradients to worker's local accumulators (no mutex needed)
-      this->accumulateToWorker(worker);
+      for (ulong s = 0; s < currentBatchSize; s++) {
+        batchIndices[s] = batchStart + s;
+      }
 
-      // Increment completed samples counter and report progress
-      ulong completed = ++completedSamples;
-      this->reportProgress(e + 1, numEpochs, completed, numSamples, worker.sampleLoss, 0, callbackMutex);
-    });
+      // Use blockingMap to process all samples in the batch in parallel
+      QtConcurrent::blockingMap(batchIndices, [&, numThreads](ulong sampleIndex) {
+        // Each thread gets a unique worker index on first use (thread_local persists for thread lifetime)
+        thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+        SampleWorker<T>& worker = workers[workerIndex];
 
-    // Merge all worker accumulators into global accumulators
-    T epochLoss = 0;
+        // Process the sample using the shared computation functions
+        const Sample<T>& sample = samples[sampleIndex];
+        this->propagate(sample.input, worker.actvs, worker.zs);
+        worker.sampleLoss = this->calculateLoss(sample.output, worker.actvs);
 
-    for (int i = 0; i < numThreads; i++) {
-      this->mergeWorkerAccumulators(workers[i]);
-      epochLoss += workers[i].accum_loss;
+        this->backpropagate(sample.output, worker.actvs, worker.zs,
+                            worker.dCost_dActvs, worker.dCost_dWeights, worker.dCost_dBiases);
+
+        // Accumulate loss to worker's local accumulator (no atomic needed - each thread has its own worker)
+        worker.accum_loss += worker.sampleLoss;
+
+        // Accumulate gradients to worker's local accumulators (no mutex needed)
+        this->accumulateToWorker(worker);
+
+        // Increment completed samples counter and report progress
+        ulong completed = ++completedSamples;
+        this->reportProgress(e + 1, numEpochs, completed, numSamples, worker.sampleLoss, 0, callbackMutex);
+      });
+
+      // Merge all worker accumulators into global accumulators
+      for (int i = 0; i < numThreads; i++) {
+        this->mergeWorkerAccumulators(workers[i]);
+        epochLoss += workers[i].accum_loss;
+      }
+
+      // Update weights after each mini-batch
+      this->update(currentBatchSize);
     }
-
-    this->update(numSamples);
 
     // Report epoch completion
     T avgEpochLoss = epochLoss / static_cast<T>(numSamples);
