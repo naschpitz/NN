@@ -73,9 +73,15 @@ static void testMissingSamplesCNN() {
 static void testPredictWithoutInput() {
   std::cout << "  testPredictWithoutInput... ";
 
-  // Must use a config with trained parameters (pretrained model) so predict path is reached
+  if (trainedANNModelPath.isEmpty() || !QFile::exists(trainedANNModelPath)) {
+    CHECK(false, "Predict without input: skipped — no trained model available (testANNTrainXOR must run first)");
+    std::cout << std::endl;
+    return;
+  }
+
+  // Must use a config with trained parameters so predict path is reached
   auto result = runNNCLI({
-    "--config", examplePath("MNIST/train/output/trained_model_1000_60000_0.06897394359111786.json"),
+    "--config", trainedANNModelPath,
     "--mode", "predict",
     "--device", "cpu"
   });

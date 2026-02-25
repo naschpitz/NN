@@ -6,18 +6,32 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
-// Pretrained MNIST model for predict/test tests
-static const char* PRETRAINED_ANN =
-    "MNIST/train/output/trained_model_1000_60000_0.06897394359111786.json";
+// Trained model paths shared between chained tests
+QString trainedANNModelPath;                    // XOR model — used by detection/override/error tests
+static QString trainedANNMNISTModelPath;        // MNIST model — used by --full predict/test tests
 
 static void testANNNetworkDetection() {
   std::cout << "  testANNNetworkDetection... ";
 
+  if (trainedANNModelPath.isEmpty() || !QFile::exists(trainedANNModelPath)) {
+    CHECK(false, "ANN detection: skipped — no trained model available (testANNTrainXOR must run first)");
+    std::cout << std::endl;
+    return;
+  }
+
+  // Create a temporary predict input compatible with XOR model (2 inputs)
+  QString predictInputPath = tempDir() + "/ann_detect_input.json";
+  QFile inputFile(predictInputPath);
+  if (inputFile.open(QIODevice::WriteOnly)) {
+    inputFile.write(R"({"inputs": [[0.0, 1.0]]})");
+    inputFile.close();
+  }
+
   auto result = runNNCLI({
-    "--config", examplePath(PRETRAINED_ANN),
+    "--config", trainedANNModelPath,
     "--mode", "predict",
     "--device", "cpu",
-    "--input", examplePath("MNIST/predict/mnist_digit_2_input.json"),
+    "--input", predictInputPath,
     "--output", tempDir() + "/ann_detect_output.json",
     "--log-level", "info"
   });
@@ -30,30 +44,47 @@ static void testANNNetworkDetection() {
 static void testANNTrainXOR() {
   std::cout << "  testANNTrainXOR... ";
 
-  QString modelPath = tempDir() + "/ann_xor_model.json";
+  trainedANNModelPath = tempDir() + "/ann_xor_model.json";
 
   auto result = runNNCLI({
     "--config", fixturePath("ann_train_config.json"),
     "--mode", "train",
     "--device", "cpu",
     "--samples", fixturePath("ann_train_samples.json"),
-    "--output", modelPath
+    "--output", trainedANNModelPath
   });
 
   CHECK(result.exitCode == 0, "ANN train XOR: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "ANN train XOR: 'Training completed.'");
   CHECK(result.stdOut.contains("Model saved to:"), "ANN train XOR: 'Model saved to:'");
-  CHECK(QFile::exists(modelPath), "ANN train XOR: model file exists");
+  CHECK(QFile::exists(trainedANNModelPath), "ANN train XOR: model file exists");
+
+  // Clear the path if training failed so downstream tests skip gracefully
+  if (result.exitCode != 0 || !QFile::exists(trainedANNModelPath)) {
+    trainedANNModelPath.clear();
+  }
+
   std::cout << std::endl;
 }
 
 static void testANNPredictMNIST() {
-  std::cout << "  testANNPredictMNIST... ";
+  std::cout << "  testANNPredictMNIST... " << std::flush;
+
+  if (!runFullTests) {
+    std::cout << "(skipped — use --full to enable)" << std::endl;
+    return;
+  }
+
+  if (trainedANNMNISTModelPath.isEmpty() || !QFile::exists(trainedANNMNISTModelPath)) {
+    CHECK(false, "ANN predict MNIST: skipped — no trained MNIST model available (testANNTrainAndTestMNIST must run first)");
+    std::cout << std::endl;
+    return;
+  }
 
   QString outputPath = tempDir() + "/ann_predict_output.json";
 
   auto result = runNNCLI({
-    "--config", examplePath(PRETRAINED_ANN),
+    "--config", trainedANNMNISTModelPath,
     "--mode", "predict",
     "--device", "cpu",
     "--input", examplePath("MNIST/predict/mnist_digit_2_input.json"),
@@ -101,15 +132,26 @@ static void testANNPredictMNIST() {
 }
 
 static void testANNTestMNIST() {
-  std::cout << "  testANNTestMNIST... ";
+  std::cout << "  testANNTestMNIST... " << std::flush;
+
+  if (!runFullTests) {
+    std::cout << "(skipped — use --full to enable)" << std::endl;
+    return;
+  }
+
+  if (trainedANNMNISTModelPath.isEmpty() || !QFile::exists(trainedANNMNISTModelPath)) {
+    CHECK(false, "ANN test MNIST: skipped — no trained MNIST model available (testANNTrainAndTestMNIST must run first)");
+    std::cout << std::endl;
+    return;
+  }
 
   auto result = runNNCLI({
-    "--config", examplePath(PRETRAINED_ANN),
+    "--config", trainedANNMNISTModelPath,
     "--mode", "test",
     "--device", "cpu",
     "--idx-data", examplePath("MNIST/test/t10k-images.idx3-ubyte"),
     "--idx-labels", examplePath("MNIST/test/t10k-labels.idx1-ubyte")
-  });
+  }, 600000);  // 10 min timeout
 
   CHECK(result.exitCode == 0, "ANN test MNIST: exit code 0");
   CHECK(result.stdOut.contains("Test Results:"), "ANN test MNIST: 'Test Results:'");
@@ -124,14 +166,28 @@ static void testANNTestMNIST() {
 static void testANNModeOverride() {
   std::cout << "  testANNModeOverride... ";
 
+  if (trainedANNModelPath.isEmpty() || !QFile::exists(trainedANNModelPath)) {
+    CHECK(false, "ANN mode override: skipped — no trained model available (testANNTrainXOR must run first)");
+    std::cout << std::endl;
+    return;
+  }
+
+  // Create a temporary predict input compatible with XOR model (2 inputs)
+  QString predictInputPath = tempDir() + "/ann_override_input.json";
+  QFile inputFile(predictInputPath);
+  if (inputFile.open(QIODevice::WriteOnly)) {
+    inputFile.write(R"({"inputs": [[0.0, 1.0]]})");
+    inputFile.close();
+  }
+
   QString outputPath = tempDir() + "/ann_override_output.json";
 
-  // Pretrained model has mode=train; override to predict via CLI
+  // Trained model has mode=train; override to predict via CLI
   auto result = runNNCLI({
-    "--config", examplePath(PRETRAINED_ANN),
+    "--config", trainedANNModelPath,
     "--mode", "predict",
     "--device", "cpu",
-    "--input", examplePath("MNIST/predict/mnist_digit_2_input.json"),
+    "--input", predictInputPath,
     "--output", outputPath,
     "--log-level", "info"
   });
@@ -192,7 +248,7 @@ static void testANNTrainAndTestMNIST() {
     return;
   }
 
-  QString modelPath = tempDir() + "/ann_mnist_trained.json";
+  trainedANNMNISTModelPath = tempDir() + "/ann_mnist_trained.json";
 
   // Step 1: Train on MNIST training data on CPU (30 epochs, 60k samples, all cores)
   auto trainResult = runNNCLI({
@@ -201,21 +257,22 @@ static void testANNTrainAndTestMNIST() {
     "--device", "cpu",
     "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"),
     "--idx-labels", examplePath("MNIST/train/train-labels.idx1-ubyte"),
-    "--output", modelPath,
+    "--output", trainedANNMNISTModelPath,
     "--log-level", "quiet"
   }, 1800000);  // 30 min timeout
 
   CHECK(trainResult.exitCode == 0, "ANN MNIST train+test: training exit code 0");
-  CHECK(QFile::exists(modelPath), "ANN MNIST train+test: trained model file exists");
+  CHECK(QFile::exists(trainedANNMNISTModelPath), "ANN MNIST train+test: trained model file exists");
 
-  if (trainResult.exitCode != 0 || !QFile::exists(modelPath)) {
+  if (trainResult.exitCode != 0 || !QFile::exists(trainedANNMNISTModelPath)) {
+    trainedANNMNISTModelPath.clear();
     std::cout << "(training failed, skipping test step)" << std::endl;
     return;
   }
 
   // Step 2: Evaluate against MNIST test data (10k samples)
   auto testResult = runNNCLI({
-    "--config", modelPath,
+    "--config", trainedANNMNISTModelPath,
     "--mode", "test",
     "--device", "cpu",
     "--idx-data", examplePath("MNIST/test/t10k-images.idx3-ubyte"),
@@ -475,16 +532,18 @@ static void testANNShuffleSamplesInvalidValue() {
 }
 
 void runANNTests() {
-  testANNNetworkDetection();
+  // Train XOR first — downstream tests use its output model
   testANNTrainXOR();
-  testANNPredictMNIST();
-  testANNTestMNIST();
+  testANNNetworkDetection();
   testANNModeOverride();
   testANNTrainWithWeightedLoss();
-  testANNTrainAndTestMNIST();
-  testANNTrainAndTestMNISTGPU();
   testANNCheckpointParameters();
   testANNShuffleSamplesCLI();
   testANNShuffleSamplesInvalidValue();
+  // MNIST tests (--full only): train first, then predict/test using trained model
+  testANNTrainAndTestMNIST();
+  testANNTrainAndTestMNISTGPU();
+  testANNPredictMNIST();
+  testANNTestMNIST();
 }
 

@@ -15,6 +15,9 @@ extern int testsPassed;
 extern int testsFailed;
 extern bool runFullTests;
 
+// Trained ANN model path shared between test_ann.cpp and test_errors.cpp
+extern QString trainedANNModelPath;
+
 #define CHECK(cond, msg) do { \
   if (!(cond)) { \
     std::cerr << "FAIL: " << msg << " (" << __FILE__ << ":" << __LINE__ << ")" << std::endl; \
