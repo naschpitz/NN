@@ -145,6 +145,7 @@ ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath,
         coreConfig.trainingConfig.numEpochs = tc.at("numEpochs").get<ulong>();
         coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
         if (tc.contains("batchSize")) coreConfig.trainingConfig.batchSize = tc.at("batchSize").get<ulong>();
+        if (tc.contains("shuffleSamples")) coreConfig.trainingConfig.shuffleSamples = tc.at("shuffleSamples").get<bool>();
     }
 
     if (json.contains("parameters")) {
@@ -273,6 +274,7 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
         coreConfig.trainingConfig.numEpochs = tc.at("numEpochs").get<ulong>();
         coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
         if (tc.contains("batchSize")) coreConfig.trainingConfig.batchSize = tc.at("batchSize").get<ulong>();
+        if (tc.contains("shuffleSamples")) coreConfig.trainingConfig.shuffleSamples = tc.at("shuffleSamples").get<bool>();
     }
 
     // Parameters (for predict/test modes or resuming training)

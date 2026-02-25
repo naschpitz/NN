@@ -396,6 +396,84 @@ static void testANNCheckpointParameters() {
   std::cout << std::endl;
 }
 
+static void testANNShuffleSamplesCLI() {
+  std::cout << "  testANNShuffleSamplesCLI... ";
+
+  // Train with --shuffle-samples true
+  QString modelPathTrue = tempDir() + "/ann_shuffle_true.json";
+  auto resultTrue = runNNCLI({
+    "--config", fixturePath("ann_train_config.json"),
+    "--mode", "train",
+    "--device", "cpu",
+    "--samples", fixturePath("ann_train_samples.json"),
+    "--output", modelPathTrue,
+    "--shuffle-samples", "true"
+  });
+
+  CHECK(resultTrue.exitCode == 0, "ANN shuffle=true: exit code 0");
+  CHECK(resultTrue.stdOut.contains("Training completed."), "ANN shuffle=true: 'Training completed.'");
+
+  // Train with --shuffle-samples false
+  QString modelPathFalse = tempDir() + "/ann_shuffle_false.json";
+  auto resultFalse = runNNCLI({
+    "--config", fixturePath("ann_train_config.json"),
+    "--mode", "train",
+    "--device", "cpu",
+    "--samples", fixturePath("ann_train_samples.json"),
+    "--output", modelPathFalse,
+    "--shuffle-samples", "false"
+  });
+
+  CHECK(resultFalse.exitCode == 0, "ANN shuffle=false: exit code 0");
+  CHECK(resultFalse.stdOut.contains("Training completed."), "ANN shuffle=false: 'Training completed.'");
+
+  // Verify shuffleSamples is saved in the output model JSON
+  QFile fileTrue(modelPathTrue);
+  if (fileTrue.open(QIODevice::ReadOnly)) {
+    QJsonDocument doc = QJsonDocument::fromJson(fileTrue.readAll());
+    QJsonObject root = doc.object();
+    CHECK(root.contains("trainingConfig"), "ANN shuffle=true: has 'trainingConfig'");
+    QJsonObject tc = root["trainingConfig"].toObject();
+    CHECK(tc.contains("shuffleSamples"), "ANN shuffle=true: has 'shuffleSamples'");
+    CHECK(tc["shuffleSamples"].toBool() == true, "ANN shuffle=true: shuffleSamples is true");
+    fileTrue.close();
+  } else {
+    CHECK(false, "ANN shuffle=true: failed to open model file");
+  }
+
+  QFile fileFalse(modelPathFalse);
+  if (fileFalse.open(QIODevice::ReadOnly)) {
+    QJsonDocument doc = QJsonDocument::fromJson(fileFalse.readAll());
+    QJsonObject root = doc.object();
+    QJsonObject tc = root["trainingConfig"].toObject();
+    CHECK(tc.contains("shuffleSamples"), "ANN shuffle=false: has 'shuffleSamples'");
+    CHECK(tc["shuffleSamples"].toBool() == false, "ANN shuffle=false: shuffleSamples is false");
+    fileFalse.close();
+  } else {
+    CHECK(false, "ANN shuffle=false: failed to open model file");
+  }
+
+  std::cout << std::endl;
+}
+
+static void testANNShuffleSamplesInvalidValue() {
+  std::cout << "  testANNShuffleSamplesInvalidValue... ";
+
+  auto result = runNNCLI({
+    "--config", fixturePath("ann_train_config.json"),
+    "--mode", "train",
+    "--device", "cpu",
+    "--samples", fixturePath("ann_train_samples.json"),
+    "--output", tempDir() + "/ann_shuffle_invalid.json",
+    "--shuffle-samples", "maybe"
+  });
+
+  CHECK(result.exitCode == 1, "ANN shuffle=invalid: exit code 1");
+  CHECK(result.stdErr.contains("--shuffle-samples must be 'true' or 'false'"),
+        "ANN shuffle=invalid: error message");
+  std::cout << std::endl;
+}
+
 void runANNTests() {
   testANNNetworkDetection();
   testANNTrainXOR();
@@ -406,5 +484,7 @@ void runANNTests() {
   testANNTrainAndTestMNIST();
   testANNTrainAndTestMNISTGPU();
   testANNCheckpointParameters();
+  testANNShuffleSamplesCLI();
+  testANNShuffleSamplesInvalidValue();
 }
 

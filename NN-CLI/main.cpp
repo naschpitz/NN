@@ -25,6 +25,7 @@ void printUsage() {
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
   std::cout << "  --output, -o <file>    Output file/dir (default: predict_<input>.json or folder for images)\n";
   std::cout << "  --output-type <type>   Output data type: 'vector' or 'image' (overrides config file)\n";
+  std::cout << "  --shuffle-samples <b>  Shuffle samples each epoch: true/false (overrides config file)\n";
   std::cout << "  --log-level, -l <lvl>  Log level: quiet, error, warning, info, debug (default: error)\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
@@ -128,6 +129,14 @@ int main(int argc, char *argv[]) {
   );
   parser.addOption(logLevelOption);
 
+  // Shuffle samples option (overrides config file)
+  QCommandLineOption shuffleSamplesOption(
+    QStringList() << "shuffle-samples",
+    "Shuffle samples each epoch: 'true' or 'false' (overrides config file).",
+    "bool"
+  );
+  parser.addOption(shuffleSamplesOption);
+
   parser.process(app);
 
   // Validate that --config is provided
@@ -169,6 +178,15 @@ int main(int argc, char *argv[]) {
     QString typeStr = parser.value(outputTypeOption).toLower();
     if (typeStr != "vector" && typeStr != "image") {
       std::cerr << "Error: Output type must be 'vector' or 'image'.\n";
+      return 1;
+    }
+  }
+
+  // Validate shuffle-samples if provided
+  if (parser.isSet(shuffleSamplesOption)) {
+    QString shuffleStr = parser.value(shuffleSamplesOption).toLower();
+    if (shuffleStr != "true" && shuffleStr != "false") {
+      std::cerr << "Error: --shuffle-samples must be 'true' or 'false'.\n";
       return 1;
     }
   }
