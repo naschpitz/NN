@@ -133,9 +133,67 @@ static void testGPUvsCPUParity() {
 
 //===================================================================================================================//
 
+static void testGPUShuffleSamples() {
+  std::cout << "--- testGPUShuffleSamples ---" << std::endl;
+
+  // Verify GPU training works with both shuffle=true and shuffle=false
+  ANN::Samples<float> samples = {
+    {{1.0f, 1.0f}, {1.0f}},
+    {{0.0f, 0.0f}, {0.0f}},
+    {{1.0f, 0.0f}, {0.5f}},
+    {{0.0f, 1.0f}, {0.5f}}
+  };
+
+  auto makeConfig = [](bool shuffle) {
+    ANN::CoreConfig<float> config;
+    config.modeType = ANN::ModeType::TRAIN;
+    config.deviceType = ANN::DeviceType::GPU;
+    config.layersConfig = makeLayersConfig({
+      {2, ANN::ActvFuncType::RELU},
+      {4, ANN::ActvFuncType::SIGMOID},
+      {1, ANN::ActvFuncType::SIGMOID}
+    });
+    config.trainingConfig.numEpochs = 500;
+    config.trainingConfig.learningRate = 0.5f;
+    config.trainingConfig.shuffleSamples = shuffle;
+    config.progressReports = 0;
+    config.numGPUs = 1;
+    config.logLevel = ANN::LogLevel::ERROR;
+    return config;
+  };
+
+  bool shuffleConverged = false;
+  for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
+    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    auto core = ANN::Core<float>::makeCore(makeConfig(true));
+    core->train(samples);
+    auto p0 = core->predict({1.0f, 1.0f});
+    auto p1 = core->predict({0.0f, 0.0f});
+    if (p0[0] > 0.7f && p1[0] < 0.3f) shuffleConverged = true;
+  }
+  CHECK(shuffleConverged, "GPU shuffle=true converged (5 attempts)");
+
+  bool noShuffleConverged = false;
+  for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
+    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    auto core = ANN::Core<float>::makeCore(makeConfig(false));
+    core->train(samples);
+    auto p0 = core->predict({1.0f, 1.0f});
+    auto p1 = core->predict({0.0f, 0.0f});
+    if (p0[0] > 0.7f && p1[0] < 0.3f) noShuffleConverged = true;
+  }
+  CHECK(noShuffleConverged, "GPU shuffle=false converged (5 attempts)");
+
+  std::cout << "  shuffle=true: " << shuffleConverged
+            << "  shuffle=false: " << noShuffleConverged << std::endl;
+}
+
+//===================================================================================================================//
+
 void runGPUTests() {
   testGPUTrainSimple();
   testGPUPredict();
   testGPUvsCPUParity();
+  testGPUShuffleSamples();
 }
 

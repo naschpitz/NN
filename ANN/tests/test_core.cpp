@@ -633,6 +633,116 @@ static void testWeightedLossAffectsTraining() {
 
 //===================================================================================================================//
 
+static void testShuffleSamplesDefault() {
+  std::cout << "--- testShuffleSamplesDefault ---" << std::endl;
+
+  // Verify default is true
+  ANN::TrainingConfig<double> tc;
+  CHECK(tc.shuffleSamples == true, "shuffleSamples default is true");
+}
+
+//===================================================================================================================//
+
+static void testShuffleSamplesTraining() {
+  std::cout << "--- testShuffleSamplesTraining ---" << std::endl;
+
+  // Train with shuffleSamples=true and shuffleSamples=false, both should converge
+  ANN::Samples<double> samples = {
+    {{1.0, 1.0}, {1.0}},
+    {{0.0, 0.0}, {0.0}},
+    {{1.0, 0.0}, {0.5}},
+    {{0.0, 1.0}, {0.5}}
+  };
+
+  auto makeConfig = [](bool shuffle) {
+    ANN::CoreConfig<double> config;
+    config.modeType = ANN::ModeType::TRAIN;
+    config.deviceType = ANN::DeviceType::CPU;
+    config.layersConfig = makeLayersConfig({
+      {2, ANN::ActvFuncType::RELU},
+      {4, ANN::ActvFuncType::SIGMOID},
+      {1, ANN::ActvFuncType::SIGMOID}
+    });
+    config.trainingConfig.numEpochs = 500;
+    config.trainingConfig.learningRate = 0.5;
+    config.trainingConfig.shuffleSamples = shuffle;
+    config.progressReports = 0;
+    config.logLevel = ANN::LogLevel::ERROR;
+    return config;
+  };
+
+  // Train with shuffle enabled
+  bool shuffleConverged = false;
+  for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
+    auto core = ANN::Core<double>::makeCore(makeConfig(true));
+    core->train(samples);
+    auto p0 = core->predict({1.0, 1.0});
+    auto p1 = core->predict({0.0, 0.0});
+    if (p0[0] > 0.7 && p1[0] < 0.3) shuffleConverged = true;
+  }
+  CHECK(shuffleConverged, "shuffle=true converged (5 attempts)");
+
+  // Train with shuffle disabled
+  bool noShuffleConverged = false;
+  for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
+    auto core = ANN::Core<double>::makeCore(makeConfig(false));
+    core->train(samples);
+    auto p0 = core->predict({1.0, 1.0});
+    auto p1 = core->predict({0.0, 0.0});
+    if (p0[0] > 0.7 && p1[0] < 0.3) noShuffleConverged = true;
+  }
+  CHECK(noShuffleConverged, "shuffle=false converged (5 attempts)");
+
+  std::cout << "  shuffle=true converged: " << shuffleConverged
+            << "  shuffle=false converged: " << noShuffleConverged << std::endl;
+}
+
+//===================================================================================================================//
+
+static void testShuffleSamplesNoShuffle() {
+  std::cout << "--- testShuffleSamplesNoShuffle ---" << std::endl;
+
+  // With shuffleSamples=false, two runs with the same initial parameters should produce identical results
+  ANN::Samples<double> samples = {
+    {{1.0, 1.0}, {1.0}},
+    {{0.0, 0.0}, {0.0}}
+  };
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({
+    {2, ANN::ActvFuncType::RELU},
+    {4, ANN::ActvFuncType::SIGMOID},
+    {1, ANN::ActvFuncType::SIGMOID}
+  });
+  config.trainingConfig.numEpochs = 50;
+  config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.shuffleSamples = false;
+  config.progressReports = 0;
+  config.logLevel = ANN::LogLevel::ERROR;
+
+  // First run
+  auto core1 = ANN::Core<double>::makeCore(config);
+  auto params1 = core1->getParameters();
+
+  // Second run with same initial parameters
+  config.parameters = params1;
+  auto core2 = ANN::Core<double>::makeCore(config);
+  auto core3 = ANN::Core<double>::makeCore(config);
+
+  core2->train(samples);
+  core3->train(samples);
+
+  auto pred2 = core2->predict({1.0, 1.0});
+  auto pred3 = core3->predict({1.0, 1.0});
+
+  std::cout << "  run1=" << pred2[0] << "  run2=" << pred3[0] << std::endl;
+  CHECK_NEAR(pred2[0], pred3[0], 1e-10, "shuffle=false: identical runs produce identical results");
+}
+
+//===================================================================================================================//
+
 void runCoreTests() {
   testMakeCoreCPU();
   testPredictSimple();
@@ -653,4 +763,7 @@ void runCoreTests() {
   testCostFunctionConfigGetter();
   testCostFunctionStringConversion();
   testWeightedLossAffectsTraining();
+  testShuffleSamplesDefault();
+  testShuffleSamplesTraining();
+  testShuffleSamplesNoShuffle();
 }

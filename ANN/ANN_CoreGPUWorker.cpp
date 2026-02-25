@@ -78,7 +78,8 @@ Output<T> CoreGPUWorker<T>::predict(const Input<T>& input) {
 //===================================================================================================================//
 
 template <typename T>
-T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx, ulong epoch, ulong totalEpochs,
+T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, const std::vector<ulong>& indices,
+                                ulong startIdx, ulong endIdx, ulong epoch, ulong totalEpochs,
                                 const TrainingCallback<T>& callback) {
   ulong numSamplesInSubset = endIdx - startIdx;
   ulong totalSamples = samples.size();
@@ -95,8 +96,8 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, ulong startIdx, ulong
   this->resetAccumulators();
 
   for (ulong s = startIdx; s < endIdx; s++) {
-    const Input<T>& input = samples[s].input;
-    const Output<T>& output = samples[s].output;
+    const Input<T>& input = samples[indices[s]].input;
+    const Output<T>& output = samples[indices[s]].output;
 
     // Write input and expected output to GPU buffers
     this->core->template writeBuffer<T>("actvs", input, 0);

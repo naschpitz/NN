@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <numeric>
 #include <random>
 #include <cmath>
 
@@ -79,8 +80,18 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
   // Mutex for serializing callback calls (prevents I/O contention)
   QMutex callbackMutex;
 
+  // Sample index indirection for shuffling
+  std::vector<ulong> sampleIndices(numSamples);
+  std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
+  std::mt19937 rng(std::random_device{}());
+
   for (ulong e = 0; e < numEpochs; e++) {
     T epochLoss = 0;
+
+    // Shuffle sample order for this epoch
+    if (this->trainingConfig.shuffleSamples) {
+      std::shuffle(sampleIndices.begin(), sampleIndices.end(), rng);
+    }
 
     // Atomic counter for progress tracking
     std::atomic<ulong> completedSamples{0};
@@ -103,7 +114,7 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
       QVector<ulong> batchIndices(currentBatchSize);
 
       for (ulong s = 0; s < currentBatchSize; s++) {
-        batchIndices[s] = batchStart + s;
+        batchIndices[s] = sampleIndices[batchStart + s];
       }
 
       // Use blockingMap to process all samples in the batch in parallel
