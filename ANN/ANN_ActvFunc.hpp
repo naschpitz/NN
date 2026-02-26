@@ -33,7 +33,7 @@ namespace ANN {
       // Backward (derivative=true) : reads zs, actvs, dCost_dActvs, writes dCost_dZs.
       template <typename T>
       static void calculate(const T* zs, T* actvs, unsigned long numNeurons, ActvFuncType type,
-                            bool derivative, const T* dCost_dActvs, T* dCost_dZs);
+                            bool derivative, const T* dCost_dActvs = nullptr, T* dCost_dZs = nullptr);
 
     private:
       static float relu(float x);
