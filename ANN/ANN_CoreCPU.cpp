@@ -424,16 +424,21 @@ void CoreCPU<T>::propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
+    // Compute weighted sums (zs) for all neurons in this layer
     for (ulong j = 0; j < numNeurons; j++) {
       zs[l][j] = this->parameters.biases[l][j];  // Start with bias
 
       for (ulong k = 0; k < prevNumNeurons; k++) {
         zs[l][j] += this->parameters.weights[l][j][k] * actvs[l - 1][k];
       }
-
-      ActvFuncType actvFuncType = this->layersConfig[l].actvFuncType;
-      actvs[l][j] = ActvFunc::calculate(zs[l][j], actvFuncType);
     }
+
+    // Apply activation function (handles all types including softmax)
+    const T* zsData = zs[l].data();
+    T* actvsData = actvs[l].data();
+    ActvFuncType actvFuncType = layer.actvFuncType;
+
+    ActvFunc::calculate(zsData, actvsData, numNeurons, actvFuncType, false, nullptr, nullptr);
   }
 }
 
@@ -452,7 +457,10 @@ void CoreCPU<T>::backpropagate(const Output<T>& output, const Tensor2D<T>& actvs
 
   for (ulong j = 0; j < numNeurons; j++) {
     dCost_dActvs[l][j] = this->calc_dCost_dActv(j, output, actvs);
-    dCost_dBiases[l][j] = this->calc_dCost_dBias(l, j, zs, dCost_dActvs);
+  }
+
+  for (ulong j = 0; j < numNeurons; j++) {
+    dCost_dBiases[l][j] = this->calc_dCost_dBias(l, j, actvs, zs, dCost_dActvs);
 
     const Layer& prevLayer = this->layersConfig[l - 1];
     ulong prevNumNeurons = prevLayer.numNeurons;
@@ -467,9 +475,14 @@ void CoreCPU<T>::backpropagate(const Output<T>& output, const Tensor2D<T>& actvs
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
 
+    // First pass: compute all dCost_dActvs for this layer
     for (ulong j = 0; j < numNeurons; j++) {
-      dCost_dActvs[l][j] = this->calc_dCost_dActv(l, j, zs, dCost_dActvs);
-      dCost_dBiases[l][j] = this->calc_dCost_dBias(l, j, zs, dCost_dActvs);
+      dCost_dActvs[l][j] = this->calc_dCost_dActv(l, j, actvs, zs, dCost_dActvs);
+    }
+
+    // Second pass: compute bias and weight gradients
+    for (ulong j = 0; j < numNeurons; j++) {
+      dCost_dBiases[l][j] = this->calc_dCost_dBias(l, j, actvs, zs, dCost_dActvs);
 
       const Layer& prevLayer = this->layersConfig[l - 1];
       ulong prevNumNeurons = prevLayer.numNeurons;
@@ -478,6 +491,8 @@ void CoreCPU<T>::backpropagate(const Output<T>& output, const Tensor2D<T>& actvs
         dCost_dWeights[l][j][k] = this->calc_dCost_dWeight(l, j, k, actvs, zs, dCost_dActvs);
       }
     }
+
+    if (l == 1) break;
   }
 }
 
@@ -496,22 +511,27 @@ T CoreCPU<T>::calc_dCost_dActv(ulong j, const Output<T>& output, const Tensor2D<
 //===================================================================================================================//
 
 template <typename T>
-T CoreCPU<T>::calc_dCost_dActv(ulong l, ulong k, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs) {
+T CoreCPU<T>::calc_dCost_dActv(ulong l, ulong k, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs) {
   const Layer& nextLayer = this->layersConfig[l + 1];
   ulong nextNumNeurons = nextLayer.numNeurons;
+  ActvFuncType actvFuncType = nextLayer.actvFuncType;
+
+  const T* zsData = zs[l + 1].data();
+  T* actvsData = const_cast<T*>(actvs[l + 1].data());
+  const T* dCost_dActvsData = dCost_dActvs[l + 1].data();
+
+  Tensor1D<T> dCost_dZs(nextNumNeurons);
+  T* dCost_dZsData = dCost_dZs.data();
+
+  ActvFunc::calculate(zsData, actvsData, nextNumNeurons, actvFuncType, true, dCost_dActvsData, dCost_dZsData);
 
   T sum = 0;
 
   for (ulong j = 0; j < nextNumNeurons; j++) {
     T weight = this->parameters.weights[l + 1][j][k];
-    T z = zs[l + 1][j];
+    T dCost_dZ = dCost_dZs[j];
 
-    ActvFuncType actvFuncType = this->layersConfig[l + 1].actvFuncType;
-    T dActvFunc_z = ActvFunc::calculate(z, actvFuncType, true);
-
-    T dCost_dActv = dCost_dActvs[l + 1][j];
-
-    sum += weight * dActvFunc_z * dCost_dActv;
+    sum += weight * dCost_dZ;
   }
 
   return sum;
@@ -522,26 +542,45 @@ T CoreCPU<T>::calc_dCost_dActv(ulong l, ulong k, const Tensor2D<T>& zs, const Te
 template <typename T>
 T CoreCPU<T>::calc_dCost_dWeight(ulong l, ulong j, ulong k, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs) {
   T actv = actvs[l - 1][k];
-  T z = zs[l][j];
 
-  ActvFuncType actvFuncType = this->layersConfig[l].actvFuncType;
-  T dActvFunc_z = ActvFunc::calculate(z, actvFuncType, true);
+  const Layer& layer = this->layersConfig[l];
+  ulong numNeurons = layer.numNeurons;
+  ActvFuncType actvFuncType = layer.actvFuncType;
 
-  T dCost_dActv = dCost_dActvs[l][j];
+  const T* zsData = zs[l].data();
+  T* actvsData = const_cast<T*>(actvs[l].data());
+  const T* dCost_dActvsData = dCost_dActvs[l].data();
 
-  return actv * dActvFunc_z * dCost_dActv;
+  Tensor1D<T> dCost_dZs(numNeurons);
+  T* dCost_dZsData = dCost_dZs.data();
+
+  ActvFunc::calculate(zsData, actvsData, numNeurons, actvFuncType, true, dCost_dActvsData, dCost_dZsData);
+
+  T dCost_dZ = dCost_dZs[j];
+
+  return actv * dCost_dZ;
 }
 
 //===================================================================================================================//
 
 template <typename T>
-T CoreCPU<T>::calc_dCost_dBias(ulong l, ulong j, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs) {
-  T z = zs[l][j];
+T CoreCPU<T>::calc_dCost_dBias(ulong l, ulong j, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs) {
+  const Layer& layer = this->layersConfig[l];
+  ulong numNeurons = layer.numNeurons;
+  ActvFuncType actvFuncType = layer.actvFuncType;
 
-  ActvFuncType actvFuncType = this->layersConfig[l].actvFuncType;
-  T dActvFunc_z = ActvFunc::calculate(z, actvFuncType, true);
+  const T* zsData = zs[l].data();
+  T* actvsData = const_cast<T*>(actvs[l].data());
+  const T* dCost_dActvsData = dCost_dActvs[l].data();
 
-  return dActvFunc_z * dCost_dActvs[l][j];
+  Tensor1D<T> dCost_dZs(numNeurons);
+  T* dCost_dZsData = dCost_dZs.data();
+
+  ActvFunc::calculate(zsData, actvsData, numNeurons, actvFuncType, true, dCost_dActvsData, dCost_dZsData);
+
+  T dCost_dZ = dCost_dZs[j];
+
+  return dCost_dZ;
 }
 
 //===================================================================================================================//
@@ -739,7 +778,7 @@ Tensor1D<T> CoreCPU<T>::backpropagate(const Output<T>& output) {
   ulong inputNumNeurons = this->layersConfig[0].numNeurons;
 
   for (ulong k = 0; k < inputNumNeurons; k++) {
-    this->dCost_dActvs[0][k] = this->calc_dCost_dActv(0, k, this->zs, this->dCost_dActvs);
+    this->dCost_dActvs[0][k] = this->calc_dCost_dActv(0, k, this->actvs, this->zs, this->dCost_dActvs);
   }
 
   return this->dCost_dActvs[0];

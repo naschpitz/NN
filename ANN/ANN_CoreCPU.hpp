@@ -60,9 +60,9 @@ namespace ANN {
 
       //-- Gradient helpers --//
       T calc_dCost_dActv(ulong j, const Output<T>& output, const Tensor2D<T>& actvs);
-      T calc_dCost_dActv(ulong l, ulong k, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs);
+      T calc_dCost_dActv(ulong l, ulong k, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs);
       T calc_dCost_dWeight(ulong l, ulong j, ulong k, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs);
-      T calc_dCost_dBias(ulong l, ulong j, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs);
+      T calc_dCost_dBias(ulong l, ulong j, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs);
 
       //-- Training helpers --//
       void resetWorkerAccumulators(SampleWorker<T>& worker);

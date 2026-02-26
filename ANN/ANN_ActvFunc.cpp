@@ -39,6 +39,8 @@ float ActvFunc::calculate(float x, ActvFuncType type, bool isDerivative) {
       return !isDerivative ? ActvFunc::sigmoid(x) : ActvFunc::dsigmoid(x);
     case ActvFuncType::TANH:
       return !isDerivative ? ActvFunc::tanh(x) : ActvFunc::dtanh(x);
+    case ActvFuncType::SOFTMAX:
+      throw std::invalid_argument("Softmax is a layer-wide function; use the layer-wide calculate() overload instead");
     default:
       throw std::invalid_argument("Unknown actv function");
   }

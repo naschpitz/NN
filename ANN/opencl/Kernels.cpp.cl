@@ -42,13 +42,10 @@ kernel void calculate_actvs(
     constant Layer* layers,
     ulong numLayers
   ) {
-  size_t j = get_global_id(0);
-
-  ulong idx = getZIndex(layerIdx, j, layers, numLayers);
-  TYPE z = zs[idx];
-
+  ulong numNeurons = layers[layerIdx].numNeurons;
   ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
-  actvs[idx] = actvFunc_calculate(z, actvFuncType);
+
+  actvFunc_calculate(zs, actvs, numNeurons, actvFuncType, layerIdx, layers, numLayers);
 }
 
 //===================================================================================================================//
@@ -134,6 +131,7 @@ kernel void calculate_dCost_dActv_last_layer(
 
 kernel void calculate_dCost_dActv(
     global TYPE* dCost_dActvs,
+    global TYPE* actvs,
     global TYPE* weights,
     global TYPE* zs,
     ulong layerIdx,
@@ -144,22 +142,18 @@ kernel void calculate_dCost_dActv(
 
   ulong nextLayerIdx = layerIdx + 1;
   ulong nextNumNeurons = layers[nextLayerIdx].numNeurons;
+  ActvFuncType actvFuncType = layers[nextLayerIdx].actvFuncType;
 
   TYPE sum = 0.0f;
 
   for (ulong j = 0; j < nextNumNeurons; j++) {
-    ulong nextZIdx = getZIndex(nextLayerIdx, j, layers, numLayers);
     ulong weightIdx = getWeightIndex(nextLayerIdx, j, k, layers, numLayers);
 
     TYPE weight = weights[weightIdx];
-    TYPE z = zs[nextZIdx];
+    TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, nextNumNeurons, actvFuncType,
+                                        nextLayerIdx, layers, numLayers);
 
-    ActvFuncType actvFuncType = layers[nextLayerIdx].actvFuncType;
-    TYPE dActvFunc_z = actvFunc_derivative(z, actvFuncType);
-
-    TYPE dCost_dActv_next = dCost_dActvs[nextZIdx];
-
-    sum += weight * dActvFunc_z * dCost_dActv_next;
+    sum += weight * dCost_dZ;
   }
 
   dCost_dActvs[getActvIndex(layerIdx, k, layers, numLayers)] = sum;
@@ -179,25 +173,24 @@ kernel void calculate_dCost_dWeight(
   size_t gid = get_global_id(0);
 
   ulong prevNumNeurons = layers[layerIdx - 1].numNeurons;
+  ulong numNeurons = layers[layerIdx].numNeurons;
+  ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
 
   ulong j = gid / prevNumNeurons;
   ulong k = gid % prevNumNeurons;
 
   TYPE actv = actvs[getActvIndex(layerIdx - 1, k, layers, numLayers)];
-  TYPE z = zs[getZIndex(layerIdx, j, layers, numLayers)];
+  TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, numNeurons, actvFuncType,
+                                      layerIdx, layers, numLayers);
 
-  ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
-  TYPE dActvFunc_z = actvFunc_derivative(z, actvFuncType);
-
-  TYPE dCost_dActv = dCost_dActvs[getActvIndex(layerIdx, j, layers, numLayers)];
-
-  dCost_dWeights[getWeightIndex(layerIdx, j, k, layers, numLayers)] = actv * dActvFunc_z * dCost_dActv;
+  dCost_dWeights[getWeightIndex(layerIdx, j, k, layers, numLayers)] = actv * dCost_dZ;
 }
 
 //===================================================================================================================//
 
 kernel void calculate_dCost_dBias(
     global TYPE* dCost_dBiases,
+    global TYPE* actvs,
     global TYPE* zs,
     global TYPE* dCost_dActvs,
     ulong layerIdx,
@@ -206,15 +199,13 @@ kernel void calculate_dCost_dBias(
   ) {
   size_t j = get_global_id(0);
 
-  ulong zIdx = getZIndex(layerIdx, j, layers, numLayers);
-  TYPE z = zs[zIdx];
-
+  ulong numNeurons = layers[layerIdx].numNeurons;
   ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
-  TYPE dActvFunc_z = actvFunc_derivative(z, actvFuncType);
 
-  TYPE dCost_dActv = dCost_dActvs[getActvIndex(layerIdx, j, layers, numLayers)];
+  TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, numNeurons, actvFuncType,
+                                      layerIdx, layers, numLayers);
 
-  dCost_dBiases[getBiasIndex(layerIdx, j, layers, numLayers)] = dActvFunc_z * dCost_dActv;
+  dCost_dBiases[getBiasIndex(layerIdx, j, layers, numLayers)] = dCost_dZ;
 }
 
 //===================================================================================================================//

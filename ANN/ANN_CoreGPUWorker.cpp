@@ -531,7 +531,10 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     this->core->template addArgument<ulong>(calculate_zs_id, numLayers);
 
     // calculate_actvs kernel: applies activation function
-    this->core->addKernel(calculate_actvs_id, "calculate_actvs", numNeurons, 0);
+    // Softmax requires a single work-item (layer-wide), element-wise uses one per neuron
+    ulong actvWorkItems = (layer.actvFuncType == ActvFuncType::SOFTMAX) ? 1 : numNeurons;
+    this->core->addKernel(calculate_actvs_id, "calculate_actvs", actvWorkItems, 0);
+
     this->core->template addArgument<T>(calculate_actvs_id, "actvs");
     this->core->template addArgument<T>(calculate_actvs_id, "zs");
     this->core->template addArgument<ulong>(calculate_actvs_id, l);
@@ -570,6 +573,7 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   // calculate_dCost_dBias for last layer
   this->core->addKernel(dCost_dBias_last_id, "calculate_dCost_dBias", numBiases, 0);
   this->core->template addArgument<T>(dCost_dBias_last_id, "dCost_dBiases");
+  this->core->template addArgument<T>(dCost_dBias_last_id, "actvs");
   this->core->template addArgument<T>(dCost_dBias_last_id, "zs");
   this->core->template addArgument<T>(dCost_dBias_last_id, "dCost_dActvs");
   this->core->template addArgument<ulong>(dCost_dBias_last_id, l);
@@ -601,6 +605,7 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     // calculate_dCost_dActv
     this->core->addKernel(dCost_dActv_id, "calculate_dCost_dActv", curr_numNeurons, 0);
     this->core->template addArgument<T>(dCost_dActv_id, "dCost_dActvs");
+    this->core->template addArgument<T>(dCost_dActv_id, "actvs");
     this->core->template addArgument<T>(dCost_dActv_id, "weights");
     this->core->template addArgument<T>(dCost_dActv_id, "zs");
     this->core->template addArgument<ulong>(dCost_dActv_id, layer_idx);
@@ -610,6 +615,7 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     // calculate_dCost_dBias
     this->core->addKernel(dCost_dBias_id, "calculate_dCost_dBias", curr_numBiases, 0);
     this->core->template addArgument<T>(dCost_dBias_id, "dCost_dBiases");
+    this->core->template addArgument<T>(dCost_dBias_id, "actvs");
     this->core->template addArgument<T>(dCost_dBias_id, "zs");
     this->core->template addArgument<T>(dCost_dBias_id, "dCost_dActvs");
     this->core->template addArgument<ulong>(dCost_dBias_id, layer_idx);
@@ -636,6 +642,7 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
 
     this->core->addKernel("calculate_dCost_dActv_layer0", "calculate_dCost_dActv", inputNumNeurons, 0);
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "dCost_dActvs");
+    this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "actvs");
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "weights");
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "zs");
     this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", static_cast<ulong>(0));
