@@ -437,7 +437,7 @@ void CoreCPU<T>::propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T
     T* actvsData = actvs[l].data();
     ActvFuncType actvFuncType = layer.actvFuncType;
 
-    ActvFunc::calculate(zsData, actvsData, numNeurons, actvFuncType, false, nullptr, nullptr);
+    ActvFunc::calculate(zsData, actvsData, numNeurons, actvFuncType, false);
   }
 }
 
