@@ -9,8 +9,9 @@ static void testNameToType() {
   CHECK(ANN::ActvFunc::nameToType("sigmoid") == ANN::ActvFuncType::SIGMOID, "sigmoid → SIGMOID");
   CHECK(ANN::ActvFunc::nameToType("tanh") == ANN::ActvFuncType::TANH, "tanh → TANH");
   CHECK(ANN::ActvFunc::nameToType("softmax") == ANN::ActvFuncType::SOFTMAX, "softmax → SOFTMAX");
-  CHECK(ANN::ActvFunc::nameToType("nonexistent") == ANN::ActvFuncType::UNKNOWN, "nonexistent → UNKNOWN");
-  CHECK(ANN::ActvFunc::nameToType("") == ANN::ActvFuncType::UNKNOWN, "empty → UNKNOWN");
+
+  CHECK_THROWS(ANN::ActvFunc::nameToType("nonexistent"), "nonexistent throws");
+  CHECK_THROWS(ANN::ActvFunc::nameToType(""), "empty throws");
 }
 
 //===================================================================================================================//
@@ -22,7 +23,6 @@ static void testTypeToName() {
   CHECK(ANN::ActvFunc::typeToName(ANN::ActvFuncType::SIGMOID) == "sigmoid", "SIGMOID → sigmoid");
   CHECK(ANN::ActvFunc::typeToName(ANN::ActvFuncType::TANH) == "tanh", "TANH → tanh");
   CHECK(ANN::ActvFunc::typeToName(ANN::ActvFuncType::SOFTMAX) == "softmax", "SOFTMAX → softmax");
-  CHECK(ANN::ActvFunc::typeToName(ANN::ActvFuncType::UNKNOWN) == "unknown", "UNKNOWN → unknown");
 }
 
 //===================================================================================================================//
@@ -163,20 +163,6 @@ static void testSoftmaxBackward() {
 
 //===================================================================================================================//
 
-static void testCalculateUnknownThrows() {
-  std::cout << "--- testCalculateUnknownThrows ---" << std::endl;
-
-  bool threw = false;
-  try {
-    ANN::ActvFunc::calculate(1.0f, ANN::ActvFuncType::UNKNOWN);
-  } catch (const std::invalid_argument&) {
-    threw = true;
-  }
-  CHECK(threw, "calculate with UNKNOWN throws");
-}
-
-//===================================================================================================================//
-
 void runActvFuncTests() {
   testNameToType();
   testTypeToName();
@@ -185,6 +171,5 @@ void runActvFuncTests() {
   testTanh();
   testSoftmax();
   testSoftmaxBackward();
-  testCalculateUnknownThrows();
 }
 

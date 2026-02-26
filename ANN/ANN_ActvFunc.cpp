@@ -10,11 +10,11 @@ using namespace ANN;
 ActvFuncType ActvFunc::nameToType(const std::string& name) {
   auto it = actvMap.find(name);
 
-  if (it == actvMap.end()) {
-    return ActvFuncType::UNKNOWN;
-  } else {
+  if (it != actvMap.end()) {
     return it->second;
   }
+
+  throw std::runtime_error("Unknown activation function: " + name);
 }
 
 //===================================================================================================================//
@@ -26,7 +26,7 @@ std::string ActvFunc::typeToName(const ActvFuncType& actvFuncType) {
     }
   }
 
-  return "unknown"; // Default return value for unknown types
+  throw std::runtime_error("Unknown activation function enum value");
 }
 
 //===================================================================================================================//

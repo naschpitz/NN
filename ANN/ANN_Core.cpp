@@ -42,13 +42,8 @@ std::unique_ptr<Core<T>> Core<T>::makeCore(const CoreConfig<T>& coreConfig) {
 
 template <typename T>
 void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig) {
-  if (coreConfig.deviceType == DeviceType::UNKNOWN) {
-    throw std::runtime_error("Unknown deviceType");
-  }
-
-  if (coreConfig.modeType == ModeType::UNKNOWN) {
-    throw std::runtime_error("Unknown modeType");
-  }
+  // deviceType and modeType are validated at parse time by nameToType (throws on invalid)
+  // No additional checks needed here
 }
 
 //===================================================================================================================//

@@ -38,6 +38,12 @@ extern int testsFailed;
 
 #define CHECK_NEAR(a, b, tol, msg) CHECK(std::fabs((a) - (b)) < (tol), msg)
 
+#define CHECK_THROWS(expr, msg) do { \
+  bool threw = false; \
+  try { expr; } catch (...) { threw = true; } \
+  CHECK(threw, msg); \
+} while(0)
+
 inline ANN::LayersConfig makeLayersConfig(std::initializer_list<ANN::Layer> layers) {
   ANN::LayersConfig config;
   for (const auto& layer : layers) {

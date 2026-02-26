@@ -7,8 +7,9 @@ static void testDeviceNameToType() {
 
   CHECK(ANN::Device::nameToType("cpu") == ANN::DeviceType::CPU, "cpu → CPU");
   CHECK(ANN::Device::nameToType("gpu") == ANN::DeviceType::GPU, "gpu → GPU");
-  CHECK(ANN::Device::nameToType("nonexistent") == ANN::DeviceType::UNKNOWN, "nonexistent → UNKNOWN");
-  CHECK(ANN::Device::nameToType("") == ANN::DeviceType::UNKNOWN, "empty → UNKNOWN");
+
+  CHECK_THROWS(ANN::Device::nameToType("nonexistent"), "nonexistent throws");
+  CHECK_THROWS(ANN::Device::nameToType(""), "empty throws");
 }
 
 //===================================================================================================================//
@@ -18,7 +19,6 @@ static void testDeviceTypeToName() {
 
   CHECK(ANN::Device::typeToName(ANN::DeviceType::CPU) == "cpu", "CPU → cpu");
   CHECK(ANN::Device::typeToName(ANN::DeviceType::GPU) == "gpu", "GPU → gpu");
-  CHECK(ANN::Device::typeToName(ANN::DeviceType::UNKNOWN) == "unknown", "UNKNOWN → unknown");
 }
 
 //===================================================================================================================//
@@ -29,7 +29,8 @@ static void testModeNameToType() {
   CHECK(ANN::Mode::nameToType("train") == ANN::ModeType::TRAIN, "train → TRAIN");
   CHECK(ANN::Mode::nameToType("predict") == ANN::ModeType::PREDICT, "predict → PREDICT");
   CHECK(ANN::Mode::nameToType("test") == ANN::ModeType::TEST, "test → TEST");
-  CHECK(ANN::Mode::nameToType("nonexistent") == ANN::ModeType::UNKNOWN, "nonexistent → UNKNOWN");
+
+  CHECK_THROWS(ANN::Mode::nameToType("nonexistent"), "nonexistent throws");
 }
 
 //===================================================================================================================//
@@ -40,7 +41,6 @@ static void testModeTypeToName() {
   CHECK(ANN::Mode::typeToName(ANN::ModeType::TRAIN) == "train", "TRAIN → train");
   CHECK(ANN::Mode::typeToName(ANN::ModeType::PREDICT) == "predict", "PREDICT → predict");
   CHECK(ANN::Mode::typeToName(ANN::ModeType::TEST) == "test", "TEST → test");
-  CHECK(ANN::Mode::typeToName(ANN::ModeType::UNKNOWN) == "unknown", "UNKNOWN → unknown");
 }
 
 //===================================================================================================================//

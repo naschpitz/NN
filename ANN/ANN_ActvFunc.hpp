@@ -10,8 +10,7 @@ namespace ANN {
     RELU,
     SIGMOID,
     TANH,
-    SOFTMAX,
-    UNKNOWN
+    SOFTMAX
   };
 
   const std::unordered_map<std::string, ActvFuncType> actvMap = {

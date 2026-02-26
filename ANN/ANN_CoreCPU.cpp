@@ -27,7 +27,6 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
       break;
     case ModeType::PREDICT:
     case ModeType::TEST:
-    case ModeType::UNKNOWN:
       break;
   }
 }

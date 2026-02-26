@@ -1,5 +1,7 @@
 #include "ANN_Device.hpp"
 
+#include <stdexcept>
+
 using namespace ANN;
 
 //===================================================================================================================//
@@ -7,11 +9,11 @@ using namespace ANN;
 DeviceType Device::nameToType(const std::string& name) {
   auto it = deviceTypeMap.find(name);
 
-  if (it == deviceTypeMap.end()) {
-    return DeviceType::UNKNOWN;
-  } else {
+  if (it != deviceTypeMap.end()) {
     return it->second;
   }
+
+  throw std::runtime_error("Unknown device type: " + name);
 }
 
 //===================================================================================================================//
@@ -23,7 +25,7 @@ std::string Device::typeToName(const DeviceType& deviceType) {
     }
   }
 
-  return "unknown"; // Default return value for unknown types
+  throw std::runtime_error("Unknown device type enum value");
 }
 
 //===================================================================================================================//

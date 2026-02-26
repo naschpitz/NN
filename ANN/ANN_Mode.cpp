@@ -1,5 +1,7 @@
 #include "ANN_Mode.hpp"
 
+#include <stdexcept>
+
 using namespace ANN;
 
 //===================================================================================================================//
@@ -7,11 +9,11 @@ using namespace ANN;
 ModeType Mode::nameToType(const std::string& name) {
   auto it = modeMap.find(name);
 
-  if (it == modeMap.end()) {
-    return ModeType::UNKNOWN;
-  } else {
+  if (it != modeMap.end()) {
     return it->second;
   }
+
+  throw std::runtime_error("Unknown mode type: " + name);
 }
 
 //===================================================================================================================//
@@ -23,7 +25,7 @@ std::string Mode::typeToName(const ModeType& modeType) {
     }
   }
 
-  return "unknown"; // Default return value for unknown types
+  throw std::runtime_error("Unknown mode type enum value");
 }
 
 //===================================================================================================================//

@@ -9,8 +9,7 @@
 namespace ANN {
   enum class DeviceType {
     CPU,
-    GPU,
-    UNKNOWN
+    GPU
   };
 
   const std::unordered_map<std::string, DeviceType> deviceTypeMap = {
