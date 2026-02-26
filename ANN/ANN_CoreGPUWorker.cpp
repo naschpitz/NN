@@ -359,8 +359,8 @@ void CoreGPUWorker<T>::loadSources(bool skipDefines) {
     this->core->addSourceFile(srcDir + "opencl/Defines.hpp.cl");
   }
 
-  this->core->addSourceFile(srcDir + "opencl/ActvFunc.cpp.cl");
   this->core->addSourceFile(srcDir + "opencl/IdxHelper.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ActvFunc.cpp.cl");
   this->core->addSourceFile(srcDir + "opencl/Kernels.cpp.cl");
 
   if (this->logLevel >= LogLevel::INFO) std::cout << "OpenCL kernels loaded.\n";
