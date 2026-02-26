@@ -1,0 +1,16 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "layersConfig": [
+    { "numNeurons": 2, "actvFunc": "relu" },
+    { "numNeurons": 1, "actvFunc": "sigmoid" }
+  ],
+  "costFunctionConfig": {
+    "type": "banana"
+  },
+  "trainingConfig": {
+    "numEpochs": 1,
+    "learningRate": 0.1
+  }
+}
+

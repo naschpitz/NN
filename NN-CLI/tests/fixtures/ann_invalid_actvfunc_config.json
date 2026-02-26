@@ -1,0 +1,13 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "layersConfig": [
+    { "numNeurons": 2, "actvFunc": "relu" },
+    { "numNeurons": 1, "actvFunc": "banana" }
+  ],
+  "trainingConfig": {
+    "numEpochs": 1,
+    "learningRate": 0.1
+  }
+}
+

@@ -126,6 +126,54 @@ static void testBothSamplesAndIdx() {
   std::cout << std::endl;
 }
 
+static void testInvalidActvFuncANN() {
+  std::cout << "  testInvalidActvFuncANN... ";
+
+  auto result = runNNCLI({
+    "--config", fixturePath("ann_invalid_actvfunc_config.json"),
+    "--mode", "train",
+    "--device", "cpu",
+    "--samples", fixturePath("ann_train_samples.json")
+  });
+
+  CHECK(result.exitCode == 1, "Invalid actvFunc ANN: exit code 1");
+  CHECK(result.stdErr.contains("Unknown activation function"),
+        "Invalid actvFunc ANN: error message contains 'Unknown activation function'");
+  std::cout << std::endl;
+}
+
+static void testInvalidActvFuncCNN() {
+  std::cout << "  testInvalidActvFuncCNN... ";
+
+  auto result = runNNCLI({
+    "--config", fixturePath("cnn_invalid_actvfunc_config.json"),
+    "--mode", "train",
+    "--device", "cpu",
+    "--samples", fixturePath("cnn_train_samples.json")
+  });
+
+  CHECK(result.exitCode == 1, "Invalid actvFunc CNN: exit code 1");
+  CHECK(result.stdErr.contains("Unknown activation function"),
+        "Invalid actvFunc CNN: error message contains 'Unknown activation function'");
+  std::cout << std::endl;
+}
+
+static void testInvalidCostFuncANN() {
+  std::cout << "  testInvalidCostFuncANN... ";
+
+  auto result = runNNCLI({
+    "--config", fixturePath("ann_invalid_costfunc_config.json"),
+    "--mode", "train",
+    "--device", "cpu",
+    "--samples", fixturePath("ann_train_samples.json")
+  });
+
+  CHECK(result.exitCode == 1, "Invalid costFunc ANN: exit code 1");
+  CHECK(result.stdErr.contains("Unknown cost function"),
+        "Invalid costFunc ANN: error message contains 'Unknown cost function'");
+  std::cout << std::endl;
+}
+
 void runErrorTests() {
   testMissingConfig();
   testInvalidMode();
@@ -135,5 +183,8 @@ void runErrorTests() {
   testPredictWithoutInput();
   testIdxWithoutLabels();
   testBothSamplesAndIdx();
+  testInvalidActvFuncANN();
+  testInvalidActvFuncCNN();
+  testInvalidCostFuncANN();
 }
 

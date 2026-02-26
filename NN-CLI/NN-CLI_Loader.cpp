@@ -128,7 +128,9 @@ ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath,
     for (const auto& layerJson : json.at("layersConfig")) {
         ANN::Layer layer;
         layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
+
         layer.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
+
         coreConfig.layersConfig.push_back(layer);
     }
 
@@ -254,7 +256,9 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
         for (const auto& layerJson : json.at("denseLayersConfig")) {
             CNN::DenseLayerConfig dense;
             dense.numNeurons = layerJson.at("numNeurons").get<ulong>();
+
             dense.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
+
             coreConfig.layersConfig.denseLayers.push_back(dense);
         }
     }
