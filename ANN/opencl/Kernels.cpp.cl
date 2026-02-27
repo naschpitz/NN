@@ -210,4 +210,48 @@ kernel void calculate_dCost_dBias(
 
 //===================================================================================================================//
 
+// Applies a pre-generated dropout mask to activations (forward pass, training only).
+// mask values are 0 (dropped) or 1/(1-p) (kept with inverted scaling).
+// One work-item per neuron in the layer.
+kernel void apply_dropout(
+    global TYPE* actvs,
+    global TYPE* dropoutMask,
+    ulong layerIdx,
+    global Layer* layers,
+    ulong numLayers
+  ) {
+  size_t gid = get_global_id(0);
+  ulong numNeurons = layers[layerIdx].numNeurons;
+  if (gid >= numNeurons) return;
+
+  // Compute flat activation offset for this layer
+  ulong offset = 0;
+  for (ulong l = 0; l < layerIdx; l++) offset += layers[l].numNeurons;
+
+  actvs[offset + gid] *= dropoutMask[offset + gid];
+}
+
+//===================================================================================================================//
+
+// Applies the same dropout mask to gradients during backpropagation.
+// Dropped neurons (mask=0) get zero gradient; kept neurons scale by 1/(1-p).
+kernel void apply_dropout_backward(
+    global TYPE* dCost_dActvs,
+    global TYPE* dropoutMask,
+    ulong layerIdx,
+    global Layer* layers,
+    ulong numLayers
+  ) {
+  size_t gid = get_global_id(0);
+  ulong numNeurons = layers[layerIdx].numNeurons;
+  if (gid >= numNeurons) return;
+
+  ulong offset = 0;
+  for (ulong l = 0; l < layerIdx; l++) offset += layers[l].numNeurons;
+
+  dCost_dActvs[offset + gid] *= dropoutMask[offset + gid];
+}
+
+//===================================================================================================================//
+
 #endif // KERNELS_CPP_CL

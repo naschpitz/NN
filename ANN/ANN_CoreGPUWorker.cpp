@@ -103,6 +103,9 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, const std::vector<ulo
     this->core->template writeBuffer<T>("actvs", input, 0);
     this->core->template writeBuffer<T>("outputs", output, 0);
 
+    // Generate and upload dropout mask (different mask per sample)
+    if (this->hasDropout) this->generateAndUploadDropoutMask();
+
     // Execute all training kernels (forward pass + backward pass + gradient accumulation)
     this->core->run();
 
@@ -408,6 +411,12 @@ void CoreGPUWorker<T>::allocateBuffers() {
   }
   this->core->template writeBuffer<T>("lossWeights", lossWeightsVec, 0);
 
+  // Dropout mask buffer (allocated if dropout is enabled)
+  this->hasDropout = (this->trainingConfig.dropoutRate > 0.0f);
+  if (this->hasDropout) {
+    this->core->template allocateBuffer<T>("dropoutMask", totalNumNeurons);
+  }
+
   if (this->logLevel >= LogLevel::INFO) std::cout << "ANN buffers allocation done.\n";
 
   // Write initialized weights and biases to GPU buffers
@@ -540,6 +549,17 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     this->core->template addArgument<ulong>(calculate_actvs_id, l);
     this->core->template addArgument<Layer>(calculate_actvs_id, "layers");
     this->core->template addArgument<ulong>(calculate_actvs_id, numLayers);
+
+    // Dropout kernel: apply pre-generated mask after activation (skip last layer)
+    if (this->hasDropout && l < numLayers - 1) {
+      std::string dropout_id = "apply_dropout_layer" + std::to_string(l);
+      this->core->addKernel(dropout_id, "apply_dropout", numNeurons, 0);
+      this->core->template addArgument<T>(dropout_id, "actvs");
+      this->core->template addArgument<T>(dropout_id, "dropoutMask");
+      this->core->template addArgument<ulong>(dropout_id, l);
+      this->core->template addArgument<Layer>(dropout_id, "layers");
+      this->core->template addArgument<ulong>(dropout_id, numLayers);
+    }
   }
 }
 
@@ -611,6 +631,17 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     this->core->template addArgument<ulong>(dCost_dActv_id, layer_idx);
     this->core->template addArgument<Layer>(dCost_dActv_id, "layers");
     this->core->template addArgument<ulong>(dCost_dActv_id, numLayers);
+
+    // Apply dropout mask to gradients (same mask as forward pass)
+    if (this->hasDropout) {
+      std::string dropout_bwd_id = "apply_dropout_backward_layer" + std::to_string(layer_idx);
+      this->core->addKernel(dropout_bwd_id, "apply_dropout_backward", curr_numNeurons, 0);
+      this->core->template addArgument<T>(dropout_bwd_id, "dCost_dActvs");
+      this->core->template addArgument<T>(dropout_bwd_id, "dropoutMask");
+      this->core->template addArgument<ulong>(dropout_bwd_id, layer_idx);
+      this->core->template addArgument<Layer>(dropout_bwd_id, "layers");
+      this->core->template addArgument<ulong>(dropout_bwd_id, numLayers);
+    }
 
     // calculate_dCost_dBias
     this->core->addKernel(dCost_dBias_id, "calculate_dCost_dBias", curr_numBiases, 0);
@@ -740,6 +771,41 @@ Output<T> CoreGPUWorker<T>::readOutput() {
   this->core->readBuffer("actvs", output, outputOffset);
 
   return output;
+}
+
+//===================================================================================================================//
+//-- Dropout mask generation and upload --//
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::generateAndUploadDropoutMask() {
+  ulong numLayers = this->layersConfig.size();
+  float rate = this->trainingConfig.dropoutRate;
+
+  T scale = static_cast<T>(1) / (static_cast<T>(1) - static_cast<T>(rate));
+  std::bernoulli_distribution dist(1.0 - static_cast<double>(rate));
+
+  // Build flat mask matching the flat actvs buffer layout
+  ulong totalNeurons = 0;
+  for (ulong l = 0; l < numLayers; l++) totalNeurons += this->layersConfig[l].numNeurons;
+
+  std::vector<T> mask(totalNeurons);
+  ulong offset = 0;
+
+  for (ulong l = 0; l < numLayers; l++) {
+    ulong numNeurons = this->layersConfig[l].numNeurons;
+
+    // Apply dropout only to hidden layers (skip input layer 0 and output layer N-1)
+    bool applyDropout = (l > 0 && l < numLayers - 1);
+
+    for (ulong j = 0; j < numNeurons; j++) {
+      mask[offset + j] = applyDropout ? (dist(this->dropoutRng) ? scale : static_cast<T>(0))
+                                      : static_cast<T>(1);
+    }
+    offset += numNeurons;
+  }
+
+  this->core->template writeBuffer<T>("dropoutMask", mask, 0);
 }
 
 //===================================================================================================================//

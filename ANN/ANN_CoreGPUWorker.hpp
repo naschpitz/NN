@@ -6,6 +6,7 @@
 #include <OCLW_Core.hpp>
 
 #include <memory>
+#include <random>
 #include <utility>
 
 //===================================================================================================================//
@@ -106,6 +107,11 @@ namespace ANN {
 
       //-- Loss --//
       T calculateLoss(const Output<T>& expected);
+
+      //-- Dropout --//
+      bool hasDropout = false;
+      std::mt19937 dropoutRng{std::random_device{}()};
+      void generateAndUploadDropoutMask();
   };
 }
 

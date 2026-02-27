@@ -6,6 +6,8 @@
 
 #include <QMutex>
 
+#include <random>
+
 //==============================================================================//
 
 namespace ANN {
@@ -22,6 +24,9 @@ namespace ANN {
     Tensor3D<T> accum_dCost_dWeights;
     Tensor2D<T> accum_dCost_dBiases;
     T accum_loss;  // Thread-local loss accumulator
+    // Dropout masks: dropoutMasks[l][j] = 0 (dropped) or 1/(1-p) (kept, with inverted scaling)
+    Tensor2D<T> dropoutMasks;
+    std::mt19937 rng{std::random_device{}()};
   };
 
   template <typename T>
@@ -48,15 +53,21 @@ namespace ANN {
       Tensor2D<T> dCost_dBiases, accum_dCost_dBiases;
       QMutex accumulatorMutex;
 
+      //-- Dropout state (for step-by-step path used by CNN) --//
+      Tensor2D<T> dropoutMasks;
+      std::mt19937 dropoutRng{std::random_device{}()};
+
       //-- Allocation --//
       void allocateCommon();
       void allocateTraining();
       void allocateWorker(SampleWorker<T>& worker);
 
       //-- Forward / Backward pass --//
-      void propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T>& zs);
+      void propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T>& zs,
+                     bool applyDropout = false, Tensor2D<T>* dropoutMasks = nullptr, std::mt19937* rng = nullptr);
       void backpropagate(const Output<T>& output, const Tensor2D<T>& actvs, const Tensor2D<T>& zs,
-                         Tensor2D<T>& dCost_dActvs, Tensor3D<T>& dCost_dWeights, Tensor2D<T>& dCost_dBiases);
+                         Tensor2D<T>& dCost_dActvs, Tensor3D<T>& dCost_dWeights, Tensor2D<T>& dCost_dBiases,
+                         const Tensor2D<T>* dropoutMasks = nullptr);
 
       //-- Gradient helpers --//
       T calc_dCost_dActv(ulong j, const Output<T>& output, const Tensor2D<T>& actvs);

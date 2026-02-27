@@ -124,11 +124,12 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
 
         // Process the sample using the shared computation functions
         const Sample<T>& sample = samples[sampleIndex];
-        this->propagate(sample.input, worker.actvs, worker.zs);
+        this->propagate(sample.input, worker.actvs, worker.zs, true, &worker.dropoutMasks, &worker.rng);
         worker.sampleLoss = this->calculateLoss(sample.output, worker.actvs);
 
         this->backpropagate(sample.output, worker.actvs, worker.zs,
-                            worker.dCost_dActvs, worker.dCost_dWeights, worker.dCost_dBiases);
+                            worker.dCost_dActvs, worker.dCost_dWeights, worker.dCost_dBiases,
+                            &worker.dropoutMasks);
 
         // Accumulate loss to worker's local accumulator (no atomic needed - each thread has its own worker)
         worker.accum_loss += worker.sampleLoss;
@@ -335,6 +336,7 @@ void CoreCPU<T>::allocateTraining() {
 
   this->dCost_dActvs.resize(numLayers);
   this->accum_dCost_dWeights.resize(numLayers);
+  this->dropoutMasks.resize(numLayers);
 
   this->dCost_dWeights.resize(numLayers);
   this->dCost_dBiases.resize(numLayers);
@@ -377,6 +379,7 @@ void CoreCPU<T>::allocateWorker(SampleWorker<T>& worker) {
   worker.dCost_dBiases.resize(numLayers);
   worker.accum_dCost_dWeights.resize(numLayers);
   worker.accum_dCost_dBiases.resize(numLayers);
+  worker.dropoutMasks.resize(numLayers);
 
   for (ulong l = 0; l < numLayers; l++) {
     Layer layer = this->layersConfig[l];
@@ -409,8 +412,10 @@ void CoreCPU<T>::allocateWorker(SampleWorker<T>& worker) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T>& zs) {
+void CoreCPU<T>::propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T>& zs,
+                            bool applyDropout, Tensor2D<T>* dropoutMasks, std::mt19937* rng) {
   ulong numLayers = this->layersConfig.size();
+  float dropoutRate = this->trainingConfig.dropoutRate;
 
   // Set the actvs values of the Neurons of the first layer the same values as the input.
   actvs[0] = input;
@@ -438,6 +443,19 @@ void CoreCPU<T>::propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T
     ActvFuncType actvFuncType = layer.actvFuncType;
 
     ActvFunc::calculate(zsData, actvsData, numNeurons, actvFuncType, false);
+
+    // Apply dropout after activation (skip the last layer — output should not be dropped)
+    if (applyDropout && dropoutMasks && rng && l < numLayers - 1 && dropoutRate > 0.0f) {
+      T scale = static_cast<T>(1) / (static_cast<T>(1) - static_cast<T>(dropoutRate));
+      std::bernoulli_distribution dist(1.0 - static_cast<double>(dropoutRate));
+
+      (*dropoutMasks)[l].resize(numNeurons);
+      for (ulong j = 0; j < numNeurons; j++) {
+        T mask = dist(*rng) ? scale : static_cast<T>(0);
+        (*dropoutMasks)[l][j] = mask;
+        actvs[l][j] *= mask;
+      }
+    }
   }
 }
 
@@ -445,10 +463,11 @@ void CoreCPU<T>::propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T
 
 template <typename T>
 void CoreCPU<T>::backpropagate(const Output<T>& output, const Tensor2D<T>& actvs, const Tensor2D<T>& zs,
-                                Tensor2D<T>& dCost_dActvs, Tensor3D<T>& dCost_dWeights, Tensor2D<T>& dCost_dBiases) {
+                                Tensor2D<T>& dCost_dActvs, Tensor3D<T>& dCost_dWeights, Tensor2D<T>& dCost_dBiases,
+                                const Tensor2D<T>* dropoutMasks) {
   ulong numLayers = this->layersConfig.size();
 
-  // For the last layer, calculate dCost_dActv
+  // For the last layer, calculate dCost_dActv (no dropout on output layer)
   ulong l = numLayers - 1;
 
   const Layer& layer = this->layersConfig[l];
@@ -477,6 +496,13 @@ void CoreCPU<T>::backpropagate(const Output<T>& output, const Tensor2D<T>& actvs
     // First pass: compute all dCost_dActvs for this layer
     for (ulong j = 0; j < numNeurons; j++) {
       dCost_dActvs[l][j] = this->calc_dCost_dActv(l, j, actvs, zs, dCost_dActvs);
+    }
+
+    // Apply dropout mask to gradients (same mask as forward pass)
+    if (dropoutMasks && !(*dropoutMasks)[l].empty()) {
+      for (ulong j = 0; j < numNeurons; j++) {
+        dCost_dActvs[l][j] *= (*dropoutMasks)[l][j];
+      }
     }
 
     // Second pass: compute bias and weight gradients
@@ -749,7 +775,8 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 
 template <typename T>
 void CoreCPU<T>::propagate(const Input<T>& input) {
-  this->propagate(input, this->actvs, this->zs);
+  bool applyDropout = (this->modeType == ModeType::TRAIN);
+  this->propagate(input, this->actvs, this->zs, applyDropout, &this->dropoutMasks, &this->dropoutRng);
 }
 
 //===================================================================================================================//
@@ -769,8 +796,9 @@ template <typename T>
 Tensor1D<T> CoreCPU<T>::backpropagate(const Output<T>& output) {
   // Uses stored actvs/zs from the last predict() call
   // Computes gradients into member dCost_dActvs, dCost_dWeights, dCost_dBiases
+  const Tensor2D<T>* masks = (this->modeType == ModeType::TRAIN) ? &this->dropoutMasks : nullptr;
   this->backpropagate(output, this->actvs, this->zs,
-                      this->dCost_dActvs, this->dCost_dWeights, this->dCost_dBiases);
+                      this->dCost_dActvs, this->dCost_dWeights, this->dCost_dBiases, masks);
 
   // Additionally compute dCost_dActvs for the input layer (layer 0)
   // This is needed by external orchestrators (e.g., CNN) to continue backpropagation
