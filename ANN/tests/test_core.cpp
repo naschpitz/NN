@@ -857,7 +857,7 @@ static void testDropoutTraining() {
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::NONE},
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU},
                                            {8, ANN::ActvFuncType::RELU},
                                            {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 2000;
@@ -892,7 +892,7 @@ static void testDropoutDisabledByDefault() {
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::NONE}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
   CHECK(config.trainingConfig.dropoutRate == 0.0f, "dropoutRate defaults to 0.0");
 }
