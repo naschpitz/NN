@@ -74,12 +74,12 @@ public:
 
   // Load data augmentation config from trainingConfig (NN-CLI handles augmentation, not ANN/CNN)
   struct AugmentationTransforms {
-    bool horizontalFlip  = true;  // Mirror along vertical axis
-    bool rotation        = true;  // Random rotation ±15°
-    bool translation     = true;  // Random shift ±10%
-    bool brightness      = true;  // Random brightness ±0.1
-    bool contrast        = true;  // Random contrast 0.8–1.2×
-    bool gaussianNoise   = true;  // Gaussian noise σ=0.02
+    float horizontalFlip = 0.5f;   // Flip probability (0 = disabled, 0.5 = 50% chance)
+    float rotation       = 15.0f;  // Max rotation in degrees (0 = disabled, 15 = ±15°)
+    float translation    = 0.1f;   // Max shift as fraction of image size (0 = disabled, 0.1 = ±10%)
+    float brightness     = 0.1f;   // Max brightness delta (0 = disabled, 0.1 = ±0.1)
+    float contrast       = 0.2f;   // Max contrast delta from 1.0 (0 = disabled, 0.2 = range 0.8–1.2×)
+    float gaussianNoise  = 0.02f;  // Noise standard deviation (0 = disabled, 0.02 = σ=0.02)
   };
 
   struct AugmentationConfig {

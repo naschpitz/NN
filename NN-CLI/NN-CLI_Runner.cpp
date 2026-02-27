@@ -1034,9 +1034,9 @@ void Runner::augmentSamples(std::vector<SampleT>& samples) {
       if (hasImageShape) {
         ImageLoader::applyRandomTransforms(getInputData(newSample), shape.c, shape.h, shape.w, rng,
                                               this->augTransforms);
-      } else if (this->augTransforms.gaussianNoise) {
-        // For non-image data, add small Gaussian noise
-        ImageLoader::addGaussianNoise(getInputData(newSample), 0.02f, rng);
+      } else if (this->augTransforms.gaussianNoise > 0.0f) {
+        // For non-image data, add Gaussian noise with configured stddev
+        ImageLoader::addGaussianNoise(getInputData(newSample), this->augTransforms.gaussianNoise, rng);
       }
 
       augmented.push_back(std::move(newSample));

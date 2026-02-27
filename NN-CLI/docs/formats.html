@@ -67,12 +67,12 @@
     <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
     <span class="string">"autoClassWeights"</span>: <span class="keyword">true</span>,
     <span class="string">"augmentationTransforms"</span>: {
-      <span class="string">"horizontalFlip"</span>: <span class="keyword">true</span>,
-      <span class="string">"rotation"</span>: <span class="keyword">true</span>,
-      <span class="string">"translation"</span>: <span class="keyword">true</span>,
-      <span class="string">"brightness"</span>: <span class="keyword">true</span>,
-      <span class="string">"contrast"</span>: <span class="keyword">true</span>,
-      <span class="string">"gaussianNoise"</span>: <span class="keyword">true</span>
+      <span class="string">"horizontalFlip"</span>: <span class="number">0.5</span>,
+      <span class="string">"rotation"</span>: <span class="number">15.0</span>,
+      <span class="string">"translation"</span>: <span class="number">0.1</span>,
+      <span class="string">"brightness"</span>: <span class="number">0.1</span>,
+      <span class="string">"contrast"</span>: <span class="number">0.2</span>,
+      <span class="string">"gaussianNoise"</span>: <span class="number">0.02</span>
     }
   }
 }
@@ -102,13 +102,13 @@
   <tr><td><code>trainingConfig.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>
   <tr><td><code>trainingConfig.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false)</td></tr>
   <tr><td><code>trainingConfig.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms</code></td><td>object</td><td>No</td><td>Selectively enable/disable augmentation transforms (all true by default)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.horizontalFlip</code></td><td>bool</td><td>No</td><td>Mirror along vertical axis (default true)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.rotation</code></td><td>bool</td><td>No</td><td>Random rotation ±15° (default true)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.translation</code></td><td>bool</td><td>No</td><td>Random shift ±10% (default true)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.brightness</code></td><td>bool</td><td>No</td><td>Random brightness ±0.1 (default true)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.contrast</code></td><td>bool</td><td>No</td><td>Random contrast 0.8–1.2× (default true)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.gaussianNoise</code></td><td>bool</td><td>No</td><td>Gaussian noise σ=0.02 (default true)</td></tr>
+  <tr><td><code>trainingConfig.augmentationTransforms</code></td><td>object</td><td>No</td><td>Control augmentation transform intensities (0 = disabled; defaults shown)</td></tr>
+  <tr><td><code>trainingConfig.augmentationTransforms.horizontalFlip</code></td><td>float</td><td>No</td><td>Flip probability (default 0.5; 0 = disabled)</td></tr>
+  <tr><td><code>trainingConfig.augmentationTransforms.rotation</code></td><td>float</td><td>No</td><td>Max rotation in degrees (default 15.0 = ±15°; 0 = disabled)</td></tr>
+  <tr><td><code>trainingConfig.augmentationTransforms.translation</code></td><td>float</td><td>No</td><td>Max shift as fraction of image size (default 0.1 = ±10%; 0 = disabled)</td></tr>
+  <tr><td><code>trainingConfig.augmentationTransforms.brightness</code></td><td>float</td><td>No</td><td>Max brightness delta (default 0.1 = ±0.1; 0 = disabled)</td></tr>
+  <tr><td><code>trainingConfig.augmentationTransforms.contrast</code></td><td>float</td><td>No</td><td>Max contrast delta from 1.0 (default 0.2 = range 0.8–1.2×; 0 = disabled)</td></tr>
+  <tr><td><code>trainingConfig.augmentationTransforms.gaussianNoise</code></td><td>float</td><td>No</td><td>Noise standard deviation (default 0.02 = σ=0.02; 0 = disabled)</td></tr>
   <tr><td><code>numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>numGPUs</code></td><td>int</td><td>No</td><td>Number of GPUs to use (0 = all available)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
@@ -148,7 +148,7 @@
     <span class="string">"dropoutRate"</span>: <span class="number">0.3</span>,
     <span class="string">"augmentationFactor"</span>: <span class="number">2</span>,
     <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
-    <span class="string">"augmentationTransforms"</span>: { <span class="string">"horizontalFlip"</span>: <span class="keyword">true</span>, <span class="string">"rotation"</span>: <span class="keyword">true</span> }
+    <span class="string">"augmentationTransforms"</span>: { <span class="string">"horizontalFlip"</span>: <span class="number">0.5</span>, <span class="string">"rotation"</span>: <span class="number">15.0</span> }
   }
 }
 </code></pre>

@@ -257,24 +257,36 @@ void ImageLoader::applyRandomTransforms(std::vector<float>& data, int c, int h, 
                                          const Loader::AugmentationTransforms& transforms) {
   std::bernoulli_distribution coin(0.5);
 
-  // Horizontal flip (50% chance)
-  if (transforms.horizontalFlip && coin(rng)) horizontalFlip(data, c, h, w);
+  // Horizontal flip (applied with probability = horizontalFlip value, 0 = disabled)
+  if (transforms.horizontalFlip > 0.0f) {
+    std::bernoulli_distribution flipCoin(transforms.horizontalFlip);
+    if (flipCoin(rng)) horizontalFlip(data, c, h, w);
+  }
 
-  // Random rotation ±15° (50% chance)
-  if (transforms.rotation && coin(rng)) randomRotation(data, c, h, w, 15.0f, rng);
+  // Random rotation (max degrees from config, 0 = disabled)
+  if (transforms.rotation > 0.0f && coin(rng))
+    randomRotation(data, c, h, w, transforms.rotation, rng);
 
-  // Random translation ±10% (50% chance)
-  if (transforms.translation && coin(rng)) randomTranslation(data, c, h, w, 0.1f, rng);
+  // Random translation (max fraction from config, 0 = disabled)
+  if (transforms.translation > 0.0f && coin(rng))
+    randomTranslation(data, c, h, w, transforms.translation, rng);
 
-  // Random brightness ±0.1 (50% chance)
-  if (transforms.brightness && coin(rng)) randomBrightness(data, c, h, w, 0.1f, rng);
+  // Random brightness (max delta from config, 0 = disabled)
+  if (transforms.brightness > 0.0f && coin(rng))
+    randomBrightness(data, c, h, w, transforms.brightness, rng);
 
-  // Random contrast 0.8–1.2 (50% chance)
-  if (transforms.contrast && coin(rng)) randomContrast(data, c, h, w, 0.8f, 1.2f, rng);
+  // Random contrast (delta from 1.0 from config, 0 = disabled)
+  if (transforms.contrast > 0.0f && coin(rng)) {
+    float minFactor = 1.0f - transforms.contrast;
+    float maxFactor = 1.0f + transforms.contrast;
+    randomContrast(data, c, h, w, minFactor, maxFactor, rng);
+  }
 
-  // Gaussian noise σ=0.02 (30% chance)
-  std::bernoulli_distribution noiseCoin(0.3);
-  if (transforms.gaussianNoise && noiseCoin(rng)) addGaussianNoise(data, 0.02f, rng);
+  // Gaussian noise (stddev from config, 0 = disabled)
+  if (transforms.gaussianNoise > 0.0f) {
+    std::bernoulli_distribution noiseCoin(0.3);
+    if (noiseCoin(rng)) addGaussianNoise(data, transforms.gaussianNoise, rng);
+  }
 }
 
 //===================================================================================================================//

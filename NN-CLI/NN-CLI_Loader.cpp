@@ -614,12 +614,12 @@ Loader::AugmentationConfig Loader::loadAugmentationConfig(const std::string& con
         if (tc.contains("augmentationTransforms")) {
             const auto& at = tc.at("augmentationTransforms");
             auto& t = config.transforms;
-            if (at.contains("horizontalFlip"))  t.horizontalFlip  = at.at("horizontalFlip").get<bool>();
-            if (at.contains("rotation"))        t.rotation        = at.at("rotation").get<bool>();
-            if (at.contains("translation"))     t.translation     = at.at("translation").get<bool>();
-            if (at.contains("brightness"))      t.brightness      = at.at("brightness").get<bool>();
-            if (at.contains("contrast"))        t.contrast        = at.at("contrast").get<bool>();
-            if (at.contains("gaussianNoise"))   t.gaussianNoise   = at.at("gaussianNoise").get<bool>();
+            if (at.contains("horizontalFlip"))  t.horizontalFlip  = at.at("horizontalFlip").get<float>();
+            if (at.contains("rotation"))        t.rotation        = at.at("rotation").get<float>();
+            if (at.contains("translation"))     t.translation     = at.at("translation").get<float>();
+            if (at.contains("brightness"))      t.brightness      = at.at("brightness").get<float>();
+            if (at.contains("contrast"))        t.contrast        = at.at("contrast").get<float>();
+            if (at.contains("gaussianNoise"))   t.gaussianNoise   = at.at("gaussianNoise").get<float>();
         }
     }
 

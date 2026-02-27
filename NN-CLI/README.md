@@ -81,12 +81,12 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
     "balanceAugmentation": true,
     "autoClassWeights": true,
     "augmentationTransforms": {
-      "horizontalFlip": true,
-      "rotation": true,
-      "translation": true,
-      "brightness": true,
-      "contrast": true,
-      "gaussianNoise": true
+      "horizontalFlip": 0.5,
+      "rotation": 15.0,
+      "translation": 0.1,
+      "brightness": 0.1,
+      "contrast": 0.2,
+      "gaussianNoise": 0.02
     }
   }
 }
@@ -150,13 +150,13 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `augmentationFactor`: Multiply each class by N× using random transforms (default: `0` = disabled). NN-CLI applies transforms before passing samples to the library
 - `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). When combined with `augmentationFactor`, the balanced count is also multiplied
 - `autoClassWeights`: Auto-compute inverse-frequency class weights and set `weightedSquaredDifference` cost function (default: `false`). Only applies when no manual `costFunctionConfig.weights` are specified
-- `augmentationTransforms`: Object to selectively enable/disable individual augmentation transforms (all `true` by default). Set any to `false` to skip it:
-  - `horizontalFlip`: Mirror along vertical axis
-  - `rotation`: Random rotation ±15°
-  - `translation`: Random shift ±10%
-  - `brightness`: Random brightness ±0.1
-  - `contrast`: Random contrast 0.8–1.2×
-  - `gaussianNoise`: Gaussian noise σ=0.02
+- `augmentationTransforms`: Object controlling individual augmentation transforms. Each value is a number controlling the transform intensity; set to `0` to disable. Defaults shown below:
+  - `horizontalFlip`: Flip probability (default: `0.5` = 50% chance, `0` = disabled)
+  - `rotation`: Max rotation in degrees (default: `15.0` = ±15°, `0` = disabled)
+  - `translation`: Max shift as fraction of image size (default: `0.1` = ±10%, `0` = disabled)
+  - `brightness`: Max brightness delta (default: `0.1` = ±0.1, `0` = disabled)
+  - `contrast`: Max contrast delta from 1.0 (default: `0.2` = range 0.8–1.2×, `0` = disabled)
+  - `gaussianNoise`: Noise standard deviation (default: `0.02` = σ=0.02, `0` = disabled)
 
 ## CNN Configuration
 
@@ -196,8 +196,8 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
     "balanceAugmentation": true,
     "autoClassWeights": true,
     "augmentationTransforms": {
-      "horizontalFlip": true,
-      "rotation": true
+      "horizontalFlip": 0.5,
+      "rotation": 15.0
     }
   }
 }
@@ -249,7 +249,7 @@ Each layer has a `type` field:
 - `augmentationFactor`: Multiply each class by N× using random image transforms (default: `0` = disabled)
 - `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`)
 - `autoClassWeights`: Auto-compute inverse-frequency class weights (default: `false`)
-- `augmentationTransforms`: Selectively enable/disable transforms (same fields as ANN — all `true` by default)
+- `augmentationTransforms`: Control individual transforms with numeric intensity (same fields as ANN — see above for defaults; `0` = disabled)
 
 ## Model File (output from training)
 
