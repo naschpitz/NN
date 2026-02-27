@@ -73,10 +73,20 @@ public:
   static ulong loadSaveModelInterval(const std::string& configFilePath);
 
   // Load data augmentation config from trainingConfig (NN-CLI handles augmentation, not ANN/CNN)
+  struct AugmentationTransforms {
+    bool horizontalFlip  = true;  // Mirror along vertical axis
+    bool rotation        = true;  // Random rotation ±15°
+    bool translation     = true;  // Random shift ±10%
+    bool brightness      = true;  // Random brightness ±0.1
+    bool contrast        = true;  // Random contrast 0.8–1.2×
+    bool gaussianNoise   = true;  // Gaussian noise σ=0.02
+  };
+
   struct AugmentationConfig {
     ulong augmentationFactor = 0;     // 0 = disabled; N = N× total samples per class
     bool balanceAugmentation = false; // true = augment minority classes up to max class count
     bool autoClassWeights = false;    // true = auto-compute inverse-frequency class weights
+    AugmentationTransforms transforms; // Which transforms to apply (all enabled by default)
   };
   static AugmentationConfig loadAugmentationConfig(const std::string& configFilePath);
 };

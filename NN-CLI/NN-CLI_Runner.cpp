@@ -85,6 +85,7 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel)
   this->augmentationFactor = augConfig.augmentationFactor;
   this->balanceAugmentation = augConfig.balanceAugmentation;
   this->autoClassWeights = augConfig.autoClassWeights;
+  this->augTransforms = augConfig.transforms;
 
   if (this->logLevel >= LogLevel::INFO && this->saveModelInterval > 0) {
     std::cout << "Save model interval: every " << this->saveModelInterval << " epoch(s)\n";
@@ -1031,8 +1032,9 @@ void Runner::augmentSamples(std::vector<SampleT>& samples) {
       SampleT newSample = samples[srcIdx]; // copy
 
       if (hasImageShape) {
-        ImageLoader::applyRandomTransforms(getInputData(newSample), shape.c, shape.h, shape.w, rng);
-      } else {
+        ImageLoader::applyRandomTransforms(getInputData(newSample), shape.c, shape.h, shape.w, rng,
+                                              this->augTransforms);
+      } else if (this->augTransforms.gaussianNoise) {
         // For non-image data, add small Gaussian noise
         ImageLoader::addGaussianNoise(getInputData(newSample), 0.02f, rng);
       }

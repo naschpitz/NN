@@ -79,7 +79,15 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
     "dropoutRate": 0.3,
     "augmentationFactor": 2,
     "balanceAugmentation": true,
-    "autoClassWeights": true
+    "autoClassWeights": true,
+    "augmentationTransforms": {
+      "horizontalFlip": true,
+      "rotation": true,
+      "translation": true,
+      "brightness": true,
+      "contrast": true,
+      "gaussianNoise": true
+    }
   }
 }
 ```
@@ -142,6 +150,13 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `augmentationFactor`: Multiply each class by N× using random transforms (default: `0` = disabled). NN-CLI applies transforms before passing samples to the library
 - `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). When combined with `augmentationFactor`, the balanced count is also multiplied
 - `autoClassWeights`: Auto-compute inverse-frequency class weights and set `weightedSquaredDifference` cost function (default: `false`). Only applies when no manual `costFunctionConfig.weights` are specified
+- `augmentationTransforms`: Object to selectively enable/disable individual augmentation transforms (all `true` by default). Set any to `false` to skip it:
+  - `horizontalFlip`: Mirror along vertical axis
+  - `rotation`: Random rotation ±15°
+  - `translation`: Random shift ±10%
+  - `brightness`: Random brightness ±0.1
+  - `contrast`: Random contrast 0.8–1.2×
+  - `gaussianNoise`: Gaussian noise σ=0.02
 
 ## CNN Configuration
 
@@ -179,7 +194,11 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
     "dropoutRate": 0.3,
     "augmentationFactor": 2,
     "balanceAugmentation": true,
-    "autoClassWeights": true
+    "autoClassWeights": true,
+    "augmentationTransforms": {
+      "horizontalFlip": true,
+      "rotation": true
+    }
   }
 }
 ```
@@ -230,6 +249,7 @@ Each layer has a `type` field:
 - `augmentationFactor`: Multiply each class by N× using random image transforms (default: `0` = disabled)
 - `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`)
 - `autoClassWeights`: Auto-compute inverse-frequency class weights (default: `false`)
+- `augmentationTransforms`: Selectively enable/disable transforms (same fields as ANN — all `true` by default)
 
 ## Model File (output from training)
 

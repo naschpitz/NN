@@ -81,6 +81,7 @@ class Runner {
     ulong augmentationFactor = 0;     // 0 = disabled; N = N× total samples per class
     bool balanceAugmentation = false; // true = augment minority classes up to max class count
     bool autoClassWeights = false;    // true = auto-compute inverse-frequency class weights
+    Loader::AugmentationTransforms augTransforms; // Which transforms to apply
 
     //-- ANN members --//
     std::unique_ptr<ANN::Core<float>> annCore;

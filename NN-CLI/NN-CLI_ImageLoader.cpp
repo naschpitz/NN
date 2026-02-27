@@ -253,27 +253,28 @@ void ImageLoader::addGaussianNoise(std::vector<float>& data, float stddev, std::
 //===================================================================================================================//
 
 void ImageLoader::applyRandomTransforms(std::vector<float>& data, int c, int h, int w,
-                                         std::mt19937& rng) {
+                                         std::mt19937& rng,
+                                         const Loader::AugmentationTransforms& transforms) {
   std::bernoulli_distribution coin(0.5);
 
   // Horizontal flip (50% chance)
-  if (coin(rng)) horizontalFlip(data, c, h, w);
+  if (transforms.horizontalFlip && coin(rng)) horizontalFlip(data, c, h, w);
 
   // Random rotation ±15° (50% chance)
-  if (coin(rng)) randomRotation(data, c, h, w, 15.0f, rng);
+  if (transforms.rotation && coin(rng)) randomRotation(data, c, h, w, 15.0f, rng);
 
   // Random translation ±10% (50% chance)
-  if (coin(rng)) randomTranslation(data, c, h, w, 0.1f, rng);
+  if (transforms.translation && coin(rng)) randomTranslation(data, c, h, w, 0.1f, rng);
 
   // Random brightness ±0.1 (50% chance)
-  if (coin(rng)) randomBrightness(data, c, h, w, 0.1f, rng);
+  if (transforms.brightness && coin(rng)) randomBrightness(data, c, h, w, 0.1f, rng);
 
   // Random contrast 0.8–1.2 (50% chance)
-  if (coin(rng)) randomContrast(data, c, h, w, 0.8f, 1.2f, rng);
+  if (transforms.contrast && coin(rng)) randomContrast(data, c, h, w, 0.8f, 1.2f, rng);
 
   // Gaussian noise σ=0.02 (30% chance)
   std::bernoulli_distribution noiseCoin(0.3);
-  if (noiseCoin(rng)) addGaussianNoise(data, 0.02f, rng);
+  if (transforms.gaussianNoise && noiseCoin(rng)) addGaussianNoise(data, 0.02f, rng);
 }
 
 //===================================================================================================================//

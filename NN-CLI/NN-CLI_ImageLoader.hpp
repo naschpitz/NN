@@ -1,6 +1,8 @@
 #ifndef NN_CLI_IMAGELOADER_HPP
 #define NN_CLI_IMAGELOADER_HPP
 
+#include "NN-CLI_Loader.hpp"
+
 #include <random>
 #include <string>
 #include <vector>
@@ -8,6 +10,7 @@
 //===================================================================================================================//
 
 namespace NN_CLI {
+
 
 /**
  * ImageLoader: utility to load images into flat NCHW float vectors and save vectors as images.
@@ -42,7 +45,8 @@ public:
   // Apply a random combination of transforms to an NCHW buffer.
   // rng: random engine for reproducibility.
   static void applyRandomTransforms(std::vector<float>& data, int c, int h, int w,
-                                     std::mt19937& rng);
+                                     std::mt19937& rng,
+                                     const Loader::AugmentationTransforms& transforms = {});
 
   // Individual transforms (all operate on NCHW [0,1] data)
   static void horizontalFlip(std::vector<float>& data, int c, int h, int w);
