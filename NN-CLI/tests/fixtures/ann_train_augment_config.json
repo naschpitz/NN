@@ -1,0 +1,20 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "numThreads": 1,
+  "progressReports": 0,
+  "saveModelInterval": 0,
+  "layersConfig": [
+    { "numNeurons": 2, "actvFunc": "relu" },
+    { "numNeurons": 8, "actvFunc": "relu" },
+    { "numNeurons": 2, "actvFunc": "sigmoid" }
+  ],
+  "trainingConfig": {
+    "numEpochs": 100,
+    "learningRate": 0.5,
+    "augmentationFactor": 2,
+    "balanceAugmentation": true,
+    "autoClassWeights": true
+  }
+}
+

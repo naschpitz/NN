@@ -148,6 +148,7 @@ ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath,
         coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
         if (tc.contains("batchSize")) coreConfig.trainingConfig.batchSize = tc.at("batchSize").get<ulong>();
         if (tc.contains("shuffleSamples")) coreConfig.trainingConfig.shuffleSamples = tc.at("shuffleSamples").get<bool>();
+        if (tc.contains("dropoutRate")) coreConfig.trainingConfig.dropoutRate = tc.at("dropoutRate").get<float>();
     }
 
     if (json.contains("parameters")) {
@@ -279,6 +280,7 @@ CNN::CoreConfig<float> Loader::loadCNNConfig(const std::string& configFilePath,
         coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
         if (tc.contains("batchSize")) coreConfig.trainingConfig.batchSize = tc.at("batchSize").get<ulong>();
         if (tc.contains("shuffleSamples")) coreConfig.trainingConfig.shuffleSamples = tc.at("shuffleSamples").get<bool>();
+        if (tc.contains("dropoutRate")) coreConfig.trainingConfig.dropoutRate = tc.at("dropoutRate").get<float>();
     }
 
     // Parameters (for predict/test modes or resuming training)
@@ -584,6 +586,33 @@ ulong Loader::loadSaveModelInterval(const std::string& configFilePath) {
     }
 
     return 10; // default: save every 10 epochs
+}
+
+//===================================================================================================================//
+
+Loader::AugmentationConfig Loader::loadAugmentationConfig(const std::string& configFilePath) {
+    QFile file(QString::fromStdString(configFilePath));
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        throw std::runtime_error("Failed to open config file: " + configFilePath);
+    }
+
+    QByteArray fileData = file.readAll();
+    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    AugmentationConfig config;
+
+    if (json.contains("trainingConfig")) {
+        const auto& tc = json.at("trainingConfig");
+        if (tc.contains("augmentationFactor"))
+            config.augmentationFactor = tc.at("augmentationFactor").get<ulong>();
+        if (tc.contains("balanceAugmentation"))
+            config.balanceAugmentation = tc.at("balanceAugmentation").get<bool>();
+        if (tc.contains("autoClassWeights"))
+            config.autoClassWeights = tc.at("autoClassWeights").get<bool>();
+    }
+
+    return config;
 }
 
 //===================================================================================================================//

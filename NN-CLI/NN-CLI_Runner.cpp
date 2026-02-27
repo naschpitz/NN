@@ -13,9 +13,13 @@
 
 #include <json.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <map>
+#include <numeric>
+#include <random>
 #include <sstream>
 
 using namespace NN_CLI;
@@ -76,6 +80,12 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel)
   this->progressReports = Loader::loadProgressReports(configPath.toStdString());
   this->saveModelInterval = Loader::loadSaveModelInterval(configPath.toStdString());
 
+  // Load data augmentation config
+  auto augConfig = Loader::loadAugmentationConfig(configPath.toStdString());
+  this->augmentationFactor = augConfig.augmentationFactor;
+  this->balanceAugmentation = augConfig.balanceAugmentation;
+  this->autoClassWeights = augConfig.autoClassWeights;
+
   if (this->logLevel >= LogLevel::INFO && this->saveModelInterval > 0) {
     std::cout << "Save model interval: every " << this->saveModelInterval << " epoch(s)\n";
   }
@@ -122,6 +132,24 @@ int Runner::runANNTrain() {
   QString inputFilePath;
   auto [samples, success] = this->loadANNSamplesFromOptions("training", inputFilePath);
   if (!success) return 1;
+
+  this->augmentSamples(samples);
+
+  // Auto-compute class weights if enabled and no manual weights specified
+  if (this->autoClassWeights && this->annCoreConfig.costFunctionConfig.weights.empty()) {
+    auto weights = this->computeClassWeights(samples);
+    this->annCoreConfig.costFunctionConfig.type = ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+    this->annCoreConfig.costFunctionConfig.weights = weights;
+    this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
+    if (this->logLevel >= LogLevel::INFO) {
+      std::cout << "Auto class weights: [";
+      for (ulong i = 0; i < weights.size(); i++) {
+        if (i > 0) std::cout << ", ";
+        std::cout << std::fixed << std::setprecision(4) << weights[i];
+      }
+      std::cout << "]\n";
+    }
+  }
 
   if (this->logLevel >= LogLevel::INFO) std::cout << "Starting ANN training...\n";
 
@@ -317,6 +345,24 @@ int Runner::runCNNTrain() {
   QString inputFilePath;
   auto [samples, success] = this->loadCNNSamplesFromOptions("training", inputFilePath);
   if (!success) return 1;
+
+  this->augmentSamples(samples);
+
+  // Auto-compute class weights if enabled and no manual weights specified
+  if (this->autoClassWeights && this->cnnCoreConfig.costFunctionConfig.weights.empty()) {
+    auto weights = this->computeClassWeights(samples);
+    this->cnnCoreConfig.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+    this->cnnCoreConfig.costFunctionConfig.weights = weights;
+    this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
+    if (this->logLevel >= LogLevel::INFO) {
+      std::cout << "Auto class weights: [";
+      for (ulong i = 0; i < weights.size(); i++) {
+        if (i > 0) std::cout << ", ";
+        std::cout << std::fixed << std::setprecision(4) << weights[i];
+      }
+      std::cout << "]\n";
+    }
+  }
 
   if (this->logLevel >= LogLevel::INFO) std::cout << "Starting CNN training...\n";
 
@@ -670,6 +716,8 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
   tcJson["learningRate"] = core.getTrainingConfig().learningRate;
   tcJson["batchSize"] = core.getTrainingConfig().batchSize;
   tcJson["shuffleSamples"] = core.getTrainingConfig().shuffleSamples;
+  if (core.getTrainingConfig().dropoutRate > 0.0f)
+    tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
   json["trainingConfig"] = tcJson;
 
   // Training metadata
@@ -796,6 +844,8 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
   tcJson["learningRate"] = core.getTrainingConfig().learningRate;
   tcJson["batchSize"] = core.getTrainingConfig().batchSize;
   tcJson["shuffleSamples"] = core.getTrainingConfig().shuffleSamples;
+  if (core.getTrainingConfig().dropoutRate > 0.0f)
+    tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
   json["trainingConfig"] = tcJson;
 
   // Training metadata
@@ -900,3 +950,140 @@ std::string Runner::generateCheckpointPath(
 }
 
 //===================================================================================================================//
+
+//===================================================================================================================//
+//-- Data augmentation helpers --//
+//===================================================================================================================//
+
+// Helper: get class index from one-hot output vector
+static ulong getClassIndex(const std::vector<float>& output) {
+  return static_cast<ulong>(std::distance(output.begin(),
+      std::max_element(output.begin(), output.end())));
+}
+
+// Helper: get data pointer and shape from a sample's input (works for both ANN and CNN)
+static std::vector<float>& getInputData(ANN::Sample<float>& sample) { return sample.input; }
+static std::vector<float>& getInputData(CNN::Sample<float>& sample) { return sample.input.data; }
+
+static const std::vector<float>& getOutputVec(const ANN::Sample<float>& sample) { return sample.output; }
+static const std::vector<float>& getOutputVec(const CNN::Sample<float>& sample) { return sample.output; }
+
+// Helper: get image shape from IOConfig or CNN shape
+struct ImageShape { int c, h, w; };
+
+template <typename SampleT>
+void Runner::augmentSamples(std::vector<SampleT>& samples) {
+  if (this->augmentationFactor == 0 && !this->balanceAugmentation) return;
+  if (samples.empty()) return;
+
+  // Determine image shape
+  ImageShape shape{0, 0, 0};
+  if (this->networkType == NetworkType::CNN) {
+    shape.c = static_cast<int>(this->cnnCoreConfig.inputShape.c);
+    shape.h = static_cast<int>(this->cnnCoreConfig.inputShape.h);
+    shape.w = static_cast<int>(this->cnnCoreConfig.inputShape.w);
+  } else if (this->ioConfig.hasInputShape()) {
+    shape.c = static_cast<int>(this->ioConfig.inputC);
+    shape.h = static_cast<int>(this->ioConfig.inputH);
+    shape.w = static_cast<int>(this->ioConfig.inputW);
+  }
+
+  bool hasImageShape = (shape.c > 0 && shape.h > 0 && shape.w > 0);
+
+  // Count samples per class
+  std::map<ulong, std::vector<ulong>> classIndices;
+  for (ulong i = 0; i < samples.size(); i++) {
+    ulong cls = getClassIndex(getOutputVec(samples[i]));
+    classIndices[cls].push_back(i);
+  }
+
+  ulong maxClassCount = 0;
+  for (const auto& [cls, indices] : classIndices) {
+    maxClassCount = std::max(maxClassCount, static_cast<ulong>(indices.size()));
+  }
+
+  std::mt19937 rng(42);
+  std::vector<SampleT> augmented;
+
+  for (const auto& [cls, indices] : classIndices) {
+    ulong currentCount = indices.size();
+    ulong targetCount = currentCount;
+
+    if (this->augmentationFactor > 0) {
+      targetCount = currentCount * this->augmentationFactor;
+    }
+
+    if (this->balanceAugmentation) {
+      ulong balancedTarget = maxClassCount;
+      if (this->augmentationFactor > 0)
+        balancedTarget = maxClassCount * this->augmentationFactor;
+      targetCount = std::max(targetCount, balancedTarget);
+    }
+
+    // Generate augmented samples to reach targetCount (original samples are kept)
+    ulong toGenerate = (targetCount > currentCount) ? (targetCount - currentCount) : 0;
+
+    for (ulong i = 0; i < toGenerate; i++) {
+      // Pick a random original sample from this class
+      std::uniform_int_distribution<ulong> dist(0, currentCount - 1);
+      ulong srcIdx = indices[dist(rng)];
+
+      SampleT newSample = samples[srcIdx]; // copy
+
+      if (hasImageShape) {
+        ImageLoader::applyRandomTransforms(getInputData(newSample), shape.c, shape.h, shape.w, rng);
+      } else {
+        // For non-image data, add small Gaussian noise
+        ImageLoader::addGaussianNoise(getInputData(newSample), 0.02f, rng);
+      }
+
+      augmented.push_back(std::move(newSample));
+    }
+  }
+
+  if (this->logLevel >= LogLevel::INFO && !augmented.empty()) {
+    std::cout << "Data augmentation: " << samples.size() << " original + "
+              << augmented.size() << " augmented = "
+              << (samples.size() + augmented.size()) << " total samples\n";
+  }
+
+  samples.insert(samples.end(),
+      std::make_move_iterator(augmented.begin()),
+      std::make_move_iterator(augmented.end()));
+}
+
+// Explicit template instantiations
+template void Runner::augmentSamples<ANN::Sample<float>>(std::vector<ANN::Sample<float>>&);
+template void Runner::augmentSamples<CNN::Sample<float>>(std::vector<CNN::Sample<float>>&);
+
+//===================================================================================================================//
+
+template <typename SampleT>
+std::vector<float> Runner::computeClassWeights(const std::vector<SampleT>& samples) {
+  if (samples.empty()) return {};
+
+  ulong numClasses = getOutputVec(samples[0]).size();
+
+  // Count samples per class
+  std::vector<ulong> classCounts(numClasses, 0);
+  for (const auto& sample : samples) {
+    ulong cls = getClassIndex(getOutputVec(sample));
+    if (cls < numClasses) classCounts[cls]++;
+  }
+
+  ulong totalSamples = samples.size();
+
+  // Inverse-frequency weighting: weight_c = totalSamples / (numClasses * count_c)
+  std::vector<float> weights(numClasses, 1.0f);
+  for (ulong c = 0; c < numClasses; c++) {
+    if (classCounts[c] > 0) {
+      weights[c] = static_cast<float>(totalSamples) /
+                   (static_cast<float>(numClasses) * static_cast<float>(classCounts[c]));
+    }
+  }
+
+  return weights;
+}
+
+template std::vector<float> Runner::computeClassWeights<ANN::Sample<float>>(const std::vector<ANN::Sample<float>>&);
+template std::vector<float> Runner::computeClassWeights<CNN::Sample<float>>(const std::vector<CNN::Sample<float>>&);

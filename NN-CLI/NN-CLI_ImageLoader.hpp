@@ -1,6 +1,7 @@
 #ifndef NN_CLI_IMAGELOADER_HPP
 #define NN_CLI_IMAGELOADER_HPP
 
+#include <random>
 #include <string>
 #include <vector>
 
@@ -35,6 +36,25 @@ public:
   // Returns imagePath unchanged if it is already absolute.
   static std::string resolvePath(const std::string& imagePath,
                                   const std::string& baseDirPath);
+
+  //-- Data augmentation transforms (operate on NCHW [0,1] data in-place) --//
+
+  // Apply a random combination of transforms to an NCHW buffer.
+  // rng: random engine for reproducibility.
+  static void applyRandomTransforms(std::vector<float>& data, int c, int h, int w,
+                                     std::mt19937& rng);
+
+  // Individual transforms (all operate on NCHW [0,1] data)
+  static void horizontalFlip(std::vector<float>& data, int c, int h, int w);
+  static void randomRotation(std::vector<float>& data, int c, int h, int w, float maxDegrees,
+                              std::mt19937& rng);
+  static void randomBrightness(std::vector<float>& data, int c, int h, int w, float maxDelta,
+                                std::mt19937& rng);
+  static void randomContrast(std::vector<float>& data, int c, int h, int w,
+                              float minFactor, float maxFactor, std::mt19937& rng);
+  static void randomTranslation(std::vector<float>& data, int c, int h, int w,
+                                 float maxFraction, std::mt19937& rng);
+  static void addGaussianNoise(std::vector<float>& data, float stddev, std::mt19937& rng);
 };
 
 } // namespace NN_CLI

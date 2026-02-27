@@ -71,6 +71,14 @@ public:
 
   // Load saveModelInterval from config root (returns 10 if not present; 0 = disabled)
   static ulong loadSaveModelInterval(const std::string& configFilePath);
+
+  // Load data augmentation config from trainingConfig (NN-CLI handles augmentation, not ANN/CNN)
+  struct AugmentationConfig {
+    ulong augmentationFactor = 0;     // 0 = disabled; N = N× total samples per class
+    bool balanceAugmentation = false; // true = augment minority classes up to max class count
+    bool autoClassWeights = false;    // true = auto-compute inverse-frequency class weights
+  };
+  static AugmentationConfig loadAugmentationConfig(const std::string& configFilePath);
 };
 
 } // namespace NN_CLI

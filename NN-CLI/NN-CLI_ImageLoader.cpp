@@ -13,6 +13,8 @@
 #include <QFileInfo>
 
 #include <algorithm>
+#include <cmath>
+#include <numeric>
 #include <stdexcept>
 
 namespace NN_CLI {
@@ -117,6 +119,161 @@ std::string ImageLoader::resolvePath(const std::string& imagePath,
   }
   QDir baseDir(QString::fromStdString(baseDirPath));
   return baseDir.filePath(QString::fromStdString(imagePath)).toStdString();
+}
+
+//===================================================================================================================//
+//-- Data augmentation transforms --//
+//===================================================================================================================//
+
+void ImageLoader::horizontalFlip(std::vector<float>& data, int c, int h, int w) {
+  for (int ch = 0; ch < c; ch++) {
+    for (int y = 0; y < h; y++) {
+      int rowStart = ch * h * w + y * w;
+      for (int x = 0; x < w / 2; x++) {
+        std::swap(data[rowStart + x], data[rowStart + w - 1 - x]);
+      }
+    }
+  }
+}
+
+//===================================================================================================================//
+
+void ImageLoader::randomRotation(std::vector<float>& data, int c, int h, int w,
+                                  float maxDegrees, std::mt19937& rng) {
+  std::uniform_real_distribution<float> dist(-maxDegrees, maxDegrees);
+  float angle = dist(rng) * static_cast<float>(M_PI) / 180.0f;
+  float cosA = std::cos(angle);
+  float sinA = std::sin(angle);
+  float cx = static_cast<float>(w) / 2.0f;
+  float cy = static_cast<float>(h) / 2.0f;
+
+  std::vector<float> result(data.size(), 0.0f);
+
+  for (int ch = 0; ch < c; ch++) {
+    int chOffset = ch * h * w;
+    for (int y = 0; y < h; y++) {
+      for (int x = 0; x < w; x++) {
+        // Map destination (x,y) back to source
+        float srcX = cosA * (x - cx) + sinA * (y - cy) + cx;
+        float srcY = -sinA * (x - cx) + cosA * (y - cy) + cy;
+
+        // Bilinear interpolation
+        int x0 = static_cast<int>(std::floor(srcX));
+        int y0 = static_cast<int>(std::floor(srcY));
+        int x1 = x0 + 1;
+        int y1 = y0 + 1;
+        float fx = srcX - x0;
+        float fy = srcY - y0;
+
+        auto sample = [&](int sx, int sy) -> float {
+          if (sx < 0 || sx >= w || sy < 0 || sy >= h) return 0.0f;
+          return data[chOffset + sy * w + sx];
+        };
+
+        result[chOffset + y * w + x] =
+            (1 - fx) * (1 - fy) * sample(x0, y0) +
+            fx * (1 - fy) * sample(x1, y0) +
+            (1 - fx) * fy * sample(x0, y1) +
+            fx * fy * sample(x1, y1);
+      }
+    }
+  }
+  data = std::move(result);
+}
+
+//===================================================================================================================//
+
+void ImageLoader::randomBrightness(std::vector<float>& data, int /*c*/, int /*h*/, int /*w*/,
+                                    float maxDelta, std::mt19937& rng) {
+  std::uniform_real_distribution<float> dist(-maxDelta, maxDelta);
+  float delta = dist(rng);
+  for (auto& v : data) {
+    v = std::clamp(v + delta, 0.0f, 1.0f);
+  }
+}
+
+//===================================================================================================================//
+
+void ImageLoader::randomContrast(std::vector<float>& data, int c, int h, int w,
+                                  float minFactor, float maxFactor, std::mt19937& rng) {
+  std::uniform_real_distribution<float> dist(minFactor, maxFactor);
+  float factor = dist(rng);
+
+  // Compute per-channel mean
+  for (int ch = 0; ch < c; ch++) {
+    int chOffset = ch * h * w;
+    float mean = 0.0f;
+    for (int i = 0; i < h * w; i++) mean += data[chOffset + i];
+    mean /= static_cast<float>(h * w);
+
+    for (int i = 0; i < h * w; i++) {
+      data[chOffset + i] = std::clamp(mean + factor * (data[chOffset + i] - mean), 0.0f, 1.0f);
+    }
+  }
+}
+
+//===================================================================================================================//
+
+void ImageLoader::randomTranslation(std::vector<float>& data, int c, int h, int w,
+                                     float maxFraction, std::mt19937& rng) {
+  int maxDx = static_cast<int>(maxFraction * w);
+  int maxDy = static_cast<int>(maxFraction * h);
+  if (maxDx == 0 && maxDy == 0) return;
+
+  std::uniform_int_distribution<int> distX(-maxDx, maxDx);
+  std::uniform_int_distribution<int> distY(-maxDy, maxDy);
+  int dx = distX(rng);
+  int dy = distY(rng);
+
+  std::vector<float> result(data.size(), 0.0f);
+  for (int ch = 0; ch < c; ch++) {
+    int chOffset = ch * h * w;
+    for (int y = 0; y < h; y++) {
+      int srcY = y - dy;
+      if (srcY < 0 || srcY >= h) continue;
+      for (int x = 0; x < w; x++) {
+        int srcX = x - dx;
+        if (srcX < 0 || srcX >= w) continue;
+        result[chOffset + y * w + x] = data[chOffset + srcY * w + srcX];
+      }
+    }
+  }
+  data = std::move(result);
+}
+
+//===================================================================================================================//
+
+void ImageLoader::addGaussianNoise(std::vector<float>& data, float stddev, std::mt19937& rng) {
+  std::normal_distribution<float> dist(0.0f, stddev);
+  for (auto& v : data) {
+    v = std::clamp(v + dist(rng), 0.0f, 1.0f);
+  }
+}
+
+//===================================================================================================================//
+
+void ImageLoader::applyRandomTransforms(std::vector<float>& data, int c, int h, int w,
+                                         std::mt19937& rng) {
+  std::bernoulli_distribution coin(0.5);
+
+  // Horizontal flip (50% chance)
+  if (coin(rng)) horizontalFlip(data, c, h, w);
+
+  // Random rotation ±15° (50% chance)
+  if (coin(rng)) randomRotation(data, c, h, w, 15.0f, rng);
+
+  // Random translation ±10% (50% chance)
+  if (coin(rng)) randomTranslation(data, c, h, w, 0.1f, rng);
+
+  // Random brightness ±0.1 (50% chance)
+  if (coin(rng)) randomBrightness(data, c, h, w, 0.1f, rng);
+
+  // Random contrast 0.8–1.2 (50% chance)
+  if (coin(rng)) randomContrast(data, c, h, w, 0.8f, 1.2f, rng);
+
+  // Gaussian noise σ=0.02 (30% chance)
+  std::bernoulli_distribution noiseCoin(0.3);
+  if (noiseCoin(rng)) addGaussianNoise(data, 0.02f, rng);
 }
 
 //===================================================================================================================//

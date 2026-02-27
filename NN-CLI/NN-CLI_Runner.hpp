@@ -61,6 +61,13 @@ class Runner {
     static std::string generateCheckpointPath(
       const QString& inputFilePath, ulong epoch, float loss);
 
+    //-- Data augmentation helpers --//
+    template <typename SampleT>
+    void augmentSamples(std::vector<SampleT>& samples);
+
+    template <typename SampleT>
+    std::vector<float> computeClassWeights(const std::vector<SampleT>& samples);
+
     //-- Configuration --//
     const QCommandLineParser& parser;
     LogLevel logLevel;
@@ -69,6 +76,11 @@ class Runner {
     IOConfig ioConfig;  // inputType / outputType / shapes (NN-CLI concept only)
     ulong progressReports = 1000;  // NN-CLI display frequency (not used by ANN/CNN libs)
     ulong saveModelInterval = 10;  // 0 = disabled
+
+    //-- Data augmentation config (parsed from trainingConfig, handled by NN-CLI only) --//
+    ulong augmentationFactor = 0;     // 0 = disabled; N = N× total samples per class
+    bool balanceAugmentation = false; // true = augment minority classes up to max class count
+    bool autoClassWeights = false;    // true = auto-compute inverse-frequency class weights
 
     //-- ANN members --//
     std::unique_ptr<ANN::Core<float>> annCore;

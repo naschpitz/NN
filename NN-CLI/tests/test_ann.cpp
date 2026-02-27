@@ -531,6 +531,101 @@ static void testANNShuffleSamplesInvalidValue() {
   std::cout << std::endl;
 }
 
+//===================================================================================================================//
+
+static void testANNTrainWithDropout() {
+  std::cout << "  testANNTrainWithDropout... ";
+
+  QString configPath = fixturePath("ann_train_dropout_config.json");
+  QString samplesPath = fixturePath("ann_train_samples.json");
+  QString outputPath = tempDir() + "/ann_dropout_model.json";
+
+  auto result = runNNCLI({
+    "--config", configPath,
+    "--samples", samplesPath,
+    "--output", outputPath
+  });
+
+  CHECK(result.exitCode == 0, "ANN dropout training exits 0");
+  CHECK(QFile::exists(outputPath), "ANN dropout model file created");
+
+  // Verify the model JSON contains dropoutRate in trainingConfig
+  QFile file(outputPath);
+  file.open(QIODevice::ReadOnly);
+  auto json = QJsonDocument::fromJson(file.readAll()).object();
+  file.close();
+
+  auto tc = json["trainingConfig"].toObject();
+  CHECK(tc.contains("dropoutRate"), "dropoutRate saved in model JSON");
+  CHECK(std::abs(tc["dropoutRate"].toDouble() - 0.3) < 0.01,
+        "dropoutRate value is 0.3");
+
+  std::cout << std::endl;
+}
+
+//===================================================================================================================//
+
+static void testANNTrainWithAugmentation() {
+  std::cout << "  testANNTrainWithAugmentation... ";
+
+  QString configPath = fixturePath("ann_train_augment_config.json");
+  QString samplesPath = fixturePath("ann_train_samples.json");
+  QString outputPath = tempDir() + "/ann_augment_model.json";
+
+  auto result = runNNCLI({
+    "--config", configPath,
+    "--samples", samplesPath,
+    "--output", outputPath
+  });
+
+  CHECK(result.exitCode == 0, "ANN augmentation training exits 0");
+  CHECK(QFile::exists(outputPath), "ANN augmented model file created");
+
+  // Verify auto class weights were applied
+  QFile file(outputPath);
+  file.open(QIODevice::ReadOnly);
+  auto json = QJsonDocument::fromJson(file.readAll()).object();
+  file.close();
+
+  auto cfc = json["costFunctionConfig"].toObject();
+  CHECK(cfc["type"].toString() == "weightedSquaredDifference",
+        "auto class weights set cost function to weightedSquaredDifference");
+  CHECK(cfc.contains("weights"), "auto class weights present in model");
+
+  std::cout << std::endl;
+}
+
+//===================================================================================================================//
+
+static void testANNDropoutRateParsing() {
+  std::cout << "  testANNDropoutRateParsing... ";
+
+  // Verify that dropoutRate=0 (default) is not saved in model JSON
+  QString configPath = fixturePath("ann_train_config.json");
+  QString samplesPath = fixturePath("ann_train_samples.json");
+  QString outputPath = tempDir() + "/ann_no_dropout_model.json";
+
+  auto result = runNNCLI({
+    "--config", configPath,
+    "--samples", samplesPath,
+    "--output", outputPath
+  });
+
+  CHECK(result.exitCode == 0, "ANN no-dropout training exits 0");
+
+  QFile file(outputPath);
+  file.open(QIODevice::ReadOnly);
+  auto json = QJsonDocument::fromJson(file.readAll()).object();
+  file.close();
+
+  auto tc = json["trainingConfig"].toObject();
+  CHECK(!tc.contains("dropoutRate"), "dropoutRate not saved when 0.0 (default)");
+
+  std::cout << std::endl;
+}
+
+//===================================================================================================================//
+
 void runANNTests() {
   // Train XOR first — downstream tests use its output model
   testANNTrainXOR();
@@ -540,6 +635,9 @@ void runANNTests() {
   testANNCheckpointParameters();
   testANNShuffleSamplesCLI();
   testANNShuffleSamplesInvalidValue();
+  testANNTrainWithDropout();
+  testANNTrainWithAugmentation();
+  testANNDropoutRateParsing();
   // MNIST tests (--full only): train first, then predict/test using trained model
   testANNTrainAndTestMNIST();
   testANNTrainAndTestMNISTGPU();
