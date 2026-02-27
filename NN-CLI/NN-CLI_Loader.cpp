@@ -610,11 +610,13 @@ Loader::AugmentationConfig Loader::loadAugmentationConfig(const std::string& con
             config.balanceAugmentation = tc.at("balanceAugmentation").get<bool>();
         if (tc.contains("autoClassWeights"))
             config.autoClassWeights = tc.at("autoClassWeights").get<bool>();
+        if (tc.contains("augmentationProbability"))
+            config.augmentationProbability = tc.at("augmentationProbability").get<float>();
 
         if (tc.contains("augmentationTransforms")) {
             const auto& at = tc.at("augmentationTransforms");
             auto& t = config.transforms;
-            if (at.contains("horizontalFlip"))  t.horizontalFlip  = at.at("horizontalFlip").get<float>();
+            if (at.contains("horizontalFlip"))  t.horizontalFlip  = at.at("horizontalFlip").get<bool>();
             if (at.contains("rotation"))        t.rotation        = at.at("rotation").get<float>();
             if (at.contains("translation"))     t.translation     = at.at("translation").get<float>();
             if (at.contains("brightness"))      t.brightness      = at.at("brightness").get<float>();

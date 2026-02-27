@@ -85,6 +85,7 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel)
   this->augmentationFactor = augConfig.augmentationFactor;
   this->balanceAugmentation = augConfig.balanceAugmentation;
   this->autoClassWeights = augConfig.autoClassWeights;
+  this->augmentationProbability = augConfig.augmentationProbability;
   this->augTransforms = augConfig.transforms;
 
   if (this->logLevel >= LogLevel::INFO && this->saveModelInterval > 0) {
@@ -1033,7 +1034,7 @@ void Runner::augmentSamples(std::vector<SampleT>& samples) {
 
       if (hasImageShape) {
         ImageLoader::applyRandomTransforms(getInputData(newSample), shape.c, shape.h, shape.w, rng,
-                                              this->augTransforms);
+                                              this->augTransforms, this->augmentationProbability);
       } else if (this->augTransforms.gaussianNoise > 0.0f) {
         // For non-image data, add Gaussian noise with configured stddev
         ImageLoader::addGaussianNoise(getInputData(newSample), this->augTransforms.gaussianNoise, rng);

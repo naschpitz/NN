@@ -74,7 +74,7 @@ public:
 
   // Load data augmentation config from trainingConfig (NN-CLI handles augmentation, not ANN/CNN)
   struct AugmentationTransforms {
-    float horizontalFlip = 0.5f;   // Flip probability (0 = disabled, 0.5 = 50% chance)
+    bool  horizontalFlip = true;   // Mirror along vertical axis (true = enabled)
     float rotation       = 15.0f;  // Max rotation in degrees (0 = disabled, 15 = ±15°)
     float translation    = 0.1f;   // Max shift as fraction of image size (0 = disabled, 0.1 = ±10%)
     float brightness     = 0.1f;   // Max brightness delta (0 = disabled, 0.1 = ±0.1)
@@ -83,10 +83,11 @@ public:
   };
 
   struct AugmentationConfig {
-    ulong augmentationFactor = 0;     // 0 = disabled; N = N× total samples per class
-    bool balanceAugmentation = false; // true = augment minority classes up to max class count
-    bool autoClassWeights = false;    // true = auto-compute inverse-frequency class weights
-    AugmentationTransforms transforms; // Which transforms to apply (all enabled by default)
+    ulong augmentationFactor = 0;       // 0 = disabled; N = N× total samples per class
+    bool balanceAugmentation = false;   // true = augment minority classes up to max class count
+    bool autoClassWeights = false;      // true = auto-compute inverse-frequency class weights
+    float augmentationProbability = 0.5f; // Probability of applying each enabled transform (default 50%)
+    AugmentationTransforms transforms;  // Which transforms to apply and their intensities
   };
   static AugmentationConfig loadAugmentationConfig(const std::string& configFilePath);
 };

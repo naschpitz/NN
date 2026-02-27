@@ -66,8 +66,9 @@
     <span class="string">"augmentationFactor"</span>: <span class="number">2</span>,
     <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
     <span class="string">"autoClassWeights"</span>: <span class="keyword">true</span>,
+    <span class="string">"augmentationProbability"</span>: <span class="number">0.5</span>,
     <span class="string">"augmentationTransforms"</span>: {
-      <span class="string">"horizontalFlip"</span>: <span class="number">0.5</span>,
+      <span class="string">"horizontalFlip"</span>: <span class="keyword">true</span>,
       <span class="string">"rotation"</span>: <span class="number">15.0</span>,
       <span class="string">"translation"</span>: <span class="number">0.1</span>,
       <span class="string">"brightness"</span>: <span class="number">0.1</span>,
@@ -102,8 +103,9 @@
   <tr><td><code>trainingConfig.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>
   <tr><td><code>trainingConfig.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false)</td></tr>
   <tr><td><code>trainingConfig.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false)</td></tr>
+  <tr><td><code>trainingConfig.augmentationProbability</code></td><td>float</td><td>No</td><td>Probability of applying each enabled transform per sample (default 0.5 = 50%)</td></tr>
   <tr><td><code>trainingConfig.augmentationTransforms</code></td><td>object</td><td>No</td><td>Control augmentation transform intensities (0 = disabled; defaults shown)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.horizontalFlip</code></td><td>float</td><td>No</td><td>Flip probability (default 0.5; 0 = disabled)</td></tr>
+  <tr><td><code>trainingConfig.augmentationTransforms.horizontalFlip</code></td><td>bool</td><td>No</td><td>Mirror along vertical axis (default true; false = disabled)</td></tr>
   <tr><td><code>trainingConfig.augmentationTransforms.rotation</code></td><td>float</td><td>No</td><td>Max rotation in degrees (default 15.0 = ±15°; 0 = disabled)</td></tr>
   <tr><td><code>trainingConfig.augmentationTransforms.translation</code></td><td>float</td><td>No</td><td>Max shift as fraction of image size (default 0.1 = ±10%; 0 = disabled)</td></tr>
   <tr><td><code>trainingConfig.augmentationTransforms.brightness</code></td><td>float</td><td>No</td><td>Max brightness delta (default 0.1 = ±0.1; 0 = disabled)</td></tr>
@@ -115,8 +117,9 @@
 </table>
 
 <p>Example — only rotation (strong) and translation, everything else disabled:</p>
-<pre><code><span class="string">"augmentationTransforms"</span>: {
-  <span class="string">"horizontalFlip"</span>: <span class="number">0</span>,
+<pre><code><span class="string">"augmentationProbability"</span>: <span class="number">0.5</span>,
+<span class="string">"augmentationTransforms"</span>: {
+  <span class="string">"horizontalFlip"</span>: <span class="keyword">false</span>,
   <span class="string">"rotation"</span>: <span class="number">30.0</span>,
   <span class="string">"translation"</span>: <span class="number">0.15</span>,
   <span class="string">"brightness"</span>: <span class="number">0</span>,
@@ -159,7 +162,8 @@
     <span class="string">"dropoutRate"</span>: <span class="number">0.3</span>,
     <span class="string">"augmentationFactor"</span>: <span class="number">2</span>,
     <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
-    <span class="string">"augmentationTransforms"</span>: { <span class="string">"horizontalFlip"</span>: <span class="number">0.5</span>, <span class="string">"rotation"</span>: <span class="number">15.0</span> }
+    <span class="string">"augmentationProbability"</span>: <span class="number">0.5</span>,
+    <span class="string">"augmentationTransforms"</span>: { <span class="string">"horizontalFlip"</span>: <span class="keyword">true</span>, <span class="string">"rotation"</span>: <span class="number">15.0</span> }
   }
 }
 </code></pre>

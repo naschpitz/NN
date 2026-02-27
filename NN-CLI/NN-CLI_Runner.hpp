@@ -78,9 +78,10 @@ class Runner {
     ulong saveModelInterval = 10;  // 0 = disabled
 
     //-- Data augmentation config (parsed from trainingConfig, handled by NN-CLI only) --//
-    ulong augmentationFactor = 0;     // 0 = disabled; N = N× total samples per class
-    bool balanceAugmentation = false; // true = augment minority classes up to max class count
-    bool autoClassWeights = false;    // true = auto-compute inverse-frequency class weights
+    ulong augmentationFactor = 0;       // 0 = disabled; N = N× total samples per class
+    bool balanceAugmentation = false;   // true = augment minority classes up to max class count
+    bool autoClassWeights = false;      // true = auto-compute inverse-frequency class weights
+    float augmentationProbability = 0.5f; // Probability of applying each enabled transform
     Loader::AugmentationTransforms augTransforms; // Which transforms to apply
 
     //-- ANN members --//

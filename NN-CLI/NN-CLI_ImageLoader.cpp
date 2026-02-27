@@ -254,14 +254,13 @@ void ImageLoader::addGaussianNoise(std::vector<float>& data, float stddev, std::
 
 void ImageLoader::applyRandomTransforms(std::vector<float>& data, int c, int h, int w,
                                          std::mt19937& rng,
-                                         const Loader::AugmentationTransforms& transforms) {
-  std::bernoulli_distribution coin(0.5);
+                                         const Loader::AugmentationTransforms& transforms,
+                                         float probability) {
+  std::bernoulli_distribution coin(probability);
 
-  // Horizontal flip (applied with probability = horizontalFlip value, 0 = disabled)
-  if (transforms.horizontalFlip > 0.0f) {
-    std::bernoulli_distribution flipCoin(transforms.horizontalFlip);
-    if (flipCoin(rng)) horizontalFlip(data, c, h, w);
-  }
+  // Horizontal flip
+  if (transforms.horizontalFlip && coin(rng))
+    horizontalFlip(data, c, h, w);
 
   // Random rotation (max degrees from config, 0 = disabled)
   if (transforms.rotation > 0.0f && coin(rng))
@@ -283,10 +282,8 @@ void ImageLoader::applyRandomTransforms(std::vector<float>& data, int c, int h, 
   }
 
   // Gaussian noise (stddev from config, 0 = disabled)
-  if (transforms.gaussianNoise > 0.0f) {
-    std::bernoulli_distribution noiseCoin(0.3);
-    if (noiseCoin(rng)) addGaussianNoise(data, transforms.gaussianNoise, rng);
-  }
+  if (transforms.gaussianNoise > 0.0f && coin(rng))
+    addGaussianNoise(data, transforms.gaussianNoise, rng);
 }
 
 //===================================================================================================================//

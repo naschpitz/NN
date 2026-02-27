@@ -22,8 +22,9 @@
     "batchSize": 64,
     "learningRate": 0.001,
     "augmentationFactor": 2,
+    "augmentationProbability": 0.5,
     "augmentationTransforms": {
-      "horizontalFlip": 0,
+      "horizontalFlip": false,
       "rotation": 10.0,
       "translation": 0.1,
       "brightness": 0.05,
