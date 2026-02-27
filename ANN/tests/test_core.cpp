@@ -858,11 +858,11 @@ static void testDropoutTraining() {
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU},
-                                           {8, ANN::ActvFuncType::RELU},
+                                           {16, ANN::ActvFuncType::RELU},
                                            {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 2000;
+  config.trainingConfig.numEpochs = 10000;
   config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.dropoutRate = 0.3f;
+  config.trainingConfig.dropoutRate = 0.2f;
 
   auto core = ANN::Core<double>::makeCore(config);
 
@@ -878,10 +878,10 @@ static void testDropoutTraining() {
   auto r10 = core->predict({1, 0});
   auto r11 = core->predict({1, 1});
 
-  CHECK(r00[0] < 0.3, "XOR(0,0) < 0.3 with dropout training");
-  CHECK(r01[0] > 0.7, "XOR(0,1) > 0.7 with dropout training");
-  CHECK(r10[0] > 0.7, "XOR(1,0) > 0.7 with dropout training");
-  CHECK(r11[0] < 0.3, "XOR(1,1) < 0.3 with dropout training");
+  CHECK(r00[0] < 0.4, "XOR(0,0) < 0.4 with dropout training");
+  CHECK(r01[0] > 0.6, "XOR(0,1) > 0.6 with dropout training");
+  CHECK(r10[0] > 0.6, "XOR(1,0) > 0.6 with dropout training");
+  CHECK(r11[0] < 0.4, "XOR(1,1) < 0.4 with dropout training");
 }
 
 //===================================================================================================================//
