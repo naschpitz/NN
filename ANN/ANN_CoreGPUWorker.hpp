@@ -49,6 +49,10 @@ namespace ANN {
       void readAccumulatedGradients(Tensor1D<T>& accumWeights, Tensor1D<T>& accumBiases);
       void setAccumulators(const Tensor1D<T>& accumWeights, const Tensor1D<T>& accumBiases);
 
+      //-- Dropout --//
+      bool hasDropout = false;
+      void generateAndUploadDropoutMask();
+
       //-- Weight update --//
       void update(ulong numSamples);
 
@@ -108,10 +112,7 @@ namespace ANN {
       //-- Loss --//
       T calculateLoss(const Output<T>& expected);
 
-      //-- Dropout --//
-      bool hasDropout = false;
       std::mt19937 dropoutRng{std::random_device{}()};
-      void generateAndUploadDropoutMask();
   };
 }
 
