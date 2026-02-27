@@ -114,6 +114,17 @@
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
 </table>
 
+<p>Example — only rotation (strong) and translation, everything else disabled:</p>
+<pre><code><span class="string">"augmentationTransforms"</span>: {
+  <span class="string">"horizontalFlip"</span>: <span class="number">0</span>,
+  <span class="string">"rotation"</span>: <span class="number">30.0</span>,
+  <span class="string">"translation"</span>: <span class="number">0.15</span>,
+  <span class="string">"brightness"</span>: <span class="number">0</span>,
+  <span class="string">"contrast"</span>: <span class="number">0</span>,
+  <span class="string">"gaussianNoise"</span>: <span class="number">0</span>
+}
+</code></pre>
+
 <h2 id="cnn-config">2. CNN Configuration JSON</h2>
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"train"</span>,

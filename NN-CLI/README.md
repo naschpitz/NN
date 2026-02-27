@@ -151,12 +151,28 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). When combined with `augmentationFactor`, the balanced count is also multiplied
 - `autoClassWeights`: Auto-compute inverse-frequency class weights and set `weightedSquaredDifference` cost function (default: `false`). Only applies when no manual `costFunctionConfig.weights` are specified
 - `augmentationTransforms`: Object controlling individual augmentation transforms. Each value is a number controlling the transform intensity; set to `0` to disable. Defaults shown below:
-  - `horizontalFlip`: Flip probability (default: `0.5` = 50% chance, `0` = disabled)
-  - `rotation`: Max rotation in degrees (default: `15.0` = ±15°, `0` = disabled)
-  - `translation`: Max shift as fraction of image size (default: `0.1` = ±10%, `0` = disabled)
-  - `brightness`: Max brightness delta (default: `0.1` = ±0.1, `0` = disabled)
-  - `contrast`: Max contrast delta from 1.0 (default: `0.2` = range 0.8–1.2×, `0` = disabled)
-  - `gaussianNoise`: Noise standard deviation (default: `0.02` = σ=0.02, `0` = disabled)
+
+  | Transform | Default | Meaning | Disabled |
+  |---|---|---|---|
+  | `horizontalFlip` | `0.5` | 50% flip probability | `0` |
+  | `rotation` | `15.0` | ±15° max rotation | `0` |
+  | `translation` | `0.1` | ±10% max shift | `0` |
+  | `brightness` | `0.1` | ±0.1 max delta | `0` |
+  | `contrast` | `0.2` | range 0.8–1.2× (delta from 1.0) | `0` |
+  | `gaussianNoise` | `0.02` | σ=0.02 noise stddev | `0` |
+
+  Example — only rotation (strong) and translation, nothing else:
+
+  ```json
+  "augmentationTransforms": {
+    "horizontalFlip": 0,
+    "rotation": 30.0,
+    "translation": 0.15,
+    "brightness": 0,
+    "contrast": 0,
+    "gaussianNoise": 0
+  }
+  ```
 
 ## CNN Configuration
 
