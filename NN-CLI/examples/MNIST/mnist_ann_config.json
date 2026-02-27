@@ -12,7 +12,16 @@
   "trainingConfig": {
     "numEpochs": 30,
     "batchSize": 512,
-    "learningRate": 0.01
+    "learningRate": 0.01,
+    "augmentationFactor": 2,
+    "augmentationTransforms": {
+      "horizontalFlip": 0,
+      "rotation": 10.0,
+      "translation": 0.1,
+      "brightness": 0.05,
+      "contrast": 0.1,
+      "gaussianNoise": 0.02
+    }
   }
 }
 

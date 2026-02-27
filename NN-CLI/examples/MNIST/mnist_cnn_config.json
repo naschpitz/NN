@@ -20,7 +20,16 @@
   "trainingConfig": {
     "numEpochs": 200,
     "batchSize": 64,
-    "learningRate": 0.001
+    "learningRate": 0.001,
+    "augmentationFactor": 2,
+    "augmentationTransforms": {
+      "horizontalFlip": 0,
+      "rotation": 10.0,
+      "translation": 0.1,
+      "brightness": 0.05,
+      "contrast": 0.1,
+      "gaussianNoise": 0.02
+    }
   }
 }
 
