@@ -61,7 +61,11 @@
     <span class="string">"numEpochs"</span>: <span class="number">100</span>,
     <span class="string">"batchSize"</span>: <span class="number">64</span>,
     <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
-    <span class="string">"shuffleSamples"</span>: <span class="keyword">true</span>
+    <span class="string">"shuffleSamples"</span>: <span class="keyword">true</span>,
+    <span class="string">"dropoutRate"</span>: <span class="number">0.3</span>,
+    <span class="string">"augmentationFactor"</span>: <span class="number">2</span>,
+    <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
+    <span class="string">"autoClassWeights"</span>: <span class="keyword">true</span>
   }
 }
 </code></pre>
@@ -86,6 +90,10 @@
   <tr><td><code>trainingConfig.batchSize</code></td><td>int</td><td>No</td><td>Mini-batch size (default 64)</td></tr>
   <tr><td><code>trainingConfig.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate</td></tr>
   <tr><td><code>trainingConfig.shuffleSamples</code></td><td>bool</td><td>No</td><td>Shuffle sample order each epoch (default true)</td></tr>
+  <tr><td><code>trainingConfig.dropoutRate</code></td><td>float</td><td>No</td><td>Dropout probability for hidden layers (default 0.0 = disabled). Inverted dropout scales activations by 1/(1−p) during training</td></tr>
+  <tr><td><code>trainingConfig.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>
+  <tr><td><code>trainingConfig.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false)</td></tr>
+  <tr><td><code>trainingConfig.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false)</td></tr>
   <tr><td><code>numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>numGPUs</code></td><td>int</td><td>No</td><td>Number of GPUs to use (0 = all available)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
@@ -118,7 +126,14 @@
     <span class="string">"type"</span>: <span class="string">"weightedSquaredDifference"</span>,
     <span class="string">"weights"</span>: [<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">5.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>]
   },
-  <span class="string">"trainingConfig"</span>: { <span class="string">"numEpochs"</span>: <span class="number">10</span>, <span class="string">"batchSize"</span>: <span class="number">64</span>, <span class="string">"learningRate"</span>: <span class="number">0.01</span> }
+  <span class="string">"trainingConfig"</span>: {
+    <span class="string">"numEpochs"</span>: <span class="number">10</span>,
+    <span class="string">"batchSize"</span>: <span class="number">64</span>,
+    <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
+    <span class="string">"dropoutRate"</span>: <span class="number">0.3</span>,
+    <span class="string">"augmentationFactor"</span>: <span class="number">2</span>,
+    <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>
+  }
 }
 </code></pre>
 

@@ -75,7 +75,11 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
   "trainingConfig": {
     "numEpochs": 100,
     "batchSize": 64,
-    "learningRate": 0.01
+    "learningRate": 0.01,
+    "dropoutRate": 0.3,
+    "augmentationFactor": 2,
+    "balanceAugmentation": true,
+    "autoClassWeights": true
   }
 }
 ```
@@ -133,6 +137,11 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `numEpochs`: Number of training epochs
 - `batchSize`: Mini-batch size (default: 64)
 - `learningRate`: Learning rate for gradient descent
+- `shuffleSamples`: Shuffle sample order each epoch (default: `true`)
+- `dropoutRate`: Dropout probability for hidden layers (default: `0.0` = disabled). Uses inverted dropout — activations are scaled by 1/(1−p) during training, no adjustment at inference
+- `augmentationFactor`: Multiply each class by N× using random transforms (default: `0` = disabled). NN-CLI applies transforms before passing samples to the library
+- `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). When combined with `augmentationFactor`, the balanced count is also multiplied
+- `autoClassWeights`: Auto-compute inverse-frequency class weights and set `weightedSquaredDifference` cost function (default: `false`). Only applies when no manual `costFunctionConfig.weights` are specified
 
 ## CNN Configuration
 
@@ -166,7 +175,11 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   "trainingConfig": {
     "numEpochs": 10,
     "batchSize": 64,
-    "learningRate": 0.01
+    "learningRate": 0.01,
+    "dropoutRate": 0.3,
+    "augmentationFactor": 2,
+    "balanceAugmentation": true,
+    "autoClassWeights": true
   }
 }
 ```
@@ -212,6 +225,11 @@ Each layer has a `type` field:
 - `numEpochs`: Number of training epochs
 - `batchSize`: Mini-batch size (default: 64)
 - `learningRate`: Learning rate for gradient descent
+- `shuffleSamples`: Shuffle sample order each epoch (default: `true`)
+- `dropoutRate`: Dropout probability for dense hidden layers (default: `0.0` = disabled). Convolutional layers are not affected
+- `augmentationFactor`: Multiply each class by N× using random image transforms (default: `0` = disabled)
+- `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`)
+- `autoClassWeights`: Auto-compute inverse-frequency class weights (default: `false`)
 
 ## Model File (output from training)
 
