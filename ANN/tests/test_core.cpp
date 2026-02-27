@@ -848,6 +848,57 @@ static void testSoftmaxHiddenLayer() {
 
 //===================================================================================================================//
 
+//===================================================================================================================//
+
+static void testDropoutTraining() {
+  std::cout << "--- testDropoutTraining ---" << std::endl;
+
+  // Train XOR with dropout — should still converge (dropout is regularization, not destructive)
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::NONE},
+                                           {8, ANN::ActvFuncType::RELU},
+                                           {1, ANN::ActvFuncType::SIGMOID}});
+  config.trainingConfig.numEpochs = 2000;
+  config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.dropoutRate = 0.3f;
+
+  auto core = ANN::Core<double>::makeCore(config);
+
+  std::vector<ANN::Sample<double>> samples = {
+    {{0, 0}, {0}}, {{0, 1}, {1}}, {{1, 0}, {1}}, {{1, 1}, {0}}
+  };
+
+  core->train(samples);
+
+  // Predict (no dropout during inference)
+  auto r00 = core->predict({0, 0});
+  auto r01 = core->predict({0, 1});
+  auto r10 = core->predict({1, 0});
+  auto r11 = core->predict({1, 1});
+
+  CHECK(r00[0] < 0.3, "XOR(0,0) < 0.3 with dropout training");
+  CHECK(r01[0] > 0.7, "XOR(0,1) > 0.7 with dropout training");
+  CHECK(r10[0] > 0.7, "XOR(1,0) > 0.7 with dropout training");
+  CHECK(r11[0] < 0.3, "XOR(1,1) < 0.3 with dropout training");
+}
+
+//===================================================================================================================//
+
+static void testDropoutDisabledByDefault() {
+  std::cout << "--- testDropoutDisabledByDefault ---" << std::endl;
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::NONE}, {1, ANN::ActvFuncType::SIGMOID}});
+
+  CHECK(config.trainingConfig.dropoutRate == 0.0f, "dropoutRate defaults to 0.0");
+}
+
+//===================================================================================================================//
+
 void runCoreTests() {
   testMakeCoreCPU();
   testPredictSimple();
@@ -874,4 +925,6 @@ void runCoreTests() {
   testSoftmaxPredict();
   testSoftmaxTrain();
   testSoftmaxHiddenLayer();
+  testDropoutTraining();
+  testDropoutDisabledByDefault();
 }
