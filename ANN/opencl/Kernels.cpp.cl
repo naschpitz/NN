@@ -21,9 +21,9 @@ kernel void calculate_zs(
     ulong weightOffset,
     ulong prevActvOffset,
     ulong biasOffset,
-    ulong zOffset,
-    local TYPE* partials
+    ulong zOffset
   ) {
+  local TYPE partials[256];
   size_t groupId = get_group_id(0);   // neuron index
   size_t lid = get_local_id(0);
   size_t localSize = get_local_size(0);

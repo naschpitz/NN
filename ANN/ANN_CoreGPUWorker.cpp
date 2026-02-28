@@ -554,7 +554,6 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     this->core->template addArgument<ulong>(calculate_zs_id, prevActvOffset);
     this->core->template addArgument<ulong>(calculate_zs_id, biasOffset);
     this->core->template addArgument<ulong>(calculate_zs_id, actvOffset);
-    this->core->addLocalArgument(calculate_zs_id, localWorkSize * sizeof(T));
 
     // calculate_actvs kernel: applies activation function
     // Softmax requires a single work-item (layer-wide), element-wise uses one per neuron
