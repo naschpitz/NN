@@ -537,7 +537,10 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     std::string calculate_actvs_id = "calculate_actvs_layer" + std::to_string(l);
 
     // calculate_zs kernel: computes weighted sum + bias for each neuron
-    this->core->addKernel(calculate_zs_id, "calculate_zs", numNeurons, 0);
+    // Uses local memory tiling for input activations to reduce global memory reads
+    ulong localWorkSize = 64;
+    if (numNeurons < localWorkSize) localWorkSize = numNeurons;
+    this->core->addKernel(calculate_zs_id, "calculate_zs", numNeurons, 0, localWorkSize);
     this->core->template addArgument<T>(calculate_zs_id, "zs");
     this->core->template addArgument<T>(calculate_zs_id, "weights");
     this->core->template addArgument<T>(calculate_zs_id, "actvs");
@@ -547,6 +550,7 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     this->core->template addArgument<ulong>(calculate_zs_id, prevActvOffset);
     this->core->template addArgument<ulong>(calculate_zs_id, biasOffset);
     this->core->template addArgument<ulong>(calculate_zs_id, actvOffset);
+    this->core->addLocalArgument(calculate_zs_id, localWorkSize * sizeof(T));
 
     // calculate_actvs kernel: applies activation function
     // Softmax requires a single work-item (layer-wide), element-wise uses one per neuron

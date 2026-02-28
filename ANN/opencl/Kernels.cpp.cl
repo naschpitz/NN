@@ -17,16 +17,38 @@ kernel void calculate_zs(
     ulong weightOffset,
     ulong prevActvOffset,
     ulong biasOffset,
-    ulong zOffset
+    ulong zOffset,
+    local TYPE* tile
   ) {
   size_t j = get_global_id(0);
+  size_t lid = get_local_id(0);
+  size_t localSize = get_local_size(0);
 
   TYPE sum = biases[biasOffset + j];
 
   ulong wRow = weightOffset + j * prevNumNeurons;
 
-  for (ulong k = 0; k < prevNumNeurons; k++) {
-    sum += weights[wRow + k] * actvs[prevActvOffset + k];
+  // Process input activations in tiles loaded cooperatively into local memory
+  for (ulong tileStart = 0; tileStart < prevNumNeurons; tileStart += localSize) {
+    // Cooperatively load a tile of input activations into local memory
+    ulong loadIdx = tileStart + lid;
+    if (loadIdx < prevNumNeurons)
+      tile[lid] = actvs[prevActvOffset + loadIdx];
+    else
+      tile[lid] = (TYPE)0;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Each work-item multiplies its weights with the shared tile
+    ulong tileEnd = tileStart + localSize;
+    if (tileEnd > prevNumNeurons) tileEnd = prevNumNeurons;
+    ulong tileLen = tileEnd - tileStart;
+
+    for (ulong t = 0; t < tileLen; t++) {
+      sum += weights[wRow + tileStart + t] * tile[t];
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
   }
 
   zs[zOffset + j] = sum;
