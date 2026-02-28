@@ -785,6 +785,17 @@ ulong CoreGPUWorker<T>::getBiasOffset(ulong layerIdx) const {
   return offset;
 }
 
+
+template <typename T>
+ulong CoreGPUWorker<T>::getOutputActvOffset() const {
+  return this->getActvOffset(this->layersConfig.size() - 1);
+}
+
+template <typename T>
+ulong CoreGPUWorker<T>::getNumOutputNeurons() const {
+  return this->layersConfig.back().numNeurons;
+}
+
 //===================================================================================================================//
 //-- Loss and output --//
 //===================================================================================================================//

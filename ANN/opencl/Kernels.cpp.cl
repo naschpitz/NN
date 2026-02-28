@@ -248,4 +248,27 @@ kernel void apply_dropout_backward(
 
 //===================================================================================================================//
 
+// calculate_sample_loss: computes weighted MSE loss on GPU and accumulates it.
+// Single work-item kernel — numOutputs is small (e.g. 7).
+// accumLoss[0] += sum(lossWeights[i] * (predicted[i] - expected[i])^2) / numOutputs
+kernel void calculate_sample_loss(
+    global TYPE* actvs,
+    global TYPE* outputs,
+    global TYPE* lossWeights,
+    global TYPE* accumLoss,
+    ulong actvOffset,
+    ulong numOutputs
+  ) {
+  TYPE loss = (TYPE)0;
+
+  for (ulong i = 0; i < numOutputs; i++) {
+    TYPE diff = actvs[actvOffset + i] - outputs[i];
+    loss += lossWeights[i] * diff * diff;
+  }
+
+  accumLoss[0] += loss / (TYPE)numOutputs;
+}
+
+//===================================================================================================================//
+
 #endif // KERNELS_CPP_CL

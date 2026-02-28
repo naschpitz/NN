@@ -76,6 +76,10 @@ namespace ANN {
       Output<T> readOutput();
       Tensor1D<T> readInputGradients();
 
+      //-- Shared-core integration: offset queries --//
+      ulong getOutputActvOffset() const;
+      ulong getNumOutputNeurons() const;
+
     private:
       //-- Configuration --//
       LayersConfig layersConfig;
