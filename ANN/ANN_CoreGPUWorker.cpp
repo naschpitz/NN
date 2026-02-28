@@ -58,13 +58,14 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
 
 template <typename T>
 Output<T> CoreGPUWorker<T>::predict(const Input<T>& input) {
-  // Set up predict kernels if not done yet
-  if (!this->predictKernelsSetup) {
+  // Predict always uses batchSize=1
+  if (!this->predictKernelsSetup || this->currentBatchSize != 1) {
+    this->currentBatchSize = 1;
     this->setupPredictKernels();
     this->predictKernelsSetup = true;
   }
 
-  // Write input to GPU and run forward pass
+  // Write input to GPU and run forward pass (batch slot 0)
   this->core->template writeBuffer<T>("actvs", input, 0);
 
   // Execute predict kernels
@@ -83,44 +84,56 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, const std::vector<ulo
                                 const TrainingCallback<T>& callback) {
   ulong numSamplesInSubset = endIdx - startIdx;
   ulong totalSamples = samples.size();
-
-  // Set up training kernels if not done yet
-  if (!this->trainingKernelsSetup) {
-    this->setupTrainingKernels();
-    this->trainingKernelsSetup = true;
-  }
+  ulong maxBatchSize = this->trainingConfig.batchSize;
+  ulong numOutputNeurons = this->layersConfig[this->layersConfig.size() - 1].numNeurons;
 
   T subsetLoss = 0;
 
   // Reset accumulators at the start
   this->resetAccumulators();
 
-  for (ulong s = startIdx; s < endIdx; s++) {
-    const Input<T>& input = samples[indices[s]].input;
-    const Output<T>& output = samples[indices[s]].output;
+  // Process samples in GPU batches
+  for (ulong batchStart = startIdx; batchStart < endIdx; batchStart += maxBatchSize) {
+    ulong batchEnd = std::min(batchStart + maxBatchSize, endIdx);
+    ulong bs = batchEnd - batchStart;
 
-    // Write input and expected output to GPU buffers
-    this->core->template writeBuffer<T>("actvs", input, 0);
-    this->core->template writeBuffer<T>("outputs", output, 0);
+    // Set up training kernels if batch size changed or not yet set up
+    if (!this->trainingKernelsSetup || this->currentBatchSize != bs) {
+      this->currentBatchSize = bs;
+      this->setupTrainingKernels();
+      this->trainingKernelsSetup = true;
+    }
 
-    // Generate and upload dropout mask (different mask per sample)
+    // Write all samples in this batch to GPU buffers
+    for (ulong b = 0; b < bs; b++) {
+      ulong sampleIdx = indices[batchStart + b];
+      const Input<T>& input = samples[sampleIdx].input;
+      const Output<T>& output = samples[sampleIdx].output;
+
+      // Write input at batch offset in actvs buffer
+      this->core->template writeBuffer<T>("actvs", input, b * this->stride);
+      // Write expected output at batch offset in outputs buffer
+      this->core->template writeBuffer<T>("outputs", output, b * numOutputNeurons);
+    }
+
+    // Generate and upload dropout masks for all samples in batch
     if (this->hasDropout) this->generateAndUploadDropoutMask();
 
-    // Execute all training kernels (forward pass + backward pass + gradient accumulation)
+    // Execute all training kernels (forward + backward + accumulate) for entire batch at once
     this->core->run();
 
-    // Calculate loss after kernels have run
-    T sampleLoss = this->calculateLoss(output);
-    subsetLoss += sampleLoss;
+    // Calculate loss for all samples in batch
+    T batchLoss = this->calculateBatchLoss(bs);
+    subsetLoss += batchLoss;
 
     // Report progress
     if (callback) {
       TrainingProgress<T> progress;
       progress.currentEpoch = epoch;
       progress.totalEpochs = totalEpochs;
-      progress.currentSample = s + 1;  // Global sample index
+      progress.currentSample = batchEnd;  // Global sample index
       progress.totalSamples = totalSamples;
-      progress.sampleLoss = sampleLoss;
+      progress.sampleLoss = batchLoss / static_cast<T>(bs);
       progress.epochLoss = 0;  // Not complete yet
       callback(progress);
     }
@@ -135,36 +148,55 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, const std::vector<ulo
 
 template <typename T>
 std::pair<T, ulong> CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx) {
-  // Set up predict kernels if not done yet (forward pass only)
-  if (!this->predictKernelsSetup) {
-    this->setupPredictKernels();
-    this->predictKernelsSetup = true;
-  }
+  ulong numSamples = endIdx - startIdx;
+  ulong maxBatchSize = this->trainingConfig.batchSize;
+  ulong numOutputNeurons = this->layersConfig[this->layersConfig.size() - 1].numNeurons;
 
   T subsetLoss = 0;
   ulong subsetCorrect = 0;
 
-  for (ulong s = startIdx; s < endIdx; s++) {
-    const Input<T>& input = samples[s].input;
-    const Output<T>& output = samples[s].output;
+  for (ulong batchStart = startIdx; batchStart < endIdx; batchStart += maxBatchSize) {
+    ulong batchEnd = std::min(batchStart + maxBatchSize, endIdx);
+    ulong bs = batchEnd - batchStart;
 
-    // Write input to GPU buffer
-    this->core->template writeBuffer<T>("actvs", input, 0);
+    // Set up predict kernels if batch size changed or not yet set up
+    if (!this->predictKernelsSetup || this->currentBatchSize != bs) {
+      this->currentBatchSize = bs;
+      this->setupPredictKernels();
+      this->predictKernelsSetup = true;
+    }
 
-    // Execute forward pass kernels only
+    // Write all samples in this batch to GPU buffers
+    for (ulong b = 0; b < bs; b++) {
+      const Input<T>& input = samples[batchStart + b].input;
+      this->core->template writeBuffer<T>("actvs", input, b * this->stride);
+    }
+
+    // Execute forward pass kernels for entire batch
     this->core->run();
 
-    // Calculate loss after forward pass
-    T sampleLoss = this->calculateLoss(output);
-    subsetLoss += sampleLoss;
+    // Calculate loss and accuracy for each sample in batch
+    for (ulong b = 0; b < bs; b++) {
+      const Output<T>& output = samples[batchStart + b].output;
 
-    // Read predicted output for accuracy computation
-    Output<T> predicted = this->readOutput();
-    auto predIdx = std::distance(predicted.begin(), std::max_element(predicted.begin(), predicted.end()));
-    auto expIdx = std::distance(output.begin(), std::max_element(output.begin(), output.end()));
+      // Read predicted output for this sample
+      Output<T> predicted = this->readBatchOutput(b);
 
-    if (predIdx == expIdx)
-      subsetCorrect++;
+      // Calculate loss
+      T sampleLoss = 0;
+      for (ulong i = 0; i < output.size(); i++) {
+        T diff = predicted[i] - output[i];
+        T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
+        sampleLoss += weight * diff * diff;
+      }
+      subsetLoss += sampleLoss / static_cast<T>(output.size());
+
+      // Accuracy
+      auto predIdx = std::distance(predicted.begin(), std::max_element(predicted.begin(), predicted.end()));
+      auto expIdx = std::distance(output.begin(), std::max_element(output.begin(), output.end()));
+      if (predIdx == expIdx)
+        subsetCorrect++;
+    }
   }
 
   return {subsetLoss, subsetCorrect};
@@ -176,8 +208,9 @@ std::pair<T, ulong> CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulon
 
 template <typename T>
 Tensor1D<T> CoreGPUWorker<T>::backpropagate(const Output<T>& output) {
-  // Set up backpropagate kernels if not done yet
-  if (!this->backpropagateKernelsSetup) {
+  // Backpropagate uses batchSize=1 (called per-sample by CNN orchestrator)
+  if (!this->backpropagateKernelsSetup || this->currentBatchSize != 1) {
+    this->currentBatchSize = 1;
     this->setupBackpropagateKernels();
   }
 
@@ -195,8 +228,9 @@ Tensor1D<T> CoreGPUWorker<T>::backpropagate(const Output<T>& output) {
 
 template <typename T>
 void CoreGPUWorker<T>::accumulate() {
-  // Set up accumulate kernels if not done yet
-  if (!this->accumulateKernelsSetup) {
+  // Accumulate uses batchSize=1 (called per-sample by CNN orchestrator)
+  if (!this->accumulateKernelsSetup || this->currentBatchSize != 1) {
+    this->currentBatchSize = 1;
     this->setupAccumulateKernels();
   }
 
@@ -377,32 +411,35 @@ void CoreGPUWorker<T>::allocateBuffers() {
   ulong totalNumNeurons = this->layersConfig.getTotalNumNeurons();
   ulong totalNumWeights = Utils<T>::count(this->parameters.weights);
   ulong totalNumBiases = Utils<T>::count(this->parameters.biases);
+  ulong batchSize = this->trainingConfig.batchSize;
 
-  // Common buffers
-  if (this->logLevel >= LogLevel::INFO) std::cout << "Allocating ANN buffers...";
-  this->core->template allocateBuffer<T>("actvs", totalNumNeurons);
+  // Store stride (totalNumNeurons) for batch-aware kernel indexing
+  this->stride = totalNumNeurons;
+
+  // Per-sample buffers are allocated with batchSize multiplier
+  if (this->logLevel >= LogLevel::INFO) std::cout << "Allocating ANN buffers (batchSize=" << batchSize << ")...";
+  this->core->template allocateBuffer<T>("actvs", batchSize * totalNumNeurons);
   this->core->template allocateBuffer<T>("weights", totalNumWeights);
   this->core->template allocateBuffer<T>("biases", totalNumBiases);
-  this->core->template allocateBuffer<T>("zs", totalNumNeurons);
-  this->core->template allocateBuffer<T>("dCost_dActvs", totalNumNeurons);
+  this->core->template allocateBuffer<T>("zs", batchSize * totalNumNeurons);
+  this->core->template allocateBuffer<T>("dCost_dActvs", batchSize * totalNumNeurons);
 
   // Layers configuration buffer
-  // Each Layer is: ulong numNeurons (8 bytes) + ActvFuncType (4 bytes) + padding (4 bytes) = 16 bytes
   this->core->template allocateBuffer<Layer>("layers", numLayers);
 
   std::vector<Layer> layersVec(this->layersConfig.begin(), this->layersConfig.end());
   this->core->template writeBuffer<Layer>("layers", layersVec, 0);
 
-  // Training buffers
-  this->core->template allocateBuffer<T>("dCost_dWeights", totalNumWeights);
+  // Training buffers — per-sample gradient buffers are batched
+  this->core->template allocateBuffer<T>("dCost_dWeights", batchSize * totalNumWeights);
   this->core->template allocateBuffer<T>("accum_dCost_dWeights", totalNumWeights);
-  this->core->template allocateBuffer<T>("dCost_dBiases", totalNumBiases);
+  this->core->template allocateBuffer<T>("dCost_dBiases", batchSize * totalNumBiases);
   this->core->template allocateBuffer<T>("accum_dCost_dBiases", totalNumBiases);
-  this->core->template allocateBuffer<T>("outputs", this->layersConfig[numLayers - 1].numNeurons);
 
-  // Loss weights buffer (one weight per output neuron).
-  // Always allocated: for squaredDifference, filled with 1.0 so the kernel needs no branching.
   ulong numOutputNeurons = this->layersConfig[numLayers - 1].numNeurons;
+  this->core->template allocateBuffer<T>("outputs", batchSize * numOutputNeurons);
+
+  // Loss weights buffer (one weight per output neuron, shared across batch)
   this->core->template allocateBuffer<T>("lossWeights", numOutputNeurons);
 
   std::vector<T> lossWeightsVec(numOutputNeurons, static_cast<T>(1));
@@ -411,10 +448,10 @@ void CoreGPUWorker<T>::allocateBuffers() {
   }
   this->core->template writeBuffer<T>("lossWeights", lossWeightsVec, 0);
 
-  // Dropout mask buffer (allocated if dropout is enabled)
+  // Dropout mask buffer (per-sample, batched)
   this->hasDropout = (this->trainingConfig.dropoutRate > 0.0f);
   if (this->hasDropout) {
-    this->core->template allocateBuffer<T>("dropoutMask", totalNumNeurons);
+    this->core->template allocateBuffer<T>("dropoutMask", batchSize * totalNumNeurons);
   }
 
   if (this->logLevel >= LogLevel::INFO) std::cout << "ANN buffers allocation done.\n";
@@ -521,6 +558,7 @@ void CoreGPUWorker<T>::addUpdateKernels(ulong numSamples) {
 template <typename T>
 void CoreGPUWorker<T>::addPropagateKernels() {
   ulong numLayers = this->layersConfig.size();
+  ulong bs = this->currentBatchSize;
 
   for (ulong l = 1; l < numLayers; l++) {
     const Layer& layer = this->layersConfig[l];
@@ -529,8 +567,8 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     std::string calculate_zs_id = "calculate_zs_layer" + std::to_string(l);
     std::string calculate_actvs_id = "calculate_actvs_layer" + std::to_string(l);
 
-    // calculate_zs kernel: computes weighted sum + bias for each neuron
-    this->core->addKernel(calculate_zs_id, "calculate_zs", numNeurons, 0);
+    // calculate_zs kernel: batchSize * numNeurons work items
+    this->core->addKernel(calculate_zs_id, "calculate_zs", bs * numNeurons, 0);
     this->core->template addArgument<T>(calculate_zs_id, "zs");
     this->core->template addArgument<T>(calculate_zs_id, "weights");
     this->core->template addArgument<T>(calculate_zs_id, "actvs");
@@ -538,10 +576,12 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     this->core->template addArgument<ulong>(calculate_zs_id, l);
     this->core->template addArgument<Layer>(calculate_zs_id, "layers");
     this->core->template addArgument<ulong>(calculate_zs_id, numLayers);
+    this->core->template addArgument<ulong>(calculate_zs_id, bs);
+    this->core->template addArgument<ulong>(calculate_zs_id, this->stride);
 
     // calculate_actvs kernel: applies activation function
-    // Softmax requires a single work-item (layer-wide), element-wise uses one per neuron
-    ulong actvWorkItems = (layer.actvFuncType == ActvFuncType::SOFTMAX) ? 1 : numNeurons;
+    // Softmax: batchSize work items (one per sample). Element-wise: batchSize * numNeurons.
+    ulong actvWorkItems = (layer.actvFuncType == ActvFuncType::SOFTMAX) ? bs : bs * numNeurons;
     this->core->addKernel(calculate_actvs_id, "calculate_actvs", actvWorkItems, 0);
 
     this->core->template addArgument<T>(calculate_actvs_id, "actvs");
@@ -549,16 +589,20 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     this->core->template addArgument<ulong>(calculate_actvs_id, l);
     this->core->template addArgument<Layer>(calculate_actvs_id, "layers");
     this->core->template addArgument<ulong>(calculate_actvs_id, numLayers);
+    this->core->template addArgument<ulong>(calculate_actvs_id, bs);
+    this->core->template addArgument<ulong>(calculate_actvs_id, this->stride);
 
-    // Dropout kernel: apply pre-generated mask after activation (skip last layer)
+    // Dropout kernel: batchSize * numNeurons work items (skip last layer)
     if (this->hasDropout && l < numLayers - 1) {
       std::string dropout_id = "apply_dropout_layer" + std::to_string(l);
-      this->core->addKernel(dropout_id, "apply_dropout", numNeurons, 0);
+      this->core->addKernel(dropout_id, "apply_dropout", bs * numNeurons, 0);
       this->core->template addArgument<T>(dropout_id, "actvs");
       this->core->template addArgument<T>(dropout_id, "dropoutMask");
       this->core->template addArgument<ulong>(dropout_id, l);
       this->core->template addArgument<Layer>(dropout_id, "layers");
       this->core->template addArgument<ulong>(dropout_id, numLayers);
+      this->core->template addArgument<ulong>(dropout_id, bs);
+      this->core->template addArgument<ulong>(dropout_id, this->stride);
     }
   }
 }
@@ -568,6 +612,7 @@ void CoreGPUWorker<T>::addPropagateKernels() {
 template <typename T>
 void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   ulong numLayers = this->layersConfig.size();
+  ulong bs = this->currentBatchSize;
 
   // Last layer kernels
   ulong l = numLayers - 1;
@@ -577,21 +622,23 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   ulong numBiases = numNeurons;
   ulong numWeights = Utils<T>::count(this->parameters.weights[l]);
 
-  // calculate_dCost_dActv_last_layer
-  this->core->addKernel("calculate_dCost_dActv_last_layer", numNeurons, 0);
+  // calculate_dCost_dActv_last_layer: batchSize * numOutputNeurons work items
+  this->core->addKernel("calculate_dCost_dActv_last_layer", bs * numNeurons, 0);
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "dCost_dActvs");
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "actvs");
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "outputs");
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "lossWeights");
-  this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", this->layersConfig[numLayers - 1].numNeurons);
+  this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", numNeurons);
   this->core->template addArgument<Layer>("calculate_dCost_dActv_last_layer", "layers");
   this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", numLayers);
+  this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", bs);
+  this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", this->stride);
 
   std::string dCost_dBias_last_id = "calculate_dCost_dBias_layer" + std::to_string(l);
   std::string dCost_dWeight_last_id = "calculate_dCost_dWeight_layer" + std::to_string(l);
 
-  // calculate_dCost_dBias for last layer
-  this->core->addKernel(dCost_dBias_last_id, "calculate_dCost_dBias", numBiases, 0);
+  // calculate_dCost_dBias for last layer: batchSize * numBiases work items
+  this->core->addKernel(dCost_dBias_last_id, "calculate_dCost_dBias", bs * numBiases, 0);
   this->core->template addArgument<T>(dCost_dBias_last_id, "dCost_dBiases");
   this->core->template addArgument<T>(dCost_dBias_last_id, "actvs");
   this->core->template addArgument<T>(dCost_dBias_last_id, "zs");
@@ -599,9 +646,11 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   this->core->template addArgument<ulong>(dCost_dBias_last_id, l);
   this->core->template addArgument<Layer>(dCost_dBias_last_id, "layers");
   this->core->template addArgument<ulong>(dCost_dBias_last_id, numLayers);
+  this->core->template addArgument<ulong>(dCost_dBias_last_id, bs);
+  this->core->template addArgument<ulong>(dCost_dBias_last_id, this->stride);
 
-  // calculate_dCost_dWeight for last layer
-  this->core->addKernel(dCost_dWeight_last_id, "calculate_dCost_dWeight", numWeights, 0);
+  // calculate_dCost_dWeight for last layer: batchSize * numWeights work items
+  this->core->addKernel(dCost_dWeight_last_id, "calculate_dCost_dWeight", bs * numWeights, 0);
   this->core->template addArgument<T>(dCost_dWeight_last_id, "dCost_dWeights");
   this->core->template addArgument<T>(dCost_dWeight_last_id, "actvs");
   this->core->template addArgument<T>(dCost_dWeight_last_id, "zs");
@@ -609,6 +658,8 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   this->core->template addArgument<ulong>(dCost_dWeight_last_id, l);
   this->core->template addArgument<Layer>(dCost_dWeight_last_id, "layers");
   this->core->template addArgument<ulong>(dCost_dWeight_last_id, numLayers);
+  this->core->template addArgument<ulong>(dCost_dWeight_last_id, bs);
+  this->core->template addArgument<ulong>(dCost_dWeight_last_id, this->stride);
 
   // Hidden layers (from second-to-last to first hidden layer)
   for (ulong layer_idx = numLayers - 2; layer_idx >= 1; layer_idx--) {
@@ -622,8 +673,8 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     std::string dCost_dBias_id = "calculate_dCost_dBias_layer" + std::to_string(layer_idx);
     std::string dCost_dWeight_id = "calculate_dCost_dWeight_layer" + std::to_string(layer_idx);
 
-    // calculate_dCost_dActv
-    this->core->addKernel(dCost_dActv_id, "calculate_dCost_dActv", curr_numNeurons, 0);
+    // calculate_dCost_dActv: batchSize * curr_numNeurons work items
+    this->core->addKernel(dCost_dActv_id, "calculate_dCost_dActv", bs * curr_numNeurons, 0);
     this->core->template addArgument<T>(dCost_dActv_id, "dCost_dActvs");
     this->core->template addArgument<T>(dCost_dActv_id, "actvs");
     this->core->template addArgument<T>(dCost_dActv_id, "weights");
@@ -631,20 +682,24 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     this->core->template addArgument<ulong>(dCost_dActv_id, layer_idx);
     this->core->template addArgument<Layer>(dCost_dActv_id, "layers");
     this->core->template addArgument<ulong>(dCost_dActv_id, numLayers);
+    this->core->template addArgument<ulong>(dCost_dActv_id, bs);
+    this->core->template addArgument<ulong>(dCost_dActv_id, this->stride);
 
     // Apply dropout mask to gradients (same mask as forward pass)
     if (this->hasDropout) {
       std::string dropout_bwd_id = "apply_dropout_backward_layer" + std::to_string(layer_idx);
-      this->core->addKernel(dropout_bwd_id, "apply_dropout_backward", curr_numNeurons, 0);
+      this->core->addKernel(dropout_bwd_id, "apply_dropout_backward", bs * curr_numNeurons, 0);
       this->core->template addArgument<T>(dropout_bwd_id, "dCost_dActvs");
       this->core->template addArgument<T>(dropout_bwd_id, "dropoutMask");
       this->core->template addArgument<ulong>(dropout_bwd_id, layer_idx);
       this->core->template addArgument<Layer>(dropout_bwd_id, "layers");
       this->core->template addArgument<ulong>(dropout_bwd_id, numLayers);
+      this->core->template addArgument<ulong>(dropout_bwd_id, bs);
+      this->core->template addArgument<ulong>(dropout_bwd_id, this->stride);
     }
 
-    // calculate_dCost_dBias
-    this->core->addKernel(dCost_dBias_id, "calculate_dCost_dBias", curr_numBiases, 0);
+    // calculate_dCost_dBias: batchSize * curr_numBiases work items
+    this->core->addKernel(dCost_dBias_id, "calculate_dCost_dBias", bs * curr_numBiases, 0);
     this->core->template addArgument<T>(dCost_dBias_id, "dCost_dBiases");
     this->core->template addArgument<T>(dCost_dBias_id, "actvs");
     this->core->template addArgument<T>(dCost_dBias_id, "zs");
@@ -652,9 +707,11 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     this->core->template addArgument<ulong>(dCost_dBias_id, layer_idx);
     this->core->template addArgument<Layer>(dCost_dBias_id, "layers");
     this->core->template addArgument<ulong>(dCost_dBias_id, numLayers);
+    this->core->template addArgument<ulong>(dCost_dBias_id, bs);
+    this->core->template addArgument<ulong>(dCost_dBias_id, this->stride);
 
-    // calculate_dCost_dWeight
-    this->core->addKernel(dCost_dWeight_id, "calculate_dCost_dWeight", curr_numWeights, 0);
+    // calculate_dCost_dWeight: batchSize * curr_numWeights work items
+    this->core->addKernel(dCost_dWeight_id, "calculate_dCost_dWeight", bs * curr_numWeights, 0);
     this->core->template addArgument<T>(dCost_dWeight_id, "dCost_dWeights");
     this->core->template addArgument<T>(dCost_dWeight_id, "actvs");
     this->core->template addArgument<T>(dCost_dWeight_id, "zs");
@@ -662,6 +719,8 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     this->core->template addArgument<ulong>(dCost_dWeight_id, layer_idx);
     this->core->template addArgument<Layer>(dCost_dWeight_id, "layers");
     this->core->template addArgument<ulong>(dCost_dWeight_id, numLayers);
+    this->core->template addArgument<ulong>(dCost_dWeight_id, bs);
+    this->core->template addArgument<ulong>(dCost_dWeight_id, this->stride);
 
     // Break condition for ulong loop (can't go negative)
     if (layer_idx == 1) break;
@@ -671,7 +730,7 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   if (includeInputGradients) {
     ulong inputNumNeurons = this->layersConfig[0].numNeurons;
 
-    this->core->addKernel("calculate_dCost_dActv_layer0", "calculate_dCost_dActv", inputNumNeurons, 0);
+    this->core->addKernel("calculate_dCost_dActv_layer0", "calculate_dCost_dActv", bs * inputNumNeurons, 0);
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "dCost_dActvs");
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "actvs");
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "weights");
@@ -679,6 +738,8 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", static_cast<ulong>(0));
     this->core->template addArgument<Layer>("calculate_dCost_dActv_layer0", "layers");
     this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", numLayers);
+    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", bs);
+    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", this->stride);
   }
 }
 
@@ -688,16 +749,20 @@ template <typename T>
 void CoreGPUWorker<T>::addAccumulateKernels() {
   ulong totalNumBiases = Utils<T>::count(this->parameters.biases);
   ulong totalNumWeights = Utils<T>::count(this->parameters.weights);
+  ulong bs = this->currentBatchSize;
 
+  // Accumulate kernels reduce across batch dimension — work items = totalNumBiases/Weights (not batched)
   this->core->addKernel("accumulate_dCost_dBiases", totalNumBiases, 0);
   this->core->template addArgument<T>("accumulate_dCost_dBiases", "accum_dCost_dBiases");
   this->core->template addArgument<T>("accumulate_dCost_dBiases", "dCost_dBiases");
   this->core->template addArgument<ulong>("accumulate_dCost_dBiases", totalNumBiases);
+  this->core->template addArgument<ulong>("accumulate_dCost_dBiases", bs);
 
   this->core->addKernel("accumulate_dCost_dWeights", totalNumWeights, 0);
   this->core->template addArgument<T>("accumulate_dCost_dWeights", "accum_dCost_dWeights");
   this->core->template addArgument<T>("accumulate_dCost_dWeights", "dCost_dWeights");
   this->core->template addArgument<ulong>("accumulate_dCost_dWeights", totalNumWeights);
+  this->core->template addArgument<ulong>("accumulate_dCost_dWeights", bs);
 }
 
 //===================================================================================================================//
@@ -774,6 +839,56 @@ Output<T> CoreGPUWorker<T>::readOutput() {
 }
 
 //===================================================================================================================//
+
+template <typename T>
+Output<T> CoreGPUWorker<T>::readBatchOutput(ulong batchIdx) {
+  ulong numLayers = this->layersConfig.size();
+
+  ulong outputOffset = 0;
+  for (ulong l = 0; l < numLayers - 1; l++) {
+    outputOffset += this->layersConfig[l].numNeurons;
+  }
+
+  ulong outputNumNeurons = this->layersConfig[numLayers - 1].numNeurons;
+
+  Output<T> output;
+  output.resize(outputNumNeurons);
+
+  // Read from batch slot: batchIdx * stride + outputOffset
+  this->core->readBuffer("actvs", output, batchIdx * this->stride + outputOffset);
+
+  return output;
+}
+
+//===================================================================================================================//
+
+template <typename T>
+T CoreGPUWorker<T>::calculateBatchLoss(ulong batchSize) {
+  ulong numOutputNeurons = this->layersConfig[this->layersConfig.size() - 1].numNeurons;
+
+  T totalLoss = 0;
+
+  for (ulong b = 0; b < batchSize; b++) {
+    Output<T> actual = this->readBatchOutput(b);
+
+    // Read expected output from the outputs buffer at batch offset
+    Output<T> expected;
+    expected.resize(numOutputNeurons);
+    this->core->template readBuffer<T>("outputs", expected, b * numOutputNeurons);
+
+    T sampleLoss = 0;
+    for (ulong i = 0; i < numOutputNeurons; i++) {
+      T diff = actual[i] - expected[i];
+      T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
+      sampleLoss += weight * diff * diff;
+    }
+    totalLoss += sampleLoss / static_cast<T>(numOutputNeurons);
+  }
+
+  return totalLoss;
+}
+
+//===================================================================================================================//
 //-- Dropout mask generation and upload --//
 //===================================================================================================================//
 
@@ -781,28 +896,33 @@ template <typename T>
 void CoreGPUWorker<T>::generateAndUploadDropoutMask() {
   ulong numLayers = this->layersConfig.size();
   float rate = this->trainingConfig.dropoutRate;
+  ulong bs = this->currentBatchSize;
 
   T scale = static_cast<T>(1) / (static_cast<T>(1) - static_cast<T>(rate));
   std::bernoulli_distribution dist(1.0 - static_cast<double>(rate));
 
-  // Build flat mask matching the flat actvs buffer layout
+  // Build flat mask matching the batched actvs buffer layout: [batchSize][totalNeurons]
   ulong totalNeurons = 0;
   for (ulong l = 0; l < numLayers; l++) totalNeurons += this->layersConfig[l].numNeurons;
 
-  std::vector<T> mask(totalNeurons);
-  ulong offset = 0;
+  std::vector<T> mask(bs * totalNeurons);
 
-  for (ulong l = 0; l < numLayers; l++) {
-    ulong numNeurons = this->layersConfig[l].numNeurons;
+  for (ulong b = 0; b < bs; b++) {
+    ulong batchOffset = b * totalNeurons;
+    ulong offset = 0;
 
-    // Apply dropout only to hidden layers (skip input layer 0 and output layer N-1)
-    bool applyDropout = (l > 0 && l < numLayers - 1);
+    for (ulong l = 0; l < numLayers; l++) {
+      ulong numNeurons = this->layersConfig[l].numNeurons;
 
-    for (ulong j = 0; j < numNeurons; j++) {
-      mask[offset + j] = applyDropout ? (dist(this->dropoutRng) ? scale : static_cast<T>(0))
-                                      : static_cast<T>(1);
+      // Apply dropout only to hidden layers (skip input layer 0 and output layer N-1)
+      bool applyDropout = (l > 0 && l < numLayers - 1);
+
+      for (ulong j = 0; j < numNeurons; j++) {
+        mask[batchOffset + offset + j] = applyDropout ? (dist(this->dropoutRng) ? scale : static_cast<T>(0))
+                                                      : static_cast<T>(1);
+      }
+      offset += numNeurons;
     }
-    offset += numNeurons;
   }
 
   this->core->template writeBuffer<T>("dropoutMask", mask, 0);

@@ -15,9 +15,15 @@ kernel void calculate_zs(
     global TYPE* biases,
     ulong layerIdx,
     constant Layer* layers,
-    ulong numLayers
+    ulong numLayers,
+    ulong batchSize,
+    ulong stride
   ) {
-  size_t j = get_global_id(0);
+  size_t gid = get_global_id(0);
+  ulong numNeurons = layers[layerIdx].numNeurons;
+  ulong batchIdx = gid / numNeurons;
+  ulong j = gid % numNeurons;
+  ulong batchOffset = batchIdx * stride;
 
   ulong prevNumNeurons = layers[layerIdx - 1].numNeurons;
 
@@ -25,12 +31,12 @@ kernel void calculate_zs(
 
   for (ulong k = 0; k < prevNumNeurons; k++) {
     ulong weightIdx = getWeightIndex(layerIdx, j, k, layers, numLayers);
-    ulong prevActvIdx = getActvIndex(layerIdx - 1, k, layers, numLayers);
+    ulong prevActvIdx = batchOffset + getActvIndex(layerIdx - 1, k, layers, numLayers);
 
     sum += weights[weightIdx] * actvs[prevActvIdx];
   }
 
-  zs[getZIndex(layerIdx, j, layers, numLayers)] = sum;
+  zs[batchOffset + getZIndex(layerIdx, j, layers, numLayers)] = sum;
 }
 
 //===================================================================================================================//
@@ -40,12 +46,27 @@ kernel void calculate_actvs(
     global TYPE* zs,
     ulong layerIdx,
     constant Layer* layers,
-    ulong numLayers
+    ulong numLayers,
+    ulong batchSize,
+    ulong stride
   ) {
+  size_t gid = get_global_id(0);
   ulong numNeurons = layers[layerIdx].numNeurons;
   ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
 
-  actvFunc_calculate(zs, actvs, numNeurons, actvFuncType, layerIdx, layers, numLayers);
+  // For softmax: work items = batchSize (one per sample), j is unused
+  // For element-wise: work items = batchSize * numNeurons
+  ulong batchIdx, j;
+  if (actvFuncType == ACTV_SOFTMAX) {
+    batchIdx = gid;
+    j = 0; // unused, softmax iterates internally
+  } else {
+    batchIdx = gid / numNeurons;
+    j = gid % numNeurons;
+  }
+  ulong batchOffset = batchIdx * stride;
+
+  actvFunc_calculate(zs, actvs, numNeurons, actvFuncType, layerIdx, layers, numLayers, j, batchOffset);
 }
 
 //===================================================================================================================//
@@ -53,12 +74,17 @@ kernel void calculate_actvs(
 kernel void accumulate_dCost_dBiases(
     global TYPE* accum_dCost_dBiases,
     global TYPE* dCost_dBiases,
-    ulong size
+    ulong size,
+    ulong batchSize
   ) {
   size_t idx = get_global_id(0);
 
   if (idx < size) {
-    accum_dCost_dBiases[idx] += dCost_dBiases[idx];
+    TYPE sum = 0;
+    for (ulong b = 0; b < batchSize; b++) {
+      sum += dCost_dBiases[b * size + idx];
+    }
+    accum_dCost_dBiases[idx] += sum;
   }
 }
 
@@ -67,12 +93,17 @@ kernel void accumulate_dCost_dBiases(
 kernel void accumulate_dCost_dWeights(
     global TYPE* accum_dCost_dWeights,
     global TYPE* dCost_dWeights,
-    ulong size
+    ulong size,
+    ulong batchSize
   ) {
   size_t idx = get_global_id(0);
 
   if (idx < size) {
-    accum_dCost_dWeights[idx] += dCost_dWeights[idx];
+    TYPE sum = 0;
+    for (ulong b = 0; b < batchSize; b++) {
+      sum += dCost_dWeights[b * size + idx];
+    }
+    accum_dCost_dWeights[idx] += sum;
   }
 }
 
@@ -117,14 +148,20 @@ kernel void calculate_dCost_dActv_last_layer(
     global TYPE* lossWeights,
     ulong numOutputNeurons,
     constant Layer* layers,
-    ulong numLayers
+    ulong numLayers,
+    ulong batchSize,
+    ulong stride
   ) {
-  size_t j = get_global_id(0);
+  size_t gid = get_global_id(0);
+  ulong batchIdx = gid / numOutputNeurons;
+  ulong j = gid % numOutputNeurons;
+  ulong batchOffset = batchIdx * stride;
+  ulong outputBatchOffset = batchIdx * numOutputNeurons;
 
   ulong lastLayerIdx = numLayers - 1;
-  ulong idx = getActvIndex(lastLayerIdx, j, layers, numLayers);
+  ulong idx = batchOffset + getActvIndex(lastLayerIdx, j, layers, numLayers);
 
-  dCost_dActvs[idx] = 2.0f * lossWeights[j] * (actvs[idx] - outputs[j]);
+  dCost_dActvs[idx] = 2.0f * lossWeights[j] * (actvs[idx] - outputs[outputBatchOffset + j]);
 }
 
 //===================================================================================================================//
@@ -136,9 +173,15 @@ kernel void calculate_dCost_dActv(
     global TYPE* zs,
     ulong layerIdx,
     constant Layer* layers,
-    ulong numLayers
+    ulong numLayers,
+    ulong batchSize,
+    ulong stride
   ) {
-  size_t k = get_global_id(0);
+  size_t gid = get_global_id(0);
+  ulong numNeurons = layers[layerIdx].numNeurons;
+  ulong batchIdx = gid / numNeurons;
+  ulong k = gid % numNeurons;
+  ulong batchOffset = batchIdx * stride;
 
   ulong nextLayerIdx = layerIdx + 1;
   ulong nextNumNeurons = layers[nextLayerIdx].numNeurons;
@@ -151,12 +194,12 @@ kernel void calculate_dCost_dActv(
 
     TYPE weight = weights[weightIdx];
     TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, nextNumNeurons, actvFuncType,
-                                        nextLayerIdx, layers, numLayers);
+                                        nextLayerIdx, layers, numLayers, batchOffset);
 
     sum += weight * dCost_dZ;
   }
 
-  dCost_dActvs[getActvIndex(layerIdx, k, layers, numLayers)] = sum;
+  dCost_dActvs[batchOffset + getActvIndex(layerIdx, k, layers, numLayers)] = sum;
 }
 
 //===================================================================================================================//
@@ -168,22 +211,35 @@ kernel void calculate_dCost_dWeight(
     global TYPE* dCost_dActvs,
     ulong layerIdx,
     constant Layer* layers,
-    ulong numLayers
+    ulong numLayers,
+    ulong batchSize,
+    ulong stride
   ) {
   size_t gid = get_global_id(0);
 
   ulong prevNumNeurons = layers[layerIdx - 1].numNeurons;
   ulong numNeurons = layers[layerIdx].numNeurons;
+  ulong numWeightsPerLayer = numNeurons * prevNumNeurons;
   ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
 
-  ulong j = gid / prevNumNeurons;
-  ulong k = gid % prevNumNeurons;
+  ulong batchIdx = gid / numWeightsPerLayer;
+  ulong localIdx = gid % numWeightsPerLayer;
+  ulong j = localIdx / prevNumNeurons;
+  ulong k = localIdx % prevNumNeurons;
+  ulong batchOffset = batchIdx * stride;
+  ulong weightBatchOffset = batchIdx * numWeightsPerLayer;
 
-  TYPE actv = actvs[getActvIndex(layerIdx - 1, k, layers, numLayers)];
+  TYPE actv = actvs[batchOffset + getActvIndex(layerIdx - 1, k, layers, numLayers)];
   TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, numNeurons, actvFuncType,
-                                      layerIdx, layers, numLayers);
+                                      layerIdx, layers, numLayers, batchOffset);
 
-  dCost_dWeights[getWeightIndex(layerIdx, j, k, layers, numLayers)] = actv * dCost_dZ;
+  // dCost_dWeights is laid out as [batchSize][numWeightsPerLayer] for this layer's kernel
+  // but the buffer is flat across all layers, so we use the layer weight index + batch offset
+  ulong totalNumWeights = 0;
+  for (ulong i = 1; i < numLayers; i++) {
+    totalNumWeights += layers[i].numNeurons * layers[i - 1].numNeurons;
+  }
+  dCost_dWeights[batchIdx * totalNumWeights + getWeightIndex(layerIdx, j, k, layers, numLayers)] = actv * dCost_dZ;
 }
 
 //===================================================================================================================//
@@ -195,40 +251,54 @@ kernel void calculate_dCost_dBias(
     global TYPE* dCost_dActvs,
     ulong layerIdx,
     constant Layer* layers,
-    ulong numLayers
+    ulong numLayers,
+    ulong batchSize,
+    ulong stride
   ) {
-  size_t j = get_global_id(0);
+  size_t gid = get_global_id(0);
 
   ulong numNeurons = layers[layerIdx].numNeurons;
+  ulong batchIdx = gid / numNeurons;
+  ulong j = gid % numNeurons;
+  ulong batchOffset = batchIdx * stride;
   ActvFuncType actvFuncType = layers[layerIdx].actvFuncType;
 
   TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, numNeurons, actvFuncType,
-                                      layerIdx, layers, numLayers);
+                                      layerIdx, layers, numLayers, batchOffset);
 
-  dCost_dBiases[getBiasIndex(layerIdx, j, layers, numLayers)] = dCost_dZ;
+  // dCost_dBiases is laid out as [batchSize][totalNumBiases]
+  ulong totalNumBiases = 0;
+  for (ulong i = 1; i < numLayers; i++) {
+    totalNumBiases += layers[i].numNeurons;
+  }
+  dCost_dBiases[batchIdx * totalNumBiases + getBiasIndex(layerIdx, j, layers, numLayers)] = dCost_dZ;
 }
 
 //===================================================================================================================//
 
 // Applies a pre-generated dropout mask to activations (forward pass, training only).
 // mask values are 0 (dropped) or 1/(1-p) (kept with inverted scaling).
-// One work-item per neuron in the layer.
+// Work items = batchSize * numNeurons.
 kernel void apply_dropout(
     global TYPE* actvs,
     global TYPE* dropoutMask,
     ulong layerIdx,
     global Layer* layers,
-    ulong numLayers
+    ulong numLayers,
+    ulong batchSize,
+    ulong stride
   ) {
   size_t gid = get_global_id(0);
   ulong numNeurons = layers[layerIdx].numNeurons;
-  if (gid >= numNeurons) return;
+  ulong batchIdx = gid / numNeurons;
+  ulong localIdx = gid % numNeurons;
+  ulong batchOffset = batchIdx * stride;
 
   // Compute flat activation offset for this layer
   ulong offset = 0;
   for (ulong l = 0; l < layerIdx; l++) offset += layers[l].numNeurons;
 
-  actvs[offset + gid] *= dropoutMask[offset + gid];
+  actvs[batchOffset + offset + localIdx] *= dropoutMask[batchOffset + offset + localIdx];
 }
 
 //===================================================================================================================//
@@ -240,16 +310,20 @@ kernel void apply_dropout_backward(
     global TYPE* dropoutMask,
     ulong layerIdx,
     global Layer* layers,
-    ulong numLayers
+    ulong numLayers,
+    ulong batchSize,
+    ulong stride
   ) {
   size_t gid = get_global_id(0);
   ulong numNeurons = layers[layerIdx].numNeurons;
-  if (gid >= numNeurons) return;
+  ulong batchIdx = gid / numNeurons;
+  ulong localIdx = gid % numNeurons;
+  ulong batchOffset = batchIdx * stride;
 
   ulong offset = 0;
   for (ulong l = 0; l < layerIdx; l++) offset += layers[l].numNeurons;
 
-  dCost_dActvs[offset + gid] *= dropoutMask[offset + gid];
+  dCost_dActvs[batchOffset + offset + localIdx] *= dropoutMask[batchOffset + offset + localIdx];
 }
 
 //===================================================================================================================//
