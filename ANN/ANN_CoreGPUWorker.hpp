@@ -109,6 +109,11 @@ namespace ANN {
       //-- Helpers --//
       void invalidateAllKernelFlags();
 
+      //-- Precomputed offset helpers --//
+      ulong getActvOffset(ulong layerIdx) const;
+      ulong getWeightOffset(ulong layerIdx) const;
+      ulong getBiasOffset(ulong layerIdx) const;
+
       //-- Loss --//
       T calculateLoss(const Output<T>& expected);
 

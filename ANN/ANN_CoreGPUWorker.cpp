@@ -525,6 +525,13 @@ void CoreGPUWorker<T>::addPropagateKernels() {
   for (ulong l = 1; l < numLayers; l++) {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
+    ulong prevNumNeurons = this->layersConfig[l - 1].numNeurons;
+
+    // Precompute offsets
+    ulong actvOffset = this->getActvOffset(l);
+    ulong prevActvOffset = this->getActvOffset(l - 1);
+    ulong weightOffset = this->getWeightOffset(l);
+    ulong biasOffset = this->getBiasOffset(l);
 
     std::string calculate_zs_id = "calculate_zs_layer" + std::to_string(l);
     std::string calculate_actvs_id = "calculate_actvs_layer" + std::to_string(l);
@@ -535,9 +542,11 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     this->core->template addArgument<T>(calculate_zs_id, "weights");
     this->core->template addArgument<T>(calculate_zs_id, "actvs");
     this->core->template addArgument<T>(calculate_zs_id, "biases");
-    this->core->template addArgument<ulong>(calculate_zs_id, l);
-    this->core->template addArgument<Layer>(calculate_zs_id, "layers");
-    this->core->template addArgument<ulong>(calculate_zs_id, numLayers);
+    this->core->template addArgument<ulong>(calculate_zs_id, prevNumNeurons);
+    this->core->template addArgument<ulong>(calculate_zs_id, weightOffset);
+    this->core->template addArgument<ulong>(calculate_zs_id, prevActvOffset);
+    this->core->template addArgument<ulong>(calculate_zs_id, biasOffset);
+    this->core->template addArgument<ulong>(calculate_zs_id, actvOffset);
 
     // calculate_actvs kernel: applies activation function
     // Softmax requires a single work-item (layer-wide), element-wise uses one per neuron
@@ -546,9 +555,9 @@ void CoreGPUWorker<T>::addPropagateKernels() {
 
     this->core->template addArgument<T>(calculate_actvs_id, "actvs");
     this->core->template addArgument<T>(calculate_actvs_id, "zs");
-    this->core->template addArgument<ulong>(calculate_actvs_id, l);
-    this->core->template addArgument<Layer>(calculate_actvs_id, "layers");
-    this->core->template addArgument<ulong>(calculate_actvs_id, numLayers);
+    this->core->template addArgument<ulong>(calculate_actvs_id, numNeurons);
+    this->core->template addArgument<ulong>(calculate_actvs_id, static_cast<ulong>(layer.actvFuncType));
+    this->core->template addArgument<ulong>(calculate_actvs_id, actvOffset);
 
     // Dropout kernel: apply pre-generated mask after activation (skip last layer)
     if (this->hasDropout && l < numLayers - 1) {
@@ -556,9 +565,7 @@ void CoreGPUWorker<T>::addPropagateKernels() {
       this->core->addKernel(dropout_id, "apply_dropout", numNeurons, 0);
       this->core->template addArgument<T>(dropout_id, "actvs");
       this->core->template addArgument<T>(dropout_id, "dropoutMask");
-      this->core->template addArgument<ulong>(dropout_id, l);
-      this->core->template addArgument<Layer>(dropout_id, "layers");
-      this->core->template addArgument<ulong>(dropout_id, numLayers);
+      this->core->template addArgument<ulong>(dropout_id, actvOffset);
     }
   }
 }
@@ -576,6 +583,12 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   ulong numNeurons = lastLayer.numNeurons;
   ulong numBiases = numNeurons;
   ulong numWeights = Utils<T>::count(this->parameters.weights[l]);
+  ulong prevNumNeurons = this->layersConfig[l - 1].numNeurons;
+
+  ulong actvOffset = this->getActvOffset(l);
+  ulong prevActvOffset = this->getActvOffset(l - 1);
+  ulong weightOffset = this->getWeightOffset(l);
+  ulong biasOffset = this->getBiasOffset(l);
 
   // calculate_dCost_dActv_last_layer
   this->core->addKernel("calculate_dCost_dActv_last_layer", numNeurons, 0);
@@ -583,9 +596,7 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "actvs");
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "outputs");
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "lossWeights");
-  this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", this->layersConfig[numLayers - 1].numNeurons);
-  this->core->template addArgument<Layer>("calculate_dCost_dActv_last_layer", "layers");
-  this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", numLayers);
+  this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", actvOffset);
 
   std::string dCost_dBias_last_id = "calculate_dCost_dBias_layer" + std::to_string(l);
   std::string dCost_dWeight_last_id = "calculate_dCost_dWeight_layer" + std::to_string(l);
@@ -596,9 +607,10 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   this->core->template addArgument<T>(dCost_dBias_last_id, "actvs");
   this->core->template addArgument<T>(dCost_dBias_last_id, "zs");
   this->core->template addArgument<T>(dCost_dBias_last_id, "dCost_dActvs");
-  this->core->template addArgument<ulong>(dCost_dBias_last_id, l);
-  this->core->template addArgument<Layer>(dCost_dBias_last_id, "layers");
-  this->core->template addArgument<ulong>(dCost_dBias_last_id, numLayers);
+  this->core->template addArgument<ulong>(dCost_dBias_last_id, numNeurons);
+  this->core->template addArgument<ulong>(dCost_dBias_last_id, static_cast<ulong>(lastLayer.actvFuncType));
+  this->core->template addArgument<ulong>(dCost_dBias_last_id, actvOffset);
+  this->core->template addArgument<ulong>(dCost_dBias_last_id, biasOffset);
 
   // calculate_dCost_dWeight for last layer
   this->core->addKernel(dCost_dWeight_last_id, "calculate_dCost_dWeight", numWeights, 0);
@@ -606,31 +618,47 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   this->core->template addArgument<T>(dCost_dWeight_last_id, "actvs");
   this->core->template addArgument<T>(dCost_dWeight_last_id, "zs");
   this->core->template addArgument<T>(dCost_dWeight_last_id, "dCost_dActvs");
-  this->core->template addArgument<ulong>(dCost_dWeight_last_id, l);
-  this->core->template addArgument<Layer>(dCost_dWeight_last_id, "layers");
-  this->core->template addArgument<ulong>(dCost_dWeight_last_id, numLayers);
+  this->core->template addArgument<ulong>(dCost_dWeight_last_id, prevNumNeurons);
+  this->core->template addArgument<ulong>(dCost_dWeight_last_id, numNeurons);
+  this->core->template addArgument<ulong>(dCost_dWeight_last_id, static_cast<ulong>(lastLayer.actvFuncType));
+  this->core->template addArgument<ulong>(dCost_dWeight_last_id, prevActvOffset);
+  this->core->template addArgument<ulong>(dCost_dWeight_last_id, actvOffset);
+  this->core->template addArgument<ulong>(dCost_dWeight_last_id, weightOffset);
 
   // Hidden layers (from second-to-last to first hidden layer)
   for (ulong layer_idx = numLayers - 2; layer_idx >= 1; layer_idx--) {
     const Layer& curr_layer = this->layersConfig[layer_idx];
+    const Layer& next_layer = this->layersConfig[layer_idx + 1];
 
     ulong curr_numNeurons = curr_layer.numNeurons;
     ulong curr_numBiases = curr_numNeurons;
     ulong curr_numWeights = Utils<T>::count(this->parameters.weights[layer_idx]);
+    ulong curr_prevNumNeurons = this->layersConfig[layer_idx - 1].numNeurons;
+    ulong next_numNeurons = next_layer.numNeurons;
+
+    ulong curr_actvOffset = this->getActvOffset(layer_idx);
+    ulong curr_prevActvOffset = this->getActvOffset(layer_idx - 1);
+    ulong next_actvOffset = this->getActvOffset(layer_idx + 1);
+    ulong next_weightOffset = this->getWeightOffset(layer_idx + 1);
+    ulong curr_weightOffset = this->getWeightOffset(layer_idx);
+    ulong curr_biasOffset = this->getBiasOffset(layer_idx);
 
     std::string dCost_dActv_id = "calculate_dCost_dActv_layer" + std::to_string(layer_idx);
     std::string dCost_dBias_id = "calculate_dCost_dBias_layer" + std::to_string(layer_idx);
     std::string dCost_dWeight_id = "calculate_dCost_dWeight_layer" + std::to_string(layer_idx);
 
-    // calculate_dCost_dActv
+    // calculate_dCost_dActv: propagate gradients from next layer
     this->core->addKernel(dCost_dActv_id, "calculate_dCost_dActv", curr_numNeurons, 0);
     this->core->template addArgument<T>(dCost_dActv_id, "dCost_dActvs");
     this->core->template addArgument<T>(dCost_dActv_id, "actvs");
     this->core->template addArgument<T>(dCost_dActv_id, "weights");
     this->core->template addArgument<T>(dCost_dActv_id, "zs");
-    this->core->template addArgument<ulong>(dCost_dActv_id, layer_idx);
-    this->core->template addArgument<Layer>(dCost_dActv_id, "layers");
-    this->core->template addArgument<ulong>(dCost_dActv_id, numLayers);
+    this->core->template addArgument<ulong>(dCost_dActv_id, next_numNeurons);
+    this->core->template addArgument<ulong>(dCost_dActv_id, curr_numNeurons);
+    this->core->template addArgument<ulong>(dCost_dActv_id, static_cast<ulong>(next_layer.actvFuncType));
+    this->core->template addArgument<ulong>(dCost_dActv_id, next_weightOffset);
+    this->core->template addArgument<ulong>(dCost_dActv_id, next_actvOffset);
+    this->core->template addArgument<ulong>(dCost_dActv_id, curr_actvOffset);
 
     // Apply dropout mask to gradients (same mask as forward pass)
     if (this->hasDropout) {
@@ -638,9 +666,7 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
       this->core->addKernel(dropout_bwd_id, "apply_dropout_backward", curr_numNeurons, 0);
       this->core->template addArgument<T>(dropout_bwd_id, "dCost_dActvs");
       this->core->template addArgument<T>(dropout_bwd_id, "dropoutMask");
-      this->core->template addArgument<ulong>(dropout_bwd_id, layer_idx);
-      this->core->template addArgument<Layer>(dropout_bwd_id, "layers");
-      this->core->template addArgument<ulong>(dropout_bwd_id, numLayers);
+      this->core->template addArgument<ulong>(dropout_bwd_id, curr_actvOffset);
     }
 
     // calculate_dCost_dBias
@@ -649,9 +675,10 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     this->core->template addArgument<T>(dCost_dBias_id, "actvs");
     this->core->template addArgument<T>(dCost_dBias_id, "zs");
     this->core->template addArgument<T>(dCost_dBias_id, "dCost_dActvs");
-    this->core->template addArgument<ulong>(dCost_dBias_id, layer_idx);
-    this->core->template addArgument<Layer>(dCost_dBias_id, "layers");
-    this->core->template addArgument<ulong>(dCost_dBias_id, numLayers);
+    this->core->template addArgument<ulong>(dCost_dBias_id, curr_numNeurons);
+    this->core->template addArgument<ulong>(dCost_dBias_id, static_cast<ulong>(curr_layer.actvFuncType));
+    this->core->template addArgument<ulong>(dCost_dBias_id, curr_actvOffset);
+    this->core->template addArgument<ulong>(dCost_dBias_id, curr_biasOffset);
 
     // calculate_dCost_dWeight
     this->core->addKernel(dCost_dWeight_id, "calculate_dCost_dWeight", curr_numWeights, 0);
@@ -659,9 +686,12 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
     this->core->template addArgument<T>(dCost_dWeight_id, "actvs");
     this->core->template addArgument<T>(dCost_dWeight_id, "zs");
     this->core->template addArgument<T>(dCost_dWeight_id, "dCost_dActvs");
-    this->core->template addArgument<ulong>(dCost_dWeight_id, layer_idx);
-    this->core->template addArgument<Layer>(dCost_dWeight_id, "layers");
-    this->core->template addArgument<ulong>(dCost_dWeight_id, numLayers);
+    this->core->template addArgument<ulong>(dCost_dWeight_id, curr_prevNumNeurons);
+    this->core->template addArgument<ulong>(dCost_dWeight_id, curr_numNeurons);
+    this->core->template addArgument<ulong>(dCost_dWeight_id, static_cast<ulong>(curr_layer.actvFuncType));
+    this->core->template addArgument<ulong>(dCost_dWeight_id, curr_prevActvOffset);
+    this->core->template addArgument<ulong>(dCost_dWeight_id, curr_actvOffset);
+    this->core->template addArgument<ulong>(dCost_dWeight_id, curr_weightOffset);
 
     // Break condition for ulong loop (can't go negative)
     if (layer_idx == 1) break;
@@ -670,15 +700,22 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   // Optionally compute input layer gradients (layer 0) for external orchestrators (e.g., CNN)
   if (includeInputGradients) {
     ulong inputNumNeurons = this->layersConfig[0].numNeurons;
+    ulong layer1NumNeurons = this->layersConfig[1].numNeurons;
+    ulong layer1WeightOffset = this->getWeightOffset(1);
+    ulong layer1ActvOffset = this->getActvOffset(1);
+    ulong layer0ActvOffset = this->getActvOffset(0);
 
     this->core->addKernel("calculate_dCost_dActv_layer0", "calculate_dCost_dActv", inputNumNeurons, 0);
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "dCost_dActvs");
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "actvs");
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "weights");
     this->core->template addArgument<T>("calculate_dCost_dActv_layer0", "zs");
-    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", static_cast<ulong>(0));
-    this->core->template addArgument<Layer>("calculate_dCost_dActv_layer0", "layers");
-    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", numLayers);
+    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", layer1NumNeurons);
+    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", inputNumNeurons);
+    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", static_cast<ulong>(this->layersConfig[1].actvFuncType));
+    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", layer1WeightOffset);
+    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", layer1ActvOffset);
+    this->core->template addArgument<ulong>("calculate_dCost_dActv_layer0", layer0ActvOffset);
   }
 }
 
@@ -711,6 +748,34 @@ void CoreGPUWorker<T>::invalidateAllKernelFlags() {
   this->backpropagateKernelsSetup = false;
   this->accumulateKernelsSetup = false;
   this->updateKernelsSetup = false;
+}
+
+//===================================================================================================================//
+//-- Precomputed offset helpers --//
+//===================================================================================================================//
+
+template <typename T>
+ulong CoreGPUWorker<T>::getActvOffset(ulong layerIdx) const {
+  ulong offset = 0;
+  for (ulong l = 0; l < layerIdx; l++)
+    offset += this->layersConfig[l].numNeurons;
+  return offset;
+}
+
+template <typename T>
+ulong CoreGPUWorker<T>::getWeightOffset(ulong layerIdx) const {
+  ulong offset = 0;
+  for (ulong l = 1; l < layerIdx; l++)
+    offset += this->layersConfig[l].numNeurons * this->layersConfig[l - 1].numNeurons;
+  return offset;
+}
+
+template <typename T>
+ulong CoreGPUWorker<T>::getBiasOffset(ulong layerIdx) const {
+  ulong offset = 0;
+  for (ulong l = 1; l < layerIdx; l++)
+    offset += this->layersConfig[l].numNeurons;
+  return offset;
 }
 
 //===================================================================================================================//
