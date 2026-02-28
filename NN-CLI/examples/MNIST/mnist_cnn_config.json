@@ -2,7 +2,7 @@
   "mode": "train",
   "device": "cpu",
   "progressReports": 1000,
-  "saveModelInterval": 50,
+  "saveModelInterval": 200,
   "inputShape": { "c": 1, "h": 28, "w": 28 },
   "convolutionalLayersConfig": [
     { "type": "conv", "numFilters": 32, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
@@ -18,10 +18,10 @@
     { "numNeurons": 10, "actvFunc": "softmax" }
   ],
   "trainingConfig": {
-    "numEpochs": 200,
+    "numEpochs": 400,
     "batchSize": 64,
     "learningRate": 0.001,
-    "augmentationFactor": 2,
+    "augmentationFactor": 4,
     "augmentationProbability": 0.5,
     "augmentationTransforms": {
       "horizontalFlip": false,
