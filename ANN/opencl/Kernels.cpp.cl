@@ -8,6 +8,10 @@
 // Kernels
 //===================================================================================================================//
 
+// calculate_zs: computes z = W*a + b for each neuron using parallel reduction.
+// Each neuron gets one work-group of localWorkSize work-items.
+// Global work size = numNeurons * localWorkSize.
+// Each work-item computes a partial dot product, then work-group reduces.
 kernel void calculate_zs(
     global TYPE* zs,
     global TYPE* weights,
@@ -18,40 +22,36 @@ kernel void calculate_zs(
     ulong prevActvOffset,
     ulong biasOffset,
     ulong zOffset,
-    local TYPE* tile
+    local TYPE* partials
   ) {
-  size_t j = get_global_id(0);
+  size_t groupId = get_group_id(0);   // neuron index
   size_t lid = get_local_id(0);
   size_t localSize = get_local_size(0);
 
-  TYPE sum = biases[biasOffset + j];
-
+  ulong j = groupId;  // neuron index
   ulong wRow = weightOffset + j * prevNumNeurons;
 
-  // Process input activations in tiles loaded cooperatively into local memory
-  for (ulong tileStart = 0; tileStart < prevNumNeurons; tileStart += localSize) {
-    // Cooperatively load a tile of input activations into local memory
-    ulong loadIdx = tileStart + lid;
-    if (loadIdx < prevNumNeurons)
-      tile[lid] = actvs[prevActvOffset + loadIdx];
-    else
-      tile[lid] = (TYPE)0;
+  // Each work-item computes partial dot product over its chunk
+  TYPE sum = (TYPE)0;
+  for (ulong k = lid; k < prevNumNeurons; k += localSize) {
+    sum += weights[wRow + k] * actvs[prevActvOffset + k];
+  }
 
-    barrier(CLK_LOCAL_MEM_FENCE);
+  partials[lid] = sum;
+  barrier(CLK_LOCAL_MEM_FENCE);
 
-    // Each work-item multiplies its weights with the shared tile
-    ulong tileEnd = tileStart + localSize;
-    if (tileEnd > prevNumNeurons) tileEnd = prevNumNeurons;
-    ulong tileLen = tileEnd - tileStart;
-
-    for (ulong t = 0; t < tileLen; t++) {
-      sum += weights[wRow + tileStart + t] * tile[t];
+  // Tree reduction within work-group
+  for (ulong stride = localSize / 2; stride > 0; stride >>= 1) {
+    if (lid < stride) {
+      partials[lid] += partials[lid + stride];
     }
-
     barrier(CLK_LOCAL_MEM_FENCE);
   }
 
-  zs[zOffset + j] = sum;
+  // Work-item 0 writes the final result
+  if (lid == 0) {
+    zs[zOffset + j] = partials[0] + biases[biasOffset + j];
+  }
 }
 
 //===================================================================================================================//

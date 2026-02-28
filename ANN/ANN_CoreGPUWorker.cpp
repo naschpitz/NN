@@ -536,11 +536,15 @@ void CoreGPUWorker<T>::addPropagateKernels() {
     std::string calculate_zs_id = "calculate_zs_layer" + std::to_string(l);
     std::string calculate_actvs_id = "calculate_actvs_layer" + std::to_string(l);
 
-    // calculate_zs kernel: computes weighted sum + bias for each neuron
-    // Uses local memory tiling for input activations to reduce global memory reads
-    ulong localWorkSize = 64;
-    if (numNeurons < localWorkSize) localWorkSize = numNeurons;
-    this->core->addKernel(calculate_zs_id, "calculate_zs", numNeurons, 0, localWorkSize);
+    // calculate_zs kernel: parallel reduction — one work-group per neuron
+    // Choose local work size based on prevNumNeurons for good utilization
+    ulong localWorkSize = 256;  // good default for large layers
+    if (prevNumNeurons <= 64) localWorkSize = 32;
+    else if (prevNumNeurons <= 256) localWorkSize = 64;
+    else if (prevNumNeurons <= 1024) localWorkSize = 128;
+    // localWorkSize must be power of 2 for tree reduction
+    ulong globalWorkSize = numNeurons * localWorkSize;
+    this->core->addKernel(calculate_zs_id, "calculate_zs", globalWorkSize, 0, localWorkSize);
     this->core->template addArgument<T>(calculate_zs_id, "zs");
     this->core->template addArgument<T>(calculate_zs_id, "weights");
     this->core->template addArgument<T>(calculate_zs_id, "actvs");
