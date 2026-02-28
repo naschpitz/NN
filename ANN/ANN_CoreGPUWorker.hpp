@@ -89,16 +89,6 @@ namespace ANN {
       std::unique_ptr<OpenCLWrapper::Core> ownedCore;  // Owned core (standalone mode)
       OpenCLWrapper::Core* core = nullptr;              // Pointer to active core (owned or shared)
 
-      //-- Batch parameters --//
-      ulong stride = 0;           // totalNumNeurons — offset between samples in batched buffers
-      ulong currentBatchSize = 1; // Current batch size for kernel dispatch
-
-    public:
-      ulong getStride() const { return this->stride; }
-      void setCurrentBatchSize(ulong bs) { this->currentBatchSize = bs; this->invalidateAllKernelFlags(); }
-      Output<T> readBatchOutput(ulong batchIdx);
-    private:
-
       //-- Kernel setup flags --//
       bool predictKernelsSetup = false;
       bool trainingKernelsSetup = false;
@@ -121,7 +111,6 @@ namespace ANN {
 
       //-- Loss --//
       T calculateLoss(const Output<T>& expected);
-      T calculateBatchLoss(ulong batchSize);
 
       std::mt19937 dropoutRng{std::random_device{}()};
   };
