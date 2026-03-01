@@ -7,8 +7,11 @@
 #include <ANN_Sample.hpp>
 #include <CNN_Sample.hpp>
 
+#include <QThreadPool>
+
 #include <functional>
 #include <map>
+#include <memory>
 #include <random>
 #include <string>
 #include <vector>
@@ -78,6 +81,10 @@ class DataLoader {
     int inputC = 0, inputH = 0, inputW = 0;
     int outputC = 0, outputH = 0, outputW = 0;
     IOConfig ioConfig;
+
+    // Dedicated thread pool for image loading — separate from the global pool
+    // used by the training loop, so prefetch work doesn't compete with training.
+    std::shared_ptr<QThreadPool> ioPool = std::make_shared<QThreadPool>();
 
     // Load a batch of samples by their entry indices.
     std::vector<SampleT> loadBatch(const std::vector<ulong>& entryIndices,

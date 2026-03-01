@@ -189,8 +189,9 @@ DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices,
   ulong count = entryIndices.size();
   std::vector<SampleT> batch(count);
 
-  // Load all images in parallel using the global QThreadPool.
-  int numThreads = std::min(QThreadPool::globalInstance()->maxThreadCount(),
+  // Load all images in parallel using a dedicated I/O thread pool
+  // (separate from the global pool used by the training loop).
+  int numThreads = std::min(this->ioPool->maxThreadCount(),
                             static_cast<int>(count));
 
   ulong chunkSize = count / numThreads;
@@ -206,8 +207,9 @@ DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices,
     ulong chunkEnd = offset + thisChunk;
     offset = chunkEnd;
 
-    futures.append(QtConcurrent::run([this, &entryIndices, &batch, &transforms,
-                                      augmentationProbability, chunkStart, chunkEnd]() {
+    futures.append(QtConcurrent::run(this->ioPool.get(),
+        [this, &entryIndices, &batch, &transforms,
+         augmentationProbability, chunkStart, chunkEnd]() {
       std::mt19937 rng(std::random_device{}());
 
       for (ulong i = chunkStart; i < chunkEnd; i++) {
