@@ -6,8 +6,10 @@
 #include <json.hpp>
 
 #include <algorithm>
+#include <future>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 
 namespace NN_CLI {
 
@@ -183,14 +185,38 @@ std::vector<SampleT>
 DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices,
                                const Loader::AugmentationTransforms& transforms,
                                float augmentationProbability) const {
-  std::mt19937 rng(std::random_device{}());
+  ulong count = entryIndices.size();
+  std::vector<SampleT> batch(count);
 
-  std::vector<SampleT> batch;
-  batch.reserve(entryIndices.size());
+  // Load all images in parallel across available cores.
+  ulong numThreads = std::min(static_cast<ulong>(std::thread::hardware_concurrency()), count);
+  if (numThreads == 0) numThreads = 1;
 
-  for (ulong idx : entryIndices) {
-    batch.push_back(this->loadSample(idx, rng, transforms, augmentationProbability));
+  ulong chunkSize = count / numThreads;
+  ulong remainder = count % numThreads;
+
+  std::vector<std::thread> threads;
+  threads.reserve(numThreads);
+
+  ulong offset = 0;
+  for (ulong t = 0; t < numThreads; t++) {
+    ulong thisChunk = chunkSize + (t < remainder ? 1 : 0);
+    ulong chunkStart = offset;
+    ulong chunkEnd = offset + thisChunk;
+    offset = chunkEnd;
+
+    threads.emplace_back([this, &entryIndices, &batch, &transforms,
+                          augmentationProbability, chunkStart, chunkEnd]() {
+      // Each thread gets its own RNG for augmentation transforms.
+      std::mt19937 rng(std::random_device{}());
+
+      for (ulong i = chunkStart; i < chunkEnd; i++) {
+        batch[i] = this->loadSample(entryIndices[i], rng, transforms, augmentationProbability);
+      }
+    });
   }
+
+  for (auto& t : threads) t.join();
 
   return batch;
 }
@@ -199,87 +225,35 @@ template <typename SampleT>
 typename DataLoader<SampleT>::ProviderT
 DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& transforms,
                                        float augmentationProbability) const {
-  // Shared prefetch state between the provider callback and its worker thread.
-  auto state = std::make_shared<PrefetchState<SampleT>>();
+  // Shared future for prefetching the next batch in the background.
+  auto prefetch = std::make_shared<std::future<std::vector<SampleT>>>();
 
-  // Persistent worker thread — waits for prefetch requests, loads batches in background.
-  // Uses raw pointer to avoid circular reference (state → thread → state).
-  // Safe because PrefetchState::~PrefetchState() joins the thread before destruction.
-  PrefetchState<SampleT>* statePtr = state.get();
-
-  state->worker = std::thread([this, statePtr, transforms, augmentationProbability]() {
-    while (true) {
-      std::vector<ulong> indices;
-
-      {
-        std::unique_lock<std::mutex> lock(statePtr->mutex);
-        statePtr->workerCV.wait(lock, [statePtr]() { return statePtr->hasRequest || statePtr->shutdown; });
-
-        if (statePtr->shutdown) return;
-
-        indices = std::move(statePtr->requestIndices);
-        statePtr->hasRequest = false;
-      }
-
-      // Load the batch outside the lock — this is the expensive I/O work.
-      auto batch = this->loadBatch(indices, transforms, augmentationProbability);
-
-      {
-        std::lock_guard<std::mutex> lock(statePtr->mutex);
-        statePtr->result = std::move(batch);
-        statePtr->hasResult = true;
-      }
-
-      statePtr->callerCV.notify_one();
-    }
-  });
-
-  // The provider callback. Captures the shared state.
-  // When the last copy of this lambda is destroyed, PrefetchState's destructor
-  // shuts down and joins the worker thread.
-  return [this, state, transforms, augmentationProbability](
+  return [this, prefetch, transforms, augmentationProbability](
       const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
     ulong numSamples = sampleIndices.size();
     ulong start = batchIndex * batchSize;
     ulong end = std::min(start + batchSize, numSamples);
 
+    // If the previous call prefetched this batch, retrieve it; otherwise load now.
     std::vector<SampleT> batch;
-
-    // Check if this batch was prefetched
-    {
-      std::unique_lock<std::mutex> lock(state->mutex);
-
-      if (state->hasResult) {
-        // Prefetched batch ready — take it
-        batch = std::move(state->result);
-        state->hasResult = false;
-      } else if (state->hasRequest) {
-        // Prefetch is still in progress — wait for it
-        state->callerCV.wait(lock, [&state]() { return state->hasResult; });
-        batch = std::move(state->result);
-        state->hasResult = false;
-      }
-    }
-
-    // If no prefetch was available (first call, or epoch boundary), load synchronously
-    if (batch.empty() && start < numSamples) {
+    if (prefetch->valid()) {
+      batch = prefetch->get();
+    } else {
       std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
       batch = this->loadBatch(indices, transforms, augmentationProbability);
     }
 
-    // Submit prefetch request for the next batch
+    // Prefetch the next batch in the background (parallel image loading inside loadBatch).
     ulong nextStart = end;
     if (nextStart < numSamples) {
       ulong nextEnd = std::min(nextStart + batchSize, numSamples);
-
-      {
-        std::lock_guard<std::mutex> lock(state->mutex);
-        state->requestIndices.assign(sampleIndices.begin() + nextStart,
+      std::vector<ulong> nextIndices(sampleIndices.begin() + nextStart,
                                      sampleIndices.begin() + nextEnd);
-        state->hasRequest = true;
-      }
 
-      state->workerCV.notify_one();
+      *prefetch = std::async(std::launch::async,
+          [this, indices = std::move(nextIndices), transforms, augmentationProbability]() {
+            return this->loadBatch(indices, transforms, augmentationProbability);
+          });
     }
 
     return batch;

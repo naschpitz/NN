@@ -7,14 +7,10 @@
 #include <ANN_Sample.hpp>
 #include <CNN_Sample.hpp>
 
-#include <condition_variable>
 #include <functional>
 #include <map>
-#include <memory>
-#include <mutex>
 #include <random>
 #include <string>
-#include <thread>
 #include <vector>
 
 namespace NN_CLI {
@@ -43,37 +39,6 @@ struct AugmentedEntry {
 template <typename SampleT> struct SampleProviderFor;
 template <> struct SampleProviderFor<ANN::Sample<float>> { using type = ANN::SampleProvider<float>; };
 template <> struct SampleProviderFor<CNN::Sample<float>> { using type = CNN::SampleProvider<float>; };
-
-// Shared state between the provider callback and its persistent worker thread.
-// The worker thread waits for prefetch requests and loads batches in the background.
-// When the last reference is released, the destructor shuts down and joins the worker thread.
-template <typename SampleT>
-struct PrefetchState {
-  std::mutex mutex;
-  std::condition_variable workerCV;   // Signals the worker that a request is ready
-  std::condition_variable callerCV;   // Signals the caller that a result is ready
-
-  // Request from caller → worker
-  std::vector<ulong> requestIndices;  // Entry indices to load (only batch-sized, not full epoch)
-  bool hasRequest = false;
-
-  // Result from worker → caller
-  std::vector<SampleT> result;
-  bool hasResult = false;
-
-  // Lifecycle
-  bool shutdown = false;
-  std::thread worker;
-
-  ~PrefetchState() {
-    {
-      std::lock_guard<std::mutex> lock(mutex);
-      shutdown = true;
-    }
-    workerCV.notify_one();
-    if (worker.joinable()) worker.join();
-  }
-};
 
 template <typename SampleT>
 class DataLoader {
