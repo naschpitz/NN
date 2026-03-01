@@ -11,18 +11,20 @@
 
 //===================================================================================================================//
 
-namespace NN_CLI {
+namespace NN_CLI
+{
 
   template <typename T>
-  class Utils {
+  class Utils
+  {
     public:
       /// Load IDX dataset as ANN samples (flat input vectors)
       static ANN::Samples<T> loadANNIDX(const std::string& dataPath, const std::string& labelsPath,
-                                         ulong progressReports = 1000);
+                                        ulong progressReports = 1000);
 
       /// Load IDX dataset as CNN samples (3D tensor inputs with given shape)
       static CNN::Samples<T> loadCNNIDX(const std::string& dataPath, const std::string& labelsPath,
-                                         const CNN::Shape3D& inputShape, ulong progressReports = 1000);
+                                        const CNN::Shape3D& inputShape, ulong progressReports = 1000);
 
     private:
       static uint32_t readBigEndianUInt32(std::ifstream& stream);
@@ -33,4 +35,3 @@ namespace NN_CLI {
 } // namespace NN_CLI
 
 #endif // NN_CLI_UTILS_HPP
-

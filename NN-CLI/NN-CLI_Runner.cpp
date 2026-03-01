@@ -27,8 +27,8 @@ using namespace NN_CLI;
 
 //===================================================================================================================//
 
-Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel)
-    : parser(parser), logLevel(logLevel) {
+Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), logLevel(logLevel)
+{
   QString configPath = this->parser.value("config");
 
   // Detect network type from config file
@@ -36,28 +36,33 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel)
 
   // Build optional mode/device overrides as strings
   std::optional<std::string> modeOverride;
+
   if (this->parser.isSet("mode")) {
     modeOverride = this->parser.value("mode").toLower().toStdString();
   }
 
   std::optional<std::string> deviceOverride;
+
   if (this->parser.isSet("device")) {
     deviceOverride = this->parser.value("device").toLower().toStdString();
   }
 
   // Extract shuffle-samples override
   std::optional<bool> shuffleSamplesOverride;
+
   if (this->parser.isSet("shuffle-samples")) {
     shuffleSamplesOverride = (this->parser.value("shuffle-samples").toLower() == "true");
   }
 
   // Load I/O config (inputType, outputType, shapes) with optional CLI overrides
   std::optional<std::string> inputTypeOverride;
+
   if (this->parser.isSet("input-type")) {
     inputTypeOverride = this->parser.value("input-type").toLower().toStdString();
   }
 
   std::optional<std::string> outputTypeOverride;
+
   if (this->parser.isSet("output-type")) {
     outputTypeOverride = this->parser.value("output-type").toLower().toStdString();
   }
@@ -96,20 +101,28 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel)
   if (this->networkType == NetworkType::ANN) {
     // Convert string overrides to ANN enum overrides
     std::optional<ANN::ModeType> annModeOverride;
-    if (modeOverride.has_value()) annModeOverride = ANN::Mode::nameToType(modeOverride.value());
+
+    if (modeOverride.has_value())
+      annModeOverride = ANN::Mode::nameToType(modeOverride.value());
 
     std::optional<ANN::DeviceType> annDeviceOverride;
-    if (deviceOverride.has_value()) annDeviceOverride = ANN::Device::nameToType(deviceOverride.value());
+
+    if (deviceOverride.has_value())
+      annDeviceOverride = ANN::Device::nameToType(deviceOverride.value());
 
     this->annCoreConfig = Loader::loadANNConfig(configPath.toStdString(), annModeOverride, annDeviceOverride);
     this->annCoreConfig.logLevel = static_cast<ANN::LogLevel>(this->logLevel);
-    if (shuffleSamplesOverride.has_value()) this->annCoreConfig.trainingConfig.shuffleSamples = shuffleSamplesOverride.value();
+
+    if (shuffleSamplesOverride.has_value())
+      this->annCoreConfig.trainingConfig.shuffleSamples = shuffleSamplesOverride.value();
     this->mode = ANN::Mode::typeToName(this->annCoreConfig.modeType);
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
     this->cnnCoreConfig = Loader::loadCNNConfig(configPath.toStdString(), modeOverride, deviceOverride);
     this->cnnCoreConfig.logLevel = static_cast<CNN::LogLevel>(this->logLevel);
-    if (shuffleSamplesOverride.has_value()) this->cnnCoreConfig.trainingConfig.shuffleSamples = shuffleSamplesOverride.value();
+
+    if (shuffleSamplesOverride.has_value())
+      this->cnnCoreConfig.trainingConfig.shuffleSamples = shuffleSamplesOverride.value();
     this->mode = CNN::Mode::typeToName(this->cnnCoreConfig.modeType);
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
   }
@@ -117,21 +130,29 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel)
 
 //===================================================================================================================//
 
-int Runner::run() {
+int Runner::run()
+{
   if (this->networkType == NetworkType::ANN) {
-    if (this->mode == "train")   return this->runANNTrain();
-    if (this->mode == "test")    return this->runANNTest();
+    if (this->mode == "train")
+      return this->runANNTrain();
+
+    if (this->mode == "test")
+      return this->runANNTest();
     return this->runANNPredict();
   } else {
-    if (this->mode == "train")   return this->runCNNTrain();
-    if (this->mode == "test")    return this->runCNNTest();
+    if (this->mode == "train")
+      return this->runCNNTrain();
+
+    if (this->mode == "test")
+      return this->runCNNTest();
     return this->runCNNPredict();
   }
 }
 
 //===================================================================================================================//
 
-int Runner::runANNTrain() {
+int Runner::runANNTrain()
+{
   // Reject conflicting input formats
   if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
     std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
@@ -151,12 +172,14 @@ int Runner::runANNTrain() {
     int outputC = this->ioConfig.hasOutputShape() ? static_cast<int>(this->ioConfig.outputC) : 0;
     int outputH = this->ioConfig.hasOutputShape() ? static_cast<int>(this->ioConfig.outputH) : 0;
     int outputW = this->ioConfig.hasOutputShape() ? static_cast<int>(this->ioConfig.outputW) : 0;
-    dataLoader.loadManifest(inputFilePath.toStdString(), this->ioConfig,
-        inputC, inputH, inputW, outputC, outputH, outputW);
+    dataLoader.loadManifest(inputFilePath.toStdString(), this->ioConfig, inputC, inputH, inputW, outputC, outputH,
+                            outputW);
   } else {
     // IDX or other format — load all samples into memory, then hand off to DataLoader
     auto [samples, success] = this->loadANNSamplesFromOptions("training", inputFilePath);
-    if (!success) return 1;
+
+    if (!success)
+      return 1;
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
@@ -169,17 +192,21 @@ int Runner::runANNTrain() {
     this->annCoreConfig.costFunctionConfig.type = ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
     this->annCoreConfig.costFunctionConfig.weights = weights;
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
+
     if (this->logLevel >= LogLevel::INFO) {
       std::cout << "Auto class weights: [";
       for (ulong i = 0; i < weights.size(); i++) {
-        if (i > 0) std::cout << ", ";
+        if (i > 0)
+          std::cout << ", ";
         std::cout << std::fixed << std::setprecision(4) << weights[i];
       }
+
       std::cout << "]\n";
     }
   }
 
-  if (this->logLevel >= LogLevel::INFO) std::cout << "Starting ANN training...\n";
+  if (this->logLevel >= LogLevel::INFO)
+    std::cout << "Starting ANN training...\n";
 
   this->setupANNTrainingCallback(inputFilePath);
 
@@ -191,12 +218,16 @@ int Runner::runANNTrain() {
 
 //===================================================================================================================//
 
-int Runner::runANNTest() {
+int Runner::runANNTest()
+{
   QString inputFilePath;
   auto [samples, success] = this->loadANNSamplesFromOptions("test", inputFilePath);
-  if (!success) return 1;
 
-  if (this->logLevel >= LogLevel::INFO) std::cout << "Running ANN evaluation...\n";
+  if (!success)
+    return 1;
+
+  if (this->logLevel >= LogLevel::INFO)
+    std::cout << "Running ANN evaluation...\n";
 
   ANN::TestResult<float> result = this->annCore->test(samples);
 
@@ -215,7 +246,8 @@ int Runner::runANNTest() {
 
 //===================================================================================================================//
 
-int Runner::runANNPredict() {
+int Runner::runANNPredict()
+{
   if (!this->parser.isSet("input")) {
     std::cerr << "Error: --input option is required for predict mode.\n";
     return 1;
@@ -230,7 +262,9 @@ int Runner::runANNPredict() {
     QFileInfo inputInfo(inputPath);
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
-    if (!outputDir.exists()) inputDir.mkdir("output");
+
+    if (!outputDir.exists())
+      inputDir.mkdir("output");
 
     if (this->ioConfig.outputType == DataType::IMAGE) {
       outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName());
@@ -239,10 +273,12 @@ int Runner::runANNPredict() {
     }
   }
 
-  if (this->logLevel >= LogLevel::INFO) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
+  if (this->logLevel >= LogLevel::INFO)
+    std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
   ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
-  std::vector<ANN::Input<float>> inputs = Loader::loadANNInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
+  std::vector<ANN::Input<float>> inputs =
+    Loader::loadANNInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
 
   if (this->logLevel >= LogLevel::INFO) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].size() << " values\n";
@@ -258,6 +294,7 @@ int Runner::runANNPredict() {
   for (size_t i = 0; i < inputs.size(); ++i) {
     ANN::Output<float> output = this->annCore->predict(inputs[i]);
     outputs.push_back(std::move(output));
+
     if (this->logLevel >= LogLevel::INFO && inputs.size() > 1) {
       std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
     }
@@ -278,23 +315,25 @@ int Runner::runANNPredict() {
 
     // outputPath is a directory for batch image output
     QDir outDir(outputPath);
-    if (!outDir.exists()) QDir().mkpath(outputPath);
+
+    if (!outDir.exists())
+      QDir().mkpath(outputPath);
 
     for (size_t i = 0; i < outputs.size(); ++i) {
       QString imgName = QString::number(i) + ".png";
       std::string imgPath = outDir.filePath(imgName).toStdString();
-      ImageLoader::saveImage(imgPath, outputs[i],
-          static_cast<int>(this->ioConfig.outputC),
-          static_cast<int>(this->ioConfig.outputH),
-          static_cast<int>(this->ioConfig.outputW));
+      ImageLoader::saveImage(imgPath, outputs[i], static_cast<int>(this->ioConfig.outputC),
+                             static_cast<int>(this->ioConfig.outputH), static_cast<int>(this->ioConfig.outputW));
     }
 
     if (this->logLevel > LogLevel::QUIET) {
       std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
       std::cout << "  Images: " << outputs.size() << "\n";
-      std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x" << this->ioConfig.outputW << "\n";
+      std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x"
+                << this->ioConfig.outputW << "\n";
       std::cout << "  Duration: " << batchDurationFormatted << "\n";
     }
+
     return 0;
   }
 
@@ -310,6 +349,7 @@ int Runner::runANNPredict() {
   resultJson["outputs"] = outputs;
 
   QFile outputFile(outputPath);
+
   if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
     std::cerr << "Error: Failed to open output file: " << outputPath.toStdString() << "\n";
     return 1;
@@ -319,7 +359,8 @@ int Runner::runANNPredict() {
   outputFile.write(jsonStr.c_str(), jsonStr.size());
   outputFile.close();
 
-  if (this->logLevel > LogLevel::QUIET) std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
+  if (this->logLevel > LogLevel::QUIET)
+    std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
   return 0;
 }
 
@@ -327,7 +368,8 @@ int Runner::runANNPredict() {
 //  CNN mode methods
 //===================================================================================================================//
 
-int Runner::runCNNTrain() {
+int Runner::runCNNTrain()
+{
   // Reject conflicting input formats
   if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
     std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
@@ -344,14 +386,15 @@ int Runner::runCNNTrain() {
   if (this->parser.isSet("samples")) {
     // JSON samples — store lightweight manifest (images loaded on-demand per batch)
     inputFilePath = this->parser.value("samples");
-    dataLoader.loadManifest(inputFilePath.toStdString(), this->ioConfig,
-        inputC, inputH, inputW,
-        static_cast<int>(this->ioConfig.outputC), static_cast<int>(this->ioConfig.outputH),
-        static_cast<int>(this->ioConfig.outputW));
+    dataLoader.loadManifest(inputFilePath.toStdString(), this->ioConfig, inputC, inputH, inputW,
+                            static_cast<int>(this->ioConfig.outputC), static_cast<int>(this->ioConfig.outputH),
+                            static_cast<int>(this->ioConfig.outputW));
   } else {
     // IDX or other format — load all samples into memory, then hand off to DataLoader
     auto [samples, success] = this->loadCNNSamplesFromOptions("training", inputFilePath);
-    if (!success) return 1;
+
+    if (!success)
+      return 1;
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
@@ -366,19 +409,24 @@ int Runner::runCNNTrain() {
     if (this->cnnCoreConfig.costFunctionConfig.type == CNN::CostFunctionType::SQUARED_DIFFERENCE) {
       this->cnnCoreConfig.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
     }
+
     this->cnnCoreConfig.costFunctionConfig.weights = weights;
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
+
     if (this->logLevel >= LogLevel::INFO) {
       std::cout << "Auto class weights: [";
       for (ulong i = 0; i < weights.size(); i++) {
-        if (i > 0) std::cout << ", ";
+        if (i > 0)
+          std::cout << ", ";
         std::cout << std::fixed << std::setprecision(4) << weights[i];
       }
+
       std::cout << "]\n";
     }
   }
 
-  if (this->logLevel >= LogLevel::INFO) std::cout << "Starting CNN training...\n";
+  if (this->logLevel >= LogLevel::INFO)
+    std::cout << "Starting CNN training...\n";
 
   this->setupCNNTrainingCallback(inputFilePath);
 
@@ -390,12 +438,16 @@ int Runner::runCNNTrain() {
 
 //===================================================================================================================//
 
-int Runner::runCNNTest() {
+int Runner::runCNNTest()
+{
   QString inputFilePath;
   auto [samples, success] = this->loadCNNSamplesFromOptions("test", inputFilePath);
-  if (!success) return 1;
 
-  if (this->logLevel >= LogLevel::INFO) std::cout << "Running CNN evaluation...\n";
+  if (!success)
+    return 1;
+
+  if (this->logLevel >= LogLevel::INFO)
+    std::cout << "Running CNN evaluation...\n";
 
   CNN::TestResult<float> result = this->cnnCore->test(samples);
 
@@ -414,7 +466,8 @@ int Runner::runCNNTest() {
 
 //===================================================================================================================//
 
-int Runner::runCNNPredict() {
+int Runner::runCNNPredict()
+{
   if (!this->parser.isSet("input")) {
     std::cerr << "Error: --input option is required for predict mode.\n";
     return 1;
@@ -429,7 +482,9 @@ int Runner::runCNNPredict() {
     QFileInfo inputInfo(inputPath);
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
-    if (!outputDir.exists()) inputDir.mkdir("output");
+
+    if (!outputDir.exists())
+      inputDir.mkdir("output");
 
     if (this->ioConfig.outputType == DataType::IMAGE) {
       outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName());
@@ -438,11 +493,12 @@ int Runner::runCNNPredict() {
     }
   }
 
-  if (this->logLevel >= LogLevel::INFO) std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
+  if (this->logLevel >= LogLevel::INFO)
+    std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
   ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
-  std::vector<CNN::Input<float>> inputs = Loader::loadCNNInputs(
-      inputPath.toStdString(), this->cnnCoreConfig.inputShape, this->ioConfig, displayProgressReports);
+  std::vector<CNN::Input<float>> inputs = Loader::loadCNNInputs(inputPath.toStdString(), this->cnnCoreConfig.inputShape,
+                                                                this->ioConfig, displayProgressReports);
 
   if (this->logLevel >= LogLevel::INFO) {
     std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].data.size() << " values\n";
@@ -458,6 +514,7 @@ int Runner::runCNNPredict() {
   for (size_t i = 0; i < inputs.size(); ++i) {
     CNN::Output<float> output = this->cnnCore->predict(inputs[i]);
     outputs.push_back(std::move(output));
+
     if (this->logLevel >= LogLevel::INFO && inputs.size() > 1) {
       std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
     }
@@ -478,23 +535,25 @@ int Runner::runCNNPredict() {
 
     // outputPath is a directory for batch image output
     QDir outDir(outputPath);
-    if (!outDir.exists()) QDir().mkpath(outputPath);
+
+    if (!outDir.exists())
+      QDir().mkpath(outputPath);
 
     for (size_t i = 0; i < outputs.size(); ++i) {
       QString imgName = QString::number(i) + ".png";
       std::string imgPath = outDir.filePath(imgName).toStdString();
-      ImageLoader::saveImage(imgPath, outputs[i],
-          static_cast<int>(this->ioConfig.outputC),
-          static_cast<int>(this->ioConfig.outputH),
-          static_cast<int>(this->ioConfig.outputW));
+      ImageLoader::saveImage(imgPath, outputs[i], static_cast<int>(this->ioConfig.outputC),
+                             static_cast<int>(this->ioConfig.outputH), static_cast<int>(this->ioConfig.outputW));
     }
 
     if (this->logLevel > LogLevel::QUIET) {
       std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
       std::cout << "  Images: " << outputs.size() << "\n";
-      std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x" << this->ioConfig.outputW << "\n";
+      std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x"
+                << this->ioConfig.outputW << "\n";
       std::cout << "  Duration: " << batchDurationFormatted << "\n";
     }
+
     return 0;
   }
 
@@ -510,6 +569,7 @@ int Runner::runCNNPredict() {
   resultJson["outputs"] = outputs;
 
   QFile outputFile(outputPath);
+
   if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
     std::cerr << "Error: Failed to open output file: " << outputPath.toStdString() << "\n";
     return 1;
@@ -519,7 +579,8 @@ int Runner::runCNNPredict() {
   outputFile.write(jsonStr.c_str(), jsonStr.size());
   outputFile.close();
 
-  if (this->logLevel > LogLevel::QUIET) std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
+  if (this->logLevel > LogLevel::QUIET)
+    std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
   return 0;
 }
 
@@ -527,9 +588,9 @@ int Runner::runCNNPredict() {
 //  Sample loading helpers
 //===================================================================================================================//
 
-std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
-    const std::string& modeName,
-    QString& inputFilePath) {
+std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(const std::string& modeName,
+                                                                       QString& inputFilePath)
+{
   ANN::Samples<float> samples;
 
   bool hasJsonSamples = this->parser.isSet("samples");
@@ -546,7 +607,9 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
   if (hasJsonSamples) {
     QString samplesPath = this->parser.value("samples");
     inputFilePath = samplesPath;
-    if (this->logLevel >= LogLevel::INFO) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
+
+    if (this->logLevel >= LogLevel::INFO)
+      std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
     samples = Loader::loadANNSamples(samplesPath.toStdString(), this->ioConfig, displayProgressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
@@ -570,16 +633,17 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(
     return {samples, false};
   }
 
-  if (this->logLevel >= LogLevel::INFO) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
+  if (this->logLevel >= LogLevel::INFO)
+    std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
 
   return {samples, true};
 }
 
 //===================================================================================================================//
 
-std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
-    const std::string& modeName,
-    QString& inputFilePath) {
+std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(const std::string& modeName,
+                                                                       QString& inputFilePath)
+{
   CNN::Samples<float> samples;
 
   bool hasJsonSamples = this->parser.isSet("samples");
@@ -598,7 +662,9 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
   if (hasJsonSamples) {
     QString samplesPath = this->parser.value("samples");
     inputFilePath = samplesPath;
-    if (this->logLevel >= LogLevel::INFO) std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
+
+    if (this->logLevel >= LogLevel::INFO)
+      std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
     samples = Loader::loadCNNSamples(samplesPath.toStdString(), inputShape, this->ioConfig, displayProgressReports);
   } else if (hasIdxData) {
     if (!hasIdxLabels) {
@@ -616,13 +682,15 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
       std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
     }
 
-    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape, displayProgressReports);
+    samples = Utils<float>::loadCNNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), inputShape,
+                                       displayProgressReports);
   } else {
     std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
     return {samples, false};
   }
 
-  if (this->logLevel >= LogLevel::INFO) std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
+  if (this->logLevel >= LogLevel::INFO)
+    std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
 
   return {samples, true};
 }
@@ -631,8 +699,9 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(
 //  Model saving
 //===================================================================================================================//
 
-void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& filePath,
-                           const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval) {
+void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& filePath, const IOConfig& ioConfig,
+                          ulong progressReports, ulong saveModelInterval)
+{
   nlohmann::ordered_json json;
 
   json["mode"] = ANN::Mode::typeToName(core.getModeType());
@@ -672,14 +741,17 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
     layerJson["actvFunc"] = ANN::ActvFunc::typeToName(layer.actvFuncType);
     layersArr.push_back(layerJson);
   }
+
   json["layersConfig"] = layersArr;
 
   // Cost function config
   nlohmann::ordered_json cfcJson;
   cfcJson["type"] = ANN::CostFunction::typeToName(core.getCostFunctionConfig().type);
+
   if (!core.getCostFunctionConfig().weights.empty()) {
     cfcJson["weights"] = core.getCostFunctionConfig().weights;
   }
+
   json["costFunctionConfig"] = cfcJson;
 
   // Training config
@@ -688,6 +760,7 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
   tcJson["learningRate"] = core.getTrainingConfig().learningRate;
   tcJson["batchSize"] = core.getTrainingConfig().batchSize;
   tcJson["shuffleSamples"] = core.getTrainingConfig().shuffleSamples;
+
   if (core.getTrainingConfig().dropoutRate > 0.0f)
     tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
   json["trainingConfig"] = tcJson;
@@ -711,9 +784,11 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
 
   // Write to file
   QFile file(QString::fromStdString(filePath));
+
   if (!file.open(QIODevice::WriteOnly)) {
     throw std::runtime_error("Failed to open file for writing: " + filePath);
   }
+
   std::string jsonStr = json.dump(4);
   file.write(jsonStr.c_str());
   file.close();
@@ -721,8 +796,9 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
 
 //===================================================================================================================//
 
-void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& filePath,
-                           const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval) {
+void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& filePath, const IOConfig& ioConfig,
+                          ulong progressReports, ulong saveModelInterval)
+{
   nlohmann::ordered_json json;
 
   json["mode"] = CNN::Mode::typeToName(core.getModeType());
@@ -760,36 +836,40 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
   for (const auto& layer : core.getLayersConfig().cnnLayers) {
     nlohmann::ordered_json layerJson;
     switch (layer.type) {
-      case CNN::LayerType::CONV: {
-        const auto& conv = std::get<CNN::ConvLayerConfig>(layer.config);
-        layerJson["type"] = "conv";
-        layerJson["numFilters"] = conv.numFilters;
-        layerJson["filterH"] = conv.filterH;
-        layerJson["filterW"] = conv.filterW;
-        layerJson["strideY"] = conv.strideY;
-        layerJson["strideX"] = conv.strideX;
-        layerJson["slidingStrategy"] = CNN::SlidingStrategy::typeToName(conv.slidingStrategy);
-        break;
-      }
-      case CNN::LayerType::RELU:
-        layerJson["type"] = "relu";
-        break;
-      case CNN::LayerType::POOL: {
-        const auto& pool = std::get<CNN::PoolLayerConfig>(layer.config);
-        layerJson["type"] = "pool";
-        layerJson["poolType"] = CNN::PoolType::typeToName(pool.poolType);
-        layerJson["poolH"] = pool.poolH;
-        layerJson["poolW"] = pool.poolW;
-        layerJson["strideY"] = pool.strideY;
-        layerJson["strideX"] = pool.strideX;
-        break;
-      }
-      case CNN::LayerType::FLATTEN:
-        layerJson["type"] = "flatten";
-        break;
+    case CNN::LayerType::CONV: {
+      const auto& conv = std::get<CNN::ConvLayerConfig>(layer.config);
+      layerJson["type"] = "conv";
+      layerJson["numFilters"] = conv.numFilters;
+      layerJson["filterH"] = conv.filterH;
+      layerJson["filterW"] = conv.filterW;
+      layerJson["strideY"] = conv.strideY;
+      layerJson["strideX"] = conv.strideX;
+      layerJson["slidingStrategy"] = CNN::SlidingStrategy::typeToName(conv.slidingStrategy);
+      break;
     }
+
+    case CNN::LayerType::RELU:
+      layerJson["type"] = "relu";
+      break;
+    case CNN::LayerType::POOL: {
+      const auto& pool = std::get<CNN::PoolLayerConfig>(layer.config);
+      layerJson["type"] = "pool";
+      layerJson["poolType"] = CNN::PoolType::typeToName(pool.poolType);
+      layerJson["poolH"] = pool.poolH;
+      layerJson["poolW"] = pool.poolW;
+      layerJson["strideY"] = pool.strideY;
+      layerJson["strideX"] = pool.strideX;
+      break;
+    }
+
+    case CNN::LayerType::FLATTEN:
+      layerJson["type"] = "flatten";
+      break;
+    }
+
     cnnLayersArr.push_back(layerJson);
   }
+
   json["convolutionalLayersConfig"] = cnnLayersArr;
 
   // Dense layers config
@@ -800,14 +880,17 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
     layerJson["actvFunc"] = ANN::ActvFunc::typeToName(layer.actvFuncType);
     denseLayersArr.push_back(layerJson);
   }
+
   json["denseLayersConfig"] = denseLayersArr;
 
   // Cost function config
   nlohmann::ordered_json cfcJson;
   cfcJson["type"] = CNN::CostFunction::typeToName(core.getCostFunctionConfig().type);
+
   if (!core.getCostFunctionConfig().weights.empty()) {
     cfcJson["weights"] = core.getCostFunctionConfig().weights;
   }
+
   json["costFunctionConfig"] = cfcJson;
 
   // Training config
@@ -816,6 +899,7 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
   tcJson["learningRate"] = core.getTrainingConfig().learningRate;
   tcJson["batchSize"] = core.getTrainingConfig().batchSize;
   tcJson["shuffleSamples"] = core.getTrainingConfig().shuffleSamples;
+
   if (core.getTrainingConfig().dropoutRate > 0.0f)
     tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
   json["trainingConfig"] = tcJson;
@@ -846,6 +930,7 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
     cpJson["biases"] = cp.biases;
     convArr.push_back(cpJson);
   }
+
   paramsJson["convolutional"] = convArr;
 
   // Dense parameters
@@ -858,9 +943,11 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
 
   // Write to file
   QFile file(QString::fromStdString(filePath));
+
   if (!file.open(QIODevice::WriteOnly)) {
     throw std::runtime_error("Failed to open file for writing: " + filePath);
   }
+
   std::string jsonStr = json.dump(4);
   file.write(jsonStr.c_str());
   file.close();
@@ -870,22 +957,17 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
 //  Output path helpers
 //===================================================================================================================//
 
-std::string Runner::generateTrainingFilename(ulong epochs, ulong samples, float loss) {
+std::string Runner::generateTrainingFilename(ulong epochs, ulong samples, float loss)
+{
   std::ostringstream oss;
-  oss << "trained_E-" << epochs
-      << "_S-" << samples
-      << "_L-" << std::fixed << std::setprecision(6) << loss
-      << ".json";
+  oss << "trained_E-" << epochs << "_S-" << samples << "_L-" << std::fixed << std::setprecision(6) << loss << ".json";
   return oss.str();
 }
 
 //===================================================================================================================//
 
-std::string Runner::generateDefaultOutputPath(
-    const QString& inputFilePath,
-    ulong epochs,
-    ulong samples,
-    float loss) {
+std::string Runner::generateDefaultOutputPath(const QString& inputFilePath, ulong epochs, ulong samples, float loss)
+{
   QFileInfo inputInfo(inputFilePath);
   QDir inputDir = inputInfo.absoluteDir();
   QDir outputDir(inputDir.filePath("output"));
@@ -900,10 +982,8 @@ std::string Runner::generateDefaultOutputPath(
 
 //===================================================================================================================//
 
-std::string Runner::generateCheckpointPath(
-    const QString& inputFilePath,
-    ulong epoch,
-    float loss) {
+std::string Runner::generateCheckpointPath(const QString& inputFilePath, ulong epoch, float loss)
+{
   QFileInfo inputInfo(inputFilePath);
   QDir inputDir = inputInfo.absoluteDir();
   QDir outputDir(inputDir.filePath("output"));
@@ -913,9 +993,7 @@ std::string Runner::generateCheckpointPath(
   }
 
   std::ostringstream oss;
-  oss << "checkpoint_E-" << epoch
-      << "_L-" << std::fixed << std::setprecision(6) << loss
-      << ".json";
+  oss << "checkpoint_E-" << epoch << "_L-" << std::fixed << std::setprecision(6) << loss << ".json";
 
   QString outputPath = outputDir.filePath(QString::fromStdString(oss.str()));
   return outputPath.toStdString();
@@ -925,7 +1003,8 @@ std::string Runner::generateCheckpointPath(
 //  Training helpers
 //===================================================================================================================//
 
-void Runner::setupANNTrainingCallback(const QString& inputFilePath) {
+void Runner::setupANNTrainingCallback(const QString& inputFilePath)
+{
   static ulong lastCallbackEpoch = 0;
   static float lastEpochLoss = 0.0f;
   lastCallbackEpoch = 0;
@@ -935,10 +1014,8 @@ void Runner::setupANNTrainingCallback(const QString& inputFilePath) {
 
   this->annCore->setTrainingCallback([this, inputFilePath](const ANN::TrainingProgress<float>& progress) {
     if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
-                        progress.currentSample, progress.totalSamples,
-                        progress.epochLoss, progress.sampleLoss,
-                        progress.gpuIndex, progress.totalGPUs};
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
+                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
       progressBar.update(info);
     }
 
@@ -946,18 +1023,23 @@ void Runner::setupANNTrainingCallback(const QString& inputFilePath) {
       if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
         saveANNModel(*this->annCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
-        if (this->logLevel > LogLevel::QUIET) std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
+
+        if (this->logLevel > LogLevel::QUIET)
+          std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
+
       lastCallbackEpoch = progress.currentEpoch;
     }
 
-    if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
+    if (progress.epochLoss > 0)
+      lastEpochLoss = progress.epochLoss;
   });
 }
 
 //===================================================================================================================//
 
-void Runner::setupCNNTrainingCallback(const QString& inputFilePath) {
+void Runner::setupCNNTrainingCallback(const QString& inputFilePath)
+{
   static ulong lastCallbackEpoch = 0;
   static float lastEpochLoss = 0.0f;
   lastCallbackEpoch = 0;
@@ -967,10 +1049,8 @@ void Runner::setupCNNTrainingCallback(const QString& inputFilePath) {
 
   this->cnnCore->setTrainingCallback([this, inputFilePath](const CNN::TrainingProgress<float>& progress) {
     if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
-                        progress.currentSample, progress.totalSamples,
-                        progress.epochLoss, progress.sampleLoss,
-                        progress.gpuIndex, progress.totalGPUs};
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
+                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
       progressBar.update(info);
     }
 
@@ -978,56 +1058,68 @@ void Runner::setupCNNTrainingCallback(const QString& inputFilePath) {
       if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
         saveCNNModel(*this->cnnCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
-        if (this->logLevel > LogLevel::QUIET) std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
+
+        if (this->logLevel > LogLevel::QUIET)
+          std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
+
       lastCallbackEpoch = progress.currentEpoch;
     }
 
-    if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
+    if (progress.epochLoss > 0)
+      lastEpochLoss = progress.epochLoss;
   });
 }
 
 //===================================================================================================================//
 
-int Runner::finishANNTraining(const QString& inputFilePath) {
-  if (this->logLevel > LogLevel::QUIET) std::cout << "\nTraining completed.\n";
+int Runner::finishANNTraining(const QString& inputFilePath)
+{
+  if (this->logLevel > LogLevel::QUIET)
+    std::cout << "\nTraining completed.\n";
 
   const auto& trainingConfig = this->annCore->getTrainingConfig();
   const auto& trainingMetadata = this->annCore->getTrainingMetadata();
 
   std::string outputPathStr;
+
   if (this->parser.isSet("output")) {
     outputPathStr = this->parser.value("output").toStdString();
   } else {
-    outputPathStr = generateDefaultOutputPath(
-      inputFilePath, trainingConfig.numEpochs,
-      trainingMetadata.numSamples, trainingMetadata.finalLoss);
+    outputPathStr = generateDefaultOutputPath(inputFilePath, trainingConfig.numEpochs, trainingMetadata.numSamples,
+                                              trainingMetadata.finalLoss);
   }
 
   saveANNModel(*this->annCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
-  if (this->logLevel > LogLevel::QUIET) std::cout << "Model saved to: " << outputPathStr << "\n";
+
+  if (this->logLevel > LogLevel::QUIET)
+    std::cout << "Model saved to: " << outputPathStr << "\n";
   return 0;
 }
 
 //===================================================================================================================//
 
-int Runner::finishCNNTraining(const QString& inputFilePath) {
-  if (this->logLevel > LogLevel::QUIET) std::cout << "\nTraining completed.\n";
+int Runner::finishCNNTraining(const QString& inputFilePath)
+{
+  if (this->logLevel > LogLevel::QUIET)
+    std::cout << "\nTraining completed.\n";
 
   const auto& trainingConfig = this->cnnCore->getTrainingConfig();
   const auto& trainingMetadata = this->cnnCore->getTrainingMetadata();
 
   std::string outputPathStr;
+
   if (this->parser.isSet("output")) {
     outputPathStr = this->parser.value("output").toStdString();
   } else {
-    outputPathStr = generateDefaultOutputPath(
-      inputFilePath, trainingConfig.numEpochs,
-      trainingMetadata.numSamples, trainingMetadata.finalLoss);
+    outputPathStr = generateDefaultOutputPath(inputFilePath, trainingConfig.numEpochs, trainingMetadata.numSamples,
+                                              trainingMetadata.finalLoss);
   }
 
   saveCNNModel(*this->cnnCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
-  if (this->logLevel > LogLevel::QUIET) std::cout << "Model saved to: " << outputPathStr << "\n";
+
+  if (this->logLevel > LogLevel::QUIET)
+    std::cout << "Model saved to: " << outputPathStr << "\n";
   return 0;
 }
 
@@ -1035,24 +1127,27 @@ int Runner::finishCNNTraining(const QString& inputFilePath) {
 //  Class weight computation
 //===================================================================================================================//
 
-std::vector<float> Runner::computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs) {
-  if (outputs.empty()) return {};
+std::vector<float> Runner::computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs)
+{
+  if (outputs.empty())
+    return {};
 
   ulong numClasses = outputs[0].size();
   std::vector<ulong> classCounts(numClasses, 0);
 
   for (const auto& output : outputs) {
-    ulong cls = static_cast<ulong>(std::distance(output.begin(),
-        std::max_element(output.begin(), output.end())));
-    if (cls < numClasses) classCounts[cls]++;
+    ulong cls = static_cast<ulong>(std::distance(output.begin(), std::max_element(output.begin(), output.end())));
+
+    if (cls < numClasses)
+      classCounts[cls]++;
   }
 
   ulong totalSamples = outputs.size();
   std::vector<float> weights(numClasses, 1.0f);
   for (ulong c = 0; c < numClasses; c++) {
     if (classCounts[c] > 0) {
-      weights[c] = static_cast<float>(totalSamples) /
-                   (static_cast<float>(numClasses) * static_cast<float>(classCounts[c]));
+      weights[c] =
+        static_cast<float>(totalSamples) / (static_cast<float>(numClasses) * static_cast<float>(classCounts[c]));
     }
   }
 

@@ -9,36 +9,28 @@
 // Trained model path shared between CNN tests (train → predict/test)
 static QString trainedCNNModelPath;
 
-static void testCNNNetworkDetection() {
+static void testCNNNetworkDetection()
+{
   std::cout << "  testCNNNetworkDetection... ";
 
   // Train with tiny fixture + verbose to check detection
-  auto result = runNNCLI({
-    "--config", fixturePath("cnn_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("cnn_train_samples.json"),
-    "--output", tempDir() + "/cnn_detect_model.json",
-    "--log-level", "info"
-  });
+  auto result = runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
+                          "--samples", fixturePath("cnn_train_samples.json"), "--output",
+                          tempDir() + "/cnn_detect_model.json", "--log-level", "info"});
 
   CHECK(result.exitCode == 0, "CNN detection: exit code 0");
   CHECK(result.stdOut.contains("Network type: CNN"), "CNN detection: 'Network type: CNN'");
   std::cout << std::endl;
 }
 
-static void testCNNTrain() {
+static void testCNNTrain()
+{
   std::cout << "  testCNNTrain... ";
 
   trainedCNNModelPath = tempDir() + "/cnn_trained_model.json";
 
-  auto result = runNNCLI({
-    "--config", fixturePath("cnn_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("cnn_train_samples.json"),
-    "--output", trainedCNNModelPath
-  });
+  auto result = runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
+                          "--samples", fixturePath("cnn_train_samples.json"), "--output", trainedCNNModelPath});
 
   CHECK(result.exitCode == 0, "CNN train: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN train: 'Training completed.'");
@@ -47,7 +39,8 @@ static void testCNNTrain() {
   std::cout << std::endl;
 }
 
-static void testCNNPredict() {
+static void testCNNPredict()
+{
   std::cout << "  testCNNPredict... ";
 
   if (trainedCNNModelPath.isEmpty() || !QFile::exists(trainedCNNModelPath)) {
@@ -58,13 +51,8 @@ static void testCNNPredict() {
 
   QString outputPath = tempDir() + "/cnn_predict_output.json";
 
-  auto result = runNNCLI({
-    "--config", trainedCNNModelPath,
-    "--mode", "predict",
-    "--device", "cpu",
-    "--input", fixturePath("cnn_predict_input.json"),
-    "--output", outputPath
-  });
+  auto result = runNNCLI({"--config", trainedCNNModelPath, "--mode", "predict", "--device", "cpu", "--input",
+                          fixturePath("cnn_predict_input.json"), "--output", outputPath});
 
   CHECK(result.exitCode == 0, "CNN predict: exit code 0");
   CHECK(result.stdOut.contains("Predict result saved to:"), "CNN predict: 'Predict result saved to:'");
@@ -72,6 +60,7 @@ static void testCNNPredict() {
 
   // Verify output JSON structure
   QFile file(outputPath);
+
   if (file.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject root = doc.object();
@@ -93,10 +82,12 @@ static void testCNNPredict() {
   } else {
     CHECK(false, "CNN predict: failed to open output file");
   }
+
   std::cout << std::endl;
 }
 
-static void testCNNTest() {
+static void testCNNTest()
+{
   std::cout << "  testCNNTest... ";
 
   if (trainedCNNModelPath.isEmpty() || !QFile::exists(trainedCNNModelPath)) {
@@ -105,12 +96,8 @@ static void testCNNTest() {
     return;
   }
 
-  auto result = runNNCLI({
-    "--config", trainedCNNModelPath,
-    "--mode", "test",
-    "--device", "cpu",
-    "--samples", fixturePath("cnn_train_samples.json")
-  });
+  auto result = runNNCLI({"--config", trainedCNNModelPath, "--mode", "test", "--device", "cpu", "--samples",
+                          fixturePath("cnn_train_samples.json")});
 
   CHECK(result.exitCode == 0, "CNN test: exit code 0");
   CHECK(result.stdOut.contains("Test Results:"), "CNN test: 'Test Results:'");
@@ -122,18 +109,14 @@ static void testCNNTest() {
   std::cout << std::endl;
 }
 
-static void testCNNTrainWithWeightedLoss() {
+static void testCNNTrainWithWeightedLoss()
+{
   std::cout << "  testCNNTrainWithWeightedLoss... ";
 
   QString modelPath = tempDir() + "/cnn_weighted_model.json";
 
-  auto result = runNNCLI({
-    "--config", fixturePath("cnn_train_weighted_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("cnn_train_samples.json"),
-    "--output", modelPath
-  });
+  auto result = runNNCLI({"--config", fixturePath("cnn_train_weighted_config.json"), "--mode", "train", "--device",
+                          "cpu", "--samples", fixturePath("cnn_train_samples.json"), "--output", modelPath});
 
   CHECK(result.exitCode == 0, "CNN weighted train: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN weighted train: 'Training completed.'");
@@ -142,6 +125,7 @@ static void testCNNTrainWithWeightedLoss() {
 
   // Verify saved model JSON contains costFunctionConfig
   QFile file(modelPath);
+
   if (file.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject root = doc.object();
@@ -162,10 +146,12 @@ static void testCNNTrainWithWeightedLoss() {
   } else {
     CHECK(false, "CNN weighted train: failed to open saved model file");
   }
+
   std::cout << std::endl;
 }
 
-static void testCNNTrainAndTestMNIST() {
+static void testCNNTrainAndTestMNIST()
+{
   std::cout << "  testCNNTrainAndTestMNIST... " << std::flush;
 
   if (!runFullTests) {
@@ -176,15 +162,11 @@ static void testCNNTrainAndTestMNIST() {
   QString modelPath = tempDir() + "/cnn_mnist_trained.json";
 
   // Step 1: Train on MNIST training data on CPU (30 epochs, 60k samples, all cores)
-  auto trainResult = runNNCLI({
-    "--config", fixturePath("mnist_cnn_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"),
-    "--idx-labels", examplePath("MNIST/train/train-labels.idx1-ubyte"),
-    "--output", modelPath,
-    "--log-level", "quiet"
-  }, 1800000);  // 30 min timeout
+  auto trainResult =
+    runNNCLI({"--config", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "cpu",
+              "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
+              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
+             1800000); // 30 min timeout
 
   CHECK(trainResult.exitCode == 0, "CNN MNIST train+test: training exit code 0");
   CHECK(QFile::exists(modelPath), "CNN MNIST train+test: trained model file exists");
@@ -195,13 +177,10 @@ static void testCNNTrainAndTestMNIST() {
   }
 
   // Step 2: Evaluate against MNIST test data (10k samples)
-  auto testResult = runNNCLI({
-    "--config", modelPath,
-    "--mode", "test",
-    "--device", "cpu",
-    "--idx-data", examplePath("MNIST/test/t10k-images.idx3-ubyte"),
-    "--idx-labels", examplePath("MNIST/test/t10k-labels.idx1-ubyte")
-  }, 600000);  // 10 min timeout
+  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "cpu", "--idx-data",
+                              examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
+                              examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
+                             600000); // 10 min timeout
 
   CHECK(testResult.exitCode == 0, "CNN MNIST train+test: test exit code 0");
   CHECK(testResult.stdOut.contains("Test Results:"), "CNN MNIST train+test: 'Test Results:'");
@@ -210,21 +189,25 @@ static void testCNNTrainAndTestMNIST() {
   // Extract and verify average loss is reasonable
   double avgLoss = -1;
   int idx = testResult.stdOut.indexOf("Average loss:");
+
   if (idx >= 0) {
     QString lossStr = testResult.stdOut.mid(idx + QString("Average loss:").length()).trimmed();
     lossStr = lossStr.left(lossStr.indexOf('\n'));
     avgLoss = lossStr.toDouble();
   }
+
   CHECK(avgLoss > 0 && avgLoss < 0.5, "CNN MNIST train+test: average loss < 0.5");
 
   // Extract and verify accuracy is reasonable (> 30% for 30 epochs with mini-batch SGD)
   double accuracy = -1;
   int accIdx = testResult.stdOut.indexOf("Accuracy:");
+
   if (accIdx >= 0) {
     QString accStr = testResult.stdOut.mid(accIdx + QString("Accuracy:").length()).trimmed();
     accStr = accStr.left(accStr.indexOf('%'));
     accuracy = accStr.toDouble();
   }
+
   CHECK(accuracy > 30.0, "CNN MNIST train+test: accuracy > 30%");
 
   std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
@@ -232,7 +215,8 @@ static void testCNNTrainAndTestMNIST() {
 
 //===================================================================================================================//
 
-static void testCNNTrainAndTestMNISTGPU() {
+static void testCNNTrainAndTestMNISTGPU()
+{
   std::cout << "  testCNNTrainAndTestMNISTGPU... " << std::flush;
 
   if (!runFullTests) {
@@ -248,15 +232,11 @@ static void testCNNTrainAndTestMNISTGPU() {
   QString modelPath = tempDir() + "/cnn_mnist_trained_gpu.json";
 
   // Step 1: Train on MNIST training data on GPU (30 epochs, 60k samples, all GPUs)
-  auto trainResult = runNNCLI({
-    "--config", fixturePath("mnist_cnn_train_config.json"),
-    "--mode", "train",
-    "--device", "gpu",
-    "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"),
-    "--idx-labels", examplePath("MNIST/train/train-labels.idx1-ubyte"),
-    "--output", modelPath,
-    "--log-level", "quiet"
-  }, 1800000);  // 30 min timeout
+  auto trainResult =
+    runNNCLI({"--config", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "gpu",
+              "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
+              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
+             1800000); // 30 min timeout
 
   CHECK(trainResult.exitCode == 0, "CNN MNIST GPU train+test: training exit code 0");
   CHECK(QFile::exists(modelPath), "CNN MNIST GPU train+test: trained model file exists");
@@ -267,13 +247,10 @@ static void testCNNTrainAndTestMNISTGPU() {
   }
 
   // Step 2: Evaluate against MNIST test data (10k samples) on GPU
-  auto testResult = runNNCLI({
-    "--config", modelPath,
-    "--mode", "test",
-    "--device", "gpu",
-    "--idx-data", examplePath("MNIST/test/t10k-images.idx3-ubyte"),
-    "--idx-labels", examplePath("MNIST/test/t10k-labels.idx1-ubyte")
-  }, 600000);  // 10 min timeout
+  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "gpu", "--idx-data",
+                              examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
+                              examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
+                             600000); // 10 min timeout
 
   CHECK(testResult.exitCode == 0, "CNN MNIST GPU train+test: test exit code 0");
   CHECK(testResult.stdOut.contains("Test Results:"), "CNN MNIST GPU train+test: 'Test Results:'");
@@ -282,21 +259,25 @@ static void testCNNTrainAndTestMNISTGPU() {
   // Extract and verify average loss is reasonable
   double avgLoss = -1;
   int idx = testResult.stdOut.indexOf("Average loss:");
+
   if (idx >= 0) {
     QString lossStr = testResult.stdOut.mid(idx + QString("Average loss:").length()).trimmed();
     lossStr = lossStr.left(lossStr.indexOf('\n'));
     avgLoss = lossStr.toDouble();
   }
+
   CHECK(avgLoss > 0 && avgLoss < 0.5, "CNN MNIST GPU train+test: average loss < 0.5");
 
   // Extract and verify accuracy is reasonable (> 30% for 30 epochs with mini-batch SGD)
   double accuracy = -1;
   int accIdx = testResult.stdOut.indexOf("Accuracy:");
+
   if (accIdx >= 0) {
     QString accStr = testResult.stdOut.mid(accIdx + QString("Accuracy:").length()).trimmed();
     accStr = accStr.left(accStr.indexOf('%'));
     accuracy = accStr.toDouble();
   }
+
   CHECK(accuracy > 30.0, "CNN MNIST GPU train+test: accuracy > 30%");
 
   std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
@@ -304,14 +285,18 @@ static void testCNNTrainAndTestMNISTGPU() {
 
 //===================================================================================================================//
 
-static void testCNNCheckpointParameters() {
+static void testCNNCheckpointParameters()
+{
   std::cout << "  testCNNCheckpointParameters... ";
 
   // Write a custom config with enough epochs to trigger checkpoints
   // (existing fixture has 5 epochs / interval 10, which produces no checkpoints)
   QString configPath = tempDir() + "/cnn_ckpt_config.json";
   QFile configFile(configPath);
-  if (configFile.exists()) configFile.remove();
+
+  if (configFile.exists())
+    configFile.remove();
+
   if (configFile.open(QIODevice::WriteOnly)) {
     const char* configJson = R"({
   "mode": "train",
@@ -332,6 +317,7 @@ static void testCNNCheckpointParameters() {
     "learningRate": 0.1
   }
 })";
+
     configFile.write(configJson);
     configFile.close();
   } else {
@@ -352,13 +338,8 @@ static void testCNNCheckpointParameters() {
 
   QString modelPath = tempDir() + "/cnn_ckpt_model.json";
 
-  auto result = runNNCLI({
-    "--config", configPath,
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", samplesDst,
-    "--output", modelPath
-  });
+  auto result = runNNCLI(
+    {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
 
   CHECK(result.exitCode == 0, "CNN checkpoint params: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN checkpoint params: 'Training completed.'");
@@ -371,6 +352,7 @@ static void testCNNCheckpointParameters() {
   if (!checkpoints.isEmpty()) {
     QString checkpointPath = outputDir.filePath(checkpoints.first());
     QFile file(checkpointPath);
+
     if (file.open(QIODevice::ReadOnly)) {
       QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
       QJsonObject root = doc.object();
@@ -381,6 +363,7 @@ static void testCNNCheckpointParameters() {
       // Verify conv parameters are non-empty
       QJsonArray convArr = params["convolutional"].toArray();
       CHECK(!convArr.isEmpty(), "CNN checkpoint params: conv non-empty");
+
       if (!convArr.isEmpty()) {
         QJsonObject firstConv = convArr[0].toObject();
         QJsonArray filters = firstConv["filters"].toArray();
@@ -406,39 +389,31 @@ static void testCNNCheckpointParameters() {
   std::cout << std::endl;
 }
 
-static void testCNNShuffleSamplesCLI() {
+static void testCNNShuffleSamplesCLI()
+{
   std::cout << "  testCNNShuffleSamplesCLI... ";
 
   // Train with --shuffle-samples true
   QString modelPathTrue = tempDir() + "/cnn_shuffle_true.json";
-  auto resultTrue = runNNCLI({
-    "--config", fixturePath("cnn_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("cnn_train_samples.json"),
-    "--output", modelPathTrue,
-    "--shuffle-samples", "true"
-  });
+  auto resultTrue =
+    runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",
+              fixturePath("cnn_train_samples.json"), "--output", modelPathTrue, "--shuffle-samples", "true"});
 
   CHECK(resultTrue.exitCode == 0, "CNN shuffle=true: exit code 0");
   CHECK(resultTrue.stdOut.contains("Training completed."), "CNN shuffle=true: 'Training completed.'");
 
   // Train with --shuffle-samples false
   QString modelPathFalse = tempDir() + "/cnn_shuffle_false.json";
-  auto resultFalse = runNNCLI({
-    "--config", fixturePath("cnn_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("cnn_train_samples.json"),
-    "--output", modelPathFalse,
-    "--shuffle-samples", "false"
-  });
+  auto resultFalse =
+    runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",
+              fixturePath("cnn_train_samples.json"), "--output", modelPathFalse, "--shuffle-samples", "false"});
 
   CHECK(resultFalse.exitCode == 0, "CNN shuffle=false: exit code 0");
   CHECK(resultFalse.stdOut.contains("Training completed."), "CNN shuffle=false: 'Training completed.'");
 
   // Verify shuffleSamples is saved in the output model JSON
   QFile fileTrue(modelPathTrue);
+
   if (fileTrue.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(fileTrue.readAll());
     QJsonObject root = doc.object();
@@ -452,6 +427,7 @@ static void testCNNShuffleSamplesCLI() {
   }
 
   QFile fileFalse(modelPathFalse);
+
   if (fileFalse.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(fileFalse.readAll());
     QJsonObject root = doc.object();
@@ -466,7 +442,8 @@ static void testCNNShuffleSamplesCLI() {
   std::cout << std::endl;
 }
 
-void runCNNTests() {
+void runCNNTests()
+{
   testCNNNetworkDetection();
   testCNNTrain();
   testCNNPredict();
@@ -477,4 +454,3 @@ void runCNNTests() {
   testCNNCheckpointParameters();
   testCNNShuffleSamplesCLI();
 }
-

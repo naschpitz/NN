@@ -16,19 +16,22 @@ using namespace NN_CLI;
 //===================================================================================================================//
 
 // Create N ANN samples with input = {idx} and output = one-hot class assignment.
-static ANN::Samples<float> makeANNSamples(ulong count, ulong numClasses = 3) {
+static ANN::Samples<float> makeANNSamples(ulong count, ulong numClasses = 3)
+{
   ANN::Samples<float> samples(count);
   for (ulong i = 0; i < count; i++) {
-    samples[i].input  = {static_cast<float>(i)};
+    samples[i].input = {static_cast<float>(i)};
     samples[i].output.assign(numClasses, 0.0f);
     samples[i].output[i % numClasses] = 1.0f;
   }
+
   return samples;
 }
 
 //===================================================================================================================//
 
-static void testProviderReturnsCorrectBatches() {
+static void testProviderReturnsCorrectBatches()
+{
   std::cout << "  testProviderReturnsCorrectBatches... ";
 
   auto samples = makeANNSamples(10);
@@ -69,7 +72,8 @@ static void testProviderReturnsCorrectBatches() {
 
 //===================================================================================================================//
 
-static void testProviderRespectsShuffledIndices() {
+static void testProviderRespectsShuffledIndices()
+{
   std::cout << "  testProviderRespectsShuffledIndices... ";
 
   auto samples = makeANNSamples(6);
@@ -98,7 +102,8 @@ static void testProviderRespectsShuffledIndices() {
 
 //===================================================================================================================//
 
-static void testPrefetchOverlapsWithProcessing() {
+static void testPrefetchOverlapsWithProcessing()
+{
   std::cout << "  testPrefetchOverlapsWithProcessing... ";
 
   // With prefetching, batch 1 should be faster than batch 0 because it was
@@ -122,8 +127,7 @@ static void testPrefetchOverlapsWithProcessing() {
   for (ulong b = 0; b < 4; b++) {
     auto batch = provider(indices, batchSize, b);
     CHECK(batch.size() == 5, "batch " + std::to_string(b) + " has 5 samples");
-    CHECK(batch[0].input[0] == static_cast<float>(b * 5),
-          "batch " + std::to_string(b) + " first sample correct");
+    CHECK(batch[0].input[0] == static_cast<float>(b * 5), "batch " + std::to_string(b) + " first sample correct");
 
     // Simulate training time — prefetch of next batch happens during this sleep
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -134,7 +138,8 @@ static void testPrefetchOverlapsWithProcessing() {
 
 //===================================================================================================================//
 
-static void testNewEpochResetsPrefetch() {
+static void testNewEpochResetsPrefetch()
+{
   std::cout << "  testNewEpochResetsPrefetch... ";
 
   auto samples = makeANNSamples(6);
@@ -166,10 +171,10 @@ static void testNewEpochResetsPrefetch() {
 
 //===================================================================================================================//
 
-void runDataLoaderTests() {
+void runDataLoaderTests()
+{
   testProviderReturnsCorrectBatches();
   testProviderRespectsShuffledIndices();
   testPrefetchOverlapsWithProcessing();
   testNewEpochResetsPrefetch();
 }
-

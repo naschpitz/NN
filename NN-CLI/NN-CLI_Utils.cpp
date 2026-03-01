@@ -14,8 +14,8 @@ using namespace NN_CLI;
 //===================================================================================================================//
 
 template <typename T>
-ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::string& labelsPath,
-                                      ulong progressReports) {
+ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::string& labelsPath, ulong progressReports)
+{
   std::vector<std::vector<unsigned char>> data = loadIDXData(dataPath);
   std::vector<unsigned char> labels = loadIDXLabels(labelsPath);
 
@@ -30,6 +30,7 @@ ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::str
       maxLabel = label;
     }
   }
+
   size_t numClasses = static_cast<size_t>(maxLabel) + 1;
 
   ANN::Samples<T> samples;
@@ -59,20 +60,20 @@ ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::str
 //===================================================================================================================//
 
 template <typename T>
-uint32_t Utils<T>::readBigEndianUInt32(std::ifstream& stream) {
+uint32_t Utils<T>::readBigEndianUInt32(std::ifstream& stream)
+{
   unsigned char bytes[4];
   stream.read(reinterpret_cast<char*>(bytes), 4);
-  
-  return (static_cast<uint32_t>(bytes[0]) << 24) |
-         (static_cast<uint32_t>(bytes[1]) << 16) |
-         (static_cast<uint32_t>(bytes[2]) << 8) |
-         (static_cast<uint32_t>(bytes[3]));
+
+  return (static_cast<uint32_t>(bytes[0]) << 24) | (static_cast<uint32_t>(bytes[1]) << 16) |
+         (static_cast<uint32_t>(bytes[2]) << 8) | (static_cast<uint32_t>(bytes[3]));
 }
 
 //===================================================================================================================//
 
 template <typename T>
-std::vector<std::vector<unsigned char>> Utils<T>::loadIDXData(const std::string& path) {
+std::vector<std::vector<unsigned char>> Utils<T>::loadIDXData(const std::string& path)
+{
   std::ifstream file(path, std::ios::binary);
 
   if (!file.is_open()) {
@@ -105,7 +106,8 @@ std::vector<std::vector<unsigned char>> Utils<T>::loadIDXData(const std::string&
 //===================================================================================================================//
 
 template <typename T>
-std::vector<unsigned char> Utils<T>::loadIDXLabels(const std::string& path) {
+std::vector<unsigned char> Utils<T>::loadIDXLabels(const std::string& path)
+{
   std::ifstream file(path, std::ios::binary);
 
   if (!file.is_open()) {
@@ -130,7 +132,8 @@ std::vector<unsigned char> Utils<T>::loadIDXLabels(const std::string& path) {
 
 template <typename T>
 CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::string& labelsPath,
-                                      const CNN::Shape3D& inputShape, ulong progressReports) {
+                                     const CNN::Shape3D& inputShape, ulong progressReports)
+{
   std::vector<std::vector<unsigned char>> data = loadIDXData(dataPath);
   std::vector<unsigned char> labels = loadIDXLabels(labelsPath);
 
@@ -145,6 +148,7 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
       maxLabel = label;
     }
   }
+
   size_t numClasses = static_cast<size_t>(maxLabel) + 1;
 
   CNN::Samples<T> samples;
@@ -157,7 +161,8 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
     // Validate data size matches input shape
     if (data[i].size() != inputShape.size()) {
       throw std::runtime_error("IDX data item size (" + std::to_string(data[i].size()) +
-        ") does not match expected input shape size (" + std::to_string(inputShape.size()) + ")");
+                               ") does not match expected input shape size (" + std::to_string(inputShape.size()) +
+                               ")");
     }
 
     // Reshape flat data into Tensor3D with given shape
@@ -183,4 +188,3 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
 template class NN_CLI::Utils<int>;
 template class NN_CLI::Utils<float>;
 template class NN_CLI::Utils<double>;
-

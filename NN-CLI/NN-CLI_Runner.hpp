@@ -16,86 +16,86 @@
 
 //===================================================================================================================//
 
-namespace NN_CLI {
+namespace NN_CLI
+{
 
-/**
+  /**
  * Runner class handles the execution of ANN and CNN modes (train, test, predict).
  * Automatically detects network type from the config file and delegates to the
  * appropriate library.
  */
-class Runner {
-  public:
-    //-- Constructor --//
-    Runner(const QCommandLineParser& parser, LogLevel logLevel);
+  class Runner
+  {
+    public:
+      //-- Constructor --//
+      Runner(const QCommandLineParser& parser, LogLevel logLevel);
 
-    //-- Entry point --//
-    int run();
+      //-- Entry point --//
+      int run();
 
-  private:
-    //-- ANN mode methods --//
-    int runANNTrain();
-    int runANNTest();
-    int runANNPredict();
+    private:
+      //-- ANN mode methods --//
+      int runANNTrain();
+      int runANNTest();
+      int runANNPredict();
 
-    //-- CNN mode methods --//
-    int runCNNTrain();
-    int runCNNTest();
-    int runCNNPredict();
+      //-- CNN mode methods --//
+      int runCNNTrain();
+      int runCNNTest();
+      int runCNNPredict();
 
-    //-- Sample loading --//
-    std::pair<ANN::Samples<float>, bool> loadANNSamplesFromOptions(
-      const std::string& modeName, QString& inputFilePath);
-    std::pair<CNN::Samples<float>, bool> loadCNNSamplesFromOptions(
-      const std::string& modeName, QString& inputFilePath);
+      //-- Sample loading --//
+      std::pair<ANN::Samples<float>, bool> loadANNSamplesFromOptions(const std::string& modeName,
+                                                                     QString& inputFilePath);
+      std::pair<CNN::Samples<float>, bool> loadCNNSamplesFromOptions(const std::string& modeName,
+                                                                     QString& inputFilePath);
 
-    //-- Model saving --//
-    static void saveANNModel(const ANN::Core<float>& core, const std::string& filePath,
-                              const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval);
-    static void saveCNNModel(const CNN::Core<float>& core, const std::string& filePath,
-                              const IOConfig& ioConfig, ulong progressReports, ulong saveModelInterval);
+      //-- Model saving --//
+      static void saveANNModel(const ANN::Core<float>& core, const std::string& filePath, const IOConfig& ioConfig,
+                               ulong progressReports, ulong saveModelInterval);
+      static void saveCNNModel(const CNN::Core<float>& core, const std::string& filePath, const IOConfig& ioConfig,
+                               ulong progressReports, ulong saveModelInterval);
 
-    //-- Output path helpers --//
-    static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);
-    static std::string generateDefaultOutputPath(
-      const QString& inputFilePath, ulong epochs, ulong samples, float loss);
-    static std::string generateCheckpointPath(
-      const QString& inputFilePath, ulong epoch, float loss);
+      //-- Output path helpers --//
+      static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);
+      static std::string generateDefaultOutputPath(const QString& inputFilePath, ulong epochs, ulong samples,
+                                                   float loss);
+      static std::string generateCheckpointPath(const QString& inputFilePath, ulong epoch, float loss);
 
-    //-- Training helpers --//
-    void setupANNTrainingCallback(const QString& inputFilePath);
-    void setupCNNTrainingCallback(const QString& inputFilePath);
-    int finishANNTraining(const QString& inputFilePath);
-    int finishCNNTraining(const QString& inputFilePath);
+      //-- Training helpers --//
+      void setupANNTrainingCallback(const QString& inputFilePath);
+      void setupCNNTrainingCallback(const QString& inputFilePath);
+      int finishANNTraining(const QString& inputFilePath);
+      int finishCNNTraining(const QString& inputFilePath);
 
-    //-- Class weight computation --//
-    std::vector<float> computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs);
+      //-- Class weight computation --//
+      std::vector<float> computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs);
 
-    //-- Configuration --//
-    const QCommandLineParser& parser;
-    LogLevel logLevel;
-    NetworkType networkType;
-    std::string mode;  // "train", "test", "predict"
-    IOConfig ioConfig;  // inputType / outputType / shapes (NN-CLI concept only)
-    ulong progressReports = 1000;  // NN-CLI display frequency (not used by ANN/CNN libs)
-    ulong saveModelInterval = 10;  // 0 = disabled
+      //-- Configuration --//
+      const QCommandLineParser& parser;
+      LogLevel logLevel;
+      NetworkType networkType;
+      std::string mode; // "train", "test", "predict"
+      IOConfig ioConfig; // inputType / outputType / shapes (NN-CLI concept only)
+      ulong progressReports = 1000; // NN-CLI display frequency (not used by ANN/CNN libs)
+      ulong saveModelInterval = 10; // 0 = disabled
 
-    //-- Data augmentation config (parsed from trainingConfig, handled by NN-CLI only) --//
-    ulong augmentationFactor = 0;       // 0 = disabled; N = N× total samples per class
-    bool balanceAugmentation = false;   // true = augment minority classes up to max class count
-    bool autoClassWeights = false;      // true = auto-compute inverse-frequency class weights
-    float augmentationProbability = 0.5f; // Probability of applying each enabled transform
-    Loader::AugmentationTransforms augTransforms; // Which transforms to apply
+      //-- Data augmentation config (parsed from trainingConfig, handled by NN-CLI only) --//
+      ulong augmentationFactor = 0; // 0 = disabled; N = N× total samples per class
+      bool balanceAugmentation = false; // true = augment minority classes up to max class count
+      bool autoClassWeights = false; // true = auto-compute inverse-frequency class weights
+      float augmentationProbability = 0.5f; // Probability of applying each enabled transform
+      Loader::AugmentationTransforms augTransforms; // Which transforms to apply
 
-    //-- ANN members --//
-    std::unique_ptr<ANN::Core<float>> annCore;
-    ANN::CoreConfig<float> annCoreConfig;
+      //-- ANN members --//
+      std::unique_ptr<ANN::Core<float>> annCore;
+      ANN::CoreConfig<float> annCoreConfig;
 
-    //-- CNN members --//
-    std::unique_ptr<CNN::Core<float>> cnnCore;
-    CNN::CoreConfig<float> cnnCoreConfig;
-};
+      //-- CNN members --//
+      std::unique_ptr<CNN::Core<float>> cnnCore;
+      CNN::CoreConfig<float> cnnCoreConfig;
+  };
 
 } // namespace NN_CLI
 
 #endif // NN_CLI_RUNNER_HPP
-

@@ -8,7 +8,8 @@
 #include <iostream>
 #include <string>
 
-void printUsage() {
+void printUsage()
+{
   std::cout << "NN-CLI - Neural Network Command Line Interface (ANN + CNN)\n\n";
   std::cout << "Usage:\n";
   std::cout << "  NN-CLI --config <file> --mode train [options]       # Training\n";
@@ -30,7 +31,8 @@ void printUsage() {
   std::cout << "  --help, -h             Show this help message\n";
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
   QCoreApplication app(argc, argv);
   QCoreApplication::setApplicationName("NN-CLI");
   QCoreApplication::setApplicationVersion("1.0");
@@ -40,101 +42,64 @@ int main(int argc, char *argv[]) {
   parser.addHelpOption();
 
   // Config file option
-  QCommandLineOption configOption(
-    QStringList() << "c" << "config",
-    "Path to JSON configuration file.",
-    "file"
-  );
+  QCommandLineOption configOption(QStringList() << "c" << "config", "Path to JSON configuration file.", "file");
   parser.addOption(configOption);
 
   // Mode option (train, predict, or test)
-  QCommandLineOption modeOption(
-    QStringList() << "m" << "mode",
-    "Mode: 'train', 'predict', or 'test'.",
-    "mode"
-  );
+  QCommandLineOption modeOption(QStringList() << "m" << "mode", "Mode: 'train', 'predict', or 'test'.", "mode");
   parser.addOption(modeOption);
 
   // Device option (cpu or gpu)
-  QCommandLineOption deviceOption(
-    QStringList() << "d" << "device",
-    "Device: 'cpu' or 'gpu' (default: cpu).",
-    "device",
-    "cpu"
-  );
+  QCommandLineOption deviceOption(QStringList() << "d" << "device", "Device: 'cpu' or 'gpu' (default: cpu).", "device",
+                                  "cpu");
   parser.addOption(deviceOption);
 
   // Input file for predict mode
-  QCommandLineOption inputOption(
-    QStringList() << "i" << "input",
-    "Path to JSON file with input values for predict mode.",
-    "file"
-  );
+  QCommandLineOption inputOption(QStringList() << "i" << "input",
+                                 "Path to JSON file with input values for predict mode.", "file");
   parser.addOption(inputOption);
 
   // Input type option (vector or image)
-  QCommandLineOption inputTypeOption(
-    QStringList() << "input-type",
-    "Input data type: 'vector' or 'image' (overrides config file).",
-    "type"
-  );
+  QCommandLineOption inputTypeOption(QStringList() << "input-type",
+                                     "Input data type: 'vector' or 'image' (overrides config file).", "type");
   parser.addOption(inputTypeOption);
 
   // Samples file for training/testing (JSON format)
-  QCommandLineOption samplesOption(
-    QStringList() << "s" << "samples",
-    "Path to JSON file with samples (for train/test modes).",
-    "file"
-  );
+  QCommandLineOption samplesOption(QStringList() << "s" << "samples",
+                                   "Path to JSON file with samples (for train/test modes).", "file");
   parser.addOption(samplesOption);
 
   // IDX data file for training (IDX3 format)
-  QCommandLineOption idxDataOption(
-    QStringList() << "idx-data",
-    "Path to IDX3 data file (alternative to --samples).",
-    "file"
-  );
+  QCommandLineOption idxDataOption(QStringList() << "idx-data", "Path to IDX3 data file (alternative to --samples).",
+                                   "file");
   parser.addOption(idxDataOption);
 
   // IDX labels file for training (IDX1 format)
-  QCommandLineOption idxLabelsOption(
-    QStringList() << "idx-labels",
-    "Path to IDX1 labels file (requires --idx-data).",
-    "file"
-  );
+  QCommandLineOption idxLabelsOption(QStringList() << "idx-labels", "Path to IDX1 labels file (requires --idx-data).",
+                                     "file");
   parser.addOption(idxLabelsOption);
 
   // Output file (train: model, predict: predict result with metadata)
   QCommandLineOption outputOption(
     QStringList() << "o" << "output",
-    "Output file. Train mode: saves trained model. Predict mode: saves predict result with model metadata.",
-    "file"
-  );
+    "Output file. Train mode: saves trained model. Predict mode: saves predict result with model metadata.", "file");
   parser.addOption(outputOption);
 
   // Output type option (vector or image)
-  QCommandLineOption outputTypeOption(
-    QStringList() << "output-type",
-    "Output data type: 'vector' or 'image' (overrides config file).",
-    "type"
-  );
+  QCommandLineOption outputTypeOption(QStringList() << "output-type",
+                                      "Output data type: 'vector' or 'image' (overrides config file).", "type");
   parser.addOption(outputTypeOption);
 
   // Log level option
-  QCommandLineOption logLevelOption(
-    QStringList() << "l" << "log-level",
-    "Log level: quiet, error, warning, info, debug (default: error).",
-    "level",
-    "error"
-  );
+  QCommandLineOption logLevelOption(QStringList() << "l" << "log-level",
+                                    "Log level: quiet, error, warning, info, debug (default: error).", "level",
+                                    "error");
   parser.addOption(logLevelOption);
 
   // Shuffle samples option (overrides config file)
-  QCommandLineOption shuffleSamplesOption(
-    QStringList() << "shuffle-samples",
-    "Shuffle samples each epoch: 'true' or 'false' (overrides config file).",
-    "bool"
-  );
+  QCommandLineOption shuffleSamplesOption(QStringList() << "shuffle-samples",
+                                          "Shuffle samples each epoch: 'true' or 'false' (overrides config file).",
+                                          "bool");
   parser.addOption(shuffleSamplesOption);
 
   parser.process(app);
@@ -149,6 +114,7 @@ int main(int argc, char *argv[]) {
   // Validate mode if provided
   if (parser.isSet(modeOption)) {
     QString modeStr = parser.value(modeOption).toLower();
+
     if (modeStr != "train" && modeStr != "predict" && modeStr != "test") {
       std::cerr << "Error: Mode must be 'train', 'predict', or 'test'.\n";
       return 1;
@@ -158,6 +124,7 @@ int main(int argc, char *argv[]) {
   // Validate device if provided
   if (parser.isSet(deviceOption)) {
     QString deviceStr = parser.value(deviceOption).toLower();
+
     if (deviceStr != "cpu" && deviceStr != "gpu") {
       std::cerr << "Error: Device must be 'cpu' or 'gpu'.\n";
       return 1;
@@ -167,6 +134,7 @@ int main(int argc, char *argv[]) {
   // Validate input-type if provided
   if (parser.isSet(inputTypeOption)) {
     QString typeStr = parser.value(inputTypeOption).toLower();
+
     if (typeStr != "vector" && typeStr != "image") {
       std::cerr << "Error: Input type must be 'vector' or 'image'.\n";
       return 1;
@@ -176,6 +144,7 @@ int main(int argc, char *argv[]) {
   // Validate output-type if provided
   if (parser.isSet(outputTypeOption)) {
     QString typeStr = parser.value(outputTypeOption).toLower();
+
     if (typeStr != "vector" && typeStr != "image") {
       std::cerr << "Error: Output type must be 'vector' or 'image'.\n";
       return 1;
@@ -185,6 +154,7 @@ int main(int argc, char *argv[]) {
   // Validate shuffle-samples if provided
   if (parser.isSet(shuffleSamplesOption)) {
     QString shuffleStr = parser.value(shuffleSamplesOption).toLower();
+
     if (shuffleStr != "true" && shuffleStr != "false") {
       std::cerr << "Error: --shuffle-samples must be 'true' or 'false'.\n";
       return 1;
@@ -193,13 +163,20 @@ int main(int argc, char *argv[]) {
 
   // Parse log level
   NN_CLI::LogLevel logLevel = NN_CLI::LogLevel::ERROR;
+
   if (parser.isSet(logLevelOption)) {
     QString levelStr = parser.value(logLevelOption).toLower();
-    if (levelStr == "quiet")        logLevel = NN_CLI::LogLevel::QUIET;
-    else if (levelStr == "error")   logLevel = NN_CLI::LogLevel::ERROR;
-    else if (levelStr == "warning") logLevel = NN_CLI::LogLevel::WARNING;
-    else if (levelStr == "info")    logLevel = NN_CLI::LogLevel::INFO;
-    else if (levelStr == "debug")   logLevel = NN_CLI::LogLevel::DEBUG;
+
+    if (levelStr == "quiet")
+      logLevel = NN_CLI::LogLevel::QUIET;
+    else if (levelStr == "error")
+      logLevel = NN_CLI::LogLevel::ERROR;
+    else if (levelStr == "warning")
+      logLevel = NN_CLI::LogLevel::WARNING;
+    else if (levelStr == "info")
+      logLevel = NN_CLI::LogLevel::INFO;
+    else if (levelStr == "debug")
+      logLevel = NN_CLI::LogLevel::DEBUG;
     else {
       std::cerr << "Error: Log level must be 'quiet', 'error', 'warning', 'info', or 'debug'.\n";
       return 1;

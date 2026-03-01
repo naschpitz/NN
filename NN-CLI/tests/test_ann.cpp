@@ -7,10 +7,11 @@
 #include <QJsonArray>
 
 // Trained model paths shared between chained tests
-QString trainedANNModelPath;                    // XOR model — used by detection/override/error tests
-static QString trainedANNMNISTModelPath;        // MNIST model — used by --full predict/test tests
+QString trainedANNModelPath; // XOR model — used by detection/override/error tests
+static QString trainedANNMNISTModelPath; // MNIST model — used by --full predict/test tests
 
-static void testANNNetworkDetection() {
+static void testANNNetworkDetection()
+{
   std::cout << "  testANNNetworkDetection... ";
 
   if (trainedANNModelPath.isEmpty() || !QFile::exists(trainedANNModelPath)) {
@@ -22,37 +23,28 @@ static void testANNNetworkDetection() {
   // Create a temporary predict input compatible with XOR model (2 inputs)
   QString predictInputPath = tempDir() + "/ann_detect_input.json";
   QFile inputFile(predictInputPath);
+
   if (inputFile.open(QIODevice::WriteOnly)) {
     inputFile.write(R"({"inputs": [[0.0, 1.0]]})");
     inputFile.close();
   }
 
-  auto result = runNNCLI({
-    "--config", trainedANNModelPath,
-    "--mode", "predict",
-    "--device", "cpu",
-    "--input", predictInputPath,
-    "--output", tempDir() + "/ann_detect_output.json",
-    "--log-level", "info"
-  });
+  auto result = runNNCLI({"--config", trainedANNModelPath, "--mode", "predict", "--device", "cpu", "--input",
+                          predictInputPath, "--output", tempDir() + "/ann_detect_output.json", "--log-level", "info"});
 
   CHECK(result.exitCode == 0, "ANN detection: exit code 0");
   CHECK(result.stdOut.contains("Network type: ANN"), "ANN detection: stdout contains 'Network type: ANN'");
   std::cout << std::endl;
 }
 
-static void testANNTrainXOR() {
+static void testANNTrainXOR()
+{
   std::cout << "  testANNTrainXOR... ";
 
   trainedANNModelPath = tempDir() + "/ann_xor_model.json";
 
-  auto result = runNNCLI({
-    "--config", fixturePath("ann_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("ann_train_samples.json"),
-    "--output", trainedANNModelPath
-  });
+  auto result = runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
+                          "--samples", fixturePath("ann_train_samples.json"), "--output", trainedANNModelPath});
 
   CHECK(result.exitCode == 0, "ANN train XOR: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "ANN train XOR: 'Training completed.'");
@@ -67,7 +59,8 @@ static void testANNTrainXOR() {
   std::cout << std::endl;
 }
 
-static void testANNPredictMNIST() {
+static void testANNPredictMNIST()
+{
   std::cout << "  testANNPredictMNIST... " << std::flush;
 
   if (!runFullTests) {
@@ -76,20 +69,16 @@ static void testANNPredictMNIST() {
   }
 
   if (trainedANNMNISTModelPath.isEmpty() || !QFile::exists(trainedANNMNISTModelPath)) {
-    CHECK(false, "ANN predict MNIST: skipped — no trained MNIST model available (testANNTrainAndTestMNIST must run first)");
+    CHECK(false,
+          "ANN predict MNIST: skipped — no trained MNIST model available (testANNTrainAndTestMNIST must run first)");
     std::cout << std::endl;
     return;
   }
 
   QString outputPath = tempDir() + "/ann_predict_output.json";
 
-  auto result = runNNCLI({
-    "--config", trainedANNMNISTModelPath,
-    "--mode", "predict",
-    "--device", "cpu",
-    "--input", examplePath("MNIST/predict/mnist_digit_2_input.json"),
-    "--output", outputPath
-  });
+  auto result = runNNCLI({"--config", trainedANNMNISTModelPath, "--mode", "predict", "--device", "cpu", "--input",
+                          examplePath("MNIST/predict/mnist_digit_2_input.json"), "--output", outputPath});
 
   CHECK(result.exitCode == 0, "ANN predict MNIST: exit code 0");
   CHECK(result.stdOut.contains("Predict result saved to:"), "ANN predict MNIST: 'Predict result saved to:'");
@@ -97,6 +86,7 @@ static void testANNPredictMNIST() {
 
   // Verify output JSON structure and content
   QFile file(outputPath);
+
   if (file.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject root = doc.object();
@@ -114,8 +104,13 @@ static void testANNPredictMNIST() {
     bool allValid = true;
     for (int i = 0; i < firstOutput.size(); ++i) {
       double v = firstOutput[i].toDouble();
-      if (v < 0.0 || v > 1.0) { allValid = false; break; }
+
+      if (v < 0.0 || v > 1.0) {
+        allValid = false;
+        break;
+      }
     }
+
     CHECK(allValid, "ANN predict MNIST: all outputs in [0, 1]");
 
     QJsonObject meta = root["predictMetadata"].toObject();
@@ -128,10 +123,12 @@ static void testANNPredictMNIST() {
   } else {
     CHECK(false, "ANN predict MNIST: failed to open output file");
   }
+
   std::cout << std::endl;
 }
 
-static void testANNTestMNIST() {
+static void testANNTestMNIST()
+{
   std::cout << "  testANNTestMNIST... " << std::flush;
 
   if (!runFullTests) {
@@ -140,18 +137,16 @@ static void testANNTestMNIST() {
   }
 
   if (trainedANNMNISTModelPath.isEmpty() || !QFile::exists(trainedANNMNISTModelPath)) {
-    CHECK(false, "ANN test MNIST: skipped — no trained MNIST model available (testANNTrainAndTestMNIST must run first)");
+    CHECK(false,
+          "ANN test MNIST: skipped — no trained MNIST model available (testANNTrainAndTestMNIST must run first)");
     std::cout << std::endl;
     return;
   }
 
-  auto result = runNNCLI({
-    "--config", trainedANNMNISTModelPath,
-    "--mode", "test",
-    "--device", "cpu",
-    "--idx-data", examplePath("MNIST/test/t10k-images.idx3-ubyte"),
-    "--idx-labels", examplePath("MNIST/test/t10k-labels.idx1-ubyte")
-  }, 600000);  // 10 min timeout
+  auto result = runNNCLI({"--config", trainedANNMNISTModelPath, "--mode", "test", "--device", "cpu", "--idx-data",
+                          examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
+                          examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
+                         600000); // 10 min timeout
 
   CHECK(result.exitCode == 0, "ANN test MNIST: exit code 0");
   CHECK(result.stdOut.contains("Test Results:"), "ANN test MNIST: 'Test Results:'");
@@ -163,7 +158,8 @@ static void testANNTestMNIST() {
   std::cout << std::endl;
 }
 
-static void testANNModeOverride() {
+static void testANNModeOverride()
+{
   std::cout << "  testANNModeOverride... ";
 
   if (trainedANNModelPath.isEmpty() || !QFile::exists(trainedANNModelPath)) {
@@ -175,6 +171,7 @@ static void testANNModeOverride() {
   // Create a temporary predict input compatible with XOR model (2 inputs)
   QString predictInputPath = tempDir() + "/ann_override_input.json";
   QFile inputFile(predictInputPath);
+
   if (inputFile.open(QIODevice::WriteOnly)) {
     inputFile.write(R"({"inputs": [[0.0, 1.0]]})");
     inputFile.close();
@@ -183,32 +180,22 @@ static void testANNModeOverride() {
   QString outputPath = tempDir() + "/ann_override_output.json";
 
   // Trained model has mode=train; override to predict via CLI
-  auto result = runNNCLI({
-    "--config", trainedANNModelPath,
-    "--mode", "predict",
-    "--device", "cpu",
-    "--input", predictInputPath,
-    "--output", outputPath,
-    "--log-level", "info"
-  });
+  auto result = runNNCLI({"--config", trainedANNModelPath, "--mode", "predict", "--device", "cpu", "--input",
+                          predictInputPath, "--output", outputPath, "--log-level", "info"});
 
   CHECK(result.exitCode == 0, "ANN mode override: exit code 0");
   CHECK(result.stdOut.contains("Mode: predict (CLI)"), "ANN mode override: 'Mode: predict (CLI)'");
   std::cout << std::endl;
 }
 
-static void testANNTrainWithWeightedLoss() {
+static void testANNTrainWithWeightedLoss()
+{
   std::cout << "  testANNTrainWithWeightedLoss... ";
 
   QString modelPath = tempDir() + "/ann_weighted_model.json";
 
-  auto result = runNNCLI({
-    "--config", fixturePath("ann_train_weighted_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("ann_train_samples.json"),
-    "--output", modelPath
-  });
+  auto result = runNNCLI({"--config", fixturePath("ann_train_weighted_config.json"), "--mode", "train", "--device",
+                          "cpu", "--samples", fixturePath("ann_train_samples.json"), "--output", modelPath});
 
   CHECK(result.exitCode == 0, "ANN weighted train: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "ANN weighted train: 'Training completed.'");
@@ -217,6 +204,7 @@ static void testANNTrainWithWeightedLoss() {
 
   // Verify saved model JSON contains costFunctionConfig
   QFile file(modelPath);
+
   if (file.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject root = doc.object();
@@ -237,10 +225,12 @@ static void testANNTrainWithWeightedLoss() {
   } else {
     CHECK(false, "ANN weighted train: failed to open saved model file");
   }
+
   std::cout << std::endl;
 }
 
-static void testANNTrainAndTestMNIST() {
+static void testANNTrainAndTestMNIST()
+{
   std::cout << "  testANNTrainAndTestMNIST... " << std::flush;
 
   if (!runFullTests) {
@@ -251,15 +241,11 @@ static void testANNTrainAndTestMNIST() {
   trainedANNMNISTModelPath = tempDir() + "/ann_mnist_trained.json";
 
   // Step 1: Train on MNIST training data on CPU (30 epochs, 60k samples, all cores)
-  auto trainResult = runNNCLI({
-    "--config", fixturePath("mnist_ann_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"),
-    "--idx-labels", examplePath("MNIST/train/train-labels.idx1-ubyte"),
-    "--output", trainedANNMNISTModelPath,
-    "--log-level", "quiet"
-  }, 1800000);  // 30 min timeout
+  auto trainResult = runNNCLI({"--config", fixturePath("mnist_ann_train_config.json"), "--mode", "train", "--device",
+                               "cpu", "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
+                               examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", trainedANNMNISTModelPath,
+                               "--log-level", "quiet"},
+                              1800000); // 30 min timeout
 
   CHECK(trainResult.exitCode == 0, "ANN MNIST train+test: training exit code 0");
   CHECK(QFile::exists(trainedANNMNISTModelPath), "ANN MNIST train+test: trained model file exists");
@@ -271,13 +257,10 @@ static void testANNTrainAndTestMNIST() {
   }
 
   // Step 2: Evaluate against MNIST test data (10k samples)
-  auto testResult = runNNCLI({
-    "--config", trainedANNMNISTModelPath,
-    "--mode", "test",
-    "--device", "cpu",
-    "--idx-data", examplePath("MNIST/test/t10k-images.idx3-ubyte"),
-    "--idx-labels", examplePath("MNIST/test/t10k-labels.idx1-ubyte")
-  }, 600000);  // 10 min timeout
+  auto testResult = runNNCLI({"--config", trainedANNMNISTModelPath, "--mode", "test", "--device", "cpu", "--idx-data",
+                              examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
+                              examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
+                             600000); // 10 min timeout
 
   CHECK(testResult.exitCode == 0, "ANN MNIST train+test: test exit code 0");
   CHECK(testResult.stdOut.contains("Test Results:"), "ANN MNIST train+test: 'Test Results:'");
@@ -286,21 +269,25 @@ static void testANNTrainAndTestMNIST() {
   // Extract and verify average loss is reasonable
   double avgLoss = -1;
   int idx = testResult.stdOut.indexOf("Average loss:");
+
   if (idx >= 0) {
     QString lossStr = testResult.stdOut.mid(idx + QString("Average loss:").length()).trimmed();
     lossStr = lossStr.left(lossStr.indexOf('\n'));
     avgLoss = lossStr.toDouble();
   }
+
   CHECK(avgLoss > 0 && avgLoss < 0.5, "ANN MNIST train+test: average loss < 0.5");
 
   // Extract and verify accuracy is reasonable (> 30% for 30 epochs with mini-batch SGD)
   double accuracy = -1;
   int accIdx = testResult.stdOut.indexOf("Accuracy:");
+
   if (accIdx >= 0) {
     QString accStr = testResult.stdOut.mid(accIdx + QString("Accuracy:").length()).trimmed();
     accStr = accStr.left(accStr.indexOf('%'));
     accuracy = accStr.toDouble();
   }
+
   CHECK(accuracy > 30.0, "ANN MNIST train+test: accuracy > 30%");
 
   std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
@@ -308,7 +295,8 @@ static void testANNTrainAndTestMNIST() {
 
 //===================================================================================================================//
 
-static void testANNTrainAndTestMNISTGPU() {
+static void testANNTrainAndTestMNISTGPU()
+{
   std::cout << "  testANNTrainAndTestMNISTGPU... " << std::flush;
 
   if (!runFullTests) {
@@ -324,15 +312,11 @@ static void testANNTrainAndTestMNISTGPU() {
   QString modelPath = tempDir() + "/ann_mnist_trained_gpu.json";
 
   // Step 1: Train on MNIST training data on GPU (30 epochs, 60k samples, all GPUs)
-  auto trainResult = runNNCLI({
-    "--config", fixturePath("mnist_ann_train_config.json"),
-    "--mode", "train",
-    "--device", "gpu",
-    "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"),
-    "--idx-labels", examplePath("MNIST/train/train-labels.idx1-ubyte"),
-    "--output", modelPath,
-    "--log-level", "quiet"
-  }, 1800000);  // 30 min timeout
+  auto trainResult =
+    runNNCLI({"--config", fixturePath("mnist_ann_train_config.json"), "--mode", "train", "--device", "gpu",
+              "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
+              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
+             1800000); // 30 min timeout
 
   CHECK(trainResult.exitCode == 0, "ANN MNIST GPU train+test: training exit code 0");
   CHECK(QFile::exists(modelPath), "ANN MNIST GPU train+test: trained model file exists");
@@ -343,13 +327,10 @@ static void testANNTrainAndTestMNISTGPU() {
   }
 
   // Step 2: Evaluate against MNIST test data (10k samples) on GPU
-  auto testResult = runNNCLI({
-    "--config", modelPath,
-    "--mode", "test",
-    "--device", "gpu",
-    "--idx-data", examplePath("MNIST/test/t10k-images.idx3-ubyte"),
-    "--idx-labels", examplePath("MNIST/test/t10k-labels.idx1-ubyte")
-  }, 600000);  // 10 min timeout
+  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "gpu", "--idx-data",
+                              examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
+                              examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
+                             600000); // 10 min timeout
 
   CHECK(testResult.exitCode == 0, "ANN MNIST GPU train+test: test exit code 0");
   CHECK(testResult.stdOut.contains("Test Results:"), "ANN MNIST GPU train+test: 'Test Results:'");
@@ -358,21 +339,25 @@ static void testANNTrainAndTestMNISTGPU() {
   // Extract and verify average loss is reasonable
   double avgLoss = -1;
   int idx = testResult.stdOut.indexOf("Average loss:");
+
   if (idx >= 0) {
     QString lossStr = testResult.stdOut.mid(idx + QString("Average loss:").length()).trimmed();
     lossStr = lossStr.left(lossStr.indexOf('\n'));
     avgLoss = lossStr.toDouble();
   }
+
   CHECK(avgLoss > 0 && avgLoss < 0.5, "ANN MNIST GPU train+test: average loss < 0.5");
 
   // Extract and verify accuracy is reasonable (> 30% for 30 epochs with mini-batch SGD)
   double accuracy = -1;
   int accIdx = testResult.stdOut.indexOf("Accuracy:");
+
   if (accIdx >= 0) {
     QString accStr = testResult.stdOut.mid(accIdx + QString("Accuracy:").length()).trimmed();
     accStr = accStr.left(accStr.indexOf('%'));
     accuracy = accStr.toDouble();
   }
+
   CHECK(accuracy > 30.0, "ANN MNIST GPU train+test: accuracy > 30%");
 
   std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
@@ -380,7 +365,8 @@ static void testANNTrainAndTestMNISTGPU() {
 
 //===================================================================================================================//
 
-static void testANNCheckpointParameters() {
+static void testANNCheckpointParameters()
+{
   std::cout << "  testANNCheckpointParameters... ";
 
   // Copy config and samples to tempDir so checkpoints go to tempDir/output/
@@ -400,13 +386,8 @@ static void testANNCheckpointParameters() {
 
   QString modelPath = tempDir() + "/ann_ckpt_model.json";
 
-  auto result = runNNCLI({
-    "--config", configDst,
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", samplesDst,
-    "--output", modelPath
-  });
+  auto result = runNNCLI(
+    {"--config", configDst, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
 
   CHECK(result.exitCode == 0, "ANN checkpoint params: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "ANN checkpoint params: 'Training completed.'");
@@ -420,6 +401,7 @@ static void testANNCheckpointParameters() {
     // Parse the first checkpoint and verify parameters are non-empty
     QString checkpointPath = outputDir.filePath(checkpoints.first());
     QFile file(checkpointPath);
+
     if (file.open(QIODevice::ReadOnly)) {
       QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
       QJsonObject root = doc.object();
@@ -436,8 +418,12 @@ static void testANNCheckpointParameters() {
       if (!weights.isEmpty()) {
         bool hasData = false;
         for (int i = 0; i < weights.size(); ++i) {
-          if (weights[i].toArray().size() > 0) { hasData = true; break; }
+          if (weights[i].toArray().size() > 0) {
+            hasData = true;
+            break;
+          }
         }
+
         CHECK(hasData, "ANN checkpoint params: weights contain actual data");
       }
 
@@ -453,39 +439,31 @@ static void testANNCheckpointParameters() {
   std::cout << std::endl;
 }
 
-static void testANNShuffleSamplesCLI() {
+static void testANNShuffleSamplesCLI()
+{
   std::cout << "  testANNShuffleSamplesCLI... ";
 
   // Train with --shuffle-samples true
   QString modelPathTrue = tempDir() + "/ann_shuffle_true.json";
-  auto resultTrue = runNNCLI({
-    "--config", fixturePath("ann_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("ann_train_samples.json"),
-    "--output", modelPathTrue,
-    "--shuffle-samples", "true"
-  });
+  auto resultTrue =
+    runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",
+              fixturePath("ann_train_samples.json"), "--output", modelPathTrue, "--shuffle-samples", "true"});
 
   CHECK(resultTrue.exitCode == 0, "ANN shuffle=true: exit code 0");
   CHECK(resultTrue.stdOut.contains("Training completed."), "ANN shuffle=true: 'Training completed.'");
 
   // Train with --shuffle-samples false
   QString modelPathFalse = tempDir() + "/ann_shuffle_false.json";
-  auto resultFalse = runNNCLI({
-    "--config", fixturePath("ann_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("ann_train_samples.json"),
-    "--output", modelPathFalse,
-    "--shuffle-samples", "false"
-  });
+  auto resultFalse =
+    runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",
+              fixturePath("ann_train_samples.json"), "--output", modelPathFalse, "--shuffle-samples", "false"});
 
   CHECK(resultFalse.exitCode == 0, "ANN shuffle=false: exit code 0");
   CHECK(resultFalse.stdOut.contains("Training completed."), "ANN shuffle=false: 'Training completed.'");
 
   // Verify shuffleSamples is saved in the output model JSON
   QFile fileTrue(modelPathTrue);
+
   if (fileTrue.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(fileTrue.readAll());
     QJsonObject root = doc.object();
@@ -499,6 +477,7 @@ static void testANNShuffleSamplesCLI() {
   }
 
   QFile fileFalse(modelPathFalse);
+
   if (fileFalse.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(fileFalse.readAll());
     QJsonObject root = doc.object();
@@ -513,38 +492,30 @@ static void testANNShuffleSamplesCLI() {
   std::cout << std::endl;
 }
 
-static void testANNShuffleSamplesInvalidValue() {
+static void testANNShuffleSamplesInvalidValue()
+{
   std::cout << "  testANNShuffleSamplesInvalidValue... ";
 
-  auto result = runNNCLI({
-    "--config", fixturePath("ann_train_config.json"),
-    "--mode", "train",
-    "--device", "cpu",
-    "--samples", fixturePath("ann_train_samples.json"),
-    "--output", tempDir() + "/ann_shuffle_invalid.json",
-    "--shuffle-samples", "maybe"
-  });
+  auto result = runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
+                          "--samples", fixturePath("ann_train_samples.json"), "--output",
+                          tempDir() + "/ann_shuffle_invalid.json", "--shuffle-samples", "maybe"});
 
   CHECK(result.exitCode == 1, "ANN shuffle=invalid: exit code 1");
-  CHECK(result.stdErr.contains("--shuffle-samples must be 'true' or 'false'"),
-        "ANN shuffle=invalid: error message");
+  CHECK(result.stdErr.contains("--shuffle-samples must be 'true' or 'false'"), "ANN shuffle=invalid: error message");
   std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
-static void testANNTrainWithDropout() {
+static void testANNTrainWithDropout()
+{
   std::cout << "  testANNTrainWithDropout... ";
 
   QString configPath = fixturePath("ann_train_dropout_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
   QString outputPath = tempDir() + "/ann_dropout_model.json";
 
-  auto result = runNNCLI({
-    "--config", configPath,
-    "--samples", samplesPath,
-    "--output", outputPath
-  });
+  auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
   CHECK(result.exitCode == 0, "ANN dropout training exits 0");
   CHECK(QFile::exists(outputPath), "ANN dropout model file created");
@@ -557,26 +528,22 @@ static void testANNTrainWithDropout() {
 
   auto tc = json["trainingConfig"].toObject();
   CHECK(tc.contains("dropoutRate"), "dropoutRate saved in model JSON");
-  CHECK(std::abs(tc["dropoutRate"].toDouble() - 0.3) < 0.01,
-        "dropoutRate value is 0.3");
+  CHECK(std::abs(tc["dropoutRate"].toDouble() - 0.3) < 0.01, "dropoutRate value is 0.3");
 
   std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
-static void testANNTrainWithAugmentation() {
+static void testANNTrainWithAugmentation()
+{
   std::cout << "  testANNTrainWithAugmentation... ";
 
   QString configPath = fixturePath("ann_train_augment_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
   QString outputPath = tempDir() + "/ann_augment_model.json";
 
-  auto result = runNNCLI({
-    "--config", configPath,
-    "--samples", samplesPath,
-    "--output", outputPath
-  });
+  auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
   CHECK(result.exitCode == 0, "ANN augmentation training exits 0");
   CHECK(QFile::exists(outputPath), "ANN augmented model file created");
@@ -597,7 +564,8 @@ static void testANNTrainWithAugmentation() {
 
 //===================================================================================================================//
 
-static void testANNDropoutRateParsing() {
+static void testANNDropoutRateParsing()
+{
   std::cout << "  testANNDropoutRateParsing... ";
 
   // Verify that dropoutRate=0 (default) is not saved in model JSON
@@ -605,11 +573,7 @@ static void testANNDropoutRateParsing() {
   QString samplesPath = fixturePath("ann_train_samples.json");
   QString outputPath = tempDir() + "/ann_no_dropout_model.json";
 
-  auto result = runNNCLI({
-    "--config", configPath,
-    "--samples", samplesPath,
-    "--output", outputPath
-  });
+  auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
   CHECK(result.exitCode == 0, "ANN no-dropout training exits 0");
 
@@ -626,7 +590,8 @@ static void testANNDropoutRateParsing() {
 
 //===================================================================================================================//
 
-void runANNTests() {
+void runANNTests()
+{
   // Train XOR first — downstream tests use its output model
   testANNTrainXOR();
   testANNNetworkDetection();
@@ -644,4 +609,3 @@ void runANNTests() {
   testANNPredictMNIST();
   testANNTestMNIST();
 }
-
