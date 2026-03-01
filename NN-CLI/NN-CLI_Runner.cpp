@@ -361,7 +361,11 @@ int Runner::runCNNTrain() {
   if (this->autoClassWeights && this->cnnCoreConfig.costFunctionConfig.weights.empty()) {
     auto allOutputs = dataLoader.getAllOutputs();
     std::vector<float> weights = this->computeClassWeightsFromOutputs(allOutputs);
-    this->cnnCoreConfig.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+    // Keep the configured cost function type (e.g. crossEntropy) — weights work with all types.
+    // Only override to WEIGHTED_SQUARED_DIFFERENCE if the user chose plain squaredDifference.
+    if (this->cnnCoreConfig.costFunctionConfig.type == CNN::CostFunctionType::SQUARED_DIFFERENCE) {
+      this->cnnCoreConfig.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+    }
     this->cnnCoreConfig.costFunctionConfig.weights = weights;
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
     if (this->logLevel >= LogLevel::INFO) {
