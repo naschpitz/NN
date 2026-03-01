@@ -32,7 +32,7 @@ static void testGPUTrainSimple() {
     config.logLevel = ANN::LogLevel::ERROR;
 
     auto core = ANN::Core<float>::makeCore(config);
-    core->train(samples);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
 
     p0 = core->predict({1.0f, 1.0f});
     p1 = core->predict({0.0f, 0.0f});
@@ -96,7 +96,7 @@ static void testGPUvsCPUParity() {
   };
 
   auto trainCore = ANN::Core<float>::makeCore(trainConfig);
-  trainCore->train(samples);
+  trainCore->train(samples.size(), ANN::makeSampleProvider(samples));
 
   ANN::Parameters<float> params = trainCore->getParameters();
 
@@ -166,7 +166,7 @@ static void testGPUShuffleSamples() {
   for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
     if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<float>::makeCore(makeConfig(true));
-    core->train(samples);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
     auto p0 = core->predict({1.0f, 1.0f});
     auto p1 = core->predict({0.0f, 0.0f});
     if (p0[0] > 0.7f && p1[0] < 0.3f) shuffleConverged = true;
@@ -177,7 +177,7 @@ static void testGPUShuffleSamples() {
   for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
     if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<float>::makeCore(makeConfig(false));
-    core->train(samples);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
     auto p0 = core->predict({1.0f, 1.0f});
     auto p1 = core->predict({0.0f, 0.0f});
     if (p0[0] > 0.7f && p1[0] < 0.3f) noShuffleConverged = true;

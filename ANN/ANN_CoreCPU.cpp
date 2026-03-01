@@ -48,10 +48,9 @@ Output<T> CoreCPU<T>::predict(const Input<T>& input) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::train(const Samples<T>& samples) {
-  this->trainingStart(samples.size());
+void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider) {
+  this->trainingStart(numSamples);
 
-  ulong numSamples = samples.size();
   ulong numEpochs = this->trainingConfig.numEpochs;
 
   // Use configured numThreads, or all available cores if 0
@@ -96,7 +95,8 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
     std::atomic<ulong> completedSamples{0};
 
     // Process samples in mini-batches
-    for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize) {
+    ulong batchIndex = 0;
+    for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize, batchIndex++) {
       ulong batchEnd = std::min(batchStart + batchSize, numSamples);
       ulong currentBatchSize = batchEnd - batchStart;
 
@@ -109,21 +109,21 @@ void CoreCPU<T>::train(const Samples<T>& samples) {
         workers[i].accum_loss = 0;
       }
 
-      // Build batch indices
-      QVector<ulong> batchIndices(currentBatchSize);
-
-      for (ulong s = 0; s < currentBatchSize; s++) {
-        batchIndices[s] = sampleIndices[batchStart + s];
-      }
+      // Fetch batch samples via provider
+      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchIndex);
 
       // Use blockingMap to process all samples in the batch in parallel
-      QtConcurrent::blockingMap(batchIndices, [&, numThreads](ulong sampleIndex) {
+      // Iterate by local index (0..currentBatchSize-1) into the fetched batchSamples
+      QVector<ulong> localIndices(currentBatchSize);
+      std::iota(localIndices.begin(), localIndices.end(), 0);
+
+      QtConcurrent::blockingMap(localIndices, [&, numThreads](ulong localIdx) {
         // Each thread gets a unique worker index on first use (thread_local persists for thread lifetime)
         thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
         SampleWorker<T>& worker = workers[workerIndex];
 
         // Process the sample using the shared computation functions
-        const Sample<T>& sample = samples[sampleIndex];
+        const Sample<T>& sample = batchSamples[localIdx];
         this->propagate(sample.input, worker.actvs, worker.zs, true, &worker.dropoutMasks, &worker.rng);
         worker.sampleLoss = this->calculateLoss(sample.output, worker.actvs);
 

@@ -228,7 +228,7 @@
 <table>
   <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
   <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>Output&lt;T&gt;</code></td><td>Forward pass — produces network output</td></tr>
-  <tr><td><code>train(const Samples&lt;T&gt;&amp;)</code></td><td><code>void</code></td><td>Full training loop over all epochs</td></tr>
+  <tr><td><code>train(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>void</code></td><td>Full training loop over all epochs</td></tr>
   <tr><td><code>test(const Samples&lt;T&gt;&amp;)</code></td><td><code>TestResult&lt;T&gt;</code></td><td>Evaluate loss on a test set</td></tr>
   <tr><td><code>backpropagate(const Output&lt;T&gt;&amp;)</code></td><td><code>Tensor1D&lt;T&gt;</code></td><td>Compute gradients; returns input-layer gradient</td></tr>
   <tr><td><code>accumulate()</code></td><td><code>void</code></td><td>Add current gradients to running accumulators</td></tr>

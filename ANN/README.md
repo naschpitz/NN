@@ -48,7 +48,7 @@ config.trainingConfig.learningRate = 0.01f;
 
 // Create, train, and query
 auto core = ANN::Core<float>::makeCore(config);
-core->train(samples);
+core->train(samples.size(), ANN::makeSampleProvider(samples));
 
 const auto& params = core->getParameters();   // weights & biases
 const auto& meta   = core->getTrainingMetadata();

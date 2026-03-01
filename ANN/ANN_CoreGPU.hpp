@@ -16,7 +16,7 @@ namespace ANN {
       CoreGPU(const CoreConfig<T>& config);
 
       Output<T> predict(const Input<T>& input) override;
-      void train(const Samples<T>& samples) override;
+      void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
       TestResult<T> test(const Samples<T>& samples) override;
 
       // Step-by-step training methods (for external orchestration, e.g., CNN)

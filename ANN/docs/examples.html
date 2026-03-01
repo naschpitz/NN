@@ -85,7 +85,7 @@ core-&gt;setTrainingCallback([](<span class="keyword">const</span> ANN::Training
 });
 
 <span class="comment">// Train!</span>
-core-&gt;train(samples);
+core-&gt;train(samples.size(), ANN::makeSampleProvider(samples));
 
 <span class="comment">// Check results</span>
 <span class="keyword">auto</span> meta = core-&gt;getTrainingMetadata();
@@ -150,7 +150,7 @@ gpuConfig.trainingConfig = trainingConfig;
 <span class="keyword">auto</span> gpuCore = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(gpuConfig);
 
 <span class="comment">// Training works exactly the same way</span>
-gpuCore-&gt;train(samples);
+gpuCore-&gt;train(samples.size(), ANN::makeSampleProvider(samples));
 
 <span class="comment">// Predict also works the same</span>
 ANN::Output&lt;<span class="type">float</span>&gt; pred = gpuCore-&gt;predict(someInput);
@@ -192,7 +192,7 @@ ANN::Output&lt;<span class="type">float</span>&gt; pred = gpuCore-&gt;predict(so
         {{<span class="number">1</span>, <span class="number">1</span>}, {<span class="number">0</span>}}
     };
 
-    core-&gt;train(samples);
+    core-&gt;train(samples.size(), ANN::makeSampleProvider(samples));
 
     <span class="comment">// Verify</span>
     <span class="keyword">for</span> (<span class="keyword">auto</span>&amp; s : samples) {

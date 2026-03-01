@@ -76,7 +76,7 @@ static void testTrainXOR() {
     config.logLevel = ANN::LogLevel::ERROR;
 
     auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
 
     p00 = core->predict({0.0, 0.0});
     p01 = core->predict({0.0, 1.0});
@@ -117,7 +117,7 @@ static void testTestMethod() {
   };
 
   auto core = ANN::Core<double>::makeCore(config);
-  core->train(samples);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   ANN::TestResult<double> result = core->test(samples);
   CHECK(result.numSamples == 2, "test numSamples = 2");
@@ -144,7 +144,7 @@ static void testTrainingMetadata() {
 
   ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0}}};
   auto core = ANN::Core<double>::makeCore(config);
-  core->train(samples);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   const auto& meta = core->getTrainingMetadata();
   CHECK(!meta.startTime.empty(), "startTime non-empty");
@@ -193,7 +193,7 @@ static void testTrainingCallback() {
   core->setTrainingCallback([&callbackCount](const ANN::TrainingProgress<double>& progress) {
     callbackCount++;
   });
-  core->train(samples);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   std::cout << "  callback called " << callbackCount << " times" << std::endl;
   CHECK(callbackCount > 0, "training callback was called");
@@ -221,7 +221,7 @@ static void testParameterRoundTrip() {
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
   auto trainCore = ANN::Core<double>::makeCore(trainConfig);
-  trainCore->train(samples);
+  trainCore->train(samples.size(), ANN::makeSampleProvider(samples));
 
   ANN::Output<double> originalPred = trainCore->predict({1.0, 1.0});
   ANN::Parameters<double> params = trainCore->getParameters();
@@ -281,7 +281,7 @@ static void testParametersDuringTraining() {
     }
   });
 
-  core->train(samples);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   CHECK(paramsChecked, "epoch-completion callback fired");
   CHECK(weightsNonEmpty, "parameters.weights non-empty during training");
@@ -352,7 +352,7 @@ static void testMultiLayerNetwork() {
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
     if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
     p0 = core->predict({1.0, 1.0});
     p1 = core->predict({0.0, 0.0});
     if (p0[0] > 0.7 && p1[0] < 0.3) converged = true;
@@ -391,7 +391,7 @@ static void testMultiOutput() {
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
     if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
     pred = core->predict({1.0, 0.0});
     if (pred[0] > 0.7 && pred[1] < 0.3 && pred[2] > 0.7) converged = true;
   }
@@ -473,7 +473,7 @@ static void testTrainWithTanh() {
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
     if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
     p0 = core->predict({1.0, 1.0});
     p1 = core->predict({0.0, 0.0});
     if (p0[0] > 0.7 && p1[0] < 0.3) converged = true;
@@ -606,11 +606,11 @@ static void testWeightedLossAffectsTraining() {
 
   // Use test() to compare loss on each — the weighted network should report different total loss
   auto coreDefault = ANN::Core<double>::makeCore(configDefault);
-  coreDefault->train(samples);
+  coreDefault->train(samples.size(), ANN::makeSampleProvider(samples));
   ANN::TestResult<double> resultDefault = coreDefault->test(samples);
 
   auto coreWeighted = ANN::Core<double>::makeCore(configWeighted);
-  coreWeighted->train(samples);
+  coreWeighted->train(samples.size(), ANN::makeSampleProvider(samples));
   ANN::TestResult<double> resultWeighted = coreWeighted->test(samples);
 
   std::cout << "  default avgLoss=" << resultDefault.averageLoss
@@ -675,7 +675,7 @@ static void testShuffleSamplesTraining() {
   bool shuffleConverged = false;
   for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
     auto core = ANN::Core<double>::makeCore(makeConfig(true));
-    core->train(samples);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
     auto p0 = core->predict({1.0, 1.0});
     auto p1 = core->predict({0.0, 0.0});
     if (p0[0] > 0.7 && p1[0] < 0.3) shuffleConverged = true;
@@ -686,7 +686,7 @@ static void testShuffleSamplesTraining() {
   bool noShuffleConverged = false;
   for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
     auto core = ANN::Core<double>::makeCore(makeConfig(false));
-    core->train(samples);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
     auto p0 = core->predict({1.0, 1.0});
     auto p1 = core->predict({0.0, 0.0});
     if (p0[0] > 0.7 && p1[0] < 0.3) noShuffleConverged = true;
@@ -731,8 +731,8 @@ static void testShuffleSamplesNoShuffle() {
   auto core2 = ANN::Core<double>::makeCore(config);
   auto core3 = ANN::Core<double>::makeCore(config);
 
-  core2->train(samples);
-  core3->train(samples);
+  core2->train(samples.size(), ANN::makeSampleProvider(samples));
+  core3->train(samples.size(), ANN::makeSampleProvider(samples));
 
   auto pred2 = core2->predict({1.0, 1.0});
   auto pred3 = core3->predict({1.0, 1.0});
@@ -796,7 +796,7 @@ static void testSoftmaxTrain() {
   };
 
   auto core = ANN::Core<double>::makeCore(config);
-  core->train(samples);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   // After training, the highest output should match the target class
   auto out0 = core->predict({1.0, 0.0});
@@ -838,7 +838,7 @@ static void testSoftmaxHiddenLayer() {
   };
 
   auto core = ANN::Core<double>::makeCore(config);
-  core->train(samples);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   auto out1 = core->predict({1.0, 1.0});
   auto out0 = core->predict({0.0, 0.0});
@@ -870,7 +870,7 @@ static void testDropoutTraining() {
     {{0, 0}, {0}}, {{0, 1}, {1}}, {{1, 0}, {1}}, {{1, 1}, {0}}
   };
 
-  core->train(samples);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   // Predict (no dropout during inference)
   auto r00 = core->predict({0, 0});

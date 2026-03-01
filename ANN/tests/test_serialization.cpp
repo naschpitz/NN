@@ -21,7 +21,7 @@ static void testParameterRoundTrip() {
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
   auto trainCore = ANN::Core<double>::makeCore(trainConfig);
-  trainCore->train(samples);
+  trainCore->train(samples.size(), ANN::makeSampleProvider(samples));
 
   ANN::Output<double> originalPred = trainCore->predict({1.0, 1.0});
 

@@ -78,11 +78,10 @@ Output<T> CoreGPUWorker<T>::predict(const Input<T>& input) {
 //===================================================================================================================//
 
 template <typename T>
-T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, const std::vector<ulong>& indices,
-                                ulong startIdx, ulong endIdx, ulong epoch, ulong totalEpochs,
+T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples,
+                                ulong totalSamples, ulong epoch, ulong totalEpochs,
                                 const TrainingCallback<T>& callback) {
-  ulong numSamplesInSubset = endIdx - startIdx;
-  ulong totalSamples = samples.size();
+  ulong numSamplesInSubset = batchSamples.size();
 
   // Set up training kernels if not done yet
   if (!this->trainingKernelsSetup) {
@@ -95,9 +94,9 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, const std::vector<ulo
   // Reset accumulators at the start
   this->resetAccumulators();
 
-  for (ulong s = startIdx; s < endIdx; s++) {
-    const Input<T>& input = samples[indices[s]].input;
-    const Output<T>& output = samples[indices[s]].output;
+  for (ulong s = 0; s < numSamplesInSubset; s++) {
+    const Input<T>& input = batchSamples[s].input;
+    const Output<T>& output = batchSamples[s].output;
 
     // Write input and expected output to GPU buffers
     this->core->template writeBuffer<T>("actvs", input, 0);
@@ -118,7 +117,7 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& samples, const std::vector<ulo
       TrainingProgress<T> progress;
       progress.currentEpoch = epoch;
       progress.totalEpochs = totalEpochs;
-      progress.currentSample = s + 1;  // Global sample index
+      progress.currentSample = s + 1;
       progress.totalSamples = totalSamples;
       progress.sampleLoss = sampleLoss;
       progress.epochLoss = 0;  // Not complete yet
