@@ -7,10 +7,14 @@
 #include <ANN_Sample.hpp>
 #include <CNN_Sample.hpp>
 
+#include <condition_variable>
 #include <functional>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <random>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace NN_CLI {
@@ -40,6 +44,37 @@ template <typename SampleT> struct SampleProviderFor;
 template <> struct SampleProviderFor<ANN::Sample<float>> { using type = ANN::SampleProvider<float>; };
 template <> struct SampleProviderFor<CNN::Sample<float>> { using type = CNN::SampleProvider<float>; };
 
+// Shared state between the provider callback and its persistent worker thread.
+// The worker thread waits for prefetch requests and loads batches in the background.
+// When the last reference is released, the destructor shuts down and joins the worker thread.
+template <typename SampleT>
+struct PrefetchState {
+  std::mutex mutex;
+  std::condition_variable workerCV;   // Signals the worker that a request is ready
+  std::condition_variable callerCV;   // Signals the caller that a result is ready
+
+  // Request from caller → worker
+  std::vector<ulong> requestIndices;  // Entry indices to load (only batch-sized, not full epoch)
+  bool hasRequest = false;
+
+  // Result from worker → caller
+  std::vector<SampleT> result;
+  bool hasResult = false;
+
+  // Lifecycle
+  bool shutdown = false;
+  std::thread worker;
+
+  ~PrefetchState() {
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      shutdown = true;
+    }
+    workerCV.notify_one();
+    if (worker.joinable()) worker.join();
+  }
+};
+
 template <typename SampleT>
 class DataLoader {
   public:
@@ -64,7 +99,8 @@ class DataLoader {
 
     // Build a SampleProvider with async prefetching for use with train().
     // The provider receives the full shuffled index array, batch size, and current batch index.
-    // It returns the current batch's samples and prefetches the next batch in the background.
+    // It returns the current batch's samples and prefetches the next batch in the background
+    // using a persistent worker thread.
     ProviderT makeSampleProvider(const Loader::AugmentationTransforms& transforms = {},
                                  float augmentationProbability = 0.5f) const;
 
@@ -77,6 +113,11 @@ class DataLoader {
     int inputC = 0, inputH = 0, inputW = 0;
     int outputC = 0, outputH = 0, outputW = 0;
     IOConfig ioConfig;
+
+    // Load a batch of samples by their entry indices.
+    std::vector<SampleT> loadBatch(const std::vector<ulong>& entryIndices,
+                                   const Loader::AugmentationTransforms& transforms,
+                                   float augmentationProbability) const;
 
     // Retrieve a single sample by entry index, optionally applying augmentation.
     SampleT loadSample(ulong entryIndex, std::mt19937& rng,

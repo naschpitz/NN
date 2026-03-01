@@ -6,7 +6,6 @@
 #include <json.hpp>
 
 #include <algorithm>
-#include <future>
 #include <iostream>
 #include <stdexcept>
 
@@ -180,51 +179,107 @@ std::vector<std::vector<float>> DataLoader<SampleT>::getAllOutputs() const {
 //===================================================================================================================//
 
 template <typename SampleT>
+std::vector<SampleT>
+DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices,
+                               const Loader::AugmentationTransforms& transforms,
+                               float augmentationProbability) const {
+  std::mt19937 rng(std::random_device{}());
+
+  std::vector<SampleT> batch;
+  batch.reserve(entryIndices.size());
+
+  for (ulong idx : entryIndices) {
+    batch.push_back(this->loadSample(idx, rng, transforms, augmentationProbability));
+  }
+
+  return batch;
+}
+
+template <typename SampleT>
 typename DataLoader<SampleT>::ProviderT
 DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& transforms,
                                        float augmentationProbability) const {
-  // Shared state for async prefetching between calls.
-  auto prefetchedBatch = std::make_shared<std::future<std::vector<SampleT>>>();
-  auto prefetchedIndex = std::make_shared<ulong>(ULONG_MAX);  // batch index of the prefetched data
+  // Shared prefetch state between the provider callback and its worker thread.
+  auto state = std::make_shared<PrefetchState<SampleT>>();
 
-  // Helper: load samples for a given batch range from sampleIndices.
-  auto loadBatch = [this, transforms, augmentationProbability](
-      const std::vector<ulong>& sampleIndices, ulong start, ulong end) -> std::vector<SampleT> {
-    std::mt19937 rng(std::random_device{}());
+  // Persistent worker thread — waits for prefetch requests, loads batches in background.
+  // Uses raw pointer to avoid circular reference (state → thread → state).
+  // Safe because PrefetchState::~PrefetchState() joins the thread before destruction.
+  PrefetchState<SampleT>* statePtr = state.get();
 
-    std::vector<SampleT> batch;
-    batch.reserve(end - start);
+  state->worker = std::thread([this, statePtr, transforms, augmentationProbability]() {
+    while (true) {
+      std::vector<ulong> indices;
 
-    for (ulong i = start; i < end; i++) {
-      batch.push_back(this->loadSample(sampleIndices[i], rng, transforms, augmentationProbability));
+      {
+        std::unique_lock<std::mutex> lock(statePtr->mutex);
+        statePtr->workerCV.wait(lock, [statePtr]() { return statePtr->hasRequest || statePtr->shutdown; });
+
+        if (statePtr->shutdown) return;
+
+        indices = std::move(statePtr->requestIndices);
+        statePtr->hasRequest = false;
+      }
+
+      // Load the batch outside the lock — this is the expensive I/O work.
+      auto batch = this->loadBatch(indices, transforms, augmentationProbability);
+
+      {
+        std::lock_guard<std::mutex> lock(statePtr->mutex);
+        statePtr->result = std::move(batch);
+        statePtr->hasResult = true;
+      }
+
+      statePtr->callerCV.notify_one();
     }
+  });
 
-    return batch;
-  };
-
-  return [loadBatch, prefetchedBatch, prefetchedIndex](
+  // The provider callback. Captures the shared state.
+  // When the last copy of this lambda is destroyed, PrefetchState's destructor
+  // shuts down and joins the worker thread.
+  return [this, state, transforms, augmentationProbability](
       const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
     ulong numSamples = sampleIndices.size();
     ulong start = batchIndex * batchSize;
     ulong end = std::min(start + batchSize, numSamples);
 
-    // If this batch was prefetched, retrieve it; otherwise load synchronously
     std::vector<SampleT> batch;
-    if (*prefetchedIndex == batchIndex && prefetchedBatch->valid()) {
-      batch = prefetchedBatch->get();
-    } else {
-      batch = loadBatch(sampleIndices, start, end);
+
+    // Check if this batch was prefetched
+    {
+      std::unique_lock<std::mutex> lock(state->mutex);
+
+      if (state->hasResult) {
+        // Prefetched batch ready — take it
+        batch = std::move(state->result);
+        state->hasResult = false;
+      } else if (state->hasRequest) {
+        // Prefetch is still in progress — wait for it
+        state->callerCV.wait(lock, [&state]() { return state->hasResult; });
+        batch = std::move(state->result);
+        state->hasResult = false;
+      }
     }
 
-    // Prefetch the next batch in the background
+    // If no prefetch was available (first call, or epoch boundary), load synchronously
+    if (batch.empty() && start < numSamples) {
+      std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
+      batch = this->loadBatch(indices, transforms, augmentationProbability);
+    }
+
+    // Submit prefetch request for the next batch
     ulong nextStart = end;
     if (nextStart < numSamples) {
       ulong nextEnd = std::min(nextStart + batchSize, numSamples);
-      *prefetchedIndex = batchIndex + 1;
-      *prefetchedBatch = std::async(std::launch::async, loadBatch,
-                                     sampleIndices, nextStart, nextEnd);
-    } else {
-      *prefetchedIndex = ULONG_MAX;
+
+      {
+        std::lock_guard<std::mutex> lock(state->mutex);
+        state->requestIndices.assign(sampleIndices.begin() + nextStart,
+                                     sampleIndices.begin() + nextEnd);
+        state->hasRequest = true;
+      }
+
+      state->workerCV.notify_one();
     }
 
     return batch;
