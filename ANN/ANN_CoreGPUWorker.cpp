@@ -601,6 +601,7 @@ void CoreGPUWorker<T>::addBackpropagateKernels(bool includeInputGradients) {
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "outputs");
   this->core->template addArgument<T>("calculate_dCost_dActv_last_layer", "lossWeights");
   this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", actvOffset);
+  this->core->template addArgument<ulong>("calculate_dCost_dActv_last_layer", static_cast<ulong>(this->costFunctionConfig.type));
 
   std::string dCost_dBias_last_id = "calculate_dCost_dBias_layer" + std::to_string(l);
   std::string dCost_dWeight_last_id = "calculate_dCost_dWeight_layer" + std::to_string(l);
@@ -804,13 +805,33 @@ T CoreGPUWorker<T>::calculateLoss(const Output<T>& expected) {
 
   T loss = 0;
 
-  for (ulong i = 0; i < expected.size(); i++) {
-    T diff = actual[i] - expected[i];
-    T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
-    loss += weight * diff * diff;
+  switch (this->costFunctionConfig.type) {
+    case CostFunctionType::CROSS_ENTROPY: {
+      // Cross-entropy: L = -sum(w_i * y_i * log(a_i))
+      const T epsilon = static_cast<T>(1e-7);
+      for (ulong i = 0; i < expected.size(); i++) {
+        T predicted = std::max(actual[i], epsilon);
+        T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
+        loss -= weight * expected[i] * std::log(predicted);
+      }
+      break;
+    }
+
+    case CostFunctionType::SQUARED_DIFFERENCE:
+    case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+    default: {
+      // Squared difference: L = sum(w_i * (a_i - y_i)^2) / N
+      for (ulong i = 0; i < expected.size(); i++) {
+        T diff = actual[i] - expected[i];
+        T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
+        loss += weight * diff * diff;
+      }
+      loss /= static_cast<T>(expected.size());
+      break;
+    }
   }
 
-  return loss / static_cast<T>(expected.size());
+  return loss;
 }
 
 //===================================================================================================================//

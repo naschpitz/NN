@@ -133,13 +133,20 @@ kernel void calculate_dCost_dActv_last_layer(
     global TYPE* actvs,
     global TYPE* outputs,
     global TYPE* lossWeights,
-    ulong actvOffset
+    ulong actvOffset,
+    ulong costFunctionType
   ) {
   size_t j = get_global_id(0);
 
   ulong idx = actvOffset + j;
 
-  dCost_dActvs[idx] = 2.0f * lossWeights[j] * (actvs[idx] - outputs[j]);
+  if (costFunctionType == 2) {
+    // Cross-entropy + softmax: dL/da_j = w_j * (a_j - y_j)
+    dCost_dActvs[idx] = lossWeights[j] * (actvs[idx] - outputs[j]);
+  } else {
+    // MSE: dL/da_j = 2 * w_j * (a_j - y_j)
+    dCost_dActvs[idx] = 2.0f * lossWeights[j] * (actvs[idx] - outputs[j]);
+  }
 }
 
 //===================================================================================================================//
@@ -248,25 +255,37 @@ kernel void apply_dropout_backward(
 
 //===================================================================================================================//
 
-// calculate_sample_loss: computes weighted MSE loss on GPU and accumulates it.
-// Single work-item kernel — numOutputs is small (e.g. 7).
-// accumLoss[0] += sum(lossWeights[i] * (predicted[i] - expected[i])^2) / numOutputs
+// calculate_sample_loss: computes weighted loss on GPU and accumulates it.
+// Single work-item kernel — numOutputs is small (e.g. 11).
+// costFunctionType: 0/1 = MSE, 2 = cross-entropy
 kernel void calculate_sample_loss(
     global TYPE* actvs,
     global TYPE* outputs,
     global TYPE* lossWeights,
     global TYPE* accumLoss,
     ulong actvOffset,
-    ulong numOutputs
+    ulong numOutputs,
+    ulong costFunctionType
   ) {
   TYPE loss = (TYPE)0;
 
-  for (ulong i = 0; i < numOutputs; i++) {
-    TYPE diff = actvs[actvOffset + i] - outputs[i];
-    loss += lossWeights[i] * diff * diff;
+  if (costFunctionType == 2) {
+    // Cross-entropy: L = -sum(w_i * y_i * log(max(a_i, epsilon)))
+    for (ulong i = 0; i < numOutputs; i++) {
+      TYPE predicted = actvs[actvOffset + i];
+      if (predicted < (TYPE)1e-7) predicted = (TYPE)1e-7;
+      loss -= lossWeights[i] * outputs[i] * log(predicted);
+    }
+  } else {
+    // MSE: L = sum(w_i * (a_i - y_i)^2) / numOutputs
+    for (ulong i = 0; i < numOutputs; i++) {
+      TYPE diff = actvs[actvOffset + i] - outputs[i];
+      loss += lossWeights[i] * diff * diff;
+    }
+    loss /= (TYPE)numOutputs;
   }
 
-  accumLoss[0] += loss / (TYPE)numOutputs;
+  accumLoss[0] += loss;
 }
 
 //===================================================================================================================//

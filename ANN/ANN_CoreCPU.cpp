@@ -527,7 +527,18 @@ T CoreCPU<T>::calc_dCost_dActv(ulong j, const Output<T>& output, const Tensor2D<
   ulong l = numLayers - 1;
 
   T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[j] : static_cast<T>(1);
-  return 2 * weight * (actvs[l][j] - output[j]);
+
+  switch (this->costFunctionConfig.type) {
+    case CostFunctionType::CROSS_ENTROPY:
+      // Cross-entropy (softmax): dL/da_j = w * (a_j - y_j)
+      return weight * (actvs[l][j] - output[j]);
+
+    case CostFunctionType::SQUARED_DIFFERENCE:
+    case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+    default:
+      // Squared difference: dL/da_j = 2 * w * (a_j - y_j)
+      return 2 * weight * (actvs[l][j] - output[j]);
+  }
 }
 
 //===================================================================================================================//
@@ -711,13 +722,34 @@ T CoreCPU<T>::calculateLoss(const Output<T>& expected, const Tensor2D<T>& actvs)
   const auto& outputActvs = actvs[numLayers - 1];
 
   T loss = 0;
-  for (ulong i = 0; i < outputActvs.size(); i++) {
-    T diff = outputActvs[i] - expected[i];
-    T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
-    loss += weight * diff * diff;
+
+  switch (this->costFunctionConfig.type) {
+    case CostFunctionType::CROSS_ENTROPY: {
+      // Cross-entropy: L = -sum(w_i * y_i * log(a_i))
+      const T epsilon = static_cast<T>(1e-7);
+      for (ulong i = 0; i < outputActvs.size(); i++) {
+        T predicted = std::max(outputActvs[i], epsilon);
+        T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
+        loss -= weight * expected[i] * std::log(predicted);
+      }
+      break;
+    }
+
+    case CostFunctionType::SQUARED_DIFFERENCE:
+    case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+    default: {
+      // Squared difference: L = sum(w_i * (a_i - y_i)^2) / N
+      for (ulong i = 0; i < outputActvs.size(); i++) {
+        T diff = outputActvs[i] - expected[i];
+        T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
+        loss += weight * diff * diff;
+      }
+      loss /= static_cast<T>(outputActvs.size());
+      break;
+    }
   }
 
-  return loss / static_cast<T>(outputActvs.size());
+  return loss;
 }
 
 //===================================================================================================================//
