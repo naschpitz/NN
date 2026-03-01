@@ -1,9 +1,6 @@
 #include "ANN_CoreCPU.hpp"
 #include "ANN_Utils.hpp"
 
-#include <OCLW_Core.hpp>
-#include <QFile>
-#include <QThread>
 #include <QThreadPool>
 #include <QtConcurrent>
 #include <algorithm>

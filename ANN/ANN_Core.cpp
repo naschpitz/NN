@@ -3,9 +3,6 @@
 #include "ANN_CoreGPU.hpp"
 #include "ANN_Utils.hpp"
 
-#include <OCLW_Core.hpp>
-#include <QFile>
-
 using namespace ANN;
 
 //===================================================================================================================//
