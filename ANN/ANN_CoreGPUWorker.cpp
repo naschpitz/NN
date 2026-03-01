@@ -210,13 +210,11 @@ void CoreGPUWorker<T>::resetAccumulators() {
   ulong numBiases = Utils<T>::count(this->parameters.biases);
   ulong numWeights = Utils<T>::count(this->parameters.weights);
 
-  // Create zero-filled vectors
-  std::vector<T> zeroBiases(numBiases, static_cast<T>(0));
-  std::vector<T> zeroWeights(numWeights, static_cast<T>(0));
+  T zero = static_cast<T>(0);
 
-  // Write zeros to GPU accumulator buffers
-  this->core->template writeBuffer<T>("accum_dCost_dBiases", zeroBiases, 0);
-  this->core->template writeBuffer<T>("accum_dCost_dWeights", zeroWeights, 0);
+  // Fill GPU accumulator buffers with zeros (no host-side vector allocation)
+  this->core->template fillBuffer<T>("accum_dCost_dBiases", zero, numBiases);
+  this->core->template fillBuffer<T>("accum_dCost_dWeights", zero, numWeights);
 }
 
 //===================================================================================================================//
