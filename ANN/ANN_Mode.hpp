@@ -6,12 +6,9 @@
 
 //===================================================================================================================//
 
-namespace ANN {
-  enum class ModeType {
-    TRAIN,
-    PREDICT,
-    TEST
-  };
+namespace ANN
+{
+  enum class ModeType { TRAIN, PREDICT, TEST };
 
   const std::unordered_map<std::string, ModeType> modeMap = {
     {"train", ModeType::TRAIN},
@@ -30,4 +27,3 @@ namespace ANN {
 //===================================================================================================================//
 
 #endif // ANN_MODE_HPP
-

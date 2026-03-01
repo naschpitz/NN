@@ -5,22 +5,17 @@
 #include <string>
 #include <unordered_map>
 
-namespace ANN {
-  enum class ActvFuncType {
-    RELU,
-    SIGMOID,
-    TANH,
-    SOFTMAX
-  };
+namespace ANN
+{
+  enum class ActvFuncType { RELU, SIGMOID, TANH, SOFTMAX };
 
-  const std::unordered_map<std::string, ActvFuncType> actvMap = {
-    {"relu", ActvFuncType::RELU},
-    {"sigmoid", ActvFuncType::SIGMOID},
-    {"tanh", ActvFuncType::TANH},
-    {"softmax", ActvFuncType::SOFTMAX}
-  };
+  const std::unordered_map<std::string, ActvFuncType> actvMap = {{"relu", ActvFuncType::RELU},
+                                                                 {"sigmoid", ActvFuncType::SIGMOID},
+                                                                 {"tanh", ActvFuncType::TANH},
+                                                                 {"softmax", ActvFuncType::SOFTMAX}};
 
-  class ActvFunc {
+  class ActvFunc
+  {
     public:
       static ActvFuncType nameToType(const std::string& name);
       static std::string typeToName(const ActvFuncType& actvFuncType);
@@ -32,8 +27,8 @@ namespace ANN {
       // Forward  (derivative=false): reads zs, writes actvs. dCost_dActvs and dCost_dZs unused.
       // Backward (derivative=true) : reads zs, actvs, dCost_dActvs, writes dCost_dZs.
       template <typename T>
-      static void calculate(const T* zs, T* actvs, unsigned long numNeurons, ActvFuncType type,
-                            bool derivative, const T* dCost_dActvs = nullptr, T* dCost_dZs = nullptr);
+      static void calculate(const T* zs, T* actvs, unsigned long numNeurons, ActvFuncType type, bool derivative,
+                            const T* dCost_dActvs = nullptr, T* dCost_dZs = nullptr);
 
     private:
       static float relu(float x);
@@ -50,15 +45,17 @@ namespace ANN {
   //===================================================================================================================//
 
   template <typename T>
-  void ActvFunc::calculate(const T* zs, T* actvs, unsigned long numNeurons, ActvFuncType type,
-                            bool derivative, const T* dCost_dActvs, T* dCost_dZs) {
+  void ActvFunc::calculate(const T* zs, T* actvs, unsigned long numNeurons, ActvFuncType type, bool derivative,
+                           const T* dCost_dActvs, T* dCost_dZs)
+  {
     if (!derivative) {
       // === Forward pass ===
       if (type == ActvFuncType::SOFTMAX) {
         // Softmax: layer-wide activation with numerical stability
         T maxZ = zs[0];
         for (unsigned long j = 1; j < numNeurons; j++) {
-          if (zs[j] > maxZ) maxZ = zs[j];
+          if (zs[j] > maxZ)
+            maxZ = zs[j];
         }
 
         T sumExp = 0;

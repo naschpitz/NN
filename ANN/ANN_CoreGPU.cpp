@@ -17,9 +17,8 @@ using namespace ANN;
 //===================================================================================================================//
 
 template <typename T>
-CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig)
-    : Core<T>(coreConfig) {
-
+CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
+{
   // Initialize OpenCL before querying device information
   OpenCLWrapper::Core::initialize(this->logLevel >= LogLevel::DEBUG);
 
@@ -42,7 +41,8 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig)
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreGPU<T>::predict(const Input<T>& input) {
+Output<T> CoreGPU<T>::predict(const Input<T>& input)
+{
   this->predictStart();
 
   // Delegate to the first worker
@@ -58,7 +58,8 @@ Output<T> CoreGPU<T>::predict(const Input<T>& input) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider) {
+void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider)
+{
   this->trainingStart(numSamples);
 
   ulong numEpochs = this->trainingConfig.numEpochs;
@@ -68,15 +69,14 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   batchSize = std::max(this->numGPUs, (batchSize / this->numGPUs) * this->numGPUs);
 
   if (this->logLevel >= LogLevel::INFO) {
-    std::cout << "Starting GPU training: " << numSamples << " samples, "
-              << numEpochs << " epochs, " << this->numGPUs << " GPU"
-              << (this->numGPUs > 1 ? "s" : "") << "\n";
+    std::cout << "Starting GPU training: " << numSamples << " samples, " << numEpochs << " epochs, " << this->numGPUs
+              << " GPU" << (this->numGPUs > 1 ? "s" : "") << "\n";
   }
 
   struct GPUWorkItem {
-    size_t gpuIdx;
-    ulong localStart;  // Start index into batchSamples (0-based)
-    ulong localEnd;    // End index into batchSamples
+      size_t gpuIdx;
+      ulong localStart; // Start index into batchSamples (0-based)
+      ulong localEnd; // End index into batchSamples
   };
 
   // Per-GPU cumulative sample counters for progress tracking across mini-batches
@@ -122,14 +122,14 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       std::vector<T> gpuLosses(this->numGPUs, 0);
 
       // Use QtConcurrent to process each GPU's work in parallel
-      QtConcurrent::blockingMap(workItems,
-          [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples, &gpuCumulativeSamples](const GPUWorkItem& item) {
+      QtConcurrent::blockingMap(workItems, [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples,
+                                            &gpuCumulativeSamples](const GPUWorkItem& item) {
         // Build the per-GPU sub-batch
-        Samples<T> gpuSamples(batchSamples.begin() + item.localStart,
-                               batchSamples.begin() + item.localEnd);
+        Samples<T> gpuSamples(batchSamples.begin() + item.localStart, batchSamples.begin() + item.localEnd);
 
         // Create per-batch callback that translates local indices to cumulative per-GPU counts
         TrainingCallback<T> callback;
+
         if (this->trainingCallback) {
           ulong offset = gpuCumulativeSamples[item.gpuIdx];
           size_t gpuIdx = item.gpuIdx;
@@ -142,8 +142,9 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
             this->trainingCallback(gpuProgress);
           };
         }
-        gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->trainSubset(
-            gpuSamples, numSamples, e + 1, numEpochs, callback);
+
+        gpuLosses[item.gpuIdx] =
+          this->gpuWorkers[item.gpuIdx]->trainSubset(gpuSamples, numSamples, e + 1, numEpochs, callback);
       });
 
       // Update cumulative counters after batch completes
@@ -182,7 +183,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       progress.totalSamples = numSamples;
       progress.sampleLoss = 0;
       progress.epochLoss = avgEpochLoss;
-      progress.gpuIndex = -1;  // Epoch completion is not GPU-specific
+      progress.gpuIndex = -1; // Epoch completion is not GPU-specific
       progress.totalGPUs = static_cast<int>(this->numGPUs);
       this->trainingCallback(progress);
     }
@@ -196,7 +197,8 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 //===================================================================================================================//
 
 template <typename T>
-TestResult<T> CoreGPU<T>::test(const Samples<T>& samples) {
+TestResult<T> CoreGPU<T>::test(const Samples<T>& samples)
+{
   ulong numSamples = samples.size();
 
   // Calculate sample ranges for each GPU
@@ -205,9 +207,9 @@ TestResult<T> CoreGPU<T>::test(const Samples<T>& samples) {
 
   // Build list of GPU indices and their sample ranges
   struct GPUWorkItem {
-    size_t gpuIdx;
-    ulong startIdx;
-    ulong endIdx;
+      size_t gpuIdx;
+      ulong startIdx;
+      ulong endIdx;
   };
 
   QVector<GPUWorkItem> workItems;
@@ -249,16 +251,18 @@ TestResult<T> CoreGPU<T>::test(const Samples<T>& samples) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPU<T>::initializeWorkers() {
+void CoreGPU<T>::initializeWorkers()
+{
   if (this->logLevel >= LogLevel::INFO) {
-    std::cout << "Initializing GPU training with " << this->numGPUs << " GPU"
-              << (this->numGPUs > 1 ? "s" : "") << "...\n";
+    std::cout << "Initializing GPU training with " << this->numGPUs << " GPU" << (this->numGPUs > 1 ? "s" : "")
+              << "...\n";
   }
 
   // Create CoreGPUWorker instances - each will get assigned to a different GPU
   // via OpenCLWrapper's automatic device load balancing
   for (size_t i = 0; i < this->numGPUs; i++) {
-    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters, this->costFunctionConfig, this->progressReports, this->logLevel);
+    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
+                                                     this->costFunctionConfig, this->progressReports, this->logLevel);
     this->gpuWorkers.push_back(std::move(worker));
   }
 
@@ -272,7 +276,8 @@ void CoreGPU<T>::initializeWorkers() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPU<T>::mergeGradients() {
+void CoreGPU<T>::mergeGradients()
+{
   // Read and sum gradients from ALL workers
   Tensor1D<T> totalAccumWeights;
   Tensor1D<T> totalAccumBiases;
@@ -308,7 +313,8 @@ void CoreGPU<T>::mergeGradients() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPU<T>::update(ulong numSamples) {
+void CoreGPU<T>::update(ulong numSamples)
+{
   for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
     this->gpuWorkers[gpuIdx]->update(numSamples);
   }
@@ -319,7 +325,8 @@ void CoreGPU<T>::update(ulong numSamples) {
 //===================================================================================================================//
 
 template <typename T>
-Tensor1D<T> CoreGPU<T>::backpropagate(const Output<T>& output) {
+Tensor1D<T> CoreGPU<T>::backpropagate(const Output<T>& output)
+{
   // Delegate to the first worker (same as predict)
   return this->gpuWorkers[0]->backpropagate(output);
 }
@@ -327,7 +334,8 @@ Tensor1D<T> CoreGPU<T>::backpropagate(const Output<T>& output) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPU<T>::accumulate() {
+void CoreGPU<T>::accumulate()
+{
   // Delegate to the first worker (same as predict)
   this->gpuWorkers[0]->accumulate();
 }
@@ -335,7 +343,8 @@ void CoreGPU<T>::accumulate() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPU<T>::resetAccumulators() {
+void CoreGPU<T>::resetAccumulators()
+{
   for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
     this->gpuWorkers[gpuIdx]->resetAccumulators();
   }

@@ -27,6 +27,7 @@
 extern int testsPassed;
 extern int testsFailed;
 
+// clang-format off
 #define CHECK(cond, msg) do { \
   if (!(cond)) { \
     std::cerr << "FAIL: " << msg << " (" << __FILE__ << ":" << __LINE__ << ")" << std::endl; \
@@ -43,12 +44,14 @@ extern int testsFailed;
   try { expr; } catch (...) { threw = true; } \
   CHECK(threw, msg); \
 } while(0)
+// clang-format on
 
-inline ANN::LayersConfig makeLayersConfig(std::initializer_list<ANN::Layer> layers) {
+inline ANN::LayersConfig makeLayersConfig(std::initializer_list<ANN::Layer> layers)
+{
   ANN::LayersConfig config;
   for (const auto& layer : layers) {
     config.push_back(layer);
   }
+
   return config;
 }
-

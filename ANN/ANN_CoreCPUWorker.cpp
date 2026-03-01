@@ -10,14 +10,13 @@ using namespace ANN;
 //===================================================================================================================//
 
 template <typename T>
-CoreCPUWorker<T>::CoreCPUWorker(const LayersConfig& layersConfig,
-                                const TrainingConfig<T>& trainingConfig,
-                                const Parameters<T>& parameters,
-                                const CostFunctionConfig<T>& costFunctionConfig,
+CoreCPUWorker<T>::CoreCPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
+                                const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                                 bool allocateTrainingBuffers)
-    : layersConfig(layersConfig),
-      trainingConfig(trainingConfig),
-      parameters(parameters) {
+  : layersConfig(layersConfig),
+    trainingConfig(trainingConfig),
+    parameters(parameters)
+{
   this->costFunctionConfig = costFunctionConfig;
   this->allocate(allocateTrainingBuffers);
 }
@@ -27,7 +26,8 @@ CoreCPUWorker<T>::CoreCPUWorker(const LayersConfig& layersConfig,
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPUWorker<T>::allocate(bool allocateTrainingBuffers) {
+void CoreCPUWorker<T>::allocate(bool allocateTrainingBuffers)
+{
   ulong numLayers = this->layersConfig.size();
 
   this->actvs.resize(numLayers);
@@ -43,7 +43,8 @@ void CoreCPUWorker<T>::allocate(bool allocateTrainingBuffers) {
     this->zs[l].resize(numNeurons);
   }
 
-  if (!allocateTrainingBuffers) return;
+  if (!allocateTrainingBuffers)
+    return;
 
   this->dCost_dActvs.resize(numLayers);
   this->dCost_dWeights.resize(numLayers);
@@ -77,7 +78,8 @@ void CoreCPUWorker<T>::allocate(bool allocateTrainingBuffers) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPUWorker<T>::propagate(const Input<T>& input, bool applyDropout) {
+void CoreCPUWorker<T>::propagate(const Input<T>& input, bool applyDropout)
+{
   ulong numLayers = this->layersConfig.size();
   float dropoutRate = this->trainingConfig.dropoutRate;
 
@@ -123,7 +125,8 @@ void CoreCPUWorker<T>::propagate(const Input<T>& input, bool applyDropout) {
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreCPUWorker<T>::getOutput() const {
+Output<T> CoreCPUWorker<T>::getOutput() const
+{
   ulong numLayers = this->layersConfig.size();
   return this->actvs[numLayers - 1];
 }
@@ -133,7 +136,8 @@ Output<T> CoreCPUWorker<T>::getOutput() const {
 //===================================================================================================================//
 
 template <typename T>
-T CoreCPUWorker<T>::computeLoss(const Output<T>& expected) {
+T CoreCPUWorker<T>::computeLoss(const Output<T>& expected)
+{
   return this->calculateLoss(this->getOutput(), expected);
 }
 
@@ -142,7 +146,8 @@ T CoreCPUWorker<T>::computeLoss(const Output<T>& expected) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPUWorker<T>::backpropagate(const Output<T>& output) {
+void CoreCPUWorker<T>::backpropagate(const Output<T>& output)
+{
   ulong numLayers = this->layersConfig.size();
 
   // For the last layer, calculate dCost_dActv (no dropout on output layer)
@@ -195,14 +200,16 @@ void CoreCPUWorker<T>::backpropagate(const Output<T>& output) {
       }
     }
 
-    if (l == 1) break;
+    if (l == 1)
+      break;
   }
 }
 
 //===================================================================================================================//
 
 template <typename T>
-Tensor1D<T> CoreCPUWorker<T>::backpropagateAndReturnInputGradients(const Output<T>& output) {
+Tensor1D<T> CoreCPUWorker<T>::backpropagateAndReturnInputGradients(const Output<T>& output)
+{
   this->backpropagate(output);
 
   // Additionally compute dCost_dActvs for the input layer (layer 0)
@@ -222,29 +229,31 @@ Tensor1D<T> CoreCPUWorker<T>::backpropagateAndReturnInputGradients(const Output<
 
 // Particular case for the last layer.
 template <typename T>
-T CoreCPUWorker<T>::calc_dCost_dActv(ulong j, const Output<T>& output) {
+T CoreCPUWorker<T>::calc_dCost_dActv(ulong j, const Output<T>& output)
+{
   ulong numLayers = this->layersConfig.size();
   ulong l = numLayers - 1;
 
   T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[j] : static_cast<T>(1);
 
   switch (this->costFunctionConfig.type) {
-    case CostFunctionType::CROSS_ENTROPY:
-      // Cross-entropy (softmax): dL/da_j = w * (a_j - y_j)
-      return weight * (this->actvs[l][j] - output[j]);
+  case CostFunctionType::CROSS_ENTROPY:
+    // Cross-entropy (softmax): dL/da_j = w * (a_j - y_j)
+    return weight * (this->actvs[l][j] - output[j]);
 
-    case CostFunctionType::SQUARED_DIFFERENCE:
-    case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
-    default:
-      // Squared difference: dL/da_j = 2 * w * (a_j - y_j)
-      return 2 * weight * (this->actvs[l][j] - output[j]);
+  case CostFunctionType::SQUARED_DIFFERENCE:
+  case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+  default:
+    // Squared difference: dL/da_j = 2 * w * (a_j - y_j)
+    return 2 * weight * (this->actvs[l][j] - output[j]);
   }
 }
 
 //===================================================================================================================//
 
 template <typename T>
-T CoreCPUWorker<T>::calc_dCost_dActv(ulong l, ulong k) {
+T CoreCPUWorker<T>::calc_dCost_dActv(ulong l, ulong k)
+{
   const Layer& nextLayer = this->layersConfig[l + 1];
   ulong nextNumNeurons = nextLayer.numNeurons;
   ActvFuncType actvFuncType = nextLayer.actvFuncType;
@@ -273,7 +282,8 @@ T CoreCPUWorker<T>::calc_dCost_dActv(ulong l, ulong k) {
 //===================================================================================================================//
 
 template <typename T>
-T CoreCPUWorker<T>::calc_dCost_dWeight(ulong l, ulong j, ulong k) {
+T CoreCPUWorker<T>::calc_dCost_dWeight(ulong l, ulong j, ulong k)
+{
   T actv = this->actvs[l - 1][k];
 
   const Layer& layer = this->layersConfig[l];
@@ -297,7 +307,8 @@ T CoreCPUWorker<T>::calc_dCost_dWeight(ulong l, ulong j, ulong k) {
 //===================================================================================================================//
 
 template <typename T>
-T CoreCPUWorker<T>::calc_dCost_dBias(ulong l, ulong j) {
+T CoreCPUWorker<T>::calc_dCost_dBias(ulong l, ulong j)
+{
   const Layer& layer = this->layersConfig[l];
   ulong numNeurons = layer.numNeurons;
   ActvFuncType actvFuncType = layer.actvFuncType;
@@ -321,7 +332,8 @@ T CoreCPUWorker<T>::calc_dCost_dBias(ulong l, ulong j) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPUWorker<T>::accumulate() {
+void CoreCPUWorker<T>::accumulate()
+{
   ulong numLayers = this->layersConfig.size();
 
   for (ulong l = 1; l < numLayers; l++) {
@@ -344,7 +356,8 @@ void CoreCPUWorker<T>::accumulate() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPUWorker<T>::resetAccumulators() {
+void CoreCPUWorker<T>::resetAccumulators()
+{
   ulong numLayers = this->layersConfig.size();
 
   for (ulong l = 1; l < numLayers; l++) {
@@ -369,4 +382,3 @@ void CoreCPUWorker<T>::resetAccumulators() {
 template class ANN::CoreCPUWorker<int>;
 template class ANN::CoreCPUWorker<double>;
 template class ANN::CoreCPUWorker<float>;
-

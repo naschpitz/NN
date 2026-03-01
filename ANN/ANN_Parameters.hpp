@@ -5,15 +5,15 @@
 
 //===================================================================================================================//
 
-namespace ANN {
+namespace ANN
+{
   template <typename T>
   struct Parameters {
-    Tensor3D<T> weights;
-    Tensor2D<T> biases;
+      Tensor3D<T> weights;
+      Tensor2D<T> biases;
   };
 }
 
 //===================================================================================================================//
 
 #endif // ANN_PARAMETERS_HPP
-

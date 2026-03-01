@@ -15,13 +15,14 @@ using namespace ANN;
 //===================================================================================================================//
 
 template <typename T>
-CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
+CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
+{
   this->initializeParameters();
 
   // Create the step worker (used for predict and step-by-step training path)
   bool allocateTraining = (this->modeType == ModeType::TRAIN);
-  this->stepWorker = std::make_unique<CoreCPUWorker<T>>(
-      this->layersConfig, this->trainingConfig, this->parameters, this->costFunctionConfig, allocateTraining);
+  this->stepWorker = std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
+                                                        this->costFunctionConfig, allocateTraining);
 
   if (allocateTraining) {
     this->allocateGlobalAccumulators();
@@ -31,7 +32,8 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreCPU<T>::predict(const Input<T>& input) {
+Output<T> CoreCPU<T>::predict(const Input<T>& input)
+{
   this->predictStart();
 
   this->stepWorker->propagate(input);
@@ -45,7 +47,8 @@ Output<T> CoreCPU<T>::predict(const Input<T>& input) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider) {
+void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider)
+{
   this->trainingStart(numSamples);
 
   ulong numEpochs = this->trainingConfig.numEpochs;
@@ -65,8 +68,8 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   // Pre-allocate workers for each thread
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
   for (int i = 0; i < numThreads; i++) {
-    workers.push_back(std::make_unique<CoreCPUWorker<T>>(
-        this->layersConfig, this->trainingConfig, this->parameters, this->costFunctionConfig, true));
+    workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
+                                                         this->costFunctionConfig, true));
   }
 
   // Atomic counter for assigning unique worker indices to threads
@@ -160,7 +163,8 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 //===================================================================================================================//
 
 template <typename T>
-TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
+TestResult<T> CoreCPU<T>::test(const Samples<T>& samples)
+{
   ulong numSamples = samples.size();
 
   // Use configured numThreads, or all available cores if 0
@@ -173,8 +177,8 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
   // Pre-allocate workers for each thread (forward pass only — no training buffers)
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
   for (int i = 0; i < numThreads; i++) {
-    workers.push_back(std::make_unique<CoreCPUWorker<T>>(
-        this->layersConfig, this->trainingConfig, this->parameters, this->costFunctionConfig, false));
+    workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
+                                                         this->costFunctionConfig, false));
   }
 
   ulong numLayers = this->layersConfig.size();
@@ -239,14 +243,15 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::initializeParameters() {
+void CoreCPU<T>::initializeParameters()
+{
   ulong numLayers = this->layersConfig.size();
 
   // Check if parameters were loaded from file (non-empty)
-  bool hasLoadedParameters = !this->parameters.weights.empty() &&
-                             this->parameters.weights.size() == numLayers;
+  bool hasLoadedParameters = !this->parameters.weights.empty() && this->parameters.weights.size() == numLayers;
 
-  if (hasLoadedParameters) return;
+  if (hasLoadedParameters)
+    return;
 
   // Initialize weights and biases
   this->parameters.weights.resize(numLayers);
@@ -289,7 +294,8 @@ void CoreCPU<T>::initializeParameters() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::allocateGlobalAccumulators() {
+void CoreCPU<T>::allocateGlobalAccumulators()
+{
   ulong numLayers = this->layersConfig.size();
 
   this->accum_dCost_dWeights.resize(numLayers);
@@ -314,7 +320,8 @@ void CoreCPU<T>::allocateGlobalAccumulators() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::resetGlobalAccumulators() {
+void CoreCPU<T>::resetGlobalAccumulators()
+{
   ulong numLayers = this->layersConfig.size();
 
   for (ulong l = 1; l < numLayers; l++) {
@@ -337,7 +344,8 @@ void CoreCPU<T>::resetGlobalAccumulators() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::mergeWorkerAccumulators(const CoreCPUWorker<T>& worker) {
+void CoreCPU<T>::mergeWorkerAccumulators(const CoreCPUWorker<T>& worker)
+{
   QMutexLocker locker(&this->accumulatorMutex);
 
   ulong numLayers = this->layersConfig.size();
@@ -362,19 +370,18 @@ void CoreCPU<T>::mergeWorkerAccumulators(const CoreCPUWorker<T>& worker) {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::update(ulong numSamples) {
+void CoreCPU<T>::update(ulong numSamples)
+{
   T learningRate = this->trainingConfig.learningRate;
   ulong numLayers = this->layersConfig.size();
 
   // Determine which accumulators to read from:
   // - train() merges worker accumulators into global accumulators, then calls update()
   // - step-by-step path (CNN) accumulates directly into stepWorker's accumulators
-  const Tensor3D<T>& accumWeights = this->accum_dCost_dWeights.empty()
-      ? this->stepWorker->getAccumWeights()
-      : this->accum_dCost_dWeights;
-  const Tensor2D<T>& accumBiases = this->accum_dCost_dBiases.empty()
-      ? this->stepWorker->getAccumBiases()
-      : this->accum_dCost_dBiases;
+  const Tensor3D<T>& accumWeights =
+    this->accum_dCost_dWeights.empty() ? this->stepWorker->getAccumWeights() : this->accum_dCost_dWeights;
+  const Tensor2D<T>& accumBiases =
+    this->accum_dCost_dBiases.empty() ? this->stepWorker->getAccumBiases() : this->accum_dCost_dBiases;
 
   for (ulong l = 1; l < numLayers; l++) {
     const Layer& layer = this->layersConfig[l];
@@ -397,7 +404,8 @@ void CoreCPU<T>::update(ulong numSamples) {
 
 template <typename T>
 void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
-                                 T sampleLoss, T epochLoss, QMutex& callbackMutex) {
+                                T sampleLoss, T epochLoss, QMutex& callbackMutex)
+{
   if (!this->trainingCallback) {
     return;
   }
@@ -420,21 +428,24 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 //===================================================================================================================//
 
 template <typename T>
-Tensor1D<T> CoreCPU<T>::backpropagate(const Output<T>& output) {
+Tensor1D<T> CoreCPU<T>::backpropagate(const Output<T>& output)
+{
   return this->stepWorker->backpropagateAndReturnInputGradients(output);
 }
 
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::accumulate() {
+void CoreCPU<T>::accumulate()
+{
   this->stepWorker->accumulate();
 }
 
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::resetAccumulators() {
+void CoreCPU<T>::resetAccumulators()
+{
   this->stepWorker->resetAccumulators();
 }
 

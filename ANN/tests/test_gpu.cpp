@@ -2,29 +2,26 @@
 
 //===================================================================================================================//
 
-static void testGPUTrainSimple() {
+static void testGPUTrainSimple()
+{
   std::cout << "--- testGPUTrainSimple ---" << std::endl;
 
   // Simple 2→4→1 network trained on GPU with sigmoid
-  ANN::Samples<float> samples = {
-    {{1.0f, 1.0f}, {1.0f}},
-    {{0.0f, 0.0f}, {0.0f}}
-  };
+  ANN::Samples<float> samples = {{{1.0f, 1.0f}, {1.0f}}, {{0.0f, 0.0f}, {0.0f}}};
 
   bool converged = false;
   ANN::Output<float> p0, p1;
 
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    if (attempt > 0)
+      std::cout << "  retry #" << attempt << std::endl;
 
     ANN::CoreConfig<float> config;
     config.modeType = ANN::ModeType::TRAIN;
     config.deviceType = ANN::DeviceType::GPU;
-    config.layersConfig = makeLayersConfig({
-      {2, ANN::ActvFuncType::RELU},
-      {4, ANN::ActvFuncType::SIGMOID},
-      {1, ANN::ActvFuncType::SIGMOID}
-    });
+    config.layersConfig = makeLayersConfig(
+      {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
     config.trainingConfig.numEpochs = 500;
     config.trainingConfig.learningRate = 0.5f;
     config.progressReports = 0;
@@ -37,7 +34,8 @@ static void testGPUTrainSimple() {
     p0 = core->predict({1.0f, 1.0f});
     p1 = core->predict({0.0f, 0.0f});
 
-    if (p0[0] > 0.7f && p1[0] < 0.3f) converged = true;
+    if (p0[0] > 0.7f && p1[0] < 0.3f)
+      converged = true;
   }
 
   std::cout << "  high=" << p0[0] << "  low=" << p1[0] << std::endl;
@@ -46,7 +44,8 @@ static void testGPUTrainSimple() {
 
 //===================================================================================================================//
 
-static void testGPUPredict() {
+static void testGPUPredict()
+{
   std::cout << "--- testGPUPredict ---" << std::endl;
 
   // Create a predict-only GPU core with known weights
@@ -73,27 +72,23 @@ static void testGPUPredict() {
 
 //===================================================================================================================//
 
-static void testGPUvsCPUParity() {
+static void testGPUvsCPUParity()
+{
   std::cout << "--- testGPUvsCPUParity ---" << std::endl;
 
   // Train on CPU, then create both CPU and GPU predict cores with same params
   ANN::CoreConfig<float> trainConfig;
   trainConfig.modeType = ANN::ModeType::TRAIN;
   trainConfig.deviceType = ANN::DeviceType::CPU;
-  trainConfig.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::SIGMOID},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  trainConfig.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
   trainConfig.trainingConfig.numEpochs = 200;
   trainConfig.trainingConfig.learningRate = 0.5f;
   trainConfig.progressReports = 0;
   trainConfig.logLevel = ANN::LogLevel::ERROR;
 
-  ANN::Samples<float> samples = {
-    {{1.0f, 1.0f}, {1.0f}},
-    {{0.0f, 0.0f}, {0.0f}}
-  };
+  ANN::Samples<float> samples = {{{1.0f, 1.0f}, {1.0f}}, {{0.0f, 0.0f}, {0.0f}}};
 
   auto trainCore = ANN::Core<float>::makeCore(trainConfig);
   trainCore->train(samples.size(), ANN::makeSampleProvider(samples));
@@ -133,26 +128,21 @@ static void testGPUvsCPUParity() {
 
 //===================================================================================================================//
 
-static void testGPUShuffleSamples() {
+static void testGPUShuffleSamples()
+{
   std::cout << "--- testGPUShuffleSamples ---" << std::endl;
 
   // Verify GPU training works with both shuffle=true and shuffle=false
   ANN::Samples<float> samples = {
-    {{1.0f, 1.0f}, {1.0f}},
-    {{0.0f, 0.0f}, {0.0f}},
-    {{1.0f, 0.0f}, {0.5f}},
-    {{0.0f, 1.0f}, {0.5f}}
-  };
+    {{1.0f, 1.0f}, {1.0f}}, {{0.0f, 0.0f}, {0.0f}}, {{1.0f, 0.0f}, {0.5f}}, {{0.0f, 1.0f}, {0.5f}}};
 
   auto makeConfig = [](bool shuffle) {
     ANN::CoreConfig<float> config;
     config.modeType = ANN::ModeType::TRAIN;
     config.deviceType = ANN::DeviceType::GPU;
-    config.layersConfig = makeLayersConfig({
-      {2, ANN::ActvFuncType::RELU},
-      {4, ANN::ActvFuncType::SIGMOID},
-      {1, ANN::ActvFuncType::SIGMOID}
-    });
+    config.layersConfig = makeLayersConfig(
+      {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
     config.trainingConfig.numEpochs = 500;
     config.trainingConfig.learningRate = 0.5f;
     config.trainingConfig.shuffleSamples = shuffle;
@@ -164,36 +154,43 @@ static void testGPUShuffleSamples() {
 
   bool shuffleConverged = false;
   for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
-    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    if (attempt > 0)
+      std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<float>::makeCore(makeConfig(true));
     core->train(samples.size(), ANN::makeSampleProvider(samples));
     auto p0 = core->predict({1.0f, 1.0f});
     auto p1 = core->predict({0.0f, 0.0f});
-    if (p0[0] > 0.7f && p1[0] < 0.3f) shuffleConverged = true;
+
+    if (p0[0] > 0.7f && p1[0] < 0.3f)
+      shuffleConverged = true;
   }
+
   CHECK(shuffleConverged, "GPU shuffle=true converged (5 attempts)");
 
   bool noShuffleConverged = false;
   for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
-    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    if (attempt > 0)
+      std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<float>::makeCore(makeConfig(false));
     core->train(samples.size(), ANN::makeSampleProvider(samples));
     auto p0 = core->predict({1.0f, 1.0f});
     auto p1 = core->predict({0.0f, 0.0f});
-    if (p0[0] > 0.7f && p1[0] < 0.3f) noShuffleConverged = true;
+
+    if (p0[0] > 0.7f && p1[0] < 0.3f)
+      noShuffleConverged = true;
   }
+
   CHECK(noShuffleConverged, "GPU shuffle=false converged (5 attempts)");
 
-  std::cout << "  shuffle=true: " << shuffleConverged
-            << "  shuffle=false: " << noShuffleConverged << std::endl;
+  std::cout << "  shuffle=true: " << shuffleConverged << "  shuffle=false: " << noShuffleConverged << std::endl;
 }
 
 //===================================================================================================================//
 
-void runGPUTests() {
+void runGPUTests()
+{
   testGPUTrainSimple();
   testGPUPredict();
   testGPUvsCPUParity();
   testGPUShuffleSamples();
 }
-

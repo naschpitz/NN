@@ -5,10 +5,11 @@
 
 #include <vector>
 
-namespace ANN {
+namespace ANN
+{
   struct Layer {
-    ulong numNeurons;
-    ActvFuncType actvFuncType;
+      ulong numNeurons;
+      ActvFuncType actvFuncType;
   };
 
   class LayersConfig : public std::vector<Layer>

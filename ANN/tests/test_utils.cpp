@@ -2,7 +2,8 @@
 
 //===================================================================================================================//
 
-static void testDeviceNameToType() {
+static void testDeviceNameToType()
+{
   std::cout << "--- testDeviceNameToType ---" << std::endl;
 
   CHECK(ANN::Device::nameToType("cpu") == ANN::DeviceType::CPU, "cpu → CPU");
@@ -14,7 +15,8 @@ static void testDeviceNameToType() {
 
 //===================================================================================================================//
 
-static void testDeviceTypeToName() {
+static void testDeviceTypeToName()
+{
   std::cout << "--- testDeviceTypeToName ---" << std::endl;
 
   CHECK(ANN::Device::typeToName(ANN::DeviceType::CPU) == "cpu", "CPU → cpu");
@@ -23,7 +25,8 @@ static void testDeviceTypeToName() {
 
 //===================================================================================================================//
 
-static void testModeNameToType() {
+static void testModeNameToType()
+{
   std::cout << "--- testModeNameToType ---" << std::endl;
 
   CHECK(ANN::Mode::nameToType("train") == ANN::ModeType::TRAIN, "train → TRAIN");
@@ -35,7 +38,8 @@ static void testModeNameToType() {
 
 //===================================================================================================================//
 
-static void testModeTypeToName() {
+static void testModeTypeToName()
+{
   std::cout << "--- testModeTypeToName ---" << std::endl;
 
   CHECK(ANN::Mode::typeToName(ANN::ModeType::TRAIN) == "train", "TRAIN → train");
@@ -45,7 +49,8 @@ static void testModeTypeToName() {
 
 //===================================================================================================================//
 
-static void testLayersConfigGetTotalNumNeurons() {
+static void testLayersConfigGetTotalNumNeurons()
+{
   std::cout << "--- testLayersConfigGetTotalNumNeurons ---" << std::endl;
 
   ANN::LayersConfig config;
@@ -61,7 +66,8 @@ static void testLayersConfigGetTotalNumNeurons() {
 
 //===================================================================================================================//
 
-static void testFormatDuration() {
+static void testFormatDuration()
+{
   std::cout << "--- testFormatDuration ---" << std::endl;
 
   CHECK(ANN::Utils<double>::formatDuration(0.0) == "0s", "0s");
@@ -75,7 +81,8 @@ static void testFormatDuration() {
 
 //===================================================================================================================//
 
-static void testFlattenUnflattenTensor2D() {
+static void testFlattenUnflattenTensor2D()
+{
   std::cout << "--- testFlattenUnflattenTensor2D ---" << std::endl;
 
   ANN::Tensor2D<double> original = {{1.0, 2.0, 3.0}, {4.0, 5.0}};
@@ -97,7 +104,8 @@ static void testFlattenUnflattenTensor2D() {
 
 //===================================================================================================================//
 
-static void testFlattenUnflattenTensor3D() {
+static void testFlattenUnflattenTensor3D()
+{
   std::cout << "--- testFlattenUnflattenTensor3D ---" << std::endl;
 
   ANN::Tensor3D<double> original = {{{1.0, 2.0}, {3.0, 4.0}}, {{5.0, 6.0}, {7.0, 8.0}}};
@@ -117,7 +125,8 @@ static void testFlattenUnflattenTensor3D() {
 
 //===================================================================================================================//
 
-static void testCount() {
+static void testCount()
+{
   std::cout << "--- testCount ---" << std::endl;
 
   ANN::Tensor2D<double> t2d = {{1.0, 2.0}, {3.0, 4.0, 5.0}};
@@ -129,7 +138,8 @@ static void testCount() {
 
 //===================================================================================================================//
 
-static void testFormatISO8601() {
+static void testFormatISO8601()
+{
   std::cout << "--- testFormatISO8601 ---" << std::endl;
 
   std::string iso = ANN::Utils<double>::formatISO8601();
@@ -141,7 +151,8 @@ static void testFormatISO8601() {
 
 //===================================================================================================================//
 
-void runUtilsTests() {
+void runUtilsTests()
+{
   testDeviceNameToType();
   testDeviceTypeToName();
   testModeNameToType();
@@ -153,4 +164,3 @@ void runUtilsTests() {
   testCount();
   testFormatISO8601();
 }
-

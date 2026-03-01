@@ -11,9 +11,11 @@
 
 //==============================================================================//
 
-namespace ANN {
+namespace ANN
+{
   template <typename T>
-  class CoreCPU : public Core<T> {
+  class CoreCPU : public Core<T>
+  {
     public:
       //-- Constructor --//
       CoreCPU(const CoreConfig<T>& config);
@@ -45,8 +47,8 @@ namespace ANN {
       //-- Training helpers --//
       void resetGlobalAccumulators();
       void mergeWorkerAccumulators(const CoreCPUWorker<T>& worker);
-      void reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
-                          T sampleLoss, T epochLoss, QMutex& callbackMutex);
+      void reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples, T sampleLoss,
+                          T epochLoss, QMutex& callbackMutex);
   };
 }
 

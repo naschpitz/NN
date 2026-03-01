@@ -6,9 +6,11 @@
 
 //===================================================================================================================//
 
-namespace ANN {
+namespace ANN
+{
   template <typename T>
-  class Worker {
+  class Worker
+  {
     public:
       virtual ~Worker() = default;
 
@@ -21,4 +23,3 @@ namespace ANN {
 }
 
 #endif // ANN_WORKER_H
-

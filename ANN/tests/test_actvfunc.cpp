@@ -2,7 +2,8 @@
 
 //===================================================================================================================//
 
-static void testNameToType() {
+static void testNameToType()
+{
   std::cout << "--- testNameToType ---" << std::endl;
 
   CHECK(ANN::ActvFunc::nameToType("relu") == ANN::ActvFuncType::RELU, "relu → RELU");
@@ -16,7 +17,8 @@ static void testNameToType() {
 
 //===================================================================================================================//
 
-static void testTypeToName() {
+static void testTypeToName()
+{
   std::cout << "--- testTypeToName ---" << std::endl;
 
   CHECK(ANN::ActvFunc::typeToName(ANN::ActvFuncType::RELU) == "relu", "RELU → relu");
@@ -27,7 +29,8 @@ static void testTypeToName() {
 
 //===================================================================================================================//
 
-static void testReLU() {
+static void testReLU()
+{
   std::cout << "--- testReLU ---" << std::endl;
 
   // Forward
@@ -44,7 +47,8 @@ static void testReLU() {
 
 //===================================================================================================================//
 
-static void testSigmoid() {
+static void testSigmoid()
+{
   std::cout << "--- testSigmoid ---" << std::endl;
 
   // Forward
@@ -62,7 +66,8 @@ static void testSigmoid() {
 
 //===================================================================================================================//
 
-static void testTanh() {
+static void testTanh()
+{
   std::cout << "--- testTanh ---" << std::endl;
 
   // Forward
@@ -80,13 +85,15 @@ static void testTanh() {
 
 //===================================================================================================================//
 
-static void testSoftmax() {
+static void testSoftmax()
+{
   std::cout << "--- testSoftmax ---" << std::endl;
 
   // Forward: softmax([1, 2, 3])
   float zs[] = {1.0f, 2.0f, 3.0f};
   float actvs[3] = {};
-  ANN::ActvFunc::calculate(zs, actvs, 3ul, ANN::ActvFuncType::SOFTMAX, false, static_cast<const float*>(nullptr), static_cast<float*>(nullptr));
+  ANN::ActvFunc::calculate(zs, actvs, 3ul, ANN::ActvFuncType::SOFTMAX, false, static_cast<const float*>(nullptr),
+                           static_cast<float*>(nullptr));
 
   // Verify outputs sum to 1
   float sum = actvs[0] + actvs[1] + actvs[2];
@@ -106,7 +113,8 @@ static void testSoftmax() {
   // Numerical stability: large values should not overflow
   float largeZs[] = {1000.0f, 1001.0f, 1002.0f};
   float largeActvs[3] = {};
-  ANN::ActvFunc::calculate(largeZs, largeActvs, 3ul, ANN::ActvFuncType::SOFTMAX, false, static_cast<const float*>(nullptr), static_cast<float*>(nullptr));
+  ANN::ActvFunc::calculate(largeZs, largeActvs, 3ul, ANN::ActvFuncType::SOFTMAX, false,
+                           static_cast<const float*>(nullptr), static_cast<float*>(nullptr));
 
   float largeSum = largeActvs[0] + largeActvs[1] + largeActvs[2];
   CHECK_NEAR(largeSum, 1.0f, 1e-5f, "softmax large values sum to 1");
@@ -116,7 +124,8 @@ static void testSoftmax() {
   // Uniform input: all equal → all outputs equal
   float uniformZs[] = {5.0f, 5.0f, 5.0f};
   float uniformActvs[3] = {};
-  ANN::ActvFunc::calculate(uniformZs, uniformActvs, 3ul, ANN::ActvFuncType::SOFTMAX, false, static_cast<const float*>(nullptr), static_cast<float*>(nullptr));
+  ANN::ActvFunc::calculate(uniformZs, uniformActvs, 3ul, ANN::ActvFuncType::SOFTMAX, false,
+                           static_cast<const float*>(nullptr), static_cast<float*>(nullptr));
 
   CHECK_NEAR(uniformActvs[0], 1.0f / 3.0f, 1e-5f, "softmax uniform [0] = 1/3");
   CHECK_NEAR(uniformActvs[1], 1.0f / 3.0f, 1e-5f, "softmax uniform [1] = 1/3");
@@ -124,23 +133,27 @@ static void testSoftmax() {
 
   // Per-element calculate should throw for SOFTMAX
   bool threw = false;
+
   try {
     ANN::ActvFunc::calculate(1.0f, ANN::ActvFuncType::SOFTMAX);
   } catch (const std::invalid_argument&) {
     threw = true;
   }
+
   CHECK(threw, "per-element calculate with SOFTMAX throws");
 }
 
 //===================================================================================================================//
 
-static void testSoftmaxBackward() {
+static void testSoftmaxBackward()
+{
   std::cout << "--- testSoftmaxBackward ---" << std::endl;
 
   // Forward first to get activations
   float zs[] = {1.0f, 2.0f, 3.0f};
   float actvs[3] = {};
-  ANN::ActvFunc::calculate(zs, actvs, 3ul, ANN::ActvFuncType::SOFTMAX, false, static_cast<const float*>(nullptr), static_cast<float*>(nullptr));
+  ANN::ActvFunc::calculate(zs, actvs, 3ul, ANN::ActvFuncType::SOFTMAX, false, static_cast<const float*>(nullptr),
+                           static_cast<float*>(nullptr));
 
   // Backward: dCost/dActvs = [1, 0, 0] (gradient from cost function)
   float dCost_dActvs[] = {1.0f, 0.0f, 0.0f};
@@ -163,7 +176,8 @@ static void testSoftmaxBackward() {
 
 //===================================================================================================================//
 
-void runActvFuncTests() {
+void runActvFuncTests()
+{
   testNameToType();
   testTypeToName();
   testReLU();
@@ -172,4 +186,3 @@ void runActvFuncTests() {
   testSoftmax();
   testSoftmaxBackward();
 }
-

@@ -9,7 +9,8 @@ void runCoreTests();
 void runSerializationTests();
 void runGPUTests();
 
-int main() {
+int main()
+{
   std::cout << "========================================" << std::endl;
   std::cout << "       ANN Unit Tests" << std::endl;
   std::cout << "========================================" << std::endl;
@@ -35,4 +36,3 @@ int main() {
 
   return testsFailed > 0 ? 1 : 0;
 }
-

@@ -2,7 +2,8 @@
 
 //===================================================================================================================//
 
-static void testMakeCoreCPU() {
+static void testMakeCoreCPU()
+{
   std::cout << "--- testMakeCoreCPU ---" << std::endl;
 
   ANN::CoreConfig<double> config;
@@ -20,7 +21,8 @@ static void testMakeCoreCPU() {
 
 //===================================================================================================================//
 
-static void testPredictSimple() {
+static void testPredictSimple()
+{
   std::cout << "--- testPredictSimple ---" << std::endl;
 
   // 2 inputs → 1 output with known weights
@@ -46,30 +48,25 @@ static void testPredictSimple() {
 
 //===================================================================================================================//
 
-static void testTrainXOR() {
+static void testTrainXOR()
+{
   std::cout << "--- testTrainXOR ---" << std::endl;
 
-  ANN::Samples<double> samples = {
-    {{0.0, 0.0}, {0.0}},
-    {{0.0, 1.0}, {1.0}},
-    {{1.0, 0.0}, {1.0}},
-    {{1.0, 1.0}, {0.0}}
-  };
+  ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{0.0, 1.0}, {1.0}}, {{1.0, 0.0}, {1.0}}, {{1.0, 1.0}, {0.0}}};
 
   bool converged = false;
   ANN::Output<double> p00, p01, p10, p11;
 
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    if (attempt > 0)
+      std::cout << "  retry #" << attempt << std::endl;
 
     ANN::CoreConfig<double> config;
     config.modeType = ANN::ModeType::TRAIN;
     config.deviceType = ANN::DeviceType::CPU;
-    config.layersConfig = makeLayersConfig({
-      {2, ANN::ActvFuncType::RELU},
-      {4, ANN::ActvFuncType::RELU},
-      {1, ANN::ActvFuncType::SIGMOID}
-    });
+    config.layersConfig =
+      makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+
     config.trainingConfig.numEpochs = 2000;
     config.trainingConfig.learningRate = 0.1;
     config.progressReports = 0;
@@ -88,33 +85,29 @@ static void testTrainXOR() {
     }
   }
 
-  std::cout << "  XOR: [0,0]=" << p00[0] << " [0,1]=" << p01[0]
-            << " [1,0]=" << p10[0] << " [1,1]=" << p11[0] << std::endl;
+  std::cout << "  XOR: [0,0]=" << p00[0] << " [0,1]=" << p01[0] << " [1,0]=" << p10[0] << " [1,1]=" << p11[0]
+            << std::endl;
   CHECK(converged, "XOR converged (5 attempts)");
 }
 
 //===================================================================================================================//
 
-static void testTestMethod() {
+static void testTestMethod()
+{
   std::cout << "--- testTestMethod ---" << std::endl;
 
   // Train a simple network first, then test
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::SIGMOID},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5;
   config.progressReports = 0;
 
-  ANN::Samples<double> samples = {
-    {{0.0, 0.0}, {0.0}},
-    {{1.0, 1.0}, {1.0}}
-  };
+  ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{1.0, 1.0}, {1.0}}};
 
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
@@ -131,7 +124,8 @@ static void testTestMethod() {
 
 //===================================================================================================================//
 
-static void testTrainingMetadata() {
+static void testTrainingMetadata()
+{
   std::cout << "--- testTrainingMetadata ---" << std::endl;
 
   ANN::CoreConfig<double> config;
@@ -156,7 +150,8 @@ static void testTrainingMetadata() {
 
 //===================================================================================================================//
 
-static void testPredictMetadata() {
+static void testPredictMetadata()
+{
   std::cout << "--- testPredictMetadata ---" << std::endl;
 
   ANN::CoreConfig<double> config;
@@ -175,7 +170,8 @@ static void testPredictMetadata() {
 
 //===================================================================================================================//
 
-static void testTrainingCallback() {
+static void testTrainingCallback()
+{
   std::cout << "--- testTrainingCallback ---" << std::endl;
 
   ANN::CoreConfig<double> config;
@@ -190,9 +186,8 @@ static void testTrainingCallback() {
 
   int callbackCount = 0;
   auto core = ANN::Core<double>::makeCore(config);
-  core->setTrainingCallback([&callbackCount](const ANN::TrainingProgress<double>& progress) {
-    callbackCount++;
-  });
+  core->setTrainingCallback([&callbackCount](const ANN::TrainingProgress<double>& progress) { callbackCount++; });
+
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   std::cout << "  callback called " << callbackCount << " times" << std::endl;
@@ -202,18 +197,17 @@ static void testTrainingCallback() {
 
 //===================================================================================================================//
 
-static void testParameterRoundTrip() {
+static void testParameterRoundTrip()
+{
   std::cout << "--- testParameterRoundTrip ---" << std::endl;
 
   // Train a network, get parameters, create new predict-mode core with those params
   ANN::CoreConfig<double> trainConfig;
   trainConfig.modeType = ANN::ModeType::TRAIN;
   trainConfig.deviceType = ANN::DeviceType::CPU;
-  trainConfig.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {3, ANN::ActvFuncType::SIGMOID},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  trainConfig.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
   trainConfig.trainingConfig.numEpochs = 200;
   trainConfig.trainingConfig.learningRate = 0.5;
   trainConfig.progressReports = 0;
@@ -246,7 +240,8 @@ static void testParameterRoundTrip() {
 
 //===================================================================================================================//
 
-static void testParametersDuringTraining() {
+static void testParametersDuringTraining()
+{
   std::cout << "--- testParametersDuringTraining ---" << std::endl;
 
   // Train a network and verify that getParameters() returns non-empty data
@@ -254,11 +249,9 @@ static void testParametersDuringTraining() {
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::RELU},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+
   config.trainingConfig.numEpochs = 10;
   config.trainingConfig.learningRate = 0.5;
   config.progressReports = 0;
@@ -290,7 +283,8 @@ static void testParametersDuringTraining() {
 
 //===================================================================================================================//
 
-static void testDifferentActivations() {
+static void testDifferentActivations()
+{
   std::cout << "--- testDifferentActivations ---" << std::endl;
 
   // Test that different activation functions produce different outputs
@@ -324,38 +318,38 @@ static void testDifferentActivations() {
 
 //===================================================================================================================//
 
-static void testMultiLayerNetwork() {
+static void testMultiLayerNetwork()
+{
   std::cout << "--- testMultiLayerNetwork ---" << std::endl;
 
   // 2 → 4 → 4 → 1 network
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::RELU},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU},
+                                          {4, ANN::ActvFuncType::RELU},
+                                          {4, ANN::ActvFuncType::RELU},
+                                          {1, ANN::ActvFuncType::SIGMOID}});
+
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
   config.progressReports = 0;
 
-  ANN::Samples<double> samples = {
-    {{1.0, 1.0}, {1.0}},
-    {{0.0, 0.0}, {0.0}}
-  };
+  ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
   bool converged = false;
   ANN::Output<double> p0, p1;
 
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    if (attempt > 0)
+      std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
     p0 = core->predict({1.0, 1.0});
     p1 = core->predict({0.0, 0.0});
-    if (p0[0] > 0.7 && p1[0] < 0.3) converged = true;
+
+    if (p0[0] > 0.7 && p1[0] < 0.3)
+      converged = true;
   }
 
   std::cout << "  high=" << p0[0] << "  low=" << p1[0] << std::endl;
@@ -364,36 +358,35 @@ static void testMultiLayerNetwork() {
 
 //===================================================================================================================//
 
-static void testMultiOutput() {
+static void testMultiOutput()
+{
   std::cout << "--- testMultiOutput ---" << std::endl;
 
   // 2 inputs → 3 outputs
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::SIGMOID},
-    {3, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {3, ANN::ActvFuncType::SIGMOID}});
+
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5;
   config.progressReports = 0;
 
-  ANN::Samples<double> samples = {
-    {{1.0, 0.0}, {1.0, 0.0, 1.0}},
-    {{0.0, 1.0}, {0.0, 1.0, 0.0}}
-  };
+  ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0, 0.0, 1.0}}, {{0.0, 1.0}, {0.0, 1.0, 0.0}}};
 
   bool converged = false;
   ANN::Output<double> pred;
 
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    if (attempt > 0)
+      std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
     pred = core->predict({1.0, 0.0});
-    if (pred[0] > 0.7 && pred[1] < 0.3 && pred[2] > 0.7) converged = true;
+
+    if (pred[0] > 0.7 && pred[1] < 0.3 && pred[2] > 0.7)
+      converged = true;
   }
 
   std::cout << "  pred=[" << pred[0] << "," << pred[1] << "," << pred[2] << "]" << std::endl;
@@ -403,18 +396,17 @@ static void testMultiOutput() {
 
 //===================================================================================================================//
 
-static void testStepByStepAPI() {
+static void testStepByStepAPI()
+{
   std::cout << "--- testStepByStepAPI ---" << std::endl;
 
   // Test the step-by-step training API: predict → backpropagate → accumulate → update
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {3, ANN::ActvFuncType::SIGMOID},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.learningRate = 0.5;
   config.progressReports = 0;
@@ -428,7 +420,7 @@ static void testStepByStepAPI() {
   ANN::Output<double> beforePred = core->predict(input);
 
   core->resetAccumulators();
-  core->predict(input);  // Forward pass
+  core->predict(input); // Forward pass
   ANN::Tensor1D<double> inputGrads = core->backpropagate(expected);
   core->accumulate();
   core->update(1);
@@ -447,36 +439,35 @@ static void testStepByStepAPI() {
 
 //===================================================================================================================//
 
-static void testTrainWithTanh() {
+static void testTrainWithTanh()
+{
   std::cout << "--- testTrainWithTanh ---" << std::endl;
 
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::TANH},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::TANH}, {1, ANN::ActvFuncType::SIGMOID}});
+
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
   config.progressReports = 0;
 
-  ANN::Samples<double> samples = {
-    {{1.0, 1.0}, {1.0}},
-    {{0.0, 0.0}, {0.0}}
-  };
+  ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
   bool converged = false;
   ANN::Output<double> p0, p1;
 
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0) std::cout << "  retry #" << attempt << std::endl;
+    if (attempt > 0)
+      std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
     p0 = core->predict({1.0, 1.0});
     p1 = core->predict({0.0, 0.0});
-    if (p0[0] > 0.7 && p1[0] < 0.3) converged = true;
+
+    if (p0[0] > 0.7 && p1[0] < 0.3)
+      converged = true;
   }
 
   std::cout << "  high=" << p0[0] << "  low=" << p1[0] << std::endl;
@@ -485,17 +476,16 @@ static void testTrainWithTanh() {
 
 //===================================================================================================================//
 
-static void testGettersAfterConstruction() {
+static void testGettersAfterConstruction()
+{
   std::cout << "--- testGettersAfterConstruction ---" << std::endl;
 
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {3, ANN::ActvFuncType::RELU},
-    {5, ANN::ActvFuncType::SIGMOID},
-    {2, ANN::ActvFuncType::TANH}
-  });
+  config.layersConfig =
+    makeLayersConfig({{3, ANN::ActvFuncType::RELU}, {5, ANN::ActvFuncType::SIGMOID}, {2, ANN::ActvFuncType::TANH}});
+
   config.trainingConfig.numEpochs = 100;
   config.trainingConfig.learningRate = 0.05;
   config.logLevel = ANN::LogLevel::INFO;
@@ -518,7 +508,8 @@ static void testGettersAfterConstruction() {
 
 //===================================================================================================================//
 
-static void testCostFunctionConfigDefault() {
+static void testCostFunctionConfigDefault()
+{
   std::cout << "--- testCostFunctionConfigDefault ---" << std::endl;
 
   ANN::CoreConfig<double> config;
@@ -535,7 +526,8 @@ static void testCostFunctionConfigDefault() {
 
 //===================================================================================================================//
 
-static void testCostFunctionConfigGetter() {
+static void testCostFunctionConfigGetter()
+{
   std::cout << "--- testCostFunctionConfigGetter ---" << std::endl;
 
   ANN::CoreConfig<double> config;
@@ -556,45 +548,50 @@ static void testCostFunctionConfigGetter() {
 
 //===================================================================================================================//
 
-static void testCostFunctionStringConversion() {
+static void testCostFunctionStringConversion()
+{
   std::cout << "--- testCostFunctionStringConversion ---" << std::endl;
 
   CHECK(ANN::CostFunction::nameToType("squaredDifference") == ANN::CostFunctionType::SQUARED_DIFFERENCE,
         "nameToType squaredDifference");
-  CHECK(ANN::CostFunction::nameToType("weightedSquaredDifference") == ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE,
+  CHECK(ANN::CostFunction::nameToType("weightedSquaredDifference") ==
+          ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE,
         "nameToType weightedSquaredDifference");
   CHECK(ANN::CostFunction::typeToName(ANN::CostFunctionType::SQUARED_DIFFERENCE) == "squaredDifference",
         "typeToName squaredDifference");
-  CHECK(ANN::CostFunction::typeToName(ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE) == "weightedSquaredDifference",
+  CHECK(ANN::CostFunction::typeToName(ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE) ==
+          "weightedSquaredDifference",
         "typeToName weightedSquaredDifference");
 
   bool threwException = false;
-  try { ANN::CostFunction::nameToType("invalidName"); } catch (const std::runtime_error&) { threwException = true; }
+
+  try {
+    ANN::CostFunction::nameToType("invalidName");
+  } catch (const std::runtime_error&) {
+    threwException = true;
+  }
+
   CHECK(threwException, "nameToType throws on unknown name");
 }
 
 //===================================================================================================================//
 
-static void testWeightedLossAffectsTraining() {
+static void testWeightedLossAffectsTraining()
+{
   std::cout << "--- testWeightedLossAffectsTraining ---" << std::endl;
 
   // Train a 2-input → 2-output network.
   // Expected outputs: [1, 0] for all samples.
   // With heavy weight on output 0, the network should prioritize that output.
-  ANN::Samples<double> samples = {
-    {{1.0, 0.0}, {1.0, 0.0}},
-    {{0.0, 1.0}, {1.0, 0.0}}
-  };
+  ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0, 0.0}}, {{0.0, 1.0}, {1.0, 0.0}}};
 
   // Train with default loss (equal weighting)
   ANN::CoreConfig<double> configDefault;
   configDefault.modeType = ANN::ModeType::TRAIN;
   configDefault.deviceType = ANN::DeviceType::CPU;
-  configDefault.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::SIGMOID},
-    {2, ANN::ActvFuncType::SIGMOID}
-  });
+  configDefault.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {2, ANN::ActvFuncType::SIGMOID}});
+
   configDefault.trainingConfig.numEpochs = 200;
   configDefault.trainingConfig.learningRate = 0.5;
   configDefault.progressReports = 0;
@@ -613,8 +610,8 @@ static void testWeightedLossAffectsTraining() {
   coreWeighted->train(samples.size(), ANN::makeSampleProvider(samples));
   ANN::TestResult<double> resultWeighted = coreWeighted->test(samples);
 
-  std::cout << "  default avgLoss=" << resultDefault.averageLoss
-            << "  weighted avgLoss=" << resultWeighted.averageLoss << std::endl;
+  std::cout << "  default avgLoss=" << resultDefault.averageLoss << "  weighted avgLoss=" << resultWeighted.averageLoss
+            << std::endl;
 
   // Both should train successfully (loss should be finite and non-negative)
   CHECK(resultDefault.averageLoss >= 0.0, "default loss non-negative");
@@ -633,7 +630,8 @@ static void testWeightedLossAffectsTraining() {
 
 //===================================================================================================================//
 
-static void testShuffleSamplesDefault() {
+static void testShuffleSamplesDefault()
+{
   std::cout << "--- testShuffleSamplesDefault ---" << std::endl;
 
   // Verify default is true
@@ -643,26 +641,20 @@ static void testShuffleSamplesDefault() {
 
 //===================================================================================================================//
 
-static void testShuffleSamplesTraining() {
+static void testShuffleSamplesTraining()
+{
   std::cout << "--- testShuffleSamplesTraining ---" << std::endl;
 
   // Train with shuffleSamples=true and shuffleSamples=false, both should converge
-  ANN::Samples<double> samples = {
-    {{1.0, 1.0}, {1.0}},
-    {{0.0, 0.0}, {0.0}},
-    {{1.0, 0.0}, {0.5}},
-    {{0.0, 1.0}, {0.5}}
-  };
+  ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}, {{1.0, 0.0}, {0.5}}, {{0.0, 1.0}, {0.5}}};
 
   auto makeConfig = [](bool shuffle) {
     ANN::CoreConfig<double> config;
     config.modeType = ANN::ModeType::TRAIN;
     config.deviceType = ANN::DeviceType::CPU;
-    config.layersConfig = makeLayersConfig({
-      {2, ANN::ActvFuncType::RELU},
-      {4, ANN::ActvFuncType::SIGMOID},
-      {1, ANN::ActvFuncType::SIGMOID}
-    });
+    config.layersConfig = makeLayersConfig(
+      {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
     config.trainingConfig.numEpochs = 500;
     config.trainingConfig.learningRate = 0.5;
     config.trainingConfig.shuffleSamples = shuffle;
@@ -678,8 +670,11 @@ static void testShuffleSamplesTraining() {
     core->train(samples.size(), ANN::makeSampleProvider(samples));
     auto p0 = core->predict({1.0, 1.0});
     auto p1 = core->predict({0.0, 0.0});
-    if (p0[0] > 0.7 && p1[0] < 0.3) shuffleConverged = true;
+
+    if (p0[0] > 0.7 && p1[0] < 0.3)
+      shuffleConverged = true;
   }
+
   CHECK(shuffleConverged, "shuffle=true converged (5 attempts)");
 
   // Train with shuffle disabled
@@ -689,33 +684,32 @@ static void testShuffleSamplesTraining() {
     core->train(samples.size(), ANN::makeSampleProvider(samples));
     auto p0 = core->predict({1.0, 1.0});
     auto p1 = core->predict({0.0, 0.0});
-    if (p0[0] > 0.7 && p1[0] < 0.3) noShuffleConverged = true;
+
+    if (p0[0] > 0.7 && p1[0] < 0.3)
+      noShuffleConverged = true;
   }
+
   CHECK(noShuffleConverged, "shuffle=false converged (5 attempts)");
 
-  std::cout << "  shuffle=true converged: " << shuffleConverged
-            << "  shuffle=false converged: " << noShuffleConverged << std::endl;
+  std::cout << "  shuffle=true converged: " << shuffleConverged << "  shuffle=false converged: " << noShuffleConverged
+            << std::endl;
 }
 
 //===================================================================================================================//
 
-static void testShuffleSamplesNoShuffle() {
+static void testShuffleSamplesNoShuffle()
+{
   std::cout << "--- testShuffleSamplesNoShuffle ---" << std::endl;
 
   // With shuffleSamples=false, two runs with the same initial parameters should produce identical results
-  ANN::Samples<double> samples = {
-    {{1.0, 1.0}, {1.0}},
-    {{0.0, 0.0}, {0.0}}
-  };
+  ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::SIGMOID},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
   config.trainingConfig.numEpochs = 50;
   config.trainingConfig.learningRate = 0.1;
   config.trainingConfig.shuffleSamples = false;
@@ -743,7 +737,8 @@ static void testShuffleSamplesNoShuffle() {
 
 //===================================================================================================================//
 
-static void testSoftmaxPredict() {
+static void testSoftmaxPredict()
+{
   std::cout << "--- testSoftmaxPredict ---" << std::endl;
 
   // 2 inputs → 3 outputs with softmax
@@ -772,27 +767,26 @@ static void testSoftmaxPredict() {
 
 //===================================================================================================================//
 
-static void testSoftmaxTrain() {
+static void testSoftmaxTrain()
+{
   std::cout << "--- testSoftmaxTrain ---" << std::endl;
 
   // Classification: 2 inputs → 3 classes with softmax output
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::RELU},
-    {3, ANN::ActvFuncType::SOFTMAX}
-  });
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
+
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
   config.progressReports = 0;
 
   // One-hot encoded targets
   ANN::Samples<double> samples = {
-    {{1.0, 0.0}, {1.0, 0.0, 0.0}},  // class 0
-    {{0.0, 1.0}, {0.0, 1.0, 0.0}},  // class 1
-    {{1.0, 1.0}, {0.0, 0.0, 1.0}}   // class 2
+    {{1.0, 0.0}, {1.0, 0.0, 0.0}}, // class 0
+    {{0.0, 1.0}, {0.0, 1.0, 0.0}}, // class 1
+    {{1.0, 1.0}, {0.0, 0.0, 1.0}} // class 2
   };
 
   auto core = ANN::Core<double>::makeCore(config);
@@ -816,26 +810,22 @@ static void testSoftmaxTrain() {
 
 //===================================================================================================================//
 
-static void testSoftmaxHiddenLayer() {
+static void testSoftmaxHiddenLayer()
+{
   std::cout << "--- testSoftmaxHiddenLayer ---" << std::endl;
 
   // Softmax in a hidden layer (unusual but should work)
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::SOFTMAX},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SOFTMAX}, {1, ANN::ActvFuncType::SIGMOID}});
+
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
   config.progressReports = 0;
 
-  ANN::Samples<double> samples = {
-    {{1.0, 1.0}, {1.0}},
-    {{0.0, 0.0}, {0.0}}
-  };
+  ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
@@ -850,25 +840,23 @@ static void testSoftmaxHiddenLayer() {
 
 //===================================================================================================================//
 
-static void testDropoutTraining() {
+static void testDropoutTraining()
+{
   std::cout << "--- testDropoutTraining ---" << std::endl;
 
   // Train XOR with dropout — should still converge (dropout is regularization, not destructive)
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU},
-                                           {16, ANN::ActvFuncType::RELU},
-                                           {1, ANN::ActvFuncType::SIGMOID}});
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {16, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 10000;
   config.trainingConfig.learningRate = 0.1;
   config.trainingConfig.dropoutRate = 0.2f;
 
   auto core = ANN::Core<double>::makeCore(config);
 
-  std::vector<ANN::Sample<double>> samples = {
-    {{0, 0}, {0}}, {{0, 1}, {1}}, {{1, 0}, {1}}, {{1, 1}, {0}}
-  };
+  std::vector<ANN::Sample<double>> samples = {{{0, 0}, {0}}, {{0, 1}, {1}}, {{1, 0}, {1}}, {{1, 1}, {0}}};
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -886,7 +874,8 @@ static void testDropoutTraining() {
 
 //===================================================================================================================//
 
-static void testDropoutDisabledByDefault() {
+static void testDropoutDisabledByDefault()
+{
   std::cout << "--- testDropoutDisabledByDefault ---" << std::endl;
 
   ANN::CoreConfig<double> config;
@@ -899,7 +888,8 @@ static void testDropoutDisabledByDefault() {
 
 //===================================================================================================================//
 
-void runCoreTests() {
+void runCoreTests()
+{
   testMakeCoreCPU();
   testPredictSimple();
   testTrainXOR();

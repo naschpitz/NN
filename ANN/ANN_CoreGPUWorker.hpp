@@ -12,30 +12,29 @@
 
 //===================================================================================================================//
 
-namespace ANN {
+namespace ANN
+{
   template <typename T>
-  class CoreGPUWorker : public Worker<T> {
+  class CoreGPUWorker : public Worker<T>
+  {
     public:
       // Standalone constructor — creates its own OpenCL core
       CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                    const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig = CostFunctionConfig<T>(),
-                    ulong progressReports = 1000,
-                    LogLevel logLevel = LogLevel::ERROR);
+                    const Parameters<T>& parameters,
+                    const CostFunctionConfig<T>& costFunctionConfig = CostFunctionConfig<T>(),
+                    ulong progressReports = 1000, LogLevel logLevel = LogLevel::ERROR);
 
       // Shared-core constructor — uses externally-provided OpenCL core (for CNN integration).
       // Only initializes parameters. Caller must invoke loadSources() and allocateBuffers() manually.
       CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
                     const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
-                    OpenCLWrapper::Core& sharedCore,
-                    ulong progressReports = 1000,
-                    LogLevel logLevel = LogLevel::ERROR);
+                    OpenCLWrapper::Core& sharedCore, ulong progressReports = 1000, LogLevel logLevel = LogLevel::ERROR);
 
       //-- Predict --//
       Output<T> predict(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
-      T trainSubset(const Samples<T>& batchSamples,
-                    ulong totalSamples, ulong epoch, ulong totalEpochs,
+      T trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
                     const TrainingCallback<T>& callback);
 
       //-- Testing (called by CoreGPU orchestrator) --//
@@ -61,7 +60,10 @@ namespace ANN {
       void syncParametersFromGPU();
 
       //-- Parameter access --//
-      const Parameters<T>& getParameters() const { return parameters; }
+      const Parameters<T>& getParameters() const
+      {
+        return parameters;
+      }
 
       //-- Shared-core integration: source loading and buffer allocation --//
       void loadSources(bool skipDefines);
@@ -90,8 +92,8 @@ namespace ANN {
       LogLevel logLevel = LogLevel::ERROR;
 
       //-- OpenCL state --//
-      std::unique_ptr<OpenCLWrapper::Core> ownedCore;  // Owned core (standalone mode)
-      OpenCLWrapper::Core* core = nullptr;              // Pointer to active core (owned or shared)
+      std::unique_ptr<OpenCLWrapper::Core> ownedCore; // Owned core (standalone mode)
+      OpenCLWrapper::Core* core = nullptr; // Pointer to active core (owned or shared)
 
       //-- Kernel setup flags --//
       bool predictKernelsSetup = false;
@@ -123,4 +125,3 @@ namespace ANN {
 }
 
 #endif // ANN_COREGPUWORKER_H
-

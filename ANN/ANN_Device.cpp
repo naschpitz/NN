@@ -6,7 +6,8 @@ using namespace ANN;
 
 //===================================================================================================================//
 
-DeviceType Device::nameToType(const std::string& name) {
+DeviceType Device::nameToType(const std::string& name)
+{
   auto it = deviceTypeMap.find(name);
 
   if (it != deviceTypeMap.end()) {
@@ -18,7 +19,8 @@ DeviceType Device::nameToType(const std::string& name) {
 
 //===================================================================================================================//
 
-std::string Device::typeToName(const DeviceType& deviceType) {
+std::string Device::typeToName(const DeviceType& deviceType)
+{
   for (const auto& pair : deviceTypeMap) {
     if (pair.second == deviceType) {
       return pair.first;
@@ -29,4 +31,3 @@ std::string Device::typeToName(const DeviceType& deviceType) {
 }
 
 //===================================================================================================================//
-

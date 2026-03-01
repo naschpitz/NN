@@ -9,9 +9,11 @@
 
 //===================================================================================================================//
 
-namespace ANN {
+namespace ANN
+{
   template <typename T>
-  class CoreGPU : public Core<T> {
+  class CoreGPU : public Core<T>
+  {
     public:
       CoreGPU(const CoreConfig<T>& config);
 

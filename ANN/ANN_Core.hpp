@@ -14,9 +14,11 @@
 
 //==============================================================================//
 
-namespace ANN {
+namespace ANN
+{
   template <typename T>
-  class Core {
+  class Core
+  {
     public:
       //-- Factory --//
       static std::unique_ptr<Core<T>> makeCore(const CoreConfig<T>& config);
@@ -34,24 +36,77 @@ namespace ANN {
       virtual void update(ulong numSamples) = 0;
 
       //-- Getters --//
-      ModeType getModeType() const { return modeType; }
-      DeviceType getDeviceType() const { return deviceType; }
-      int getNumThreads() const { return numThreads; }
-      int getNumGPUs() const { return numGPUs; }
-      const LayersConfig& getLayersConfig() const { return layersConfig; }
-      const TrainingConfig<T>& getTrainingConfig() const { return trainingConfig; }
-      const PredictMetadata<T>& getPredictMetadata() const { return predictMetadata; }
-      const TrainingMetadata<T>& getTrainingMetadata() const { return trainingMetadata; }
-      const Parameters<T>& getParameters() const { return parameters; }
-      const CostFunctionConfig<T>& getCostFunctionConfig() const { return costFunctionConfig; }
+      ModeType getModeType() const
+      {
+        return modeType;
+      }
+
+      DeviceType getDeviceType() const
+      {
+        return deviceType;
+      }
+
+      int getNumThreads() const
+      {
+        return numThreads;
+      }
+
+      int getNumGPUs() const
+      {
+        return numGPUs;
+      }
+
+      const LayersConfig& getLayersConfig() const
+      {
+        return layersConfig;
+      }
+
+      const TrainingConfig<T>& getTrainingConfig() const
+      {
+        return trainingConfig;
+      }
+
+      const PredictMetadata<T>& getPredictMetadata() const
+      {
+        return predictMetadata;
+      }
+
+      const TrainingMetadata<T>& getTrainingMetadata() const
+      {
+        return trainingMetadata;
+      }
+
+      const Parameters<T>& getParameters() const
+      {
+        return parameters;
+      }
+
+      const CostFunctionConfig<T>& getCostFunctionConfig() const
+      {
+        return costFunctionConfig;
+      }
 
       //-- Setters --//
-      void setParameters(const Parameters<T>& params) { parameters = params; }
-      void setTrainingCallback(TrainingCallback<T> callback) { trainingCallback = callback; }
+      void setParameters(const Parameters<T>& params)
+      {
+        parameters = params;
+      }
+
+      void setTrainingCallback(TrainingCallback<T> callback)
+      {
+        trainingCallback = callback;
+      }
 
       //-- Log level --//
-      void setLogLevel(LogLevel level) { logLevel = level; }
-      LogLevel getLogLevel() const { return logLevel; }
+      void setLogLevel(LogLevel level)
+      {
+        logLevel = level;
+      }
+
+      LogLevel getLogLevel() const
+      {
+        return logLevel;
+      }
 
     protected:
       //-- Constructor / Validation --//

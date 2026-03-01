@@ -10,7 +10,8 @@ using namespace ANN;
 //===================================================================================================================//
 
 template <typename T>
-std::string Utils<T>::formatISO8601() {
+std::string Utils<T>::formatISO8601()
+{
   auto now = std::chrono::system_clock::now();
   std::time_t time = std::chrono::system_clock::to_time_t(now);
   std::tm* localTime = std::localtime(&time);
@@ -38,7 +39,8 @@ std::string Utils<T>::formatISO8601() {
 //===================================================================================================================//
 
 template <typename T>
-std::string Utils<T>::formatDuration(double totalSeconds) {
+std::string Utils<T>::formatDuration(double totalSeconds)
+{
   // Handle negative or zero durations
   if (totalSeconds <= 0) {
     return "0s";
@@ -48,8 +50,8 @@ std::string Utils<T>::formatDuration(double totalSeconds) {
   constexpr int SECONDS_PER_MINUTE = 60;
   constexpr int SECONDS_PER_HOUR = 3600;
   constexpr int SECONDS_PER_DAY = 86400;
-  constexpr int DAYS_PER_MONTH = 30;  // Approximate
-  constexpr int DAYS_PER_YEAR = 365;  // Approximate
+  constexpr int DAYS_PER_MONTH = 30; // Approximate
+  constexpr int DAYS_PER_YEAR = 365; // Approximate
 
   // Calculate each unit
   long long totalSecs = static_cast<long long>(totalSeconds);

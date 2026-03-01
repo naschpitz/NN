@@ -2,18 +2,17 @@
 
 //===================================================================================================================//
 
-static void testParameterRoundTrip() {
+static void testParameterRoundTrip()
+{
   std::cout << "--- testParameterRoundTrip ---" << std::endl;
 
   // Train a network
   ANN::CoreConfig<double> trainConfig;
   trainConfig.modeType = ANN::ModeType::TRAIN;
   trainConfig.deviceType = ANN::DeviceType::CPU;
-  trainConfig.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::SIGMOID},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  trainConfig.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
   trainConfig.trainingConfig.numEpochs = 100;
   trainConfig.trainingConfig.learningRate = 0.5;
   trainConfig.progressReports = 0;
@@ -32,11 +31,9 @@ static void testParameterRoundTrip() {
   ANN::CoreConfig<double> loadConfig;
   loadConfig.modeType = ANN::ModeType::PREDICT;
   loadConfig.deviceType = ANN::DeviceType::CPU;
-  loadConfig.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {4, ANN::ActvFuncType::SIGMOID},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  loadConfig.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+
   loadConfig.parameters = trainedParams;
 
   auto loadedCore = ANN::Core<double>::makeCore(loadConfig);
@@ -52,23 +49,20 @@ static void testParameterRoundTrip() {
 
 //===================================================================================================================//
 
-static void testParameterRoundTripPreservesArchitecture() {
+static void testParameterRoundTripPreservesArchitecture()
+{
   std::cout << "--- testParameterRoundTripPreservesArchitecture ---" << std::endl;
 
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::PREDICT;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {3, ANN::ActvFuncType::RELU},
-    {5, ANN::ActvFuncType::TANH},
-    {2, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig =
+    makeLayersConfig({{3, ANN::ActvFuncType::RELU}, {5, ANN::ActvFuncType::TANH}, {2, ANN::ActvFuncType::SIGMOID}});
 
   // Set distinct parameters
   config.parameters.weights.resize(3);
-  config.parameters.weights[1] = {
-    {0.1, 0.2, 0.3}, {0.4, 0.5, 0.6}, {0.7, 0.8, 0.9}, {1.0, 1.1, 1.2}, {1.3, 1.4, 1.5}
-  };
+  config.parameters.weights[1] = {{0.1, 0.2, 0.3}, {0.4, 0.5, 0.6}, {0.7, 0.8, 0.9}, {1.0, 1.1, 1.2}, {1.3, 1.4, 1.5}};
+
   config.parameters.weights[2] = {{0.1, 0.2, 0.3, 0.4, 0.5}, {0.6, 0.7, 0.8, 0.9, 1.0}};
   config.parameters.biases.resize(3);
   config.parameters.biases[1] = {0.01, 0.02, 0.03, 0.04, 0.05};
@@ -107,17 +101,15 @@ static void testParameterRoundTripPreservesArchitecture() {
 
 //===================================================================================================================//
 
-static void testGettersReturnExpectedState() {
+static void testGettersReturnExpectedState()
+{
   std::cout << "--- testGettersReturnExpectedState ---" << std::endl;
 
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::PREDICT;
   config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({
-    {2, ANN::ActvFuncType::RELU},
-    {3, ANN::ActvFuncType::SIGMOID},
-    {1, ANN::ActvFuncType::SIGMOID}
-  });
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
   config.parameters.weights.resize(3);
   config.parameters.weights[1] = {{0.1, 0.2}, {0.3, 0.4}, {0.5, 0.6}};
@@ -141,9 +133,9 @@ static void testGettersReturnExpectedState() {
 
 //===================================================================================================================//
 
-void runSerializationTests() {
+void runSerializationTests()
+{
   testParameterRoundTrip();
   testParameterRoundTripPreservesArchitecture();
   testGettersReturnExpectedState();
 }
-

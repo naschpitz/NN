@@ -12,14 +12,14 @@
 
 //===================================================================================================================//
 
-namespace ANN {
+namespace ANN
+{
   template <typename T>
-  class CoreCPUWorker : public Worker<T> {
+  class CoreCPUWorker : public Worker<T>
+  {
     public:
-      CoreCPUWorker(const LayersConfig& layersConfig,
-                    const TrainingConfig<T>& trainingConfig,
-                    const Parameters<T>& parameters,
-                    const CostFunctionConfig<T>& costFunctionConfig,
+      CoreCPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
+                    const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                     bool allocateTrainingBuffers = true);
 
       //-- Forward pass --//
@@ -42,14 +42,36 @@ namespace ANN {
       Output<T> getOutput() const;
 
       //-- Activation access (for test accuracy check) --//
-      const Tensor2D<T>& getActvs() const { return actvs; }
+      const Tensor2D<T>& getActvs() const
+      {
+        return actvs;
+      }
 
       //-- Accumulator access (for merging by CoreCPU) --//
-      const Tensor3D<T>& getAccumWeights() const { return accum_dCost_dWeights; }
-      const Tensor2D<T>& getAccumBiases() const { return accum_dCost_dBiases; }
-      T getAccumLoss() const { return accum_loss; }
-      void resetAccumLoss() { accum_loss = 0; }
-      void addToAccumLoss(T loss) { accum_loss += loss; }
+      const Tensor3D<T>& getAccumWeights() const
+      {
+        return accum_dCost_dWeights;
+      }
+
+      const Tensor2D<T>& getAccumBiases() const
+      {
+        return accum_dCost_dBiases;
+      }
+
+      T getAccumLoss() const
+      {
+        return accum_loss;
+      }
+
+      void resetAccumLoss()
+      {
+        accum_loss = 0;
+      }
+
+      void addToAccumLoss(T loss)
+      {
+        accum_loss += loss;
+      }
 
     private:
       //-- Shared references (owned by CoreCPU/Core) --//
@@ -85,4 +107,3 @@ namespace ANN {
 }
 
 #endif // ANN_CORECPUWORKER_H
-

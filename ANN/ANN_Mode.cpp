@@ -6,7 +6,8 @@ using namespace ANN;
 
 //===================================================================================================================//
 
-ModeType Mode::nameToType(const std::string& name) {
+ModeType Mode::nameToType(const std::string& name)
+{
   auto it = modeMap.find(name);
 
   if (it != modeMap.end()) {
@@ -18,7 +19,8 @@ ModeType Mode::nameToType(const std::string& name) {
 
 //===================================================================================================================//
 
-std::string Mode::typeToName(const ModeType& modeType) {
+std::string Mode::typeToName(const ModeType& modeType)
+{
   for (const auto& pair : modeMap) {
     if (pair.second == modeType) {
       return pair.first;
@@ -29,4 +31,3 @@ std::string Mode::typeToName(const ModeType& modeType) {
 }
 
 //===================================================================================================================//
-

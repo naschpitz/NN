@@ -8,7 +8,8 @@ using namespace ANN;
 //===================================================================================================================//
 
 template <typename T>
-Core<T>::Core(const CoreConfig<T>& coreConfig) {
+Core<T>::Core(const CoreConfig<T>& coreConfig)
+{
   this->deviceType = coreConfig.deviceType;
   this->modeType = coreConfig.modeType;
   this->numThreads = coreConfig.numThreads;
@@ -25,20 +26,22 @@ Core<T>::Core(const CoreConfig<T>& coreConfig) {
 //===================================================================================================================//
 
 template <typename T>
-std::unique_ptr<Core<T>> Core<T>::makeCore(const CoreConfig<T>& coreConfig) {
+std::unique_ptr<Core<T>> Core<T>::makeCore(const CoreConfig<T>& coreConfig)
+{
   switch (coreConfig.deviceType) {
-    case DeviceType::CPU:
-      return std::make_unique<CoreCPU<T>>(coreConfig);
-    case DeviceType::GPU:
-    default:
-      return std::make_unique<CoreGPU<T>>(coreConfig);
+  case DeviceType::CPU:
+    return std::make_unique<CoreCPU<T>>(coreConfig);
+  case DeviceType::GPU:
+  default:
+    return std::make_unique<CoreGPU<T>>(coreConfig);
   }
 }
 
 //===================================================================================================================//
 
 template <typename T>
-void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig) {
+void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig)
+{
   // deviceType and modeType are validated at parse time by nameToType (throws on invalid)
   // No additional checks needed here
 }
@@ -46,7 +49,8 @@ void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig) {
 //===================================================================================================================//
 
 template <typename T>
-void Core<T>::trainingStart(ulong numSamples) {
+void Core<T>::trainingStart(ulong numSamples)
+{
   this->trainingStartTime = std::chrono::system_clock::now();
   this->trainingMetadata.startTime = Utils<T>::formatISO8601();
   this->trainingMetadata.numSamples = numSamples;
@@ -55,7 +59,8 @@ void Core<T>::trainingStart(ulong numSamples) {
 //===================================================================================================================//
 
 template <typename T>
-TrainingMetadata<T> Core<T>::trainingEnd() {
+TrainingMetadata<T> Core<T>::trainingEnd()
+{
   auto endTime = std::chrono::system_clock::now();
   this->trainingMetadata.endTime = Utils<T>::formatISO8601();
 
@@ -69,7 +74,8 @@ TrainingMetadata<T> Core<T>::trainingEnd() {
 //===================================================================================================================//
 
 template <typename T>
-void Core<T>::predictStart() {
+void Core<T>::predictStart()
+{
   this->predictStartTime = std::chrono::system_clock::now();
   this->predictMetadata.startTime = Utils<T>::formatISO8601();
 }
@@ -77,7 +83,8 @@ void Core<T>::predictStart() {
 //===================================================================================================================//
 
 template <typename T>
-PredictMetadata<T> Core<T>::predictEnd() {
+PredictMetadata<T> Core<T>::predictEnd()
+{
   auto endTime = std::chrono::system_clock::now();
   this->predictMetadata.endTime = Utils<T>::formatISO8601();
 
