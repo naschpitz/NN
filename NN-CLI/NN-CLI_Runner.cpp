@@ -1,5 +1,6 @@
 #include "NN-CLI_Runner.hpp"
 
+#include "NN-CLI_DataLoader.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
@@ -131,15 +132,40 @@ int Runner::run() {
 //===================================================================================================================//
 
 int Runner::runANNTrain() {
+  // Reject conflicting input formats
+  if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
+    std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
+    return 1;
+  }
+
   QString inputFilePath;
-  auto [samples, success] = this->loadANNSamplesFromOptions("training", inputFilePath);
-  if (!success) return 1;
+  DataLoader<ANN::Sample<float>> dataLoader;
 
-  this->augmentSamples(samples);
+  int inputC = this->ioConfig.hasInputShape() ? static_cast<int>(this->ioConfig.inputC) : 0;
+  int inputH = this->ioConfig.hasInputShape() ? static_cast<int>(this->ioConfig.inputH) : 0;
+  int inputW = this->ioConfig.hasInputShape() ? static_cast<int>(this->ioConfig.inputW) : 0;
 
-  // Auto-compute class weights if enabled and no manual weights specified
+  if (this->parser.isSet("samples")) {
+    // JSON samples — store lightweight manifest (images loaded on-demand per batch)
+    inputFilePath = this->parser.value("samples");
+    int outputC = this->ioConfig.hasOutputShape() ? static_cast<int>(this->ioConfig.outputC) : 0;
+    int outputH = this->ioConfig.hasOutputShape() ? static_cast<int>(this->ioConfig.outputH) : 0;
+    int outputW = this->ioConfig.hasOutputShape() ? static_cast<int>(this->ioConfig.outputW) : 0;
+    dataLoader.loadManifest(inputFilePath.toStdString(), this->ioConfig,
+        inputC, inputH, inputW, outputC, outputH, outputW);
+  } else {
+    // IDX or other format — load all samples into memory, then hand off to DataLoader
+    auto [samples, success] = this->loadANNSamplesFromOptions("training", inputFilePath);
+    if (!success) return 1;
+    dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
+  }
+
+  dataLoader.planAugmentation(this->augmentationFactor, this->balanceAugmentation);
+
+  // Auto-compute class weights
   if (this->autoClassWeights && this->annCoreConfig.costFunctionConfig.weights.empty()) {
-    auto weights = this->computeClassWeights(samples);
+    auto allOutputs = dataLoader.getAllOutputs();
+    std::vector<float> weights = this->computeClassWeightsFromOutputs(allOutputs);
     this->annCoreConfig.costFunctionConfig.type = ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
     this->annCoreConfig.costFunctionConfig.weights = weights;
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
@@ -155,54 +181,12 @@ int Runner::runANNTrain() {
 
   if (this->logLevel >= LogLevel::INFO) std::cout << "Starting ANN training...\n";
 
-  ProgressBar progressBar(this->progressReports);
+  this->setupANNTrainingCallback(inputFilePath);
 
-  ulong lastCallbackEpoch = 0;
-  float lastEpochLoss = 0.0f;
+  auto sampleProvider = dataLoader.makeSampleProvider(this->augTransforms, this->augmentationProbability);
+  this->annCore->train(dataLoader.numSamples(), sampleProvider);
 
-  this->annCore->setTrainingCallback([&](const ANN::TrainingProgress<float>& progress) {
-    if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
-                        progress.currentSample, progress.totalSamples,
-                        progress.epochLoss, progress.sampleLoss,
-                        progress.gpuIndex, progress.totalGPUs};
-      progressBar.update(info);
-    }
-
-    // Checkpoint saving: detect epoch transition
-    if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
-      // An epoch boundary was crossed — lastCallbackEpoch is the completed epoch
-      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
-        std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-        saveANNModel(*this->annCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
-        if (this->logLevel > LogLevel::QUIET) std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
-      }
-      lastCallbackEpoch = progress.currentEpoch;
-    }
-
-    // Track epoch loss for checkpoint filename
-    if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
-  });
-
-  this->annCore->train(samples);
-  if (this->logLevel > LogLevel::QUIET) std::cout << "\nTraining completed.\n";
-
-  const auto& trainingConfig = this->annCore->getTrainingConfig();
-  const auto& trainingMetadata = this->annCore->getTrainingMetadata();
-
-  std::string outputPathStr;
-  if (this->parser.isSet("output")) {
-    outputPathStr = this->parser.value("output").toStdString();
-  } else {
-    outputPathStr = generateDefaultOutputPath(
-      inputFilePath, trainingConfig.numEpochs,
-      trainingMetadata.numSamples, trainingMetadata.finalLoss);
-  }
-
-  saveANNModel(*this->annCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
-  if (this->logLevel > LogLevel::QUIET) std::cout << "Model saved to: " << outputPathStr << "\n";
-
-  return 0;
+  return this->finishANNTraining(inputFilePath);
 }
 
 //===================================================================================================================//
@@ -344,15 +328,39 @@ int Runner::runANNPredict() {
 //===================================================================================================================//
 
 int Runner::runCNNTrain() {
+  // Reject conflicting input formats
+  if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
+    std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
+    return 1;
+  }
+
   QString inputFilePath;
-  auto [samples, success] = this->loadCNNSamplesFromOptions("training", inputFilePath);
-  if (!success) return 1;
+  DataLoader<CNN::Sample<float>> dataLoader;
+  const CNN::Shape3D& inputShape = this->cnnCoreConfig.inputShape;
+  int inputC = static_cast<int>(inputShape.c);
+  int inputH = static_cast<int>(inputShape.h);
+  int inputW = static_cast<int>(inputShape.w);
 
-  this->augmentSamples(samples);
+  if (this->parser.isSet("samples")) {
+    // JSON samples — store lightweight manifest (images loaded on-demand per batch)
+    inputFilePath = this->parser.value("samples");
+    dataLoader.loadManifest(inputFilePath.toStdString(), this->ioConfig,
+        inputC, inputH, inputW,
+        static_cast<int>(this->ioConfig.outputC), static_cast<int>(this->ioConfig.outputH),
+        static_cast<int>(this->ioConfig.outputW));
+  } else {
+    // IDX or other format — load all samples into memory, then hand off to DataLoader
+    auto [samples, success] = this->loadCNNSamplesFromOptions("training", inputFilePath);
+    if (!success) return 1;
+    dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
+  }
 
-  // Auto-compute class weights if enabled and no manual weights specified
+  dataLoader.planAugmentation(this->augmentationFactor, this->balanceAugmentation);
+
+  // Auto-compute class weights
   if (this->autoClassWeights && this->cnnCoreConfig.costFunctionConfig.weights.empty()) {
-    auto weights = this->computeClassWeights(samples);
+    auto allOutputs = dataLoader.getAllOutputs();
+    std::vector<float> weights = this->computeClassWeightsFromOutputs(allOutputs);
     this->cnnCoreConfig.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
     this->cnnCoreConfig.costFunctionConfig.weights = weights;
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
@@ -368,54 +376,12 @@ int Runner::runCNNTrain() {
 
   if (this->logLevel >= LogLevel::INFO) std::cout << "Starting CNN training...\n";
 
-  ProgressBar progressBar(this->progressReports);
+  this->setupCNNTrainingCallback(inputFilePath);
 
-  ulong lastCallbackEpoch = 0;
-  float lastEpochLoss = 0.0f;
+  auto sampleProvider = dataLoader.makeSampleProvider(this->augTransforms, this->augmentationProbability);
+  this->cnnCore->train(dataLoader.numSamples(), sampleProvider);
 
-  this->cnnCore->setTrainingCallback([&](const CNN::TrainingProgress<float>& progress) {
-    if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
-                        progress.currentSample, progress.totalSamples,
-                        progress.epochLoss, progress.sampleLoss,
-                        progress.gpuIndex, progress.totalGPUs};
-      progressBar.update(info);
-    }
-
-    // Checkpoint saving: detect epoch transition
-    if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
-      // An epoch boundary was crossed — lastCallbackEpoch is the completed epoch
-      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
-        std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-        saveCNNModel(*this->cnnCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
-        if (this->logLevel > LogLevel::QUIET) std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
-      }
-      lastCallbackEpoch = progress.currentEpoch;
-    }
-
-    // Track epoch loss for checkpoint filename
-    if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
-  });
-
-  this->cnnCore->train(samples);
-  if (this->logLevel > LogLevel::QUIET) std::cout << "\nTraining completed.\n";
-
-  const auto& trainingConfig = this->cnnCore->getTrainingConfig();
-  const auto& trainingMetadata = this->cnnCore->getTrainingMetadata();
-
-  std::string outputPathStr;
-  if (this->parser.isSet("output")) {
-    outputPathStr = this->parser.value("output").toStdString();
-  } else {
-    outputPathStr = generateDefaultOutputPath(
-      inputFilePath, trainingConfig.numEpochs,
-      trainingMetadata.numSamples, trainingMetadata.finalLoss);
-  }
-
-  saveCNNModel(*this->cnnCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
-  if (this->logLevel > LogLevel::QUIET) std::cout << "Model saved to: " << outputPathStr << "\n";
-
-  return 0;
+  return this->finishCNNTraining(inputFilePath);
 }
 
 //===================================================================================================================//
@@ -952,131 +918,132 @@ std::string Runner::generateCheckpointPath(
 }
 
 //===================================================================================================================//
-
-//===================================================================================================================//
-//-- Data augmentation helpers --//
+//  Training helpers
 //===================================================================================================================//
 
-// Helper: get class index from one-hot output vector
-static ulong getClassIndex(const std::vector<float>& output) {
-  return static_cast<ulong>(std::distance(output.begin(),
-      std::max_element(output.begin(), output.end())));
-}
+void Runner::setupANNTrainingCallback(const QString& inputFilePath) {
+  static ulong lastCallbackEpoch = 0;
+  static float lastEpochLoss = 0.0f;
+  lastCallbackEpoch = 0;
+  lastEpochLoss = 0.0f;
 
-// Helper: get data pointer and shape from a sample's input (works for both ANN and CNN)
-static std::vector<float>& getInputData(ANN::Sample<float>& sample) { return sample.input; }
-static std::vector<float>& getInputData(CNN::Sample<float>& sample) { return sample.input.data; }
+  static ProgressBar progressBar(this->progressReports);
 
-static const std::vector<float>& getOutputVec(const ANN::Sample<float>& sample) { return sample.output; }
-static const std::vector<float>& getOutputVec(const CNN::Sample<float>& sample) { return sample.output; }
-
-// Helper: get image shape from IOConfig or CNN shape
-struct ImageShape { int c, h, w; };
-
-template <typename SampleT>
-void Runner::augmentSamples(std::vector<SampleT>& samples) {
-  if (this->augmentationFactor == 0 && !this->balanceAugmentation) return;
-  if (samples.empty()) return;
-
-  // Determine image shape
-  ImageShape shape{0, 0, 0};
-  if (this->networkType == NetworkType::CNN) {
-    shape.c = static_cast<int>(this->cnnCoreConfig.inputShape.c);
-    shape.h = static_cast<int>(this->cnnCoreConfig.inputShape.h);
-    shape.w = static_cast<int>(this->cnnCoreConfig.inputShape.w);
-  } else if (this->ioConfig.hasInputShape()) {
-    shape.c = static_cast<int>(this->ioConfig.inputC);
-    shape.h = static_cast<int>(this->ioConfig.inputH);
-    shape.w = static_cast<int>(this->ioConfig.inputW);
-  }
-
-  bool hasImageShape = (shape.c > 0 && shape.h > 0 && shape.w > 0);
-
-  // Count samples per class
-  std::map<ulong, std::vector<ulong>> classIndices;
-  for (ulong i = 0; i < samples.size(); i++) {
-    ulong cls = getClassIndex(getOutputVec(samples[i]));
-    classIndices[cls].push_back(i);
-  }
-
-  ulong maxClassCount = 0;
-  for (const auto& [cls, indices] : classIndices) {
-    maxClassCount = std::max(maxClassCount, static_cast<ulong>(indices.size()));
-  }
-
-  std::mt19937 rng(42);
-  std::vector<SampleT> augmented;
-
-  for (const auto& [cls, indices] : classIndices) {
-    ulong currentCount = indices.size();
-    ulong targetCount = currentCount;
-
-    if (this->augmentationFactor > 0) {
-      targetCount = currentCount * this->augmentationFactor;
+  this->annCore->setTrainingCallback([this, inputFilePath](const ANN::TrainingProgress<float>& progress) {
+    if (this->logLevel > LogLevel::QUIET) {
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
+                        progress.currentSample, progress.totalSamples,
+                        progress.epochLoss, progress.sampleLoss,
+                        progress.gpuIndex, progress.totalGPUs};
+      progressBar.update(info);
     }
 
-    if (this->balanceAugmentation) {
-      ulong balancedTarget = maxClassCount;
-      if (this->augmentationFactor > 0)
-        balancedTarget = maxClassCount * this->augmentationFactor;
-      targetCount = std::max(targetCount, balancedTarget);
-    }
-
-    // Generate augmented samples to reach targetCount (original samples are kept)
-    ulong toGenerate = (targetCount > currentCount) ? (targetCount - currentCount) : 0;
-
-    for (ulong i = 0; i < toGenerate; i++) {
-      // Pick a random original sample from this class
-      std::uniform_int_distribution<ulong> dist(0, currentCount - 1);
-      ulong srcIdx = indices[dist(rng)];
-
-      SampleT newSample = samples[srcIdx]; // copy
-
-      if (hasImageShape) {
-        ImageLoader::applyRandomTransforms(getInputData(newSample), shape.c, shape.h, shape.w, rng,
-                                              this->augTransforms, this->augmentationProbability);
-      } else if (this->augTransforms.gaussianNoise > 0.0f) {
-        // For non-image data, add Gaussian noise with configured stddev
-        ImageLoader::addGaussianNoise(getInputData(newSample), this->augTransforms.gaussianNoise, rng);
+    if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
+        std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+        saveANNModel(*this->annCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
+        if (this->logLevel > LogLevel::QUIET) std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
-
-      augmented.push_back(std::move(newSample));
+      lastCallbackEpoch = progress.currentEpoch;
     }
-  }
 
-  if (this->logLevel >= LogLevel::INFO && !augmented.empty()) {
-    std::cout << "Data augmentation: " << samples.size() << " original + "
-              << augmented.size() << " augmented = "
-              << (samples.size() + augmented.size()) << " total samples\n";
-  }
-
-  samples.insert(samples.end(),
-      std::make_move_iterator(augmented.begin()),
-      std::make_move_iterator(augmented.end()));
+    if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
+  });
 }
-
-// Explicit template instantiations
-template void Runner::augmentSamples<ANN::Sample<float>>(std::vector<ANN::Sample<float>>&);
-template void Runner::augmentSamples<CNN::Sample<float>>(std::vector<CNN::Sample<float>>&);
 
 //===================================================================================================================//
 
-template <typename SampleT>
-std::vector<float> Runner::computeClassWeights(const std::vector<SampleT>& samples) {
-  if (samples.empty()) return {};
+void Runner::setupCNNTrainingCallback(const QString& inputFilePath) {
+  static ulong lastCallbackEpoch = 0;
+  static float lastEpochLoss = 0.0f;
+  lastCallbackEpoch = 0;
+  lastEpochLoss = 0.0f;
 
-  ulong numClasses = getOutputVec(samples[0]).size();
+  static ProgressBar progressBar(this->progressReports);
 
-  // Count samples per class
+  this->cnnCore->setTrainingCallback([this, inputFilePath](const CNN::TrainingProgress<float>& progress) {
+    if (this->logLevel > LogLevel::QUIET) {
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs,
+                        progress.currentSample, progress.totalSamples,
+                        progress.epochLoss, progress.sampleLoss,
+                        progress.gpuIndex, progress.totalGPUs};
+      progressBar.update(info);
+    }
+
+    if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
+        std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+        saveCNNModel(*this->cnnCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
+        if (this->logLevel > LogLevel::QUIET) std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
+      }
+      lastCallbackEpoch = progress.currentEpoch;
+    }
+
+    if (progress.epochLoss > 0) lastEpochLoss = progress.epochLoss;
+  });
+}
+
+//===================================================================================================================//
+
+int Runner::finishANNTraining(const QString& inputFilePath) {
+  if (this->logLevel > LogLevel::QUIET) std::cout << "\nTraining completed.\n";
+
+  const auto& trainingConfig = this->annCore->getTrainingConfig();
+  const auto& trainingMetadata = this->annCore->getTrainingMetadata();
+
+  std::string outputPathStr;
+  if (this->parser.isSet("output")) {
+    outputPathStr = this->parser.value("output").toStdString();
+  } else {
+    outputPathStr = generateDefaultOutputPath(
+      inputFilePath, trainingConfig.numEpochs,
+      trainingMetadata.numSamples, trainingMetadata.finalLoss);
+  }
+
+  saveANNModel(*this->annCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
+  if (this->logLevel > LogLevel::QUIET) std::cout << "Model saved to: " << outputPathStr << "\n";
+  return 0;
+}
+
+//===================================================================================================================//
+
+int Runner::finishCNNTraining(const QString& inputFilePath) {
+  if (this->logLevel > LogLevel::QUIET) std::cout << "\nTraining completed.\n";
+
+  const auto& trainingConfig = this->cnnCore->getTrainingConfig();
+  const auto& trainingMetadata = this->cnnCore->getTrainingMetadata();
+
+  std::string outputPathStr;
+  if (this->parser.isSet("output")) {
+    outputPathStr = this->parser.value("output").toStdString();
+  } else {
+    outputPathStr = generateDefaultOutputPath(
+      inputFilePath, trainingConfig.numEpochs,
+      trainingMetadata.numSamples, trainingMetadata.finalLoss);
+  }
+
+  saveCNNModel(*this->cnnCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
+  if (this->logLevel > LogLevel::QUIET) std::cout << "Model saved to: " << outputPathStr << "\n";
+  return 0;
+}
+
+//===================================================================================================================//
+//  Class weight computation
+//===================================================================================================================//
+
+std::vector<float> Runner::computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs) {
+  if (outputs.empty()) return {};
+
+  ulong numClasses = outputs[0].size();
   std::vector<ulong> classCounts(numClasses, 0);
-  for (const auto& sample : samples) {
-    ulong cls = getClassIndex(getOutputVec(sample));
+
+  for (const auto& output : outputs) {
+    ulong cls = static_cast<ulong>(std::distance(output.begin(),
+        std::max_element(output.begin(), output.end())));
     if (cls < numClasses) classCounts[cls]++;
   }
 
-  ulong totalSamples = samples.size();
-
-  // Inverse-frequency weighting: weight_c = totalSamples / (numClasses * count_c)
+  ulong totalSamples = outputs.size();
   std::vector<float> weights(numClasses, 1.0f);
   for (ulong c = 0; c < numClasses; c++) {
     if (classCounts[c] > 0) {
@@ -1087,6 +1054,3 @@ std::vector<float> Runner::computeClassWeights(const std::vector<SampleT>& sampl
 
   return weights;
 }
-
-template std::vector<float> Runner::computeClassWeights<ANN::Sample<float>>(const std::vector<ANN::Sample<float>>&);
-template std::vector<float> Runner::computeClassWeights<CNN::Sample<float>>(const std::vector<CNN::Sample<float>>&);

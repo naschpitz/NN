@@ -61,12 +61,14 @@ class Runner {
     static std::string generateCheckpointPath(
       const QString& inputFilePath, ulong epoch, float loss);
 
-    //-- Data augmentation helpers --//
-    template <typename SampleT>
-    void augmentSamples(std::vector<SampleT>& samples);
+    //-- Training helpers --//
+    void setupANNTrainingCallback(const QString& inputFilePath);
+    void setupCNNTrainingCallback(const QString& inputFilePath);
+    int finishANNTraining(const QString& inputFilePath);
+    int finishCNNTraining(const QString& inputFilePath);
 
-    template <typename SampleT>
-    std::vector<float> computeClassWeights(const std::vector<SampleT>& samples);
+    //-- Class weight computation --//
+    std::vector<float> computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs);
 
     //-- Configuration --//
     const QCommandLineParser& parser;

@@ -19,6 +19,7 @@ endif()
 
 add_executable(NN-CLI
   main.cpp
+  NN-CLI_DataLoader.cpp
   NN-CLI_DataType.cpp
   NN-CLI_ImageLoader.cpp
   NN-CLI_Loader.cpp
@@ -46,11 +47,25 @@ install(TARGETS NN-CLI
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# Test executable — uses QProcess to invoke NN-CLI binary, no ANN/CNN linking needed
+# Test executable — integration tests use QProcess; unit tests link against libraries directly
 add_executable(test_nncli
   tests/test_main.cpp
   tests/test_ann.cpp
   tests/test_cnn.cpp
   tests/test_errors.cpp
+  tests/test_dataloader.cpp
+  NN-CLI_DataLoader.cpp
+  NN-CLI_DataType.cpp
+  NN-CLI_ImageLoader.cpp
+  NN-CLI_Loader.cpp
+  NN-CLI_ProgressBar.cpp
 )
-target_link_libraries(test_nncli PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+target_include_directories(test_nncli PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/CNN/libs/nlohmann
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
+)
+target_link_libraries(test_nncli PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    CNN
+)

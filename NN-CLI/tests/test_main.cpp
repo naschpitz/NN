@@ -11,6 +11,7 @@ bool runFullTests = false;
 void runANNTests();
 void runCNNTests();
 void runErrorTests();
+void runDataLoaderTests();
 
 int main(int argc, char* argv[]) {
   // Parse --full flag before QCoreApplication consumes argv
@@ -40,6 +41,10 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   std::cout << "=== Error Handling Tests ===" << std::endl;
   runErrorTests();
+
+  std::cout << std::endl;
+  std::cout << "=== DataLoader Tests ===" << std::endl;
+  runDataLoaderTests();
 
   // Cleanup temp files
   cleanupTemp();
