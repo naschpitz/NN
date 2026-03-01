@@ -31,7 +31,7 @@ add_executable(NN-CLI
 # nlohmann JSON library (header-only, used directly by NN-CLI for config serialisation)
 # stb image library (header-only, used for image loading/saving)
 target_include_directories(NN-CLI PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/extern/CNN/libs/nlohmann
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
 )
 
@@ -62,7 +62,7 @@ add_executable(test_nncli
 )
 target_include_directories(test_nncli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/extern/CNN/libs/nlohmann
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
 )
 target_link_libraries(test_nncli PRIVATE
