@@ -9,6 +9,7 @@
 #include <QtConcurrent>
 
 #include <algorithm>
+#include <deque>
 #include <iostream>
 #include <stdexcept>
 
@@ -225,39 +226,62 @@ template <typename SampleT>
 typename DataLoader<SampleT>::ProviderT
 DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& transforms,
                                        float augmentationProbability) const {
-  // Shared state for prefetching the next batch in the background.
-  auto prefetch = std::make_shared<QFuture<std::vector<SampleT>>>();
-  auto hasPrefetch = std::make_shared<bool>(false);
+  constexpr int PREFETCH_DEPTH = 3;
 
-  return [this, prefetch, hasPrefetch, transforms, augmentationProbability](
+  // Queue of prefetched batches. Each entry is a future that resolves to a loaded batch.
+  auto queue = std::make_shared<std::deque<QFuture<std::vector<SampleT>>>>();
+
+  // Helper: submit a prefetch for the batch starting at `start` up to `end`.
+  auto submitPrefetch = [this, transforms, augmentationProbability](
+      const std::vector<ulong>& sampleIndices, ulong start, ulong end,
+      std::deque<QFuture<std::vector<SampleT>>>& q) {
+    std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
+
+    q.push_back(QtConcurrent::run(
+        [this, indices = std::move(indices), transforms, augmentationProbability]() {
+          return this->loadBatch(indices, transforms, augmentationProbability);
+        }));
+  };
+
+  return [this, queue, submitPrefetch, transforms, augmentationProbability](
       const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
     ulong numSamples = sampleIndices.size();
     ulong start = batchIndex * batchSize;
     ulong end = std::min(start + batchSize, numSamples);
 
-    // If the previous call prefetched this batch, retrieve it; otherwise load now.
+    // On first call of an epoch (batchIndex == 0), prime the queue.
+    if (batchIndex == 0) {
+      // Wait for and discard any leftover futures from the previous epoch.
+      for (auto& f : *queue) f.waitForFinished();
+      queue->clear();
+
+      // Submit the current batch + up to PREFETCH_DEPTH ahead.
+      for (int i = 0; i <= PREFETCH_DEPTH; i++) {
+        ulong s = static_cast<ulong>(i) * batchSize;
+        if (s >= numSamples) break;
+        ulong e = std::min(s + batchSize, numSamples);
+        submitPrefetch(sampleIndices, s, e, *queue);
+      }
+    }
+
+    // Pop the front of the queue — this is the current batch.
     std::vector<SampleT> batch;
-    if (*hasPrefetch) {
-      prefetch->waitForFinished();
-      batch = prefetch->result();
-      *hasPrefetch = false;
+    if (!queue->empty()) {
+      queue->front().waitForFinished();
+      batch = queue->front().result();
+      queue->pop_front();
     } else {
+      // Fallback: queue empty (shouldn't happen in normal flow).
       std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
       batch = this->loadBatch(indices, transforms, augmentationProbability);
     }
 
-    // Prefetch the next batch in the background (parallel image loading inside loadBatch).
-    ulong nextStart = end;
+    // Submit the next batch to keep the queue at PREFETCH_DEPTH.
+    ulong nextBatchIdx = batchIndex + 1 + PREFETCH_DEPTH;
+    ulong nextStart = nextBatchIdx * batchSize;
     if (nextStart < numSamples) {
       ulong nextEnd = std::min(nextStart + batchSize, numSamples);
-      std::vector<ulong> nextIndices(sampleIndices.begin() + nextStart,
-                                     sampleIndices.begin() + nextEnd);
-
-      *prefetch = QtConcurrent::run(
-          [this, indices = std::move(nextIndices), transforms, augmentationProbability]() {
-            return this->loadBatch(indices, transforms, augmentationProbability);
-          });
-      *hasPrefetch = true;
+      submitPrefetch(sampleIndices, nextStart, nextEnd, *queue);
     }
 
     return batch;
