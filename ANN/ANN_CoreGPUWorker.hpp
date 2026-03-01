@@ -1,6 +1,7 @@
 #ifndef ANN_COREGPUWORKER_H
 #define ANN_COREGPUWORKER_H
 
+#include "ANN_Worker.hpp"
 #include "ANN_Core.hpp"
 
 #include <OCLW_Core.hpp>
@@ -13,7 +14,7 @@
 
 namespace ANN {
   template <typename T>
-  class CoreGPUWorker {
+  class CoreGPUWorker : public Worker<T> {
     public:
       // Standalone constructor — creates its own OpenCL core
       CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
@@ -85,7 +86,6 @@ namespace ANN {
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
       Parameters<T> parameters;
-      CostFunctionConfig<T> costFunctionConfig;
       ulong progressReports = 1000;
       LogLevel logLevel = LogLevel::ERROR;
 
@@ -117,9 +117,6 @@ namespace ANN {
       ulong getActvOffset(ulong layerIdx) const;
       ulong getWeightOffset(ulong layerIdx) const;
       ulong getBiasOffset(ulong layerIdx) const;
-
-      //-- Loss --//
-      T calculateLoss(const Output<T>& expected);
 
       std::mt19937 dropoutRng{std::random_device{}()};
   };

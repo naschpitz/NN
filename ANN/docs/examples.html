@@ -119,10 +119,10 @@ std::cout &lt;&lt; <span class="string">"Test — Samples: "</span> &lt;&lt; res
     core-&gt;resetAccumulators();
 
     <span class="keyword">for</span> (<span class="keyword">auto</span>&amp; sample : samples) {
-        <span class="comment">// 1. Forward pass</span>
+        <span class="comment">// 1. Propagate</span>
         ANN::Output&lt;<span class="type">float</span>&gt; output = core-&gt;predict(sample.input);
 
-        <span class="comment">// 2. Backward pass — computes gradients for this sample</span>
+        <span class="comment">// 2. Backpropagate — computes gradients for this sample</span>
         core-&gt;backpropagate(sample.output);
 
         <span class="comment">// 3. Add gradients to running accumulators</span>
@@ -135,7 +135,7 @@ std::cout &lt;&lt; <span class="string">"Test — Samples: "</span> &lt;&lt; res
 </code></pre>
 
 <div class="info-box">
-  <strong>When to use:</strong> Step-by-step mode is used internally by the CNN library, where the forward pass goes through CNN layers first, then through the ANN dense layers. The ANN's <code>backpropagate()</code> returns input gradients that flow back into the CNN layers.
+  <strong>When to use:</strong> Step-by-step mode is used internally by the CNN library, where propagation goes through CNN layers first, then through the ANN dense layers. The ANN's <code>backpropagate()</code> returns input gradients that flow back into the CNN layers.
 </div>
 
 <h2 id="gpu">6. GPU Training</h2>

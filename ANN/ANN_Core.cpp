@@ -46,23 +46,6 @@ void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig) {
 //===================================================================================================================//
 
 template <typename T>
-T Core<T>::calculateLoss(const Output<T>& expected) {
-  ulong numLayers = this->layersConfig.size();
-  const Output<T>& actual = this->actvs[numLayers - 1];
-
-  T loss = 0;
-  
-  for (ulong i = 0; i < expected.size(); i++) {
-    T diff = actual[i] - expected[i];
-    loss += diff * diff;
-  }
-
-  return loss / static_cast<T>(expected.size());
-}
-
-//===================================================================================================================//
-
-template <typename T>
 void Core<T>::trainingStart(ulong numSamples) {
   this->trainingStartTime = std::chrono::system_clock::now();
   this->trainingMetadata.startTime = Utils<T>::formatISO8601();

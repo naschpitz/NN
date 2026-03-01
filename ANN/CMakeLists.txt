@@ -22,7 +22,9 @@ add_library(ANN STATIC
   ANN_ActvFunc.hpp ANN_ActvFunc.cpp
   ANN_Utils.hpp ANN_Utils.cpp
   ANN_Mode.hpp ANN_Mode.cpp
+  ANN_Worker.hpp ANN_Worker.cpp
   ANN_CoreCPU.hpp ANN_CoreCPU.cpp
+  ANN_CoreCPUWorker.hpp ANN_CoreCPUWorker.cpp
   ANN_CoreGPU.hpp ANN_CoreGPU.cpp
   ANN_CoreGPUWorker.hpp ANN_CoreGPUWorker.cpp
   ANN_Device.hpp ANN_Device.cpp

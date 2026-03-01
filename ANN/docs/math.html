@@ -35,7 +35,7 @@
   <ol>
     <li><a href="#neuron">The Neuron Model</a></li>
     <li><a href="#activations">Activation Functions</a></li>
-    <li><a href="#forward">Forward Propagation</a></li>
+    <li><a href="#propagation">Propagation</a></li>
     <li><a href="#loss">Loss Function</a></li>
     <li><a href="#backprop">Backpropagation</a></li>
     <li><a href="#sgd">Stochastic Gradient Descent</a></li>
@@ -67,7 +67,7 @@
 </ul>
 
 <div class="tip-box">
-  <strong>Code link:</strong> The forward computation is in <code>CoreCPU::propagate()</code>. On GPU, the kernels <code>calculate_zs</code> and <code>calculate_actvs</code> in <code>Kernels.cpp.cl</code> perform the same calculation.
+  <strong>Code link:</strong> The propagation is in <code>CoreCPU::propagate()</code>. On GPU, the kernels <code>calculate_zs</code> and <code>calculate_actvs</code> in <code>Kernels.cpp.cl</code> perform the same calculation.
 </div>
 
 <figure class="diagram">
@@ -147,8 +147,8 @@
 <p>Maps inputs to \((-1, 1)\). Zero-centred outputs help gradient flow. Use with <strong>Xavier initialisation</strong>.</p>
 
 <!-- ========== FORWARD ========== -->
-<h2 id="forward">3. Forward Propagation</h2>
-<p>The forward pass transforms an input vector through the entire network. For a network with \( L \) layers (layer 0 is the input layer):</p>
+<h2 id="propagation">3. Propagation</h2>
+<p>Propagation transforms an input vector through the entire network. For a network with \( L \) layers (layer 0 is the input layer):</p>
 
 <div class="math-block">
 \[
@@ -207,7 +207,7 @@
 \]
 </div>
 
-<p>This is the key recursive step — the gradient at layer \( l \) depends on the gradients at layer \( l+1 \). This is why we compute backwards from the output.</p>
+<p>This is the key recursive step — the gradient at layer \( l \) depends on the gradients at layer \( l+1 \). This is why we compute in reverse from the output.</p>
 
 <div class="tip-box">
   <strong>Code:</strong> <code>CoreCPU::calc_dCost_dActv(l, k, zs, dCost_dActvs)</code> — iterates over all neurons \( j \) in the next layer.

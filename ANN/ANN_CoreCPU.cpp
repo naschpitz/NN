@@ -16,15 +16,15 @@ using namespace ANN;
 
 template <typename T>
 CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig) {
-  this->allocateCommon();
+  this->initializeParameters();
 
-  switch (this->modeType) {
-    case ModeType::TRAIN:
-      this->allocateTraining();
-      break;
-    case ModeType::PREDICT:
-    case ModeType::TEST:
-      break;
+  // Create the step worker (used for predict and step-by-step training path)
+  bool allocateTraining = (this->modeType == ModeType::TRAIN);
+  this->stepWorker = std::make_unique<CoreCPUWorker<T>>(
+      this->layersConfig, this->trainingConfig, this->parameters, this->costFunctionConfig, allocateTraining);
+
+  if (allocateTraining) {
+    this->allocateGlobalAccumulators();
   }
 }
 
@@ -34,8 +34,8 @@ template <typename T>
 Output<T> CoreCPU<T>::predict(const Input<T>& input) {
   this->predictStart();
 
-  this->propagate(input);
-  Output<T> output = this->getOutput();
+  this->stepWorker->propagate(input);
+  Output<T> output = this->stepWorker->getOutput();
 
   this->predictEnd();
 
@@ -63,10 +63,10 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   batchSize = std::max(numWorkers, (batchSize / numWorkers) * numWorkers);
 
   // Pre-allocate workers for each thread
-  std::vector<SampleWorker<T>> workers(numThreads);
-
+  std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
   for (int i = 0; i < numThreads; i++) {
-    this->allocateWorker(workers[i]);
+    workers.push_back(std::make_unique<CoreCPUWorker<T>>(
+        this->layersConfig, this->trainingConfig, this->parameters, this->costFunctionConfig, true));
   }
 
   // Atomic counter for assigning unique worker indices to threads
@@ -98,51 +98,48 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       ulong currentBatchSize = batchEnd - batchStart;
 
       // Reset global accumulators at the start of each batch
-      this->resetAccumulators();
+      this->resetGlobalAccumulators();
 
       // Reset worker accumulators at the start of each batch (including loss)
       for (int i = 0; i < numThreads; i++) {
-        this->resetWorkerAccumulators(workers[i]);
-        workers[i].accum_loss = 0;
+        workers[i]->resetAccumulators();
+        workers[i]->resetAccumLoss();
       }
 
       // Fetch batch samples via provider
       Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchIndex);
 
       // Use blockingMap to process all samples in the batch in parallel
-      // Iterate by local index (0..currentBatchSize-1) into the fetched batchSamples
       QVector<ulong> localIndices(currentBatchSize);
       std::iota(localIndices.begin(), localIndices.end(), 0);
 
       QtConcurrent::blockingMap(localIndices, [&, numThreads](ulong localIdx) {
         // Each thread gets a unique worker index on first use (thread_local persists for thread lifetime)
         thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
-        SampleWorker<T>& worker = workers[workerIndex];
+        CoreCPUWorker<T>& worker = *workers[workerIndex];
 
-        // Process the sample using the shared computation functions
+        // Process the sample
         const Sample<T>& sample = batchSamples[localIdx];
-        this->propagate(sample.input, worker.actvs, worker.zs, true, &worker.dropoutMasks, &worker.rng);
-        worker.sampleLoss = this->calculateLoss(sample.output, worker.actvs);
+        worker.propagate(sample.input, true);
+        T sampleLoss = worker.computeLoss(sample.output);
 
-        this->backpropagate(sample.output, worker.actvs, worker.zs,
-                            worker.dCost_dActvs, worker.dCost_dWeights, worker.dCost_dBiases,
-                            &worker.dropoutMasks);
+        worker.backpropagate(sample.output);
 
         // Accumulate loss to worker's local accumulator (no atomic needed - each thread has its own worker)
-        worker.accum_loss += worker.sampleLoss;
+        worker.addToAccumLoss(sampleLoss);
 
         // Accumulate gradients to worker's local accumulators (no mutex needed)
-        this->accumulateToWorker(worker);
+        worker.accumulate();
 
         // Increment completed samples counter and report progress
         ulong completed = ++completedSamples;
-        this->reportProgress(e + 1, numEpochs, completed, numSamples, worker.sampleLoss, 0, callbackMutex);
+        this->reportProgress(e + 1, numEpochs, completed, numSamples, sampleLoss, 0, callbackMutex);
       });
 
       // Merge all worker accumulators into global accumulators
       for (int i = 0; i < numThreads; i++) {
-        this->mergeWorkerAccumulators(workers[i]);
-        epochLoss += workers[i].accum_loss;
+        this->mergeWorkerAccumulators(*workers[i]);
+        epochLoss += workers[i]->getAccumLoss();
       }
 
       // Update weights after each mini-batch
@@ -173,67 +170,49 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
     numThreads = QThreadPool::globalInstance()->maxThreadCount();
   }
 
-  // Pre-allocate workers for each thread (only need actvs and zs for forward pass)
-  struct TestWorker {
-    Tensor2D<T> actvs;
-    Tensor2D<T> zs;
-    T accum_loss;
-    ulong accum_correct;
-  };
-
-  std::vector<TestWorker> workers(numThreads);
-  ulong numLayers = this->layersConfig.size();
-
+  // Pre-allocate workers for each thread (forward pass only — no training buffers)
+  std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
   for (int i = 0; i < numThreads; i++) {
-    workers[i].actvs.resize(numLayers);
-    workers[i].zs.resize(numLayers);
-    workers[i].accum_loss = 0;
-    workers[i].accum_correct = 0;
-
-    for (ulong l = 0; l < numLayers; l++) {
-      Layer layer = this->layersConfig[l];
-      ulong numNeurons = layer.numNeurons;
-      workers[i].actvs[l].resize(numNeurons);
-    }
-
-    for (ulong l = 1; l < numLayers; l++) {
-      Layer layer = this->layersConfig[l];
-      ulong numNeurons = layer.numNeurons;
-      workers[i].zs[l].resize(numNeurons);
-    }
+    workers.push_back(std::make_unique<CoreCPUWorker<T>>(
+        this->layersConfig, this->trainingConfig, this->parameters, this->costFunctionConfig, false));
   }
+
+  ulong numLayers = this->layersConfig.size();
 
   // Atomic counter for assigning unique worker indices to threads
   std::atomic<int> nextWorkerIndex{0};
 
   // Pre-allocate sample indices vector
   QVector<ulong> sampleIndices(numSamples);
-
   for (ulong s = 0; s < numSamples; s++) {
     sampleIndices[s] = s;
   }
 
+  // Per-worker loss and correct counters
+  std::vector<T> workerLosses(numThreads, 0);
+  std::vector<ulong> workerCorrects(numThreads, 0);
+
   // Use blockingMap to process all samples in parallel
-  QtConcurrent::blockingMap(sampleIndices, [&, numThreads](ulong sampleIndex) {
+  QtConcurrent::blockingMap(sampleIndices, [&, numThreads, numLayers](ulong sampleIndex) {
     // Each thread gets a unique worker index on first use
     thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
-    TestWorker& worker = workers[workerIndex];
+    CoreCPUWorker<T>& worker = *workers[workerIndex];
 
     // Process the sample - forward pass only
     const Sample<T>& sample = samples[sampleIndex];
-    this->propagate(sample.input, worker.actvs, worker.zs);
-    T sampleLoss = this->calculateLoss(sample.output, worker.actvs);
+    worker.propagate(sample.input);
+    T sampleLoss = worker.computeLoss(sample.output);
 
     // Accumulate loss
-    worker.accum_loss += sampleLoss;
+    workerLosses[workerIndex] += sampleLoss;
 
     // Accuracy: compare argmax of predicted vs expected
-    const auto& outputActvs = worker.actvs[numLayers - 1];
+    const auto& outputActvs = worker.getActvs()[numLayers - 1];
     auto predIdx = std::distance(outputActvs.begin(), std::max_element(outputActvs.begin(), outputActvs.end()));
     auto expIdx = std::distance(sample.output.begin(), std::max_element(sample.output.begin(), sample.output.end()));
 
     if (predIdx == expIdx)
-      worker.accum_correct++;
+      workerCorrects[workerIndex]++;
   });
 
   // Sum up losses and correct counts from all workers
@@ -241,8 +220,8 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
   ulong totalCorrect = 0;
 
   for (int i = 0; i < numThreads; i++) {
-    totalLoss += workers[i].accum_loss;
-    totalCorrect += workers[i].accum_correct;
+    totalLoss += workerLosses[i];
+    totalCorrect += workerCorrects[i];
   }
 
   TestResult<T> result;
@@ -256,32 +235,22 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples) {
 }
 
 //===================================================================================================================//
-// Functions used in init()
+// Initialization
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::allocateCommon() {
+void CoreCPU<T>::initializeParameters() {
   ulong numLayers = this->layersConfig.size();
 
   // Check if parameters were loaded from file (non-empty)
   bool hasLoadedParameters = !this->parameters.weights.empty() &&
                              this->parameters.weights.size() == numLayers;
 
-  this->actvs.resize(numLayers);
-  this->zs.resize(numLayers);
+  if (hasLoadedParameters) return;
 
-  // Only resize parameters if not loaded from file
-  if (!hasLoadedParameters) {
-    this->parameters.weights.resize(numLayers);
-    this->parameters.biases.resize(numLayers);
-  }
-
-  for (ulong l = 0; l < numLayers; l++) {
-    Layer layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
-
-    this->actvs[l].resize(numNeurons);
-  }
+  // Initialize weights and biases
+  this->parameters.weights.resize(numLayers);
+  this->parameters.biases.resize(numLayers);
 
   // Random number generator for weight initialization
   std::random_device rd;
@@ -290,36 +259,28 @@ void CoreCPU<T>::allocateCommon() {
   for (ulong l = 1; l < numLayers; l++) {
     Layer layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
-    ulong prevNumNeurons = this->actvs[l - 1].size();
+    ulong prevNumNeurons = this->layersConfig[l - 1].numNeurons;
 
-    this->zs[l].resize(numNeurons);
+    this->parameters.weights[l].resize(numNeurons);
+    this->parameters.biases[l].resize(numNeurons, static_cast<T>(0));
 
-    // Only initialize weights if not loaded from file
-    if (!hasLoadedParameters) {
-      this->parameters.weights[l].resize(numNeurons);
-      this->parameters.biases[l].resize(numNeurons, static_cast<T>(0));
+    // He initialization for ReLU, Xavier for sigmoid/tanh
+    ActvFuncType actvFuncType = layer.actvFuncType;
+    double stddev;
 
-      // He initialization for ReLU, Xavier for sigmoid/tanh
-      // stddev = sqrt(2 / fan_in) for He, sqrt(1 / fan_in) for Xavier
-      ActvFuncType actvFuncType = layer.actvFuncType;
-      double stddev;
-      
-      if (actvFuncType == ActvFuncType::RELU) {
-        stddev = std::sqrt(2.0 / static_cast<double>(prevNumNeurons));
-      } else {
-        stddev = std::sqrt(1.0 / static_cast<double>(prevNumNeurons));
-      }
+    if (actvFuncType == ActvFuncType::RELU) {
+      stddev = std::sqrt(2.0 / static_cast<double>(prevNumNeurons));
+    } else {
+      stddev = std::sqrt(1.0 / static_cast<double>(prevNumNeurons));
+    }
 
-      // Use double for the distribution, then cast to T
-      std::normal_distribution<double> dist(0.0, stddev);
+    std::normal_distribution<double> dist(0.0, stddev);
 
-      for (ulong j = 0; j < numNeurons; j++) {
-        this->parameters.weights[l][j].resize(prevNumNeurons);
+    for (ulong j = 0; j < numNeurons; j++) {
+      this->parameters.weights[l][j].resize(prevNumNeurons);
 
-        // Initialize weights with random values
-        for (ulong k = 0; k < prevNumNeurons; k++) {
-          this->parameters.weights[l][j][k] = static_cast<T>(dist(gen));
-        }
+      for (ulong k = 0; k < prevNumNeurons; k++) {
+        this->parameters.weights[l][j][k] = static_cast<T>(dist(gen));
       }
     }
   }
@@ -328,300 +289,32 @@ void CoreCPU<T>::allocateCommon() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::allocateTraining() {
+void CoreCPU<T>::allocateGlobalAccumulators() {
   ulong numLayers = this->layersConfig.size();
 
-  this->dCost_dActvs.resize(numLayers);
   this->accum_dCost_dWeights.resize(numLayers);
-  this->dropoutMasks.resize(numLayers);
-
-  this->dCost_dWeights.resize(numLayers);
-  this->dCost_dBiases.resize(numLayers);
   this->accum_dCost_dBiases.resize(numLayers);
-
-  // Allocate dCost_dActvs for input layer (needed for backpropagate() to return input gradients)
-  this->dCost_dActvs[0].resize(this->layersConfig[0].numNeurons);
 
   for (ulong l = 1; l < numLayers; l++) {
     Layer layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
+    ulong prevNumNeurons = this->layersConfig[l - 1].numNeurons;
 
-    this->dCost_dActvs[l].resize(numNeurons);
-    this->dCost_dWeights[l].resize(numNeurons);
     this->accum_dCost_dWeights[l].resize(numNeurons);
-
-    this->dCost_dBiases[l].resize(numNeurons);
     this->accum_dCost_dBiases[l].resize(numNeurons);
 
-    // The number of neurons is the same as the number of activations.
-    ulong prevNumNeurons = this->actvs[l - 1].size();
-
     for (ulong j = 0; j < numNeurons; j++) {
-      this->dCost_dWeights[l][j].resize(prevNumNeurons);
       this->accum_dCost_dWeights[l][j].resize(prevNumNeurons);
     }
   }
 }
 
 //===================================================================================================================//
-
-template <typename T>
-void CoreCPU<T>::allocateWorker(SampleWorker<T>& worker) {
-  ulong numLayers = this->layersConfig.size();
-
-  worker.actvs.resize(numLayers);
-  worker.zs.resize(numLayers);
-  worker.dCost_dActvs.resize(numLayers);
-  worker.dCost_dWeights.resize(numLayers);
-  worker.dCost_dBiases.resize(numLayers);
-  worker.accum_dCost_dWeights.resize(numLayers);
-  worker.accum_dCost_dBiases.resize(numLayers);
-  worker.dropoutMasks.resize(numLayers);
-
-  for (ulong l = 0; l < numLayers; l++) {
-    Layer layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
-
-    worker.actvs[l].resize(numNeurons);
-  }
-
-  for (ulong l = 1; l < numLayers; l++) {
-    Layer layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
-    ulong prevNumNeurons = worker.actvs[l - 1].size();
-
-    worker.zs[l].resize(numNeurons);
-    worker.dCost_dActvs[l].resize(numNeurons);
-    worker.dCost_dWeights[l].resize(numNeurons);
-    worker.dCost_dBiases[l].resize(numNeurons);
-    worker.accum_dCost_dWeights[l].resize(numNeurons);
-    worker.accum_dCost_dBiases[l].resize(numNeurons);
-
-    for (ulong j = 0; j < numNeurons; j++) {
-      worker.dCost_dWeights[l][j].resize(prevNumNeurons);
-      worker.accum_dCost_dWeights[l][j].resize(prevNumNeurons);
-    }
-  }
-}
-
-//===================================================================================================================//
-// Core computation functions (parameterized - used by both single-threaded and multi-threaded paths)
+// Training helpers
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::propagate(const Input<T>& input, Tensor2D<T>& actvs, Tensor2D<T>& zs,
-                            bool applyDropout, Tensor2D<T>* dropoutMasks, std::mt19937* rng) {
-  ulong numLayers = this->layersConfig.size();
-  float dropoutRate = this->trainingConfig.dropoutRate;
-
-  // Set the actvs values of the Neurons of the first layer the same values as the input.
-  actvs[0] = input;
-
-  // Propagate from the second layer on, as the first layer is input only.
-  for (ulong l = 1; l < numLayers; l++) {
-    const Layer& prevLayer = this->layersConfig[l - 1];
-    ulong prevNumNeurons = prevLayer.numNeurons;
-
-    const Layer& layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
-
-    // Compute weighted sums (zs) for all neurons in this layer
-    for (ulong j = 0; j < numNeurons; j++) {
-      zs[l][j] = this->parameters.biases[l][j];  // Start with bias
-
-      for (ulong k = 0; k < prevNumNeurons; k++) {
-        zs[l][j] += this->parameters.weights[l][j][k] * actvs[l - 1][k];
-      }
-    }
-
-    // Apply activation function (handles all types including softmax)
-    const T* zsData = zs[l].data();
-    T* actvsData = actvs[l].data();
-    ActvFuncType actvFuncType = layer.actvFuncType;
-
-    ActvFunc::calculate(zsData, actvsData, numNeurons, actvFuncType, false);
-
-    // Apply dropout after activation (skip the last layer — output should not be dropped)
-    if (applyDropout && dropoutMasks && rng && l < numLayers - 1 && dropoutRate > 0.0f) {
-      T scale = static_cast<T>(1) / (static_cast<T>(1) - static_cast<T>(dropoutRate));
-      std::bernoulli_distribution dist(1.0 - static_cast<double>(dropoutRate));
-
-      (*dropoutMasks)[l].resize(numNeurons);
-      for (ulong j = 0; j < numNeurons; j++) {
-        T mask = dist(*rng) ? scale : static_cast<T>(0);
-        (*dropoutMasks)[l][j] = mask;
-        actvs[l][j] *= mask;
-      }
-    }
-  }
-}
-
-//===================================================================================================================//
-
-template <typename T>
-void CoreCPU<T>::backpropagate(const Output<T>& output, const Tensor2D<T>& actvs, const Tensor2D<T>& zs,
-                                Tensor2D<T>& dCost_dActvs, Tensor3D<T>& dCost_dWeights, Tensor2D<T>& dCost_dBiases,
-                                const Tensor2D<T>* dropoutMasks) {
-  ulong numLayers = this->layersConfig.size();
-
-  // For the last layer, calculate dCost_dActv (no dropout on output layer)
-  ulong l = numLayers - 1;
-
-  const Layer& layer = this->layersConfig[l];
-  ulong numNeurons = layer.numNeurons;
-
-  for (ulong j = 0; j < numNeurons; j++) {
-    dCost_dActvs[l][j] = this->calc_dCost_dActv(j, output, actvs);
-  }
-
-  for (ulong j = 0; j < numNeurons; j++) {
-    dCost_dBiases[l][j] = this->calc_dCost_dBias(l, j, actvs, zs, dCost_dActvs);
-
-    const Layer& prevLayer = this->layersConfig[l - 1];
-    ulong prevNumNeurons = prevLayer.numNeurons;
-
-    for (ulong k = 0; k < prevNumNeurons; k++) {
-      dCost_dWeights[l][j][k] = this->calc_dCost_dWeight(l, j, k, actvs, zs, dCost_dActvs);
-    }
-  }
-
-  // For the remaining layers, calculate backwards
-  for (ulong l = numLayers - 2; l >= 1; l--) {
-    const Layer& layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
-
-    // First pass: compute all dCost_dActvs for this layer
-    for (ulong j = 0; j < numNeurons; j++) {
-      dCost_dActvs[l][j] = this->calc_dCost_dActv(l, j, actvs, zs, dCost_dActvs);
-    }
-
-    // Apply dropout mask to gradients (same mask as forward pass)
-    if (dropoutMasks && !(*dropoutMasks)[l].empty()) {
-      for (ulong j = 0; j < numNeurons; j++) {
-        dCost_dActvs[l][j] *= (*dropoutMasks)[l][j];
-      }
-    }
-
-    // Second pass: compute bias and weight gradients
-    for (ulong j = 0; j < numNeurons; j++) {
-      dCost_dBiases[l][j] = this->calc_dCost_dBias(l, j, actvs, zs, dCost_dActvs);
-
-      const Layer& prevLayer = this->layersConfig[l - 1];
-      ulong prevNumNeurons = prevLayer.numNeurons;
-
-      for (ulong k = 0; k < prevNumNeurons; k++) {
-        dCost_dWeights[l][j][k] = this->calc_dCost_dWeight(l, j, k, actvs, zs, dCost_dActvs);
-      }
-    }
-
-    if (l == 1) break;
-  }
-}
-
-//===================================================================================================================//
-
-// Particular case for the last layer.
-template <typename T>
-T CoreCPU<T>::calc_dCost_dActv(ulong j, const Output<T>& output, const Tensor2D<T>& actvs) {
-  ulong numLayers = this->layersConfig.size();
-  ulong l = numLayers - 1;
-
-  T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[j] : static_cast<T>(1);
-
-  switch (this->costFunctionConfig.type) {
-    case CostFunctionType::CROSS_ENTROPY:
-      // Cross-entropy (softmax): dL/da_j = w * (a_j - y_j)
-      return weight * (actvs[l][j] - output[j]);
-
-    case CostFunctionType::SQUARED_DIFFERENCE:
-    case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
-    default:
-      // Squared difference: dL/da_j = 2 * w * (a_j - y_j)
-      return 2 * weight * (actvs[l][j] - output[j]);
-  }
-}
-
-//===================================================================================================================//
-
-template <typename T>
-T CoreCPU<T>::calc_dCost_dActv(ulong l, ulong k, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs) {
-  const Layer& nextLayer = this->layersConfig[l + 1];
-  ulong nextNumNeurons = nextLayer.numNeurons;
-  ActvFuncType actvFuncType = nextLayer.actvFuncType;
-
-  const T* zsData = zs[l + 1].data();
-  T* actvsData = const_cast<T*>(actvs[l + 1].data());
-  const T* dCost_dActvsData = dCost_dActvs[l + 1].data();
-
-  Tensor1D<T> dCost_dZs(nextNumNeurons);
-  T* dCost_dZsData = dCost_dZs.data();
-
-  ActvFunc::calculate(zsData, actvsData, nextNumNeurons, actvFuncType, true, dCost_dActvsData, dCost_dZsData);
-
-  T sum = 0;
-
-  for (ulong j = 0; j < nextNumNeurons; j++) {
-    T weight = this->parameters.weights[l + 1][j][k];
-    T dCost_dZ = dCost_dZs[j];
-
-    sum += weight * dCost_dZ;
-  }
-
-  return sum;
-}
-
-//===================================================================================================================//
-
-template <typename T>
-T CoreCPU<T>::calc_dCost_dWeight(ulong l, ulong j, ulong k, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs) {
-  T actv = actvs[l - 1][k];
-
-  const Layer& layer = this->layersConfig[l];
-  ulong numNeurons = layer.numNeurons;
-  ActvFuncType actvFuncType = layer.actvFuncType;
-
-  const T* zsData = zs[l].data();
-  T* actvsData = const_cast<T*>(actvs[l].data());
-  const T* dCost_dActvsData = dCost_dActvs[l].data();
-
-  Tensor1D<T> dCost_dZs(numNeurons);
-  T* dCost_dZsData = dCost_dZs.data();
-
-  ActvFunc::calculate(zsData, actvsData, numNeurons, actvFuncType, true, dCost_dActvsData, dCost_dZsData);
-
-  T dCost_dZ = dCost_dZs[j];
-
-  return actv * dCost_dZ;
-}
-
-//===================================================================================================================//
-
-template <typename T>
-T CoreCPU<T>::calc_dCost_dBias(ulong l, ulong j, const Tensor2D<T>& actvs, const Tensor2D<T>& zs, const Tensor2D<T>& dCost_dActvs) {
-  const Layer& layer = this->layersConfig[l];
-  ulong numNeurons = layer.numNeurons;
-  ActvFuncType actvFuncType = layer.actvFuncType;
-
-  const T* zsData = zs[l].data();
-  T* actvsData = const_cast<T*>(actvs[l].data());
-  const T* dCost_dActvsData = dCost_dActvs[l].data();
-
-  Tensor1D<T> dCost_dZs(numNeurons);
-  T* dCost_dZsData = dCost_dZs.data();
-
-  ActvFunc::calculate(zsData, actvsData, numNeurons, actvFuncType, true, dCost_dActvsData, dCost_dZsData);
-
-  T dCost_dZ = dCost_dZs[j];
-
-  return dCost_dZ;
-}
-
-//===================================================================================================================//
-// Functions used by train()
-//===================================================================================================================//
-
-template <typename T>
-void CoreCPU<T>::resetAccumulators() {
+void CoreCPU<T>::resetGlobalAccumulators() {
   ulong numLayers = this->layersConfig.size();
 
   for (ulong l = 1; l < numLayers; l++) {
@@ -644,55 +337,7 @@ void CoreCPU<T>::resetAccumulators() {
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPU<T>::resetWorkerAccumulators(SampleWorker<T>& worker) {
-  ulong numLayers = this->layersConfig.size();
-
-  for (ulong l = 1; l < numLayers; l++) {
-    const Layer& layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
-
-    for (ulong j = 0; j < numNeurons; j++) {
-      const Layer& prevLayer = this->layersConfig[l - 1];
-      ulong prevNumNeurons = prevLayer.numNeurons;
-
-      worker.accum_dCost_dBiases[l][j] = static_cast<T>(0);
-
-      for (ulong k = 0; k < prevNumNeurons; k++) {
-        worker.accum_dCost_dWeights[l][j][k] = static_cast<T>(0);
-      }
-    }
-  }
-}
-
-//===================================================================================================================//
-
-template <typename T>
-void CoreCPU<T>::accumulateToWorker(SampleWorker<T>& worker) {
-  // No mutex needed - each worker accumulates to its own local accumulators
-  ulong numLayers = this->layersConfig.size();
-
-  for (ulong l = 1; l < numLayers; l++) {
-    const Layer& layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
-
-    for (ulong j = 0; j < numNeurons; j++) {
-      const Layer& prevLayer = this->layersConfig[l - 1];
-      ulong prevNumNeurons = prevLayer.numNeurons;
-
-      worker.accum_dCost_dBiases[l][j] += worker.dCost_dBiases[l][j];
-
-      for (ulong k = 0; k < prevNumNeurons; k++) {
-        worker.accum_dCost_dWeights[l][j][k] += worker.dCost_dWeights[l][j][k];
-      }
-    }
-  }
-}
-
-//===================================================================================================================//
-
-template <typename T>
-void CoreCPU<T>::mergeWorkerAccumulators(const SampleWorker<T>& worker) {
-  // Called once per worker per epoch - minimal mutex contention
+void CoreCPU<T>::mergeWorkerAccumulators(const CoreCPUWorker<T>& worker) {
   QMutexLocker locker(&this->accumulatorMutex);
 
   ulong numLayers = this->layersConfig.size();
@@ -705,51 +350,13 @@ void CoreCPU<T>::mergeWorkerAccumulators(const SampleWorker<T>& worker) {
       const Layer& prevLayer = this->layersConfig[l - 1];
       ulong prevNumNeurons = prevLayer.numNeurons;
 
-      this->accum_dCost_dBiases[l][j] += worker.accum_dCost_dBiases[l][j];
+      this->accum_dCost_dBiases[l][j] += worker.getAccumBiases()[l][j];
 
       for (ulong k = 0; k < prevNumNeurons; k++) {
-        this->accum_dCost_dWeights[l][j][k] += worker.accum_dCost_dWeights[l][j][k];
+        this->accum_dCost_dWeights[l][j][k] += worker.getAccumWeights()[l][j][k];
       }
     }
   }
-}
-
-//===================================================================================================================//
-
-template <typename T>
-T CoreCPU<T>::calculateLoss(const Output<T>& expected, const Tensor2D<T>& actvs) {
-  ulong numLayers = this->layersConfig.size();
-  const auto& outputActvs = actvs[numLayers - 1];
-
-  T loss = 0;
-
-  switch (this->costFunctionConfig.type) {
-    case CostFunctionType::CROSS_ENTROPY: {
-      // Cross-entropy: L = -sum(w_i * y_i * log(a_i))
-      const T epsilon = static_cast<T>(1e-7);
-      for (ulong i = 0; i < outputActvs.size(); i++) {
-        T predicted = std::max(outputActvs[i], epsilon);
-        T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
-        loss -= weight * expected[i] * std::log(predicted);
-      }
-      break;
-    }
-
-    case CostFunctionType::SQUARED_DIFFERENCE:
-    case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
-    default: {
-      // Squared difference: L = sum(w_i * (a_i - y_i)^2) / N
-      for (ulong i = 0; i < outputActvs.size(); i++) {
-        T diff = outputActvs[i] - expected[i];
-        T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
-        loss += weight * diff * diff;
-      }
-      loss /= static_cast<T>(outputActvs.size());
-      break;
-    }
-  }
-
-  return loss;
 }
 
 //===================================================================================================================//
@@ -759,6 +366,16 @@ void CoreCPU<T>::update(ulong numSamples) {
   T learningRate = this->trainingConfig.learningRate;
   ulong numLayers = this->layersConfig.size();
 
+  // Determine which accumulators to read from:
+  // - train() merges worker accumulators into global accumulators, then calls update()
+  // - step-by-step path (CNN) accumulates directly into stepWorker's accumulators
+  const Tensor3D<T>& accumWeights = this->accum_dCost_dWeights.empty()
+      ? this->stepWorker->getAccumWeights()
+      : this->accum_dCost_dWeights;
+  const Tensor2D<T>& accumBiases = this->accum_dCost_dBiases.empty()
+      ? this->stepWorker->getAccumBiases()
+      : this->accum_dCost_dBiases;
+
   for (ulong l = 1; l < numLayers; l++) {
     const Layer& layer = this->layersConfig[l];
     ulong numNeurons = layer.numNeurons;
@@ -767,10 +384,10 @@ void CoreCPU<T>::update(ulong numSamples) {
       const Layer& prevLayer = this->layersConfig[l - 1];
       ulong prevNumNeurons = prevLayer.numNeurons;
 
-      this->parameters.biases[l][j] -= learningRate * (this->accum_dCost_dBiases[l][j] / numSamples);
+      this->parameters.biases[l][j] -= learningRate * (accumBiases[l][j] / numSamples);
 
       for (ulong k = 0; k < prevNumNeurons; k++) {
-        this->parameters.weights[l][j][k] -= learningRate * (this->accum_dCost_dWeights[l][j][k] / numSamples);
+        this->parameters.weights[l][j][k] -= learningRate * (accumWeights[l][j][k] / numSamples);
       }
     }
   }
@@ -799,69 +416,26 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 }
 
 //===================================================================================================================//
-// Convenience wrappers using member data (for predict())
-//===================================================================================================================//
-
-template <typename T>
-void CoreCPU<T>::propagate(const Input<T>& input) {
-  bool applyDropout = (this->modeType == ModeType::TRAIN);
-  this->propagate(input, this->actvs, this->zs, applyDropout, &this->dropoutMasks, &this->dropoutRng);
-}
-
-//===================================================================================================================//
-
-template <typename T>
-Output<T> CoreCPU<T>::getOutput() {
-  ulong numLayers = this->layersConfig.size();
-
-  return this->actvs[numLayers - 1];
-}
-
-//===================================================================================================================//
 // Step-by-step training methods (for external orchestration, e.g., CNN)
 //===================================================================================================================//
 
 template <typename T>
 Tensor1D<T> CoreCPU<T>::backpropagate(const Output<T>& output) {
-  // Uses stored actvs/zs from the last predict() call
-  // Computes gradients into member dCost_dActvs, dCost_dWeights, dCost_dBiases
-  const Tensor2D<T>* masks = (this->modeType == ModeType::TRAIN) ? &this->dropoutMasks : nullptr;
-  this->backpropagate(output, this->actvs, this->zs,
-                      this->dCost_dActvs, this->dCost_dWeights, this->dCost_dBiases, masks);
-
-  // Additionally compute dCost_dActvs for the input layer (layer 0)
-  // This is needed by external orchestrators (e.g., CNN) to continue backpropagation
-  ulong inputNumNeurons = this->layersConfig[0].numNeurons;
-
-  for (ulong k = 0; k < inputNumNeurons; k++) {
-    this->dCost_dActvs[0][k] = this->calc_dCost_dActv(0, k, this->actvs, this->zs, this->dCost_dActvs);
-  }
-
-  return this->dCost_dActvs[0];
+  return this->stepWorker->backpropagateAndReturnInputGradients(output);
 }
 
 //===================================================================================================================//
 
 template <typename T>
 void CoreCPU<T>::accumulate() {
-  // Accumulates computed gradients (from backpropagate) into the member accumulators
-  ulong numLayers = this->layersConfig.size();
+  this->stepWorker->accumulate();
+}
 
-  for (ulong l = 1; l < numLayers; l++) {
-    const Layer& layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
+//===================================================================================================================//
 
-    for (ulong j = 0; j < numNeurons; j++) {
-      const Layer& prevLayer = this->layersConfig[l - 1];
-      ulong prevNumNeurons = prevLayer.numNeurons;
-
-      this->accum_dCost_dBiases[l][j] += this->dCost_dBiases[l][j];
-
-      for (ulong k = 0; k < prevNumNeurons; k++) {
-        this->accum_dCost_dWeights[l][j][k] += this->dCost_dWeights[l][j][k];
-      }
-    }
-  }
+template <typename T>
+void CoreCPU<T>::resetAccumulators() {
+  this->stepWorker->resetAccumulators();
 }
 
 //===================================================================================================================//

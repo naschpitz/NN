@@ -19,9 +19,10 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
-      costFunctionConfig(costFunctionConfig),
       progressReports(progressReports),
       logLevel(logLevel) {
+
+  this->costFunctionConfig = costFunctionConfig;
 
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
   this->core = this->ownedCore.get();
@@ -42,10 +43,11 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
     : layersConfig(layersConfig),
       trainingConfig(trainingConfig),
       parameters(parameters),
-      costFunctionConfig(costFunctionConfig),
       progressReports(progressReports),
       logLevel(logLevel),
       core(&sharedCore) {
+
+  this->costFunctionConfig = costFunctionConfig;
 
   // Shared-core mode: only initialize parameters.
   // Caller must invoke loadSources() and allocateBuffers() manually.
@@ -109,7 +111,8 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples,
     this->core->run();
 
     // Calculate loss after kernels have run
-    T sampleLoss = this->calculateLoss(output);
+    Output<T> predicted = this->readOutput();
+    T sampleLoss = this->calculateLoss(predicted, output);
     subsetLoss += sampleLoss;
 
     // Report progress
@@ -153,12 +156,10 @@ std::pair<T, ulong> CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulon
     // Execute forward pass kernels only
     this->core->run();
 
-    // Calculate loss after forward pass
-    T sampleLoss = this->calculateLoss(output);
-    subsetLoss += sampleLoss;
-
-    // Read predicted output for accuracy computation
+    // Read predicted output for loss and accuracy computation
     Output<T> predicted = this->readOutput();
+    T sampleLoss = this->calculateLoss(predicted, output);
+    subsetLoss += sampleLoss;
     auto predIdx = std::distance(predicted.begin(), std::max_element(predicted.begin(), predicted.end()));
     auto expIdx = std::distance(output.begin(), std::max_element(output.begin(), output.end()));
 
@@ -798,41 +799,8 @@ ulong CoreGPUWorker<T>::getNumOutputNeurons() const {
 //-- Loss and output --//
 //===================================================================================================================//
 
-template <typename T>
-T CoreGPUWorker<T>::calculateLoss(const Output<T>& expected) {
-  // Read output activations from GPU
-  Output<T> actual = this->readOutput();
-
-  T loss = 0;
-
-  switch (this->costFunctionConfig.type) {
-    case CostFunctionType::CROSS_ENTROPY: {
-      // Cross-entropy: L = -sum(w_i * y_i * log(a_i))
-      const T epsilon = static_cast<T>(1e-7);
-      for (ulong i = 0; i < expected.size(); i++) {
-        T predicted = std::max(actual[i], epsilon);
-        T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
-        loss -= weight * expected[i] * std::log(predicted);
-      }
-      break;
-    }
-
-    case CostFunctionType::SQUARED_DIFFERENCE:
-    case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
-    default: {
-      // Squared difference: L = sum(w_i * (a_i - y_i)^2) / N
-      for (ulong i = 0; i < expected.size(); i++) {
-        T diff = actual[i] - expected[i];
-        T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[i] : static_cast<T>(1);
-        loss += weight * diff * diff;
-      }
-      loss /= static_cast<T>(expected.size());
-      break;
-    }
-  }
-
-  return loss;
-}
+// Note: calculateLoss is now inherited from Worker<T>.
+// The callers below use readOutput() + Worker::calculateLoss(predicted, expected).
 
 //===================================================================================================================//
 

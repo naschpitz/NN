@@ -151,7 +151,7 @@
   <line x1="545" y1="130" x2="115" y2="130" stroke="#c5221f" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="6,3"/>
   <text x="330" y="148" text-anchor="middle" font-size="11" fill="#c5221f">← Backpropagation (gradients)</text>
 </svg>
-<figcaption>Figure 2 — Forward (solid) and backward (dashed) data flow through the network.</figcaption>
+<figcaption>Figure 2 — Propagation (solid) and backpropagation (dashed) data flow through the network.</figcaption>
 </figure>
 
 <h2 id="training">4. Training Loop</h2>
@@ -164,13 +164,13 @@
         <span class="func">resetAccumulators</span>()
 
         <span class="keyword">for each</span> sample <span class="keyword">in</span> batch:
-            <span class="comment">// 1. Forward pass</span>
+            <span class="comment">// 1. Propagate</span>
             output = <span class="func">predict</span>(sample.input)
 
             <span class="comment">// 2. Compute loss (MSE)</span>
             loss = (<span class="number">1</span>/n) × Σ (output[i] − expected[i])²
 
-            <span class="comment">// 3. Backward pass — compute gradients</span>
+            <span class="comment">// 3. Backpropagate — compute gradients</span>
             <span class="func">backpropagate</span>(sample.output)
 
             <span class="comment">// 4. Add to running totals</span>

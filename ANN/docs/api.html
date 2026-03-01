@@ -82,9 +82,9 @@
 <h3>ModeType <span class="badge badge-blue">ANN_Mode.hpp</span></h3>
 <table>
   <tr><th>Value</th><th>String</th><th>Meaning</th></tr>
-  <tr><td><code>TRAIN</code></td><td><code>"train"</code></td><td>Training mode — runs forward + backward passes</td></tr>
-  <tr><td><code>PREDICT</code></td><td><code>"predict"</code></td><td>Inference only — runs forward pass</td></tr>
-  <tr><td><code>TEST</code></td><td><code>"test"</code></td><td>Evaluation — forward pass + loss calculation</td></tr>
+  <tr><td><code>TRAIN</code></td><td><code>"train"</code></td><td>Training mode — runs propagation + backpropagation</td></tr>
+  <tr><td><code>PREDICT</code></td><td><code>"predict"</code></td><td>Inference only — runs propagation</td></tr>
+  <tr><td><code>TEST</code></td><td><code>"test"</code></td><td>Evaluation — propagation + loss calculation</td></tr>
   <tr><td><code>UNKNOWN</code></td><td>—</td><td>Invalid / unset</td></tr>
 </table>
 <p>Helpers: <code>Mode::nameToType(str)</code>, <code>Mode::typeToName(type)</code></p>
@@ -227,7 +227,7 @@
 <h3>Public Methods</h3>
 <table>
   <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
-  <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>Output&lt;T&gt;</code></td><td>Forward pass — produces network output</td></tr>
+  <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>Output&lt;T&gt;</code></td><td>Propagation — produces network output</td></tr>
   <tr><td><code>train(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>void</code></td><td>Full training loop over all epochs</td></tr>
   <tr><td><code>test(const Samples&lt;T&gt;&amp;)</code></td><td><code>TestResult&lt;T&gt;</code></td><td>Evaluate loss on a test set</td></tr>
   <tr><td><code>backpropagate(const Output&lt;T&gt;&amp;)</code></td><td><code>Tensor1D&lt;T&gt;</code></td><td>Compute gradients; returns input-layer gradient</td></tr>
@@ -261,7 +261,7 @@
 <h3>Key Internal Functions (called from <code>train</code>)</h3>
 <table>
   <tr><th>Function</th><th>Purpose</th></tr>
-  <tr><td><code>propagate(input, actvs, zs)</code></td><td>Forward pass: compute z and activation for every layer</td></tr>
+  <tr><td><code>propagate(input, actvs, zs)</code></td><td>Propagation: compute z and activation for every layer</td></tr>
   <tr><td><code>backpropagate(output, actvs, zs, dActvs, dWeights, dBiases)</code></td><td>Compute all gradients via chain rule</td></tr>
   <tr><td><code>calc_dCost_dActv(j, output, actvs)</code></td><td>Output-layer activation gradient: 2·(a − y)</td></tr>
   <tr><td><code>calc_dCost_dActv(l, k, zs, dActvs)</code></td><td>Hidden-layer activation gradient via chain rule</td></tr>

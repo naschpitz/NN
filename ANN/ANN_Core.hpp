@@ -58,9 +58,6 @@ namespace ANN {
       explicit Core(const CoreConfig<T>& coreConfig);
       void sanityCheck(const CoreConfig<T>& coreConfig);
 
-      //-- Loss calculation --//
-      T calculateLoss(const Output<T>& expected);
-
       //-- Training timing --//
       void trainingStart(ulong numSamples);
       TrainingMetadata<T> trainingEnd();
@@ -82,10 +79,6 @@ namespace ANN {
       CostFunctionConfig<T> costFunctionConfig;
       ulong progressReports = 1000;
       LogLevel logLevel = LogLevel::ERROR;
-
-      //-- Internal state --//
-      Tensor2D<T> actvs;
-      Tensor2D<T> zs;
 
       TrainingCallback<T> trainingCallback;
 

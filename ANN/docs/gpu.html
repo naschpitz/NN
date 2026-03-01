@@ -36,8 +36,8 @@
     <li><a href="#overview">Architecture Overview</a></li>
     <li><a href="#kernels">Kernel Files</a></li>
     <li><a href="#buffers">Buffer Layout</a></li>
-    <li><a href="#forward-kernels">Forward Pass Kernels</a></li>
-    <li><a href="#backward-kernels">Backward Pass Kernels</a></li>
+    <li><a href="#propagate-kernels">Propagation Kernels</a></li>
+    <li><a href="#backpropagate-kernels">Backpropagation Kernels</a></li>
     <li><a href="#update-kernels">Update Kernels</a></li>
     <li><a href="#multigpu">Multi-GPU Coordination</a></li>
     <li><a href="#lazy">Lazy Kernel Compilation</a></li>
@@ -97,7 +97,7 @@
   <tr><td><code>Defines.hpp.cl</code></td><td>TYPE macro (<code>float</code>), <code>ActvFuncType</code> enum, <code>Layer</code> struct</td></tr>
   <tr><td><code>ActvFunc.cpp.cl</code></td><td>GPU activation functions &amp; derivatives (relu, sigmoid, tanh)</td></tr>
   <tr><td><code>IdxHelper.cpp.cl</code></td><td>Index calculation helpers for flattened buffers</td></tr>
-  <tr><td><code>Kernels.cpp.cl</code></td><td>All computation kernels (forward, backward, accumulate, update)</td></tr>
+  <tr><td><code>Kernels.cpp.cl</code></td><td>All computation kernels (propagate, backpropagate, accumulate, update)</td></tr>
 </table>
 
 <div class="warn-box">
@@ -117,7 +117,7 @@
 
 <p>The accumulator buffers (<code>accum_dCost_dWeights</code>, <code>accum_dCost_dBiases</code>) have the same sizes as <code>weights</code> and <code>biases</code>, respectively.</p>
 
-<h2 id="forward-kernels">4. Forward Pass Kernels</h2>
+<h2 id="propagate-kernels">4. Propagation Kernels</h2>
 <p>For each layer \( l \), two kernels are enqueued sequentially:</p>
 
 <div class="card">
@@ -139,7 +139,7 @@ actvs[getActvIndex(l, j)] = actvFunc_calculate(zs[getZIndex(l, j)], layers[l].ac
 </code></pre>
 </div>
 
-<h2 id="backward-kernels">5. Backward Pass Kernels</h2>
+<h2 id="backpropagate-kernels">5. Backpropagation Kernels</h2>
 
 <div class="card">
 <h3><code>calculate_dCost_dActv_last_layer</code></h3>
@@ -150,7 +150,7 @@ actvs[getActvIndex(l, j)] = actvFunc_calculate(zs[getZIndex(l, j)], layers[l].ac
 
 <div class="card">
 <h3><code>calculate_dCost_dActv</code></h3>
-<p><strong>Work items:</strong> \( n_l \) (hidden layer neurons). Computed <em>from the last hidden layer backwards</em>.</p>
+<p><strong>Work items:</strong> \( n_l \) (hidden layer neurons). Computed <em>from the last hidden layer in reverse</em>.</p>
 <pre><code>sum = <span class="number">0</span>;
 <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; n_{l+1}; j++)
     sum += weights[l+<span class="number">1</span>][j][k] * derivative(z[l+<span class="number">1</span>][j]) * dCost_dActvs[l+<span class="number">1</span>][j];
@@ -209,15 +209,15 @@ totalWeightGrads = <span class="number">0</span>;  totalBiasGrads = <span class=
 <h2 id="lazy">8. Lazy Kernel Compilation</h2>
 <p>Kernels are built the first time they're needed. <code>CoreGPUWorker</code> maintains flags:</p>
 <ul>
-  <li><code>predictKernelsSetup</code> — forward-only pipeline</li>
-  <li><code>trainingKernelsSetup</code> — forward + backward + accumulate</li>
+  <li><code>predictKernelsSetup</code> — propagation-only pipeline</li>
+  <li><code>trainingKernelsSetup</code> — propagation + backpropagation + accumulate</li>
   <li><code>backpropagateKernelsSetup</code> — for step-by-step API</li>
   <li><code>accumulateKernelsSetup</code> — accumulate-only pipeline</li>
 </ul>
 <p>Each setup method calls <code>OpenCLWrapper::addSourceFile()</code> and <code>addKernel()</code>, then sets the flag to prevent recompilation.</p>
 
 <div class="info-box">
-  Kernel compilation can take a few seconds on the first call, but subsequent calls reuse the compiled kernel. This is especially important for training, where the forward/backward pipeline is reused for every sample.
+  Kernel compilation can take a few seconds on the first call, but subsequent calls reuse the compiled kernel. This is especially important for training, where the propagation/backpropagation pipeline is reused for every sample.
 </div>
 
 </main>
