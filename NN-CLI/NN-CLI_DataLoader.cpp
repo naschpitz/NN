@@ -5,11 +5,12 @@
 
 #include <json.hpp>
 
+#include <QThreadPool>
+#include <QtConcurrent>
+
 #include <algorithm>
-#include <future>
 #include <iostream>
 #include <stdexcept>
-#include <thread>
 
 namespace NN_CLI {
 
@@ -188,35 +189,34 @@ DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices,
   ulong count = entryIndices.size();
   std::vector<SampleT> batch(count);
 
-  // Load all images in parallel across available cores.
-  ulong numThreads = std::min(static_cast<ulong>(std::thread::hardware_concurrency()), count);
-  if (numThreads == 0) numThreads = 1;
+  // Load all images in parallel using the global QThreadPool.
+  int numThreads = std::min(QThreadPool::globalInstance()->maxThreadCount(),
+                            static_cast<int>(count));
 
   ulong chunkSize = count / numThreads;
   ulong remainder = count % numThreads;
 
-  std::vector<std::thread> threads;
-  threads.reserve(numThreads);
+  QVector<QFuture<void>> futures;
+  futures.reserve(numThreads);
 
   ulong offset = 0;
-  for (ulong t = 0; t < numThreads; t++) {
-    ulong thisChunk = chunkSize + (t < remainder ? 1 : 0);
+  for (int t = 0; t < numThreads; t++) {
+    ulong thisChunk = chunkSize + (static_cast<ulong>(t) < remainder ? 1 : 0);
     ulong chunkStart = offset;
     ulong chunkEnd = offset + thisChunk;
     offset = chunkEnd;
 
-    threads.emplace_back([this, &entryIndices, &batch, &transforms,
-                          augmentationProbability, chunkStart, chunkEnd]() {
-      // Each thread gets its own RNG for augmentation transforms.
+    futures.append(QtConcurrent::run([this, &entryIndices, &batch, &transforms,
+                                      augmentationProbability, chunkStart, chunkEnd]() {
       std::mt19937 rng(std::random_device{}());
 
       for (ulong i = chunkStart; i < chunkEnd; i++) {
         batch[i] = this->loadSample(entryIndices[i], rng, transforms, augmentationProbability);
       }
-    });
+    }));
   }
 
-  for (auto& t : threads) t.join();
+  for (auto& f : futures) f.waitForFinished();
 
   return batch;
 }
@@ -225,10 +225,11 @@ template <typename SampleT>
 typename DataLoader<SampleT>::ProviderT
 DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& transforms,
                                        float augmentationProbability) const {
-  // Shared future for prefetching the next batch in the background.
-  auto prefetch = std::make_shared<std::future<std::vector<SampleT>>>();
+  // Shared state for prefetching the next batch in the background.
+  auto prefetch = std::make_shared<QFuture<std::vector<SampleT>>>();
+  auto hasPrefetch = std::make_shared<bool>(false);
 
-  return [this, prefetch, transforms, augmentationProbability](
+  return [this, prefetch, hasPrefetch, transforms, augmentationProbability](
       const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
     ulong numSamples = sampleIndices.size();
     ulong start = batchIndex * batchSize;
@@ -236,8 +237,10 @@ DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& tr
 
     // If the previous call prefetched this batch, retrieve it; otherwise load now.
     std::vector<SampleT> batch;
-    if (prefetch->valid()) {
-      batch = prefetch->get();
+    if (*hasPrefetch) {
+      prefetch->waitForFinished();
+      batch = prefetch->result();
+      *hasPrefetch = false;
     } else {
       std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
       batch = this->loadBatch(indices, transforms, augmentationProbability);
@@ -250,10 +253,11 @@ DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& tr
       std::vector<ulong> nextIndices(sampleIndices.begin() + nextStart,
                                      sampleIndices.begin() + nextEnd);
 
-      *prefetch = std::async(std::launch::async,
+      *prefetch = QtConcurrent::run(
           [this, indices = std::move(nextIndices), transforms, augmentationProbability]() {
             return this->loadBatch(indices, transforms, augmentationProbability);
           });
+      *hasPrefetch = true;
     }
 
     return batch;

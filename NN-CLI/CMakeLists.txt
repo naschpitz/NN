@@ -67,5 +67,6 @@ target_include_directories(test_nncli PRIVATE
 )
 target_link_libraries(test_nncli PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Concurrent
     CNN
 )
