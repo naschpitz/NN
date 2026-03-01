@@ -232,7 +232,8 @@ DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& tr
   auto prefetchPool = std::make_shared<QThreadPool>();
   prefetchPool->setMaxThreadCount(1);
 
-  auto prefetch = std::make_shared<QFuture<std::vector<SampleT>>>();
+  using BatchPtr = std::shared_ptr<std::vector<SampleT>>;
+  auto prefetch = std::make_shared<QFuture<BatchPtr>>();
   auto hasPrefetch = std::make_shared<bool>(false);
 
   return [this, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability](
@@ -242,14 +243,15 @@ DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& tr
     ulong end = std::min(start + batchSize, numSamples);
 
     // If the previous call prefetched this batch, retrieve it; otherwise load now.
-    std::vector<SampleT> batch;
+    BatchPtr batchPtr;
     if (*hasPrefetch) {
       prefetch->waitForFinished();
-      batch = prefetch->result();
+      batchPtr = prefetch->result();
       *hasPrefetch = false;
     } else {
       std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
-      batch = this->loadBatch(indices, transforms, augmentationProbability);
+      batchPtr = std::make_shared<std::vector<SampleT>>(
+          this->loadBatch(indices, transforms, augmentationProbability));
     }
 
     // Prefetch the next batch on the dedicated prefetch pool.
@@ -261,13 +263,14 @@ DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& tr
                                      sampleIndices.begin() + nextEnd);
 
       *prefetch = QtConcurrent::run(prefetchPool.get(),
-          [this, indices = std::move(nextIndices), transforms, augmentationProbability]() {
-            return this->loadBatch(indices, transforms, augmentationProbability);
+          [this, indices = std::move(nextIndices), transforms, augmentationProbability]() -> BatchPtr {
+            return std::make_shared<std::vector<SampleT>>(
+                this->loadBatch(indices, transforms, augmentationProbability));
           });
       *hasPrefetch = true;
     }
 
-    return batch;
+    return std::move(*batchPtr);
   };
 }
 
