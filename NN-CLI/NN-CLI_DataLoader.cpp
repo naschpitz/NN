@@ -9,7 +9,6 @@
 #include <QtConcurrent>
 
 #include <algorithm>
-#include <future>
 #include <iostream>
 #include <stdexcept>
 
@@ -228,13 +227,15 @@ template <typename SampleT>
 typename DataLoader<SampleT>::ProviderT
 DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& transforms,
                                        float augmentationProbability) const {
-  // Shared state for prefetching the next batch in the background.
-  // Uses std::async (own thread) instead of QtConcurrent::run (global pool)
-  // because the training loop's blockingMap saturates the global pool.
-  auto prefetch = std::make_shared<std::future<std::vector<SampleT>>>();
+  // Dedicated single-thread pool for prefetch orchestration — independent of
+  // both the global pool (used by training) and ioPool (used by loadBatch).
+  auto prefetchPool = std::make_shared<QThreadPool>();
+  prefetchPool->setMaxThreadCount(1);
+
+  auto prefetch = std::make_shared<QFuture<std::vector<SampleT>>>();
   auto hasPrefetch = std::make_shared<bool>(false);
 
-  return [this, prefetch, hasPrefetch, transforms, augmentationProbability](
+  return [this, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability](
       const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
     ulong numSamples = sampleIndices.size();
     ulong start = batchIndex * batchSize;
@@ -243,23 +244,23 @@ DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& tr
     // If the previous call prefetched this batch, retrieve it; otherwise load now.
     std::vector<SampleT> batch;
     if (*hasPrefetch) {
-      batch = prefetch->get();
+      prefetch->waitForFinished();
+      batch = prefetch->result();
       *hasPrefetch = false;
     } else {
       std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
       batch = this->loadBatch(indices, transforms, augmentationProbability);
     }
 
-    // Prefetch the next batch in the background.
-    // std::async gets its own thread, independent of any pool.
-    // loadBatch internally uses ioPool for parallel image I/O.
+    // Prefetch the next batch on the dedicated prefetch pool.
+    // That thread calls loadBatch which uses ioPool for parallel image I/O.
     ulong nextStart = end;
     if (nextStart < numSamples) {
       ulong nextEnd = std::min(nextStart + batchSize, numSamples);
       std::vector<ulong> nextIndices(sampleIndices.begin() + nextStart,
                                      sampleIndices.begin() + nextEnd);
 
-      *prefetch = std::async(std::launch::async,
+      *prefetch = QtConcurrent::run(prefetchPool.get(),
           [this, indices = std::move(nextIndices), transforms, augmentationProbability]() {
             return this->loadBatch(indices, transforms, augmentationProbability);
           });
