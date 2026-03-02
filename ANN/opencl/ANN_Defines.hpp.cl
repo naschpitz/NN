@@ -10,21 +10,15 @@
 // ActvFuncType enum (must match C++ ANN::ActvFuncType)
 //===================================================================================================================//
 
-typedef enum {
-  ACTV_RELU = 0,
-  ACTV_SIGMOID = 1,
-  ACTV_TANH = 2,
-  ACTV_SOFTMAX = 3,
-  ACTV_UNKNOWN = 4
-} ActvFuncType;
+typedef enum { ACTV_RELU = 0, ACTV_SIGMOID = 1, ACTV_TANH = 2, ACTV_SOFTMAX = 3, ACTV_UNKNOWN = 4 } ActvFuncType;
 
 //===================================================================================================================//
 // Layer struct (must match C++ ANN::Layer)
 //===================================================================================================================//
 
 typedef struct {
-  ulong numNeurons;
-  ActvFuncType actvFuncType;
+    ulong numNeurons;
+    ActvFuncType actvFuncType;
 } Layer;
 
 #endif // ANN_DEFINES_HPP_CL

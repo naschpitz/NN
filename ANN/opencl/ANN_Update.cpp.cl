@@ -5,11 +5,8 @@
 
 //===================================================================================================================//
 
-kernel void accumulate_dCost_dBiases(
-    global TYPE* accum_dCost_dBiases,
-    global TYPE* dCost_dBiases,
-    ulong size
-  ) {
+kernel void accumulate_dCost_dBiases(global TYPE* accum_dCost_dBiases, global TYPE* dCost_dBiases, ulong size)
+{
   size_t idx = get_global_id(0);
 
   if (idx < size) {
@@ -19,11 +16,8 @@ kernel void accumulate_dCost_dBiases(
 
 //===================================================================================================================//
 
-kernel void accumulate_dCost_dWeights(
-    global TYPE* accum_dCost_dWeights,
-    global TYPE* dCost_dWeights,
-    ulong size
-  ) {
+kernel void accumulate_dCost_dWeights(global TYPE* accum_dCost_dWeights, global TYPE* dCost_dWeights, ulong size)
+{
   size_t idx = get_global_id(0);
 
   if (idx < size) {
@@ -33,13 +27,9 @@ kernel void accumulate_dCost_dWeights(
 
 //===================================================================================================================//
 
-kernel void update_biases(
-    global TYPE* biases,
-    global TYPE* accum_dCost_dBiases,
-    ulong numSamples,
-    float learningRate,
-    ulong size
-  ) {
+kernel void update_biases(global TYPE* biases, global TYPE* accum_dCost_dBiases, ulong numSamples, float learningRate,
+                          ulong size)
+{
   size_t idx = get_global_id(0);
 
   if (idx < size) {
@@ -49,13 +39,9 @@ kernel void update_biases(
 
 //===================================================================================================================//
 
-kernel void update_weights(
-    global TYPE* weights,
-    global TYPE* accum_dCost_dWeights,
-    ulong numSamples,
-    float learningRate,
-    ulong size
-  ) {
+kernel void update_weights(global TYPE* weights, global TYPE* accum_dCost_dWeights, ulong numSamples,
+                           float learningRate, ulong size)
+{
   size_t idx = get_global_id(0);
 
   if (idx < size) {
@@ -65,20 +51,10 @@ kernel void update_weights(
 
 //===================================================================================================================//
 
-kernel void update_biases_adam(
-    global TYPE* biases,
-    global TYPE* accum_dCost_dBiases,
-    global TYPE* m,
-    global TYPE* v,
-    ulong numSamples,
-    float learningRate,
-    float beta1,
-    float beta2,
-    float epsilon,
-    float bc1,
-    float bc2,
-    ulong size
-  ) {
+kernel void update_biases_adam(global TYPE* biases, global TYPE* accum_dCost_dBiases, global TYPE* m, global TYPE* v,
+                               ulong numSamples, float learningRate, float beta1, float beta2, float epsilon, float bc1,
+                               float bc2, ulong size)
+{
   size_t idx = get_global_id(0);
 
   if (idx < size) {
@@ -93,20 +69,10 @@ kernel void update_biases_adam(
 
 //===================================================================================================================//
 
-kernel void update_weights_adam(
-    global TYPE* weights,
-    global TYPE* accum_dCost_dWeights,
-    global TYPE* m,
-    global TYPE* v,
-    ulong numSamples,
-    float learningRate,
-    float beta1,
-    float beta2,
-    float epsilon,
-    float bc1,
-    float bc2,
-    ulong size
-  ) {
+kernel void update_weights_adam(global TYPE* weights, global TYPE* accum_dCost_dWeights, global TYPE* m, global TYPE* v,
+                                ulong numSamples, float learningRate, float beta1, float beta2, float epsilon,
+                                float bc1, float bc2, ulong size)
+{
   size_t idx = get_global_id(0);
 
   if (idx < size) {
@@ -122,4 +88,3 @@ kernel void update_weights_adam(
 //===================================================================================================================//
 
 #endif // ANN_UPDATE_CPP_CL
-

@@ -9,23 +9,16 @@
 // Each neuron gets one work-group of localWorkSize work-items.
 // Global work size = numNeurons * localWorkSize.
 // Each work-item computes a partial dot product, then work-group reduces.
-kernel void calculate_zs(
-    global TYPE* zs,
-    global TYPE* weights,
-    global TYPE* actvs,
-    global TYPE* biases,
-    ulong prevNumNeurons,
-    ulong weightOffset,
-    ulong prevActvOffset,
-    ulong biasOffset,
-    ulong zOffset
-  ) {
+kernel void calculate_zs(global TYPE* zs, global TYPE* weights, global TYPE* actvs, global TYPE* biases,
+                         ulong prevNumNeurons, ulong weightOffset, ulong prevActvOffset, ulong biasOffset,
+                         ulong zOffset)
+{
   local TYPE partials[256];
-  size_t groupId = get_group_id(0);   // neuron index
+  size_t groupId = get_group_id(0); // neuron index
   size_t lid = get_local_id(0);
   size_t localSize = get_local_size(0);
 
-  ulong j = groupId;  // neuron index
+  ulong j = groupId; // neuron index
   ulong wRow = weightOffset + j * prevNumNeurons;
 
   // Each work-item computes partial dot product over its chunk
@@ -42,6 +35,7 @@ kernel void calculate_zs(
     if (lid < stride) {
       partials[lid] += partials[lid + stride];
     }
+
     barrier(CLK_LOCAL_MEM_FENCE);
   }
 
@@ -53,17 +47,11 @@ kernel void calculate_zs(
 
 //===================================================================================================================//
 
-kernel void calculate_actvs(
-    global TYPE* actvs,
-    global TYPE* zs,
-    ulong numNeurons,
-    ulong actvFuncType,
-    ulong actvOffset
-  ) {
+kernel void calculate_actvs(global TYPE* actvs, global TYPE* zs, ulong numNeurons, ulong actvFuncType, ulong actvOffset)
+{
   actvFunc_calculate(zs, actvs, numNeurons, (ActvFuncType)actvFuncType, actvOffset);
 }
 
 //===================================================================================================================//
 
 #endif // ANN_PROPAGATE_CPP_CL
-

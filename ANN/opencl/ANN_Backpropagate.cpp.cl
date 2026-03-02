@@ -5,14 +5,9 @@
 
 //===================================================================================================================//
 
-kernel void calculate_dCost_dActv_last_layer(
-    global TYPE* dCost_dActvs,
-    global TYPE* actvs,
-    global TYPE* outputs,
-    global TYPE* lossWeights,
-    ulong actvOffset,
-    ulong costFunctionType
-  ) {
+kernel void calculate_dCost_dActv_last_layer(global TYPE* dCost_dActvs, global TYPE* actvs, global TYPE* outputs,
+                                             global TYPE* lossWeights, ulong actvOffset, ulong costFunctionType)
+{
   size_t j = get_global_id(0);
 
   ulong idx = actvOffset + j;
@@ -28,18 +23,10 @@ kernel void calculate_dCost_dActv_last_layer(
 
 //===================================================================================================================//
 
-kernel void calculate_dCost_dActv(
-    global TYPE* dCost_dActvs,
-    global TYPE* actvs,
-    global TYPE* weights,
-    global TYPE* zs,
-    ulong nextNumNeurons,
-    ulong prevNumNeurons,
-    ulong actvFuncType,
-    ulong weightOffset,
-    ulong nextActvOffset,
-    ulong curActvOffset
-  ) {
+kernel void calculate_dCost_dActv(global TYPE* dCost_dActvs, global TYPE* actvs, global TYPE* weights, global TYPE* zs,
+                                  ulong nextNumNeurons, ulong prevNumNeurons, ulong actvFuncType, ulong weightOffset,
+                                  ulong nextActvOffset, ulong curActvOffset)
+{
   size_t k = get_global_id(0);
 
   TYPE sum = 0.0f;
@@ -48,8 +35,8 @@ kernel void calculate_dCost_dActv(
     ulong weightIdx = weightOffset + j * prevNumNeurons + k;
 
     TYPE weight = weights[weightIdx];
-    TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, nextNumNeurons,
-                                        (ActvFuncType)actvFuncType, nextActvOffset);
+    TYPE dCost_dZ =
+      actvFunc_derivative(actvs, zs, dCost_dActvs, j, nextNumNeurons, (ActvFuncType)actvFuncType, nextActvOffset);
 
     sum += weight * dCost_dZ;
   }
@@ -59,46 +46,30 @@ kernel void calculate_dCost_dActv(
 
 //===================================================================================================================//
 
-kernel void calculate_dCost_dWeight(
-    global TYPE* dCost_dWeights,
-    global TYPE* actvs,
-    global TYPE* zs,
-    global TYPE* dCost_dActvs,
-    ulong prevNumNeurons,
-    ulong numNeurons,
-    ulong actvFuncType,
-    ulong prevActvOffset,
-    ulong actvOffset,
-    ulong weightOffset
-  ) {
+kernel void calculate_dCost_dWeight(global TYPE* dCost_dWeights, global TYPE* actvs, global TYPE* zs,
+                                    global TYPE* dCost_dActvs, ulong prevNumNeurons, ulong numNeurons,
+                                    ulong actvFuncType, ulong prevActvOffset, ulong actvOffset, ulong weightOffset)
+{
   size_t gid = get_global_id(0);
 
   ulong j = gid / prevNumNeurons;
   ulong k = gid % prevNumNeurons;
 
   TYPE actv = actvs[prevActvOffset + k];
-  TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, numNeurons,
-                                      (ActvFuncType)actvFuncType, actvOffset);
+  TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, numNeurons, (ActvFuncType)actvFuncType, actvOffset);
 
   dCost_dWeights[weightOffset + gid] = actv * dCost_dZ;
 }
 
 //===================================================================================================================//
 
-kernel void calculate_dCost_dBias(
-    global TYPE* dCost_dBiases,
-    global TYPE* actvs,
-    global TYPE* zs,
-    global TYPE* dCost_dActvs,
-    ulong numNeurons,
-    ulong actvFuncType,
-    ulong actvOffset,
-    ulong biasOffset
-  ) {
+kernel void calculate_dCost_dBias(global TYPE* dCost_dBiases, global TYPE* actvs, global TYPE* zs,
+                                  global TYPE* dCost_dActvs, ulong numNeurons, ulong actvFuncType, ulong actvOffset,
+                                  ulong biasOffset)
+{
   size_t j = get_global_id(0);
 
-  TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, numNeurons,
-                                      (ActvFuncType)actvFuncType, actvOffset);
+  TYPE dCost_dZ = actvFunc_derivative(actvs, zs, dCost_dActvs, j, numNeurons, (ActvFuncType)actvFuncType, actvOffset);
 
   dCost_dBiases[biasOffset + j] = dCost_dZ;
 }
@@ -108,11 +79,8 @@ kernel void calculate_dCost_dBias(
 // Applies a pre-generated dropout mask to activations (forward pass, training only).
 // mask values are 0 (dropped) or 1/(1-p) (kept with inverted scaling).
 // One work-item per neuron in the layer.
-kernel void apply_dropout(
-    global TYPE* actvs,
-    global TYPE* dropoutMask,
-    ulong actvOffset
-  ) {
+kernel void apply_dropout(global TYPE* actvs, global TYPE* dropoutMask, ulong actvOffset)
+{
   size_t gid = get_global_id(0);
   actvs[actvOffset + gid] *= dropoutMask[actvOffset + gid];
 }
@@ -121,11 +89,8 @@ kernel void apply_dropout(
 
 // Applies the same dropout mask to gradients during backpropagation.
 // Dropped neurons (mask=0) get zero gradient; kept neurons scale by 1/(1-p).
-kernel void apply_dropout_backward(
-    global TYPE* dCost_dActvs,
-    global TYPE* dropoutMask,
-    ulong actvOffset
-  ) {
+kernel void apply_dropout_backward(global TYPE* dCost_dActvs, global TYPE* dropoutMask, ulong actvOffset)
+{
   size_t gid = get_global_id(0);
   dCost_dActvs[actvOffset + gid] *= dropoutMask[actvOffset + gid];
 }
@@ -133,4 +98,3 @@ kernel void apply_dropout_backward(
 //===================================================================================================================//
 
 #endif // ANN_BACKPROPAGATE_CPP_CL
-
