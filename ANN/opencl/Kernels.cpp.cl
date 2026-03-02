@@ -128,6 +128,62 @@ kernel void update_weights(
 
 //===================================================================================================================//
 
+kernel void update_biases_adam(
+    global TYPE* biases,
+    global TYPE* accum_dCost_dBiases,
+    global TYPE* m,
+    global TYPE* v,
+    ulong numSamples,
+    float learningRate,
+    float beta1,
+    float beta2,
+    float epsilon,
+    float bc1,
+    float bc2,
+    ulong size
+  ) {
+  size_t idx = get_global_id(0);
+
+  if (idx < size) {
+    TYPE g = accum_dCost_dBiases[idx] / (TYPE)numSamples;
+    m[idx] = beta1 * m[idx] + (1.0f - beta1) * g;
+    v[idx] = beta2 * v[idx] + (1.0f - beta2) * g * g;
+    TYPE m_hat = m[idx] / bc1;
+    TYPE v_hat = v[idx] / bc2;
+    biases[idx] -= learningRate * m_hat / (sqrt(v_hat) + epsilon);
+  }
+}
+
+//===================================================================================================================//
+
+kernel void update_weights_adam(
+    global TYPE* weights,
+    global TYPE* accum_dCost_dWeights,
+    global TYPE* m,
+    global TYPE* v,
+    ulong numSamples,
+    float learningRate,
+    float beta1,
+    float beta2,
+    float epsilon,
+    float bc1,
+    float bc2,
+    ulong size
+  ) {
+  size_t idx = get_global_id(0);
+
+  if (idx < size) {
+    TYPE g = accum_dCost_dWeights[idx] / (TYPE)numSamples;
+    m[idx] = beta1 * m[idx] + (1.0f - beta1) * g;
+    v[idx] = beta2 * v[idx] + (1.0f - beta2) * g * g;
+    TYPE m_hat = m[idx] / bc1;
+    TYPE v_hat = v[idx] / bc2;
+    weights[idx] -= learningRate * m_hat / (sqrt(v_hat) + epsilon);
+  }
+}
+
+//===================================================================================================================//
+
 kernel void calculate_dCost_dActv_last_layer(
     global TYPE* dCost_dActvs,
     global TYPE* actvs,

@@ -26,6 +26,10 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 
   if (allocateTraining) {
     this->allocateGlobalAccumulators();
+
+    if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
+      this->allocateAdamState();
+    }
   }
 }
 
@@ -316,6 +320,36 @@ void CoreCPU<T>::allocateGlobalAccumulators()
 }
 
 //===================================================================================================================//
+
+template <typename T>
+void CoreCPU<T>::allocateAdamState()
+{
+  ulong numLayers = this->layersConfig.size();
+
+  this->adam_m_weights.resize(numLayers);
+  this->adam_m_biases.resize(numLayers);
+  this->adam_v_weights.resize(numLayers);
+  this->adam_v_biases.resize(numLayers);
+
+  for (ulong l = 1; l < numLayers; l++) {
+    ulong numNeurons = this->layersConfig[l].numNeurons;
+    ulong prevNumNeurons = this->layersConfig[l - 1].numNeurons;
+
+    this->adam_m_weights[l].resize(numNeurons);
+    this->adam_m_biases[l].resize(numNeurons, static_cast<T>(0));
+    this->adam_v_weights[l].resize(numNeurons);
+    this->adam_v_biases[l].resize(numNeurons, static_cast<T>(0));
+
+    for (ulong j = 0; j < numNeurons; j++) {
+      this->adam_m_weights[l][j].resize(prevNumNeurons, static_cast<T>(0));
+      this->adam_v_weights[l][j].resize(prevNumNeurons, static_cast<T>(0));
+    }
+  }
+
+  this->adam_t = 0;
+}
+
+//===================================================================================================================//
 // Training helpers
 //===================================================================================================================//
 
@@ -383,18 +417,53 @@ void CoreCPU<T>::update(ulong numSamples)
   const Tensor2D<T>& accumBiases =
     this->accum_dCost_dBiases.empty() ? this->stepWorker->getAccumBiases() : this->accum_dCost_dBiases;
 
-  for (ulong l = 1; l < numLayers; l++) {
-    const Layer& layer = this->layersConfig[l];
-    ulong numNeurons = layer.numNeurons;
+  T n = static_cast<T>(numSamples);
 
-    for (ulong j = 0; j < numNeurons; j++) {
-      const Layer& prevLayer = this->layersConfig[l - 1];
-      ulong prevNumNeurons = prevLayer.numNeurons;
+  if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
+    const auto& opt = this->trainingConfig.optimizer;
+    T beta1 = opt.beta1;
+    T beta2 = opt.beta2;
+    T epsilon = opt.epsilon;
 
-      this->parameters.biases[l][j] -= learningRate * (accumBiases[l][j] / numSamples);
+    this->adam_t++;
 
-      for (ulong k = 0; k < prevNumNeurons; k++) {
-        this->parameters.weights[l][j][k] -= learningRate * (accumWeights[l][j][k] / numSamples);
+    T bc1 = static_cast<T>(1) - std::pow(beta1, static_cast<T>(this->adam_t));
+    T bc2 = static_cast<T>(1) - std::pow(beta2, static_cast<T>(this->adam_t));
+
+    for (ulong l = 1; l < numLayers; l++) {
+      ulong numNeurons = this->layersConfig[l].numNeurons;
+      ulong prevNumNeurons = this->layersConfig[l - 1].numNeurons;
+
+      for (ulong j = 0; j < numNeurons; j++) {
+        T g = accumBiases[l][j] / n;
+        this->adam_m_biases[l][j] = beta1 * this->adam_m_biases[l][j] + (static_cast<T>(1) - beta1) * g;
+        this->adam_v_biases[l][j] = beta2 * this->adam_v_biases[l][j] + (static_cast<T>(1) - beta2) * g * g;
+        T m_hat = this->adam_m_biases[l][j] / bc1;
+        T v_hat = this->adam_v_biases[l][j] / bc2;
+        this->parameters.biases[l][j] -= learningRate * m_hat / (std::sqrt(v_hat) + epsilon);
+
+        for (ulong k = 0; k < prevNumNeurons; k++) {
+          g = accumWeights[l][j][k] / n;
+          this->adam_m_weights[l][j][k] = beta1 * this->adam_m_weights[l][j][k] + (static_cast<T>(1) - beta1) * g;
+          this->adam_v_weights[l][j][k] = beta2 * this->adam_v_weights[l][j][k] + (static_cast<T>(1) - beta2) * g * g;
+          m_hat = this->adam_m_weights[l][j][k] / bc1;
+          v_hat = this->adam_v_weights[l][j][k] / bc2;
+          this->parameters.weights[l][j][k] -= learningRate * m_hat / (std::sqrt(v_hat) + epsilon);
+        }
+      }
+    }
+  } else {
+    // SGD
+    for (ulong l = 1; l < numLayers; l++) {
+      ulong numNeurons = this->layersConfig[l].numNeurons;
+      ulong prevNumNeurons = this->layersConfig[l - 1].numNeurons;
+
+      for (ulong j = 0; j < numNeurons; j++) {
+        this->parameters.biases[l][j] -= learningRate * (accumBiases[l][j] / n);
+
+        for (ulong k = 0; k < prevNumNeurons; k++) {
+          this->parameters.weights[l][j][k] -= learningRate * (accumWeights[l][j][k] / n);
+        }
       }
     }
   }

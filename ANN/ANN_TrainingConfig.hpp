@@ -1,6 +1,8 @@
 #ifndef ANN_TRAININGCONFIG_HPP
 #define ANN_TRAININGCONFIG_HPP
 
+#include "ANN_Optimizer.hpp"
+
 #include <sys/types.h>
 
 //===================================================================================================================//
@@ -14,6 +16,7 @@ namespace ANN
       ulong batchSize = 64; // Mini-batch size (default = 64)
       bool shuffleSamples = true; // Shuffle sample order each epoch (default = true)
       float dropoutRate = 0.0f; // Dropout probability for hidden layers (0.0 = disabled)
+      Optimizer<T> optimizer; // Optimizer (default: SGD)
   };
 }
 

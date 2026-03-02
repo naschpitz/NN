@@ -3,11 +3,12 @@
 
 #include "ANN_Worker.hpp"
 #include "ANN_Core.hpp"
+#include "ANN_GPUBufferManager.hpp"
+#include "ANN_GPUKernelBuilder.hpp"
 
 #include <OCLW_Core.hpp>
 
 #include <memory>
-#include <random>
 #include <utility>
 
 //===================================================================================================================//
@@ -45,19 +46,8 @@ namespace ANN
       void accumulate();
       void resetAccumulators();
 
-      //-- Gradient access (for multi-GPU merging) --//
-      void readAccumulatedGradients(Tensor1D<T>& accumWeights, Tensor1D<T>& accumBiases);
-      void setAccumulators(const Tensor1D<T>& accumWeights, const Tensor1D<T>& accumBiases);
-
-      //-- Dropout --//
-      bool hasDropout = false;
-      void generateAndUploadDropoutMask();
-
       //-- Weight update --//
       void update(ulong numSamples);
-
-      //-- Parameter synchronization --//
-      void syncParametersFromGPU();
 
       //-- Parameter access --//
       const Parameters<T>& getParameters() const
@@ -65,62 +55,22 @@ namespace ANN
         return parameters;
       }
 
-      //-- Shared-core integration: source loading and buffer allocation --//
-      void loadSources(bool skipDefines);
-      void allocateBuffers();
-
-      //-- Shared-core integration: kernel building blocks --//
-      void addPropagateKernels();
-      void addBackpropagateKernels(bool includeInputGradients);
-      void addAccumulateKernels();
-      void addUpdateKernels(ulong numSamples);
-
-      //-- Shared-core integration: data access --//
-      Output<T> readOutput();
-      Tensor1D<T> readInputGradients();
-
-      //-- Shared-core integration: offset queries --//
-      ulong getOutputActvOffset() const;
-      ulong getNumOutputNeurons() const;
+      //-- Components (public for direct access by CNN and CoreGPU) --//
+      std::unique_ptr<GPUBufferManager<T>> bufferManager;
+      std::unique_ptr<GPUKernelBuilder<T>> kernelBuilder;
 
     private:
       //-- Configuration --//
       LayersConfig layersConfig;
       TrainingConfig<T> trainingConfig;
       Parameters<T> parameters;
+      CostFunctionConfig<T> costFunctionConfig;
       ulong progressReports = 1000;
       LogLevel logLevel = LogLevel::ERROR;
 
       //-- OpenCL state --//
       std::unique_ptr<OpenCLWrapper::Core> ownedCore; // Owned core (standalone mode)
       OpenCLWrapper::Core* core = nullptr; // Pointer to active core (owned or shared)
-
-      //-- Kernel setup flags --//
-      bool predictKernelsSetup = false;
-      bool trainingKernelsSetup = false;
-      bool backpropagateKernelsSetup = false;
-      bool accumulateKernelsSetup = false;
-      bool updateKernelsSetup = false;
-
-      //-- Initialization --//
-      void initializeParameters();
-
-      //-- Kernel setup (standalone mode) --//
-      void setupPredictKernels();
-      void setupTrainingKernels();
-      void setupBackpropagateKernels();
-      void setupAccumulateKernels();
-      void setupUpdateKernels(ulong numSamples);
-
-      //-- Helpers --//
-      void invalidateAllKernelFlags();
-
-      //-- Precomputed offset helpers --//
-      ulong getActvOffset(ulong layerIdx) const;
-      ulong getWeightOffset(ulong layerIdx) const;
-      ulong getBiasOffset(ulong layerIdx) const;
-
-      std::mt19937 dropoutRng{std::random_device{}()};
   };
 }
 

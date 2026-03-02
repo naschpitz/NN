@@ -27,9 +27,12 @@ add_library(ANN STATIC
   ANN_CoreCPUWorker.hpp ANN_CoreCPUWorker.cpp
   ANN_CoreGPU.hpp ANN_CoreGPU.cpp
   ANN_CoreGPUWorker.hpp ANN_CoreGPUWorker.cpp
+  ANN_GPUBufferManager.hpp ANN_GPUBufferManager.cpp
+  ANN_GPUKernelBuilder.hpp ANN_GPUKernelBuilder.cpp
   ANN_Device.hpp ANN_Device.cpp
   ANN_LayersConfig.hpp ANN_LayersConfig.cpp
   ANN_Types.hpp
+  ANN_Optimizer.hpp ANN_Optimizer.cpp
   ANN_TrainingConfig.hpp
   ANN_Parameters.hpp
   ANN_Sample.hpp

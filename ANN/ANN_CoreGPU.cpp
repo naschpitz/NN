@@ -165,7 +165,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     }
 
     // Sync parameters from GPU so getParameters() returns current values (e.g., for checkpoint saves)
-    this->gpuWorkers[0]->syncParametersFromGPU();
+    this->gpuWorkers[0]->bufferManager->syncParametersFromGPU();
     this->parameters = this->gpuWorkers[0]->getParameters();
 
     // Calculate average epoch loss
@@ -286,7 +286,7 @@ void CoreGPU<T>::mergeGradients()
     Tensor1D<T> workerWeights;
     Tensor1D<T> workerBiases;
 
-    this->gpuWorkers[gpuIdx]->readAccumulatedGradients(workerWeights, workerBiases);
+    this->gpuWorkers[gpuIdx]->bufferManager->readAccumulatedGradients(workerWeights, workerBiases);
 
     if (gpuIdx == 0) {
       // First worker - initialize the totals
@@ -306,7 +306,7 @@ void CoreGPU<T>::mergeGradients()
 
   // Write merged gradients back to ALL workers
   for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
-    this->gpuWorkers[gpuIdx]->setAccumulators(totalAccumWeights, totalAccumBiases);
+    this->gpuWorkers[gpuIdx]->bufferManager->setAccumulators(totalAccumWeights, totalAccumBiases);
   }
 }
 

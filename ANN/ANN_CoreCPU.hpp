@@ -40,9 +40,17 @@ namespace ANN
       Tensor2D<T> accum_dCost_dBiases;
       QMutex accumulatorMutex;
 
+      //-- Adam optimizer state --//
+      Tensor3D<T> adam_m_weights; // First moment estimate for weights
+      Tensor2D<T> adam_m_biases; // First moment estimate for biases
+      Tensor3D<T> adam_v_weights; // Second moment estimate for weights
+      Tensor2D<T> adam_v_biases; // Second moment estimate for biases
+      ulong adam_t = 0; // Timestep counter
+
       //-- Initialization --//
       void initializeParameters();
       void allocateGlobalAccumulators();
+      void allocateAdamState();
 
       //-- Training helpers --//
       void resetGlobalAccumulators();
