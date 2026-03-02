@@ -1,5 +1,5 @@
-#ifndef DEFINES_HPP_CL
-#define DEFINES_HPP_CL
+#ifndef ANN_DEFINES_HPP_CL
+#define ANN_DEFINES_HPP_CL
 
 // Guard TYPE to avoid redefinition when loaded after another library's defines (e.g., CNN)
 #ifndef TYPE
@@ -27,4 +27,4 @@ typedef struct {
   ActvFuncType actvFuncType;
 } Layer;
 
-#endif // DEFINES_HPP_CL
+#endif // ANN_DEFINES_HPP_CL

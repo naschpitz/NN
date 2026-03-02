@@ -1,7 +1,7 @@
-#ifndef IDXHELPER_CPP_CL
-#define IDXHELPER_CPP_CL
+#ifndef ANN_IDXHELPER_CPP_CL
+#define ANN_IDXHELPER_CPP_CL
 
-// Note: Depends on Defines.hpp.cl (Layer)
+// Note: Depends on ANN_Defines.hpp.cl (Layer)
 // Files are concatenated by C++ code in load order
 
 //===================================================================================================================//
@@ -48,4 +48,4 @@ ulong getBiasIndex(ulong l, ulong j, constant Layer* layers, ulong numLayers) {
 
 //===================================================================================================================//
 
-#endif // IDXHELPER_CPP_CL
+#endif // ANN_IDXHELPER_CPP_CL

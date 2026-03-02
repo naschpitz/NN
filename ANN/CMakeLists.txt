@@ -40,10 +40,13 @@ add_library(ANN STATIC
   ANN_TrainingMetadata.hpp
   ANN_TestResult.hpp
   ANN_CoreConfig.hpp
-  opencl/Kernels.cpp.cl
-  opencl/IdxHelper.cpp.cl
-  opencl/ActvFunc.hpp.cl opencl/ActvFunc.cpp.cl
-  opencl/Defines.hpp.cl
+  opencl/ANN_Defines.hpp.cl
+  opencl/ANN_IdxHelper.cpp.cl
+  opencl/ANN_ActvFunc.hpp.cl opencl/ANN_ActvFunc.cpp.cl
+  opencl/ANN_Propagate.cpp.cl
+  opencl/ANN_Backpropagate.cpp.cl
+  opencl/ANN_Update.cpp.cl
+  opencl/ANN_Loss.cpp.cl
   LICENSE.md
 )
 

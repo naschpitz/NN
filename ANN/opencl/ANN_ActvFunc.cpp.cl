@@ -1,7 +1,7 @@
-#ifndef ACTVFUNC_CPP_CL
-#define ACTVFUNC_CPP_CL
+#ifndef ANN_ACTVFUNC_CPP_CL
+#define ANN_ACTVFUNC_CPP_CL
 
-// Note: Depends on Defines.hpp.cl (TYPE, ActvFuncType)
+// Note: Depends on ANN_Defines.hpp.cl (TYPE, ActvFuncType)
 // All functions use precomputed offsets instead of Layer array lookups.
 
 //===================================================================================================================//
@@ -143,4 +143,4 @@ TYPE actvFunc_derivative(global TYPE* actvs, global TYPE* zs, global TYPE* dCost
 
 //===================================================================================================================//
 
-#endif // ACTVFUNC_CPP_CL
+#endif // ANN_ACTVFUNC_CPP_CL

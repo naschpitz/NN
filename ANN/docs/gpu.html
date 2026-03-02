@@ -94,10 +94,13 @@
 <p>Located in <code>opencl/</code>. The <code>CoreGPUWorker</code> loads them using <code>OpenCLWrapper::addSourceFile()</code>:</p>
 <table>
   <tr><th>File</th><th>Contents</th></tr>
-  <tr><td><code>Defines.hpp.cl</code></td><td>TYPE macro (<code>float</code>), <code>ActvFuncType</code> enum, <code>Layer</code> struct</td></tr>
-  <tr><td><code>ActvFunc.cpp.cl</code></td><td>GPU activation functions &amp; derivatives (relu, sigmoid, tanh)</td></tr>
-  <tr><td><code>IdxHelper.cpp.cl</code></td><td>Index calculation helpers for flattened buffers</td></tr>
-  <tr><td><code>Kernels.cpp.cl</code></td><td>All computation kernels (propagate, backpropagate, accumulate, update)</td></tr>
+  <tr><td><code>ANN_Defines.hpp.cl</code></td><td>TYPE macro (<code>float</code>), <code>ActvFuncType</code> enum, <code>Layer</code> struct</td></tr>
+  <tr><td><code>ANN_ActvFunc.cpp.cl</code></td><td>GPU activation functions &amp; derivatives (relu, sigmoid, tanh)</td></tr>
+  <tr><td><code>ANN_IdxHelper.cpp.cl</code></td><td>Index calculation helpers for flattened buffers</td></tr>
+  <tr><td><code>ANN_Propagate.cpp.cl</code></td><td>Forward propagation kernels (calculate_zs, calculate_actvs)</td></tr>
+  <tr><td><code>ANN_Backpropagate.cpp.cl</code></td><td>Backpropagation kernels (gradients, dropout)</td></tr>
+  <tr><td><code>ANN_Update.cpp.cl</code></td><td>Accumulate &amp; update kernels (SGD, Adam)</td></tr>
+  <tr><td><code>ANN_Loss.cpp.cl</code></td><td>Loss calculation kernel (MSE, cross-entropy)</td></tr>
 </table>
 
 <div class="warn-box">

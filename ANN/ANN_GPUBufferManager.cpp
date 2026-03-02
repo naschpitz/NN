@@ -97,12 +97,15 @@ void GPUBufferManager<T>::loadSources(bool skipDefines)
   // Load source files in order - they will be concatenated by OpenCL.
   // When used with a shared core (e.g. CNN), skipDefines avoids redefining TYPE, ActvFuncType, Layer.
   if (!skipDefines) {
-    this->core->addSourceFile(srcDir + "opencl/Defines.hpp.cl");
+    this->core->addSourceFile(srcDir + "opencl/ANN_Defines.hpp.cl");
   }
 
-  this->core->addSourceFile(srcDir + "opencl/IdxHelper.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/ActvFunc.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/Kernels.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_IdxHelper.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_ActvFunc.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_Propagate.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_Backpropagate.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_Update.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_Loss.cpp.cl");
 
   if (this->logLevel >= LogLevel::INFO)
     std::cout << "OpenCL kernels loaded.\n";
