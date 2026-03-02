@@ -39,6 +39,7 @@
     <li><a href="#loss">Loss Function</a></li>
     <li><a href="#backprop">Backpropagation</a></li>
     <li><a href="#sgd">Stochastic Gradient Descent</a></li>
+    <li><a href="#adam">Adam Optimizer</a></li>
     <li><a href="#init">Weight Initialisation</a></li>
   </ol>
 </div>
@@ -67,7 +68,7 @@
 </ul>
 
 <div class="tip-box">
-  <strong>Code link:</strong> The propagation is in <code>CoreCPU::propagate()</code>. On GPU, the kernels <code>calculate_zs</code> and <code>calculate_actvs</code> in <code>Kernels.cpp.cl</code> perform the same calculation.
+  <strong>Code link:</strong> The propagation is in <code>CoreCPUWorker::propagate()</code>. On GPU, the kernels <code>calculate_zs</code> and <code>calculate_actvs</code> in <code>ANN_Propagate.cpp.cl</code> perform the same calculation.
 </div>
 
 <figure class="diagram">
@@ -114,7 +115,7 @@
 
 <!-- ========== ACTIVATIONS ========== -->
 <h2 id="activations">2. Activation Functions</h2>
-<p>Implemented in <code>ANN_ActvFunc.cpp</code> and mirrored in <code>opencl/ActvFunc.cpp.cl</code>.</p>
+<p>Implemented in <code>ANN_ActvFunc.cpp</code> and mirrored in <code>opencl/ANN_ActvFunc.cpp.cl</code>.</p>
 
 <h3>ReLU (Rectified Linear Unit)</h3>
 <div class="math-block">
@@ -210,8 +211,8 @@
 <p>This is the key recursive step — the gradient at layer \( l \) depends on the gradients at layer \( l+1 \). This is why we compute in reverse from the output.</p>
 
 <div class="tip-box">
-  <strong>Code:</strong> <code>CoreCPU::calc_dCost_dActv(l, k, zs, dCost_dActvs)</code> — iterates over all neurons \( j \) in the next layer.
-  On GPU: the kernel <code>calculate_dCost_dActv</code> in <code>Kernels.cpp.cl</code>.
+  <strong>Code:</strong> <code>CoreCPUWorker::calc_dCost_dActv(l, k)</code> — iterates over all neurons \( j \) in the next layer.
+  On GPU: the kernel <code>calculate_dCost_dActv</code> in <code>ANN_Backpropagate.cpp.cl</code>.
 </div>
 
 <h3>5.3 Weight Gradient</h3>
@@ -222,7 +223,7 @@
 </div>
 
 <div class="tip-box">
-  <strong>Code:</strong> <code>CoreCPU::calc_dCost_dWeight(l, j, k, actvs, zs, dCost_dActvs)</code>.
+  <strong>Code:</strong> <code>CoreCPUWorker::calc_dCost_dWeight(l, j, k)</code>.
   On GPU: <code>calculate_dCost_dWeight</code> kernel.
 </div>
 
@@ -236,7 +237,7 @@
 <p>Note: the bias gradient is identical to the weight gradient with \( a_k^{(l-1)} = 1 \), since the bias acts as a weight for a constant input of 1.</p>
 
 <div class="tip-box">
-  <strong>Code:</strong> <code>CoreCPU::calc_dCost_dBias(l, j, zs, dCost_dActvs)</code>.
+  <strong>Code:</strong> <code>CoreCPUWorker::calc_dCost_dBias(l, j)</code>.
   On GPU: <code>calculate_dCost_dBias</code> kernel.
 </div>
 
@@ -262,8 +263,72 @@
   <strong>Code:</strong> In <code>CoreCPU::update(numSamples)</code>, the accumulated gradients are divided by the number of samples and subtracted from the parameters scaled by the learning rate. On GPU: <code>update_weights</code> and <code>update_biases</code> kernels.
 </div>
 
+<!-- ========== ADAM ========== -->
+<h2 id="adam">7. Adam Optimizer</h2>
+<p>Adam (Adaptive Moment Estimation) is an extension of SGD that adapts the learning rate <strong>per parameter</strong> using running averages of the gradient's first and second moments. Proposed by <em>Kingma &amp; Ba, 2015</em> ("Adam: A Method for Stochastic Optimization").</p>
+
+<h3>Algorithm</h3>
+<p>For each parameter \( \theta \) with gradient \( g_t \) at step \( t \):</p>
+
+<div class="math-block">
+\[
+  g_t = \frac{1}{N} \sum_{n=1}^{N} \nabla_\theta \mathcal{L}_n
+\]
+\[
+  m_t = \beta_1 \cdot m_{t-1} + (1 - \beta_1) \cdot g_t
+\]
+\[
+  v_t = \beta_2 \cdot v_{t-1} + (1 - \beta_2) \cdot g_t^2
+\]
+</div>
+
+<p>where \( m_t \) is the first moment (mean of gradients) and \( v_t \) is the second moment (mean of squared gradients).</p>
+
+<h3>Bias Correction</h3>
+<p>Since \( m_0 = 0 \) and \( v_0 = 0 \), the estimates are biased towards zero in the early steps. Bias-corrected estimates:</p>
+
+<div class="math-block">
+\[
+  \hat{m}_t = \frac{m_t}{1 - \beta_1^t}
+  \qquad
+  \hat{v}_t = \frac{v_t}{1 - \beta_2^t}
+\]
+</div>
+
+<h3>Parameter Update</h3>
+<div class="math-block">
+\[
+  \theta \leftarrow \theta - \alpha \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}
+\]
+</div>
+
+<p>where:</p>
+<ul>
+  <li>\( \alpha \) — Base learning rate (<code>TrainingConfig::learningRate</code>)</li>
+  <li>\( \beta_1 \) — Exponential decay rate for first moment (default 0.9)</li>
+  <li>\( \beta_2 \) — Exponential decay rate for second moment (default 0.999)</li>
+  <li>\( \epsilon \) — Small constant for numerical stability (default 10⁻⁸)</li>
+</ul>
+
+<h3>Why Adam converges faster</h3>
+<p>The effective step size for each parameter is \( \alpha / (\sqrt{\hat{v}_t} + \epsilon) \). This means:</p>
+<ul>
+  <li><strong>Parameters with large, consistent gradients</strong> get smaller steps (large \( \hat{v}_t \) → smaller effective rate)</li>
+  <li><strong>Parameters with small or noisy gradients</strong> get larger steps (small \( \hat{v}_t \) → larger effective rate)</li>
+  <li><strong>The momentum term \( \hat{m}_t \)</strong> smooths out noise and accelerates convergence in consistent directions</li>
+</ul>
+<p>Note that the base learning rate \( \alpha \) is <strong>fixed</strong> throughout training — Adam adapts the <em>effective</em> step size per parameter, not the learning rate itself.</p>
+
+<div class="tip-box">
+  <strong>Code:</strong> In <code>CoreCPU::update(numSamples)</code>, when <code>optimizer.type == ADAM</code>, the per-parameter moment vectors <code>adam_m_weights</code>, <code>adam_v_weights</code>, <code>adam_m_biases</code>, <code>adam_v_biases</code> are updated and bias-corrected before applying the parameter update. On GPU: <code>update_weights_adam</code> and <code>update_biases_adam</code> kernels in <code>ANN_Update.cpp.cl</code>.
+</div>
+
+<div class="info-box">
+  <strong>Configuration:</strong> Set via <code>TrainingConfig::optimizer</code> with fields <code>type</code> (<code>SGD</code> or <code>ADAM</code>), <code>beta1</code>, <code>beta2</code>, and <code>epsilon</code>. See <a href="api.html">API Reference</a>.
+</div>
+
 <!-- ========== INIT ========== -->
-<h2 id="init">7. Weight Initialisation</h2>
+<h2 id="init">8. Weight Initialisation</h2>
 <p>Proper initialisation prevents vanishing or exploding gradients during the early epochs of training.</p>
 
 <h3>He Initialisation (for ReLU layers)</h3>
