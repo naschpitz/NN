@@ -763,6 +763,16 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
 
   if (core.getTrainingConfig().dropoutRate > 0.0f)
     tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
+
+  if (core.getTrainingConfig().optimizer.type != ANN::OptimizerType::SGD) {
+    nlohmann::ordered_json optJson;
+    optJson["type"] = ANN::Optimizer<float>::typeToName(core.getTrainingConfig().optimizer.type);
+    optJson["beta1"] = core.getTrainingConfig().optimizer.beta1;
+    optJson["beta2"] = core.getTrainingConfig().optimizer.beta2;
+    optJson["epsilon"] = core.getTrainingConfig().optimizer.epsilon;
+    tcJson["optimizer"] = optJson;
+  }
+
   json["trainingConfig"] = tcJson;
 
   // Training metadata
@@ -902,6 +912,16 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
 
   if (core.getTrainingConfig().dropoutRate > 0.0f)
     tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
+
+  if (core.getTrainingConfig().optimizer.type != CNN::OptimizerType::SGD) {
+    nlohmann::ordered_json optJson;
+    optJson["type"] = CNN::Optimizer<float>::typeToName(core.getTrainingConfig().optimizer.type);
+    optJson["beta1"] = core.getTrainingConfig().optimizer.beta1;
+    optJson["beta2"] = core.getTrainingConfig().optimizer.beta2;
+    optJson["epsilon"] = core.getTrainingConfig().optimizer.epsilon;
+    tcJson["optimizer"] = optJson;
+  }
+
   json["trainingConfig"] = tcJson;
 
   // Training metadata
@@ -1014,8 +1034,9 @@ void Runner::setupANNTrainingCallback(const QString& inputFilePath)
 
   this->annCore->setTrainingCallback([this, inputFilePath](const ANN::TrainingProgress<float>& progress) {
     if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
-                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample,
+                        progress.totalSamples, progress.epochLoss,   progress.sampleLoss,
+                        progress.gpuIndex,     progress.totalGPUs,   this->annCore->getTrainingConfig().learningRate};
       progressBar.update(info);
     }
 
@@ -1049,8 +1070,9 @@ void Runner::setupCNNTrainingCallback(const QString& inputFilePath)
 
   this->cnnCore->setTrainingCallback([this, inputFilePath](const CNN::TrainingProgress<float>& progress) {
     if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
-                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample,
+                        progress.totalSamples, progress.epochLoss,   progress.sampleLoss,
+                        progress.gpuIndex,     progress.totalGPUs,   this->cnnCore->getTrainingConfig().learningRate};
       progressBar.update(info);
     }
 

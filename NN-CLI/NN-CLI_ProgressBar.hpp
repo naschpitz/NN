@@ -20,6 +20,7 @@ namespace NN_CLI
       float sampleLoss;
       int gpuIndex;
       int totalGPUs;
+      float learningRate;
   };
 
   class ProgressBar

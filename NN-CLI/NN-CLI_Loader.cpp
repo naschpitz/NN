@@ -166,6 +166,23 @@ namespace NN_CLI
 
       if (tc.contains("dropoutRate"))
         coreConfig.trainingConfig.dropoutRate = tc.at("dropoutRate").get<float>();
+
+      if (tc.contains("optimizer")) {
+        const auto& opt = tc.at("optimizer");
+
+        if (opt.contains("type"))
+          coreConfig.trainingConfig.optimizer.type =
+            ANN::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
+
+        if (opt.contains("beta1"))
+          coreConfig.trainingConfig.optimizer.beta1 = opt.at("beta1").get<float>();
+
+        if (opt.contains("beta2"))
+          coreConfig.trainingConfig.optimizer.beta2 = opt.at("beta2").get<float>();
+
+        if (opt.contains("epsilon"))
+          coreConfig.trainingConfig.optimizer.epsilon = opt.at("epsilon").get<float>();
+      }
     }
 
     if (json.contains("parameters")) {
@@ -312,6 +329,23 @@ namespace NN_CLI
 
       if (tc.contains("dropoutRate"))
         coreConfig.trainingConfig.dropoutRate = tc.at("dropoutRate").get<float>();
+
+      if (tc.contains("optimizer")) {
+        const auto& opt = tc.at("optimizer");
+
+        if (opt.contains("type"))
+          coreConfig.trainingConfig.optimizer.type =
+            CNN::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
+
+        if (opt.contains("beta1"))
+          coreConfig.trainingConfig.optimizer.beta1 = opt.at("beta1").get<float>();
+
+        if (opt.contains("beta2"))
+          coreConfig.trainingConfig.optimizer.beta2 = opt.at("beta2").get<float>();
+
+        if (opt.contains("epsilon"))
+          coreConfig.trainingConfig.optimizer.epsilon = opt.at("epsilon").get<float>();
+      }
     }
 
     // Parameters (for predict/test modes or resuming training)
