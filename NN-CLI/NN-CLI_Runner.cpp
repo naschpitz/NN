@@ -1034,9 +1034,8 @@ void Runner::setupANNTrainingCallback(const QString& inputFilePath)
 
   this->annCore->setTrainingCallback([this, inputFilePath](const ANN::TrainingProgress<float>& progress) {
     if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample,
-                        progress.totalSamples, progress.epochLoss,   progress.sampleLoss,
-                        progress.gpuIndex,     progress.totalGPUs,   this->annCore->getTrainingConfig().learningRate};
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
+                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
       progressBar.update(info);
     }
 
@@ -1070,9 +1069,8 @@ void Runner::setupCNNTrainingCallback(const QString& inputFilePath)
 
   this->cnnCore->setTrainingCallback([this, inputFilePath](const CNN::TrainingProgress<float>& progress) {
     if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample,
-                        progress.totalSamples, progress.epochLoss,   progress.sampleLoss,
-                        progress.gpuIndex,     progress.totalGPUs,   this->cnnCore->getTrainingConfig().learningRate};
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
+                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
       progressBar.update(info);
     }
 

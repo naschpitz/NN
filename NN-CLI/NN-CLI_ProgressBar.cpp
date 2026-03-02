@@ -66,11 +66,9 @@ namespace NN_CLI
     // Show loss and learning rate information
     if (isEpochComplete) {
       out << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss;
-      out << " - LR: " << std::fixed << std::setprecision(6) << progress.learningRate;
       out << std::string(20, ' ') << std::endl;
     } else {
-      out << " - Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss;
-      out << " - LR: " << std::fixed << std::setprecision(6) << progress.learningRate << "   ";
+      out << " - Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss << "   ";
     }
 
     std::cout << out.str() << std::flush;
