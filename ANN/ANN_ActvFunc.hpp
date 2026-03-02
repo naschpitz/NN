@@ -53,12 +53,14 @@ namespace ANN
       if (type == ActvFuncType::SOFTMAX) {
         // Softmax: layer-wide activation with numerical stability
         T maxZ = zs[0];
+
         for (unsigned long j = 1; j < numNeurons; j++) {
           if (zs[j] > maxZ)
             maxZ = zs[j];
         }
 
         T sumExp = 0;
+
         for (unsigned long j = 0; j < numNeurons; j++) {
           actvs[j] = std::exp(zs[j] - maxZ);
           sumExp += actvs[j];
@@ -79,6 +81,7 @@ namespace ANN
         // Softmax Jacobian: dCost/dZ_j = s_j * (dCost/dActv_j - dot)
         // where dot = Σ_i s_i * dCost/dActv_i and s = softmax output
         T dot = 0;
+
         for (unsigned long j = 0; j < numNeurons; j++) {
           dot += actvs[j] * dCost_dActvs[j];
         }

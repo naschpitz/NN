@@ -71,6 +71,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
   // Pre-allocate workers for each thread
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
+
   for (int i = 0; i < numThreads; i++) {
     workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
                                                          this->costFunctionConfig, true));
@@ -100,6 +101,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
     // Process samples in mini-batches
     ulong batchIndex = 0;
+
     for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize, batchIndex++) {
       ulong batchEnd = std::min(batchStart + batchSize, numSamples);
       ulong currentBatchSize = batchEnd - batchStart;
@@ -180,6 +182,7 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples)
 
   // Pre-allocate workers for each thread (forward pass only — no training buffers)
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
+
   for (int i = 0; i < numThreads; i++) {
     workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
                                                          this->costFunctionConfig, false));
@@ -192,6 +195,7 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples)
 
   // Pre-allocate sample indices vector
   QVector<ulong> sampleIndices(numSamples);
+
   for (ulong s = 0; s < numSamples; s++) {
     sampleIndices[s] = s;
   }

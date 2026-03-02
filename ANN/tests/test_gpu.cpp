@@ -153,6 +153,7 @@ static void testGPUShuffleSamples()
   };
 
   bool shuffleConverged = false;
+
   for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
     if (attempt > 0)
       std::cout << "  retry #" << attempt << std::endl;
@@ -168,6 +169,7 @@ static void testGPUShuffleSamples()
   CHECK(shuffleConverged, "GPU shuffle=true converged (5 attempts)");
 
   bool noShuffleConverged = false;
+
   for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
     if (attempt > 0)
       std::cout << "  retry #" << attempt << std::endl;

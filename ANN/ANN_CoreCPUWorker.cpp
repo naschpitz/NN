@@ -111,6 +111,7 @@ void CoreCPUWorker<T>::propagate(const Input<T>& input, bool applyDropout)
       std::bernoulli_distribution dist(1.0 - static_cast<double>(dropoutRate));
 
       this->dropoutMasks[l].resize(numNeurons);
+
       for (ulong j = 0; j < numNeurons; j++) {
         T mask = dist(this->rng) ? scale : static_cast<T>(0);
         this->dropoutMasks[l][j] = mask;

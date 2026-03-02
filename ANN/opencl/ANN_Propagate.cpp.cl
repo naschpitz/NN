@@ -23,6 +23,7 @@ kernel void calculate_zs(global TYPE* zs, global TYPE* weights, global TYPE* act
 
   // Each work-item computes partial dot product over its chunk
   TYPE sum = (TYPE)0;
+
   for (ulong k = lid; k < prevNumNeurons; k += localSize) {
     sum += weights[wRow + k] * actvs[prevActvOffset + k];
   }

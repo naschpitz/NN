@@ -49,6 +49,7 @@ extern int testsFailed;
 inline ANN::LayersConfig makeLayersConfig(std::initializer_list<ANN::Layer> layers)
 {
   ANN::LayersConfig config;
+
   for (const auto& layer : layers) {
     config.push_back(layer);
   }

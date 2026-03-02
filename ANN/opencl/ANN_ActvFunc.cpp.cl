@@ -31,6 +31,7 @@ void actvFunc_softmax(global TYPE* zs, global TYPE* actvs, ulong numNeurons, ulo
 {
   // Find max z for numerical stability
   TYPE maxZ = zs[actvOffset];
+
   for (ulong j = 1; j < numNeurons; j++) {
     TYPE z = zs[actvOffset + j];
 
@@ -40,6 +41,7 @@ void actvFunc_softmax(global TYPE* zs, global TYPE* actvs, ulong numNeurons, ulo
 
   // Compute exp(z - maxZ) and sum
   TYPE sumExp = 0.0f;
+
   for (ulong j = 0; j < numNeurons; j++) {
     actvs[actvOffset + j] = exp(zs[actvOffset + j] - maxZ);
     sumExp += actvs[actvOffset + j];
@@ -81,6 +83,7 @@ TYPE actvFunc_dtanh(TYPE x)
 TYPE actvFunc_dsoftmax(global TYPE* actvs, global TYPE* dCost_dActvs, ulong j, ulong numNeurons, ulong actvOffset)
 {
   TYPE dot = 0.0f;
+
   for (ulong i = 0; i < numNeurons; i++) {
     dot += actvs[actvOffset + i] * dCost_dActvs[actvOffset + i];
   }

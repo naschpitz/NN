@@ -665,6 +665,7 @@ static void testShuffleSamplesTraining()
 
   // Train with shuffle enabled
   bool shuffleConverged = false;
+
   for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
     auto core = ANN::Core<double>::makeCore(makeConfig(true));
     core->train(samples.size(), ANN::makeSampleProvider(samples));
@@ -679,6 +680,7 @@ static void testShuffleSamplesTraining()
 
   // Train with shuffle disabled
   bool noShuffleConverged = false;
+
   for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
     auto core = ANN::Core<double>::makeCore(makeConfig(false));
     core->train(samples.size(), ANN::makeSampleProvider(samples));

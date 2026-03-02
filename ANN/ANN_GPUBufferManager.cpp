@@ -303,6 +303,7 @@ void GPUBufferManager<T>::generateAndUploadDropoutMask()
 
   // Build flat mask matching the flat actvs buffer layout
   ulong totalNeurons = 0;
+
   for (ulong l = 0; l < numLayers; l++)
     totalNeurons += this->layersConfig[l].numNeurons;
 
@@ -333,6 +334,7 @@ template <typename T>
 ulong GPUBufferManager<T>::getActvOffset(ulong layerIdx) const
 {
   ulong offset = 0;
+
   for (ulong l = 0; l < layerIdx; l++)
     offset += this->layersConfig[l].numNeurons;
   return offset;
@@ -342,6 +344,7 @@ template <typename T>
 ulong GPUBufferManager<T>::getWeightOffset(ulong layerIdx) const
 {
   ulong offset = 0;
+
   for (ulong l = 1; l < layerIdx; l++)
     offset += this->layersConfig[l].numNeurons * this->layersConfig[l - 1].numNeurons;
   return offset;
@@ -351,6 +354,7 @@ template <typename T>
 ulong GPUBufferManager<T>::getBiasOffset(ulong layerIdx) const
 {
   ulong offset = 0;
+
   for (ulong l = 1; l < layerIdx; l++)
     offset += this->layersConfig[l].numNeurons;
   return offset;
