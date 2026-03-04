@@ -55,6 +55,13 @@ namespace ANN
         return parameters;
       }
 
+      //-- GPU buffer access (for diagnostics/testing) --//
+      template <typename U>
+      void readGPUBuffer(const std::string& name, std::vector<U>& hostBuffer, ulong offset = 0)
+      {
+        this->core->template readBuffer<U>(name, hostBuffer, offset);
+      }
+
       //-- Components (public for direct access by CNN and CoreGPU) --//
       std::unique_ptr<GPUBufferManager<T>> bufferManager;
       std::unique_ptr<GPUKernelBuilder<T>> kernelBuilder;
