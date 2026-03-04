@@ -112,7 +112,7 @@ static void testTestMethod()
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  ANN::TestResult<double> result = core->test(samples);
+  ANN::TestResult<double> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
   CHECK(result.numSamples == 2, "test numSamples = 2");
   CHECK(result.averageLoss >= 0.0, "test averageLoss >= 0");
   CHECK(result.totalLoss >= 0.0, "test totalLoss >= 0");
@@ -604,11 +604,11 @@ static void testWeightedLossAffectsTraining()
   // Use test() to compare loss on each — the weighted network should report different total loss
   auto coreDefault = ANN::Core<double>::makeCore(configDefault);
   coreDefault->train(samples.size(), ANN::makeSampleProvider(samples));
-  ANN::TestResult<double> resultDefault = coreDefault->test(samples);
+  ANN::TestResult<double> resultDefault = coreDefault->test(samples.size(), ANN::makeSampleProvider(samples));
 
   auto coreWeighted = ANN::Core<double>::makeCore(configWeighted);
   coreWeighted->train(samples.size(), ANN::makeSampleProvider(samples));
-  ANN::TestResult<double> resultWeighted = coreWeighted->test(samples);
+  ANN::TestResult<double> resultWeighted = coreWeighted->test(samples.size(), ANN::makeSampleProvider(samples));
 
   std::cout << "  default avgLoss=" << resultDefault.averageLoss << "  weighted avgLoss=" << resultWeighted.averageLoss
             << std::endl;

@@ -7,6 +7,7 @@
 #include "ANN_LayersConfig.hpp"
 #include "ANN_CostFunctionConfig.hpp"
 #include "ANN_TrainingConfig.hpp"
+#include "ANN_TestConfig.hpp"
 #include "ANN_Parameters.hpp"
 
 //===================================================================================================================//
@@ -22,6 +23,7 @@ namespace ANN
       LayersConfig layersConfig;
       CostFunctionConfig<T> costFunctionConfig;
       TrainingConfig<T> trainingConfig;
+      TestConfig testConfig;
       Parameters<T> parameters;
       ulong progressReports = 1000; // Number of progress reports (0 = no reports, default = 1000)
       LogLevel logLevel = LogLevel::ERROR;

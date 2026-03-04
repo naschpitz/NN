@@ -18,6 +18,7 @@ Core<T>::Core(const CoreConfig<T>& coreConfig)
   this->layersConfig = coreConfig.layersConfig;
   this->costFunctionConfig = coreConfig.costFunctionConfig;
   this->trainingConfig = coreConfig.trainingConfig;
+  this->testConfig = coreConfig.testConfig;
   this->parameters = coreConfig.parameters;
   this->progressReports = coreConfig.progressReports;
   this->logLevel = coreConfig.logLevel;

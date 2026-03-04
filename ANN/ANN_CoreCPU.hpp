@@ -23,7 +23,7 @@ namespace ANN
       //-- Core interface --//
       Output<T> predict(const Input<T>& input) override;
       void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
-      TestResult<T> test(const Samples<T>& samples) override;
+      TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
 
       //-- Step-by-step training (for external orchestration, e.g., CNN) --//
       Tensor1D<T> backpropagate(const Output<T>& output) override;

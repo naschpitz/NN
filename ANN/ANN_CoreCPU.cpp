@@ -169,10 +169,8 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 //===================================================================================================================//
 
 template <typename T>
-TestResult<T> CoreCPU<T>::test(const Samples<T>& samples)
+TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
-  ulong numSamples = samples.size();
-
   // Use configured numThreads, or all available cores if 0
   int numThreads = this->numThreads;
 
@@ -190,58 +188,67 @@ TestResult<T> CoreCPU<T>::test(const Samples<T>& samples)
 
   ulong numLayers = this->layersConfig.size();
 
-  // Atomic counter for assigning unique worker indices to threads
-  std::atomic<int> nextWorkerIndex{0};
+  // Sequential index array (no shuffling for test)
+  std::vector<ulong> sampleIndices(numSamples);
 
-  // Pre-allocate sample indices vector
-  QVector<ulong> sampleIndices(numSamples);
-
-  for (ulong s = 0; s < numSamples; s++) {
-    sampleIndices[s] = s;
+  for (ulong i = 0; i < numSamples; i++) {
+    sampleIndices[i] = i;
   }
 
-  // Per-worker loss and correct counters
-  std::vector<T> workerLosses(numThreads, 0);
-  std::vector<ulong> workerCorrects(numThreads, 0);
+  // Process in batches via the provider
+  ulong batchSize = this->testConfig.batchSize;
+  ulong numBatches = (numSamples + batchSize - 1) / batchSize;
 
-  // Use blockingMap to process all samples in parallel
-  QtConcurrent::blockingMap(sampleIndices, [&, numThreads, numLayers](ulong sampleIndex) {
-    // Each thread gets a unique worker index on first use
-    thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
-    CoreCPUWorker<T>& worker = *workers[workerIndex];
-
-    // Process the sample - forward pass only
-    const Sample<T>& sample = samples[sampleIndex];
-    worker.propagate(sample.input);
-    T sampleLoss = worker.computeLoss(sample.output);
-
-    // Accumulate loss
-    workerLosses[workerIndex] += sampleLoss;
-
-    // Accuracy: compare argmax of predicted vs expected
-    const auto& outputActvs = worker.getActvs()[numLayers - 1];
-    auto predIdx = std::distance(outputActvs.begin(), std::max_element(outputActvs.begin(), outputActvs.end()));
-    auto expIdx = std::distance(sample.output.begin(), std::max_element(sample.output.begin(), sample.output.end()));
-
-    if (predIdx == expIdx)
-      workerCorrects[workerIndex]++;
-  });
-
-  // Sum up losses and correct counts from all workers
   T totalLoss = 0;
   ulong totalCorrect = 0;
 
-  for (int i = 0; i < numThreads; i++) {
-    totalLoss += workerLosses[i];
-    totalCorrect += workerCorrects[i];
+  for (ulong b = 0; b < numBatches; b++) {
+    Samples<T> batch = sampleProvider(sampleIndices, batchSize, b);
+
+    // Atomic counter for assigning unique worker indices to threads
+    std::atomic<int> nextWorkerIndex{0};
+
+    // Per-worker loss and correct counters
+    std::vector<T> workerLosses(numThreads, 0);
+    std::vector<ulong> workerCorrects(numThreads, 0);
+
+    QVector<ulong> batchIndices(batch.size());
+
+    for (ulong i = 0; i < batch.size(); i++) {
+      batchIndices[i] = i;
+    }
+
+    QtConcurrent::blockingMap(batchIndices, [&, numThreads, numLayers](ulong idx) {
+      thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+      CoreCPUWorker<T>& worker = *workers[workerIndex];
+
+      const Sample<T>& sample = batch[idx];
+      worker.propagate(sample.input);
+      T sampleLoss = worker.computeLoss(sample.output);
+
+      workerLosses[workerIndex] += sampleLoss;
+
+      const auto& outputActvs = worker.getActvs()[numLayers - 1];
+      auto predIdx = std::distance(outputActvs.begin(), std::max_element(outputActvs.begin(), outputActvs.end()));
+      auto expIdx = std::distance(sample.output.begin(), std::max_element(sample.output.begin(), sample.output.end()));
+
+      if (predIdx == expIdx)
+        workerCorrects[workerIndex]++;
+    });
+
+    for (int i = 0; i < numThreads; i++) {
+      totalLoss += workerLosses[i];
+      totalCorrect += workerCorrects[i];
+    }
   }
 
   TestResult<T> result;
   result.numSamples = numSamples;
   result.totalLoss = totalLoss;
-  result.averageLoss = totalLoss / static_cast<T>(numSamples);
+  result.averageLoss = (numSamples > 0) ? totalLoss / static_cast<T>(numSamples) : static_cast<T>(0);
   result.numCorrect = totalCorrect;
-  result.accuracy = static_cast<T>(totalCorrect) / static_cast<T>(numSamples) * static_cast<T>(100);
+  result.accuracy = (numSamples > 0) ? static_cast<T>(totalCorrect) / static_cast<T>(numSamples) * static_cast<T>(100)
+                                     : static_cast<T>(0);
 
   return result;
 }

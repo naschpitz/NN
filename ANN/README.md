@@ -46,9 +46,14 @@ config.trainingConfig.numEpochs    = 100;
 config.trainingConfig.batchSize    = 64;
 config.trainingConfig.learningRate = 0.01f;
 
-// Create, train, and query
+config.testConfig.batchSize = 128;   // batch size for test evaluation (default: 64)
+
+// Create, train, test, and query
 auto core = ANN::Core<float>::makeCore(config);
 core->train(samples.size(), ANN::makeSampleProvider(samples));
+
+auto testResult = core->test(testSamples.size(), ANN::makeSampleProvider(testSamples));
+// testResult.accuracy, testResult.averageLoss, testResult.numCorrect, ...
 
 const auto& params = core->getParameters();   // weights & biases
 const auto& meta   = core->getTrainingMetadata();

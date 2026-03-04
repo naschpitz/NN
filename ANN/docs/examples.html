@@ -106,7 +106,7 @@ std::cout &lt;&lt; <span class="string">"Predicted class: "</span> &lt;&lt; pred
 
 <h2 id="test">4. Testing</h2>
 <pre><code>ANN::Samples&lt;<span class="type">float</span>&gt; testSamples = <span class="comment">/* load test set */</span>;
-ANN::TestResult&lt;<span class="type">float</span>&gt; result = core-&gt;test(testSamples);
+ANN::TestResult&lt;<span class="type">float</span>&gt; result = core-&gt;test(testSamples.size(), ANN::makeSampleProvider(testSamples));
 std::cout &lt;&lt; <span class="string">"Test — Samples: "</span> &lt;&lt; result.numSamples
           &lt;&lt; <span class="string">"  Avg Loss: "</span> &lt;&lt; result.averageLoss &lt;&lt; std::endl;
 </code></pre>
