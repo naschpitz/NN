@@ -292,6 +292,17 @@ namespace NN_CLI
         } else if (type == "flatten") {
           layerConfig.type = CNN::LayerType::FLATTEN;
           layerConfig.config = CNN::FlattenLayerConfig{};
+        } else if (type == "batchnorm") {
+          layerConfig.type = CNN::LayerType::BATCHNORM;
+          CNN::BatchNormLayerConfig bn;
+
+          if (layerJson.contains("epsilon"))
+            bn.epsilon = layerJson.at("epsilon").get<float>();
+
+          if (layerJson.contains("momentum"))
+            bn.momentum = layerJson.at("momentum").get<float>();
+
+          layerConfig.config = bn;
         } else {
           throw std::runtime_error("Unknown CNN layer type: " + type);
         }
@@ -376,6 +387,18 @@ namespace NN_CLI
           cp.filters = convJson.at("filters").get<std::vector<float>>();
           cp.biases = convJson.at("biases").get<std::vector<float>>();
           coreConfig.parameters.convParams.push_back(std::move(cp));
+        }
+      }
+
+      if (paramsJson.contains("batchnorm")) {
+        for (const auto& bnJson : paramsJson.at("batchnorm")) {
+          CNN::BatchNormParameters<float> bp;
+          bp.numChannels = bnJson.at("numChannels").get<ulong>();
+          bp.gamma = bnJson.at("gamma").get<std::vector<float>>();
+          bp.beta = bnJson.at("beta").get<std::vector<float>>();
+          bp.runningMean = bnJson.at("runningMean").get<std::vector<float>>();
+          bp.runningVar = bnJson.at("runningVar").get<std::vector<float>>();
+          coreConfig.parameters.bnParams.push_back(std::move(bp));
         }
       }
 
