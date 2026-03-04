@@ -6,12 +6,16 @@
   "layersConfig": [
     { "numNeurons": 784, "actvFunc": "relu" },
     { "numNeurons": 64, "actvFunc": "relu" },
-    { "numNeurons": 10, "actvFunc": "sigmoid" }
+    { "numNeurons": 10, "actvFunc": "softmax" }
   ],
+  "costFunctionConfig": {
+    "type": "crossEntropy"
+  },
   "trainingConfig": {
-    "numEpochs": 30,
-    "batchSize": 512,
-    "learningRate": 0.01
+    "numEpochs": 10,
+    "batchSize": 64,
+    "learningRate": 0.001,
+    "optimizer": { "type": "adam" }
   }
 }
 

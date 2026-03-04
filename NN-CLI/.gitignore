@@ -87,3 +87,4 @@ examples/ISIC-MIL10k
 # Test fixture output (generated during tests)
 # ---------------------------------------------
 tests/fixtures/output/
+examples/ISIC-2020/

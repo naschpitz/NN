@@ -6,9 +6,11 @@
   "inputShape": { "c": 1, "h": 28, "w": 28 },
   "convolutionalLayersConfig": [
     { "type": "conv", "numFilters": 32, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
+    { "type": "batchnorm" },
     { "type": "relu" },
     { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
     { "type": "conv", "numFilters": 64, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
+    { "type": "batchnorm" },
     { "type": "relu" },
     { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
     { "type": "flatten" }
