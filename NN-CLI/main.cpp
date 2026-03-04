@@ -26,6 +26,7 @@ void printUsage()
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
   std::cout << "  --output, -o <file>    Output file/dir (default: predict_<input>.json or folder for images)\n";
   std::cout << "  --output-type <type>   Output data type: 'vector' or 'image' (overrides config file)\n";
+  std::cout << "  --num-epochs <n>       Number of epochs (overrides config file)\n";
   std::cout << "  --shuffle-samples <b>  Shuffle samples each epoch: true/false (overrides config file)\n";
   std::cout << "  --log-level, -l <lvl>  Log level: quiet, error, warning, info, debug (default: error)\n";
   std::cout << "  --help, -h             Show this help message\n";
@@ -95,6 +96,11 @@ int main(int argc, char* argv[])
                                     "Log level: quiet, error, warning, info, debug (default: error).", "level",
                                     "error");
   parser.addOption(logLevelOption);
+
+  // Num epochs option (overrides config file)
+  QCommandLineOption numEpochsOption(QStringList() << "num-epochs",
+                                     "Number of training epochs (overrides config file).", "n");
+  parser.addOption(numEpochsOption);
 
   // Shuffle samples option (overrides config file)
   QCommandLineOption shuffleSamplesOption(QStringList() << "shuffle-samples",
