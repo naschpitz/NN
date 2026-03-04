@@ -186,6 +186,7 @@ namespace NN_CLI
 
     // Calculate average progress
     float totalPercent = 0.0f;
+
     for (float p : gpuProg) {
       totalPercent += p;
     }
@@ -198,6 +199,7 @@ namespace NN_CLI
 
     // Show per-GPU percentages
     out << "(";
+
     for (int gpu = 0; gpu < numGPUs; gpu++) {
       float gpuPercent = (gpu < static_cast<int>(gpuProg.size())) ? gpuProg[gpu] : 0.0f;
       out << gpu << ":" << std::setw(3) << static_cast<int>(gpuPercent * 100) << "%";

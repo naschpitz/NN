@@ -102,6 +102,7 @@ static void testANNPredictMNIST()
 
     // Verify all outputs are valid numbers in [0, 1]
     bool allValid = true;
+
     for (int i = 0; i < firstOutput.size(); ++i) {
       double v = firstOutput[i].toDouble();
 
@@ -417,6 +418,7 @@ static void testANNCheckpointParameters()
       // Verify at least one layer has actual weight data
       if (!weights.isEmpty()) {
         bool hasData = false;
+
         for (int i = 0; i < weights.size(); ++i) {
           if (weights[i].toArray().size() > 0) {
             hasData = true;

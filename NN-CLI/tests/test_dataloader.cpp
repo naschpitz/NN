@@ -19,6 +19,7 @@ using namespace NN_CLI;
 static ANN::Samples<float> makeANNSamples(ulong count, ulong numClasses = 3)
 {
   ANN::Samples<float> samples(count);
+
   for (ulong i = 0; i < count; i++) {
     samples[i].input = {static_cast<float>(i)};
     samples[i].output.assign(numClasses, 0.0f);

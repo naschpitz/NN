@@ -136,6 +136,7 @@ namespace NN_CLI
     for (int ch = 0; ch < c; ch++) {
       for (int y = 0; y < h; y++) {
         int rowStart = ch * h * w + y * w;
+
         for (int x = 0; x < w / 2; x++) {
           std::swap(data[rowStart + x], data[rowStart + w - 1 - x]);
         }
@@ -158,6 +159,7 @@ namespace NN_CLI
 
     for (int ch = 0; ch < c; ch++) {
       int chOffset = ch * h * w;
+
       for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
           // Map destination (x,y) back to source
@@ -194,6 +196,7 @@ namespace NN_CLI
   {
     std::uniform_real_distribution<float> dist(-maxDelta, maxDelta);
     float delta = dist(rng);
+
     for (auto& v : data) {
       v = std::clamp(v + delta, 0.0f, 1.0f);
     }
@@ -211,6 +214,7 @@ namespace NN_CLI
     for (int ch = 0; ch < c; ch++) {
       int chOffset = ch * h * w;
       float mean = 0.0f;
+
       for (int i = 0; i < h * w; i++)
         mean += data[chOffset + i];
       mean /= static_cast<float>(h * w);
@@ -238,13 +242,16 @@ namespace NN_CLI
     int dy = distY(rng);
 
     std::vector<float> result(data.size(), 0.0f);
+
     for (int ch = 0; ch < c; ch++) {
       int chOffset = ch * h * w;
+
       for (int y = 0; y < h; y++) {
         int srcY = y - dy;
 
         if (srcY < 0 || srcY >= h)
           continue;
+
         for (int x = 0; x < w; x++) {
           int srcX = x - dx;
 
@@ -263,6 +270,7 @@ namespace NN_CLI
   void ImageLoader::addGaussianNoise(std::vector<float>& data, float stddev, std::mt19937& rng)
   {
     std::normal_distribution<float> dist(0.0f, stddev);
+
     for (auto& v : data) {
       v = std::clamp(v + dist(rng), 0.0f, 1.0f);
     }

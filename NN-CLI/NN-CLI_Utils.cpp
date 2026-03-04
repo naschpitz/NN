@@ -25,6 +25,7 @@ ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::str
 
   // Determine the number of unique labels for one-hot encoding
   unsigned char maxLabel = 0;
+
   for (unsigned char label : labels) {
     if (label > maxLabel) {
       maxLabel = label;
@@ -42,6 +43,7 @@ ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::str
 
     // Convert data to normalized input (0-1 range)
     sample.input.reserve(data[i].size());
+
     for (unsigned char value : data[i]) {
       sample.input.push_back(static_cast<T>(value) / static_cast<T>(255));
     }
@@ -143,6 +145,7 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
 
   // Determine the number of unique labels for one-hot encoding
   unsigned char maxLabel = 0;
+
   for (unsigned char label : labels) {
     if (label > maxLabel) {
       maxLabel = label;
@@ -167,6 +170,7 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
 
     // Reshape flat data into Tensor3D with given shape
     sample.input = CNN::Tensor3D<T>(inputShape);
+
     for (size_t j = 0; j < data[i].size(); ++j) {
       sample.input.data[j] = static_cast<T>(data[i][j]) / static_cast<T>(255);
     }

@@ -89,6 +89,9 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
       "contrast": 0.2,
       "gaussianNoise": 0.02
     }
+  },
+  "testConfig": {
+    "batchSize": 64
   }
 }
 ```
@@ -176,6 +179,10 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   }
   ```
 
+#### ANN Test Configuration
+
+- `batchSize`: Mini-batch size for test evaluation (default: `64`). Controls how many samples are loaded into memory at once during `--mode test`
+
 ## CNN Configuration
 
 ### CNN Config File (Train Mode)
@@ -218,6 +225,9 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
       "horizontalFlip": true,
       "rotation": 15.0
     }
+  },
+  "testConfig": {
+    "batchSize": 64
   }
 }
 ```
@@ -250,7 +260,7 @@ Each layer has a `type` field:
   - `numFilters`, `filterH`, `filterW`, `strideY`, `strideX`, `slidingStrategy` (`valid` or `same`)
 - **relu**: ReLU activation layer
 - **pool**: Pooling layer
-  - `poolType` (`max`), `poolH`, `poolW`, `strideY`, `strideX`
+  - `poolType` (`max` or `avg`), `poolH`, `poolW`, `strideY`, `strideX`
 - **flatten**: Flatten 3D feature maps to 1D vector
 
 #### Dense Layers Configuration (`denseLayersConfig`)
@@ -270,6 +280,10 @@ Each layer has a `type` field:
 - `autoClassWeights`: Auto-compute inverse-frequency class weights (default: `false`)
 - `augmentationProbability`: Probability of applying each enabled transform (default: `0.5`)
 - `augmentationTransforms`: Control individual transforms (same fields as ANN — see above for defaults)
+
+#### CNN Test Configuration
+
+- `batchSize`: Mini-batch size for test evaluation (default: `64`). Controls how many samples are loaded into memory at once during `--mode test`
 
 ## Model File (output from training)
 

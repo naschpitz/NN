@@ -195,6 +195,7 @@ int Runner::runANNTrain()
 
     if (this->logLevel >= LogLevel::INFO) {
       std::cout << "Auto class weights: [";
+
       for (ulong i = 0; i < weights.size(); i++) {
         if (i > 0)
           std::cout << ", ";
@@ -220,16 +221,40 @@ int Runner::runANNTrain()
 
 int Runner::runANNTest()
 {
-  QString inputFilePath;
-  auto [samples, success] = this->loadANNSamplesFromOptions("test", inputFilePath);
-
-  if (!success)
+  // Reject conflicting input formats
+  if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
+    std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
     return 1;
+  }
+
+  QString inputFilePath;
+  DataLoader<ANN::Sample<float>> dataLoader;
+
+  int inputC = this->ioConfig.hasInputShape() ? static_cast<int>(this->ioConfig.inputC) : 0;
+  int inputH = this->ioConfig.hasInputShape() ? static_cast<int>(this->ioConfig.inputH) : 0;
+  int inputW = this->ioConfig.hasInputShape() ? static_cast<int>(this->ioConfig.inputW) : 0;
+
+  if (this->parser.isSet("samples")) {
+    inputFilePath = this->parser.value("samples");
+    int outputC = this->ioConfig.hasOutputShape() ? static_cast<int>(this->ioConfig.outputC) : 0;
+    int outputH = this->ioConfig.hasOutputShape() ? static_cast<int>(this->ioConfig.outputH) : 0;
+    int outputW = this->ioConfig.hasOutputShape() ? static_cast<int>(this->ioConfig.outputW) : 0;
+    dataLoader.loadManifest(inputFilePath.toStdString(), this->ioConfig, inputC, inputH, inputW, outputC, outputH,
+                            outputW);
+  } else {
+    auto [samples, success] = this->loadANNSamplesFromOptions("test", inputFilePath);
+
+    if (!success)
+      return 1;
+    dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
+  }
 
   if (this->logLevel >= LogLevel::INFO)
     std::cout << "Running ANN evaluation...\n";
 
-  ANN::TestResult<float> result = this->annCore->test(samples);
+  // No augmentation for test — use identity provider (no transforms, probability 0)
+  auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
+  ANN::TestResult<float> result = this->annCore->test(dataLoader.numSamples(), sampleProvider);
 
   if (this->logLevel > LogLevel::QUIET) {
     std::cout << "\nTest Results:\n";
@@ -415,6 +440,7 @@ int Runner::runCNNTrain()
 
     if (this->logLevel >= LogLevel::INFO) {
       std::cout << "Auto class weights: [";
+
       for (ulong i = 0; i < weights.size(); i++) {
         if (i > 0)
           std::cout << ", ";
@@ -440,16 +466,38 @@ int Runner::runCNNTrain()
 
 int Runner::runCNNTest()
 {
-  QString inputFilePath;
-  auto [samples, success] = this->loadCNNSamplesFromOptions("test", inputFilePath);
-
-  if (!success)
+  // Reject conflicting input formats
+  if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
+    std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
     return 1;
+  }
+
+  QString inputFilePath;
+  DataLoader<CNN::Sample<float>> dataLoader;
+  const CNN::Shape3D& inputShape = this->cnnCoreConfig.inputShape;
+  int inputC = static_cast<int>(inputShape.c);
+  int inputH = static_cast<int>(inputShape.h);
+  int inputW = static_cast<int>(inputShape.w);
+
+  if (this->parser.isSet("samples")) {
+    inputFilePath = this->parser.value("samples");
+    dataLoader.loadManifest(inputFilePath.toStdString(), this->ioConfig, inputC, inputH, inputW,
+                            static_cast<int>(this->ioConfig.outputC), static_cast<int>(this->ioConfig.outputH),
+                            static_cast<int>(this->ioConfig.outputW));
+  } else {
+    auto [samples, success] = this->loadCNNSamplesFromOptions("test", inputFilePath);
+
+    if (!success)
+      return 1;
+    dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
+  }
 
   if (this->logLevel >= LogLevel::INFO)
     std::cout << "Running CNN evaluation...\n";
 
-  CNN::TestResult<float> result = this->cnnCore->test(samples);
+  // No augmentation for test — use identity provider (no transforms, probability 0)
+  auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
+  CNN::TestResult<float> result = this->cnnCore->test(dataLoader.numSamples(), sampleProvider);
 
   if (this->logLevel > LogLevel::QUIET) {
     std::cout << "\nTest Results:\n";
@@ -735,6 +783,7 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
 
   // Layers config
   nlohmann::ordered_json layersArr = nlohmann::ordered_json::array();
+
   for (const auto& layer : core.getLayersConfig()) {
     nlohmann::ordered_json layerJson;
     layerJson["numNeurons"] = layer.numNeurons;
@@ -843,6 +892,7 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
 
   // CNN layers config
   nlohmann::ordered_json cnnLayersArr = nlohmann::ordered_json::array();
+
   for (const auto& layer : core.getLayersConfig().cnnLayers) {
     nlohmann::ordered_json layerJson;
     switch (layer.type) {
@@ -884,6 +934,7 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
 
   // Dense layers config
   nlohmann::ordered_json denseLayersArr = nlohmann::ordered_json::array();
+
   for (const auto& layer : core.getLayersConfig().denseLayers) {
     nlohmann::ordered_json layerJson;
     layerJson["numNeurons"] = layer.numNeurons;
@@ -940,6 +991,7 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
 
   // Conv parameters
   nlohmann::ordered_json convArr = nlohmann::ordered_json::array();
+
   for (const auto& cp : core.getParameters().convParams) {
     nlohmann::ordered_json cpJson;
     cpJson["numFilters"] = cp.numFilters;
@@ -1164,6 +1216,7 @@ std::vector<float> Runner::computeClassWeightsFromOutputs(const std::vector<std:
 
   ulong totalSamples = outputs.size();
   std::vector<float> weights(numClasses, 1.0f);
+
   for (ulong c = 0; c < numClasses; c++) {
     if (classCounts[c] > 0) {
       weights[c] =

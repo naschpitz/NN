@@ -24,6 +24,12 @@ namespace NN_CLI
                                          int inputH, int inputW, int outputC, int outputH, int outputW)
   {
     this->ioConfig = ioConfig;
+
+    // Image dimensions are stored for deferred (on-demand) sample loading:
+    // - Input dimensions (C, H, W): used by ImageLoader to resize images to the network's expected
+    //   input size, and by augmentation transforms (rotation, flipping, etc.) that need the spatial layout.
+    // - Output dimensions (C, H, W): used when outputType is IMAGE (e.g., segmentation or autoencoders)
+    //   to load and resize output images to the expected target size.
     this->inputC = inputC;
     this->inputH = inputH;
     this->inputW = inputW;
@@ -73,6 +79,7 @@ namespace NN_CLI
     this->memorySamples.clear();
     this->entries.clear();
     this->entries.reserve(this->manifest.size());
+
     for (ulong i = 0; i < this->manifest.size(); i++) {
       this->entries.push_back({i, false});
     }
@@ -94,6 +101,7 @@ namespace NN_CLI
 
     this->entries.clear();
     this->entries.reserve(this->memorySamples.size());
+
     for (ulong i = 0; i < this->memorySamples.size(); i++) {
       this->entries.push_back({i, false});
     }
@@ -131,6 +139,7 @@ namespace NN_CLI
     };
 
     std::map<ulong, std::vector<ulong>> classIndices;
+
     for (ulong i = 0; i < originalCount; i++) {
       const std::vector<float>& output =
         this->fromMemory ? sampleOutput(this->memorySamples[i]) : this->manifest[i].output;
@@ -139,6 +148,7 @@ namespace NN_CLI
     }
 
     ulong maxClassCount = 0;
+
     for (const auto& [cls, indices] : classIndices)
       maxClassCount = std::max(maxClassCount, static_cast<ulong>(indices.size()));
 
@@ -181,6 +191,7 @@ namespace NN_CLI
   {
     std::vector<std::vector<float>> outputs;
     outputs.reserve(this->entries.size());
+
     for (const auto& entry : this->entries) {
       if (this->fromMemory)
         outputs.push_back(sampleOutput(this->memorySamples[entry.sourceIndex]));
@@ -214,6 +225,7 @@ namespace NN_CLI
     futures.reserve(numThreads);
 
     ulong offset = 0;
+
     for (int t = 0; t < numThreads; t++) {
       ulong thisChunk = chunkSize + (static_cast<ulong>(t) < remainder ? 1 : 0);
       ulong chunkStart = offset;

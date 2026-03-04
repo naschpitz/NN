@@ -185,6 +185,13 @@ namespace NN_CLI
       }
     }
 
+    if (json.contains("testConfig")) {
+      const auto& tc = json.at("testConfig");
+
+      if (tc.contains("batchSize"))
+        coreConfig.testConfig.batchSize = tc.at("batchSize").get<ulong>();
+    }
+
     if (json.contains("parameters")) {
       const auto& p = json.at("parameters");
       coreConfig.parameters.weights = p.at("weights").get<ANN::Tensor3D<float>>();
@@ -346,6 +353,13 @@ namespace NN_CLI
         if (opt.contains("epsilon"))
           coreConfig.trainingConfig.optimizer.epsilon = opt.at("epsilon").get<float>();
       }
+    }
+
+    if (json.contains("testConfig")) {
+      const auto& tc = json.at("testConfig");
+
+      if (tc.contains("batchSize"))
+        coreConfig.testConfig.batchSize = tc.at("batchSize").get<ulong>();
     }
 
     // Parameters (for predict/test modes or resuming training)
