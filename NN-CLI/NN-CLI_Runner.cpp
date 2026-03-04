@@ -90,19 +90,14 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
   }
 
   // Load NN-CLI-level settings from config root
-  this->progressReports = Loader::loadProgressReports(configPath.toStdString());
-  this->saveModelInterval = Loader::loadSaveModelInterval(configPath.toStdString());
+  this->ioConfig.progressReports = Loader::loadProgressReports(configPath.toStdString());
+  this->ioConfig.saveModelInterval = Loader::loadSaveModelInterval(configPath.toStdString());
 
   // Load data augmentation config
-  auto augConfig = Loader::loadAugmentationConfig(configPath.toStdString());
-  this->augmentationFactor = augConfig.augmentationFactor;
-  this->balanceAugmentation = augConfig.balanceAugmentation;
-  this->autoClassWeights = augConfig.autoClassWeights;
-  this->augmentationProbability = augConfig.augmentationProbability;
-  this->augTransforms = augConfig.transforms;
+  this->augConfig = Loader::loadAugmentationConfig(configPath.toStdString());
 
-  if (this->logLevel >= LogLevel::INFO && this->saveModelInterval > 0) {
-    std::cout << "Save model interval: every " << this->saveModelInterval << " epoch(s)\n";
+  if (this->logLevel >= LogLevel::INFO && this->ioConfig.saveModelInterval > 0) {
+    std::cout << "Save model interval: every " << this->ioConfig.saveModelInterval << " epoch(s)\n";
   }
 
   if (this->networkType == NetworkType::ANN) {
@@ -196,10 +191,10 @@ int Runner::runANNTrain()
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  dataLoader.planAugmentation(this->augmentationFactor, this->balanceAugmentation);
+  dataLoader.planAugmentation(this->augConfig.augmentationFactor, this->augConfig.balanceAugmentation);
 
   // Auto-compute class weights
-  if (this->autoClassWeights && this->annCoreConfig.costFunctionConfig.weights.empty()) {
+  if (this->augConfig.autoClassWeights && this->annCoreConfig.costFunctionConfig.weights.empty()) {
     auto allOutputs = dataLoader.getAllOutputs();
     std::vector<float> weights = this->computeClassWeightsFromOutputs(allOutputs);
     this->annCoreConfig.costFunctionConfig.type = ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
@@ -224,7 +219,8 @@ int Runner::runANNTrain()
 
   this->setupANNTrainingCallback(inputFilePath);
 
-  auto sampleProvider = dataLoader.makeSampleProvider(this->augTransforms, this->augmentationProbability);
+  auto sampleProvider =
+    dataLoader.makeSampleProvider(this->augConfig.transforms, this->augConfig.augmentationProbability);
   this->annCore->train(dataLoader.numSamples(), sampleProvider);
 
   return this->finishANNTraining(inputFilePath);
@@ -314,7 +310,7 @@ int Runner::runANNPredict()
   if (this->logLevel >= LogLevel::INFO)
     std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
-  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
+  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
   std::vector<ANN::Input<float>> inputs =
     Loader::loadANNInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
 
@@ -436,10 +432,10 @@ int Runner::runCNNTrain()
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  dataLoader.planAugmentation(this->augmentationFactor, this->balanceAugmentation);
+  dataLoader.planAugmentation(this->augConfig.augmentationFactor, this->augConfig.balanceAugmentation);
 
   // Auto-compute class weights
-  if (this->autoClassWeights && this->cnnCoreConfig.costFunctionConfig.weights.empty()) {
+  if (this->augConfig.autoClassWeights && this->cnnCoreConfig.costFunctionConfig.weights.empty()) {
     auto allOutputs = dataLoader.getAllOutputs();
     std::vector<float> weights = this->computeClassWeightsFromOutputs(allOutputs);
     // Keep the configured cost function type (e.g. crossEntropy) — weights work with all types.
@@ -469,7 +465,8 @@ int Runner::runCNNTrain()
 
   this->setupCNNTrainingCallback(inputFilePath);
 
-  auto sampleProvider = dataLoader.makeSampleProvider(this->augTransforms, this->augmentationProbability);
+  auto sampleProvider =
+    dataLoader.makeSampleProvider(this->augConfig.transforms, this->augConfig.augmentationProbability);
   this->cnnCore->train(dataLoader.numSamples(), sampleProvider);
 
   return this->finishCNNTraining(inputFilePath);
@@ -557,7 +554,7 @@ int Runner::runCNNPredict()
   if (this->logLevel >= LogLevel::INFO)
     std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
 
-  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
+  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
   std::vector<CNN::Input<float>> inputs = Loader::loadCNNInputs(inputPath.toStdString(), this->cnnCoreConfig.inputShape,
                                                                 this->ioConfig, displayProgressReports);
 
@@ -663,7 +660,7 @@ std::pair<ANN::Samples<float>, bool> Runner::loadANNSamplesFromOptions(const std
     return {samples, false};
   }
 
-  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
+  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
 
   if (hasJsonSamples) {
     QString samplesPath = this->parser.value("samples");
@@ -718,7 +715,7 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(const std
 
   const CNN::Shape3D& inputShape = this->cnnCoreConfig.inputShape;
 
-  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->progressReports : 0;
+  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
 
   if (hasJsonSamples) {
     QString samplesPath = this->parser.value("samples");
@@ -760,9 +757,11 @@ std::pair<CNN::Samples<float>, bool> Runner::loadCNNSamplesFromOptions(const std
 //  Model saving
 //===================================================================================================================//
 
-void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& filePath, const IOConfig& ioConfig,
-                          ulong progressReports, ulong saveModelInterval)
+void Runner::saveANNModel(const std::string& filePath) const
 {
+  const auto& core = *this->annCore;
+  const auto& coreConfig = this->annCoreConfig;
+
   nlohmann::ordered_json json;
 
   json["mode"] = ANN::Mode::typeToName(core.getModeType());
@@ -771,26 +770,26 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
   json["numGPUs"] = core.getNumGPUs();
 
   // NN-CLI settings
-  json["progressReports"] = progressReports;
-  json["saveModelInterval"] = saveModelInterval;
+  json["progressReports"] = coreConfig.progressReports;
+  json["saveModelInterval"] = this->ioConfig.saveModelInterval;
 
   // I/O types (NN-CLI concept, persisted so predict/test can reload them)
-  json["inputType"] = dataTypeToString(ioConfig.inputType);
-  json["outputType"] = dataTypeToString(ioConfig.outputType);
+  json["inputType"] = dataTypeToString(this->ioConfig.inputType);
+  json["outputType"] = dataTypeToString(this->ioConfig.outputType);
 
-  if (ioConfig.hasInputShape()) {
+  if (this->ioConfig.hasInputShape()) {
     nlohmann::ordered_json isJson;
-    isJson["c"] = ioConfig.inputC;
-    isJson["h"] = ioConfig.inputH;
-    isJson["w"] = ioConfig.inputW;
+    isJson["c"] = this->ioConfig.inputC;
+    isJson["h"] = this->ioConfig.inputH;
+    isJson["w"] = this->ioConfig.inputW;
     json["inputShape"] = isJson;
   }
 
-  if (ioConfig.hasOutputShape()) {
+  if (this->ioConfig.hasOutputShape()) {
     nlohmann::ordered_json osJson;
-    osJson["c"] = ioConfig.outputC;
-    osJson["h"] = ioConfig.outputH;
-    osJson["w"] = ioConfig.outputW;
+    osJson["c"] = this->ioConfig.outputC;
+    osJson["h"] = this->ioConfig.outputH;
+    osJson["w"] = this->ioConfig.outputW;
     json["outputShape"] = osJson;
   }
 
@@ -835,7 +834,35 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
     tcJson["optimizer"] = optJson;
   }
 
+  // Data augmentation config (NN-CLI level)
+  if (this->augConfig.augmentationFactor > 0)
+    tcJson["augmentationFactor"] = this->augConfig.augmentationFactor;
+
+  if (this->augConfig.balanceAugmentation)
+    tcJson["balanceAugmentation"] = this->augConfig.balanceAugmentation;
+
+  if (this->augConfig.autoClassWeights)
+    tcJson["autoClassWeights"] = this->augConfig.autoClassWeights;
+
+  if (this->augConfig.augmentationFactor > 0 || this->augConfig.balanceAugmentation) {
+    tcJson["augmentationProbability"] = this->augConfig.augmentationProbability;
+
+    nlohmann::ordered_json atJson;
+    atJson["horizontalFlip"] = this->augConfig.transforms.horizontalFlip;
+    atJson["rotation"] = this->augConfig.transforms.rotation;
+    atJson["translation"] = this->augConfig.transforms.translation;
+    atJson["brightness"] = this->augConfig.transforms.brightness;
+    atJson["contrast"] = this->augConfig.transforms.contrast;
+    atJson["gaussianNoise"] = this->augConfig.transforms.gaussianNoise;
+    tcJson["augmentationTransforms"] = atJson;
+  }
+
   json["trainingConfig"] = tcJson;
+
+  // Test config
+  nlohmann::ordered_json testConfigJson;
+  testConfigJson["batchSize"] = coreConfig.testConfig.batchSize;
+  json["testConfig"] = testConfigJson;
 
   // Training metadata
   const auto& md = core.getTrainingMetadata();
@@ -868,9 +895,11 @@ void Runner::saveANNModel(const ANN::Core<float>& core, const std::string& fileP
 
 //===================================================================================================================//
 
-void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& filePath, const IOConfig& ioConfig,
-                          ulong progressReports, ulong saveModelInterval)
+void Runner::saveCNNModel(const std::string& filePath) const
 {
+  const auto& core = *this->cnnCore;
+  const auto& coreConfig = this->cnnCoreConfig;
+
   nlohmann::ordered_json json;
 
   json["mode"] = CNN::Mode::typeToName(core.getModeType());
@@ -879,12 +908,12 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
   json["numGPUs"] = core.getNumGPUs();
 
   // NN-CLI settings
-  json["progressReports"] = progressReports;
-  json["saveModelInterval"] = saveModelInterval;
+  json["progressReports"] = coreConfig.progressReports;
+  json["saveModelInterval"] = this->ioConfig.saveModelInterval;
 
   // I/O types (NN-CLI concept, persisted so predict/test can reload them)
-  json["inputType"] = dataTypeToString(ioConfig.inputType);
-  json["outputType"] = dataTypeToString(ioConfig.outputType);
+  json["inputType"] = dataTypeToString(this->ioConfig.inputType);
+  json["outputType"] = dataTypeToString(this->ioConfig.outputType);
 
   // Input shape (CNN network shape, always present)
   const auto& shape = core.getInputShape();
@@ -895,11 +924,11 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
   json["inputShape"] = shapeJson;
 
   // Output shape (for image output reconstruction)
-  if (ioConfig.hasOutputShape()) {
+  if (this->ioConfig.hasOutputShape()) {
     nlohmann::ordered_json osJson;
-    osJson["c"] = ioConfig.outputC;
-    osJson["h"] = ioConfig.outputH;
-    osJson["w"] = ioConfig.outputW;
+    osJson["c"] = this->ioConfig.outputC;
+    osJson["h"] = this->ioConfig.outputH;
+    osJson["w"] = this->ioConfig.outputW;
     json["outputShape"] = osJson;
   }
 
@@ -994,7 +1023,35 @@ void Runner::saveCNNModel(const CNN::Core<float>& core, const std::string& fileP
     tcJson["optimizer"] = optJson;
   }
 
+  // Data augmentation config (NN-CLI level)
+  if (this->augConfig.augmentationFactor > 0)
+    tcJson["augmentationFactor"] = this->augConfig.augmentationFactor;
+
+  if (this->augConfig.balanceAugmentation)
+    tcJson["balanceAugmentation"] = this->augConfig.balanceAugmentation;
+
+  if (this->augConfig.autoClassWeights)
+    tcJson["autoClassWeights"] = this->augConfig.autoClassWeights;
+
+  if (this->augConfig.augmentationFactor > 0 || this->augConfig.balanceAugmentation) {
+    tcJson["augmentationProbability"] = this->augConfig.augmentationProbability;
+
+    nlohmann::ordered_json atJson;
+    atJson["horizontalFlip"] = this->augConfig.transforms.horizontalFlip;
+    atJson["rotation"] = this->augConfig.transforms.rotation;
+    atJson["translation"] = this->augConfig.transforms.translation;
+    atJson["brightness"] = this->augConfig.transforms.brightness;
+    atJson["contrast"] = this->augConfig.transforms.contrast;
+    atJson["gaussianNoise"] = this->augConfig.transforms.gaussianNoise;
+    tcJson["augmentationTransforms"] = atJson;
+  }
+
   json["trainingConfig"] = tcJson;
+
+  // Test config
+  nlohmann::ordered_json testConfigJson;
+  testConfigJson["batchSize"] = coreConfig.testConfig.batchSize;
+  json["testConfig"] = testConfigJson;
 
   // Training metadata
   const auto& md = core.getTrainingMetadata();
@@ -1120,7 +1177,7 @@ void Runner::setupANNTrainingCallback(const QString& inputFilePath)
   lastCallbackEpoch = 0;
   lastEpochLoss = 0.0f;
 
-  static ProgressBar progressBar(this->progressReports);
+  static ProgressBar progressBar(this->ioConfig.progressReports);
 
   this->annCore->setTrainingCallback([this, inputFilePath](const ANN::TrainingProgress<float>& progress) {
     if (this->logLevel > LogLevel::QUIET) {
@@ -1129,10 +1186,10 @@ void Runner::setupANNTrainingCallback(const QString& inputFilePath)
       progressBar.update(info);
     }
 
-    if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
-      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
+    if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-        saveANNModel(*this->annCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
+        saveANNModel(checkpointPath);
 
         if (this->logLevel > LogLevel::QUIET)
           std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
@@ -1155,7 +1212,7 @@ void Runner::setupCNNTrainingCallback(const QString& inputFilePath)
   lastCallbackEpoch = 0;
   lastEpochLoss = 0.0f;
 
-  static ProgressBar progressBar(this->progressReports);
+  static ProgressBar progressBar(this->ioConfig.progressReports);
 
   this->cnnCore->setTrainingCallback([this, inputFilePath](const CNN::TrainingProgress<float>& progress) {
     if (this->logLevel > LogLevel::QUIET) {
@@ -1164,10 +1221,10 @@ void Runner::setupCNNTrainingCallback(const QString& inputFilePath)
       progressBar.update(info);
     }
 
-    if (this->saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
-      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->saveModelInterval == 0) {
+    if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
         std::string checkpointPath = generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-        saveCNNModel(*this->cnnCore, checkpointPath, this->ioConfig, this->progressReports, this->saveModelInterval);
+        saveCNNModel(checkpointPath);
 
         if (this->logLevel > LogLevel::QUIET)
           std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
@@ -1200,7 +1257,7 @@ int Runner::finishANNTraining(const QString& inputFilePath)
                                               trainingMetadata.finalLoss);
   }
 
-  saveANNModel(*this->annCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
+  saveANNModel(outputPathStr);
 
   if (this->logLevel > LogLevel::QUIET)
     std::cout << "Model saved to: " << outputPathStr << "\n";
@@ -1226,7 +1283,7 @@ int Runner::finishCNNTraining(const QString& inputFilePath)
                                               trainingMetadata.finalLoss);
   }
 
-  saveCNNModel(*this->cnnCore, outputPathStr, this->ioConfig, this->progressReports, this->saveModelInterval);
+  saveCNNModel(outputPathStr);
 
   if (this->logLevel > LogLevel::QUIET)
     std::cout << "Model saved to: " << outputPathStr << "\n";

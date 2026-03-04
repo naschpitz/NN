@@ -20,6 +20,10 @@ namespace NN_CLI
       // Shape of output images (required when outputType == IMAGE)
       ulong outputC = 0, outputH = 0, outputW = 0;
 
+      // Progress/checkpoint settings (NN-CLI display & persistence)
+      ulong progressReports = 1000;
+      ulong saveModelInterval = 10; // 0 = disabled
+
       bool hasInputShape() const
       {
         return inputC > 0 && inputH > 0 && inputW > 0;

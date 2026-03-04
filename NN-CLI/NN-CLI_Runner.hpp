@@ -51,10 +51,8 @@ namespace NN_CLI
                                                                      QString& inputFilePath);
 
       //-- Model saving --//
-      static void saveANNModel(const ANN::Core<float>& core, const std::string& filePath, const IOConfig& ioConfig,
-                               ulong progressReports, ulong saveModelInterval);
-      static void saveCNNModel(const CNN::Core<float>& core, const std::string& filePath, const IOConfig& ioConfig,
-                               ulong progressReports, ulong saveModelInterval);
+      void saveANNModel(const std::string& filePath) const;
+      void saveCNNModel(const std::string& filePath) const;
 
       //-- Output path helpers --//
       static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);
@@ -76,16 +74,10 @@ namespace NN_CLI
       LogLevel logLevel;
       NetworkType networkType;
       std::string mode; // "train", "test", "predict"
-      IOConfig ioConfig; // inputType / outputType / shapes (NN-CLI concept only)
-      ulong progressReports = 1000; // NN-CLI display frequency (not used by ANN/CNN libs)
-      ulong saveModelInterval = 10; // 0 = disabled
+      IOConfig ioConfig; // inputType / outputType / shapes / progress / checkpoints (NN-CLI concept only)
 
       //-- Data augmentation config (parsed from trainingConfig, handled by NN-CLI only) --//
-      ulong augmentationFactor = 0; // 0 = disabled; N = N× total samples per class
-      bool balanceAugmentation = false; // true = augment minority classes up to max class count
-      bool autoClassWeights = false; // true = auto-compute inverse-frequency class weights
-      float augmentationProbability = 0.5f; // Probability of applying each enabled transform
-      Loader::AugmentationTransforms augTransforms; // Which transforms to apply
+      Loader::AugmentationConfig augConfig;
 
       //-- ANN members --//
       std::unique_ptr<ANN::Core<float>> annCore;
