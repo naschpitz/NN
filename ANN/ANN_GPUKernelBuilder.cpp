@@ -46,7 +46,7 @@ void GPUKernelBuilder<T>::setupTrainingKernels()
   this->core->clearKernels();
   this->invalidateAllKernelFlags();
 
-  this->addPropagateKernels();
+  this->addPropagateKernels(true);
   this->addBackpropagateKernels(false);
   this->addAccumulateKernels();
 
@@ -61,7 +61,7 @@ void GPUKernelBuilder<T>::setupBackpropagateKernels()
   this->core->clearKernels();
   this->invalidateAllKernelFlags();
 
-  this->addPropagateKernels();
+  this->addPropagateKernels(true);
   this->addBackpropagateKernels(true);
 
   this->backpropagateKernelsSetup = true;
@@ -161,7 +161,7 @@ void GPUKernelBuilder<T>::addUpdateKernels(ulong numSamples)
 //===================================================================================================================//
 
 template <typename T>
-void GPUKernelBuilder<T>::addPropagateKernels()
+void GPUKernelBuilder<T>::addPropagateKernels(bool training)
 {
   ulong numLayers = this->layersConfig.size();
 
@@ -211,8 +211,8 @@ void GPUKernelBuilder<T>::addPropagateKernels()
     this->core->template addArgument<ulong>(calculate_actvs_id, static_cast<ulong>(layer.actvFuncType));
     this->core->template addArgument<ulong>(calculate_actvs_id, actvOffset);
 
-    // Dropout kernel: apply pre-generated mask after activation (skip last layer)
-    if (this->bufferManager.hasDropout && l < numLayers - 1) {
+    // Dropout kernel: apply pre-generated mask after activation (skip last layer, training only)
+    if (training && this->bufferManager.hasDropout && l < numLayers - 1) {
       std::string dropout_id = "apply_dropout_layer" + std::to_string(l);
       this->core->addKernel(dropout_id, "apply_dropout", numNeurons, 0);
       this->core->template addArgument<T>(dropout_id, "actvs");

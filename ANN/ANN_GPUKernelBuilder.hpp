@@ -33,7 +33,7 @@ namespace ANN
       void setupUpdateKernels(ulong numSamples);
 
       //-- Kernel building blocks (public for CNN integration) --//
-      void addPropagateKernels();
+      void addPropagateKernels(bool training = false);
       void addBackpropagateKernels(bool includeInputGradients);
       void addAccumulateKernels();
       void addUpdateKernels(ulong numSamples);
