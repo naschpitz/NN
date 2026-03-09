@@ -13,8 +13,10 @@ kernel void calculate_dCost_dActv_last_layer(global TYPE* dCost_dActvs, global T
   ulong idx = actvOffset + j;
 
   if (costFunctionType == 2) {
-    // Cross-entropy + softmax: dL/da_j = w_j * (a_j - y_j)
-    dCost_dActvs[idx] = lossWeights[j] * (actvs[idx] - outputs[j]);
+    // Cross-entropy: dL/da_j = -w_j * y_j / max(a_j, epsilon)
+    TYPE epsilon = (TYPE)1e-7;
+    TYPE pred = max(actvs[idx], epsilon);
+    dCost_dActvs[idx] = -lossWeights[j] * outputs[j] / pred;
   } else {
     // MSE: dL/da_j = 2 * w_j * (a_j - y_j)
     dCost_dActvs[idx] = 2.0f * lossWeights[j] * (actvs[idx] - outputs[j]);

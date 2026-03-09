@@ -238,9 +238,12 @@ T CoreCPUWorker<T>::calc_dCost_dActv(ulong j, const Output<T>& output)
   T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[j] : static_cast<T>(1);
 
   switch (this->costFunctionConfig.type) {
-  case CostFunctionType::CROSS_ENTROPY:
-    // Cross-entropy (softmax): dL/da_j = w * (a_j - y_j)
-    return weight * (this->actvs[l][j] - output[j]);
+  case CostFunctionType::CROSS_ENTROPY: {
+    // Cross-entropy: dL/da_j = -y_j / a_j (with epsilon for numerical stability)
+    const T epsilon = static_cast<T>(1e-7);
+    T pred = std::max(this->actvs[l][j], epsilon);
+    return -weight * output[j] / pred;
+  }
 
   case CostFunctionType::SQUARED_DIFFERENCE:
   case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
