@@ -82,7 +82,7 @@ INSTRUCTIONS.md
 # Examples output (generated files)
 # ----------------------------------
 examples/**/output/
-examples/ISIC-MIL10k
+examples/ISIC-MILK10k/
 
 # Test fixture output (generated during tests)
 # ---------------------------------------------
