@@ -890,6 +890,146 @@ static void testDropoutDisabledByDefault()
 
 //===================================================================================================================//
 
+static void testCrossEntropyStringConversion()
+{
+  std::cout << "--- testCrossEntropyStringConversion ---" << std::endl;
+
+  CHECK(ANN::CostFunction::nameToType("crossEntropy") == ANN::CostFunctionType::CROSS_ENTROPY,
+        "nameToType crossEntropy");
+  CHECK(ANN::CostFunction::typeToName(ANN::CostFunctionType::CROSS_ENTROPY) == "crossEntropy",
+        "typeToName crossEntropy");
+}
+
+//===================================================================================================================//
+
+static void testCrossEntropyTraining()
+{
+  std::cout << "--- testCrossEntropyTraining ---" << std::endl;
+
+  // Classification: 2 inputs → 3 classes with softmax + cross-entropy
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
+
+  config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
+  config.trainingConfig.numEpochs = 500;
+  config.trainingConfig.learningRate = 0.1;
+  config.progressReports = 0;
+  config.logLevel = ANN::LogLevel::ERROR;
+
+  // One-hot encoded targets
+  ANN::Samples<double> samples = {
+    {{1.0, 0.0}, {1.0, 0.0, 0.0}}, // class 0
+    {{0.0, 1.0}, {0.0, 1.0, 0.0}}, // class 1
+    {{1.0, 1.0}, {0.0, 0.0, 1.0}} // class 2
+  };
+
+  bool converged = false;
+
+  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
+    if (attempt > 0)
+      std::cout << "  retry #" << attempt << std::endl;
+
+    auto core = ANN::Core<double>::makeCore(config);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
+
+    auto out0 = core->predict({1.0, 0.0});
+    auto out1 = core->predict({0.0, 1.0});
+    auto out2 = core->predict({1.0, 1.0});
+
+    // Each output should sum to 1 (softmax)
+    bool sumsOk = std::fabs(out0[0] + out0[1] + out0[2] - 1.0) < 1e-5 &&
+                  std::fabs(out1[0] + out1[1] + out1[2] - 1.0) < 1e-5 &&
+                  std::fabs(out2[0] + out2[1] + out2[2] - 1.0) < 1e-5;
+
+    // Correct class should have highest probability
+    bool classOk = out0[0] > out0[1] && out0[0] > out0[2] && out1[1] > out1[0] && out1[1] > out1[2] &&
+                   out2[2] > out2[0] && out2[2] > out2[1];
+
+    if (sumsOk && classOk)
+      converged = true;
+  }
+
+  CHECK(converged, "cross-entropy + softmax converged (5 attempts)");
+}
+
+//===================================================================================================================//
+
+static void testCrossEntropyLossValue()
+{
+  std::cout << "--- testCrossEntropyLossValue ---" << std::endl;
+
+  // Train with cross-entropy, then test — loss should be non-negative and finite
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
+
+  config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
+  config.trainingConfig.numEpochs = 200;
+  config.trainingConfig.learningRate = 0.1;
+  config.progressReports = 0;
+  config.logLevel = ANN::LogLevel::ERROR;
+
+  ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0, 0.0}}, {{0.0, 1.0}, {0.0, 1.0}}};
+
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
+
+  ANN::TestResult<double> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
+
+  CHECK(result.averageLoss >= 0.0, "cross-entropy loss non-negative");
+  CHECK(std::isfinite(result.averageLoss), "cross-entropy loss is finite");
+  CHECK(result.numSamples == 2, "cross-entropy test: 2 samples");
+
+  std::cout << "  cross-entropy avgLoss=" << result.averageLoss << " accuracy=" << result.accuracy << "%" << std::endl;
+}
+
+//===================================================================================================================//
+
+static void testWeightedCrossEntropyTraining()
+{
+  std::cout << "--- testWeightedCrossEntropyTraining ---" << std::endl;
+
+  // Cross-entropy with per-class weights
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
+
+  config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.weights = {5.0, 1.0};
+  config.trainingConfig.numEpochs = 200;
+  config.trainingConfig.learningRate = 0.1;
+  config.progressReports = 0;
+  config.logLevel = ANN::LogLevel::ERROR;
+
+  ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0, 0.0}}, {{0.0, 1.0}, {0.0, 1.0}}};
+
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
+
+  ANN::TestResult<double> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
+
+  CHECK(result.averageLoss >= 0.0, "weighted cross-entropy loss non-negative");
+  CHECK(std::isfinite(result.averageLoss), "weighted cross-entropy loss is finite");
+  CHECK(result.numSamples == 2, "weighted cross-entropy: 2 samples");
+
+  // Verify config preserved
+  const auto& cfc = core->getCostFunctionConfig();
+  CHECK(cfc.type == ANN::CostFunctionType::CROSS_ENTROPY, "weighted CE: type preserved");
+  CHECK(cfc.weights.size() == 2, "weighted CE: weights preserved");
+  CHECK_NEAR(cfc.weights[0], 5.0, 1e-10, "weighted CE: weight[0] = 5.0");
+
+  std::cout << "  weighted CE avgLoss=" << result.averageLoss << std::endl;
+}
+
+//===================================================================================================================//
+
 void runCoreTests()
 {
   testMakeCoreCPU();
@@ -919,4 +1059,8 @@ void runCoreTests()
   testSoftmaxHiddenLayer();
   testDropoutTraining();
   testDropoutDisabledByDefault();
+  testCrossEntropyStringConversion();
+  testCrossEntropyTraining();
+  testCrossEntropyLossValue();
+  testWeightedCrossEntropyTraining();
 }
