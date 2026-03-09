@@ -759,9 +759,9 @@ static void testGPUDropoutTraining()
 
 //===================================================================================================================//
 
-static void testGPUCrossEntropyLossValue()
+static void testGPUCrossEntropyLossDecreases()
 {
-  std::cout << "--- testGPUCrossEntropyLossValue ---" << std::endl;
+  std::cout << "--- testGPUCrossEntropyLossDecreases ---" << std::endl;
 
   ANN::CoreConfig<float> config;
   config.modeType = ANN::ModeType::TRAIN;
@@ -769,7 +769,7 @@ static void testGPUCrossEntropyLossValue()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
   config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.numEpochs = 200;
+  config.trainingConfig.numEpochs = 50;
   config.trainingConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
@@ -777,16 +777,23 @@ static void testGPUCrossEntropyLossValue()
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f}}};
 
+  // Train 50 epochs, measure loss
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
+  ANN::TestResult<float> result1 = core->test(samples.size(), ANN::makeSampleProvider(samples));
 
-  ANN::TestResult<float> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
+  // Train 200 more epochs from same params
+  config.trainingConfig.numEpochs = 200;
+  config.parameters = core->getParameters();
+  auto core2 = ANN::Core<float>::makeCore(config);
+  core2->train(samples.size(), ANN::makeSampleProvider(samples));
+  ANN::TestResult<float> result2 = core2->test(samples.size(), ANN::makeSampleProvider(samples));
 
-  CHECK(result.averageLoss >= 0.0f, "GPU CE loss: non-negative");
-  CHECK(std::isfinite(result.averageLoss), "GPU CE loss: is finite");
-  CHECK(result.numSamples == 2, "GPU CE loss: 2 samples");
-
-  std::cout << "  GPU CE avgLoss=" << result.averageLoss << " accuracy=" << result.accuracy << "%" << std::endl;
+  std::cout << "  GPU CE loss after 50=" << result1.averageLoss << "  after 250=" << result2.averageLoss << std::endl;
+  // Loss should decrease OR already be very low (converged early)
+  CHECK(result2.averageLoss <= result1.averageLoss || result2.averageLoss < 0.01f,
+        "GPU CE loss decreases or already converged");
+  CHECK(result2.averageLoss < 0.5f, "GPU CE loss below 0.5 after 250 epochs on trivial problem");
 }
 
 //===================================================================================================================//
@@ -1097,7 +1104,7 @@ void runGPUTests()
   testGPUSoftmaxTrain();
   testGPUSoftmaxHiddenLayer();
   testGPUDropoutTraining();
-  testGPUCrossEntropyLossValue();
+  testGPUCrossEntropyLossDecreases();
 
   // Multi-GPU tests
   testMultiGPUTrainSimple();
