@@ -405,7 +405,7 @@ static void testCNNCheckpointInstanceNormRoundTrip()
   std::cout << "  testCNNCheckpointInstanceNormRoundTrip... ";
 
   // Config with instancenorm layer — train enough to get non-trivial running stats
-  QString configPath = tempDir() + "/cnn_bn_ckpt_config.json";
+  QString configPath = tempDir() + "/cnn_in_ckpt_config.json";
   QFile configFile(configPath);
 
   if (configFile.exists())
@@ -443,14 +443,14 @@ static void testCNNCheckpointInstanceNormRoundTrip()
 
   // Copy samples to tempDir so checkpoints go to tempDir/output/
   QString samplesSrc = fixturePath("cnn_train_samples.json");
-  QString samplesDst = tempDir() + "/cnn_bn_ckpt_samples.json";
+  QString samplesDst = tempDir() + "/cnn_in_ckpt_samples.json";
   QFile::remove(samplesDst);
   QFile::copy(samplesSrc, samplesDst);
 
   // Clean up any prior checkpoint output
   QDir(tempDir() + "/output").removeRecursively();
 
-  QString modelPath = tempDir() + "/cnn_bn_ckpt_model.json";
+  QString modelPath = tempDir() + "/cnn_in_ckpt_model.json";
 
   auto result = runNNCLI(
     {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
@@ -1500,13 +1500,13 @@ static void testCNNGPUPredictDeepDiagnostic()
   }
 
   // Read GPU BN params from buffers
-  if (bm.totalBNParamSize > 0) {
-    std::vector<float> gpuGamma(bm.totalBNParamSize), gpuBeta(bm.totalBNParamSize);
-    std::vector<float> gpuRunMean(bm.totalBNParamSize), gpuRunVar(bm.totalBNParamSize);
-    gpuWorker->readGPUBuffer<float>("cnn_bn_gamma", gpuGamma, 0);
-    gpuWorker->readGPUBuffer<float>("cnn_bn_beta", gpuBeta, 0);
-    gpuWorker->readGPUBuffer<float>("cnn_bn_running_mean", gpuRunMean, 0);
-    gpuWorker->readGPUBuffer<float>("cnn_bn_running_var", gpuRunVar, 0);
+  if (bm.totalINParamSize > 0) {
+    std::vector<float> gpuGamma(bm.totalINParamSize), gpuBeta(bm.totalINParamSize);
+    std::vector<float> gpuRunMean(bm.totalINParamSize), gpuRunVar(bm.totalINParamSize);
+    gpuWorker->readGPUBuffer<float>("cnn_in_gamma", gpuGamma, 0);
+    gpuWorker->readGPUBuffer<float>("cnn_in_beta", gpuBeta, 0);
+    gpuWorker->readGPUBuffer<float>("cnn_in_running_mean", gpuRunMean, 0);
+    gpuWorker->readGPUBuffer<float>("cnn_in_running_var", gpuRunVar, 0);
 
     std::vector<float> cpuFlatGamma, cpuFlatBeta, cpuFlatRunMean, cpuFlatRunVar;
 
