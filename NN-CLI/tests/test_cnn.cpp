@@ -405,7 +405,7 @@ static void testCNNCheckpointInstanceNormRoundTrip()
   std::cout << "  testCNNCheckpointInstanceNormRoundTrip... ";
 
   // Config with instancenorm layer — train enough to get non-trivial running stats
-  QString configPath = tempDir() + "/cnn_in_ckpt_config.json";
+  QString configPath = tempDir() + "/cnn_norm_ckpt_config.json";
   QFile configFile(configPath);
 
   if (configFile.exists())
@@ -443,14 +443,14 @@ static void testCNNCheckpointInstanceNormRoundTrip()
 
   // Copy samples to tempDir so checkpoints go to tempDir/output/
   QString samplesSrc = fixturePath("cnn_train_samples.json");
-  QString samplesDst = tempDir() + "/cnn_in_ckpt_samples.json";
+  QString samplesDst = tempDir() + "/cnn_norm_ckpt_samples.json";
   QFile::remove(samplesDst);
   QFile::copy(samplesSrc, samplesDst);
 
   // Clean up any prior checkpoint output
   QDir(tempDir() + "/output").removeRecursively();
 
-  QString modelPath = tempDir() + "/cnn_in_ckpt_model.json";
+  QString modelPath = tempDir() + "/cnn_norm_ckpt_model.json";
 
   auto result = runNNCLI(
     {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
@@ -469,11 +469,11 @@ static void testCNNCheckpointInstanceNormRoundTrip()
     QJsonObject params = root["parameters"].toObject();
     CHECK(params.contains("instancenorm"), "CNN BN checkpoint: has 'instancenorm' params");
 
-    QJsonArray inArr = params["instancenorm"].toArray();
-    CHECK(inArr.size() == 1, "CNN BN checkpoint: 1 instancenorm layer");
+    QJsonArray normArr = params["instancenorm"].toArray();
+    CHECK(normArr.size() == 1, "CNN BN checkpoint: 1 instancenorm layer");
 
-    if (!inArr.isEmpty()) {
-      QJsonObject bn = inArr[0].toObject();
+    if (!normArr.isEmpty()) {
+      QJsonObject bn = normArr[0].toObject();
       CHECK(bn.contains("numChannels"), "CNN BN checkpoint: has 'numChannels'");
       CHECK(bn["numChannels"].toInt() == 2, "CNN BN checkpoint: numChannels == 2");
       CHECK(bn.contains("gamma"), "CNN BN checkpoint: has 'gamma'");
@@ -1293,7 +1293,7 @@ static void testCNNGPUPredictDeepDiagnostic()
 
   CNN::CNNLayerConfig bn1;
   bn1.type = CNN::LayerType::INSTANCENORM;
-  bn1.config = CNN::InstanceNormLayerConfig{1e-5f, 0.1f};
+  bn1.config = CNN::NormLayerConfig{1e-5f, 0.1f};
 
   CNN::CNNLayerConfig relu1;
   relu1.type = CNN::LayerType::RELU;
@@ -1309,7 +1309,7 @@ static void testCNNGPUPredictDeepDiagnostic()
 
   CNN::CNNLayerConfig bn2;
   bn2.type = CNN::LayerType::INSTANCENORM;
-  bn2.config = CNN::InstanceNormLayerConfig{1e-5f, 0.1f};
+  bn2.config = CNN::NormLayerConfig{1e-5f, 0.1f};
 
   CNN::CNNLayerConfig relu2;
   relu2.type = CNN::LayerType::RELU;
@@ -1406,21 +1406,21 @@ static void testCNNGPUPredictDeepDiagnostic()
   }
 
   // InstanceNorm params
-  for (size_t li = 0; li < cpuParams.inParams.size(); li++) {
-    if (!compareVectors("bn[" + std::to_string(li) + "].gamma", cpuParams.inParams[li].gamma,
-                        gpuParams.inParams[li].gamma))
+  for (size_t li = 0; li < cpuParams.normParams.size(); li++) {
+    if (!compareVectors("bn[" + std::to_string(li) + "].gamma", cpuParams.normParams[li].gamma,
+                        gpuParams.normParams[li].gamma))
       paramsOk = false;
 
-    if (!compareVectors("bn[" + std::to_string(li) + "].beta", cpuParams.inParams[li].beta,
-                        gpuParams.inParams[li].beta))
+    if (!compareVectors("bn[" + std::to_string(li) + "].beta", cpuParams.normParams[li].beta,
+                        gpuParams.normParams[li].beta))
       paramsOk = false;
 
-    if (!compareVectors("bn[" + std::to_string(li) + "].runningMean", cpuParams.inParams[li].runningMean,
-                        gpuParams.inParams[li].runningMean))
+    if (!compareVectors("bn[" + std::to_string(li) + "].runningMean", cpuParams.normParams[li].runningMean,
+                        gpuParams.normParams[li].runningMean))
       paramsOk = false;
 
-    if (!compareVectors("bn[" + std::to_string(li) + "].runningVar", cpuParams.inParams[li].runningVar,
-                        gpuParams.inParams[li].runningVar))
+    if (!compareVectors("bn[" + std::to_string(li) + "].runningVar", cpuParams.normParams[li].runningVar,
+                        gpuParams.normParams[li].runningVar))
       paramsOk = false;
   }
 
@@ -1500,23 +1500,24 @@ static void testCNNGPUPredictDeepDiagnostic()
   }
 
   // Read GPU BN params from buffers
-  if (bm.totalINParamSize > 0) {
-    std::vector<float> gpuGamma(bm.totalINParamSize), gpuBeta(bm.totalINParamSize);
-    std::vector<float> gpuRunMean(bm.totalINParamSize), gpuRunVar(bm.totalINParamSize);
-    gpuWorker->readGPUBuffer<float>("cnn_in_gamma", gpuGamma, 0);
-    gpuWorker->readGPUBuffer<float>("cnn_in_beta", gpuBeta, 0);
-    gpuWorker->readGPUBuffer<float>("cnn_in_running_mean", gpuRunMean, 0);
-    gpuWorker->readGPUBuffer<float>("cnn_in_running_var", gpuRunVar, 0);
+  if (bm.totalNormParamSize > 0) {
+    std::vector<float> gpuGamma(bm.totalNormParamSize), gpuBeta(bm.totalNormParamSize);
+    std::vector<float> gpuRunMean(bm.totalNormParamSize), gpuRunVar(bm.totalNormParamSize);
+    gpuWorker->readGPUBuffer<float>("cnn_norm_gamma", gpuGamma, 0);
+    gpuWorker->readGPUBuffer<float>("cnn_norm_beta", gpuBeta, 0);
+    gpuWorker->readGPUBuffer<float>("cnn_norm_running_mean", gpuRunMean, 0);
+    gpuWorker->readGPUBuffer<float>("cnn_norm_running_var", gpuRunVar, 0);
 
     std::vector<float> cpuFlatGamma, cpuFlatBeta, cpuFlatRunMean, cpuFlatRunVar;
 
-    for (size_t bi = 0; bi < bm.inInfos.size(); bi++) {
-      cpuFlatGamma.insert(cpuFlatGamma.end(), cpuParams.inParams[bi].gamma.begin(), cpuParams.inParams[bi].gamma.end());
-      cpuFlatBeta.insert(cpuFlatBeta.end(), cpuParams.inParams[bi].beta.begin(), cpuParams.inParams[bi].beta.end());
-      cpuFlatRunMean.insert(cpuFlatRunMean.end(), cpuParams.inParams[bi].runningMean.begin(),
-                            cpuParams.inParams[bi].runningMean.end());
-      cpuFlatRunVar.insert(cpuFlatRunVar.end(), cpuParams.inParams[bi].runningVar.begin(),
-                           cpuParams.inParams[bi].runningVar.end());
+    for (size_t bi = 0; bi < bm.normInfos.size(); bi++) {
+      cpuFlatGamma.insert(cpuFlatGamma.end(), cpuParams.normParams[bi].gamma.begin(),
+                          cpuParams.normParams[bi].gamma.end());
+      cpuFlatBeta.insert(cpuFlatBeta.end(), cpuParams.normParams[bi].beta.begin(), cpuParams.normParams[bi].beta.end());
+      cpuFlatRunMean.insert(cpuFlatRunMean.end(), cpuParams.normParams[bi].runningMean.begin(),
+                            cpuParams.normParams[bi].runningMean.end());
+      cpuFlatRunVar.insert(cpuFlatRunVar.end(), cpuParams.normParams[bi].runningVar.begin(),
+                           cpuParams.normParams[bi].runningVar.end());
     }
 
     CHECK(compareVectors("gpu_buffer_bn_gamma", cpuFlatGamma, gpuGamma), "Deep diag: GPU BN gamma matches");
@@ -1812,15 +1813,15 @@ static void testCNNISICLikeSaveLoadPredict()
     if (mf.open(QIODevice::ReadOnly)) {
       QJsonDocument doc = QJsonDocument::fromJson(mf.readAll());
       QJsonObject params = doc.object()["parameters"].toObject();
-      QJsonArray inArr = params["instancenorm"].toArray();
-      CHECK(inArr.size() == 4, "ISIC-like CPU: 4 instancenorm layers in saved model");
+      QJsonArray normArr = params["instancenorm"].toArray();
+      CHECK(normArr.size() == 4, "ISIC-like CPU: 4 instancenorm layers in saved model");
 
       // Check each BN layer has correct channel count
-      if (inArr.size() == 4) {
-        CHECK(inArr[0].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[0] numChannels=4");
-        CHECK(inArr[1].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[1] numChannels=4");
-        CHECK(inArr[2].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[2] numChannels=8");
-        CHECK(inArr[3].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[3] numChannels=8");
+      if (normArr.size() == 4) {
+        CHECK(normArr[0].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[0] numChannels=4");
+        CHECK(normArr[1].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[1] numChannels=4");
+        CHECK(normArr[2].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[2] numChannels=8");
+        CHECK(normArr[3].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[3] numChannels=8");
       }
 
       mf.close();
@@ -1983,8 +1984,8 @@ static void testCNNISICLikeSaveLoadPredictGPU()
     if (mf.open(QIODevice::ReadOnly)) {
       QJsonDocument doc = QJsonDocument::fromJson(mf.readAll());
       QJsonObject params = doc.object()["parameters"].toObject();
-      QJsonArray inArr = params["instancenorm"].toArray();
-      CHECK(inArr.size() == 4, "ISIC-like GPU: 4 instancenorm layers in saved model");
+      QJsonArray normArr = params["instancenorm"].toArray();
+      CHECK(normArr.size() == 4, "ISIC-like GPU: 4 instancenorm layers in saved model");
       mf.close();
     }
   }
