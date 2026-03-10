@@ -24,13 +24,9 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
   this->stepWorker = std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
                                                         this->costFunctionConfig, allocateTraining);
 
-  if (allocateTraining) {
-    this->allocateGlobalAccumulators();
-
-    if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
-      this->allocateAdamState();
-    }
-  }
+  // Note: Global accumulators and Adam state are allocated lazily in train(),
+  // NOT here. This ensures the step-by-step API (used by CNN) sees empty global
+  // accumulators, so update() correctly reads from stepWorker's accumulators.
 }
 
 //===================================================================================================================//
@@ -53,6 +49,17 @@ Output<T> CoreCPU<T>::predict(const Input<T>& input)
 template <typename T>
 void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
+  // Allocate global accumulators (for merging worker gradients) and Adam state on first call.
+  // These are NOT allocated in the constructor so that the step-by-step API
+  // (predict→backpropagate→accumulate→update) correctly uses stepWorker's accumulators.
+  if (this->accum_dCost_dWeights.empty()) {
+    this->allocateGlobalAccumulators();
+
+    if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
+      this->allocateAdamState();
+    }
+  }
+
   this->trainingStart(numSamples);
 
   ulong numEpochs = this->trainingConfig.numEpochs;
