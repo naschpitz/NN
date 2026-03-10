@@ -261,6 +261,13 @@ int Runner::runANNTest()
   if (this->logLevel >= LogLevel::INFO)
     std::cout << "Running ANN evaluation...\n";
 
+  if (this->logLevel > LogLevel::QUIET) {
+    ulong progressReports = this->ioConfig.progressReports;
+    this->annCore->setProgressCallback([progressReports](ulong current, ulong total) {
+      ProgressBar::printLoadingProgress("Testing", current, total, progressReports);
+    });
+  }
+
   // No augmentation for test — use identity provider (no transforms, probability 0)
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
   ANN::TestResult<float> result = this->annCore->test(dataLoader.numSamples(), sampleProvider);
@@ -329,9 +336,8 @@ int Runner::runANNPredict()
     ANN::Output<float> output = this->annCore->predict(inputs[i]);
     outputs.push_back(std::move(output));
 
-    if (this->logLevel >= LogLevel::INFO && inputs.size() > 1) {
-      std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
-    }
+    if (this->logLevel > LogLevel::QUIET)
+      ProgressBar::printLoadingProgress("Predicting", i + 1, inputs.size(), this->ioConfig.progressReports);
   }
 
   auto batchEnd = std::chrono::system_clock::now();
@@ -505,6 +511,13 @@ int Runner::runCNNTest()
   if (this->logLevel >= LogLevel::INFO)
     std::cout << "Running CNN evaluation...\n";
 
+  if (this->logLevel > LogLevel::QUIET) {
+    ulong progressReports = this->ioConfig.progressReports;
+    this->cnnCore->setProgressCallback([progressReports](ulong current, ulong total) {
+      ProgressBar::printLoadingProgress("Testing", current, total, progressReports);
+    });
+  }
+
   // No augmentation for test — use identity provider (no transforms, probability 0)
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
   CNN::TestResult<float> result = this->cnnCore->test(dataLoader.numSamples(), sampleProvider);
@@ -573,9 +586,8 @@ int Runner::runCNNPredict()
     CNN::Output<float> output = this->cnnCore->predict(inputs[i]);
     outputs.push_back(std::move(output));
 
-    if (this->logLevel >= LogLevel::INFO && inputs.size() > 1) {
-      std::cout << "  Predicted input " << (i + 1) << "/" << inputs.size() << "\n";
-    }
+    if (this->logLevel > LogLevel::QUIET)
+      ProgressBar::printLoadingProgress("Predicting", i + 1, inputs.size(), this->ioConfig.progressReports);
   }
 
   auto batchEnd = std::chrono::system_clock::now();
