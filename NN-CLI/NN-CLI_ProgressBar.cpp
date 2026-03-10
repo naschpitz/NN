@@ -25,9 +25,23 @@ namespace NN_CLI
     bool isEpochComplete = (progress.epochLoss > 0);
     bool isMultiGPU = (progress.totalGPUs > 1);
 
-    // Reset GPU state at the start of each epoch
+    // Reset GPU state at the start of each epoch and render 0% bar immediately
     if (progress.gpuIndex >= 0 && this->currentEpoch != progress.currentEpoch) {
       this->resetGpuState(progress.totalGPUs, progress.currentEpoch);
+
+      // Render 0% bar so the user sees progress start immediately
+      std::ostringstream out;
+      out << "\rEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
+
+      if (isMultiGPU) {
+        std::vector<float> zeroProg(progress.totalGPUs, 0.0f);
+        this->renderMultiGpuBar(out, zeroProg, progress.totalGPUs);
+      } else {
+        this->renderSingleBar(out, 0.0f);
+      }
+
+      out << " - Loss: " << std::fixed << std::setprecision(6) << 0.0f << "   ";
+      std::cout << out.str() << std::flush;
     }
 
     // For multi-GPU, update per-GPU progress
@@ -96,8 +110,8 @@ namespace NN_CLI
     if (interval == 0)
       return;
 
-    // Throttle: only print at first, last, and every interval items
-    if (current != 1 && current != total && (current % interval) != 0) {
+    // Throttle: only print at first (0 and 1), last, and every interval items
+    if (current > 1 && current != total && (current % interval) != 0) {
       return;
     }
 

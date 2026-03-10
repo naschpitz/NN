@@ -38,6 +38,8 @@ ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::str
   samples.reserve(data.size());
   size_t totalSamples = data.size();
 
+  ProgressBar::printLoadingProgress("Loading samples:", 0, totalSamples, progressReports);
+
   for (size_t i = 0; i < totalSamples; ++i) {
     ANN::Sample<T> sample;
 
@@ -157,6 +159,8 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
   CNN::Samples<T> samples;
   samples.reserve(data.size());
   size_t totalSamples = data.size();
+
+  ProgressBar::printLoadingProgress("Loading samples:", 0, totalSamples, progressReports);
 
   for (size_t i = 0; i < totalSamples; ++i) {
     CNN::Sample<T> sample;

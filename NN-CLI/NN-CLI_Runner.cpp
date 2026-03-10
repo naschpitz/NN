@@ -263,6 +263,7 @@ int Runner::runANNTest()
 
   if (this->logLevel > LogLevel::QUIET) {
     ulong progressReports = this->ioConfig.progressReports;
+    ProgressBar::printLoadingProgress("Testing", 0, dataLoader.numSamples(), progressReports);
     this->annCore->setProgressCallback([progressReports](ulong current, ulong total) {
       ProgressBar::printLoadingProgress("Testing", current, total, progressReports);
     });
@@ -331,6 +332,9 @@ int Runner::runANNPredict()
 
   std::vector<ANN::Output<float>> outputs;
   outputs.reserve(inputs.size());
+
+  if (this->logLevel > LogLevel::QUIET)
+    ProgressBar::printLoadingProgress("Predicting", 0, inputs.size(), this->ioConfig.progressReports);
 
   for (size_t i = 0; i < inputs.size(); ++i) {
     ANN::Output<float> output = this->annCore->predict(inputs[i]);
@@ -513,6 +517,7 @@ int Runner::runCNNTest()
 
   if (this->logLevel > LogLevel::QUIET) {
     ulong progressReports = this->ioConfig.progressReports;
+    ProgressBar::printLoadingProgress("Testing", 0, dataLoader.numSamples(), progressReports);
     this->cnnCore->setProgressCallback([progressReports](ulong current, ulong total) {
       ProgressBar::printLoadingProgress("Testing", current, total, progressReports);
     });
@@ -581,6 +586,9 @@ int Runner::runCNNPredict()
 
   std::vector<CNN::Output<float>> outputs;
   outputs.reserve(inputs.size());
+
+  if (this->logLevel > LogLevel::QUIET)
+    ProgressBar::printLoadingProgress("Predicting", 0, inputs.size(), this->ioConfig.progressReports);
 
   for (size_t i = 0; i < inputs.size(); ++i) {
     CNN::Output<float> output = this->cnnCore->predict(inputs[i]);
