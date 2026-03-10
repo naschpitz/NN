@@ -438,6 +438,12 @@ void CoreCPU<T>::update(ulong numSamples)
   T n = static_cast<T>(numSamples);
 
   if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
+    // Lazily allocate ADAM state on first update() call.
+    // This handles the step-by-step path (CNN) where train() is never called.
+    if (this->adam_m_weights.empty()) {
+      this->allocateAdamState();
+    }
+
     const auto& opt = this->trainingConfig.optimizer;
     T beta1 = opt.beta1;
     T beta2 = opt.beta2;
