@@ -964,9 +964,9 @@ void Runner::saveCNNModel(const std::string& filePath) const
       break;
     }
 
-    case CNN::LayerType::BATCHNORM: {
-      const auto& bn = std::get<CNN::BatchNormLayerConfig>(layer.config);
-      layerJson["type"] = "batchnorm";
+    case CNN::LayerType::INSTANCENORM: {
+      const auto& bn = std::get<CNN::InstanceNormLayerConfig>(layer.config);
+      layerJson["type"] = "instancenorm";
       layerJson["epsilon"] = bn.epsilon;
       layerJson["momentum"] = bn.momentum;
       break;
@@ -1084,20 +1084,20 @@ void Runner::saveCNNModel(const std::string& filePath) const
   paramsJson["convolutional"] = convArr;
 
   // Batch norm parameters
-  if (!core.getParameters().bnParams.empty()) {
-    nlohmann::ordered_json bnArr = nlohmann::ordered_json::array();
+  if (!core.getParameters().inParams.empty()) {
+    nlohmann::ordered_json inArr = nlohmann::ordered_json::array();
 
-    for (const auto& bp : core.getParameters().bnParams) {
+    for (const auto& bp : core.getParameters().inParams) {
       nlohmann::ordered_json bpJson;
       bpJson["numChannels"] = bp.numChannels;
       bpJson["gamma"] = bp.gamma;
       bpJson["beta"] = bp.beta;
       bpJson["runningMean"] = bp.runningMean;
       bpJson["runningVar"] = bp.runningVar;
-      bnArr.push_back(bpJson);
+      inArr.push_back(bpJson);
     }
 
-    paramsJson["batchnorm"] = bnArr;
+    paramsJson["instancenorm"] = inArr;
   }
 
   // Dense parameters

@@ -292,9 +292,9 @@ namespace NN_CLI
         } else if (type == "flatten") {
           layerConfig.type = CNN::LayerType::FLATTEN;
           layerConfig.config = CNN::FlattenLayerConfig{};
-        } else if (type == "batchnorm") {
-          layerConfig.type = CNN::LayerType::BATCHNORM;
-          CNN::BatchNormLayerConfig bn;
+        } else if (type == "instancenorm") {
+          layerConfig.type = CNN::LayerType::INSTANCENORM;
+          CNN::InstanceNormLayerConfig bn;
 
           if (layerJson.contains("epsilon"))
             bn.epsilon = layerJson.at("epsilon").get<float>();
@@ -390,15 +390,15 @@ namespace NN_CLI
         }
       }
 
-      if (paramsJson.contains("batchnorm")) {
-        for (const auto& bnJson : paramsJson.at("batchnorm")) {
-          CNN::BatchNormParameters<float> bp;
-          bp.numChannels = bnJson.at("numChannels").get<ulong>();
-          bp.gamma = bnJson.at("gamma").get<std::vector<float>>();
-          bp.beta = bnJson.at("beta").get<std::vector<float>>();
-          bp.runningMean = bnJson.at("runningMean").get<std::vector<float>>();
-          bp.runningVar = bnJson.at("runningVar").get<std::vector<float>>();
-          coreConfig.parameters.bnParams.push_back(std::move(bp));
+      if (paramsJson.contains("instancenorm")) {
+        for (const auto& inJson : paramsJson.at("instancenorm")) {
+          CNN::InstanceNormParameters<float> bp;
+          bp.numChannels = inJson.at("numChannels").get<ulong>();
+          bp.gamma = inJson.at("gamma").get<std::vector<float>>();
+          bp.beta = inJson.at("beta").get<std::vector<float>>();
+          bp.runningMean = inJson.at("runningMean").get<std::vector<float>>();
+          bp.runningVar = inJson.at("runningVar").get<std::vector<float>>();
+          coreConfig.parameters.inParams.push_back(std::move(bp));
         }
       }
 

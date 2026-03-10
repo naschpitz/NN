@@ -172,7 +172,7 @@ static void testCNNTrainAndTestMNIST()
 
   QString modelPath = tempDir() + "/cnn_mnist_trained.json";
 
-  // Step 1: Train on MNIST training data on CPU (10 epochs, 60k samples, Adam + crossEntropy + batchnorm)
+  // Step 1: Train on MNIST training data on CPU (10 epochs, 60k samples, Adam + crossEntropy + instancenorm)
   auto trainResult =
     runNNCLI({"--config", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "cpu",
               "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
@@ -209,7 +209,7 @@ static void testCNNTrainAndTestMNIST()
 
   CHECK(avgLoss > 0 && avgLoss < 2.5, "CNN MNIST train+test: average loss < 2.5");
 
-  // Extract and verify accuracy is reasonable (> 25% for 10 epochs with Adam + crossEntropy + batchnorm on CPU)
+  // Extract and verify accuracy is reasonable (> 25% for 10 epochs with Adam + crossEntropy + instancenorm on CPU)
   double accuracy = -1;
   int accIdx = testResult.stdOut.indexOf("Accuracy:");
 
@@ -242,7 +242,7 @@ static void testCNNTrainAndTestMNISTGPU()
 
   QString modelPath = tempDir() + "/cnn_mnist_trained_gpu.json";
 
-  // Step 1: Train on MNIST training data on GPU (10 epochs, 60k samples, Adam + crossEntropy + batchnorm)
+  // Step 1: Train on MNIST training data on GPU (10 epochs, 60k samples, Adam + crossEntropy + instancenorm)
   auto trainResult =
     runNNCLI({"--config", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "gpu",
               "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
@@ -400,11 +400,11 @@ static void testCNNCheckpointParameters()
   std::cout << std::endl;
 }
 
-static void testCNNCheckpointBatchNormRoundTrip()
+static void testCNNCheckpointInstanceNormRoundTrip()
 {
-  std::cout << "  testCNNCheckpointBatchNormRoundTrip... ";
+  std::cout << "  testCNNCheckpointInstanceNormRoundTrip... ";
 
-  // Config with batchnorm layer — train enough to get non-trivial running stats
+  // Config with instancenorm layer — train enough to get non-trivial running stats
   QString configPath = tempDir() + "/cnn_bn_ckpt_config.json";
   QFile configFile(configPath);
 
@@ -420,7 +420,7 @@ static void testCNNCheckpointBatchNormRoundTrip()
   "inputShape": { "c": 1, "h": 4, "w": 4 },
   "convolutionalLayersConfig": [
     { "type": "conv", "numFilters": 2, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "flatten" }
   ],
@@ -458,7 +458,7 @@ static void testCNNCheckpointBatchNormRoundTrip()
   CHECK(result.exitCode == 0, "CNN BN checkpoint: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN BN checkpoint: 'Training completed.'");
 
-  // Verify the saved model has batchnorm parameters
+  // Verify the saved model has instancenorm parameters
   QFile modelFile(modelPath);
 
   if (modelFile.open(QIODevice::ReadOnly)) {
@@ -467,13 +467,13 @@ static void testCNNCheckpointBatchNormRoundTrip()
     CHECK(root.contains("parameters"), "CNN BN checkpoint: has 'parameters'");
 
     QJsonObject params = root["parameters"].toObject();
-    CHECK(params.contains("batchnorm"), "CNN BN checkpoint: has 'batchnorm' params");
+    CHECK(params.contains("instancenorm"), "CNN BN checkpoint: has 'instancenorm' params");
 
-    QJsonArray bnArr = params["batchnorm"].toArray();
-    CHECK(bnArr.size() == 1, "CNN BN checkpoint: 1 batchnorm layer");
+    QJsonArray inArr = params["instancenorm"].toArray();
+    CHECK(inArr.size() == 1, "CNN BN checkpoint: 1 instancenorm layer");
 
-    if (!bnArr.isEmpty()) {
-      QJsonObject bn = bnArr[0].toObject();
+    if (!inArr.isEmpty()) {
+      QJsonObject bn = inArr[0].toObject();
       CHECK(bn.contains("numChannels"), "CNN BN checkpoint: has 'numChannels'");
       CHECK(bn["numChannels"].toInt() == 2, "CNN BN checkpoint: numChannels == 2");
       CHECK(bn.contains("gamma"), "CNN BN checkpoint: has 'gamma'");
@@ -516,7 +516,7 @@ static void testCNNSaveLoadPredictConsistency()
 {
   std::cout << "  testCNNSaveLoadPredictConsistency... ";
 
-  // Train a CNN with batchnorm, predict, save, load, predict again — outputs must match
+  // Train a CNN with instancenorm, predict, save, load, predict again — outputs must match
   QString configPath = tempDir() + "/cnn_slpc_config.json";
   QFile configFile(configPath);
 
@@ -532,7 +532,7 @@ static void testCNNSaveLoadPredictConsistency()
   "inputShape": { "c": 1, "h": 4, "w": 4 },
   "convolutionalLayersConfig": [
     { "type": "conv", "numFilters": 2, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "flatten" }
   ],
@@ -653,7 +653,7 @@ static void testCNNSaveLoadPredictConsistencyGPU()
   "inputShape": { "c": 1, "h": 4, "w": 4 },
   "convolutionalLayersConfig": [
     { "type": "conv", "numFilters": 2, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "flatten" }
   ],
@@ -803,7 +803,7 @@ static void testCNNMultiInputPredictDiversity()
   "inputShape": { "c": 1, "h": 4, "w": 4 },
   "convolutionalLayersConfig": [
     { "type": "conv", "numFilters": 2, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "flatten" }
   ],
@@ -1171,17 +1171,17 @@ static void testCNNGPUPredictLayerIsolation()
     {"conv_relu_avgpool_flatten",
      R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"relu"},{"type":"pool","poolType":"avg","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"flatten"}])"},
 
-    // 5. conv + batchnorm + relu + flatten
+    // 5. conv + instancenorm + relu + flatten
     {"conv_bn_relu_flatten",
-     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"batchnorm"},{"type":"relu"},{"type":"flatten"}])"},
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"instancenorm"},{"type":"relu"},{"type":"flatten"}])"},
 
-    // 6. conv + batchnorm + relu + maxpool + flatten
+    // 6. conv + instancenorm + relu + maxpool + flatten
     {"conv_bn_relu_maxpool_flatten",
-     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"batchnorm"},{"type":"relu"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"flatten"}])"},
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"instancenorm"},{"type":"relu"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"flatten"}])"},
 
-    // 7. conv + batchnorm + relu + avgpool + flatten (smallest avgpool+bn combo)
+    // 7. conv + instancenorm + relu + avgpool + flatten (smallest avgpool+bn combo)
     {"conv_bn_relu_avgpool_flatten",
-     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"batchnorm"},{"type":"relu"},{"type":"pool","poolType":"avg","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"flatten"}])"},
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"instancenorm"},{"type":"relu"},{"type":"pool","poolType":"avg","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"flatten"}])"},
 
     // 8. conv + relu + maxpool + conv + relu + flatten (2 conv layers)
     {"conv2x_relu_maxpool_flatten",
@@ -1193,7 +1193,7 @@ static void testCNNGPUPredictLayerIsolation()
 
     // 10. conv + bn + relu + maxpool + conv + bn + relu + avgpool + flatten (full combo)
     {"conv_bn_maxpool_conv_bn_avgpool_flatten",
-     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"batchnorm"},{"type":"relu"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"batchnorm"},{"type":"relu"},{"type":"pool","poolType":"avg","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"flatten"}])"},
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"instancenorm"},{"type":"relu"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"instancenorm"},{"type":"relu"},{"type":"pool","poolType":"avg","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"flatten"}])"},
 
     // 11. Same as #3 but with "same" padding instead of "valid"
     {"conv_same_relu_maxpool_flatten",
@@ -1292,8 +1292,8 @@ static void testCNNGPUPredictDeepDiagnostic()
   conv1.config = CNN::ConvLayerConfig{4, 3, 3, 1, 1, CNN::SlidingStrategyType::SAME};
 
   CNN::CNNLayerConfig bn1;
-  bn1.type = CNN::LayerType::BATCHNORM;
-  bn1.config = CNN::BatchNormLayerConfig{1e-5f, 0.1f};
+  bn1.type = CNN::LayerType::INSTANCENORM;
+  bn1.config = CNN::InstanceNormLayerConfig{1e-5f, 0.1f};
 
   CNN::CNNLayerConfig relu1;
   relu1.type = CNN::LayerType::RELU;
@@ -1308,8 +1308,8 @@ static void testCNNGPUPredictDeepDiagnostic()
   conv2.config = CNN::ConvLayerConfig{8, 3, 3, 1, 1, CNN::SlidingStrategyType::SAME};
 
   CNN::CNNLayerConfig bn2;
-  bn2.type = CNN::LayerType::BATCHNORM;
-  bn2.config = CNN::BatchNormLayerConfig{1e-5f, 0.1f};
+  bn2.type = CNN::LayerType::INSTANCENORM;
+  bn2.config = CNN::InstanceNormLayerConfig{1e-5f, 0.1f};
 
   CNN::CNNLayerConfig relu2;
   relu2.type = CNN::LayerType::RELU;
@@ -1405,22 +1405,22 @@ static void testCNNGPUPredictDeepDiagnostic()
       paramsOk = false;
   }
 
-  // BatchNorm params
-  for (size_t li = 0; li < cpuParams.bnParams.size(); li++) {
-    if (!compareVectors("bn[" + std::to_string(li) + "].gamma", cpuParams.bnParams[li].gamma,
-                        gpuParams.bnParams[li].gamma))
+  // InstanceNorm params
+  for (size_t li = 0; li < cpuParams.inParams.size(); li++) {
+    if (!compareVectors("bn[" + std::to_string(li) + "].gamma", cpuParams.inParams[li].gamma,
+                        gpuParams.inParams[li].gamma))
       paramsOk = false;
 
-    if (!compareVectors("bn[" + std::to_string(li) + "].beta", cpuParams.bnParams[li].beta,
-                        gpuParams.bnParams[li].beta))
+    if (!compareVectors("bn[" + std::to_string(li) + "].beta", cpuParams.inParams[li].beta,
+                        gpuParams.inParams[li].beta))
       paramsOk = false;
 
-    if (!compareVectors("bn[" + std::to_string(li) + "].runningMean", cpuParams.bnParams[li].runningMean,
-                        gpuParams.bnParams[li].runningMean))
+    if (!compareVectors("bn[" + std::to_string(li) + "].runningMean", cpuParams.inParams[li].runningMean,
+                        gpuParams.inParams[li].runningMean))
       paramsOk = false;
 
-    if (!compareVectors("bn[" + std::to_string(li) + "].runningVar", cpuParams.bnParams[li].runningVar,
-                        gpuParams.bnParams[li].runningVar))
+    if (!compareVectors("bn[" + std::to_string(li) + "].runningVar", cpuParams.inParams[li].runningVar,
+                        gpuParams.inParams[li].runningVar))
       paramsOk = false;
   }
 
@@ -1510,13 +1510,13 @@ static void testCNNGPUPredictDeepDiagnostic()
 
     std::vector<float> cpuFlatGamma, cpuFlatBeta, cpuFlatRunMean, cpuFlatRunVar;
 
-    for (size_t bi = 0; bi < bm.bnInfos.size(); bi++) {
-      cpuFlatGamma.insert(cpuFlatGamma.end(), cpuParams.bnParams[bi].gamma.begin(), cpuParams.bnParams[bi].gamma.end());
-      cpuFlatBeta.insert(cpuFlatBeta.end(), cpuParams.bnParams[bi].beta.begin(), cpuParams.bnParams[bi].beta.end());
-      cpuFlatRunMean.insert(cpuFlatRunMean.end(), cpuParams.bnParams[bi].runningMean.begin(),
-                            cpuParams.bnParams[bi].runningMean.end());
-      cpuFlatRunVar.insert(cpuFlatRunVar.end(), cpuParams.bnParams[bi].runningVar.begin(),
-                           cpuParams.bnParams[bi].runningVar.end());
+    for (size_t bi = 0; bi < bm.inInfos.size(); bi++) {
+      cpuFlatGamma.insert(cpuFlatGamma.end(), cpuParams.inParams[bi].gamma.begin(), cpuParams.inParams[bi].gamma.end());
+      cpuFlatBeta.insert(cpuFlatBeta.end(), cpuParams.inParams[bi].beta.begin(), cpuParams.inParams[bi].beta.end());
+      cpuFlatRunMean.insert(cpuFlatRunMean.end(), cpuParams.inParams[bi].runningMean.begin(),
+                            cpuParams.inParams[bi].runningMean.end());
+      cpuFlatRunVar.insert(cpuFlatRunVar.end(), cpuParams.inParams[bi].runningVar.begin(),
+                           cpuParams.inParams[bi].runningVar.end());
     }
 
     CHECK(compareVectors("gpu_buffer_bn_gamma", cpuFlatGamma, gpuGamma), "Deep diag: GPU BN gamma matches");
@@ -1688,18 +1688,18 @@ static QString writeISICLikeConfig(const QString& path, const QString& device)
   "inputShape": { "c": 1, "h": 16, "w": 16 },
   "convolutionalLayersConfig": [
     { "type": "conv", "numFilters": 4, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "conv", "numFilters": 4, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
 
     { "type": "conv", "numFilters": 8, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "conv", "numFilters": 8, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
 
@@ -1805,22 +1805,22 @@ static void testCNNISICLikeSaveLoadPredict()
     return;
   }
 
-  // Step 2: Verify saved model has all 4 batchnorm parameter sets
+  // Step 2: Verify saved model has all 4 instancenorm parameter sets
   {
     QFile mf(modelPath);
 
     if (mf.open(QIODevice::ReadOnly)) {
       QJsonDocument doc = QJsonDocument::fromJson(mf.readAll());
       QJsonObject params = doc.object()["parameters"].toObject();
-      QJsonArray bnArr = params["batchnorm"].toArray();
-      CHECK(bnArr.size() == 4, "ISIC-like CPU: 4 batchnorm layers in saved model");
+      QJsonArray inArr = params["instancenorm"].toArray();
+      CHECK(inArr.size() == 4, "ISIC-like CPU: 4 instancenorm layers in saved model");
 
       // Check each BN layer has correct channel count
-      if (bnArr.size() == 4) {
-        CHECK(bnArr[0].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[0] numChannels=4");
-        CHECK(bnArr[1].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[1] numChannels=4");
-        CHECK(bnArr[2].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[2] numChannels=8");
-        CHECK(bnArr[3].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[3] numChannels=8");
+      if (inArr.size() == 4) {
+        CHECK(inArr[0].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[0] numChannels=4");
+        CHECK(inArr[1].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[1] numChannels=4");
+        CHECK(inArr[2].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[2] numChannels=8");
+        CHECK(inArr[3].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[3] numChannels=8");
       }
 
       mf.close();
@@ -1976,15 +1976,15 @@ static void testCNNISICLikeSaveLoadPredictGPU()
     return;
   }
 
-  // Step 2: Verify 4 batchnorm layers saved
+  // Step 2: Verify 4 instancenorm layers saved
   {
     QFile mf(modelPath);
 
     if (mf.open(QIODevice::ReadOnly)) {
       QJsonDocument doc = QJsonDocument::fromJson(mf.readAll());
       QJsonObject params = doc.object()["parameters"].toObject();
-      QJsonArray bnArr = params["batchnorm"].toArray();
-      CHECK(bnArr.size() == 4, "ISIC-like GPU: 4 batchnorm layers in saved model");
+      QJsonArray inArr = params["instancenorm"].toArray();
+      CHECK(inArr.size() == 4, "ISIC-like GPU: 4 instancenorm layers in saved model");
       mf.close();
     }
   }
@@ -2183,7 +2183,7 @@ void runCNNTests()
   testCNNTrainAndTestMNIST();
   testCNNTrainAndTestMNISTGPU();
   testCNNCheckpointParameters();
-  testCNNCheckpointBatchNormRoundTrip();
+  testCNNCheckpointInstanceNormRoundTrip();
   testCNNSaveLoadPredictConsistency();
   testCNNSaveLoadPredictConsistencyGPU();
   testCNNMultiInputPredictDiversity();

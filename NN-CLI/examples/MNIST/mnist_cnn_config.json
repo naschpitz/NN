@@ -6,11 +6,11 @@
   "inputShape": { "c": 1, "h": 28, "w": 28 },
   "convolutionalLayersConfig": [
     { "type": "conv", "numFilters": 32, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
     { "type": "conv", "numFilters": 64, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
-    { "type": "batchnorm" },
+    { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
     { "type": "flatten" }
@@ -20,13 +20,13 @@
     { "numNeurons": 10, "actvFunc": "softmax" }
   ],
   "trainingConfig": {
-    "numEpochs": 100,
-    "batchSize": 64,
+    "numEpochs": 10,
+    "batchSize": 512,
     "learningRate": 0.001,
     "optimizer": {
       "type": "adam"
     },
-    "augmentationFactor": 4,
+    "augmentationFactor": 0,
     "augmentationProbability": 0.5,
     "augmentationTransforms": {
       "horizontalFlip": false,
