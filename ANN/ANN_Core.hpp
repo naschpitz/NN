@@ -7,6 +7,7 @@
 #include "ANN_TrainingProgress.hpp"
 #include "ANN_TrainingMetadata.hpp"
 #include "ANN_PredictMetadata.hpp"
+#include "ANN_ProgressCallback.hpp"
 #include "ANN_TestResult.hpp"
 
 #include <chrono>
@@ -97,6 +98,11 @@ namespace ANN
         trainingCallback = callback;
       }
 
+      void setProgressCallback(ProgressCallback callback)
+      {
+        progressCallback = callback;
+      }
+
       //-- Log level --//
       void setLogLevel(LogLevel level)
       {
@@ -137,6 +143,7 @@ namespace ANN
       LogLevel logLevel = LogLevel::ERROR;
 
       TrainingCallback<T> trainingCallback;
+      ProgressCallback progressCallback;
 
     private:
       //-- Timing state --//

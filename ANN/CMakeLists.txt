@@ -36,6 +36,7 @@ add_library(ANN STATIC
   ANN_TrainingConfig.hpp
   ANN_Parameters.hpp
   ANN_Sample.hpp
+  ANN_ProgressCallback.hpp
   ANN_TrainingProgress.hpp
   ANN_TrainingMetadata.hpp
   ANN_TestResult.hpp

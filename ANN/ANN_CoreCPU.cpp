@@ -247,6 +247,11 @@ TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
       totalLoss += workerLosses[i];
       totalCorrect += workerCorrects[i];
     }
+
+    if (this->progressCallback) {
+      ulong samplesProcessed = std::min((b + 1) * batchSize, numSamples);
+      this->progressCallback(samplesProcessed, numSamples);
+    }
   }
 
   TestResult<T> result;
