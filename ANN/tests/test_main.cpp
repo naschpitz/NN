@@ -5,9 +5,18 @@ int testsFailed = 0;
 
 void runActvFuncTests();
 void runUtilsTests();
-void runCoreTests();
+void runCoreBasicTests();
+void runCoreBasicTests2();
+void runCoreFeaturesTests();
+void runCoreFeaturesTests2();
+void runCoreExactTests();
+void runCoreExactTests2();
 void runSerializationTests();
-void runGPUTests();
+void runGPUBasicTests();
+void runGPUBasicTests2();
+void runGPUFeaturesTests();
+void runGPUMultiGPUTests();
+void runGPUExactTests();
 
 int main()
 {
@@ -22,13 +31,22 @@ int main()
   runUtilsTests();
 
   std::cout << "\n=== Core Tests ===" << std::endl;
-  runCoreTests();
+  runCoreBasicTests();
+  runCoreBasicTests2();
+  runCoreFeaturesTests();
+  runCoreFeaturesTests2();
+  runCoreExactTests();
+  runCoreExactTests2();
 
   std::cout << "\n=== Serialization Tests ===" << std::endl;
   runSerializationTests();
 
   std::cout << "\n=== GPU Tests ===" << std::endl;
-  runGPUTests();
+  runGPUBasicTests();
+  runGPUBasicTests2();
+  runGPUFeaturesTests();
+  runGPUMultiGPUTests();
+  runGPUExactTests();
 
   std::cout << "\n========================================" << std::endl;
   std::cout << "Results: " << testsPassed << " passed, " << testsFailed << " failed" << std::endl;

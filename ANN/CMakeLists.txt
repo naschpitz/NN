@@ -71,9 +71,18 @@ add_executable(test_ann
   tests/test_main.cpp
   tests/test_actvfunc.cpp
   tests/test_utils.cpp
-  tests/test_core.cpp
+  tests/test_core_basic.cpp
+  tests/test_core_basic2.cpp
+  tests/test_core_features.cpp
+  tests/test_core_features2.cpp
+  tests/test_core_exact.cpp
+  tests/test_core_exact2.cpp
   tests/test_serialization.cpp
-  tests/test_gpu.cpp
+  tests/test_gpu_basic.cpp
+  tests/test_gpu_basic2.cpp
+  tests/test_gpu_features.cpp
+  tests/test_gpu_multigpu.cpp
+  tests/test_gpu_exact.cpp
 )
 
 target_link_libraries(test_ann PRIVATE ANN Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Concurrent)
