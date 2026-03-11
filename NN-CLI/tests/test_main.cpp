@@ -9,7 +9,15 @@ int testsFailed = 0;
 bool runFullTests = false;
 
 void runANNTests();
-void runCNNTests();
+void runANNTests2();
+void runCNNBasicTests();
+void runCNNFeaturesTests();
+void runCNNFeaturesTests2();
+void runCNNFeaturesTests3();
+void runCNNGPULayerTests();
+void runCNNGPUDiagnosticTests();
+void runCNNGPUISICTests();
+void runCNNShuffleTests();
 void runErrorTests();
 void runDataLoaderTests();
 
@@ -36,10 +44,18 @@ int main(int argc, char* argv[])
 
   std::cout << "=== ANN Tests ===" << std::endl;
   runANNTests();
+  runANNTests2();
 
   std::cout << std::endl;
   std::cout << "=== CNN Tests ===" << std::endl;
-  runCNNTests();
+  runCNNBasicTests();
+  runCNNFeaturesTests();
+  runCNNFeaturesTests2();
+  runCNNFeaturesTests3();
+  runCNNGPULayerTests();
+  runCNNGPUDiagnosticTests();
+  runCNNGPUISICTests();
+  runCNNShuffleTests();
 
   std::cout << std::endl;
   std::cout << "=== Error Handling Tests ===" << std::endl;

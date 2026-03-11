@@ -13,8 +13,9 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Concurrent)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent)
 
 # Add CNN as subdirectory — it brings ANN and OpenCLWrapper transitively via PUBLIC
+# TEMPORARY: pointing to local CNN repo for testing uncommitted changes
 if(NOT TARGET CNN)
-  add_subdirectory(extern/CNN)
+  add_subdirectory(/home/naschpitz/QtProjects/CNN ${CMAKE_BINARY_DIR}/CNN)
 endif()
 
 add_executable(NN-CLI
@@ -51,7 +52,15 @@ install(TARGETS NN-CLI
 add_executable(test_nncli
   tests/test_main.cpp
   tests/test_ann.cpp
-  tests/test_cnn.cpp
+  tests/test_ann2.cpp
+  tests/test_cnn_basic.cpp
+  tests/test_cnn_features.cpp
+  tests/test_cnn_features2.cpp
+  tests/test_cnn_features3.cpp
+  tests/test_cnn_gpu_layers.cpp
+  tests/test_cnn_gpu_diagnostic.cpp
+  tests/test_cnn_gpu_isic.cpp
+  tests/test_cnn_shuffle.cpp
   tests/test_errors.cpp
   tests/test_dataloader.cpp
   NN-CLI_DataLoader.cpp
