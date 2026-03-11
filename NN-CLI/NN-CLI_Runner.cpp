@@ -992,6 +992,14 @@ void Runner::saveCNNModel(const std::string& filePath) const
       break;
     }
 
+    case CNN::LayerType::BATCHNORM: {
+      const auto& bn = std::get<CNN::NormLayerConfig>(layer.config);
+      layerJson["type"] = "batchnorm";
+      layerJson["epsilon"] = bn.epsilon;
+      layerJson["momentum"] = bn.momentum;
+      break;
+    }
+
     case CNN::LayerType::FLATTEN:
       layerJson["type"] = "flatten";
       break;

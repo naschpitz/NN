@@ -303,6 +303,17 @@ namespace NN_CLI
             bn.momentum = layerJson.at("momentum").get<float>();
 
           layerConfig.config = bn;
+        } else if (type == "batchnorm") {
+          layerConfig.type = CNN::LayerType::BATCHNORM;
+          CNN::NormLayerConfig bn;
+
+          if (layerJson.contains("epsilon"))
+            bn.epsilon = layerJson.at("epsilon").get<float>();
+
+          if (layerJson.contains("momentum"))
+            bn.momentum = layerJson.at("momentum").get<float>();
+
+          layerConfig.config = bn;
         } else {
           throw std::runtime_error("Unknown CNN layer type: " + type);
         }
