@@ -370,10 +370,10 @@ void runANNTests()
 {
   testANNTrainXOR();
   testANNNetworkDetection();
-  testANNPredictMNIST();
-  testANNTestMNIST();
   testANNModeOverride();
   testANNTrainWithWeightedLoss();
   testANNTrainAndTestMNIST();
+  testANNPredictMNIST();
+  testANNTestMNIST();
   testANNTrainAndTestMNISTGPU();
 }
