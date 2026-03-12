@@ -292,6 +292,9 @@ namespace NN_CLI
         } else if (type == "flatten") {
           layerConfig.type = CNN::LayerType::FLATTEN;
           layerConfig.config = CNN::FlattenLayerConfig{};
+        } else if (type == "globalavgpool") {
+          layerConfig.type = CNN::LayerType::GLOBALAVGPOOL;
+          layerConfig.config = CNN::GlobalAvgPoolLayerConfig{};
         } else if (type == "instancenorm") {
           layerConfig.type = CNN::LayerType::INSTANCENORM;
           CNN::NormLayerConfig bn;

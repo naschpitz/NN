@@ -1000,6 +1000,10 @@ void Runner::saveCNNModel(const std::string& filePath) const
       break;
     }
 
+    case CNN::LayerType::GLOBALAVGPOOL:
+      layerJson["type"] = "globalavgpool";
+      break;
+
     case CNN::LayerType::FLATTEN:
       layerJson["type"] = "flatten";
       break;

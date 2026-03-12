@@ -13,9 +13,8 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Concurrent)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent)
 
 # Add CNN as subdirectory — it brings ANN and OpenCLWrapper transitively via PUBLIC
-# TEMPORARY: pointing to local CNN repo for testing uncommitted changes
 if(NOT TARGET CNN)
-  add_subdirectory(/home/naschpitz/QtProjects/CNN ${CMAKE_BINARY_DIR}/CNN)
+  add_subdirectory(extern/CNN)
 endif()
 
 add_executable(NN-CLI
