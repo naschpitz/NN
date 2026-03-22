@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Quick Start &amp; Build — NN-Server Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>NN-Server</h1><span class="subtitle">Neural Network Inference Server</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html" class="active">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="usage.html">API &amp; Configuration</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html">End-to-End Examples</a>
+</nav></aside>
+<main class="main">
+
+<h1>Quick Start &amp; Build</h1>
+
+<h2>Prerequisites</h2>
+<table>
+  <tr><th>Requirement</th><th>Minimum</th><th>Notes</th></tr>
+  <tr><td>C++ Compiler</td><td>C++17</td><td>GCC 7+, Clang 5+, MSVC 2017+</td></tr>
+  <tr><td>CMake</td><td>3.14</td><td></td></tr>
+  <tr><td>Qt</td><td>5 or 6</td><td>Core + Network + Concurrent modules</td></tr>
+  <tr><td>OpenCL</td><td>1.2</td><td>Optional — required only for GPU-trained models</td></tr>
+  <tr><td>A trained model</td><td>—</td><td>JSON output from <a href="../../NN-CLI/docs/index.html">NN-CLI</a> training</td></tr>
+</table>
+
+<h2>Clone &amp; Build</h2>
+<pre><code><span class="comment"># Clone with all submodules (CNN → ANN → OpenCLWrapper)</span>
+git clone --recursive https://github.com/naschpitz/NN-Server.git
+<span class="keyword">cd</span> NN-Server
+
+<span class="comment"># Build</span>
+mkdir build &amp;&amp; <span class="keyword">cd</span> build
+cmake ..
+make -j$(nproc)
+
+<span class="comment"># The NN-Server executable is ready</span>
+ls -la NN-Server
+</code></pre>
+
+<div class="info-box">
+  <strong>Submodule chain:</strong> NN-Server includes <strong>CNN</strong> under <code>extern/CNN</code>, which in turn includes <strong>ANN</strong> under <code>extern/ANN</code>, which includes <strong>OpenCLWrapper</strong> under <code>extern/openCLWrapper</code>. The <code>--recursive</code> flag clones all of them.
+</div>
+
+<h2>Verify Installation</h2>
+<pre><code><span class="comment"># Start the server (requires a trained model)</span>
+<span class="keyword">export</span> NN_MODEL_CONFIG=/path/to/trained_model.json
+./NN-Server
+
+<span class="comment"># Expected output:</span>
+<span class="comment"># NN-Server starting...</span>
+<span class="comment">#   Config:    /path/to/trained_model.json</span>
+<span class="comment">#   Port:      8080</span>
+<span class="comment">#   Pool size: 8</span>
+<span class="comment">#   Output:    vector (JSON)</span>
+<span class="comment">#</span>
+<span class="comment"># Server listening on port 8080</span>
+<span class="comment"># Ready to accept requests.</span>
+
+<span class="comment"># In another terminal, check the health endpoint:</span>
+curl http://localhost:<span class="number">8080</span>/health
+<span class="comment"># {"status":"ok"}</span>
+</code></pre>
+
+<h2>Run Tests</h2>
+<p>Integration tests are included. They start the server automatically with a bundled test model and send concurrent HTTP requests.</p>
+<pre><code><span class="keyword">cd</span> build
+cmake ..
+make test_endpoints -j$(nproc)
+./test_endpoints
+
+<span class="comment"># Expected output:</span>
+<span class="comment"># === NN-Server Endpoint Integration Tests ===</span>
+<span class="comment">#</span>
+<span class="comment"># Starting NN-Server...</span>
+<span class="comment"># Server is ready.</span>
+<span class="comment">#   testHealth...</span>
+<span class="comment">#   testNotFound...</span>
+<span class="comment">#   testPredictBadJson...</span>
+<span class="comment">#   testPredictMissingInput...</span>
+<span class="comment">#   testPredictImageSingle...</span>
+<span class="comment">#   testPredictImageConcurrent (5 different images)...</span>
+<span class="comment">#   testPredictImageRepeatedConcurrent (10x same image)...</span>
+<span class="comment">#</span>
+<span class="comment"># === Results: 44 passed, 0 failed ===</span>
+</code></pre>
+
+<h2>Project Structure</h2>
+<pre><code>NN-Server/
+├── main.cpp                      <span class="comment"># Entry point, env var parsing</span>
+├── NN-Server_HttpServer.hpp/cpp  <span class="comment"># HTTP server &amp; request handler</span>
+├── NN-Server_CorePool.hpp/cpp    <span class="comment"># Thread-safe pool of ANN/CNN Cores</span>
+├── NN-Server_Loader.hpp/cpp      <span class="comment"># Model loading &amp; network detection</span>
+├── NN-Server_ImageLoader.hpp/cpp <span class="comment"># Image decode/encode via stb</span>
+├── NN-Server_NetworkType.hpp     <span class="comment"># NetworkType enum (ANN/CNN)</span>
+├── libs/
+│   ├── nlohmann/                 <span class="comment"># JSON header-only library</span>
+│   └── stb/                      <span class="comment"># stb image headers (read/write/resize)</span>
+├── extern/
+│   └── CNN/                      <span class="comment"># CNN submodule (includes ANN)</span>
+├── tests/
+│   ├── test_main.cpp             <span class="comment"># Test entry point</span>
+│   ├── test_endpoints.cpp        <span class="comment"># Integration tests</span>
+│   ├── test_helpers.hpp          <span class="comment"># Test utilities (CHECK, HTTP helpers)</span>
+│   └── fixtures/                 <span class="comment"># Test model &amp; sample images</span>
+└── docs/                         <span class="comment"># This documentation</span>
+</code></pre>
+
+</main>
+</div>
+<footer class="site-footer">NN-Server Documentation</footer>
+</body></html>
+
