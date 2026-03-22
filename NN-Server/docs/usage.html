@@ -147,7 +147,7 @@ Content-Length: 32451
 <p>For classification models with softmax output, the values sum to approximately 1.0 and represent class probabilities.</p>
 
 <h3>Image Output</h3>
-<p>When the model's <code>"outputType"</code> is <code>"image"</code> and an <code>"outputShape"</code> is present, the output vector is reconstructed into a PNG image:</p>
+<p>When the model's <code>"outputType"</code> is <code>"image"</code>, the <code>"outputShape"</code> field is required. The output vector is reconstructed into a PNG image using that shape:</p>
 <pre><code>Content-Type: image/png
 
 <span class="comment">&lt;raw PNG bytes&gt;</span></code></pre>

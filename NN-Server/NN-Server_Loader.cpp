@@ -50,12 +50,14 @@ namespace NN_Server
     if (json.contains("outputType") && json["outputType"].get<std::string>() == "image") {
       config.isImage = true;
 
-      if (json.contains("outputShape")) {
-        const auto& shape = json["outputShape"];
-        config.c = shape.at("c").get<ulong>();
-        config.h = shape.at("h").get<ulong>();
-        config.w = shape.at("w").get<ulong>();
+      if (!json.contains("outputShape")) {
+        throw std::runtime_error("Model has outputType \"image\" but is missing the required \"outputShape\" field.");
       }
+
+      const auto& shape = json["outputShape"];
+      config.c = shape.at("c").get<ulong>();
+      config.h = shape.at("h").get<ulong>();
+      config.w = shape.at("w").get<ulong>();
     }
 
     return config;

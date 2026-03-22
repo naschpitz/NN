@@ -148,7 +148,7 @@ wait
 </div>
 
 <h2 id="image-output">4. Image-to-Image Output</h2>
-<p>For models that produce image output (segmentation masks, super-resolution, etc.), the server automatically detects the <code>"outputType": "image"</code> and <code>"outputShape"</code> fields from the model file and returns the result as a PNG.</p>
+<p>For models that produce image output (segmentation masks, super-resolution, etc.), the server automatically detects the <code>"outputType": "image"</code> field from the model file and uses the required <code>"outputShape"</code> to reconstruct the output as a PNG image.</p>
 
 <h3>config.json</h3>
 <pre><code>{
