@@ -56,12 +56,39 @@ if ! command -v qmake &>/dev/null && ! command -v qmake6 &>/dev/null; then
 fi
 
 if [ ${#missing[@]} -gt 0 ]; then
-  echo "ERROR: Missing required dependencies: ${missing[*]}"
+  echo "Missing required dependencies: ${missing[*]}"
   echo ""
-  echo "Install them with your package manager, e.g.:"
-  echo "  sudo apt install git cmake make g++ qtbase5-dev"
-  echo "  sudo dnf install git cmake make gcc-c++ qt5-qtbase-devel"
-  exit 1
+
+  # Detect package manager and build the install command
+  install_cmd=""
+  if command -v apt &>/dev/null; then
+    install_cmd="sudo apt install -y git cmake make g++ qtbase5-dev"
+  elif command -v dnf &>/dev/null; then
+    install_cmd="sudo dnf install -y git cmake make gcc-c++ qt5-qtbase-devel"
+  elif command -v pacman &>/dev/null; then
+    install_cmd="sudo pacman -S --noconfirm git cmake make gcc qt5-base"
+  elif command -v zypper &>/dev/null; then
+    install_cmd="sudo zypper install -y git cmake make gcc-c++ libqt5-qtbase-devel"
+  fi
+
+  if [ -n "$install_cmd" ]; then
+    echo "The following command will install them:"
+    echo "  $install_cmd"
+    echo ""
+    read -rp "Do you want to install them now? [y/N] " answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+      echo "Installing dependencies..."
+      $install_cmd
+    else
+      echo "Aborted. Please install the dependencies manually and re-run this script."
+      exit 1
+    fi
+  else
+    echo "Could not detect your package manager."
+    echo "Please install the following manually and re-run this script:"
+    echo "  git, cmake, make, g++ (or gcc-c++), Qt5/Qt6 development headers"
+    exit 1
+  fi
 fi
 
 echo "  All dependencies found."
