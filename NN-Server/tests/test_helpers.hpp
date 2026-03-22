@@ -55,7 +55,8 @@ inline QString imagePath(const QString& filename)
 constexpr int SERVER_PORT    = 19876;
 constexpr int POOL_SIZE      = 2;
 constexpr int NUM_OUTPUT     = 11;       // ISIC MILK10k has 11 output classes
-constexpr int MAX_BODY_SIZE  = 1048576;  // 1 MB — for testing 413 rejection
+constexpr int MAX_BODY_SIZE_MB = 1;                                   // 1 MB — for testing 413 rejection
+constexpr qint64 MAX_BODY_SIZE_BYTES = MAX_BODY_SIZE_MB * 1024 * 1024; // in bytes
 
 /**
  * Simple HTTP response parsed from raw bytes.

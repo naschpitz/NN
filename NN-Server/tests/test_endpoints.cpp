@@ -36,7 +36,7 @@ static bool startServer()
   config["model"]       = fixturePath("checkpoint_E-150_L-0.029486.json").toStdString();
   config["port"]        = SERVER_PORT;
   config["poolSize"]    = POOL_SIZE;
-  config["maxBodySize"] = MAX_BODY_SIZE;
+  config["maxBodySize"] = MAX_BODY_SIZE_MB;
 
   QFile configFile(configPath);
 
@@ -181,9 +181,9 @@ static void testPredictBodyTooLarge()
 {
   std::cout << "  testPredictBodyTooLarge... " << std::flush;
 
-  // Send a request with Content-Length exceeding MAX_BODY_SIZE.
+  // Send a request with Content-Length exceeding MAX_BODY_SIZE_BYTES.
   // Include a small body so the server's waitForReadyRead triggers.
-  qint64 fakeSize = MAX_BODY_SIZE + 1024;
+  qint64 fakeSize = MAX_BODY_SIZE_BYTES + 1024;
   QByteArray smallBody(64, 'X');
   QByteArray req = "POST /predict HTTP/1.1\r\n"
                    "Host: 127.0.0.1\r\n"
@@ -204,6 +204,33 @@ static void testPredictBodyTooLarge()
 
   std::cout << std::endl;
 }
+
+static void testPredictBodyJustUnderLimit()
+{
+  std::cout << "  testPredictBodyJustUnderLimit... " << std::flush;
+
+  // Send a request with Content-Length just under the limit (1 MB - 1 KB).
+  // This verifies the config value is interpreted as megabytes:
+  // if it were bytes, maxBodySize=1 would reject almost everything.
+  qint64 justUnder = MAX_BODY_SIZE_BYTES - 1024;
+  QByteArray smallBody(64, 'X');
+  QByteArray req = "POST /predict HTTP/1.1\r\n"
+                   "Host: 127.0.0.1\r\n"
+                   "Content-Type: image/jpeg\r\n"
+                   "Content-Length: " + QByteArray::number(justUnder) + "\r\n"
+                   "Connection: close\r\n"
+                   "\r\n" + smallBody;
+
+  // Server should NOT reject — Content-Length is within the limit.
+  // It will eventually fail to decode the image, but that's a 500, not 413.
+  HttpResponse resp = sendHttpRequest(req, 10000);
+  CHECK(resp.ok, "body_under_limit: got response");
+  CHECK(resp.statusCode != 413, "body_under_limit: not rejected as too large (got " +
+        std::to_string(resp.statusCode) + ")");
+
+  std::cout << std::endl;
+}
+
 
 
 static void testPredictImageSingle()
@@ -355,6 +382,7 @@ void runEndpointTests()
   testPredictBadJson();
   testPredictMissingInput();
   testPredictBodyTooLarge();
+  testPredictBodyJustUnderLimit();
   testPredictImageSingle();
   testPredictImageConcurrent();
   testPredictImageRepeatedConcurrent();

@@ -79,21 +79,23 @@ int main(int argc, char* argv[])
     }
   }
 
-  // Max request body size (default: 10 MB)
-  qint64 maxBodySize = 10 * 1024 * 1024;
+  // Max request body size in megabytes (default: 10 MB)
+  qint64 maxBodySizeMB = 10;
 
   if (config.contains("maxBodySize")) {
     qint64 val = config["maxBodySize"].get<qint64>();
 
     if (val > 0) {
-      maxBodySize = val;
+      maxBodySizeMB = val;
     } else if (val == 0) {
-      maxBodySize = 0; // 0 = unlimited
+      maxBodySizeMB = 0; // 0 = unlimited
     } else {
       std::cerr << "Warning: Invalid maxBodySize value " << val
                 << ", using default 10 MB.\n";
     }
   }
+
+  qint64 maxBodySize = maxBodySizeMB * 1024 * 1024; // Convert MB to bytes
 
   std::cout << "NN-Server starting...\n";
   std::cout << "  Config:       " << configFilePath << "\n";
@@ -101,8 +103,8 @@ int main(int argc, char* argv[])
   std::cout << "  Port:         " << port << "\n";
   std::cout << "  Pool size:    " << poolSize << "\n";
 
-  if (maxBodySize > 0) {
-    std::cout << "  Max body:     " << maxBodySize << " bytes (" << (maxBodySize / (1024 * 1024)) << " MB)\n";
+  if (maxBodySizeMB > 0) {
+    std::cout << "  Max body:     " << maxBodySizeMB << " MB\n";
   } else {
     std::cout << "  Max body:     unlimited\n";
   }
