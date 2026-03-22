@@ -19,8 +19,8 @@ namespace NN_Server
   class RequestHandler : public QRunnable
   {
     public:
-      RequestHandler(qintptr socketDescriptor, std::shared_ptr<CorePool> pool)
-        : socketDescriptor(socketDescriptor), corePool(std::move(pool))
+      RequestHandler(qintptr socketDescriptor, std::shared_ptr<CorePool> pool, qint64 maxBodySize)
+        : socketDescriptor(socketDescriptor), corePool(std::move(pool)), maxBodySize(maxBodySize)
       {
       }
 
@@ -35,6 +35,7 @@ namespace NN_Server
 
         // Read the full HTTP request (wait up to 5 seconds)
         QByteArray requestData;
+        bool rejected = false;
 
         while (socket.waitForReadyRead(5000)) {
           requestData.append(socket.readAll());
@@ -49,9 +50,19 @@ namespace NN_Server
             if (contentLengthIdx >= 0) {
               int lineEnd = headers.indexOf("\r\n", contentLengthIdx);
               QByteArray clValue = headers.mid(contentLengthIdx + 15, lineEnd - contentLengthIdx - 15).trimmed();
-              int contentLength = clValue.toInt();
+              qint64 contentLength = clValue.toLongLong();
+
+              // Reject early if Content-Length exceeds the limit
+              if (this->maxBodySize > 0 && contentLength > this->maxBodySize) {
+                sendJsonResponse(socket, 413,
+                  R"({"error":"Request body too large. Maximum allowed: )" +
+                  std::to_string(this->maxBodySize) + R"( bytes"})");
+                rejected = true;
+                break;
+              }
+
               int bodyStart = headerEnd + 4;
-              int bodyLength = requestData.size() - bodyStart;
+              qint64 bodyLength = requestData.size() - bodyStart;
 
               if (bodyLength >= contentLength)
                 break;
@@ -59,9 +70,19 @@ namespace NN_Server
               break;
             }
           }
+
+          // Also reject if accumulated data exceeds the limit (no Content-Length or chunked)
+          if (this->maxBodySize > 0 && requestData.size() > this->maxBodySize + 8192) { // 8KB header allowance
+            sendJsonResponse(socket, 413,
+              R"({"error":"Request body too large. Maximum allowed: )" +
+              std::to_string(this->maxBodySize) + R"( bytes"})");
+            rejected = true;
+            break;
+          }
         }
 
-        this->processRequest(socket, requestData);
+        if (!rejected)
+          this->processRequest(socket, requestData);
 
         socket.flush();
         socket.waitForBytesWritten(3000);
@@ -75,6 +96,7 @@ namespace NN_Server
     private:
       qintptr socketDescriptor;
       std::shared_ptr<CorePool> corePool;
+      qint64 maxBodySize;
 
       void processRequest(QTcpSocket& socket, const QByteArray& requestData)
       {
@@ -302,8 +324,8 @@ namespace NN_Server
   // HttpServer
   //===================================================================================================================//
 
-  HttpServer::HttpServer(std::shared_ptr<CorePool> pool, QObject* parent)
-    : QTcpServer(parent), corePool(std::move(pool))
+  HttpServer::HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize, QObject* parent)
+    : QTcpServer(parent), corePool(std::move(pool)), maxBodySize(maxBodySize)
   {
   }
 
@@ -325,7 +347,7 @@ namespace NN_Server
 
   void HttpServer::incomingConnection(qintptr socketDescriptor)
   {
-    auto* handler = new RequestHandler(socketDescriptor, this->corePool);
+    auto* handler = new RequestHandler(socketDescriptor, this->corePool, this->maxBodySize);
     handler->setAutoDelete(true);
     QThreadPool::globalInstance()->start(handler);
   }

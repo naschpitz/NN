@@ -79,11 +79,35 @@ int main(int argc, char* argv[])
     }
   }
 
+  // Max request body size (default: 10 MB)
+  qint64 maxBodySize = 10 * 1024 * 1024;
+
+  if (config.contains("maxBodySize")) {
+    qint64 val = config["maxBodySize"].get<qint64>();
+
+    if (val > 0) {
+      maxBodySize = val;
+    } else if (val == 0) {
+      maxBodySize = 0; // 0 = unlimited
+    } else {
+      std::cerr << "Warning: Invalid maxBodySize value " << val
+                << ", using default 10 MB.\n";
+    }
+  }
+
   std::cout << "NN-Server starting...\n";
-  std::cout << "  Config:    " << configFilePath << "\n";
-  std::cout << "  Model:     " << modelPath << "\n";
-  std::cout << "  Port:      " << port << "\n";
-  std::cout << "  Pool size: " << poolSize << "\n\n";
+  std::cout << "  Config:       " << configFilePath << "\n";
+  std::cout << "  Model:        " << modelPath << "\n";
+  std::cout << "  Port:         " << port << "\n";
+  std::cout << "  Pool size:    " << poolSize << "\n";
+
+  if (maxBodySize > 0) {
+    std::cout << "  Max body:     " << maxBodySize << " bytes (" << (maxBodySize / (1024 * 1024)) << " MB)\n";
+  } else {
+    std::cout << "  Max body:     unlimited\n";
+  }
+
+  std::cout << "\n";
 
   // Create the core pool (loads models into memory, auto-detects output config)
   std::shared_ptr<NN_Server::CorePool> corePool;
@@ -114,7 +138,7 @@ int main(int argc, char* argv[])
   std::cout << "\n";
 
   // Start the HTTP server
-  NN_Server::HttpServer server(corePool);
+  NN_Server::HttpServer server(corePool, maxBodySize);
 
   if (!server.startListening(port)) {
     return 1;

@@ -33,9 +33,10 @@ static bool startServer()
 
   QString configPath = tmpDir->path() + "/config.json";
   nlohmann::json config;
-  config["model"]    = fixturePath("checkpoint_E-150_L-0.029486.json").toStdString();
-  config["port"]     = SERVER_PORT;
-  config["poolSize"] = POOL_SIZE;
+  config["model"]       = fixturePath("checkpoint_E-150_L-0.029486.json").toStdString();
+  config["port"]        = SERVER_PORT;
+  config["poolSize"]    = POOL_SIZE;
+  config["maxBodySize"] = MAX_BODY_SIZE;
 
   QFile configFile(configPath);
 
@@ -175,6 +176,35 @@ static void testPredictMissingInput()
 
   std::cout << std::endl;
 }
+
+static void testPredictBodyTooLarge()
+{
+  std::cout << "  testPredictBodyTooLarge... " << std::flush;
+
+  // Send a request with Content-Length exceeding MAX_BODY_SIZE.
+  // Include a small body so the server's waitForReadyRead triggers.
+  qint64 fakeSize = MAX_BODY_SIZE + 1024;
+  QByteArray smallBody(64, 'X');
+  QByteArray req = "POST /predict HTTP/1.1\r\n"
+                   "Host: 127.0.0.1\r\n"
+                   "Content-Type: image/jpeg\r\n"
+                   "Content-Length: " + QByteArray::number(fakeSize) + "\r\n"
+                   "Connection: close\r\n"
+                   "\r\n" + smallBody;
+
+  // Server should reject based on Content-Length before reading the full body
+  HttpResponse resp = sendHttpRequest(req, 10000);
+  CHECK(resp.ok, "body_too_large: got response");
+  CHECK(resp.statusCode == 413, "body_too_large: status 413");
+
+  if (resp.ok && !resp.body.isEmpty()) {
+    nlohmann::json body = nlohmann::json::parse(resp.body.toStdString());
+    CHECK(body.contains("error"), "body_too_large: has error field");
+  }
+
+  std::cout << std::endl;
+}
+
 
 static void testPredictImageSingle()
 {
@@ -324,6 +354,7 @@ void runEndpointTests()
   testNotFound();
   testPredictBadJson();
   testPredictMissingInput();
+  testPredictBodyTooLarge();
   testPredictImageSingle();
   testPredictImageConcurrent();
   testPredictImageRepeatedConcurrent();

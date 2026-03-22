@@ -20,7 +20,9 @@ namespace NN_Server
       Q_OBJECT
 
     public:
-      HttpServer(std::shared_ptr<CorePool> pool, QObject* parent = nullptr);
+      // maxBodySize in bytes; 0 = unlimited (default: 10 MB)
+      HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize = 10 * 1024 * 1024,
+                 QObject* parent = nullptr);
 
       bool startListening(quint16 port);
 
@@ -29,6 +31,7 @@ namespace NN_Server
 
     private:
       std::shared_ptr<CorePool> corePool;
+      qint64 maxBodySize;
   };
 
 } // namespace NN_Server

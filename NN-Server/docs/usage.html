@@ -50,6 +50,7 @@
   <tr><td><code>"model"</code></td><td>string</td><td>Yes</td><td>—</td><td>Path to the trained model JSON file</td></tr>
   <tr><td><code>"port"</code></td><td>integer</td><td>No</td><td><code>8080</code></td><td>TCP port to listen on (1–65535)</td></tr>
   <tr><td><code>"poolSize"</code></td><td>integer</td><td>No</td><td>CPU cores</td><td>Number of Core instances in the pool</td></tr>
+  <tr><td><code>"maxBodySize"</code></td><td>integer</td><td>No</td><td><code>10485760</code> (10 MB)</td><td>Maximum request body size in bytes. Requests exceeding this limit are rejected with HTTP 413. Set to <code>0</code> for unlimited</td></tr>
 </table>
 
 <div class="info-box">
@@ -66,7 +67,8 @@
 <pre><code>{
   <span class="string">"model"</span>: <span class="string">"/models/isic_checkpoint.json"</span>,
   <span class="string">"port"</span>: <span class="number">9090</span>,
-  <span class="string">"poolSize"</span>: <span class="number">4</span>
+  <span class="string">"poolSize"</span>: <span class="number">4</span>,
+  <span class="string">"maxBodySize"</span>: <span class="number">20971520</span>
 }
 </code></pre>
 
@@ -178,6 +180,7 @@ Content-Length: 32451
   <tr><td><code>400</code></td><td>Missing <code>"input"</code> array</td><td><code>{"error":"Request must contain an 'input' array"}</code></td></tr>
   <tr><td><code>400</code></td><td>Missing request body</td><td><code>{"error":"Missing request body"}</code></td></tr>
   <tr><td><code>404</code></td><td>Unknown endpoint</td><td><code>{"error":"Not found. Use POST /predict"}</code></td></tr>
+  <tr><td><code>413</code></td><td>Request body exceeds <code>maxBodySize</code></td><td><code>{"error":"Request body too large. Maximum allowed: N bytes"}</code></td></tr>
   <tr><td><code>500</code></td><td>Input size mismatch</td><td><code>{"error":"Prediction failed: Input size (N) does not match expected shape size (M)"}</code></td></tr>
   <tr><td><code>500</code></td><td>Image decode failure</td><td><code>{"error":"Prediction failed: ..."}</code></td></tr>
 </table>
