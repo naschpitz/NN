@@ -12,6 +12,7 @@ namespace NN_Server
   CorePool::CorePool(const std::string& configFilePath, int poolSize)
   {
     this->netType = Loader::detectNetworkType(configFilePath);
+    this->inConfig = Loader::loadInputConfig(configFilePath);
     this->outConfig = Loader::loadOutputConfig(configFilePath);
     std::string networkTypeStr = (this->netType == NetworkType::CNN) ? "CNN" : "ANN";
 
@@ -28,14 +29,6 @@ namespace NN_Server
         this->entries[static_cast<size_t>(i)].annCore = ANN::Core<float>::makeCore(config);
       } else {
         CNN::CoreConfig<float> config = Loader::loadCNNConfig(configFilePath);
-
-        // Store input shape from the first core (all cores share the same config)
-        if (i == 0) {
-          this->inC = config.inputShape.c;
-          this->inH = config.inputShape.h;
-          this->inW = config.inputShape.w;
-        }
-
         this->entries[static_cast<size_t>(i)].cnnCore = CNN::Core<float>::makeCore(config);
       }
 

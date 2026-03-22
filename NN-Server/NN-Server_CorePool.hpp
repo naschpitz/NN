@@ -43,11 +43,7 @@ namespace NN_Server
       NetworkType networkType() const { return this->netType; }
       int size() const { return static_cast<int>(this->entries.size()); }
 
-      // Input shape (from CNN config, or 0 for ANN)
-      ulong inputC() const { return this->inC; }
-      ulong inputH() const { return this->inH; }
-      ulong inputW() const { return this->inW; }
-
+      const InputConfig& inputConfig() const { return this->inConfig; }
       const OutputConfig& outputConfig() const { return this->outConfig; }
 
     private:
@@ -60,7 +56,7 @@ namespace NN_Server
 
       std::vector<CoreEntry> entries;
       NetworkType netType;
-      ulong inC = 0, inH = 0, inW = 0; // Input shape (from CNN config)
+      InputConfig inConfig;
       OutputConfig outConfig;
 
       QMutex mutex;

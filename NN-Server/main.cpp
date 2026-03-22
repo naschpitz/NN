@@ -95,6 +95,14 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  const auto& inCfg = corePool->inputConfig();
+
+  if (inCfg.isImage) {
+    std::cout << "  Input:     image (" << inCfg.c << "x" << inCfg.h << "x" << inCfg.w << ")\n";
+  } else {
+    std::cout << "  Input:     vector (JSON)\n";
+  }
+
   const auto& outCfg = corePool->outputConfig();
 
   if (outCfg.isImage) {

@@ -232,13 +232,15 @@ namespace NN_Server
 
       std::vector<float> decodeImageInput(const QByteArray& imageData)
       {
-        ulong targetC = this->corePool->inputC();
-        ulong targetH = this->corePool->inputH();
-        ulong targetW = this->corePool->inputW();
+        const InputConfig& inCfg = this->corePool->inputConfig();
 
-        if (targetC == 0 || targetH == 0 || targetW == 0) {
-          throw std::runtime_error("Image input requires a CNN model with a defined input shape");
+        if (!inCfg.hasShape()) {
+          throw std::runtime_error("Image input requires a model with a defined inputShape");
         }
+
+        ulong targetC = inCfg.c;
+        ulong targetH = inCfg.h;
+        ulong targetW = inCfg.w;
 
         return ImageLoader::loadImageFromMemory(
           reinterpret_cast<const unsigned char*>(imageData.constData()),

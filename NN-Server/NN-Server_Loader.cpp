@@ -31,6 +31,45 @@ namespace NN_Server
   }
 
   //===================================================================================================================//
+  // Input configuration loading
+  //===================================================================================================================//
+
+  InputConfig Loader::loadInputConfig(const std::string& configFilePath)
+  {
+    QFile file(QString::fromStdString(configFilePath));
+
+    if (!file.open(QIODevice::ReadOnly)) {
+      throw std::runtime_error("Failed to open config file: " + configFilePath);
+    }
+
+    QByteArray fileData = file.readAll();
+    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    InputConfig config;
+
+    // For CNN models, inputShape is always required (the CNN architecture needs it)
+    bool isCNN = json.contains("inputShape") || json.contains("convolutionalLayersConfig");
+
+    if (json.contains("inputType") && json["inputType"].get<std::string>() == "image") {
+      config.isImage = true;
+    } else if (isCNN) {
+      // CNN models with inputShape default to image input even without explicit inputType
+      config.isImage = true;
+    }
+
+    if (json.contains("inputShape")) {
+      const auto& shape = json["inputShape"];
+      config.c = shape.at("c").get<ulong>();
+      config.h = shape.at("h").get<ulong>();
+      config.w = shape.at("w").get<ulong>();
+    } else if (config.isImage) {
+      throw std::runtime_error("Model has inputType \"image\" but is missing the required \"inputShape\" field.");
+    }
+
+    return config;
+  }
+
+  //===================================================================================================================//
   // Output configuration loading
   //===================================================================================================================//
 

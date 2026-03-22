@@ -22,6 +22,15 @@
 namespace NN_Server
 {
 
+  // Input configuration — determined from the model file's inputType/inputShape fields.
+  struct InputConfig
+  {
+      bool isImage = false; // If true, input accepts images (requires shape)
+      ulong c = 0, h = 0, w = 0; // Input image shape (channels, height, width)
+
+      bool hasShape() const { return c > 0 && h > 0 && w > 0; }
+  };
+
   // Output configuration — determined from the model file's outputType/outputShape fields.
   struct OutputConfig
   {
@@ -36,6 +45,9 @@ namespace NN_Server
     public:
       // Detect whether a config file defines an ANN or CNN network.
       static NetworkType detectNetworkType(const std::string& configFilePath);
+
+      // Load input configuration from the model file (inputType + inputShape).
+      static InputConfig loadInputConfig(const std::string& configFilePath);
 
       // Load output configuration from the model file (outputType + outputShape).
       static OutputConfig loadOutputConfig(const std::string& configFilePath);
