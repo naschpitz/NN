@@ -7,10 +7,14 @@ set -e
 # Usage:
 #   ./install.sh /usr/local/bin
 #   ./install.sh ~/bin
-#   curl -sL https://raw.githubusercontent.com/naschpitz/NN-Server/master/install.sh | bash -s -- /usr/local/bin
+#
+# Authentication (private repo):
+#   The script tries SSH first (git@github.com). If SSH is not configured,
+#   it falls back to HTTPS and prompts for a GitHub Personal Access Token.
 
 INSTALL_DIR="${1:-}"
-REPO_URL="https://github.com/naschpitz/NN-Server.git"
+REPO_SSH="git@github.com:naschpitz/NN-Server.git"
+REPO_HTTPS="https://github.com/naschpitz/NN-Server.git"
 TMP_DIR="$(mktemp -d)"
 
 cleanup() {
@@ -94,12 +98,40 @@ fi
 echo "  All dependencies found."
 
 # ---------------------------------------------------------------------------
-# Clone
+# Clone (private repo — try SSH first, fall back to HTTPS with PAT)
 # ---------------------------------------------------------------------------
 
 echo ""
-echo "Cloning NN-Server..."
-git clone --recursive "$REPO_URL" "$TMP_DIR/NN-Server"
+echo "Cloning NN-Server (private repository)..."
+
+cloned=false
+
+# Try SSH first
+if ssh -T git@github.com 2>&1 | grep -qi "successfully authenticated"; then
+  echo "  SSH authentication detected, cloning via SSH..."
+  if git clone --recursive "$REPO_SSH" "$TMP_DIR/NN-Server" 2>/dev/null; then
+    cloned=true
+  fi
+fi
+
+# Fall back to HTTPS with Personal Access Token
+if [ "$cloned" = false ]; then
+  echo "  SSH authentication not available or failed."
+  echo "  To clone this private repository via HTTPS, a GitHub Personal Access Token (PAT) is required."
+  echo "  You can create one at: https://github.com/settings/tokens"
+  echo "  (select at least the 'repo' scope)"
+  echo ""
+  read -rp "Enter your GitHub Personal Access Token (or press Enter to abort): " token
+
+  if [ -z "$token" ]; then
+    echo "Aborted. Cannot clone without authentication."
+    exit 1
+  fi
+
+  REPO_PAT="https://${token}@github.com/naschpitz/NN-Server.git"
+  git clone --recursive "$REPO_PAT" "$TMP_DIR/NN-Server"
+  cloned=true
+fi
 
 # ---------------------------------------------------------------------------
 # Build
