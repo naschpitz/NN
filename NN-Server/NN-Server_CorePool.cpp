@@ -12,6 +12,7 @@ namespace NN_Server
   CorePool::CorePool(const std::string& configFilePath, int poolSize)
   {
     this->netType = Loader::detectNetworkType(configFilePath);
+    this->outConfig = Loader::loadOutputConfig(configFilePath);
     std::string networkTypeStr = (this->netType == NetworkType::CNN) ? "CNN" : "ANN";
 
     std::cout << "Detected network type: " << networkTypeStr << "\n";

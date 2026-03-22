@@ -31,6 +31,37 @@ namespace NN_Server
   }
 
   //===================================================================================================================//
+  // Output configuration loading
+  //===================================================================================================================//
+
+  OutputConfig Loader::loadOutputConfig(const std::string& configFilePath)
+  {
+    QFile file(QString::fromStdString(configFilePath));
+
+    if (!file.open(QIODevice::ReadOnly)) {
+      throw std::runtime_error("Failed to open config file: " + configFilePath);
+    }
+
+    QByteArray fileData = file.readAll();
+    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+
+    OutputConfig config;
+
+    if (json.contains("outputType") && json["outputType"].get<std::string>() == "image") {
+      config.isImage = true;
+
+      if (json.contains("outputShape")) {
+        const auto& shape = json["outputShape"];
+        config.c = shape.at("c").get<ulong>();
+        config.h = shape.at("h").get<ulong>();
+        config.w = shape.at("w").get<ulong>();
+      }
+    }
+
+    return config;
+  }
+
+  //===================================================================================================================//
   // ANN config loading (predict-only)
   //===================================================================================================================//
 

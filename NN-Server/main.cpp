@@ -79,46 +79,28 @@ int main(int argc, char* argv[])
     }
   }
 
-  // Output shape (optional — when set, output is returned as an image)
-  // Format: {"c": 3, "h": 256, "w": 256}
-  NN_Server::OutputConfig outputConfig;
-
-  if (config.contains("outputShape") && config["outputShape"].is_object()) {
-    const auto& shape = config["outputShape"];
-
-    if (shape.contains("c") && shape.contains("h") && shape.contains("w")) {
-      outputConfig.c = shape["c"].get<ulong>();
-      outputConfig.h = shape["h"].get<ulong>();
-      outputConfig.w = shape["w"].get<ulong>();
-      outputConfig.isImage = true;
-    } else {
-      std::cerr << "Warning: outputShape must contain \"c\", \"h\", and \"w\" fields.\n";
-    }
-  }
-
   std::cout << "NN-Server starting...\n";
   std::cout << "  Config:    " << configFilePath << "\n";
   std::cout << "  Model:     " << modelPath << "\n";
   std::cout << "  Port:      " << port << "\n";
-  std::cout << "  Pool size: " << poolSize << "\n";
+  std::cout << "  Pool size: " << poolSize << "\n\n";
 
-  if (outputConfig.isImage) {
-    std::cout << "  Output:    image (" << outputConfig.c << "x" << outputConfig.h << "x" << outputConfig.w << ")\n";
-  } else {
-    std::cout << "  Output:    vector (JSON)\n";
-  }
-
-  std::cout << "\n";
-
-  // Create the core pool (loads models into memory)
+  // Create the core pool (loads models into memory, auto-detects output config)
   std::shared_ptr<NN_Server::CorePool> corePool;
 
   try {
     corePool = std::make_shared<NN_Server::CorePool>(modelPath, poolSize);
-    corePool->setOutputConfig(outputConfig);
   } catch (const std::exception& e) {
     std::cerr << "Error loading model: " << e.what() << "\n";
     return 1;
+  }
+
+  const auto& outCfg = corePool->outputConfig();
+
+  if (outCfg.isImage) {
+    std::cout << "  Output:    image (" << outCfg.c << "x" << outCfg.h << "x" << outCfg.w << ")\n";
+  } else {
+    std::cout << "  Output:    vector (JSON)\n";
   }
 
   std::cout << "\n";

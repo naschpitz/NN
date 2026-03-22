@@ -1,6 +1,7 @@
 #ifndef NN_SERVER_COREPOOL_HPP
 #define NN_SERVER_COREPOOL_HPP
 
+#include "NN-Server_Loader.hpp"
 #include "NN-Server_NetworkType.hpp"
 
 #include <ANN_Core.hpp>
@@ -21,15 +22,6 @@ namespace NN_Server
       ANN::Core<float>* annCore = nullptr;
       CNN::Core<float>* cnnCore = nullptr;
       int index = -1;
-  };
-
-  // Output configuration — determines whether prediction output is a vector or an image.
-  struct OutputConfig
-  {
-      bool isImage = false; // If true, output is an image (requires shape)
-      ulong c = 0, h = 0, w = 0; // Output image shape (channels, height, width)
-
-      bool hasShape() const { return c > 0 && h > 0 && w > 0; }
   };
 
   /**
@@ -56,7 +48,6 @@ namespace NN_Server
       ulong inputH() const { return this->inH; }
       ulong inputW() const { return this->inW; }
 
-      void setOutputConfig(const OutputConfig& config) { this->outConfig = config; }
       const OutputConfig& outputConfig() const { return this->outConfig; }
 
     private:

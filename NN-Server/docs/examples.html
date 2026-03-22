@@ -148,16 +148,11 @@ wait
 </div>
 
 <h2 id="image-output">4. Image-to-Image Output</h2>
-<p>For models that produce image output (segmentation masks, super-resolution, etc.), set <code>"outputShape"</code> in your config.json to receive the result as a PNG:</p>
+<p>For models that produce image output (segmentation masks, super-resolution, etc.), the server automatically detects the <code>"outputType": "image"</code> and <code>"outputShape"</code> fields from the model file and returns the result as a PNG.</p>
 
 <h3>config.json</h3>
 <pre><code>{
-  <span class="string">"model"</span>: <span class="string">"segmentation_model.json"</span>,
-  <span class="string">"outputShape"</span>: {
-    <span class="string">"c"</span>: <span class="number">3</span>,
-    <span class="string">"h"</span>: <span class="number">256</span>,
-    <span class="string">"w"</span>: <span class="number">256</span>
-  }
+  <span class="string">"model"</span>: <span class="string">"segmentation_model.json"</span>
 }
 </code></pre>
 

@@ -50,8 +50,11 @@
   <tr><td><code>"model"</code></td><td>string</td><td>Yes</td><td>—</td><td>Path to the trained model JSON file</td></tr>
   <tr><td><code>"port"</code></td><td>integer</td><td>No</td><td><code>8080</code></td><td>TCP port to listen on (1–65535)</td></tr>
   <tr><td><code>"poolSize"</code></td><td>integer</td><td>No</td><td>CPU cores</td><td>Number of Core instances in the pool</td></tr>
-  <tr><td><code>"outputShape"</code></td><td>object</td><td>No</td><td>—</td><td>Output image shape with <code>"c"</code>, <code>"h"</code>, <code>"w"</code> fields. When set, output is returned as a PNG image instead of JSON</td></tr>
 </table>
+
+<div class="info-box">
+<strong>Output format:</strong> The output format (JSON vector or PNG image) is determined automatically from the model file's <code>"outputType"</code> and <code>"outputShape"</code> fields — no configuration needed.
+</div>
 
 <h3>Minimal config.json</h3>
 <pre><code>{
@@ -63,12 +66,7 @@
 <pre><code>{
   <span class="string">"model"</span>: <span class="string">"/models/isic_checkpoint.json"</span>,
   <span class="string">"port"</span>: <span class="number">9090</span>,
-  <span class="string">"poolSize"</span>: <span class="number">4</span>,
-  <span class="string">"outputShape"</span>: {
-    <span class="string">"c"</span>: <span class="number">3</span>,
-    <span class="string">"h"</span>: <span class="number">256</span>,
-    <span class="string">"w"</span>: <span class="number">256</span>
-  }
+  <span class="string">"poolSize"</span>: <span class="number">4</span>
 }
 </code></pre>
 
@@ -140,7 +138,7 @@ Content-Length: 32451
 <h2 id="output-format">5. Output Formats</h2>
 
 <h3>JSON Output (default)</h3>
-<p>When <code>NN_OUTPUT_SHAPE</code> is not set, predictions are returned as a JSON array:</p>
+<p>When the model's <code>"outputType"</code> is <code>"vector"</code> (or absent), predictions are returned as a JSON array:</p>
 <pre><code>Content-Type: application/json
 
 {
@@ -149,7 +147,7 @@ Content-Length: 32451
 <p>For classification models with softmax output, the values sum to approximately 1.0 and represent class probabilities.</p>
 
 <h3>Image Output</h3>
-<p>When <code>NN_OUTPUT_SHAPE</code> is set (e.g. <code>3x256x256</code>), the output vector is reconstructed into a PNG image:</p>
+<p>When the model's <code>"outputType"</code> is <code>"image"</code> and an <code>"outputShape"</code> is present, the output vector is reconstructed into a PNG image:</p>
 <pre><code>Content-Type: image/png
 
 <span class="comment">&lt;raw PNG bytes&gt;</span></code></pre>

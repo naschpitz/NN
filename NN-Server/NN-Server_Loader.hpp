@@ -22,11 +22,23 @@
 namespace NN_Server
 {
 
+  // Output configuration — determined from the model file's outputType/outputShape fields.
+  struct OutputConfig
+  {
+      bool isImage = false; // If true, output is an image (requires shape)
+      ulong c = 0, h = 0, w = 0; // Output image shape (channels, height, width)
+
+      bool hasShape() const { return c > 0 && h > 0 && w > 0; }
+  };
+
   class Loader
   {
     public:
       // Detect whether a config file defines an ANN or CNN network.
       static NetworkType detectNetworkType(const std::string& configFilePath);
+
+      // Load output configuration from the model file (outputType + outputShape).
+      static OutputConfig loadOutputConfig(const std::string& configFilePath);
 
       // Load ANN configuration (always in PREDICT mode).
       static ANN::CoreConfig<float> loadANNConfig(const std::string& configFilePath);
