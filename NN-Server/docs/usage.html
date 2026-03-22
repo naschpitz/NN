@@ -28,7 +28,7 @@
 <div class="toc">
   <h4>On this page</h4>
   <ol>
-    <li><a href="#env-vars">Environment Variables</a></li>
+    <li><a href="#config-file">Configuration File</a></li>
     <li><a href="#endpoints">HTTP Endpoints</a></li>
     <li><a href="#predict-json">Predict with JSON Input</a></li>
     <li><a href="#predict-image">Predict with Image Input</a></li>
@@ -38,26 +38,38 @@
   </ol>
 </div>
 
-<h2 id="env-vars">1. Environment Variables</h2>
-<p>NN-Server is configured entirely through environment variables — no command-line flags.</p>
+<h2 id="config-file">1. Configuration File</h2>
+<p>NN-Server is configured through a JSON file. Pass the path as the first argument, or it defaults to <code>config.json</code> in the current directory.</p>
+
+<pre><code>./NN-Server config.json      <span class="comment"># explicit path</span>
+./NN-Server                   <span class="comment"># uses ./config.json</span>
+</code></pre>
 
 <table class="options-table">
-  <tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr>
-  <tr><td><code>NN_MODEL_CONFIG</code></td><td>Yes</td><td>—</td><td>Path to the trained model JSON file</td></tr>
-  <tr><td><code>NN_SERVER_PORT</code></td><td>No</td><td><code>8080</code></td><td>TCP port to listen on (1–65535)</td></tr>
-  <tr><td><code>NN_SERVER_POOL_SIZE</code></td><td>No</td><td>CPU cores</td><td>Number of Core instances in the pool</td></tr>
-  <tr><td><code>NN_OUTPUT_SHAPE</code></td><td>No</td><td>—</td><td>Output image shape as <code>CxHxW</code> (e.g. <code>3x256x256</code>). When set, output is returned as a PNG image instead of JSON</td></tr>
+  <tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>"model"</code></td><td>string</td><td>Yes</td><td>—</td><td>Path to the trained model JSON file</td></tr>
+  <tr><td><code>"port"</code></td><td>integer</td><td>No</td><td><code>8080</code></td><td>TCP port to listen on (1–65535)</td></tr>
+  <tr><td><code>"poolSize"</code></td><td>integer</td><td>No</td><td>CPU cores</td><td>Number of Core instances in the pool</td></tr>
+  <tr><td><code>"outputShape"</code></td><td>object</td><td>No</td><td>—</td><td>Output image shape with <code>"c"</code>, <code>"h"</code>, <code>"w"</code> fields. When set, output is returned as a PNG image instead of JSON</td></tr>
 </table>
 
-<pre><code><span class="comment"># Minimal setup</span>
-<span class="keyword">export</span> NN_MODEL_CONFIG=trained_model.json
-./NN-Server
+<h3>Minimal config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"trained_model.json"</span>
+}
+</code></pre>
 
-<span class="comment"># Full configuration</span>
-<span class="keyword">export</span> NN_MODEL_CONFIG=/models/isic_checkpoint.json
-<span class="keyword">export</span> NN_SERVER_PORT=<span class="number">9090</span>
-<span class="keyword">export</span> NN_SERVER_POOL_SIZE=<span class="number">4</span>
-./NN-Server
+<h3>Full config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"/models/isic_checkpoint.json"</span>,
+  <span class="string">"port"</span>: <span class="number">9090</span>,
+  <span class="string">"poolSize"</span>: <span class="number">4</span>,
+  <span class="string">"outputShape"</span>: {
+    <span class="string">"c"</span>: <span class="number">3</span>,
+    <span class="string">"h"</span>: <span class="number">256</span>,
+    <span class="string">"w"</span>: <span class="number">256</span>
+  }
+}
 </code></pre>
 
 <h2 id="endpoints">2. HTTP Endpoints</h2>

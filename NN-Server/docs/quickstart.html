@@ -54,13 +54,20 @@ ls -la NN-Server
 </div>
 
 <h2>Verify Installation</h2>
-<pre><code><span class="comment"># Start the server (requires a trained model)</span>
-<span class="keyword">export</span> NN_MODEL_CONFIG=/path/to/trained_model.json
-./NN-Server
+<pre><code><span class="comment"># Create a config.json file</span>
+cat &gt; config.json &lt;&lt;EOF
+{
+  "model": "/path/to/trained_model.json"
+}
+EOF
+
+<span class="comment"># Start the server</span>
+./NN-Server config.json
 
 <span class="comment"># Expected output:</span>
 <span class="comment"># NN-Server starting...</span>
-<span class="comment">#   Config:    /path/to/trained_model.json</span>
+<span class="comment">#   Config:    config.json</span>
+<span class="comment">#   Model:     /path/to/trained_model.json</span>
 <span class="comment">#   Port:      8080</span>
 <span class="comment">#   Pool size: 8</span>
 <span class="comment">#   Output:    vector (JSON)</span>
@@ -98,7 +105,7 @@ make test_endpoints -j$(nproc)
 
 <h2>Project Structure</h2>
 <pre><code>NN-Server/
-├── main.cpp                      <span class="comment"># Entry point, env var parsing</span>
+├── main.cpp                      <span class="comment"># Entry point, config.json parsing</span>
 ├── NN-Server_HttpServer.hpp/cpp  <span class="comment"># HTTP server &amp; request handler</span>
 ├── NN-Server_CorePool.hpp/cpp    <span class="comment"># Thread-safe pool of ANN/CNN Cores</span>
 ├── NN-Server_Loader.hpp/cpp      <span class="comment"># Model loading &amp; network detection</span>

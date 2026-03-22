@@ -44,15 +44,21 @@
 ./NN-CLI --config isic_cnn_config.json --samples train/samples.json --output train/output/
 </code></pre>
 
-<h3>Step 2 — Start NN-Server</h3>
-<pre><code><span class="keyword">export</span> NN_MODEL_CONFIG=train/output/checkpoint_E-150_L-0.029486.json
-<span class="keyword">export</span> NN_SERVER_PORT=<span class="number">8080</span>
-<span class="keyword">export</span> NN_SERVER_POOL_SIZE=<span class="number">4</span>
-./NN-Server
+<h3>Step 2 — Create config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"train/output/checkpoint_E-150_L-0.029486.json"</span>,
+  <span class="string">"port"</span>: <span class="number">8080</span>,
+  <span class="string">"poolSize"</span>: <span class="number">4</span>
+}
+</code></pre>
+
+<h3>Step 3 — Start NN-Server</h3>
+<pre><code>./NN-Server config.json
 
 <span class="comment"># Output:</span>
 <span class="comment"># NN-Server starting...</span>
-<span class="comment">#   Config:    train/output/checkpoint_E-150_L-0.029486.json</span>
+<span class="comment">#   Config:    config.json</span>
+<span class="comment">#   Model:     train/output/checkpoint_E-150_L-0.029486.json</span>
 <span class="comment">#   Port:      8080</span>
 <span class="comment">#   Pool size: 4</span>
 <span class="comment">#   Output:    vector (JSON)</span>
@@ -65,7 +71,7 @@
 <span class="comment"># Ready to accept requests.</span>
 </code></pre>
 
-<h3>Step 3 — Classify an image</h3>
+<h3>Step 4 — Classify an image</h3>
 <pre><code>curl -X POST http://localhost:<span class="number">8080</span>/predict \
      -H <span class="string">"Content-Type: image/jpeg"</span> \
      --data-binary @skin_lesion.jpg
@@ -93,9 +99,14 @@
 <h2 id="json-prediction">2. JSON Input Prediction (ANN)</h2>
 <p>For dense (ANN) models or when you want to provide pre-processed input directly:</p>
 
+<h3>config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"ann_model.json"</span>
+}
+</code></pre>
+
 <h3>Start the server</h3>
-<pre><code><span class="keyword">export</span> NN_MODEL_CONFIG=ann_model.json
-./NN-Server
+<pre><code>./NN-Server config.json
 </code></pre>
 
 <h3>Send a prediction request</h3>
@@ -133,15 +144,24 @@ wait
 </code></pre>
 
 <div class="info-box">
-<strong>Pool size vs concurrency:</strong> If you send more concurrent requests than the pool size, the excess requests will block until a Core becomes available. They will <em>not</em> be rejected — just queued. For best throughput, set <code>NN_SERVER_POOL_SIZE</code> to match your expected peak concurrency.
+<strong>Pool size vs concurrency:</strong> If you send more concurrent requests than the pool size, the excess requests will block until a Core becomes available. They will <em>not</em> be rejected — just queued. For best throughput, set <code>"poolSize"</code> in your config.json to match your expected peak concurrency.
 </div>
 
 <h2 id="image-output">4. Image-to-Image Output</h2>
-<p>For models that produce image output (segmentation masks, super-resolution, etc.), set <code>NN_OUTPUT_SHAPE</code> to receive the result as a PNG:</p>
+<p>For models that produce image output (segmentation masks, super-resolution, etc.), set <code>"outputShape"</code> in your config.json to receive the result as a PNG:</p>
 
-<pre><code><span class="keyword">export</span> NN_MODEL_CONFIG=segmentation_model.json
-<span class="keyword">export</span> NN_OUTPUT_SHAPE=<span class="number">3</span>x<span class="number">256</span>x<span class="number">256</span>
-./NN-Server
+<h3>config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"segmentation_model.json"</span>,
+  <span class="string">"outputShape"</span>: {
+    <span class="string">"c"</span>: <span class="number">3</span>,
+    <span class="string">"h"</span>: <span class="number">256</span>,
+    <span class="string">"w"</span>: <span class="number">256</span>
+  }
+}
+</code></pre>
+
+<pre><code>./NN-Server config.json
 </code></pre>
 
 <pre><code><span class="comment"># Send an image and save the output PNG</span>

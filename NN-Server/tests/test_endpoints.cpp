@@ -2,8 +2,10 @@
 
 #include <json.hpp>
 
+#include <QDir>
 #include <QFile>
 #include <QProcess>
+#include <QTemporaryDir>
 #include <QThread>
 
 #include <algorithm>
@@ -17,19 +19,37 @@
 // ---------------------------------------------------------------------------
 
 static QProcess* serverProcess = nullptr;
+static QTemporaryDir* tmpDir = nullptr;
 
 static bool startServer()
 {
+  // Create a temporary config.json file for the server
+  tmpDir = new QTemporaryDir();
+
+  if (!tmpDir->isValid()) {
+    std::cerr << "Failed to create temporary directory" << std::endl;
+    return false;
+  }
+
+  QString configPath = tmpDir->path() + "/config.json";
+  nlohmann::json config;
+  config["model"]    = fixturePath("checkpoint_E-150_L-0.029486.json").toStdString();
+  config["port"]     = SERVER_PORT;
+  config["poolSize"] = POOL_SIZE;
+
+  QFile configFile(configPath);
+
+  if (!configFile.open(QIODevice::WriteOnly)) {
+    std::cerr << "Failed to write test config.json" << std::endl;
+    return false;
+  }
+
+  configFile.write(QByteArray::fromStdString(config.dump(2)));
+  configFile.close();
+
   serverProcess = new QProcess();
-
-  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-  env.insert("NN_MODEL_CONFIG", fixturePath("checkpoint_E-150_L-0.029486.json"));
-  env.insert("NN_SERVER_PORT", QString::number(SERVER_PORT));
-  env.insert("NN_SERVER_POOL_SIZE", QString::number(POOL_SIZE));
-
-  serverProcess->setProcessEnvironment(env);
   serverProcess->setWorkingDirectory(projectRoot());
-  serverProcess->start(serverBinPath(), QStringList());
+  serverProcess->start(serverBinPath(), QStringList() << configPath);
 
   if (!serverProcess->waitForStarted(5000)) {
     std::cerr << "Failed to start server process" << std::endl;
@@ -80,6 +100,11 @@ static void stopServer()
 
     delete serverProcess;
     serverProcess = nullptr;
+  }
+
+  if (tmpDir) {
+    delete tmpDir;
+    tmpDir = nullptr;
   }
 }
 

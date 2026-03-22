@@ -94,10 +94,14 @@
 </figure>
 
 <h2>Quick Example</h2>
-<pre><code><span class="comment"># Start the server with a trained CNN model</span>
-<span class="keyword">export</span> NN_MODEL_CONFIG=trained_model.json
-<span class="keyword">export</span> NN_SERVER_PORT=<span class="number">8080</span>
-./NN-Server
+<pre><code><span class="comment"># Create a config.json</span>
+{
+  <span class="string">"model"</span>: <span class="string">"trained_model.json"</span>,
+  <span class="string">"port"</span>: <span class="number">8080</span>
+}
+
+<span class="comment"># Start the server</span>
+./NN-Server config.json
 
 <span class="comment"># Send an image for classification</span>
 curl -X POST http://localhost:<span class="number">8080</span>/predict \

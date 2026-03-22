@@ -1,10 +1,12 @@
 #include "NN-Server_CorePool.hpp"
 #include "NN-Server_HttpServer.hpp"
 
+#include <json.hpp>
+
 #include <QCoreApplication>
+#include <QFile>
 #include <QThreadPool>
 
-#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -13,71 +15,90 @@ int main(int argc, char* argv[])
 {
   QCoreApplication app(argc, argv);
 
-  // Read configuration from environment variables
-  const char* configPathEnv = std::getenv("NN_MODEL_CONFIG");
+  // Determine config file path: first CLI argument or default "config.json"
+  std::string configFilePath = "config.json";
 
-  if (configPathEnv == nullptr || std::string(configPathEnv).empty()) {
-    std::cerr << "Error: NN_MODEL_CONFIG environment variable is not set.\n";
-    std::cerr << "       Set it to the path of a JSON model configuration file.\n";
+  if (argc > 1) {
+    configFilePath = argv[1];
+  }
+
+  // Read and parse config.json
+  QFile configFile(QString::fromStdString(configFilePath));
+
+  if (!configFile.open(QIODevice::ReadOnly)) {
+    std::cerr << "Error: Could not open configuration file: " << configFilePath << "\n";
+    std::cerr << "       Pass the path as an argument or place a config.json in the current directory.\n";
+    std::cerr << "\n";
+    std::cerr << "Usage: NN-Server [config.json]\n";
     return 1;
   }
 
-  std::string configPath(configPathEnv);
+  nlohmann::json config;
+
+  try {
+    config = nlohmann::json::parse(configFile.readAll().toStdString());
+  } catch (const std::exception& e) {
+    std::cerr << "Error: Failed to parse " << configFilePath << ": " << e.what() << "\n";
+    return 1;
+  }
+
+  configFile.close();
+
+  // Model path (required)
+  if (!config.contains("model") || !config["model"].is_string()) {
+    std::cerr << "Error: config.json must contain a \"model\" field with the path to the model file.\n";
+    return 1;
+  }
+
+  std::string modelPath = config["model"].get<std::string>();
 
   // Server port (default 8080)
   quint16 port = 8080;
-  const char* portEnv = std::getenv("NN_SERVER_PORT");
 
-  if (portEnv != nullptr) {
-    int portVal = std::atoi(portEnv);
+  if (config.contains("port")) {
+    int portVal = config["port"].get<int>();
 
     if (portVal > 0 && portVal <= 65535) {
       port = static_cast<quint16>(portVal);
     } else {
-      std::cerr << "Warning: Invalid NN_SERVER_PORT value '" << portEnv << "', using default 8080.\n";
+      std::cerr << "Warning: Invalid port value " << portVal << ", using default 8080.\n";
     }
   }
 
   // Pool size (default = number of CPU cores)
   int poolSize = QThreadPool::globalInstance()->maxThreadCount();
-  const char* poolSizeEnv = std::getenv("NN_SERVER_POOL_SIZE");
 
-  if (poolSizeEnv != nullptr) {
-    int val = std::atoi(poolSizeEnv);
+  if (config.contains("poolSize")) {
+    int val = config["poolSize"].get<int>();
 
     if (val > 0) {
       poolSize = val;
     } else {
-      std::cerr << "Warning: Invalid NN_SERVER_POOL_SIZE value '" << poolSizeEnv
-                << "', using default " << poolSize << ".\n";
+      std::cerr << "Warning: Invalid poolSize value " << val
+                << ", using default " << poolSize << ".\n";
     }
   }
 
   // Output shape (optional — when set, output is returned as an image)
-  // Format: "CxHxW" e.g. "3x256x256"
+  // Format: {"c": 3, "h": 256, "w": 256}
   NN_Server::OutputConfig outputConfig;
-  const char* outputShapeEnv = std::getenv("NN_OUTPUT_SHAPE");
 
-  if (outputShapeEnv != nullptr) {
-    std::string shapeStr(outputShapeEnv);
+  if (config.contains("outputShape") && config["outputShape"].is_object()) {
+    const auto& shape = config["outputShape"];
 
-    // Parse CxHxW
-    size_t firstX = shapeStr.find('x');
-    size_t secondX = shapeStr.find('x', firstX + 1);
-
-    if (firstX != std::string::npos && secondX != std::string::npos) {
-      outputConfig.c = std::stoul(shapeStr.substr(0, firstX));
-      outputConfig.h = std::stoul(shapeStr.substr(firstX + 1, secondX - firstX - 1));
-      outputConfig.w = std::stoul(shapeStr.substr(secondX + 1));
+    if (shape.contains("c") && shape.contains("h") && shape.contains("w")) {
+      outputConfig.c = shape["c"].get<ulong>();
+      outputConfig.h = shape["h"].get<ulong>();
+      outputConfig.w = shape["w"].get<ulong>();
       outputConfig.isImage = true;
     } else {
-      std::cerr << "Warning: Invalid NN_OUTPUT_SHAPE format '" << shapeStr
-                << "'. Expected CxHxW (e.g. 3x256x256).\n";
+      std::cerr << "Warning: outputShape must contain \"c\", \"h\", and \"w\" fields.\n";
     }
   }
 
   std::cout << "NN-Server starting...\n";
-  std::cout << "  Config:    " << configPath << "\n";
+  std::cout << "  Config:    " << configFilePath << "\n";
+  std::cout << "  Model:     " << modelPath << "\n";
   std::cout << "  Port:      " << port << "\n";
   std::cout << "  Pool size: " << poolSize << "\n";
 
@@ -93,7 +114,7 @@ int main(int argc, char* argv[])
   std::shared_ptr<NN_Server::CorePool> corePool;
 
   try {
-    corePool = std::make_shared<NN_Server::CorePool>(configPath, poolSize);
+    corePool = std::make_shared<NN_Server::CorePool>(modelPath, poolSize);
     corePool->setOutputConfig(outputConfig);
   } catch (const std::exception& e) {
     std::cerr << "Error loading model: " << e.what() << "\n";
