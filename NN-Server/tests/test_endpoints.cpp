@@ -8,8 +8,13 @@
 #include <QTemporaryDir>
 #include <QThread>
 
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -21,9 +26,21 @@
 static QProcess* serverProcess = nullptr;
 static QTemporaryDir* tmpDir = nullptr;
 
-static bool startServer()
+static nlohmann::json defaultConfig()
 {
-  // Create a temporary config.json file for the server
+  nlohmann::json config;
+  config["model"] = fixturePath("checkpoint_E-150_L-0.029486.json").toStdString();
+  config["port"] = SERVER_PORT;
+  config["poolSize"] = POOL_SIZE;
+  config["maxBodySize"] = MAX_BODY_SIZE_MB;
+  config["maxQueueSize"] = MAX_QUEUE_SIZE;
+  return config;
+}
+
+static bool startServer(const nlohmann::json& config = nlohmann::json())
+{
+  nlohmann::json cfg = config.empty() ? defaultConfig() : config;
+
   tmpDir = new QTemporaryDir();
 
   if (!tmpDir->isValid()) {
@@ -32,11 +49,6 @@ static bool startServer()
   }
 
   QString configPath = tmpDir->path() + "/config.json";
-  nlohmann::json config;
-  config["model"] = fixturePath("checkpoint_E-150_L-0.029486.json").toStdString();
-  config["port"] = SERVER_PORT;
-  config["poolSize"] = POOL_SIZE;
-  config["maxBodySize"] = MAX_BODY_SIZE_MB;
 
   QFile configFile(configPath);
 
@@ -45,11 +57,12 @@ static bool startServer()
     return false;
   }
 
-  configFile.write(QByteArray::fromStdString(config.dump(2)));
+  configFile.write(QByteArray::fromStdString(cfg.dump(2)));
   configFile.close();
 
   serverProcess = new QProcess();
   serverProcess->setWorkingDirectory(projectRoot());
+  serverProcess->setProcessChannelMode(QProcess::SeparateChannels);
   serverProcess->start(serverBinPath(), QStringList() << configPath);
 
   if (!serverProcess->waitForStarted(5000)) {
@@ -368,6 +381,81 @@ static void testPredictImageRepeatedConcurrent()
   std::cout << std::endl;
 }
 
+static void testQueueLimitReject()
+{
+  const int testQueueSize = 1;
+  std::cout << "  testQueueLimitReject (maxQueueSize=" << testQueueSize << ")... " << std::flush;
+
+  // Restart the server with maxQueueSize=1 for this test
+  stopServer();
+
+  nlohmann::json queueConfig = defaultConfig();
+  queueConfig["maxQueueSize"] = testQueueSize;
+  startServer(queueConfig);
+
+  // Open 1 raw TCP connection that sends headers with a large Content-Length
+  // but only 1 byte of body. The server's RequestHandler will be stuck in
+  // waitForReadyRead() waiting for the rest, holding the queue slot.
+  std::vector<int> holders;
+
+  for (int i = 0; i < testQueueSize; i++) {
+    int fd = ::socket(AF_INET, SOCK_STREAM, 0);
+
+    if (fd < 0)
+      continue;
+
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(SERVER_PORT);
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    if (::connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+      ::close(fd);
+      continue;
+    }
+
+    const char* req = "POST /predict HTTP/1.1\r\n"
+                      "Host: 127.0.0.1\r\n"
+                      "Content-Type: image/jpeg\r\n"
+                      "Content-Length: 999999\r\n"
+                      "Connection: close\r\n"
+                      "\r\n"
+                      "X";
+
+    ::send(fd, req, strlen(req), 0);
+    holders.push_back(fd);
+    QThread::msleep(200);
+  }
+
+  CHECK(static_cast<int>(holders.size()) == testQueueSize,
+        "queue_limit: opened " + std::to_string(testQueueSize) + " holder connections");
+
+  // Give the server time to dispatch the holder connection
+  QThread::msleep(500);
+
+  // Send one more request — should be rejected with 503
+  HttpResponse resp = httpGet("/health");
+  CHECK(resp.ok, "queue_limit: overflow request got response");
+  CHECK(resp.statusCode == 503,
+        "queue_limit: overflow rejected with 503 (got " + std::to_string(resp.statusCode) + ")");
+
+  // Clean up held connections
+  for (int fd : holders)
+    ::close(fd);
+
+  // Wait for server to clean up
+  QThread::msleep(1000);
+
+  // Verify server is healthy again
+  HttpResponse healthResp = httpGet("/health");
+  CHECK(healthResp.ok, "queue_limit: server healthy after cleanup");
+  CHECK(healthResp.statusCode == 200,
+        "queue_limit: health returns 200 after cleanup (got " + std::to_string(healthResp.statusCode) + ")");
+
+  std::cout << std::endl;
+}
+
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
@@ -391,6 +479,7 @@ void runEndpointTests()
   testPredictImageSingle();
   testPredictImageConcurrent();
   testPredictImageRepeatedConcurrent();
+  testQueueLimitReject();
 
   stopServer();
 }

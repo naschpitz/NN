@@ -23,9 +23,8 @@ namespace NN_Server
 
     public:
       // maxQueueSize: max concurrent requests (0 = unlimited)
-      HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize = 10 * 1024 * 1024,
-                 int maxQueueSize = 0, std::shared_ptr<Logger> logger = nullptr,
-                 QObject* parent = nullptr);
+      HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize = 10 * 1024 * 1024, int maxQueueSize = 0,
+                 std::shared_ptr<Logger> logger = nullptr, QObject* parent = nullptr);
 
       bool startListening(quint16 port);
 
