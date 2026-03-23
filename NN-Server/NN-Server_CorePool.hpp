@@ -1,6 +1,8 @@
 #ifndef NN_SERVER_COREPOOL_HPP
 #define NN_SERVER_COREPOOL_HPP
 
+#include "NN-Server_CoreHandle.hpp"
+#include "NN-Server_IOConfig.hpp"
 #include "NN-Server_Loader.hpp"
 #include "NN-Server_NetworkType.hpp"
 
@@ -15,13 +17,6 @@
 
 namespace NN_Server
 {
-
-  // A handle returned by acquire(). Holds a non-owning pointer to an ANN or CNN Core.
-  struct CoreHandle {
-      ANN::Core<float>* annCore = nullptr;
-      CNN::Core<float>* cnnCore = nullptr;
-      int index = -1;
-  };
 
   /**
    * Thread-safe pool of pre-loaded Core objects.

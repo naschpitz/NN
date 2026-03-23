@@ -1,6 +1,7 @@
 #ifndef NN_SERVER_LOADER_HPP
 #define NN_SERVER_LOADER_HPP
 
+#include "NN-Server_IOConfig.hpp"
 #include "NN-Server_NetworkType.hpp"
 
 #include <ANN_Core.hpp>
@@ -21,28 +22,6 @@
 
 namespace NN_Server
 {
-
-  // Input configuration — determined from the model file's inputType/inputShape fields.
-  struct InputConfig {
-      bool isImage = false; // If true, input accepts images (requires shape)
-      ulong c = 0, h = 0, w = 0; // Input image shape (channels, height, width)
-
-      bool hasShape() const
-      {
-        return c > 0 && h > 0 && w > 0;
-      }
-  };
-
-  // Output configuration — determined from the model file's outputType/outputShape fields.
-  struct OutputConfig {
-      bool isImage = false; // If true, output is an image (requires shape)
-      ulong c = 0, h = 0, w = 0; // Output image shape (channels, height, width)
-
-      bool hasShape() const
-      {
-        return c > 0 && h > 0 && w > 0;
-      }
-  };
 
   class Loader
   {
