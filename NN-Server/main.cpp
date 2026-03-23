@@ -96,6 +96,20 @@ int main(int argc, char* argv[])
 
   qint64 maxBodySize = maxBodySizeMB * 1024 * 1024; // Convert MB to bytes
 
+  // Max queue size (default: 0 = unlimited)
+  int maxQueueSize = 0;
+
+  if (config.contains("maxQueueSize")) {
+    int val = config["maxQueueSize"].get<int>();
+
+    if (val >= 0) {
+      maxQueueSize = val;
+    } else {
+      std::cerr << "Warning: Invalid maxQueueSize value " << val
+                << ", using default (unlimited).\n";
+    }
+  }
+
   // Log file (optional)
   std::string logFile;
 
@@ -128,6 +142,12 @@ int main(int argc, char* argv[])
     std::cout << "  Max body:     " << maxBodySizeMB << " MB\n";
   } else {
     std::cout << "  Max body:     unlimited\n";
+  }
+
+  if (maxQueueSize > 0) {
+    std::cout << "  Max queue:    " << maxQueueSize << " requests\n";
+  } else {
+    std::cout << "  Max queue:    unlimited\n";
   }
 
   // Create logger (if logFile is set)
@@ -168,7 +188,7 @@ int main(int argc, char* argv[])
   std::cout << "\n";
 
   // Start the HTTP server
-  NN_Server::HttpServer server(corePool, maxBodySize, logger);
+  NN_Server::HttpServer server(corePool, maxBodySize, maxQueueSize, logger);
 
   if (!server.startListening(port)) {
     return 1;

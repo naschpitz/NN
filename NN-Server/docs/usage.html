@@ -51,6 +51,7 @@
   <tr><td><code>"port"</code></td><td>integer</td><td>No</td><td><code>8080</code></td><td>TCP port to listen on (1–65535)</td></tr>
   <tr><td><code>"poolSize"</code></td><td>integer</td><td>No</td><td>CPU cores</td><td>Number of Core instances in the pool</td></tr>
   <tr><td><code>"maxBodySize"</code></td><td>integer</td><td>No</td><td><code>10</code></td><td>Maximum request body size in megabytes. Requests exceeding this limit are rejected with HTTP 413. Set to <code>0</code> for unlimited</td></tr>
+  <tr><td><code>"maxQueueSize"</code></td><td>integer</td><td>No</td><td><code>0</code> (unlimited)</td><td>Maximum number of concurrent requests. When exceeded, new requests are rejected with HTTP 503</td></tr>
   <tr><td><code>"logFile"</code></td><td>string</td><td>No</td><td>—</td><td>Path to the log file. When set, each request is logged with date, time, client IP, method, path, status code, and duration</td></tr>
   <tr><td><code>"maxLogSize"</code></td><td>integer</td><td>No</td><td><code>1</code></td><td>Maximum log file size in gigabytes. When reached, the log wraps around and overwrites from the beginning. Set to <code>0</code> for unlimited</td></tr>
 </table>
@@ -192,6 +193,7 @@ Content-Length: 32451
   <tr><td><code>400</code></td><td>Missing request body</td><td><code>{"error":"Missing request body"}</code></td></tr>
   <tr><td><code>404</code></td><td>Unknown endpoint</td><td><code>{"error":"Not found. Use POST /predict"}</code></td></tr>
   <tr><td><code>413</code></td><td>Request body exceeds <code>maxBodySize</code></td><td><code>{"error":"Request body too large. Maximum allowed: N bytes"}</code></td></tr>
+  <tr><td><code>503</code></td><td>Queue full (<code>maxQueueSize</code> exceeded)</td><td><code>{"error":"Server busy. Too many queued requests"}</code></td></tr>
   <tr><td><code>500</code></td><td>Input size mismatch</td><td><code>{"error":"Prediction failed: Input size (N) does not match expected shape size (M)"}</code></td></tr>
   <tr><td><code>500</code></td><td>Image decode failure</td><td><code>{"error":"Prediction failed: ..."}</code></td></tr>
 </table>

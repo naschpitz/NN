@@ -6,6 +6,7 @@
 
 #include <QTcpServer>
 
+#include <atomic>
 #include <memory>
 
 namespace NN_Server
@@ -21,11 +22,15 @@ namespace NN_Server
       Q_OBJECT
 
     public:
-      // maxBodySize in bytes; 0 = unlimited (default: 10 MB)
+      // maxQueueSize: max concurrent requests (0 = unlimited)
       HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize = 10 * 1024 * 1024,
-                 std::shared_ptr<Logger> logger = nullptr, QObject* parent = nullptr);
+                 int maxQueueSize = 0, std::shared_ptr<Logger> logger = nullptr,
+                 QObject* parent = nullptr);
 
       bool startListening(quint16 port);
+
+      // Called by RequestHandler when a request finishes
+      void requestFinished();
 
     protected:
       void incomingConnection(qintptr socketDescriptor) override;
@@ -33,7 +38,9 @@ namespace NN_Server
     private:
       std::shared_ptr<CorePool> corePool;
       qint64 maxBodySize;
+      int maxQueueSize;
       std::shared_ptr<Logger> logger;
+      std::atomic<int> activeRequests{0};
   };
 
 } // namespace NN_Server

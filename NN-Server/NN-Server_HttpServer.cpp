@@ -21,11 +21,12 @@ namespace NN_Server
   {
     public:
       RequestHandler(qintptr socketDescriptor, std::shared_ptr<CorePool> pool, qint64 maxBodySize,
-                     std::shared_ptr<Logger> logger)
+                     std::shared_ptr<Logger> logger, HttpServer* server)
         : socketDescriptor(socketDescriptor),
           corePool(std::move(pool)),
           maxBodySize(maxBodySize),
-          logger(std::move(logger))
+          logger(std::move(logger)),
+          server(server)
       {
       }
 
@@ -129,6 +130,9 @@ namespace NN_Server
         if (socket.state() != QAbstractSocket::UnconnectedState) {
           socket.waitForDisconnected(3000);
         }
+
+        if (this->server)
+          this->server->requestFinished();
       }
 
     private:
@@ -136,6 +140,7 @@ namespace NN_Server
       std::shared_ptr<CorePool> corePool;
       qint64 maxBodySize;
       std::shared_ptr<Logger> logger;
+      HttpServer* server;
 
       // Returns the HTTP status code for logging
       int processRequest(QTcpSocket& socket, const QByteArray& requestData)
@@ -381,11 +386,12 @@ namespace NN_Server
   // HttpServer
   //===================================================================================================================//
 
-  HttpServer::HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize, std::shared_ptr<Logger> logger,
-                         QObject* parent)
+  HttpServer::HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize, int maxQueueSize,
+                         std::shared_ptr<Logger> logger, QObject* parent)
     : QTcpServer(parent),
       corePool(std::move(pool)),
       maxBodySize(maxBodySize),
+      maxQueueSize(maxQueueSize),
       logger(std::move(logger))
   {
   }
@@ -406,9 +412,42 @@ namespace NN_Server
 
   //===================================================================================================================//
 
+  void HttpServer::requestFinished() { this->activeRequests.fetch_sub(1); }
+
+  //===================================================================================================================//
+
   void HttpServer::incomingConnection(qintptr socketDescriptor)
   {
-    auto* handler = new RequestHandler(socketDescriptor, this->corePool, this->maxBodySize, this->logger);
+    // Check queue limit
+    if (this->maxQueueSize > 0 && this->activeRequests.load() >= this->maxQueueSize) {
+      // Reject immediately with 503
+      QTcpSocket socket;
+      socket.setSocketDescriptor(socketDescriptor);
+
+      std::string body = R"({"error":"Server busy. Too many queued requests"})";
+      std::string response = "HTTP/1.1 503 Service Unavailable\r\n"
+                             "Content-Type: application/json\r\n"
+                             "Content-Length: " +
+                             std::to_string(body.size()) +
+                             "\r\n"
+                             "Connection: close\r\n"
+                             "\r\n" +
+                             body;
+
+      socket.write(response.c_str(), static_cast<qint64>(response.size()));
+      socket.flush();
+      socket.waitForBytesWritten(1000);
+      socket.disconnectFromHost();
+
+      if (this->logger)
+        this->logger->logRequest(socket.peerAddress().toString().toStdString(), "?", "?", 503, 0.0);
+
+      return;
+    }
+
+    this->activeRequests.fetch_add(1);
+
+    auto* handler = new RequestHandler(socketDescriptor, this->corePool, this->maxBodySize, this->logger, this);
     handler->setAutoDelete(true);
     QThreadPool::globalInstance()->start(handler);
   }
