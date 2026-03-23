@@ -97,7 +97,7 @@ echo "  All dependencies found."
 echo ""
 echo "Cloning NN-Server (private repository)..."
 
-REPO_DIR="$INSTALL_DIR/NN-Server"
+REPO_DIR="$INSTALL_DIR/NN-Server-repo"
 
 cloned=false
 
@@ -197,3 +197,6 @@ echo "  $INSTALL_DIR/NN-Server config.json"
 echo ""
 echo "IMPORTANT: Do not delete $REPO_DIR — it contains"
 echo "  OpenCL kernel files required at runtime for GPU execution."
+echo ""
+echo "To set up as a systemd service:"
+echo "  See docs/quickstart.html for instructions."
