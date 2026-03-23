@@ -15,13 +15,6 @@ set -e
 INSTALL_DIR="${1:-}"
 REPO_SSH="git@github.com:naschpitz/NN-Server.git"
 REPO_HTTPS="https://github.com/naschpitz/NN-Server.git"
-TMP_DIR="$(mktemp -d)"
-
-cleanup() {
-  echo "Cleaning up..."
-  rm -rf "$TMP_DIR"
-}
-trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
 # Validate arguments
@@ -104,33 +97,47 @@ echo "  All dependencies found."
 echo ""
 echo "Cloning NN-Server (private repository)..."
 
+REPO_DIR="$INSTALL_DIR/NN-Server"
+
 cloned=false
 
-# Try SSH first
-if ssh -T git@github.com 2>&1 | grep -qi "successfully authenticated"; then
-  echo "  SSH authentication detected, cloning via SSH..."
-  if git clone --recursive "$REPO_SSH" "$TMP_DIR/NN-Server" 2>/dev/null; then
-    cloned=true
-  fi
+# Check if already cloned (for re-installs / updates)
+if [ -d "$REPO_DIR/.git" ]; then
+  echo "  Existing installation found at $REPO_DIR"
+  echo "  Pulling latest changes..."
+  cd "$REPO_DIR"
+  git pull
+  git submodule update --init --recursive
+  cloned=true
 fi
 
-# Fall back to HTTPS with Personal Access Token
 if [ "$cloned" = false ]; then
-  echo "  SSH authentication not available or failed."
-  echo "  To clone this private repository via HTTPS, a GitHub Personal Access Token (PAT) is required."
-  echo "  You can create one at: https://github.com/settings/tokens"
-  echo "  (select at least the 'repo' scope)"
-  echo ""
-  read -rp "Enter your GitHub Personal Access Token (or press Enter to abort): " token
-
-  if [ -z "$token" ]; then
-    echo "Aborted. Cannot clone without authentication."
-    exit 1
+  # Try SSH first
+  if ssh -T git@github.com 2>&1 | grep -qi "successfully authenticated"; then
+    echo "  SSH authentication detected, cloning via SSH..."
+    if git clone --recursive "$REPO_SSH" "$REPO_DIR" 2>/dev/null; then
+      cloned=true
+    fi
   fi
 
-  REPO_PAT="https://${token}@github.com/naschpitz/NN-Server.git"
-  git clone --recursive "$REPO_PAT" "$TMP_DIR/NN-Server"
-  cloned=true
+  # Fall back to HTTPS with Personal Access Token
+  if [ "$cloned" = false ]; then
+    echo "  SSH authentication not available or failed."
+    echo "  To clone this private repository via HTTPS, a GitHub Personal Access Token (PAT) is required."
+    echo "  You can create one at: https://github.com/settings/tokens"
+    echo "  (select at least the 'repo' scope)"
+    echo ""
+    read -rp "Enter your GitHub Personal Access Token (or press Enter to abort): " token
+
+    if [ -z "$token" ]; then
+      echo "Aborted. Cannot clone without authentication."
+      exit 1
+    fi
+
+    REPO_PAT="https://${token}@github.com/naschpitz/NN-Server.git"
+    git clone --recursive "$REPO_PAT" "$REPO_DIR"
+    cloned=true
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -139,36 +146,37 @@ fi
 
 echo ""
 echo "Building NN-Server..."
-cd "$TMP_DIR/NN-Server"
+cd "$REPO_DIR"
 mkdir -p build
 cd build
 cmake ..
 make -j"$(nproc)"
 
 # ---------------------------------------------------------------------------
-# Install
+# Symlink
 # ---------------------------------------------------------------------------
 
 echo ""
-echo "Installing NN-Server to $INSTALL_DIR ..."
+echo "Creating symlink..."
 
-if [ -w "$INSTALL_DIR" ]; then
-  cp NN-Server "$INSTALL_DIR/NN-Server"
-else
-  echo "  (requires sudo)"
-  sudo cp NN-Server "$INSTALL_DIR/NN-Server"
-fi
-
-chmod +x "$INSTALL_DIR/NN-Server"
+# Create a symlink in INSTALL_DIR pointing to the binary inside the repo
+ln -sf "$REPO_DIR/build/NN-Server" "$INSTALL_DIR/NN-Server"
 
 echo ""
 echo "========================================"
 echo "  NN-Server installed successfully!"
-echo "  Binary: $INSTALL_DIR/NN-Server"
+echo "  Binary:  $REPO_DIR/build/NN-Server"
+echo "  Symlink: $INSTALL_DIR/NN-Server"
 echo "========================================"
 echo ""
 echo "Quick start:"
-echo "  export NN_MODEL_CONFIG=/path/to/model.json"
-echo "  $INSTALL_DIR/NN-Server"
+echo "  cat > config.json <<EOF"
+echo "  {"
+echo "    \"model\": \"/path/to/model.json\","
+echo "    \"port\": 8080"
+echo "  }"
+echo "  EOF"
+echo "  $INSTALL_DIR/NN-Server config.json"
 echo ""
-echo "See documentation: https://naschpitz.github.io/NN-Server/"
+echo "IMPORTANT: Do not delete $REPO_DIR — it contains"
+echo "  OpenCL kernel files required at runtime for GPU execution."
