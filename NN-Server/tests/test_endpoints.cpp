@@ -62,7 +62,6 @@ static bool startServer(const nlohmann::json& config = nlohmann::json())
 
   serverProcess = new QProcess();
   serverProcess->setWorkingDirectory(projectRoot());
-  serverProcess->setProcessChannelMode(QProcess::SeparateChannels);
   serverProcess->start(serverBinPath(), QStringList() << configPath);
 
   if (!serverProcess->waitForStarted(5000)) {
