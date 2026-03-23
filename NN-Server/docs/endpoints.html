@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Endpoints — NN-Server Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>NN-Server</h1><span class="subtitle">Neural Network Inference Server</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="endpoints.html" class="active">Endpoints</a>
+  <a href="usage.html">API &amp; Configuration</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html">End-to-End Examples</a>
+</nav></aside>
+<main class="main">
+
+<h1>Endpoints</h1>
+<p>NN-Server exposes a minimal REST API for health checking and running predictions. All endpoints communicate over plain HTTP.</p>
+
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#health">GET /health</a></li>
+    <li><a href="#predict">POST /predict</a></li>
+    <li><a href="#not-found">Other Routes (404)</a></li>
+    <li><a href="#status-codes">Status Codes Summary</a></li>
+  </ol>
+</div>
+
+<h2 id="overview">1. Overview</h2>
+
+<table>
+  <tr><th>Method</th><th>Path</th><th>Content-Type (Request)</th><th>Content-Type (Response)</th><th>Description</th></tr>
+  <tr><td><code>GET</code></td><td><code>/health</code></td><td>—</td><td><code>application/json</code></td><td>Health check</td></tr>
+  <tr><td><code>POST</code></td><td><code>/predict</code></td><td><code>application/json</code> or <code>image/*</code></td><td><code>application/json</code> or <code>image/png</code></td><td>Run inference</td></tr>
+  <tr><td><em>any</em></td><td><em>any other</em></td><td>—</td><td><code>application/json</code></td><td>404 Not Found</td></tr>
+</table>
+
+<h2 id="health">2. <span class="badge badge-green">GET</span> <code>/health</code></h2>
+
+<div class="card">
+<p>Returns a simple health check confirming the server is running and the model is loaded. No request body is required.</p>
+
+<h4>Request</h4>
+<pre><code>GET /health HTTP/1.1
+Host: localhost:<span class="number">8080</span></code></pre>
+
+<h4>Response — <code>200 OK</code></h4>
+<pre><code>Content-Type: application/json
+
+{
+  <span class="string">"status"</span>: <span class="string">"ok"</span>
+}</code></pre>
+
+<h4>curl example</h4>
+<pre><code>curl http://localhost:<span class="number">8080</span>/health</code></pre>
+</div>
+
+<h2 id="predict">3. <span class="badge badge-blue">POST</span> <code>/predict</code></h2>
+
+<div class="card">
+<p>Run inference on the loaded model. The input format is determined by the <code>Content-Type</code> header.</p>
+
+<h3>JSON Input — <code>Content-Type: application/json</code></h3>
+<p>Send a flat array of floats matching the model's input size.</p>
+
+<h4>Request</h4>
+<pre><code>POST /predict HTTP/1.1
+Content-Type: application/json
+
+{
+  <span class="string">"input"</span>: [<span class="number">0.1</span>, <span class="number">0.5</span>, <span class="number">0.9</span>, <span class="number">0.3</span>]
+}</code></pre>
+
+<h4>Response — <code>200 OK</code> (JSON output)</h4>
+<pre><code>Content-Type: application/json
+
+{
+  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.01</span>, <span class="number">0.02</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.00</span>]
+}</code></pre>
+
+<h4>curl example</h4>
+<pre><code>curl -X POST http://localhost:<span class="number">8080</span>/predict \
+     -H <span class="string">"Content-Type: application/json"</span> \
+     -d <span class="string">'{"input": [0.1, 0.5, 0.9, 0.3]}'</span></code></pre>
+
+<div class="info-box">
+<strong>Input size:</strong> For ANN models, the array length must match the first layer's <code>numNeurons</code>. For CNN models, it must equal <code>C × H × W</code> from the model's <code>inputShape</code>.
+</div>
+
+<h3>Image Input — <code>Content-Type: image/*</code></h3>
+<p>Send raw image bytes (JPEG, PNG, BMP, etc.) directly. The server decodes the image, resizes it to the model's <code>inputShape</code>, normalises pixel values to [0, 1], and converts to NCHW layout.</p>
+
+<h4>Request</h4>
+<pre><code>POST /predict HTTP/1.1
+Content-Type: image/jpeg
+Content-Length: 32451
+
+<span class="comment">&lt;raw JPEG bytes&gt;</span></code></pre>
+
+<h4>Response — <code>200 OK</code> (JSON output)</h4>
+<pre><code>Content-Type: application/json
+
+{
+  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, <span class="number">0.12</span>]
+}</code></pre>
+
+<h4>Response — <code>200 OK</code> (Image output)</h4>
+<p>When the model's <code>"outputType"</code> is <code>"image"</code>, the response is a PNG image instead:</p>
+<pre><code>Content-Type: image/png
+
+<span class="comment">&lt;raw PNG bytes&gt;</span></code></pre>
+
+<h4>curl example</h4>
+<pre><code>curl -X POST http://localhost:<span class="number">8080</span>/predict \
+     -H <span class="string">"Content-Type: image/jpeg"</span> \
+     --data-binary @photo.jpg</code></pre>
+
+<div class="warn-box">
+<strong>CNN only:</strong> Image input requires a CNN model with a defined <code>inputShape</code>. ANN models do not support image input — use JSON instead.
+</div>
+</div>
+
+<h2 id="not-found">4. Other Routes (404)</h2>
+
+<div class="card">
+<p>Any request to an unrecognised path or method returns a <code>404</code> error.</p>
+<pre><code>Content-Type: application/json
+
+{
+  <span class="string">"error"</span>: <span class="string">"Not found. Use POST /predict"</span>
+}</code></pre>
+</div>
+
+<h2 id="status-codes">5. Status Codes Summary</h2>
+
+<table>
+  <tr><th>Status</th><th>Condition</th><th>Response Body</th></tr>
+  <tr><td><code>200</code></td><td>Successful health check or prediction</td><td>JSON or PNG (see above)</td></tr>
+  <tr><td><code>400</code></td><td>Malformed HTTP request</td><td><code>{"error":"Malformed HTTP request"}</code></td></tr>
+  <tr><td><code>400</code></td><td>Invalid JSON body</td><td><code>{"error":"Invalid JSON: ..."}</code></td></tr>
+  <tr><td><code>400</code></td><td>Missing <code>"input"</code> array</td><td><code>{"error":"Request must contain an 'input' array"}</code></td></tr>
+  <tr><td><code>400</code></td><td>Missing request body</td><td><code>{"error":"Missing request body"}</code></td></tr>
+  <tr><td><code>404</code></td><td>Unknown endpoint</td><td><code>{"error":"Not found. Use POST /predict"}</code></td></tr>
+  <tr><td><code>413</code></td><td>Request body exceeds <code>maxBodySize</code></td><td><code>{"error":"Request body too large. Maximum allowed: N bytes"}</code></td></tr>
+  <tr><td><code>500</code></td><td>Input size mismatch</td><td><code>{"error":"Prediction failed: Input size (N) does not match expected shape size (M)"}</code></td></tr>
+  <tr><td><code>500</code></td><td>Image decode failure</td><td><code>{"error":"Prediction failed: ..."}</code></td></tr>
+  <tr><td><code>503</code></td><td>Queue full (<code>maxQueueSize</code> exceeded)</td><td><code>{"error":"Server busy. Too many queued requests"}</code></td></tr>
+</table>
+
+<div class="info-box">
+All error responses use <code>Content-Type: application/json</code> with an <code>"error"</code> field describing the problem.
+</div>
+
+</main>
+</div>
+<footer class="site-footer">NN-Server Documentation</footer>
+</body></html>
+
