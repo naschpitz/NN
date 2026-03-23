@@ -251,10 +251,5 @@ fi
 
 echo ""
 echo "Quick start:"
-echo "  cat > config.json <<EOF"
-echo "  {"
-echo "    \"model\": \"/path/to/model.json\","
-echo "    \"port\": 8080"
-echo "  }"
-echo "  EOF"
-echo "  $BINARY_PATH config.json"
+echo "  1. Create a config.json with your model path and settings"
+echo "  2. Run: $BINARY_PATH config.json"
