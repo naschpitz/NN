@@ -22,8 +22,8 @@ namespace NN_Server
       // Load an image from raw bytes (e.g. from an HTTP upload) and convert to a flat NCHW float vector.
       // targetC: desired channels (1=grayscale, 3=RGB)
       // targetH, targetW: desired spatial dimensions (resized if necessary)
-      static std::vector<float> loadImageFromMemory(const unsigned char* data, int dataSize,
-                                                    int targetC, int targetH, int targetW);
+      static std::vector<float> loadImageFromMemory(const unsigned char* data, int dataSize, int targetC, int targetH,
+                                                    int targetW);
 
       // Encode a flat NCHW float vector ([0,1]) as a PNG image in memory.
       // Returns the raw PNG bytes.
@@ -33,4 +33,3 @@ namespace NN_Server
 } // namespace NN_Server
 
 #endif // NN_SERVER_IMAGELOADER_HPP
-

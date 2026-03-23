@@ -9,4 +9,3 @@ namespace NN_Server
 } // namespace NN_Server
 
 #endif // NN_SERVER_NETWORKTYPE_HPP
-

@@ -75,8 +75,7 @@ int main(int argc, char* argv[])
     if (val > 0) {
       poolSize = val;
     } else {
-      std::cerr << "Warning: Invalid poolSize value " << val
-                << ", using default " << poolSize << ".\n";
+      std::cerr << "Warning: Invalid poolSize value " << val << ", using default " << poolSize << ".\n";
     }
   }
 
@@ -91,8 +90,7 @@ int main(int argc, char* argv[])
     } else if (val == 0) {
       maxBodySizeMB = 0; // 0 = unlimited
     } else {
-      std::cerr << "Warning: Invalid maxBodySize value " << val
-                << ", using default 10 MB.\n";
+      std::cerr << "Warning: Invalid maxBodySize value " << val << ", using default 10 MB.\n";
     }
   }
 
@@ -114,8 +112,7 @@ int main(int argc, char* argv[])
     if (val >= 0) {
       maxLogSizeGB = val;
     } else {
-      std::cerr << "Warning: Invalid maxLogSize value " << val
-                << ", using default 1 GB.\n";
+      std::cerr << "Warning: Invalid maxLogSize value " << val << ", using default 1 GB.\n";
     }
   }
 
@@ -184,4 +181,3 @@ int main(int argc, char* argv[])
 
   return app.exec();
 }
-

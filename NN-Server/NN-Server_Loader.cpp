@@ -244,16 +244,20 @@ namespace NN_Server
         } else if (type == "instancenorm") {
           layerConfig.type = CNN::LayerType::INSTANCENORM;
           CNN::NormLayerConfig bn;
+
           if (layerJson.contains("epsilon"))
             bn.epsilon = layerJson.at("epsilon").get<float>();
+
           if (layerJson.contains("momentum"))
             bn.momentum = layerJson.at("momentum").get<float>();
           layerConfig.config = bn;
         } else if (type == "batchnorm") {
           layerConfig.type = CNN::LayerType::BATCHNORM;
           CNN::NormLayerConfig bn;
+
           if (layerJson.contains("epsilon"))
             bn.epsilon = layerJson.at("epsilon").get<float>();
+
           if (layerJson.contains("momentum"))
             bn.momentum = layerJson.at("momentum").get<float>();
           layerConfig.config = bn;
@@ -329,4 +333,3 @@ namespace NN_Server
   //===================================================================================================================//
 
 } // namespace NN_Server
-

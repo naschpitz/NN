@@ -7,8 +7,7 @@
 namespace NN_Server
 {
 
-  Logger::Logger(const std::string& filePath, qint64 maxSizeBytes)
-    : maxSizeBytes(maxSizeBytes)
+  Logger::Logger(const std::string& filePath, qint64 maxSizeBytes) : maxSizeBytes(maxSizeBytes)
   {
     if (filePath.empty())
       return;
@@ -16,8 +15,7 @@ namespace NN_Server
     this->file.setFileName(QString::fromStdString(filePath));
 
     if (!this->file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-      std::cerr << "Warning: Could not open log file: " << filePath
-                << ". Logging disabled.\n";
+      std::cerr << "Warning: Could not open log file: " << filePath << ". Logging disabled.\n";
       return;
     }
 
@@ -36,26 +34,20 @@ namespace NN_Server
       this->file.close();
   }
 
-  void Logger::logRequest(const std::string& clientIp, const std::string& method,
-                          const std::string& path, int statusCode, double durationMs)
+  void Logger::logRequest(const std::string& clientIp, const std::string& method, const std::string& path,
+                          int statusCode, double durationMs)
   {
     if (!this->file.isOpen())
       return;
 
     // Format: [2026-03-23 14:30:05.123] 192.168.1.10 POST /predict 200 45.2ms
-    std::string timestamp = QDateTime::currentDateTime()
-                              .toString("yyyy-MM-dd hh:mm:ss.zzz")
-                              .toStdString();
+    std::string timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz").toStdString();
 
     char durationStr[32];
     snprintf(durationStr, sizeof(durationStr), "%.1fms", durationMs);
 
-    std::string line = "[" + timestamp + "] " +
-                       clientIp + " " +
-                       method + " " +
-                       path + " " +
-                       std::to_string(statusCode) + " " +
-                       durationStr + "\n";
+    std::string line = "[" + timestamp + "] " + clientIp + " " + method + " " + path + " " +
+                       std::to_string(statusCode) + " " + durationStr + "\n";
 
     this->writeLine(line);
   }
@@ -97,4 +89,3 @@ namespace NN_Server
   }
 
 } // namespace NN_Server
-

@@ -25,11 +25,14 @@ namespace NN_Server
       ~Logger();
 
       // Log a request: date, time, client IP, method, path, HTTP status, duration
-      void logRequest(const std::string& clientIp, const std::string& method,
-                      const std::string& path, int statusCode, double durationMs);
+      void logRequest(const std::string& clientIp, const std::string& method, const std::string& path, int statusCode,
+                      double durationMs);
 
       // Check if logging is enabled
-      bool isEnabled() const { return this->file.isOpen(); }
+      bool isEnabled() const
+      {
+        return this->file.isOpen();
+      }
 
     private:
       void writeLine(const std::string& line);
@@ -42,4 +45,3 @@ namespace NN_Server
   };
 
 } // namespace NN_Server
-

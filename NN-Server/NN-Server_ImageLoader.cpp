@@ -17,8 +17,8 @@ namespace NN_Server
 
   //===================================================================================================================//
 
-  std::vector<float> ImageLoader::loadImageFromMemory(const unsigned char* data, int dataSize,
-                                                      int targetC, int targetH, int targetW)
+  std::vector<float> ImageLoader::loadImageFromMemory(const unsigned char* data, int dataSize, int targetC, int targetH,
+                                                      int targetW)
   {
     int origW = 0, origH = 0, origC = 0;
     unsigned char* pixels = stbi_load_from_memory(data, dataSize, &origW, &origH, &origC, targetC);
@@ -109,4 +109,3 @@ namespace NN_Server
   //===================================================================================================================//
 
 } // namespace NN_Server
-

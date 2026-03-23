@@ -33,9 +33,9 @@ static bool startServer()
 
   QString configPath = tmpDir->path() + "/config.json";
   nlohmann::json config;
-  config["model"]       = fixturePath("checkpoint_E-150_L-0.029486.json").toStdString();
-  config["port"]        = SERVER_PORT;
-  config["poolSize"]    = POOL_SIZE;
+  config["model"] = fixturePath("checkpoint_E-150_L-0.029486.json").toStdString();
+  config["port"] = SERVER_PORT;
+  config["poolSize"] = POOL_SIZE;
   config["maxBodySize"] = MAX_BODY_SIZE_MB;
 
   QFile configFile(configPath);
@@ -72,8 +72,7 @@ static bool startServer()
     // Check if process died
     if (serverProcess->state() == QProcess::NotRunning) {
       std::cerr << "Server exited early. stdout:\n"
-                << serverProcess->readAllStandardOutput().toStdString()
-                << "\nstderr:\n"
+                << serverProcess->readAllStandardOutput().toStdString() << "\nstderr:\n"
                 << serverProcess->readAllStandardError().toStdString() << std::endl;
       delete serverProcess;
       serverProcess = nullptr;
@@ -188,9 +187,12 @@ static void testPredictBodyTooLarge()
   QByteArray req = "POST /predict HTTP/1.1\r\n"
                    "Host: 127.0.0.1\r\n"
                    "Content-Type: image/jpeg\r\n"
-                   "Content-Length: " + QByteArray::number(fakeSize) + "\r\n"
+                   "Content-Length: " +
+                   QByteArray::number(fakeSize) +
+                   "\r\n"
                    "Connection: close\r\n"
-                   "\r\n" + smallBody;
+                   "\r\n" +
+                   smallBody;
 
   // Server should reject based on Content-Length before reading the full body
   HttpResponse resp = sendHttpRequest(req, 10000);
@@ -217,21 +219,22 @@ static void testPredictBodyJustUnderLimit()
   QByteArray req = "POST /predict HTTP/1.1\r\n"
                    "Host: 127.0.0.1\r\n"
                    "Content-Type: image/jpeg\r\n"
-                   "Content-Length: " + QByteArray::number(justUnder) + "\r\n"
+                   "Content-Length: " +
+                   QByteArray::number(justUnder) +
+                   "\r\n"
                    "Connection: close\r\n"
-                   "\r\n" + smallBody;
+                   "\r\n" +
+                   smallBody;
 
   // Server should NOT reject — Content-Length is within the limit.
   // It will eventually fail to decode the image, but that's a 500, not 413.
   HttpResponse resp = sendHttpRequest(req, 10000);
   CHECK(resp.ok, "body_under_limit: got response");
-  CHECK(resp.statusCode != 413, "body_under_limit: not rejected as too large (got " +
-        std::to_string(resp.statusCode) + ")");
+  CHECK(resp.statusCode != 413,
+        "body_under_limit: not rejected as too large (got " + std::to_string(resp.statusCode) + ")");
 
   std::cout << std::endl;
 }
-
-
 
 static void testPredictImageSingle()
 {
@@ -253,12 +256,13 @@ static void testPredictImageSingle()
   CHECK(body.contains("output") && body["output"].is_array(), "image_single: has output array");
 
   auto output = body["output"].get<std::vector<float>>();
-  CHECK(static_cast<int>(output.size()) == NUM_OUTPUT,
-        "image_single: output length == " + std::to_string(NUM_OUTPUT));
+  CHECK(static_cast<int>(output.size()) == NUM_OUTPUT, "image_single: output length == " + std::to_string(NUM_OUTPUT));
 
   // Softmax outputs should sum to ~1.0
   float total = 0.0f;
-  for (float v : output) total += v;
+
+  for (float v : output)
+    total += v;
   CHECK_NEAR(total, 1.0f, 0.01f, "image_single: softmax sums to ~1.0");
 
   std::cout << std::endl;
@@ -269,10 +273,11 @@ static void testPredictImageConcurrent()
   std::cout << "  testPredictImageConcurrent (5 different images)... " << std::flush;
 
   // Load all 5 test images
-  QStringList imageNames = {"ISIC_1498519.jpg", "ISIC_2729538.jpg", "ISIC_3904045.jpg",
-                            "ISIC_4671410.jpg", "ISIC_5186409.jpg"};
+  QStringList imageNames = {"ISIC_1498519.jpg", "ISIC_2729538.jpg", "ISIC_3904045.jpg", "ISIC_4671410.jpg",
+                            "ISIC_5186409.jpg"};
 
   std::vector<QByteArray> imageDataVec;
+
   for (const QString& name : imageNames) {
     QByteArray data = readImageFile(imagePath(name));
     CHECK(!data.isEmpty(), "concurrent: loaded " + name.toStdString());
@@ -284,9 +289,7 @@ static void testPredictImageConcurrent()
   std::vector<std::thread> threads;
 
   for (int i = 0; i < imageNames.size(); i++) {
-    threads.emplace_back([&, i]() {
-      responses[i] = httpPostImage("/predict", imageDataVec[i]);
-    });
+    threads.emplace_back([&, i]() { responses[i] = httpPostImage("/predict", imageDataVec[i]); });
   }
 
   for (auto& t : threads)
@@ -303,7 +306,9 @@ static void testPredictImageConcurrent()
     CHECK(static_cast<int>(output.size()) == NUM_OUTPUT, tag + ": output length");
 
     float total = 0.0f;
-    for (float v : output) total += v;
+
+    for (float v : output)
+      total += v;
     CHECK_NEAR(total, 1.0f, 0.01f, tag + ": softmax sums to ~1.0");
   }
 
@@ -327,9 +332,7 @@ static void testPredictImageRepeatedConcurrent()
   std::vector<std::thread> threads;
 
   for (int i = 0; i < NUM_REQUESTS; i++) {
-    threads.emplace_back([&, i]() {
-      responses[i] = httpPostImage("/predict", imgData);
-    });
+    threads.emplace_back([&, i]() { responses[i] = httpPostImage("/predict", imgData); });
   }
 
   for (auto& t : threads)
@@ -337,12 +340,14 @@ static void testPredictImageRepeatedConcurrent()
 
   // All should succeed
   bool allOk = true;
+
   for (int i = 0; i < NUM_REQUESTS; i++) {
     if (!responses[i].ok || responses[i].statusCode != 200) {
       allOk = false;
       break;
     }
   }
+
   CHECK(allOk, "repeated: all " + std::to_string(NUM_REQUESTS) + " responses status 200");
 
   // All outputs should be identical (deterministic — same input → same output)
@@ -389,4 +394,3 @@ void runEndpointTests()
 
   stopServer();
 }
-

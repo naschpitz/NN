@@ -22,7 +22,9 @@ namespace NN_Server
     public:
       RequestHandler(qintptr socketDescriptor, std::shared_ptr<CorePool> pool, qint64 maxBodySize,
                      std::shared_ptr<Logger> logger)
-        : socketDescriptor(socketDescriptor), corePool(std::move(pool)), maxBodySize(maxBodySize),
+        : socketDescriptor(socketDescriptor),
+          corePool(std::move(pool)),
+          maxBodySize(maxBodySize),
           logger(std::move(logger))
       {
       }
@@ -64,8 +66,8 @@ namespace NN_Server
               // Reject early if Content-Length exceeds the limit
               if (this->maxBodySize > 0 && contentLength > this->maxBodySize) {
                 sendJsonResponse(socket, 413,
-                  R"({"error":"Request body too large. Maximum allowed: )" +
-                  std::to_string(this->maxBodySize) + R"( bytes"})");
+                                 R"({"error":"Request body too large. Maximum allowed: )" +
+                                   std::to_string(this->maxBodySize) + R"( bytes"})");
                 rejected = true;
                 rejectedStatus = 413;
                 break;
@@ -84,8 +86,8 @@ namespace NN_Server
           // Also reject if accumulated data exceeds the limit (no Content-Length or chunked)
           if (this->maxBodySize > 0 && requestData.size() > this->maxBodySize + 8192) { // 8KB header allowance
             sendJsonResponse(socket, 413,
-              R"({"error":"Request body too large. Maximum allowed: )" +
-              std::to_string(this->maxBodySize) + R"( bytes"})");
+                             R"({"error":"Request body too large. Maximum allowed: )" +
+                               std::to_string(this->maxBodySize) + R"( bytes"})");
             rejected = true;
             rejectedStatus = 413;
             break;
@@ -306,10 +308,9 @@ namespace NN_Server
         ulong targetH = inCfg.h;
         ulong targetW = inCfg.w;
 
-        return ImageLoader::loadImageFromMemory(
-          reinterpret_cast<const unsigned char*>(imageData.constData()),
-          imageData.size(),
-          static_cast<int>(targetC), static_cast<int>(targetH), static_cast<int>(targetW));
+        return ImageLoader::loadImageFromMemory(reinterpret_cast<const unsigned char*>(imageData.constData()),
+                                                imageData.size(), static_cast<int>(targetC), static_cast<int>(targetH),
+                                                static_cast<int>(targetW));
       }
 
       //-- Response helpers --//
@@ -343,32 +344,48 @@ namespace NN_Server
         std::string statusText;
 
         switch (statusCode) {
-        case 200: statusText = "OK"; break;
-        case 400: statusText = "Bad Request"; break;
-        case 404: statusText = "Not Found"; break;
-        case 500: statusText = "Internal Server Error"; break;
-        default: statusText = "Unknown"; break;
+        case 200:
+          statusText = "OK";
+          break;
+        case 400:
+          statusText = "Bad Request";
+          break;
+        case 404:
+          statusText = "Not Found";
+          break;
+        case 500:
+          statusText = "Internal Server Error";
+          break;
+        default:
+          statusText = "Unknown";
+          break;
         }
 
-        std::string header = "HTTP/1.1 " + std::to_string(statusCode) + " " + statusText + "\r\n"
-                             "Content-Type: " + contentType + "\r\n"
-                             "Content-Length: " + std::to_string(body.size()) + "\r\n"
+        std::string header = "HTTP/1.1 " + std::to_string(statusCode) + " " + statusText +
+                             "\r\n"
+                             "Content-Type: " +
+                             contentType +
+                             "\r\n"
+                             "Content-Length: " +
+                             std::to_string(body.size()) +
+                             "\r\n"
                              "Connection: close\r\n"
                              "\r\n";
 
         socket.write(header.c_str(), static_cast<qint64>(header.size()));
         socket.write(reinterpret_cast<const char*>(body.data()), static_cast<qint64>(body.size()));
       }
-
   };
 
   //===================================================================================================================//
   // HttpServer
   //===================================================================================================================//
 
-  HttpServer::HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize,
-                         std::shared_ptr<Logger> logger, QObject* parent)
-    : QTcpServer(parent), corePool(std::move(pool)), maxBodySize(maxBodySize),
+  HttpServer::HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize, std::shared_ptr<Logger> logger,
+                         QObject* parent)
+    : QTcpServer(parent),
+      corePool(std::move(pool)),
+      maxBodySize(maxBodySize),
       logger(std::move(logger))
   {
   }
@@ -378,8 +395,8 @@ namespace NN_Server
   bool HttpServer::startListening(quint16 port)
   {
     if (!this->listen(QHostAddress::Any, port)) {
-      std::cerr << "Error: Failed to start server on port " << port << ": "
-                << this->errorString().toStdString() << "\n";
+      std::cerr << "Error: Failed to start server on port " << port << ": " << this->errorString().toStdString()
+                << "\n";
       return false;
     }
 
@@ -399,4 +416,3 @@ namespace NN_Server
   //===================================================================================================================//
 
 } // namespace NN_Server
-

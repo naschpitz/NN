@@ -17,8 +17,7 @@ namespace NN_Server
 {
 
   // A handle returned by acquire(). Holds a non-owning pointer to an ANN or CNN Core.
-  struct CoreHandle
-  {
+  struct CoreHandle {
       ANN::Core<float>* annCore = nullptr;
       CNN::Core<float>* cnnCore = nullptr;
       int index = -1;
@@ -40,15 +39,28 @@ namespace NN_Server
       // Release a Core back to the pool.
       void release(const CoreHandle& handle);
 
-      NetworkType networkType() const { return this->netType; }
-      int size() const { return static_cast<int>(this->entries.size()); }
+      NetworkType networkType() const
+      {
+        return this->netType;
+      }
 
-      const InputConfig& inputConfig() const { return this->inConfig; }
-      const OutputConfig& outputConfig() const { return this->outConfig; }
+      int size() const
+      {
+        return static_cast<int>(this->entries.size());
+      }
+
+      const InputConfig& inputConfig() const
+      {
+        return this->inConfig;
+      }
+
+      const OutputConfig& outputConfig() const
+      {
+        return this->outConfig;
+      }
 
     private:
-      struct CoreEntry
-      {
+      struct CoreEntry {
           std::unique_ptr<ANN::Core<float>> annCore;
           std::unique_ptr<CNN::Core<float>> cnnCore;
           bool available = true;
@@ -66,4 +78,3 @@ namespace NN_Server
 } // namespace NN_Server
 
 #endif // NN_SERVER_COREPOOL_HPP
-

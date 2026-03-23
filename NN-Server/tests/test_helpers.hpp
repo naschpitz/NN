@@ -52,17 +52,16 @@ inline QString imagePath(const QString& filename)
 }
 
 // Server configuration
-constexpr int SERVER_PORT    = 19876;
-constexpr int POOL_SIZE      = 2;
-constexpr int NUM_OUTPUT     = 11;       // ISIC MILK10k has 11 output classes
-constexpr int MAX_BODY_SIZE_MB = 1;                                   // 1 MB — for testing 413 rejection
+constexpr int SERVER_PORT = 19876;
+constexpr int POOL_SIZE = 2;
+constexpr int NUM_OUTPUT = 11; // ISIC MILK10k has 11 output classes
+constexpr int MAX_BODY_SIZE_MB = 1; // 1 MB — for testing 413 rejection
 constexpr qint64 MAX_BODY_SIZE_BYTES = MAX_BODY_SIZE_MB * 1024 * 1024; // in bytes
 
 /**
  * Simple HTTP response parsed from raw bytes.
  */
-struct HttpResponse
-{
+struct HttpResponse {
     int statusCode = 0;
     QByteArray body;
     bool ok = false;
@@ -85,6 +84,7 @@ inline HttpResponse sendHttpRequest(const QByteArray& rawRequest, int timeoutMs 
   socket.flush();
 
   QByteArray data;
+
   while (socket.waitForReadyRead(timeoutMs)) {
     data.append(socket.readAll());
   }
@@ -125,7 +125,8 @@ inline HttpResponse sendHttpRequest(const QByteArray& rawRequest, int timeoutMs 
  */
 inline HttpResponse httpGet(const QString& path)
 {
-  QByteArray req = "GET " + path.toUtf8() + " HTTP/1.1\r\n"
+  QByteArray req = "GET " + path.toUtf8() +
+                   " HTTP/1.1\r\n"
                    "Host: 127.0.0.1\r\n"
                    "Connection: close\r\n"
                    "\r\n";
@@ -137,12 +138,16 @@ inline HttpResponse httpGet(const QString& path)
  */
 inline HttpResponse httpPostJson(const QString& path, const QByteArray& jsonBody)
 {
-  QByteArray req = "POST " + path.toUtf8() + " HTTP/1.1\r\n"
+  QByteArray req = "POST " + path.toUtf8() +
+                   " HTTP/1.1\r\n"
                    "Host: 127.0.0.1\r\n"
                    "Content-Type: application/json\r\n"
-                   "Content-Length: " + QByteArray::number(jsonBody.size()) + "\r\n"
+                   "Content-Length: " +
+                   QByteArray::number(jsonBody.size()) +
+                   "\r\n"
                    "Connection: close\r\n"
-                   "\r\n" + jsonBody;
+                   "\r\n" +
+                   jsonBody;
   return sendHttpRequest(req);
 }
 
@@ -151,12 +156,15 @@ inline HttpResponse httpPostJson(const QString& path, const QByteArray& jsonBody
  */
 inline HttpResponse httpPostImage(const QString& path, const QByteArray& imageData)
 {
-  QByteArray req = "POST " + path.toUtf8() + " HTTP/1.1\r\n"
+  QByteArray req = "POST " + path.toUtf8() +
+                   " HTTP/1.1\r\n"
                    "Host: 127.0.0.1\r\n"
                    "Content-Type: image/jpeg\r\n"
-                   "Content-Length: " + QByteArray::number(imageData.size()) + "\r\n"
+                   "Content-Length: " +
+                   QByteArray::number(imageData.size()) +
+                   "\r\n"
                    "Connection: close\r\n"
-                   "\r\n" + imageData;
+                   "\r\n" +
+                   imageData;
   return sendHttpRequest(req);
 }
-
