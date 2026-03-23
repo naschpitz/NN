@@ -1,5 +1,6 @@
 #include "NN-Server_CorePool.hpp"
 #include "NN-Server_HttpServer.hpp"
+#include "NN-Server_Logger.hpp"
 
 #include <json.hpp>
 
@@ -97,6 +98,29 @@ int main(int argc, char* argv[])
 
   qint64 maxBodySize = maxBodySizeMB * 1024 * 1024; // Convert MB to bytes
 
+  // Log file (optional)
+  std::string logFile;
+
+  if (config.contains("logFile") && config["logFile"].is_string()) {
+    logFile = config["logFile"].get<std::string>();
+  }
+
+  // Max log size in gigabytes (default: 1 GB)
+  qint64 maxLogSizeGB = 1;
+
+  if (config.contains("maxLogSize")) {
+    qint64 val = config["maxLogSize"].get<qint64>();
+
+    if (val >= 0) {
+      maxLogSizeGB = val;
+    } else {
+      std::cerr << "Warning: Invalid maxLogSize value " << val
+                << ", using default 1 GB.\n";
+    }
+  }
+
+  qint64 maxLogSizeBytes = maxLogSizeGB * 1024 * 1024 * 1024; // Convert GB to bytes
+
   std::cout << "NN-Server starting...\n";
   std::cout << "  Config:       " << configFilePath << "\n";
   std::cout << "  Model:        " << modelPath << "\n";
@@ -107,6 +131,13 @@ int main(int argc, char* argv[])
     std::cout << "  Max body:     " << maxBodySizeMB << " MB\n";
   } else {
     std::cout << "  Max body:     unlimited\n";
+  }
+
+  // Create logger (if logFile is set)
+  std::shared_ptr<NN_Server::Logger> logger;
+
+  if (!logFile.empty()) {
+    logger = std::make_shared<NN_Server::Logger>(logFile, maxLogSizeBytes);
   }
 
   std::cout << "\n";
@@ -140,7 +171,7 @@ int main(int argc, char* argv[])
   std::cout << "\n";
 
   // Start the HTTP server
-  NN_Server::HttpServer server(corePool, maxBodySize);
+  NN_Server::HttpServer server(corePool, maxBodySize, logger);
 
   if (!server.startListening(port)) {
     return 1;

@@ -2,6 +2,7 @@
 #define NN_SERVER_HTTPSERVER_HPP
 
 #include "NN-Server_CorePool.hpp"
+#include "NN-Server_Logger.hpp"
 
 #include <QTcpServer>
 
@@ -22,7 +23,7 @@ namespace NN_Server
     public:
       // maxBodySize in bytes; 0 = unlimited (default: 10 MB)
       HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize = 10 * 1024 * 1024,
-                 QObject* parent = nullptr);
+                 std::shared_ptr<Logger> logger = nullptr, QObject* parent = nullptr);
 
       bool startListening(quint16 port);
 
@@ -32,6 +33,7 @@ namespace NN_Server
     private:
       std::shared_ptr<CorePool> corePool;
       qint64 maxBodySize;
+      std::shared_ptr<Logger> logger;
   };
 
 } // namespace NN_Server

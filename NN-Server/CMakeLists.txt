@@ -23,6 +23,7 @@ add_executable(NN-Server
   NN-Server_HttpServer.cpp
   NN-Server_ImageLoader.cpp
   NN-Server_Loader.cpp
+  NN-Server_Logger.cpp
 )
 
 # Header-only libraries

@@ -1,6 +1,7 @@
 #include "NN-Server_HttpServer.hpp"
 #include "NN-Server_ImageLoader.hpp"
 
+#include <QElapsedTimer>
 #include <QTcpSocket>
 #include <QThreadPool>
 #include <QRunnable>
@@ -19,8 +20,10 @@ namespace NN_Server
   class RequestHandler : public QRunnable
   {
     public:
-      RequestHandler(qintptr socketDescriptor, std::shared_ptr<CorePool> pool, qint64 maxBodySize)
-        : socketDescriptor(socketDescriptor), corePool(std::move(pool)), maxBodySize(maxBodySize)
+      RequestHandler(qintptr socketDescriptor, std::shared_ptr<CorePool> pool, qint64 maxBodySize,
+                     std::shared_ptr<Logger> logger)
+        : socketDescriptor(socketDescriptor), corePool(std::move(pool)), maxBodySize(maxBodySize),
+          logger(std::move(logger))
       {
       }
 
@@ -33,9 +36,15 @@ namespace NN_Server
           return;
         }
 
+        QElapsedTimer timer;
+        timer.start();
+
+        std::string clientIp = socket.peerAddress().toString().toStdString();
+
         // Read the full HTTP request (wait up to 5 seconds)
         QByteArray requestData;
         bool rejected = false;
+        int rejectedStatus = 0;
 
         while (socket.waitForReadyRead(5000)) {
           requestData.append(socket.readAll());
@@ -58,6 +67,7 @@ namespace NN_Server
                   R"({"error":"Request body too large. Maximum allowed: )" +
                   std::to_string(this->maxBodySize) + R"( bytes"})");
                 rejected = true;
+                rejectedStatus = 413;
                 break;
               }
 
@@ -77,12 +87,38 @@ namespace NN_Server
               R"({"error":"Request body too large. Maximum allowed: )" +
               std::to_string(this->maxBodySize) + R"( bytes"})");
             rejected = true;
+            rejectedStatus = 413;
             break;
           }
         }
 
-        if (!rejected)
-          this->processRequest(socket, requestData);
+        // Parse method and path for logging
+        std::string method = "?";
+        std::string path = "?";
+        int statusCode = 0;
+
+        if (!requestData.isEmpty()) {
+          int firstSpace = requestData.indexOf(' ');
+
+          if (firstSpace > 0) {
+            method = requestData.left(firstSpace).toStdString();
+            int secondSpace = requestData.indexOf(' ', firstSpace + 1);
+
+            if (secondSpace > 0)
+              path = requestData.mid(firstSpace + 1, secondSpace - firstSpace - 1).toStdString();
+          }
+        }
+
+        if (rejected) {
+          statusCode = rejectedStatus;
+        } else {
+          statusCode = this->processRequest(socket, requestData);
+        }
+
+        double durationMs = timer.nsecsElapsed() / 1e6;
+
+        if (this->logger)
+          this->logger->logRequest(clientIp, method, path, statusCode, durationMs);
 
         socket.flush();
         socket.waitForBytesWritten(3000);
@@ -97,15 +133,17 @@ namespace NN_Server
       qintptr socketDescriptor;
       std::shared_ptr<CorePool> corePool;
       qint64 maxBodySize;
+      std::shared_ptr<Logger> logger;
 
-      void processRequest(QTcpSocket& socket, const QByteArray& requestData)
+      // Returns the HTTP status code for logging
+      int processRequest(QTcpSocket& socket, const QByteArray& requestData)
       {
         // Parse HTTP request line
         int firstLineEnd = requestData.indexOf("\r\n");
 
         if (firstLineEnd < 0) {
           sendJsonResponse(socket, 400, R"({"error":"Malformed HTTP request"})");
-          return;
+          return 400;
         }
 
         QByteArray requestLine = requestData.left(firstLineEnd);
@@ -114,7 +152,7 @@ namespace NN_Server
 
         if (firstSpace < 0 || secondSpace < 0) {
           sendJsonResponse(socket, 400, R"({"error":"Malformed HTTP request"})");
-          return;
+          return 400;
         }
 
         QByteArray method = requestLine.left(firstSpace);
@@ -123,13 +161,13 @@ namespace NN_Server
         // Health check endpoint
         if (method == "GET" && path == "/health") {
           sendJsonResponse(socket, 200, R"({"status":"ok"})");
-          return;
+          return 200;
         }
 
         // Only accept POST /predict
         if (method != "POST" || path != "/predict") {
           sendJsonResponse(socket, 404, R"({"error":"Not found. Use POST /predict"})");
-          return;
+          return 404;
         }
 
         // Split headers and body
@@ -137,7 +175,7 @@ namespace NN_Server
 
         if (headerEnd < 0) {
           sendJsonResponse(socket, 400, R"({"error":"Missing request body"})");
-          return;
+          return 400;
         }
 
         QByteArray headers = requestData.left(headerEnd);
@@ -147,10 +185,10 @@ namespace NN_Server
         std::string contentType = getHeader(headers, "content-type");
 
         if (contentType.find("image/") != std::string::npos) {
-          processImagePredict(socket, body);
+          return processImagePredict(socket, body);
         } else {
           // Default: JSON
-          processJsonPredict(socket, body);
+          return processJsonPredict(socket, body);
         }
       }
 
@@ -176,7 +214,7 @@ namespace NN_Server
 
       //-- JSON predict --//
 
-      void processJsonPredict(QTcpSocket& socket, const QByteArray& body)
+      int processJsonPredict(QTcpSocket& socket, const QByteArray& body)
       {
         nlohmann::json inputJson;
 
@@ -185,34 +223,38 @@ namespace NN_Server
         } catch (const std::exception& e) {
           std::string msg = "{\"error\":\"Invalid JSON: " + std::string(e.what()) + "\"}";
           sendJsonResponse(socket, 400, msg);
-          return;
+          return 400;
         }
 
         if (!inputJson.contains("input") || !inputJson.at("input").is_array()) {
           sendJsonResponse(socket, 400, R"delim({"error":"Request must contain an 'input' array"})delim");
-          return;
+          return 400;
         }
 
         try {
           std::vector<float> output = runPrediction(inputJson.at("input").get<std::vector<float>>());
           sendPredictResponse(socket, output);
+          return 200;
         } catch (const std::exception& e) {
           std::string msg = "{\"error\":\"Prediction failed: " + std::string(e.what()) + "\"}";
           sendJsonResponse(socket, 500, msg);
+          return 500;
         }
       }
 
       //-- Image predict (raw image body) --//
 
-      void processImagePredict(QTcpSocket& socket, const QByteArray& imageData)
+      int processImagePredict(QTcpSocket& socket, const QByteArray& imageData)
       {
         try {
           std::vector<float> inputVec = decodeImageInput(imageData);
           std::vector<float> output = runPrediction(inputVec);
           sendPredictResponse(socket, output);
+          return 200;
         } catch (const std::exception& e) {
           std::string msg = "{\"error\":\"Prediction failed: " + std::string(e.what()) + "\"}";
           sendJsonResponse(socket, 500, msg);
+          return 500;
         }
       }
 
@@ -324,8 +366,10 @@ namespace NN_Server
   // HttpServer
   //===================================================================================================================//
 
-  HttpServer::HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize, QObject* parent)
-    : QTcpServer(parent), corePool(std::move(pool)), maxBodySize(maxBodySize)
+  HttpServer::HttpServer(std::shared_ptr<CorePool> pool, qint64 maxBodySize,
+                         std::shared_ptr<Logger> logger, QObject* parent)
+    : QTcpServer(parent), corePool(std::move(pool)), maxBodySize(maxBodySize),
+      logger(std::move(logger))
   {
   }
 
@@ -347,7 +391,7 @@ namespace NN_Server
 
   void HttpServer::incomingConnection(qintptr socketDescriptor)
   {
-    auto* handler = new RequestHandler(socketDescriptor, this->corePool, this->maxBodySize);
+    auto* handler = new RequestHandler(socketDescriptor, this->corePool, this->maxBodySize, this->logger);
     handler->setAutoDelete(true);
     QThreadPool::globalInstance()->start(handler);
   }

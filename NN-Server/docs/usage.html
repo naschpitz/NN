@@ -51,6 +51,8 @@
   <tr><td><code>"port"</code></td><td>integer</td><td>No</td><td><code>8080</code></td><td>TCP port to listen on (1–65535)</td></tr>
   <tr><td><code>"poolSize"</code></td><td>integer</td><td>No</td><td>CPU cores</td><td>Number of Core instances in the pool</td></tr>
   <tr><td><code>"maxBodySize"</code></td><td>integer</td><td>No</td><td><code>10</code></td><td>Maximum request body size in megabytes. Requests exceeding this limit are rejected with HTTP 413. Set to <code>0</code> for unlimited</td></tr>
+  <tr><td><code>"logFile"</code></td><td>string</td><td>No</td><td>—</td><td>Path to the log file. When set, each request is logged with date, time, client IP, method, path, status code, and duration</td></tr>
+  <tr><td><code>"maxLogSize"</code></td><td>integer</td><td>No</td><td><code>1</code></td><td>Maximum log file size in gigabytes. When reached, the log wraps around and overwrites from the beginning. Set to <code>0</code> for unlimited</td></tr>
 </table>
 
 <div class="info-box">
@@ -68,8 +70,17 @@
   <span class="string">"model"</span>: <span class="string">"/models/isic_checkpoint.json"</span>,
   <span class="string">"port"</span>: <span class="number">9090</span>,
   <span class="string">"poolSize"</span>: <span class="number">4</span>,
-  <span class="string">"maxBodySize"</span>: <span class="number">20</span>
+  <span class="string">"maxBodySize"</span>: <span class="number">20</span>,
+  <span class="string">"logFile"</span>: <span class="string">"/var/log/nn-server.log"</span>,
+  <span class="string">"maxLogSize"</span>: <span class="number">2</span>
 }
+</code></pre>
+
+<h3>Log format</h3>
+<p>Each request is logged as a single line:</p>
+<pre><code>[2026-03-23 14:30:05.123] 192.168.1.10 POST /predict 200 45.2ms
+[2026-03-23 14:30:06.456] 192.168.1.10 GET /health 200 0.3ms
+[2026-03-23 14:30:07.789] 10.0.0.5 POST /predict 413 0.1ms
 </code></pre>
 
 <h2 id="endpoints">2. HTTP Endpoints</h2>
