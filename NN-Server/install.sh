@@ -122,16 +122,33 @@ if [ "$cloned" = false ]; then
 
   # Fall back to HTTPS with Personal Access Token
   if [ "$cloned" = false ]; then
-    echo "  SSH authentication not available or failed."
-    echo "  To clone this private repository via HTTPS, a GitHub Personal Access Token (PAT) is required."
-    echo "  You can create one at: https://github.com/settings/tokens"
-    echo "  (select at least the 'repo' scope)"
-    echo ""
-    read -rp "Enter your GitHub Personal Access Token (or press Enter to abort): " token
+    TOKEN_FILE="$HOME/.nn-server-github-token"
+    token=""
 
+    # Try to load a saved token
+    if [ -f "$TOKEN_FILE" ]; then
+      token=$(cat "$TOKEN_FILE")
+      echo "  Using saved GitHub token from $TOKEN_FILE"
+    fi
+
+    # If no saved token, ask the user
     if [ -z "$token" ]; then
-      echo "Aborted. Cannot clone without authentication."
-      exit 1
+      echo "  SSH authentication not available or failed."
+      echo "  To clone this private repository via HTTPS, a GitHub Personal Access Token (PAT) is required."
+      echo "  You can create one at: https://github.com/settings/tokens"
+      echo "  (select at least the 'repo' scope)"
+      echo ""
+      read -rp "Enter your GitHub Personal Access Token (or press Enter to abort): " token
+
+      if [ -z "$token" ]; then
+        echo "Aborted. Cannot clone without authentication."
+        exit 1
+      fi
+
+      # Save the token for future use
+      echo "$token" > "$TOKEN_FILE"
+      chmod 600 "$TOKEN_FILE"
+      echo "  Token saved to $TOKEN_FILE"
     fi
 
     REPO_PAT="https://${token}@github.com/naschpitz/NN-Server.git"
