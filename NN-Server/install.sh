@@ -186,6 +186,70 @@ echo "  Binary:  $REPO_DIR/build/NN-Server"
 echo "  Symlink: $INSTALL_DIR/NN-Server"
 echo "========================================"
 echo ""
+echo "IMPORTANT: Do not delete $REPO_DIR — it contains"
+echo "  OpenCL kernel files required at runtime for GPU execution."
+
+# ---------------------------------------------------------------------------
+# Systemd service setup
+# ---------------------------------------------------------------------------
+
+SERVICE_FILE="/etc/systemd/system/nn-server.service"
+BINARY_PATH="$INSTALL_DIR/NN-Server"
+
+# If the service already exists, just restart it
+if [ -f "$SERVICE_FILE" ]; then
+  echo ""
+  echo "Existing systemd service found. Restarting..."
+  sudo systemctl daemon-reload
+  sudo systemctl restart nn-server
+  echo "  nn-server service restarted."
+else
+  echo ""
+  read -rp "Do you want to create a systemd service so NN-Server starts on boot? [y/N] " setup_service
+
+  if [[ "$setup_service" =~ ^[Yy]$ ]]; then
+    # Ask for config file path
+    DEFAULT_CONFIG="$INSTALL_DIR/config.json"
+    read -rp "Path to config.json [$DEFAULT_CONFIG]: " config_path
+    config_path="${config_path:-$DEFAULT_CONFIG}"
+
+    # Resolve to absolute path
+    if [[ "$config_path" != /* ]]; then
+      config_path="$(cd "$(dirname "$config_path")" && pwd)/$(basename "$config_path")"
+    fi
+
+    sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+[Unit]
+Description=NN-Server Neural Network Inference Server
+After=network.target
+
+[Service]
+ExecStart=$BINARY_PATH $config_path
+WorkingDirectory=$INSTALL_DIR
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable nn-server
+
+    if [ -f "$config_path" ]; then
+      sudo systemctl start nn-server
+      echo ""
+      echo "  nn-server service created, enabled, and started."
+    else
+      echo ""
+      echo "  nn-server service created and enabled."
+      echo "  It will start automatically on boot once $config_path exists."
+      echo "  To start manually: sudo systemctl start nn-server"
+    fi
+  fi
+fi
+
+echo ""
 echo "Quick start:"
 echo "  cat > config.json <<EOF"
 echo "  {"
@@ -193,10 +257,4 @@ echo "    \"model\": \"/path/to/model.json\","
 echo "    \"port\": 8080"
 echo "  }"
 echo "  EOF"
-echo "  $INSTALL_DIR/NN-Server config.json"
-echo ""
-echo "IMPORTANT: Do not delete $REPO_DIR — it contains"
-echo "  OpenCL kernel files required at runtime for GPU execution."
-echo ""
-echo "To set up as a systemd service:"
-echo "  See docs/quickstart.html for instructions."
+echo "  $BINARY_PATH config.json"
