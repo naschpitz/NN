@@ -1,0 +1,19 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "numThreads": 1,
+  "progressReports": 100,
+  "saveModelInterval": 10,
+  "inputType": "image",
+  "inputShape": { "c": 1, "h": 4, "w": 4 },
+  "layersConfig": [
+    { "numNeurons": 16, "actvFunc": "relu" },
+    { "numNeurons": 8, "actvFunc": "relu" },
+    { "numNeurons": 2, "actvFunc": "sigmoid" }
+  ],
+  "trainingConfig": {
+    "numEpochs": 100,
+    "learningRate": 0.5
+  }
+}
+

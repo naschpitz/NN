@@ -232,6 +232,31 @@ static void testANNDropoutRateParsing()
 
 //===================================================================================================================//
 
+static void testANNImageNetworkDetection()
+{
+  std::cout << "  testANNImageNetworkDetection... ";
+
+  // An ANN config with inputType "image" and inputShape must still be detected as ANN, not CNN.
+  // Train with the ann_image_train_config fixture (which has layersConfig + inputShape + inputType "image")
+  // using image samples, and verify the log says "Network type: ANN".
+  QString modelPath = tempDir() + "/ann_image_detect_model.json";
+
+  auto result =
+    runNNCLI({"--config", fixturePath("ann_image_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",
+              fixturePath("ann_image_train_samples.json"), "--output", modelPath, "--log-level", "info"});
+
+  CHECK(result.exitCode == 0, "ANN image detection: exit code 0");
+  CHECK(result.stdOut.contains("Network type: ANN"), "ANN image detection: detected as ANN (not CNN)");
+  CHECK(!result.stdOut.contains("Network type: CNN"), "ANN image detection: NOT detected as CNN");
+  CHECK(result.stdOut.contains("Input type: image"), "ANN image detection: input type is image");
+  CHECK(result.stdOut.contains("Training completed."), "ANN image train: training completed");
+  CHECK(QFile::exists(modelPath), "ANN image train: model file exists");
+
+  std::cout << std::endl;
+}
+
+//===================================================================================================================//
+
 void runANNTests2()
 {
   testANNCheckpointParameters();
@@ -240,4 +265,5 @@ void runANNTests2()
   testANNTrainWithDropout();
   testANNTrainWithAugmentation();
   testANNDropoutRateParsing();
+  testANNImageNetworkDetection();
 }

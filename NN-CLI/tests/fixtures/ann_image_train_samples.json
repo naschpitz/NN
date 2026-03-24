@@ -1,0 +1,32 @@
+{
+  "samples": [
+    {
+      "input": "images/bright_1.png",
+      "output": [
+        1,
+        0
+      ]
+    },
+    {
+      "input": "images/bright_2.png",
+      "output": [
+        1,
+        0
+      ]
+    },
+    {
+      "input": "images/dark_1.png",
+      "output": [
+        0,
+        1
+      ]
+    },
+    {
+      "input": "images/dark_2.png",
+      "output": [
+        0,
+        1
+      ]
+    }
+  ]
+}
