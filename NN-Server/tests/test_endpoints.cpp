@@ -456,12 +456,159 @@ static void testQueueLimitReject()
 }
 
 // ---------------------------------------------------------------------------
+// ANN image input tests
+// ---------------------------------------------------------------------------
+
+constexpr int ANN_IMG_NUM_OUTPUT = 2; // ann_image_model.json has 2 output classes
+
+static nlohmann::json annImageConfig()
+{
+  nlohmann::json config;
+  config["model"] = fixturePath("ann_image_model.json").toStdString();
+  config["port"] = SERVER_PORT;
+  config["poolSize"] = POOL_SIZE;
+  return config;
+}
+
+static void testANNImagePredict()
+{
+  std::cout << "  testANNImagePredict... " << std::flush;
+
+  QByteArray imgData = readImageFile(imagePath("bright_1.png"));
+  CHECK(!imgData.isEmpty(), "ann_image: loaded test image");
+
+  if (imgData.isEmpty()) {
+    std::cout << std::endl;
+    return;
+  }
+
+  HttpResponse resp = httpPostImage("/predict", imgData);
+  CHECK(resp.ok, "ann_image: got response");
+  CHECK(resp.statusCode == 200, "ann_image: status 200 (got " + std::to_string(resp.statusCode) + ")");
+
+  if (resp.statusCode != 200) {
+    std::cerr << "    body: " << resp.body.toStdString() << std::endl;
+    std::cout << std::endl;
+    return;
+  }
+
+  nlohmann::json body = nlohmann::json::parse(resp.body.toStdString());
+  CHECK(body.contains("output") && body["output"].is_array(), "ann_image: has output array");
+
+  auto output = body["output"].get<std::vector<float>>();
+  CHECK(static_cast<int>(output.size()) == ANN_IMG_NUM_OUTPUT,
+        "ann_image: output length == " + std::to_string(ANN_IMG_NUM_OUTPUT));
+
+  float total = 0.0f;
+
+  for (float v : output)
+    total += v;
+  CHECK(total > 0.0f, "ann_image: output values are positive");
+
+  std::cout << std::endl;
+}
+
+static void testANNImagePredictDark()
+{
+  std::cout << "  testANNImagePredictDark... " << std::flush;
+
+  // Use a different test image — it will be resized to 4x4
+  QByteArray imgData = readImageFile(imagePath("dark_1.png"));
+  CHECK(!imgData.isEmpty(), "ann_image_dark: loaded test image");
+
+  if (imgData.isEmpty()) {
+    std::cout << std::endl;
+    return;
+  }
+
+  HttpResponse resp = httpPostImage("/predict", imgData);
+  CHECK(resp.ok, "ann_image_dark: got response");
+  CHECK(resp.statusCode == 200, "ann_image_dark: status 200 (got " + std::to_string(resp.statusCode) + ")");
+
+  if (resp.statusCode != 200) {
+    std::cerr << "    body: " << resp.body.toStdString() << std::endl;
+    std::cout << std::endl;
+    return;
+  }
+
+  nlohmann::json body = nlohmann::json::parse(resp.body.toStdString());
+  auto output = body["output"].get<std::vector<float>>();
+  CHECK(static_cast<int>(output.size()) == ANN_IMG_NUM_OUTPUT,
+        "ann_image_dark: output length == " + std::to_string(ANN_IMG_NUM_OUTPUT));
+
+  // Sigmoid outputs are in [0, 1] independently
+  for (float v : output) {
+    CHECK(v >= 0.0f && v <= 1.0f, "ann_image_dark: output in [0, 1]");
+  }
+
+  std::cout << std::endl;
+}
+
+static void testANNImagePredictJson()
+{
+  std::cout << "  testANNImagePredictJson... " << std::flush;
+
+  // JSON input should also work: 16 values for 1x4x4
+  std::vector<float> input(16, 0.5f);
+  nlohmann::json reqBody;
+  reqBody["input"] = input;
+
+  HttpResponse resp = httpPostJson("/predict", QByteArray::fromStdString(reqBody.dump()));
+  CHECK(resp.ok, "ann_json: got response");
+  CHECK(resp.statusCode == 200, "ann_json: status 200 (got " + std::to_string(resp.statusCode) + ")");
+
+  if (resp.statusCode != 200) {
+    std::cerr << "    body: " << resp.body.toStdString() << std::endl;
+    std::cout << std::endl;
+    return;
+  }
+
+  nlohmann::json body = nlohmann::json::parse(resp.body.toStdString());
+  auto output = body["output"].get<std::vector<float>>();
+  CHECK(static_cast<int>(output.size()) == ANN_IMG_NUM_OUTPUT,
+        "ann_json: output length == " + std::to_string(ANN_IMG_NUM_OUTPUT));
+
+  float total = 0.0f;
+
+  for (float v : output)
+    total += v;
+  CHECK(total > 0.0f, "ann_json: output values are positive");
+
+  std::cout << std::endl;
+}
+
+static void testANNImageDeterministic()
+{
+  std::cout << "  testANNImageDeterministic... " << std::flush;
+
+  QByteArray imgData = readImageFile(imagePath("bright_2.png"));
+
+  if (imgData.isEmpty()) {
+    std::cout << "(skipped)" << std::endl;
+    return;
+  }
+
+  // Send the same image twice — results must be identical
+  HttpResponse resp1 = httpPostImage("/predict", imgData);
+  HttpResponse resp2 = httpPostImage("/predict", imgData);
+
+  CHECK(resp1.ok && resp1.statusCode == 200, "ann_determ: first request ok");
+  CHECK(resp2.ok && resp2.statusCode == 200, "ann_determ: second request ok");
+
+  if (resp1.ok && resp2.ok) {
+    CHECK(resp1.body == resp2.body, "ann_determ: identical outputs (deterministic)");
+  }
+
+  std::cout << std::endl;
+}
+
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 
 void runEndpointTests()
 {
-  std::cout << "Starting NN-Server..." << std::endl;
+  std::cout << "Starting NN-Server (CNN model)..." << std::endl;
 
   if (!startServer()) {
     std::cerr << "FATAL: Could not start NN-Server. Skipping all endpoint tests." << std::endl;
@@ -479,6 +626,22 @@ void runEndpointTests()
   testPredictImageConcurrent();
   testPredictImageRepeatedConcurrent();
   testQueueLimitReject();
+
+  // --- ANN image input tests (requires different model) ---
+  std::cout << std::endl;
+  std::cout << "Restarting NN-Server (ANN image model)..." << std::endl;
+  stopServer();
+
+  if (!startServer(annImageConfig())) {
+    std::cerr << "FATAL: Could not start NN-Server with ANN image model. Skipping ANN image tests." << std::endl;
+    testsFailed++;
+    return;
+  }
+
+  testANNImagePredict();
+  testANNImagePredictDark();
+  testANNImagePredictJson();
+  testANNImageDeterministic();
 
   stopServer();
 }

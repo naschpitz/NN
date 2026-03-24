@@ -23,11 +23,14 @@ namespace NN_Server
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
 
-    if (json.contains("inputShape") || json.contains("convolutionalLayersConfig")) {
-      return NetworkType::CNN;
+    // ANN configs use "layersConfig" for their dense layers.
+    // CNN configs use "convolutionalLayersConfig" and/or "denseLayersConfig".
+    // "inputShape" is NOT used for detection — both types can have it (e.g. ANN image input).
+    if (json.contains("layersConfig")) {
+      return NetworkType::ANN;
     }
 
-    return NetworkType::ANN;
+    return NetworkType::CNN;
   }
 
   //===================================================================================================================//
@@ -47,16 +50,16 @@ namespace NN_Server
 
     InputConfig config;
 
-    // For CNN models, inputShape is always required (the CNN architecture needs it)
-    bool isCNN = json.contains("inputShape") || json.contains("convolutionalLayersConfig");
+    bool isCNN = !json.contains("layersConfig");
 
     if (json.contains("inputType") && json["inputType"].get<std::string>() == "image") {
       config.isImage = true;
     } else if (isCNN) {
-      // CNN models with inputShape default to image input even without explicit inputType
+      // CNN models default to image input even without explicit inputType
       config.isImage = true;
     }
 
+    // Input shape (for ANN image input — CNN uses CoreConfig.inputShape)
     if (json.contains("inputShape")) {
       const auto& shape = json["inputShape"];
       config.c = shape.at("c").get<ulong>();

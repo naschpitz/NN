@@ -127,8 +127,8 @@ Content-Length: 32451
      -H <span class="string">"Content-Type: image/jpeg"</span> \
      --data-binary @photo.jpg</code></pre>
 
-<div class="warn-box">
-<strong>CNN only:</strong> Image input requires a CNN model with a defined <code>inputShape</code>. ANN models do not support image input — use JSON instead.
+<div class="info-box">
+<strong>Image input</strong> requires a model with a defined <code>inputShape</code> and <code>"inputType": "image"</code>. This works for both CNN and ANN models. For ANN models, the image is decoded, resized to the <code>inputShape</code>, and flattened into a 1D vector (e.g., a 1×28×28 MNIST image becomes a 784-element input).
 </div>
 </div>
 
