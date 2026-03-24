@@ -330,19 +330,13 @@ int Runner::runANNPredict()
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = ANN::Utils<float>::formatISO8601();
 
-  std::vector<ANN::Output<float>> outputs;
-  outputs.reserve(inputs.size());
-
   if (this->logLevel > LogLevel::QUIET)
     ProgressBar::printLoadingProgress("Predicting", 0, inputs.size(), this->ioConfig.progressReports);
 
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    ANN::Output<float> output = this->annCore->predict(inputs[i]);
-    outputs.push_back(std::move(output));
+  std::vector<ANN::Output<float>> outputs = this->annCore->predict(inputs);
 
-    if (this->logLevel > LogLevel::QUIET)
-      ProgressBar::printLoadingProgress("Predicting", i + 1, inputs.size(), this->ioConfig.progressReports);
-  }
+  if (this->logLevel > LogLevel::QUIET)
+    ProgressBar::printLoadingProgress("Predicting", inputs.size(), inputs.size(), this->ioConfig.progressReports);
 
   auto batchEnd = std::chrono::system_clock::now();
   std::string endTimeStr = ANN::Utils<float>::formatISO8601();
@@ -584,19 +578,13 @@ int Runner::runCNNPredict()
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = ANN::Utils<float>::formatISO8601();
 
-  std::vector<CNN::Output<float>> outputs;
-  outputs.reserve(inputs.size());
-
   if (this->logLevel > LogLevel::QUIET)
     ProgressBar::printLoadingProgress("Predicting", 0, inputs.size(), this->ioConfig.progressReports);
 
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    CNN::Output<float> output = this->cnnCore->predict(inputs[i]);
-    outputs.push_back(std::move(output));
+  std::vector<CNN::Output<float>> outputs = this->cnnCore->predict(inputs);
 
-    if (this->logLevel > LogLevel::QUIET)
-      ProgressBar::printLoadingProgress("Predicting", i + 1, inputs.size(), this->ioConfig.progressReports);
-  }
+  if (this->logLevel > LogLevel::QUIET)
+    ProgressBar::printLoadingProgress("Predicting", inputs.size(), inputs.size(), this->ioConfig.progressReports);
 
   auto batchEnd = std::chrono::system_clock::now();
   std::string endTimeStr = ANN::Utils<float>::formatISO8601();
