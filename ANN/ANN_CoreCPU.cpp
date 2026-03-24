@@ -58,12 +58,19 @@ Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
   for (ulong i = 0; i < numInputs; i++)
     indices[i] = i;
 
-  QtConcurrent::blockingMap(indices, [&, numThreads](ulong idx) {
+  std::atomic<ulong> completedInputs{0};
+
+  QtConcurrent::blockingMap(indices, [&, numThreads, numInputs](ulong idx) {
     thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
     CoreCPUWorker<T>& worker = *workers[workerIndex];
 
     worker.propagate(inputs[idx]);
     outputs[idx] = worker.getOutput();
+
+    ulong completed = ++completedInputs;
+
+    if (this->progressCallback)
+      this->progressCallback(completed, numInputs);
   });
 
   return outputs;

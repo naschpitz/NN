@@ -42,7 +42,8 @@ namespace ANN
       std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
-      Outputs<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx);
+      Outputs<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
+                               const ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training methods (for external orchestration, e.g., CNN) --//
       Tensor1D<T> backpropagate(const Output<T>& output);
