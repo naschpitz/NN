@@ -14,10 +14,12 @@ namespace NN_Server
 
     this->file.setFileName(QString::fromStdString(filePath));
 
-    if (!this->file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    if (!this->file.open(QIODevice::ReadWrite | QIODevice::Append)) {
       std::cerr << "Warning: Could not open log file: " << filePath << ". Logging disabled.\n";
       return;
     }
+
+    this->currentPos = this->file.size();
 
     std::cout << "  Log file:     " << filePath << "\n";
 
@@ -43,8 +45,10 @@ namespace NN_Server
     // Format: [2026-03-23 14:30:05.123 -03:00] 192.168.1.10 POST /predict 200 45.2ms
     std::string timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz t").toStdString();
 
-    char durationStr[32];
-    snprintf(durationStr, sizeof(durationStr), "%.1fms", durationMs);
+    // Format duration with '.' decimal separator regardless of locale
+    int whole = static_cast<int>(durationMs);
+    int frac = static_cast<int>((durationMs - whole) * 10 + 0.5) % 10;
+    std::string durationStr = std::to_string(whole) + "." + std::to_string(frac) + "ms";
 
     std::string line = "[" + timestamp + "] " + clientIp + " " + method + " " + path + " " +
                        std::to_string(statusCode) + " " + durationStr + "\n";

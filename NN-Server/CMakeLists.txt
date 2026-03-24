@@ -60,3 +60,18 @@ target_link_libraries(test_endpoints PRIVATE
     Qt${QT_VERSION_MAJOR}::Network
 )
 
+# Logger unit tests — tests Logger directly without starting the server
+add_executable(test_logger
+  tests/test_logger_main.cpp
+  tests/test_logger.cpp
+  NN-Server_Logger.cpp
+)
+target_include_directories(test_logger PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+)
+target_link_libraries(test_logger PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Network
+)
+
