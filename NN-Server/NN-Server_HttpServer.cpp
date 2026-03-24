@@ -1,6 +1,7 @@
 #include "NN-Server_HttpServer.hpp"
 #include "NN-Server_RequestHandler.hpp"
 
+#include <QHostAddress>
 #include <QTcpSocket>
 #include <QThreadPool>
 
@@ -65,8 +66,14 @@ namespace NN_Server
       socket.waitForBytesWritten(1000);
       socket.disconnectFromHost();
 
-      if (this->logger)
-        this->logger->logRequest(socket.peerAddress().toString().toStdString(), "?", "?", 503, 0.0);
+      if (this->logger) {
+        // Normalize IPv4-mapped IPv6 addresses
+        bool ok = false;
+        quint32 ipv4 = socket.peerAddress().toIPv4Address(&ok);
+        std::string ip = ok ? QHostAddress(ipv4).toString().toStdString()
+                            : socket.peerAddress().toString().toStdString();
+        this->logger->logRequest(ip, "?", "?", 503, 0.0);
+      }
 
       return;
     }

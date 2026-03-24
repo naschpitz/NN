@@ -6,10 +6,26 @@
 
 #include <QElapsedTimer>
 
+#include <QHostAddress>
+
 #include <iostream>
 
 namespace NN_Server
 {
+
+  // Convert IPv4-mapped IPv6 addresses (e.g. "::ffff:192.168.1.3") to plain IPv4.
+  // Real IPv6 addresses are left unchanged.
+  static std::string normalizeIp(const QHostAddress& address)
+  {
+    bool ok = false;
+    quint32 ipv4 = address.toIPv4Address(&ok);
+
+    if (ok) {
+      return QHostAddress(ipv4).toString().toStdString();
+    }
+
+    return address.toString().toStdString();
+  }
 
   RequestHandler::RequestHandler(qintptr socketDescriptor, std::shared_ptr<CorePool> pool, qint64 maxBodySize,
                                  std::shared_ptr<Logger> logger, HttpServer* server)
@@ -39,7 +55,7 @@ namespace NN_Server
     QElapsedTimer timer;
     timer.start();
 
-    std::string clientIp = socket.peerAddress().toString().toStdString();
+    std::string clientIp = normalizeIp(socket.peerAddress());
 
     QByteArray requestData;
     bool rejected = false;
@@ -84,6 +100,34 @@ namespace NN_Server
         rejected = true;
         rejectedStatus = 413;
         break;
+      }
+    }
+
+    // If behind a reverse proxy (e.g. Caddy, Nginx, FRP), use the forwarded client IP
+    if (requestData.contains("\r\n\r\n")) {
+      QByteArray headers = requestData.left(requestData.indexOf("\r\n\r\n"));
+      std::string forwarded = getHeader(headers, "x-forwarded-for");
+
+      if (!forwarded.empty()) {
+        // X-Forwarded-For may contain multiple IPs: "client, proxy1, proxy2"
+        // The first one is the original client
+        size_t comma = forwarded.find(',');
+
+        if (comma != std::string::npos) {
+          clientIp = forwarded.substr(0, comma);
+        } else {
+          clientIp = forwarded;
+        }
+
+        // Trim whitespace
+        clientIp.erase(0, clientIp.find_first_not_of(' '));
+        clientIp.erase(clientIp.find_last_not_of(' ') + 1);
+      } else {
+        std::string realIp = getHeader(headers, "x-real-ip");
+
+        if (!realIp.empty()) {
+          clientIp = realIp;
+        }
       }
     }
 

@@ -40,8 +40,8 @@ namespace NN_Server
     if (!this->file.isOpen())
       return;
 
-    // Format: [2026-03-23 14:30:05.123] 192.168.1.10 POST /predict 200 45.2ms
-    std::string timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz").toStdString();
+    // Format: [2026-03-23 14:30:05.123 -03:00] 192.168.1.10 POST /predict 200 45.2ms
+    std::string timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz t").toStdString();
 
     char durationStr[32];
     snprintf(durationStr, sizeof(durationStr), "%.1fms", durationMs);
