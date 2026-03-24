@@ -283,11 +283,104 @@ static void testParametersDuringTraining()
 
 //===================================================================================================================//
 
+//===================================================================================================================//
+
+static void testBatchPredict()
+{
+  std::cout << "--- testBatchPredict ---" << std::endl;
+
+  // 2 inputs → 1 output with known weights
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::PREDICT;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+
+  config.parameters.weights.resize(2);
+  config.parameters.weights[1] = {{0.5, 0.5}};
+  config.parameters.biases.resize(2);
+  config.parameters.biases[1] = {0.0};
+
+  auto core = ANN::Core<double>::makeCore(config);
+
+  // Batch predict with multiple inputs at once
+  ANN::Inputs<double> inputs = {{1.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
+  ANN::Outputs<double> outputs = core->predict(inputs);
+
+  CHECK(outputs.size() == 4, "batch predict returns 4 outputs");
+
+  // Each output should have 1 element
+  for (size_t i = 0; i < outputs.size(); i++)
+    CHECK(outputs[i].size() == 1, "output[" + std::to_string(i) + "] size = 1");
+
+  // Verify known values
+  double exp_11 = 1.0 / (1.0 + std::exp(-1.0)); // sigmoid(0.5 + 0.5) = sigmoid(1.0)
+  double exp_00 = 1.0 / (1.0 + std::exp(0.0)); // sigmoid(0) = 0.5
+  double exp_10 = 1.0 / (1.0 + std::exp(-0.5)); // sigmoid(0.5)
+  double exp_01 = 1.0 / (1.0 + std::exp(-0.5)); // sigmoid(0.5)
+
+  CHECK_NEAR(outputs[0][0], exp_11, 1e-5, "batch predict {1,1}");
+  CHECK_NEAR(outputs[1][0], exp_00, 1e-5, "batch predict {0,0}");
+  CHECK_NEAR(outputs[2][0], exp_10, 1e-5, "batch predict {1,0}");
+  CHECK_NEAR(outputs[3][0], exp_01, 1e-5, "batch predict {0,1}");
+
+  // Verify batch predict matches single predict
+  for (size_t i = 0; i < inputs.size(); i++) {
+    ANN::Output<double> single = core->predict(inputs[i]);
+    CHECK_NEAR(outputs[i][0], single[0], 1e-10, "batch[" + std::to_string(i) + "] matches single predict");
+  }
+}
+
+//===================================================================================================================//
+
+static void testBatchPredictAfterTraining()
+{
+  std::cout << "--- testBatchPredictAfterTraining ---" << std::endl;
+
+  // Train XOR then batch predict all 4 patterns
+  ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{0.0, 1.0}, {1.0}}, {{1.0, 0.0}, {1.0}}, {{1.0, 1.0}, {0.0}}};
+
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+
+  config.trainingConfig.numEpochs = 2000;
+  config.trainingConfig.learningRate = 0.1;
+  config.progressReports = 0;
+  config.logLevel = ANN::LogLevel::ERROR;
+
+  bool converged = false;
+  ANN::Outputs<double> outputs;
+
+  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
+    if (attempt > 0)
+      std::cout << "  retry #" << attempt << std::endl;
+
+    auto core = ANN::Core<double>::makeCore(config);
+    core->train(samples.size(), ANN::makeSampleProvider(samples));
+
+    // Batch predict all 4 XOR inputs
+    ANN::Inputs<double> inputs = {{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}};
+    outputs = core->predict(inputs);
+
+    if (outputs[0][0] < 0.5 && outputs[1][0] > 0.5 && outputs[2][0] > 0.5 && outputs[3][0] < 0.5)
+      converged = true;
+  }
+
+  CHECK(outputs.size() == 4, "batch predict returns 4 outputs");
+  CHECK(converged, "XOR batch predict converged (5 attempts)");
+}
+
+//===================================================================================================================//
+
 void runCoreBasicTests()
 {
   testMakeCoreCPU();
   testPredictSimple();
+  testBatchPredict();
   testTrainXOR();
+  testBatchPredictAfterTraining();
   testTestMethod();
   testTrainingMetadata();
   testPredictMetadata();

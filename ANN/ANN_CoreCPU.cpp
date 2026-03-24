@@ -32,16 +32,41 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreCPU<T>::predict(const Input<T>& input)
+Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
 {
-  this->predictStart();
+  int numThreads = this->numThreads;
 
-  this->stepWorker->propagate(input);
-  Output<T> output = this->stepWorker->getOutput();
+  if (numThreads <= 0)
+    numThreads = QThreadPool::globalInstance()->maxThreadCount();
 
-  this->predictEnd();
+  // Create per-thread workers (forward pass only — no training buffers)
+  std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
 
-  return output;
+  for (int i = 0; i < numThreads; i++) {
+    workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
+                                                         this->costFunctionConfig, false));
+  }
+
+  ulong numInputs = inputs.size();
+  Outputs<T> outputs(numInputs);
+
+  // Atomic counter for assigning unique worker indices to threads
+  std::atomic<int> nextWorkerIndex{0};
+
+  QVector<ulong> indices(numInputs);
+
+  for (ulong i = 0; i < numInputs; i++)
+    indices[i] = i;
+
+  QtConcurrent::blockingMap(indices, [&, numThreads](ulong idx) {
+    thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+    CoreCPUWorker<T>& worker = *workers[workerIndex];
+
+    worker.propagate(inputs[idx]);
+    outputs[idx] = worker.getOutput();
+  });
+
+  return outputs;
 }
 
 //===================================================================================================================//
