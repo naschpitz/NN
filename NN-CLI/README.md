@@ -46,7 +46,7 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 ### Modes
 
 - **train**: Train a neural network using `--config` and samples, outputs a trained model file.
-- **predict**: Run predict using `--config` (trained model) with a single input.
+- **predict**: Run predict using `--config` (trained model) with one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Output order matches input order.
 - **test**: Evaluate a trained model (`--config`) on test samples and report the loss.
 
 ## ANN Configuration

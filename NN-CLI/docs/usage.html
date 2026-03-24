@@ -81,7 +81,7 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 
 <div class="card">
 <h3><span class="badge-green">predict</span></h3>
-<p>Runs inference on a single input. Requires <code>--input</code>. The config must include pre-trained <code>parameters</code>. Outputs prediction + metadata JSON.</p>
+<p>Runs inference on one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Requires <code>--input</code>. The config must include pre-trained <code>parameters</code>. Outputs prediction + metadata JSON. Output order matches input order.</p>
 <pre><code>NN-CLI -c trained_model.json -m predict -i input.json -o result.json
 </code></pre>
 </div>
