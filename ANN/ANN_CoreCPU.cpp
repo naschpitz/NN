@@ -92,6 +92,17 @@ Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
 //===================================================================================================================//
 
 template <typename T>
+Output<T> CoreCPU<T>::predict(const Input<T>& input)
+{
+  // Direct single-input predict using stepWorker — avoids QtConcurrent::blockingMap
+  // to prevent deadlocks when called from inside another blockingMap (e.g., CNN training).
+  this->stepWorker->propagate(input);
+  return this->stepWorker->getOutput();
+}
+
+//===================================================================================================================//
+
+template <typename T>
 void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   // Allocate global accumulators (for merging worker gradients) and Adam state on first call.

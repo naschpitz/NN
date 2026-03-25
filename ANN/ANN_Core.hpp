@@ -26,7 +26,8 @@ namespace ANN
 
       //-- Core interface --//
       virtual Outputs<T> predict(const Inputs<T>& inputs) = 0;
-      Output<T> predict(const Input<T>& input); // Convenience wrapper for the multi-input version
+      virtual Output<T>
+      predict(const Input<T>& input); // Single-input predict (overridden in CoreCPU to avoid threading)
       virtual void train(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
       virtual TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
 
