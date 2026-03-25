@@ -27,17 +27,6 @@ namespace ANN
 
   template <typename T>
   using Tensor3D = std::vector<std::vector<std::vector<T>>>;
-
-  // Result of a single-sample training step (forward + backward + accumulate).
-  // Used by external orchestrators that embed ANN as a sub-network (e.g., a dense
-  // head after convolutional layers) and need the predicted output for loss
-  // calculation plus the input-layer gradients to continue backpropagation
-  // through their own preceding layers.
-  template <typename T>
-  struct TrainStepResult {
-      Output<T> predicted; // Network output from the forward pass
-      Tensor1D<T> inputGradients; // dCost/dInput — gradient w.r.t. the input layer
-  };
 }
 
 //===================================================================================================================//

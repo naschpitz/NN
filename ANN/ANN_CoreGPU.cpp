@@ -391,6 +391,22 @@ void CoreGPU<T>::update(ulong numSamples)
 //===================================================================================================================//
 
 template <typename T>
+Tensor1D<T> CoreGPU<T>::backpropagate(const Output<T>& expected)
+{
+  return this->gpuWorkers[0]->backpropagate(expected);
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPU<T>::accumulate()
+{
+  this->gpuWorkers[0]->accumulate();
+}
+
+//===================================================================================================================//
+
+template <typename T>
 void CoreGPU<T>::resetAccumulators()
 {
   for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {

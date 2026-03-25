@@ -64,8 +64,8 @@
         <p>Multi-GPU training with gradient merging via OpenCL</p>
       </div>
       <div class="card" style="text-align:center">
-        <h3>🧮 Single-sample Training</h3>
-        <p>trainStep() → update() for external orchestration</p>
+        <h3>🧮 Step-by-step API</h3>
+        <p>predict → backpropagate → accumulate → update</p>
       </div>
       <div class="card" style="text-align:center">
         <h3>🧵 Multi-threaded CPU</h3>
@@ -93,7 +93,7 @@
       <li><strong>Multi-GPU</strong> — Automatic gradient merging across devices with per-GPU progress reporting</li>
       <li><strong>He / Xavier initialisation</strong> — Correct weight initialisation for ReLU and Sigmoid/Tanh</li>
       <li><strong>Pure library</strong> — Accessible entirely via C++ function calls; no built-in file I/O</li>
-      <li><strong>Single-sample training</strong> — <code>trainStep()</code> performs forward + backward + accumulate in one call, for external orchestration (e.g., CNN dense head)</li>
+      <li><strong>Step-by-step API</strong> — predict → backpropagate → accumulate → update for custom training loops</li>
       <li><strong>Progress callbacks</strong> — Real-time epoch/sample/loss reporting</li>
     </ul>
 
@@ -121,7 +121,7 @@
       </a>
       <a href="examples.html" class="card" style="text-decoration:none;color:inherit;">
         <h3 style="color:var(--primary);">💻 Examples</h3>
-        <p style="font-size:.9rem;">Training, prediction, testing, single-sample training.</p>
+        <p style="font-size:.9rem;">Training, prediction, testing, step-by-step loops.</p>
       </a>
     </div>
 

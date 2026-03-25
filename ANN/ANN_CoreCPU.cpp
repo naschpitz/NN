@@ -25,7 +25,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
                                                         this->costFunctionConfig, allocateTraining);
 
   // Note: Global accumulators and Adam state are allocated lazily in train(),
-  // NOT here. This ensures the trainStep() path sees empty global accumulators,
+  // NOT here. This ensures the step-by-step path sees empty global accumulators,
   // so update() correctly reads from stepWorker's accumulators.
 }
 
@@ -41,13 +41,22 @@ Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
   if (numThreads <= 0)
     numThreads = QThreadPool::globalInstance()->maxThreadCount();
 
-  // Create per-thread workers (forward pass only — no training buffers)
-  std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
+  // Use stepWorker as worker[0] so its internal state stays current for the
+  // step-by-step training path (predict → backpropagate → accumulate → update).
+  // Create additional workers only if more threads are needed.
+  std::vector<std::unique_ptr<CoreCPUWorker<T>>> extraWorkers;
 
-  for (int i = 0; i < numThreads; i++) {
-    workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
-                                                         this->costFunctionConfig, false));
+  for (int i = 1; i < numThreads; i++) {
+    extraWorkers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig,
+                                                              this->parameters, this->costFunctionConfig, false));
   }
+
+  // Build a raw-pointer array: [stepWorker, extra0, extra1, ...]
+  std::vector<CoreCPUWorker<T>*> workerPtrs;
+  workerPtrs.push_back(this->stepWorker.get());
+
+  for (auto& w : extraWorkers)
+    workerPtrs.push_back(w.get());
 
   ulong numInputs = inputs.size();
   Outputs<T> outputs(numInputs);
@@ -64,7 +73,7 @@ Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
 
   QtConcurrent::blockingMap(indices, [&, numThreads, numInputs](ulong idx) {
     thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
-    CoreCPUWorker<T>& worker = *workers[workerIndex];
+    CoreCPUWorker<T>& worker = *workerPtrs[workerIndex];
 
     worker.propagate(inputs[idx]);
     outputs[idx] = worker.getOutput();
@@ -86,8 +95,8 @@ template <typename T>
 void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   // Allocate global accumulators (for merging worker gradients) and Adam state on first call.
-  // These are NOT allocated in the constructor so that the trainStep API
-  // correctly uses stepWorker's accumulators.
+  // These are NOT allocated in the constructor so that the step-by-step API
+  // (predict→backpropagate→accumulate→update) correctly uses stepWorker's accumulators.
   if (this->accum_dCost_dWeights.empty()) {
     this->allocateGlobalAccumulators();
 
@@ -470,7 +479,7 @@ void CoreCPU<T>::update(ulong numSamples)
 
   // Determine which accumulators to read from:
   // - train() merges worker accumulators into global accumulators, then calls update()
-  // - trainStep() accumulates directly into stepWorker's accumulators
+  // - step-by-step path accumulates directly into stepWorker's accumulators
   const Tensor3D<T>& accumWeights =
     this->accum_dCost_dWeights.empty() ? this->stepWorker->getAccumWeights() : this->accum_dCost_dWeights;
   const Tensor2D<T>& accumBiases =
@@ -480,7 +489,7 @@ void CoreCPU<T>::update(ulong numSamples)
 
   if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
     // Lazily allocate ADAM state on first update() call.
-    // This handles the trainStep() path where train() is never called.
+    // This handles the step-by-step path where train() is never called.
     if (this->adam_m_weights.empty()) {
       this->allocateAdamState();
     }
@@ -558,24 +567,21 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 }
 
 //===================================================================================================================//
-//-- Single-sample training (for external orchestration) --//
+//-- Step-by-step training (for external orchestration) --//
 //===================================================================================================================//
 
 template <typename T>
-TrainStepResult<T> CoreCPU<T>::trainStep(const Input<T>& input, const Output<T>& expected)
+Tensor1D<T> CoreCPU<T>::backpropagate(const Output<T>& expected)
 {
-  this->stepWorker->propagate(input);
+  return this->stepWorker->backpropagateAndReturnInputGradients(expected);
+}
 
-  Output<T> predicted = this->stepWorker->getOutput();
+//===================================================================================================================//
 
-  Tensor1D<T> inputGradients = this->stepWorker->backpropagateAndReturnInputGradients(expected);
+template <typename T>
+void CoreCPU<T>::accumulate()
+{
   this->stepWorker->accumulate();
-
-  TrainStepResult<T> result;
-  result.predicted = std::move(predicted);
-  result.inputGradients = std::move(inputGradients);
-
-  return result;
 }
 
 //===================================================================================================================//

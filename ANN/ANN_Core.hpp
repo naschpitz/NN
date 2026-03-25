@@ -30,7 +30,13 @@ namespace ANN
       virtual void train(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
       virtual TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
 
-      //-- Accumulate / Update --//
+      //-- Step-by-step training (for external orchestration) --//
+      // Used by external orchestrators that embed ANN as a sub-network (e.g., a dense
+      // head after convolutional layers) and need the input-layer gradients to continue
+      // backpropagation through their own preceding layers.
+      // Usage: predict(input) → backpropagate(expected) → accumulate() → update(numSamples)
+      virtual Tensor1D<T> backpropagate(const Output<T>& expected) = 0;
+      virtual void accumulate() = 0;
       virtual void resetAccumulators() = 0;
       virtual void update(ulong numSamples) = 0;
 

@@ -22,7 +22,9 @@ namespace ANN
       void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
       TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
 
-      //-- Accumulate / Update --//
+      //-- Step-by-step training (for external orchestration) --//
+      Tensor1D<T> backpropagate(const Output<T>& expected) override;
+      void accumulate() override;
       void resetAccumulators() override;
       void update(ulong numSamples) override;
 

@@ -222,7 +222,27 @@ Outputs<T> CoreGPUWorker<T>::predictSubset(const Inputs<T>& inputs, ulong startI
 }
 
 //===================================================================================================================//
-//-- Step-by-step training methods (for external orchestration, e.g., CNN) --//
+//-- Step-by-step training (for external orchestration) --//
+//===================================================================================================================//
+
+template <typename T>
+Tensor1D<T> CoreGPUWorker<T>::backpropagate(const Output<T>& expected)
+{
+  // Set up backpropagate kernels if not done yet
+  if (!this->kernelBuilder->backpropagateKernelsSetup) {
+    this->kernelBuilder->setupBackpropagateKernels();
+  }
+
+  // Write expected output to GPU buffers
+  this->core->template writeBuffer<T>("outputs", expected, 0);
+
+  // Execute forward pass + backpropagation + input gradient kernels
+  this->core->run();
+
+  // Read and return input layer gradients
+  return this->bufferManager->readInputGradients();
+}
+
 //===================================================================================================================//
 
 template <typename T>
