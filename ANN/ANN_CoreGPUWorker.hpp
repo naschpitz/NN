@@ -45,8 +45,7 @@ namespace ANN
       Outputs<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
                                const ProgressCallback& callback = nullptr);
 
-      //-- Step-by-step training methods (for external orchestration, e.g., CNN) --//
-      Tensor1D<T> backpropagate(const Output<T>& output);
+      //-- Accumulate / Reset --//
       void accumulate();
       void resetAccumulators();
 

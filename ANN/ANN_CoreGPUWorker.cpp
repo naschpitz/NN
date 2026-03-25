@@ -226,26 +226,6 @@ Outputs<T> CoreGPUWorker<T>::predictSubset(const Inputs<T>& inputs, ulong startI
 //===================================================================================================================//
 
 template <typename T>
-Tensor1D<T> CoreGPUWorker<T>::backpropagate(const Output<T>& output)
-{
-  // Set up backpropagate kernels if not done yet
-  if (!this->kernelBuilder->backpropagateKernelsSetup) {
-    this->kernelBuilder->setupBackpropagateKernels();
-  }
-
-  // Write input and expected output to GPU buffers
-  this->core->template writeBuffer<T>("outputs", output, 0);
-
-  // Execute forward pass + backpropagation + input gradient kernels
-  this->core->run();
-
-  // Read and return input layer gradients
-  return this->bufferManager->readInputGradients();
-}
-
-//===================================================================================================================//
-
-template <typename T>
 void CoreGPUWorker<T>::accumulate()
 {
   // Set up accumulate kernels if not done yet

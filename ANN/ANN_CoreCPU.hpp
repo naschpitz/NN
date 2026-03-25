@@ -26,14 +26,18 @@ namespace ANN
       void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
       TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
 
-      //-- Step-by-step training (for external orchestration, e.g., CNN) --//
-      Tensor1D<T> backpropagate(const Output<T>& output) override;
-      void accumulate() override;
+      //-- Single-sample training (for external orchestration) --//
+      // Performs forward pass, backward pass, and gradient accumulation in one call.
+      // Used by external orchestrators that embed ANN as a sub-network (e.g., a dense
+      // head after convolutional layers) and need the predicted output for loss
+      // calculation plus the input-layer gradients to continue backpropagation
+      // through their own preceding layers.
+      TrainStepResult<T> trainStep(const Input<T>& input, const Output<T>& expected);
       void resetAccumulators() override;
       void update(ulong numSamples) override;
 
     private:
-      //-- Step-by-step worker (for predict + step-by-step training path) --//
+      //-- Persistent worker (for predict and single-sample training) --//
       std::unique_ptr<CoreCPUWorker<T>> stepWorker;
 
       //-- Global accumulators (for merging worker results) --//

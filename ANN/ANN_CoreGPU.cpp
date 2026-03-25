@@ -44,6 +44,8 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 template <typename T>
 Outputs<T> CoreGPU<T>::predict(const Inputs<T>& inputs)
 {
+  this->predictStart();
+
   ulong numInputs = inputs.size();
   Outputs<T> outputs(numInputs);
 
@@ -92,6 +94,8 @@ Outputs<T> CoreGPU<T>::predict(const Inputs<T>& inputs)
     for (ulong i = 0; i < gpuOutputs[gpuIdx].size(); i++)
       outputs[startIdx + i] = std::move(gpuOutputs[gpuIdx][i]);
   }
+
+  this->predictEnd();
 
   return outputs;
 }
@@ -384,24 +388,6 @@ void CoreGPU<T>::update(ulong numSamples)
 
 //===================================================================================================================//
 //-- Step-by-step training methods (for external orchestration, e.g., CNN) --//
-//===================================================================================================================//
-
-template <typename T>
-Tensor1D<T> CoreGPU<T>::backpropagate(const Output<T>& output)
-{
-  // Delegate to the first worker (same as predict)
-  return this->gpuWorkers[0]->backpropagate(output);
-}
-
-//===================================================================================================================//
-
-template <typename T>
-void CoreGPU<T>::accumulate()
-{
-  // Delegate to the first worker (same as predict)
-  this->gpuWorkers[0]->accumulate();
-}
-
 //===================================================================================================================//
 
 template <typename T>

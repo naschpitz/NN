@@ -25,8 +25,8 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
                                                         this->costFunctionConfig, allocateTraining);
 
   // Note: Global accumulators and Adam state are allocated lazily in train(),
-  // NOT here. This ensures the step-by-step API (used by CNN) sees empty global
-  // accumulators, so update() correctly reads from stepWorker's accumulators.
+  // NOT here. This ensures the trainStep() path sees empty global accumulators,
+  // so update() correctly reads from stepWorker's accumulators.
 }
 
 //===================================================================================================================//
@@ -34,6 +34,8 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 template <typename T>
 Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
 {
+  this->predictStart();
+
   int numThreads = this->numThreads;
 
   if (numThreads <= 0)
@@ -73,6 +75,8 @@ Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
       this->progressCallback(completed, numInputs);
   });
 
+  this->predictEnd();
+
   return outputs;
 }
 
@@ -82,8 +86,8 @@ template <typename T>
 void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   // Allocate global accumulators (for merging worker gradients) and Adam state on first call.
-  // These are NOT allocated in the constructor so that the step-by-step API
-  // (predict→backpropagate→accumulate→update) correctly uses stepWorker's accumulators.
+  // These are NOT allocated in the constructor so that the trainStep API
+  // correctly uses stepWorker's accumulators.
   if (this->accum_dCost_dWeights.empty()) {
     this->allocateGlobalAccumulators();
 
@@ -466,7 +470,7 @@ void CoreCPU<T>::update(ulong numSamples)
 
   // Determine which accumulators to read from:
   // - train() merges worker accumulators into global accumulators, then calls update()
-  // - step-by-step path (CNN) accumulates directly into stepWorker's accumulators
+  // - trainStep() accumulates directly into stepWorker's accumulators
   const Tensor3D<T>& accumWeights =
     this->accum_dCost_dWeights.empty() ? this->stepWorker->getAccumWeights() : this->accum_dCost_dWeights;
   const Tensor2D<T>& accumBiases =
@@ -476,7 +480,7 @@ void CoreCPU<T>::update(ulong numSamples)
 
   if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
     // Lazily allocate ADAM state on first update() call.
-    // This handles the step-by-step path (CNN) where train() is never called.
+    // This handles the trainStep() path where train() is never called.
     if (this->adam_m_weights.empty()) {
       this->allocateAdamState();
     }
@@ -554,21 +558,24 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 }
 
 //===================================================================================================================//
-// Step-by-step training methods (for external orchestration, e.g., CNN)
+//-- Single-sample training (for external orchestration) --//
 //===================================================================================================================//
 
 template <typename T>
-Tensor1D<T> CoreCPU<T>::backpropagate(const Output<T>& output)
+TrainStepResult<T> CoreCPU<T>::trainStep(const Input<T>& input, const Output<T>& expected)
 {
-  return this->stepWorker->backpropagateAndReturnInputGradients(output);
-}
+  this->stepWorker->propagate(input);
 
-//===================================================================================================================//
+  Output<T> predicted = this->stepWorker->getOutput();
 
-template <typename T>
-void CoreCPU<T>::accumulate()
-{
+  Tensor1D<T> inputGradients = this->stepWorker->backpropagateAndReturnInputGradients(expected);
   this->stepWorker->accumulate();
+
+  TrainStepResult<T> result;
+  result.predicted = std::move(predicted);
+  result.inputGradients = std::move(inputGradients);
+
+  return result;
 }
 
 //===================================================================================================================//

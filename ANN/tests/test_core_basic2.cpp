@@ -1,4 +1,5 @@
 #include "test_helpers.hpp"
+#include <ANN_CoreCPU.hpp>
 
 static void testDifferentActivations()
 {
@@ -117,7 +118,7 @@ static void testStepByStepAPI()
 {
   std::cout << "--- testStepByStepAPI ---" << std::endl;
 
-  // Test the step-by-step training API: predict → backpropagate → accumulate → update
+  // Test the trainStep API: trainStep(input, expected) → update(numSamples)
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
@@ -128,7 +129,8 @@ static void testStepByStepAPI()
   config.trainingConfig.learningRate = 0.5;
   config.progressReports = 0;
 
-  auto core = ANN::Core<double>::makeCore(config);
+  std::unique_ptr<ANN::Core<double>> baseCore = ANN::Core<double>::makeCore(config);
+  ANN::CoreCPU<double>* core = static_cast<ANN::CoreCPU<double>*>(baseCore.get());
 
   ANN::Input<double> input = {1.0, 0.5};
   ANN::Output<double> expected = {1.0};
@@ -137,9 +139,7 @@ static void testStepByStepAPI()
   ANN::Output<double> beforePred = core->predict(input);
 
   core->resetAccumulators();
-  core->predict(input); // Forward pass
-  ANN::Tensor1D<double> inputGrads = core->backpropagate(expected);
-  core->accumulate();
+  ANN::TrainStepResult<double> result = core->trainStep(input, expected);
   core->update(1);
 
   ANN::Output<double> afterPred = core->predict(input);
@@ -147,11 +147,14 @@ static void testStepByStepAPI()
   std::cout << "  before=" << beforePred[0] << "  after=" << afterPred[0] << std::endl;
 
   // Input gradients should have size matching input layer
-  CHECK(inputGrads.size() == 2, "input gradients size = 2");
+  CHECK(result.inputGradients.size() == 2, "input gradients size = 2");
+
+  // Predicted output should have correct size
+  CHECK(result.predicted.size() == 1, "trainStep predicted size = 1");
 
   // After one update step toward target=1.0, prediction should move closer to 1.0
   // (This may not always hold depending on init, so just verify it ran without error)
-  CHECK(afterPred.size() == 1, "step-by-step output size = 1");
+  CHECK(afterPred.size() == 1, "trainStep output size = 1");
 }
 
 //===================================================================================================================//
