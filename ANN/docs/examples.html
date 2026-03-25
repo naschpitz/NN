@@ -43,7 +43,7 @@
     <li><a href="#train">Training</a></li>
     <li><a href="#predict">Prediction</a></li>
     <li><a href="#test">Testing</a></li>
-    <li><a href="#step">Step-by-Step Training</a></li>
+    <li><a href="#step">Single-sample Training</a></li>
     <li><a href="#gpu">GPU Training</a></li>
     <li><a href="#xor">XOR Example</a></li>
   </ol>
@@ -119,31 +119,34 @@ std::cout &lt;&lt; <span class="string">"Test — Samples: "</span> &lt;&lt; res
           &lt;&lt; <span class="string">"  Avg Loss: "</span> &lt;&lt; result.averageLoss &lt;&lt; std::endl;
 </code></pre>
 
-<h2 id="step">5. Step-by-Step Training</h2>
-<p>For fine-grained control, you can call each phase of the training loop manually:</p>
-<pre><code><span class="comment">// Step-by-step: predict → backpropagate → accumulate → update</span>
+<h2 id="step">5. Single-sample Training</h2>
+<p>For external orchestrators that embed ANN as a sub-network (e.g., a dense head after
+convolutional layers), <code>trainStep()</code> performs forward pass, backward pass, and gradient
+accumulation in one call:</p>
+<pre><code><span class="keyword">#include</span> <span class="string">"ANN_CoreCPU.hpp"</span>
+
+<span class="comment">// trainStep() is on CoreCPU — cast from makeCore()</span>
+<span class="keyword">auto</span> baseCore = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
+<span class="keyword">auto</span>* core = <span class="keyword">static_cast</span>&lt;ANN::CoreCPU&lt;<span class="type">float</span>&gt;*&gt;(baseCore.get());
+
 <span class="keyword">for</span> (<span class="type">int</span> epoch = <span class="number">0</span>; epoch &lt; numEpochs; epoch++) {
-    <span class="comment">// Reset accumulated gradients</span>
     core-&gt;resetAccumulators();
 
     <span class="keyword">for</span> (<span class="keyword">auto</span>&amp; sample : samples) {
-        <span class="comment">// 1. Propagate</span>
-        ANN::Output&lt;<span class="type">float</span>&gt; output = core-&gt;predict(sample.input);
+        <span class="comment">// Forward + backward + accumulate in one call</span>
+        ANN::TrainStepResult&lt;<span class="type">float</span>&gt; result = core-&gt;trainStep(sample.input, sample.output);
 
-        <span class="comment">// 2. Backpropagate — computes gradients for this sample</span>
-        core-&gt;backpropagate(sample.output);
-
-        <span class="comment">// 3. Add gradients to running accumulators</span>
-        core-&gt;accumulate();
+        <span class="comment">// result.predicted     — network output for loss calculation</span>
+        <span class="comment">// result.inputGradients — dCost/dInput for upstream backprop</span>
     }
 
-    <span class="comment">// 4. Apply SGD update (divides by numSamples internally)</span>
+    <span class="comment">// Apply SGD update (divides by numSamples internally)</span>
     core-&gt;update(samples.size());
 }
 </code></pre>
 
 <div class="info-box">
-  <strong>When to use:</strong> Step-by-step mode is used internally by the CNN library, where propagation goes through CNN layers first, then through the ANN dense layers. The ANN's <code>backpropagate()</code> returns input gradients that flow back into the CNN layers.
+  <strong>When to use:</strong> <code>trainStep()</code> is used by the CNN library, where propagation goes through CNN layers first, then through the ANN dense layers. The returned <code>inputGradients</code> flow back into the CNN layers for continued backpropagation.
 </div>
 
 <h2 id="gpu">6. GPU Training</h2>

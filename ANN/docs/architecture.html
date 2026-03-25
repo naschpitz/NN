@@ -172,17 +172,17 @@
         <span class="func">resetAccumulators</span>()
 
         <span class="keyword">for each</span> sample <span class="keyword">in</span> batch:
-            <span class="comment">// 1. Propagate</span>
-            output = <span class="func">predict</span>(sample.input)
+            <span class="comment">// 1. Forward pass</span>
+            output = worker.<span class="func">propagate</span>(sample.input)
 
             <span class="comment">// 2. Compute loss (MSE)</span>
             loss = (<span class="number">1</span>/n) × Σ (output[i] − expected[i])²
 
-            <span class="comment">// 3. Backpropagate — compute gradients</span>
-            <span class="func">backpropagate</span>(sample.output)
+            <span class="comment">// 3. Backward pass — compute gradients</span>
+            worker.<span class="func">backpropagate</span>(sample.output)
 
             <span class="comment">// 4. Add to running totals</span>
-            <span class="func">accumulate</span>()
+            worker.<span class="func">accumulate</span>()
 
         <span class="comment">// 5. SGD weight update (per batch)</span>
         <span class="func">update</span>(batchSize)

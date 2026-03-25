@@ -267,8 +267,6 @@
   <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>Output&lt;T&gt;</code></td><td>Convenience wrapper for single-input prediction; delegates to the batch version</td></tr>
   <tr><td><code>train(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>void</code></td><td>Full training loop over all epochs</td></tr>
   <tr><td><code>test(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>TestResult&lt;T&gt;</code></td><td>Evaluate loss on a test set using on-demand sample loading</td></tr>
-  <tr><td><code>backpropagate(const Output&lt;T&gt;&amp;)</code></td><td><code>Tensor1D&lt;T&gt;</code></td><td>Compute gradients; returns input-layer gradient</td></tr>
-  <tr><td><code>accumulate()</code></td><td><code>void</code></td><td>Add current gradients to running accumulators</td></tr>
   <tr><td><code>resetAccumulators()</code></td><td><code>void</code></td><td>Zero out gradient accumulators</td></tr>
   <tr><td><code>update(ulong numSamples)</code></td><td><code>void</code></td><td>SGD step: <code>params -= lr · (accum / n)</code></td></tr>
 </table>
@@ -294,6 +292,21 @@
 <div class="info-box">
   <strong>Thread model:</strong> Each thread has its own <code>SampleWorker&lt;T&gt;</code> struct containing private copies of activations, gradients, and accumulators. After processing its sample subset, the main thread merges worker accumulators into the global accumulators.
 </div>
+
+<h3>Single-sample Training (for external orchestration)</h3>
+<p>Used by external orchestrators that embed ANN as a sub-network (e.g., a dense head after
+convolutional layers) and need the predicted output for loss calculation plus the input-layer
+gradients to continue backpropagation through their own preceding layers.</p>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>trainStep(const Input&lt;T&gt;&amp;, const Output&lt;T&gt;&amp;)</code></td><td><code>TrainStepResult&lt;T&gt;</code></td><td>Forward + backward + accumulate in one call</td></tr>
+</table>
+<p><code>TrainStepResult&lt;T&gt;</code> <span class="badge badge-blue">ANN_Types.hpp</span></p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>predicted</code></td><td><code>Output&lt;T&gt;</code></td><td>Network output from the forward pass</td></tr>
+  <tr><td><code>inputGradients</code></td><td><code>Tensor1D&lt;T&gt;</code></td><td>dCost/dInput — gradient w.r.t. the input layer</td></tr>
+</table>
 
 <h3>Key Internal Functions (called from <code>train</code>)</h3>
 <table>
