@@ -264,7 +264,7 @@
 <table>
   <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
   <tr><td><code>predict(const Inputs&lt;T&gt;&amp;)</code></td><td><code>Outputs&lt;T&gt;</code></td><td><strong>Virtual:</strong> batch propagation — distributes inputs across threads/GPUs. Output order matches input order.</td></tr>
-  <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>Output&lt;T&gt;</code></td><td>Convenience wrapper for single-input prediction; delegates to the batch version</td></tr>
+  <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>Output&lt;T&gt;</code></td><td><strong>Virtual:</strong> single-input prediction. CoreCPU overrides this to use the step worker directly (no threading), avoiding deadlocks when called from within another thread pool. Default implementation delegates to the batch version.</td></tr>
   <tr><td><code>train(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>void</code></td><td>Full training loop over all epochs</td></tr>
   <tr><td><code>test(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>TestResult&lt;T&gt;</code></td><td>Evaluate loss on a test set using on-demand sample loading</td></tr>
   <tr><td><code>backpropagate(const Output&lt;T&gt;&amp;)</code></td><td><code>Tensor1D&lt;T&gt;</code></td><td>Compute gradients; returns input-layer gradient</td></tr>
