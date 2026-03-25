@@ -8,16 +8,25 @@ int testsPassed = 0;
 int testsFailed = 0;
 bool runFullTests = false;
 
-void runANNTests();
-void runANNTests2();
-void runCNNBasicTests();
-void runCNNFeaturesTests();
-void runCNNFeaturesTests2();
-void runCNNFeaturesTests3();
+// ANN tests
+void runANNCPUBasicTests();
+void runANNCPUMNISTTests();
+void runANNCPUFeatureTests();
+void runANNGPUMNISTTests();
+
+// CNN tests
+void runCNNCPUBasicTests();
+void runCNNCPUFeatureTests();
+void runCNNCPUSaveLoadTests();
+void runCNNCPUPredictTests();
+void runCNNCPUShuffleTests();
 void runCNNGPULayerTests();
 void runCNNGPUDiagnosticTests();
 void runCNNGPUISICTests();
-void runCNNShuffleTests();
+void runCNNGPUMNISTTests();
+void runCNNGPUSaveLoadTests();
+
+// Other tests
 void runErrorTests();
 void runDataLoaderTests();
 
@@ -42,20 +51,30 @@ int main(int argc, char* argv[])
 
   std::cout << std::endl;
 
-  std::cout << "=== ANN Tests ===" << std::endl;
-  runANNTests();
-  runANNTests2();
+  std::cout << "=== ANN CPU Tests ===" << std::endl;
+  runANNCPUBasicTests();
+  runANNCPUMNISTTests();
+  runANNCPUFeatureTests();
 
   std::cout << std::endl;
-  std::cout << "=== CNN Tests ===" << std::endl;
-  runCNNBasicTests();
-  runCNNFeaturesTests();
-  runCNNFeaturesTests2();
-  runCNNFeaturesTests3();
+  std::cout << "=== ANN GPU Tests ===" << std::endl;
+  runANNGPUMNISTTests();
+
+  std::cout << std::endl;
+  std::cout << "=== CNN CPU Tests ===" << std::endl;
+  runCNNCPUBasicTests();
+  runCNNCPUFeatureTests();
+  runCNNCPUSaveLoadTests();
+  runCNNCPUPredictTests();
+  runCNNCPUShuffleTests();
+
+  std::cout << std::endl;
+  std::cout << "=== CNN GPU Tests ===" << std::endl;
   runCNNGPULayerTests();
   runCNNGPUDiagnosticTests();
   runCNNGPUISICTests();
-  runCNNShuffleTests();
+  runCNNGPUMNISTTests();
+  runCNNGPUSaveLoadTests();
 
   std::cout << std::endl;
   std::cout << "=== Error Handling Tests ===" << std::endl;

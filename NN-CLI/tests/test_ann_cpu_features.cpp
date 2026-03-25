@@ -257,7 +257,7 @@ static void testANNImageNetworkDetection()
 
 //===================================================================================================================//
 
-void runANNTests2()
+void runANNCPUFeatureTests()
 {
   testANNCheckpointParameters();
   testANNShuffleSamplesCLI();

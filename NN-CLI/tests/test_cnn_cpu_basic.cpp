@@ -224,7 +224,7 @@ static void testCNNTrainAndTestMNIST()
   std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
 }
 
-void runCNNBasicTests()
+void runCNNCPUBasicTests()
 {
   testCNNNetworkDetection();
   testCNNTrain();

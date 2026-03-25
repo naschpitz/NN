@@ -57,7 +57,7 @@ static void testCNNShuffleSamplesCLI()
   std::cout << std::endl;
 }
 
-void runCNNShuffleTests()
+void runCNNCPUShuffleTests()
 {
   testCNNShuffleSamplesCLI();
 }

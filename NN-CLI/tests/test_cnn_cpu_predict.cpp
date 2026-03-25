@@ -137,7 +137,7 @@ static void testCNNMultiInputPredictDiversity()
   std::cout << std::endl;
 }
 
-void runCNNFeaturesTests3()
+void runCNNCPUPredictTests()
 {
   testCNNMultiInputPredictDiversity();
 }
