@@ -79,6 +79,9 @@ build/
 .augment/
 INSTRUCTIONS.md
 
+# Local planning / todo files
+todo/
+
 # Examples output (generated files)
 # ----------------------------------
 examples/**/output/
