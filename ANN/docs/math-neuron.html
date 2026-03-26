@@ -36,7 +36,59 @@
 </nav></aside>
 <main class="main">
 
+<h1>The Neuron Model</h1>
+<p>A single artificial neuron computes a weighted sum of its inputs, adds a bias, and passes the result through a non-linear activation function.</p>
 
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#weighted-sum">Weighted Sum</a></li>
+    <li><a href="#activation">Activation</a></li>
+    <li><a href="#implementation">Implementation</a></li>
+  </ol>
+</div>
+
+<h2 id="weighted-sum">Weighted Sum</h2>
+<p>For neuron \(j\) in layer \(l\), the <strong>pre-activation</strong> (also called the "z-value") is:</p>
+<div class="math-block">
+\[
+z_j^{(l)} = b_j^{(l)} + \sum_{k} w_{jk}^{(l)} \cdot a_k^{(l-1)}
+\]
+</div>
+<p>Where:</p>
+<ul>
+  <li>\(w_{jk}^{(l)}\) — weight connecting neuron \(k\) in layer \(l-1\) to neuron \(j\) in layer \(l\)</li>
+  <li>\(a_k^{(l-1)}\) — activation of neuron \(k\) in the previous layer</li>
+  <li>\(b_j^{(l)}\) — bias for neuron \(j\)</li>
+</ul>
+
+<h2 id="activation">Activation</h2>
+<p>The pre-activation is then passed through a non-linear <strong>activation function</strong> to produce the neuron's output:</p>
+<div class="math-block">
+\[
+a_j^{(l)} = f\!\left(z_j^{(l)}\right)
+\]
+</div>
+<p>The choice of \(f\) depends on the layer configuration. See <a href="math-activations.html">Activations</a> for the available functions and their derivatives.</p>
+
+<h2 id="implementation">Implementation</h2>
+<p><span class="badge badge-blue">ANN_CoreCPUWorker.cpp</span> — <code>propagate()</code></p>
+<p>The forward pass iterates over all neurons in each layer, computing the weighted sum and then applying the activation function for the entire layer at once:</p>
+<pre><code><span class="comment">// Compute z = b + W * a for all neurons in layer l</span>
+<span class="keyword">for</span> (<span class="type">ulong</span> j = <span class="number">0</span>; j &lt; numNeurons; j++) {
+  <span class="keyword">this</span>->zs[l][j] = <span class="keyword">this</span>->parameters.biases[l][j];
+
+  <span class="keyword">for</span> (<span class="type">ulong</span> k = <span class="number">0</span>; k &lt; prevNumNeurons; k++)
+    <span class="keyword">this</span>->zs[l][j] += <span class="keyword">this</span>->parameters.weights[l][j][k] * <span class="keyword">this</span>->actvs[l - <span class="number">1</span>][k];
+}
+
+<span class="comment">// Apply activation function to the entire layer</span>
+<span class="type">ActvFunc</span>::<span class="func">calculate</span>(zsData, actvsData, numNeurons, actvFuncType, <span class="keyword">false</span>);
+</code></pre>
+
+<div class="info-box">
+<strong>Note:</strong> Softmax is a special case — it operates on the entire layer's z-values at once (to compute the normalization denominator), unlike ReLU/Sigmoid/Tanh which are element-wise. The <code>ActvFunc::calculate()</code> function handles this distinction internally.
+</div>
 
 </main>
 </div>

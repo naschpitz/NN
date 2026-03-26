@@ -36,7 +36,69 @@
 </nav></aside>
 <main class="main">
 
+<h1>Weight Initialization</h1>
+<p>Proper weight initialization is critical for training deep networks. Weights that are too large cause exploding activations; weights that are too small cause vanishing gradients. The initialization strategy depends on the activation function.</p>
 
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#he">He Initialization (ReLU)</a></li>
+    <li><a href="#xavier">Xavier Initialization (Sigmoid / Tanh)</a></li>
+    <li><a href="#biases">Bias Initialization</a></li>
+    <li><a href="#implementation">Implementation</a></li>
+  </ol>
+</div>
+
+<h2 id="he">He Initialization (ReLU)</h2>
+<p>Used when the layer's activation function is <a href="math-activations.html#relu">ReLU</a>:</p>
+<div class="math-block">
+\[
+w \sim \mathcal{N}\!\left(0, \;\sqrt{\frac{2}{\text{fan\_in}}}\right)
+\]
+</div>
+<p>Where \(\text{fan\_in}\) is the number of neurons in the previous layer. The factor of 2 accounts for ReLU zeroing out approximately half of the activations — without it, the variance of activations would shrink by half at each layer.</p>
+
+<h2 id="xavier">Xavier Initialization (Sigmoid / Tanh)</h2>
+<p>Used when the layer's activation function is <a href="math-activations.html#sigmoid">sigmoid</a> or <a href="math-activations.html#tanh">tanh</a>:</p>
+<div class="math-block">
+\[
+w \sim \mathcal{N}\!\left(0, \;\sqrt{\frac{1}{\text{fan\_in}}}\right)
+\]
+</div>
+<p>Xavier initialization maintains the variance of activations across layers for symmetric activation functions. Since sigmoid and tanh are approximately linear near zero, the factor of 1 (instead of 2) is appropriate.</p>
+
+<h2 id="biases">Bias Initialization</h2>
+<div class="math-block">
+\[
+b = 0
+\]
+</div>
+<p>All biases are initialized to zero. This is standard practice — the symmetry-breaking role is handled entirely by the random weight initialization.</p>
+
+<h2 id="implementation">Implementation</h2>
+<p><span class="badge badge-blue">ANN_CoreCPU.cpp</span> — <code>initializeParameters()</code></p>
+<pre><code><span class="keyword">for</span> (<span class="type">ulong</span> l = <span class="number">1</span>; l &lt; numLayers; l++) {
+  <span class="type">ActvFuncType</span> actvFuncType = layer.actvFuncType;
+  <span class="type">double</span> stddev;
+
+  <span class="keyword">if</span> (actvFuncType == <span class="type">ActvFuncType</span>::RELU)
+    stddev = <span class="func">std::sqrt</span>(<span class="number">2.0</span> / fan_in);  <span class="comment">// He</span>
+  <span class="keyword">else</span>
+    stddev = <span class="func">std::sqrt</span>(<span class="number">1.0</span> / fan_in);  <span class="comment">// Xavier</span>
+
+  std::normal_distribution&lt;<span class="type">double</span>&gt; <span class="func">dist</span>(<span class="number">0.0</span>, stddev);
+
+  <span class="keyword">for</span> (<span class="type">ulong</span> j = <span class="number">0</span>; j &lt; numNeurons; j++)
+    <span class="keyword">for</span> (<span class="type">ulong</span> k = <span class="number">0</span>; k &lt; prevNumNeurons; k++)
+      weights[l][j][k] = <span class="func">dist</span>(gen);
+
+  biases[l] = <span class="number">0</span>;  <span class="comment">// All biases initialized to zero</span>
+}
+</code></pre>
+
+<div class="info-box">
+<strong>Softmax layers</strong> use Xavier initialization (the <code>else</code> branch), since softmax is not ReLU. This is appropriate because softmax's input is the raw pre-activation, and Xavier keeps the variance stable for non-ReLU activations.
+</div>
 
 </main>
 </div>

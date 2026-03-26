@@ -36,7 +36,79 @@
 </nav></aside>
 <main class="main">
 
+<h1>Forward Propagation</h1>
+<p>Forward propagation computes the network's output by passing the input through each layer sequentially.</p>
 
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#algorithm">Algorithm</a></li>
+    <li><a href="#dropout">Dropout</a></li>
+    <li><a href="#implementation">Implementation</a></li>
+  </ol>
+</div>
+
+<h2 id="algorithm">Algorithm</h2>
+<p>Given an input vector, the forward pass proceeds layer by layer from input to output:</p>
+
+<ol>
+  <li><strong>Input layer</strong> (\(l = 0\)): Set activations directly from the input:
+    \[a^{(0)} = \text{input}\]
+  </li>
+  <li><strong>Hidden and output layers</strong> (\(l = 1, \ldots, L\)): For each layer, compute the pre-activation and apply the activation function:
+    \[z^{(l)} = W^{(l)} \cdot a^{(l-1)} + b^{(l)}\]
+    \[a^{(l)} = f^{(l)}\!\left(z^{(l)}\right)\]
+  </li>
+</ol>
+
+<p>The final layer's activations \(a^{(L)}\) are the network's output (prediction).</p>
+
+<h2 id="dropout">Dropout</h2>
+<p>During training, <strong>dropout</strong> randomly zeroes out a fraction of neuron activations to prevent overfitting. For each hidden layer (not the output layer):</p>
+
+<div class="math-block">
+\[
+\text{mask}_j \sim \text{Bernoulli}(1 - p) \qquad\qquad a_j^{(l)} \leftarrow a_j^{(l)} \cdot \frac{\text{mask}_j}{1 - p}
+\]
+</div>
+
+<p>Where \(p\) is the dropout rate. The scaling by \(\frac{1}{1-p}\) (inverted dropout) ensures that the expected value of each activation remains unchanged, so the network can be used at inference time without modification.</p>
+
+<p>During inference (predict/test mode), dropout is not applied — all neurons are active.</p>
+
+<div class="info-box">
+<strong>Backpropagation with dropout:</strong> The same mask is applied to the gradients during the backward pass. If a neuron was dropped during forward propagation, its gradient is also zeroed out. See <a href="math-backprop.html">Backpropagation</a>.
+</div>
+
+<h2 id="implementation">Implementation</h2>
+<p><span class="badge badge-blue">ANN_CoreCPUWorker.cpp</span> — <code>propagate()</code></p>
+<pre><code><span class="comment">// Set input layer activations</span>
+<span class="keyword">for</span> (<span class="type">ulong</span> j = <span class="number">0</span>; j &lt; inputSize; j++)
+  <span class="keyword">this</span>->actvs[<span class="number">0</span>][j] = input[j];
+
+<span class="comment">// Forward pass through hidden and output layers</span>
+<span class="keyword">for</span> (<span class="type">ulong</span> l = <span class="number">1</span>; l &lt; numLayers; l++) {
+  <span class="comment">// Compute z = W * a + b</span>
+  <span class="keyword">for</span> (<span class="type">ulong</span> j = <span class="number">0</span>; j &lt; numNeurons; j++) {
+    <span class="keyword">this</span>->zs[l][j] = <span class="keyword">this</span>->parameters.biases[l][j];
+    <span class="keyword">for</span> (<span class="type">ulong</span> k = <span class="number">0</span>; k &lt; prevNumNeurons; k++)
+      <span class="keyword">this</span>->zs[l][j] += <span class="keyword">this</span>->parameters.weights[l][j][k] * <span class="keyword">this</span>->actvs[l - <span class="number">1</span>][k];
+  }
+
+  <span class="comment">// Apply activation function</span>
+  <span class="type">ActvFunc</span>::<span class="func">calculate</span>(zsData, actvsData, numNeurons, actvFuncType, <span class="keyword">false</span>);
+
+  <span class="comment">// Apply dropout (training only, hidden layers only)</span>
+  <span class="keyword">if</span> (applyDropout &amp;&amp; l &lt; numLayers - <span class="number">1</span> &amp;&amp; dropoutRate &gt; <span class="number">0</span>) {
+    <span class="type">T</span> scale = <span class="number">1</span> / (<span class="number">1</span> - dropoutRate);
+    <span class="keyword">for</span> (<span class="type">ulong</span> j = <span class="number">0</span>; j &lt; numNeurons; j++) {
+      <span class="type">T</span> mask = <span class="func">bernoulli</span>(<span class="number">1</span> - dropoutRate) ? scale : <span class="number">0</span>;
+      <span class="keyword">this</span>->dropoutMasks[l][j] = mask;
+      <span class="keyword">this</span>->actvs[l][j] *= mask;
+    }
+  }
+}
+</code></pre>
 
 </main>
 </div>

@@ -36,7 +36,89 @@
 </nav></aside>
 <main class="main">
 
+<h1>Activation Functions</h1>
+<p>Activation functions introduce non-linearity into the network. Each function has a corresponding derivative used during <a href="math-backprop.html">backpropagation</a>.</p>
 
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#relu">ReLU</a></li>
+    <li><a href="#sigmoid">Sigmoid</a></li>
+    <li><a href="#tanh">Tanh</a></li>
+    <li><a href="#softmax">Softmax</a></li>
+    <li><a href="#implementation">Implementation</a></li>
+  </ol>
+</div>
+
+<h2 id="relu">ReLU (Rectified Linear Unit)</h2>
+<p><span class="badge badge-blue">ANN_ActvFunc.cpp</span> — <code>relu()</code>, <code>drelu()</code></p>
+<div class="math-block">
+\[
+f(x) = \max(0, x) \qquad\qquad f'(x) = \begin{cases} 1 & \text{if } x > 0 \\ 0 & \text{otherwise} \end{cases}
+\]
+</div>
+<p>The most widely used activation. Simple, fast, and avoids the vanishing gradient problem for positive values. The derivative is discontinuous at \(x = 0\) but this is handled by defining \(f'(0) = 0\).</p>
+
+<h2 id="sigmoid">Sigmoid</h2>
+<p><span class="badge badge-blue">ANN_ActvFunc.cpp</span> — <code>sigmoid()</code>, <code>dsigmoid()</code></p>
+<div class="math-block">
+\[
+f(x) = \frac{1}{1 + e^{-x}} \qquad\qquad f'(x) = f(x) \cdot (1 - f(x))
+\]
+</div>
+<p>Squashes output to the range \((0, 1)\). The derivative is expressed in terms of the function itself, which is computationally convenient. Prone to vanishing gradients for large \(|x|\).</p>
+
+<h2 id="tanh">Tanh (Hyperbolic Tangent)</h2>
+<p><span class="badge badge-blue">ANN_ActvFunc.cpp</span> — <code>tanh()</code>, <code>dtanh()</code></p>
+<div class="math-block">
+\[
+f(x) = \tanh(x) \qquad\qquad f'(x) = 1 - \tanh^2(x)
+\]
+</div>
+<p>Squashes output to the range \((-1, 1)\). Zero-centered, which can help convergence compared to sigmoid. Still suffers from vanishing gradients at saturation.</p>
+
+<h2 id="softmax">Softmax</h2>
+<p><span class="badge badge-blue">ANN_ActvFunc.hpp</span> — <code>softmax()</code>, <code>dsoftmax()</code></p>
+
+<h3>Forward</h3>
+<p>Unlike the other activations, softmax operates on the <strong>entire layer</strong> at once — each output depends on all inputs:</p>
+<div class="math-block">
+\[
+s_j = \frac{e^{z_j - z_{\max}}}{\sum_{i} e^{z_i - z_{\max}}}
+\]
+</div>
+<p>The subtraction of \(z_{\max}\) is for numerical stability (prevents overflow) and does not change the result. The outputs sum to 1, making softmax suitable for classification (each output represents a probability).</p>
+
+<h3>Backward</h3>
+<p>The Jacobian of softmax is a full matrix, but when combined with the upstream gradient \(\partial L / \partial a_j\), the derivative simplifies to:</p>
+<div class="math-block">
+\[
+\frac{\partial L}{\partial z_j} = s_j \left( \frac{\partial L}{\partial a_j} - \sum_{i} s_i \cdot \frac{\partial L}{\partial a_i} \right)
+\]
+</div>
+<p>This avoids constructing the full Jacobian matrix. The term \(\sum_i s_i \cdot \partial L / \partial a_i\) is a scalar computed once and reused for all \(j\).</p>
+
+<h2 id="implementation">Implementation</h2>
+<p><span class="badge badge-blue">ANN_ActvFunc.hpp</span> — <code>ActvFunc::calculate()</code></p>
+<p>All activations are dispatched through a single static method that handles both forward and backward passes:</p>
+<pre><code><span class="keyword">static</span> <span class="keyword">void</span> <span class="func">calculate</span>(<span class="keyword">const</span> <span class="type">T</span>* zs, <span class="type">T</span>* actvs, <span class="type">ulong</span> numNeurons,
+                      <span class="type">ActvFuncType</span> type, <span class="type">bool</span> derivative,
+                      <span class="keyword">const</span> <span class="type">T</span>* dCost_dActvs = <span class="keyword">nullptr</span>,
+                      <span class="type">T</span>* dCost_dZs = <span class="keyword">nullptr</span>);
+</code></pre>
+<p>When <code>derivative = false</code>, it computes the forward activation. When <code>derivative = true</code>, it computes \(\partial L / \partial z\) using the activation's derivative and the upstream gradient <code>dCost_dActvs</code>.</p>
+
+<table>
+  <thead>
+    <tr><th>Config Value</th><th>Enum</th><th>Forward</th><th>Derivative</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>"relu"</code></td><td><code>ActvFuncType::RELU</code></td><td><code>relu()</code></td><td><code>drelu()</code></td></tr>
+    <tr><td><code>"sigmoid"</code></td><td><code>ActvFuncType::SIGMOID</code></td><td><code>sigmoid()</code></td><td><code>dsigmoid()</code></td></tr>
+    <tr><td><code>"tanh"</code></td><td><code>ActvFuncType::TANH</code></td><td><code>tanh()</code></td><td><code>dtanh()</code></td></tr>
+    <tr><td><code>"softmax"</code></td><td><code>ActvFuncType::SOFTMAX</code></td><td><code>softmax()</code></td><td><code>dsoftmax()</code></td></tr>
+  </tbody>
+</table>
 
 </main>
 </div>

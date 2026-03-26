@@ -36,7 +36,86 @@
 </nav></aside>
 <main class="main">
 
+<h1>Loss Functions</h1>
+<p>The loss (cost) function measures how far the network's prediction is from the expected output. Training minimizes this value by adjusting weights and biases.</p>
 
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#squared-difference">Squared Difference (MSE)</a></li>
+    <li><a href="#cross-entropy">Cross-Entropy</a></li>
+    <li><a href="#weighted">Weighted Variants</a></li>
+    <li><a href="#implementation">Implementation</a></li>
+  </ol>
+</div>
+
+<h2 id="squared-difference">Squared Difference (MSE)</h2>
+<p><span class="badge badge-blue">ANN_Worker.cpp</span> — <code>calculateLoss()</code></p>
+
+<h3>Loss</h3>
+<div class="math-block">
+\[
+L = \frac{1}{N} \sum_{i=1}^{N} w_i \cdot (a_i - y_i)^2
+\]
+</div>
+
+<h3>Gradient (for backpropagation)</h3>
+<div class="math-block">
+\[
+\frac{\partial L}{\partial a_j} = 2 \cdot w_j \cdot (a_j - y_j)
+\]
+</div>
+
+<p>Where \(a_j\) is the predicted output, \(y_j\) is the expected output, and \(w_j\) is the per-output weight (defaults to 1). Suitable for regression tasks.</p>
+
+<h2 id="cross-entropy">Cross-Entropy</h2>
+<p><span class="badge badge-blue">ANN_Worker.cpp</span> — <code>calculateLoss()</code></p>
+
+<h3>Loss</h3>
+<div class="math-block">
+\[
+L = -\sum_{i=1}^{N} w_i \cdot y_i \cdot \log(a_i)
+\]
+</div>
+
+<h3>Gradient (for backpropagation)</h3>
+<div class="math-block">
+\[
+\frac{\partial L}{\partial a_j} = -\frac{w_j \cdot y_j}{a_j}
+\]
+</div>
+
+<p>Where \(a_j\) is clamped to a minimum of \(10^{-7}\) to avoid division by zero. Cross-entropy is the standard loss for classification tasks, typically paired with <a href="math-activations.html#softmax">softmax</a> on the output layer.</p>
+
+<h2 id="weighted">Weighted Variants</h2>
+<p>Both loss functions support per-output weights \(w_i\) via the <code>costFunctionConfig.weights</code> array. This is useful for class-imbalanced datasets — assigning higher weight to underrepresented classes increases their influence on the gradient.</p>
+<p>When no weights are specified, all \(w_i = 1\).</p>
+
+<table>
+  <thead>
+    <tr><th>Config Value</th><th>Enum</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>"squaredDifference"</code></td><td><code>SQUARED_DIFFERENCE</code></td><td>MSE with uniform weights</td></tr>
+    <tr><td><code>"weightedSquaredDifference"</code></td><td><code>WEIGHTED_SQUARED_DIFFERENCE</code></td><td>MSE with per-output weights</td></tr>
+    <tr><td><code>"crossEntropy"</code></td><td><code>CROSS_ENTROPY</code></td><td>Cross-entropy (supports weights)</td></tr>
+  </tbody>
+</table>
+
+<h2 id="implementation">Implementation</h2>
+<p><span class="badge badge-blue">ANN_CoreCPUWorker.cpp</span> — <code>calc_dCost_dActv()</code></p>
+<p>The output layer gradient is computed per-neuron based on the cost function type:</p>
+<pre><code><span class="keyword">switch</span> (<span class="keyword">this</span>->costFunctionConfig.type) {
+  <span class="keyword">case</span> <span class="type">CostFunctionType</span>::CROSS_ENTROPY: {
+    <span class="keyword">const</span> <span class="type">T</span> epsilon = <span class="number">1e-7</span>;
+    <span class="type">T</span> pred = <span class="func">std::max</span>(<span class="keyword">this</span>->actvs[l][j], epsilon);
+    <span class="keyword">return</span> -weight * output[j] / pred;
+  }
+  <span class="keyword">case</span> <span class="type">CostFunctionType</span>::SQUARED_DIFFERENCE:
+  <span class="keyword">default</span>:
+    <span class="keyword">return</span> <span class="number">2</span> * weight * (<span class="keyword">this</span>->actvs[l][j] - output[j]);
+}
+</code></pre>
 
 </main>
 </div>

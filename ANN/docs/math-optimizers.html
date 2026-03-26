@@ -36,7 +36,86 @@
 </nav></aside>
 <main class="main">
 
+<h1>Optimizers</h1>
+<p>After <a href="math-backprop.html">backpropagation</a> computes the gradients, the optimizer uses them to update the network's weights and biases. Gradients are accumulated over a batch of samples and averaged before the update.</p>
 
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#sgd">SGD</a></li>
+    <li><a href="#adam">Adam</a></li>
+    <li><a href="#config">Configuration</a></li>
+  </ol>
+</div>
+
+<h2 id="sgd">SGD (Stochastic Gradient Descent)</h2>
+<p><span class="badge badge-blue">ANN_CoreCPU.cpp</span> — <code>update()</code></p>
+<p>The simplest optimizer — move each parameter in the direction opposite to its gradient, scaled by the learning rate:</p>
+<div class="math-block">
+\[
+w \leftarrow w - \alpha \cdot \frac{1}{N} \sum_{n=1}^{N} \frac{\partial L_n}{\partial w}
+\]
+</div>
+<div class="math-block">
+\[
+b \leftarrow b - \alpha \cdot \frac{1}{N} \sum_{n=1}^{N} \frac{\partial L_n}{\partial b}
+\]
+</div>
+<p>Where \(\alpha\) is the learning rate and \(N\) is the batch size. The gradient is averaged over the batch to reduce noise.</p>
+
+<h2 id="adam">Adam (Adaptive Moment Estimation)</h2>
+<p><span class="badge badge-blue">ANN_CoreCPU.cpp</span> — <code>update()</code></p>
+<p>Adam maintains two exponential moving averages per parameter — the first moment (mean) and second moment (uncentered variance) of the gradient:</p>
+
+<div class="math-block">
+\[
+g = \frac{1}{N} \sum_{n=1}^{N} \frac{\partial L_n}{\partial w}
+\]
+</div>
+<div class="math-block">
+\[
+m_t = \beta_1 \cdot m_{t-1} + (1 - \beta_1) \cdot g
+\]
+</div>
+<div class="math-block">
+\[
+v_t = \beta_2 \cdot v_{t-1} + (1 - \beta_2) \cdot g^2
+\]
+</div>
+
+<p>Bias correction compensates for the zero-initialization of \(m\) and \(v\):</p>
+<div class="math-block">
+\[
+\hat{m}_t = \frac{m_t}{1 - \beta_1^t} \qquad\qquad \hat{v}_t = \frac{v_t}{1 - \beta_2^t}
+\]
+</div>
+
+<p>The parameter update:</p>
+<div class="math-block">
+\[
+w \leftarrow w - \alpha \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \varepsilon}
+\]
+</div>
+
+<p>Adam adapts the learning rate per parameter — parameters with consistently large gradients get smaller effective learning rates, and vice versa. This makes it much less sensitive to the choice of learning rate than SGD.</p>
+
+<h2 id="config">Configuration</h2>
+<p><span class="badge badge-blue">ANN_Optimizer.hpp</span></p>
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>type</code></td><td><code>"sgd"</code></td><td>Optimizer type: <code>"sgd"</code> or <code>"adam"</code></td></tr>
+    <tr><td><code>beta1</code></td><td><code>0.9</code></td><td>Adam: exponential decay rate for first moment</td></tr>
+    <tr><td><code>beta2</code></td><td><code>0.999</code></td><td>Adam: exponential decay rate for second moment</td></tr>
+    <tr><td><code>epsilon</code></td><td><code>1e-8</code></td><td>Adam: numerical stability constant</td></tr>
+  </tbody>
+</table>
+
+<div class="info-box">
+<strong>Learning rate</strong> is configured separately in <code>trainingConfig.learningRate</code> (default: <code>0.01</code>). It applies to both SGD and Adam.
+</div>
 
 </main>
 </div>

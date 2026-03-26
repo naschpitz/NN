@@ -36,7 +36,108 @@
 </nav></aside>
 <main class="main">
 
+<h1>Backpropagation</h1>
+<p>Backpropagation computes the gradient of the loss with respect to every weight and bias in the network, using the chain rule applied layer by layer from output to input.</p>
 
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#output-gradient">Output Layer Gradient</a></li>
+    <li><a href="#activation-derivative">Activation Derivative</a></li>
+    <li><a href="#weight-bias-gradients">Weight and Bias Gradients</a></li>
+    <li><a href="#propagate-previous">Propagate to Previous Layer</a></li>
+    <li><a href="#dropout-backprop">Dropout in Backpropagation</a></li>
+    <li><a href="#implementation">Implementation</a></li>
+  </ol>
+</div>
+
+<h2 id="overview">Overview</h2>
+<p>The backward pass proceeds from the output layer to the first hidden layer. At each layer \(l\), three things are computed:</p>
+<ol>
+  <li>\(\partial L / \partial z^{(l)}\) — how the loss changes with respect to the pre-activations (using the activation derivative)</li>
+  <li>\(\partial L / \partial W^{(l)}\) and \(\partial L / \partial b^{(l)}\) — the weight and bias gradients (used by the <a href="math-optimizers.html">optimizer</a> to update parameters)</li>
+  <li>\(\partial L / \partial a^{(l-1)}\) — the gradient propagated to the previous layer</li>
+</ol>
+
+<h2 id="output-gradient">Output Layer Gradient</h2>
+<p>The starting point is the gradient of the <a href="math-loss.html">loss function</a> with respect to the output activations:</p>
+<div class="math-block">
+\[
+\frac{\partial L}{\partial a_j^{(L)}} = \text{(depends on loss function — see Loss Functions)}
+\]
+</div>
+
+<h2 id="activation-derivative">Activation Derivative</h2>
+<p>The chain rule converts the activation gradient into a pre-activation gradient:</p>
+<div class="math-block">
+\[
+\frac{\partial L}{\partial z_j^{(l)}} = f'^{(l)}\!\left(z_j^{(l)}\right) \cdot \frac{\partial L}{\partial a_j^{(l)}}
+\]
+</div>
+<p>For softmax, this is handled differently — see <a href="math-activations.html#softmax">Softmax backward</a>.</p>
+
+<h2 id="weight-bias-gradients">Weight and Bias Gradients</h2>
+<p>Once \(\partial L / \partial z_j^{(l)}\) is known, the weight and bias gradients follow directly:</p>
+
+<h3>Weight gradient</h3>
+<div class="math-block">
+\[
+\frac{\partial L}{\partial w_{jk}^{(l)}} = a_k^{(l-1)} \cdot \frac{\partial L}{\partial z_j^{(l)}}
+\]
+</div>
+<p>The gradient of a weight is the activation of the neuron it connects <em>from</em>, multiplied by the pre-activation gradient of the neuron it connects <em>to</em>.</p>
+
+<h3>Bias gradient</h3>
+<div class="math-block">
+\[
+\frac{\partial L}{\partial b_j^{(l)}} = \frac{\partial L}{\partial z_j^{(l)}}
+\]
+</div>
+<p>The bias gradient is simply the pre-activation gradient itself (since \(\partial z / \partial b = 1\)).</p>
+
+<h2 id="propagate-previous">Propagate to Previous Layer</h2>
+<p>To continue the backward pass, the gradient must be propagated to the previous layer's activations:</p>
+<div class="math-block">
+\[
+\frac{\partial L}{\partial a_k^{(l-1)}} = \sum_{j} w_{jk}^{(l)} \cdot \frac{\partial L}{\partial z_j^{(l)}}
+\]
+</div>
+<p>Each neuron \(k\) in layer \(l-1\) receives gradient contributions from every neuron \(j\) in layer \(l\) that it connects to, weighted by the corresponding connection weight.</p>
+
+<h2 id="dropout-backprop">Dropout in Backpropagation</h2>
+<p>If <a href="math-propagation.html#dropout">dropout</a> was applied during the forward pass, the same mask is applied to the gradients:</p>
+<div class="math-block">
+\[
+\frac{\partial L}{\partial a_j^{(l)}} \leftarrow \frac{\partial L}{\partial a_j^{(l)}} \cdot \text{mask}_j
+\]
+</div>
+<p>Neurons that were dropped during forward propagation receive zero gradient — they do not participate in the parameter update for that sample.</p>
+
+<h2 id="implementation">Implementation</h2>
+<p><span class="badge badge-blue">ANN_CoreCPUWorker.cpp</span> — <code>backpropagate()</code></p>
+<pre><code><span class="comment">// Output layer: compute dL/da from cost function</span>
+<span class="keyword">for</span> (<span class="type">ulong</span> j = <span class="number">0</span>; j &lt; numNeurons; j++)
+  <span class="keyword">this</span>->dCost_dActvs[l][j] = <span class="func">calc_dCost_dActv</span>(j, output);
+
+<span class="comment">// For each layer from output to first hidden:</span>
+<span class="keyword">for</span> (<span class="type">ulong</span> l = L; l &gt;= <span class="number">1</span>; l--) {
+  <span class="comment">// Apply dropout mask to gradients</span>
+  <span class="keyword">if</span> (dropoutMasks[l] not empty)
+    dCost_dActvs[l][j] *= dropoutMasks[l][j];
+
+  <span class="comment">// dL/dz = f'(z) * dL/da</span>
+  <span class="type">ActvFunc</span>::<span class="func">calculate</span>(zs, actvs, numNeurons, actvFuncType, <span class="keyword">true</span>,
+                      dCost_dActvs, dCost_dZs);
+
+  <span class="comment">// Compute weight and bias gradients</span>
+  dCost_dWeights[l][j][k] = actvs[l-<span class="number">1</span>][k] * dCost_dZs[j];
+  dCost_dBiases[l][j]     = dCost_dZs[j];
+
+  <span class="comment">// Propagate gradient to previous layer</span>
+  dCost_dActvs[l-<span class="number">1</span>][k] = Σ_j weights[l][j][k] * dCost_dZs[j];
+}
+</code></pre>
 
 </main>
 </div>
