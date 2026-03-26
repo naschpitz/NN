@@ -27,7 +27,7 @@
   <a href="math-neuron.html">Neuron Model</a>
   <a href="math-activations.html">Activations</a>
   <a href="math-propagation.html">Propagation</a>
-  <a href="math-loss.html">Loss Functions</a>
+  <a href="math-loss.html">Cost Functions</a>
   <a href="math-backprop.html" class="active">Backpropagation</a>
   <a href="math-optimizers.html">Optimizers</a>
   <a href="math-initialization.html">Weight Initialization</a>
@@ -55,16 +55,16 @@
 <h2 id="overview">Overview</h2>
 <p>The backward pass proceeds from the output layer to the first hidden layer. At each layer \(l\), three things are computed:</p>
 <ol>
-  <li>\(\partial L / \partial z^{(l)}\) — how the loss changes with respect to the pre-activations (using the activation derivative)</li>
-  <li>\(\partial L / \partial W^{(l)}\) and \(\partial L / \partial b^{(l)}\) — the weight and bias gradients (used by the <a href="math-optimizers.html">optimizer</a> to update parameters)</li>
-  <li>\(\partial L / \partial a^{(l-1)}\) — the gradient propagated to the previous layer</li>
+  <li>\(\partial C / \partial z^{(l)}\) — how the cost changes with respect to the pre-activations (using the activation derivative)</li>
+  <li>\(\partial C / \partial W^{(l)}\) and \(\partial C / \partial b^{(l)}\) — the weight and bias gradients (used by the <a href="math-optimizers.html">optimizer</a> to update parameters)</li>
+  <li>\(\partial C / \partial a^{(l-1)}\) — the gradient propagated to the previous layer</li>
 </ol>
 
 <h2 id="output-gradient">Output Layer Gradient</h2>
-<p>The starting point is the gradient of the <a href="math-loss.html">loss function</a> with respect to the output activations:</p>
+<p>The starting point is the gradient of the <a href="math-loss.html">cost function</a> with respect to the output activations:</p>
 <div class="math-block">
 \[
-\frac{\partial L}{\partial a_j^{(L)}} = \text{(depends on loss function — see Loss Functions)}
+\frac{\partial C}{\partial a_j^{(L)}} = \text{(depends on cost function — see Cost Functions)}
 \]
 </div>
 
@@ -72,18 +72,18 @@
 <p>The chain rule converts the activation gradient into a pre-activation gradient:</p>
 <div class="math-block">
 \[
-\frac{\partial L}{\partial z_j^{(l)}} = f'^{(l)}\!\left(z_j^{(l)}\right) \cdot \frac{\partial L}{\partial a_j^{(l)}}
+\frac{\partial C}{\partial z_j^{(l)}} = f'^{(l)}\!\left(z_j^{(l)}\right) \cdot \frac{\partial C}{\partial a_j^{(l)}}
 \]
 </div>
 <p>For softmax, this is handled differently — see <a href="math-activations.html#softmax">Softmax backward</a>.</p>
 
 <h2 id="weight-bias-gradients">Weight and Bias Gradients</h2>
-<p>Once \(\partial L / \partial z_j^{(l)}\) is known, the weight and bias gradients follow directly:</p>
+<p>Once \(\partial C / \partial z_j^{(l)}\) is known, the weight and bias gradients follow directly:</p>
 
 <h3>Weight gradient</h3>
 <div class="math-block">
 \[
-\frac{\partial L}{\partial w_{jk}^{(l)}} = a_k^{(l-1)} \cdot \frac{\partial L}{\partial z_j^{(l)}}
+\frac{\partial C}{\partial w_{jk}^{(l)}} = a_k^{(l-1)} \cdot \frac{\partial C}{\partial z_j^{(l)}}
 \]
 </div>
 <p>The gradient of a weight is the activation of the neuron it connects <em>from</em>, multiplied by the pre-activation gradient of the neuron it connects <em>to</em>.</p>
@@ -91,7 +91,7 @@
 <h3>Bias gradient</h3>
 <div class="math-block">
 \[
-\frac{\partial L}{\partial b_j^{(l)}} = \frac{\partial L}{\partial z_j^{(l)}}
+\frac{\partial C}{\partial b_j^{(l)}} = \frac{\partial C}{\partial z_j^{(l)}}
 \]
 </div>
 <p>The bias gradient is simply the pre-activation gradient itself (since \(\partial z / \partial b = 1\)).</p>
@@ -100,7 +100,7 @@
 <p>To continue the backward pass, the gradient must be propagated to the previous layer's activations:</p>
 <div class="math-block">
 \[
-\frac{\partial L}{\partial a_k^{(l-1)}} = \sum_{j} w_{jk}^{(l)} \cdot \frac{\partial L}{\partial z_j^{(l)}}
+\frac{\partial C}{\partial a_k^{(l-1)}} = \sum_{j} w_{jk}^{(l)} \cdot \frac{\partial C}{\partial z_j^{(l)}}
 \]
 </div>
 <p>Each neuron \(k\) in layer \(l-1\) receives gradient contributions from every neuron \(j\) in layer \(l\) that it connects to, weighted by the corresponding connection weight.</p>
@@ -109,14 +109,14 @@
 <p>If <a href="math-propagation.html#dropout">dropout</a> was applied during the forward pass, the same mask is applied to the gradients:</p>
 <div class="math-block">
 \[
-\frac{\partial L}{\partial a_j^{(l)}} \leftarrow \frac{\partial L}{\partial a_j^{(l)}} \cdot \text{mask}_j
+\frac{\partial C}{\partial a_j^{(l)}} \leftarrow \frac{\partial C}{\partial a_j^{(l)}} \cdot \text{mask}_j
 \]
 </div>
 <p>Neurons that were dropped during forward propagation receive zero gradient — they do not participate in the parameter update for that sample.</p>
 
 <h2 id="implementation">Implementation</h2>
 <p><span class="badge badge-blue">ANN_CoreCPUWorker.cpp</span> — <code>backpropagate()</code></p>
-<pre><code><span class="comment">// Output layer: compute dL/da from cost function</span>
+<pre><code><span class="comment">// Output layer: compute dC/da from cost function</span>
 <span class="keyword">for</span> (<span class="type">ulong</span> j = <span class="number">0</span>; j &lt; numNeurons; j++)
   <span class="keyword">this</span>->dCost_dActvs[l][j] = <span class="func">calc_dCost_dActv</span>(j, output);
 
@@ -126,7 +126,7 @@
   <span class="keyword">if</span> (dropoutMasks[l] not empty)
     dCost_dActvs[l][j] *= dropoutMasks[l][j];
 
-  <span class="comment">// dL/dz = f'(z) * dL/da</span>
+  <span class="comment">// dL/dz = f'(z) * dC/da</span>
   <span class="type">ActvFunc</span>::<span class="func">calculate</span>(zs, actvs, numNeurons, actvFuncType, <span class="keyword">true</span>,
                       dCost_dActvs, dCost_dZs);
 

@@ -25,7 +25,7 @@
   <a href="math-neuron.html">Neuron Model</a>
   <a href="math-activations.html">Activations</a>
   <a href="math-propagation.html">Propagation</a>
-  <a href="math-loss.html">Loss Functions</a>
+  <a href="math-loss.html">Cost Functions</a>
   <a href="math-backprop.html">Backpropagation</a>
   <a href="math-optimizers.html">Optimizers</a>
   <a href="math-initialization.html">Weight Initialization</a>
@@ -111,7 +111,7 @@
   <tr><th>Value</th><th>String</th><th>Description</th></tr>
   <tr><td><code>SQUARED_DIFFERENCE</code></td><td><code>"squaredDifference"</code></td><td>Standard squared error: Σ(predicted − expected)²</td></tr>
   <tr><td><code>WEIGHTED_SQUARED_DIFFERENCE</code></td><td><code>"weightedSquaredDifference"</code></td><td>Weighted squared error: Σ wᵢ·(predicted − expected)²</td></tr>
-  <tr><td><code>CROSS_ENTROPY</code></td><td><code>"crossEntropy"</code></td><td>Cross-entropy loss: −Σ yᵢ·log(ŷᵢ)</td></tr>
+  <tr><td><code>CROSS_ENTROPY</code></td><td><code>"crossEntropy"</code></td><td>Cross-entropy cost: −Σ yᵢ·log(ŷᵢ)</td></tr>
 </table>
 <p>Helpers: <code>CostFunction::nameToType(str)</code>, <code>CostFunction::typeToName(type)</code></p>
 

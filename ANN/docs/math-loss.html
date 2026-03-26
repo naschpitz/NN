@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Loss Functions — ANN Documentation</title>
+  <title>Cost Functions — ANN Documentation</title>
   <link rel="stylesheet" href="style.css">
   <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]}};</script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
@@ -27,7 +27,7 @@
   <a href="math-neuron.html">Neuron Model</a>
   <a href="math-activations.html">Activations</a>
   <a href="math-propagation.html">Propagation</a>
-  <a href="math-loss.html" class="active">Loss Functions</a>
+  <a href="math-loss.html" class="active">Cost Functions</a>
   <a href="math-backprop.html">Backpropagation</a>
   <a href="math-optimizers.html">Optimizers</a>
   <a href="math-initialization.html">Weight Initialization</a>
@@ -36,8 +36,8 @@
 </nav></aside>
 <main class="main">
 
-<h1>Loss Functions</h1>
-<p>The loss (cost) function measures how far the network's prediction is from the expected output. Training minimizes this value by adjusting weights and biases.</p>
+<h1>Cost Functions</h1>
+<p>The cost function measures how far the network's prediction is from the expected output. Training minimizes the cost (also called the <em>loss</em> — the scalar value produced by the cost function) by adjusting weights and biases.</p>
 
 <div class="toc">
   <h4>On this page</h4>
@@ -52,17 +52,17 @@
 <h2 id="squared-difference">Squared Difference (MSE)</h2>
 <p><span class="badge badge-blue">ANN_Worker.cpp</span> — <code>calculateLoss()</code></p>
 
-<h3>Loss</h3>
+<h3>Cost</h3>
 <div class="math-block">
 \[
-L = \frac{1}{N} \sum_{i=1}^{N} w_i \cdot (a_i - y_i)^2
+C = \frac{1}{N} \sum_{i=1}^{N} w_i \cdot (a_i - y_i)^2
 \]
 </div>
 
 <h3>Gradient (for backpropagation)</h3>
 <div class="math-block">
 \[
-\frac{\partial L}{\partial a_j} = 2 \cdot w_j \cdot (a_j - y_j)
+\frac{\partial C}{\partial a_j} = 2 \cdot w_j \cdot (a_j - y_j)
 \]
 </div>
 
@@ -71,24 +71,24 @@ L = \frac{1}{N} \sum_{i=1}^{N} w_i \cdot (a_i - y_i)^2
 <h2 id="cross-entropy">Cross-Entropy</h2>
 <p><span class="badge badge-blue">ANN_Worker.cpp</span> — <code>calculateLoss()</code></p>
 
-<h3>Loss</h3>
+<h3>Cost</h3>
 <div class="math-block">
 \[
-L = -\sum_{i=1}^{N} w_i \cdot y_i \cdot \log(a_i)
+C = -\sum_{i=1}^{N} w_i \cdot y_i \cdot \log(a_i)
 \]
 </div>
 
 <h3>Gradient (for backpropagation)</h3>
 <div class="math-block">
 \[
-\frac{\partial L}{\partial a_j} = -\frac{w_j \cdot y_j}{a_j}
+\frac{\partial C}{\partial a_j} = -\frac{w_j \cdot y_j}{a_j}
 \]
 </div>
 
-<p>Where \(a_j\) is clamped to a minimum of \(10^{-7}\) to avoid division by zero. Cross-entropy is the standard loss for classification tasks, typically paired with <a href="math-activations.html#softmax">softmax</a> on the output layer.</p>
+<p>Where \(a_j\) is clamped to a minimum of \(10^{-7}\) to avoid division by zero. Cross-entropy is the standard cost function for classification tasks, typically paired with <a href="math-activations.html#softmax">softmax</a> on the output layer.</p>
 
 <h2 id="weighted">Weighted Variants</h2>
-<p>Both loss functions support per-output weights \(w_i\) via the <code>costFunctionConfig.weights</code> array. This is useful for class-imbalanced datasets — assigning higher weight to underrepresented classes increases their influence on the gradient.</p>
+<p>Both cost functions support per-output weights \(w_i\) via the <code>costFunctionConfig.weights</code> array. This is useful for class-imbalanced datasets — assigning higher weight to underrepresented classes increases their influence on the gradient.</p>
 <p>When no weights are specified, all \(w_i = 1\).</p>
 
 <table>

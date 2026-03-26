@@ -27,7 +27,7 @@
   <a href="math-neuron.html">Neuron Model</a>
   <a href="math-activations.html">Activations</a>
   <a href="math-propagation.html">Propagation</a>
-  <a href="math-loss.html">Loss Functions</a>
+  <a href="math-loss.html">Cost Functions</a>
   <a href="math-backprop.html">Backpropagation</a>
   <a href="math-optimizers.html" class="active">Optimizers</a>
   <a href="math-initialization.html">Weight Initialization</a>
@@ -53,12 +53,12 @@
 <p>The simplest optimizer — move each parameter in the direction opposite to its gradient, scaled by the learning rate:</p>
 <div class="math-block">
 \[
-w \leftarrow w - \alpha \cdot \frac{1}{N} \sum_{n=1}^{N} \frac{\partial L_n}{\partial w}
+w \leftarrow w - \alpha \cdot \frac{1}{N} \sum_{n=1}^{N} \frac{\partial C_n}{\partial w}
 \]
 </div>
 <div class="math-block">
 \[
-b \leftarrow b - \alpha \cdot \frac{1}{N} \sum_{n=1}^{N} \frac{\partial L_n}{\partial b}
+b \leftarrow b - \alpha \cdot \frac{1}{N} \sum_{n=1}^{N} \frac{\partial C_n}{\partial b}
 \]
 </div>
 <p>Where \(\alpha\) is the learning rate and \(N\) is the batch size. The gradient is averaged over the batch to reduce noise.</p>
@@ -69,7 +69,7 @@ b \leftarrow b - \alpha \cdot \frac{1}{N} \sum_{n=1}^{N} \frac{\partial L_n}{\pa
 
 <div class="math-block">
 \[
-g = \frac{1}{N} \sum_{n=1}^{N} \frac{\partial L_n}{\partial w}
+g = \frac{1}{N} \sum_{n=1}^{N} \frac{\partial C_n}{\partial w}
 \]
 </div>
 <div class="math-block">

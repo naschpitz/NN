@@ -27,7 +27,7 @@
   <a href="math-neuron.html">Neuron Model</a>
   <a href="math-activations.html" class="active">Activations</a>
   <a href="math-propagation.html">Propagation</a>
-  <a href="math-loss.html">Loss Functions</a>
+  <a href="math-loss.html">Cost Functions</a>
   <a href="math-backprop.html">Backpropagation</a>
   <a href="math-optimizers.html">Optimizers</a>
   <a href="math-initialization.html">Weight Initialization</a>
@@ -90,13 +90,13 @@ s_j = \frac{e^{z_j - z_{\max}}}{\sum_{i} e^{z_i - z_{\max}}}
 <p>The subtraction of \(z_{\max}\) is for numerical stability (prevents overflow) and does not change the result. The outputs sum to 1, making softmax suitable for classification (each output represents a probability).</p>
 
 <h3>Backward</h3>
-<p>The Jacobian of softmax is a full matrix, but when combined with the upstream gradient \(\partial L / \partial a_j\), the derivative simplifies to:</p>
+<p>The Jacobian of softmax is a full matrix, but when combined with the upstream gradient \(\partial C / \partial a_j\), the derivative simplifies to:</p>
 <div class="math-block">
 \[
-\frac{\partial L}{\partial z_j} = s_j \left( \frac{\partial L}{\partial a_j} - \sum_{i} s_i \cdot \frac{\partial L}{\partial a_i} \right)
+\frac{\partial C}{\partial z_j} = s_j \left( \frac{\partial C}{\partial a_j} - \sum_{i} s_i \cdot \frac{\partial C}{\partial a_i} \right)
 \]
 </div>
-<p>This avoids constructing the full Jacobian matrix. The term \(\sum_i s_i \cdot \partial L / \partial a_i\) is a scalar computed once and reused for all \(j\).</p>
+<p>This avoids constructing the full Jacobian matrix. The term \(\sum_i s_i \cdot \partial C / \partial a_i\) is a scalar computed once and reused for all \(j\).</p>
 
 <h2 id="implementation">Implementation</h2>
 <p><span class="badge badge-blue">ANN_ActvFunc.hpp</span> — <code>ActvFunc::calculate()</code></p>
@@ -106,7 +106,7 @@ s_j = \frac{e^{z_j - z_{\max}}}{\sum_{i} e^{z_i - z_{\max}}}
                       <span class="keyword">const</span> <span class="type">T</span>* dCost_dActvs = <span class="keyword">nullptr</span>,
                       <span class="type">T</span>* dCost_dZs = <span class="keyword">nullptr</span>);
 </code></pre>
-<p>When <code>derivative = false</code>, it computes the forward activation. When <code>derivative = true</code>, it computes \(\partial L / \partial z\) using the activation's derivative and the upstream gradient <code>dCost_dActvs</code>.</p>
+<p>When <code>derivative = false</code>, it computes the forward activation. When <code>derivative = true</code>, it computes \(\partial C / \partial z\) using the activation's derivative and the upstream gradient <code>dCost_dActvs</code>.</p>
 
 <table>
   <thead>
