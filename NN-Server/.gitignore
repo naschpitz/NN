@@ -3,3 +3,10 @@ cmake-build-*/
 .idea/
 *.user
 
+# Augment Agent instructions
+.augment/
+INSTRUCTIONS.md
+
+# Local planning / todo files
+todo/
+
