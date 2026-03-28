@@ -297,6 +297,9 @@ namespace NN_CLI
         } else if (type == "globalavgpool") {
           layerConfig.type = CNN::LayerType::GLOBALAVGPOOL;
           layerConfig.config = CNN::GlobalAvgPoolLayerConfig{};
+        } else if (type == "globaldualpool") {
+          layerConfig.type = CNN::LayerType::GLOBALDUALPOOL;
+          layerConfig.config = CNN::GlobalDualPoolLayerConfig{};
         } else if (type == "instancenorm") {
           layerConfig.type = CNN::LayerType::INSTANCENORM;
           CNN::NormLayerConfig bn;
