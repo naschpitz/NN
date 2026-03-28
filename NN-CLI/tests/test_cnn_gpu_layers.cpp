@@ -308,6 +308,22 @@ static void testCNNGPUPredictLayerIsolation()
     // 12. Same as #4 but with "same" padding
     {"conv_same_relu_avgpool_flatten",
      R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"pool","poolType":"avg","poolH":4,"poolW":4,"strideY":4,"strideX":4},{"type":"flatten"}])"},
+
+    // 13. conv + relu + globaldualpool + flatten (minimal GDP)
+    {"conv_relu_gdp_flatten",
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"relu"},{"type":"globaldualpool"},{"type":"flatten"}])"},
+
+    // 14. conv + instancenorm + relu + globaldualpool + flatten (GDP with norm)
+    {"conv_bn_relu_gdp_flatten",
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"instancenorm"},{"type":"relu"},{"type":"globaldualpool"},{"type":"flatten"}])"},
+
+    // 15. conv + relu + maxpool + conv + relu + globaldualpool + flatten (2 conv + GDP)
+    {"conv2x_relu_maxpool_gdp_flatten",
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"relu"},{"type":"globaldualpool"},{"type":"flatten"}])"},
+
+    // 16. conv + bn + relu + maxpool + conv + bn + relu + globaldualpool + flatten (full combo with GDP)
+    {"conv_bn_maxpool_conv_bn_gdp_flatten",
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"instancenorm"},{"type":"relu"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"instancenorm"},{"type":"relu"},{"type":"globaldualpool"},{"type":"flatten"}])"},
   };
   // clang-format on
 

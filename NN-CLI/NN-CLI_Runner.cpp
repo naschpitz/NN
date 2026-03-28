@@ -996,6 +996,10 @@ void Runner::saveCNNModel(const std::string& filePath) const
       layerJson["type"] = "globalavgpool";
       break;
 
+    case CNN::LayerType::GLOBALDUALPOOL:
+      layerJson["type"] = "globaldualpool";
+      break;
+
     case CNN::LayerType::FLATTEN:
       layerJson["type"] = "flatten";
       break;

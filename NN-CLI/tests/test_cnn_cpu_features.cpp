@@ -228,8 +228,156 @@ static void testCNNCheckpointInstanceNormRoundTrip()
 
 //===================================================================================================================//
 
+static void testCNNGlobalDualPoolEndToEnd()
+{
+  std::cout << "  testCNNGlobalDualPoolEndToEnd... ";
+
+  // Config with globaldualpool: conv→relu→globaldualpool→flatten→dense
+  // Input 1x8x8, conv 4 filters 3x3 valid → 4x6x6, GDP → 8x1x1, flatten → dense 2 sigmoid
+  QString configPath = tempDir() + "/cnn_gdp_config.json";
+  QFile configFile(configPath);
+
+  if (configFile.exists())
+    configFile.remove();
+
+  if (configFile.open(QIODevice::WriteOnly)) {
+    const char* configJson = R"({
+  "mode": "train",
+  "device": "cpu",
+  "progressReports": 0,
+  "saveModelInterval": 0,
+  "inputShape": { "c": 1, "h": 8, "w": 8 },
+  "convolutionalLayersConfig": [
+    { "type": "conv", "numFilters": 4, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
+    { "type": "relu" },
+    { "type": "globaldualpool" },
+    { "type": "flatten" }
+  ],
+  "denseLayersConfig": [
+    { "numNeurons": 2, "actvFunc": "sigmoid" }
+  ],
+  "trainingConfig": {
+    "numEpochs": 200,
+    "learningRate": 0.5
+  }
+})";
+
+    configFile.write(configJson);
+    configFile.close();
+  } else {
+    CHECK(false, "CNN GDP e2e: failed to write config file");
+    std::cout << std::endl;
+    return;
+  }
+
+  // Write samples: 2 samples, 1x8x8 = 64 values each, 2 outputs
+  QString samplesPath = tempDir() + "/cnn_gdp_samples.json";
+  QFile samplesFile(samplesPath);
+
+  if (samplesFile.exists())
+    samplesFile.remove();
+
+  if (samplesFile.open(QIODevice::WriteOnly)) {
+    QJsonArray samples;
+
+    for (int s = 0; s < 2; s++) {
+      QJsonObject sample;
+      QJsonArray input;
+
+      for (int i = 0; i < 64; i++)
+        input.append(s == 0 ? (i / 64.0) : (1.0 - i / 64.0));
+
+      QJsonArray output;
+      output.append(s == 0 ? 1.0 : 0.0);
+      output.append(s == 0 ? 0.0 : 1.0);
+
+      sample["input"] = input;
+      sample["output"] = output;
+      samples.append(sample);
+    }
+
+    QJsonObject root;
+    root["samples"] = samples;
+    samplesFile.write(QJsonDocument(root).toJson());
+    samplesFile.close();
+  }
+
+  // Train
+  QString modelPath = tempDir() + "/cnn_gdp_model.json";
+
+  auto trainResult = runNNCLI(
+    {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
+
+  CHECK(trainResult.exitCode == 0, "CNN GDP e2e: train exit code 0");
+  CHECK(trainResult.stdOut.contains("Training completed."), "CNN GDP e2e: training completed");
+  CHECK(QFile::exists(modelPath), "CNN GDP e2e: model file created");
+
+  // Predict using the trained model
+  if (QFile::exists(modelPath)) {
+    // Write predict inputs
+    QString predictPath = tempDir() + "/cnn_gdp_predict_input.json";
+    QFile predictFile(predictPath);
+
+    if (predictFile.open(QIODevice::WriteOnly)) {
+      QJsonObject root;
+      QJsonArray inputs;
+
+      for (int s = 0; s < 2; s++) {
+        QJsonArray input;
+
+        for (int i = 0; i < 64; i++)
+          input.append(s == 0 ? (i / 64.0) : (1.0 - i / 64.0));
+
+        inputs.append(input);
+      }
+
+      root["inputs"] = inputs;
+      predictFile.write(QJsonDocument(root).toJson());
+      predictFile.close();
+    }
+
+    QString predictOutput = tempDir() + "/cnn_gdp_predict_output.json";
+
+    auto predResult =
+      runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath, "--output",
+                predictOutput});
+
+    CHECK(predResult.exitCode == 0, "CNN GDP e2e: predict exit code 0");
+    CHECK(QFile::exists(predictOutput), "CNN GDP e2e: predict output file created");
+
+    // Read predictions and check they're different for different inputs
+    if (QFile::exists(predictOutput)) {
+      QFile outFile(predictOutput);
+
+      if (outFile.open(QIODevice::ReadOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(outFile.readAll());
+        QJsonObject root = doc.object();
+        QJsonArray outputs = root["outputs"].toArray();
+        CHECK(outputs.size() == 2, "CNN GDP e2e: 2 predictions");
+
+        if (outputs.size() == 2) {
+          QJsonArray pred0 = outputs[0].toArray();
+          QJsonArray pred1 = outputs[1].toArray();
+          CHECK(pred0.size() == 2 && pred1.size() == 2, "CNN GDP e2e: 2 outputs per prediction");
+
+          // The two inputs are different patterns, predictions should differ
+          double diff = std::abs(pred0[0].toDouble() - pred1[0].toDouble());
+          CHECK(diff > 0.01, "CNN GDP e2e: predictions are distinct");
+        }
+
+        outFile.close();
+      }
+    }
+  }
+
+  std::cout << std::endl;
+}
+
+//===================================================================================================================//
+
 void runCNNCPUFeatureTests()
 {
   testCNNCheckpointParameters();
   testCNNCheckpointInstanceNormRoundTrip();
+  testCNNGlobalDualPoolEndToEnd();
 }
