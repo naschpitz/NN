@@ -340,6 +340,14 @@ static void testCNNGPUPredictLayerIsolation()
     // 20. residual + pool + residual + globaldualpool
     {"res_pool_res_gdp_flatten",
      R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"globaldualpool"},{"type":"flatten"}])"},
+
+    // 21. mixed identity + projection residuals (identity first, then projection — the ISIC segfault case)
+    {"res_identity_then_proj_gap_flatten",
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"residual_start"},{"type":"conv","numFilters":8,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"globalavgpool"},{"type":"flatten"}])"},
+
+    // 22. stem + identity + projection + projection (ISIC-like architecture)
+    {"stem_res_id_proj_proj_gdp_flatten",
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":2,"strideX":2,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"residual_start"},{"type":"conv","numFilters":8,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"residual_start"},{"type":"conv","numFilters":16,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"globaldualpool"},{"type":"flatten"}])"},
   };
   // clang-format on
 
