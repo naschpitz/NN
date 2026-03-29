@@ -157,6 +157,12 @@
     { <span class="string">"type"</span>: <span class="string">"relu"</span> },
     { <span class="string">"type"</span>: <span class="string">"pool"</span>, <span class="string">"poolType"</span>: <span class="string">"max"</span>, <span class="string">"poolH"</span>: <span class="number">2</span>, <span class="string">"poolW"</span>: <span class="number">2</span>,
       <span class="string">"strideY"</span>: <span class="number">2</span>, <span class="string">"strideX"</span>: <span class="number">2</span> },
+    { <span class="string">"type"</span>: <span class="string">"residual_start"</span> },
+    { <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">8</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>,
+      <span class="string">"strideY"</span>: <span class="number">1</span>, <span class="string">"strideX"</span>: <span class="number">1</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"same"</span> },
+    { <span class="string">"type"</span>: <span class="string">"relu"</span> },
+    { <span class="string">"type"</span>: <span class="string">"residual_end"</span> },
+    { <span class="string">"type"</span>: <span class="string">"globalavgpool"</span> },
     { <span class="string">"type"</span>: <span class="string">"flatten"</span> }
   ],
   <span class="string">"denseLayersConfig"</span>: [
@@ -195,6 +201,10 @@
   <tr><td><code>"pool"</code></td><td><code>poolType</code> (<code>"max"</code>/<code>"avg"</code>), <code>poolH</code>, <code>poolW</code>, <code>strideY</code>, <code>strideX</code></td></tr>
   <tr><td><code>"instancenorm"</code></td><td><code>epsilon</code> (optional, default 1e-5), <code>momentum</code> (optional, default 0.1)</td></tr>
   <tr><td><code>"batchnorm"</code></td><td><code>epsilon</code> (optional, default 1e-5), <code>momentum</code> (optional, default 0.1)</td></tr>
+  <tr><td><code>"globalavgpool"</code></td><td><em>none</em> — reduces each channel to its spatial mean</td></tr>
+  <tr><td><code>"globaldualpool"</code></td><td><em>none</em> — concatenates global avg and global max per channel (doubles channel count)</td></tr>
+  <tr><td><code>"residual_start"</code></td><td><em>none</em> — marks the beginning of a residual block (saves the input for the skip path)</td></tr>
+  <tr><td><code>"residual_end"</code></td><td><em>none</em> — adds the skip input to the block output; auto-creates a 1×1 projection if channels differ</td></tr>
   <tr><td><code>"flatten"</code></td><td><em>none</em></td></tr>
 </table>
 
