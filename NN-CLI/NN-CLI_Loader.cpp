@@ -429,7 +429,7 @@ namespace NN_CLI
 
       if (paramsJson.contains("residual")) {
         for (const auto& resJson : paramsJson.at("residual")) {
-          CNN::ResidualProjection<float> rp;
+          CNN::ResidualParameters<float> rp;
           rp.inC = resJson.at("inC").get<ulong>();
           rp.outC = resJson.at("outC").get<ulong>();
           rp.weights = resJson.at("weights").get<std::vector<float>>();
