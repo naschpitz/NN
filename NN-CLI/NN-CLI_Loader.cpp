@@ -322,6 +322,12 @@ namespace NN_CLI
             bn.momentum = layerJson.at("momentum").get<float>();
 
           layerConfig.config = bn;
+        } else if (type == "residual_start") {
+          layerConfig.type = CNN::LayerType::RESIDUAL_START;
+          layerConfig.config = CNN::ResidualStartConfig{};
+        } else if (type == "residual_end") {
+          layerConfig.type = CNN::LayerType::RESIDUAL_END;
+          layerConfig.config = CNN::ResidualEndConfig{};
         } else {
           throw std::runtime_error("Unknown CNN layer type: " + type);
         }
@@ -418,6 +424,17 @@ namespace NN_CLI
           bp.runningMean = normJson.at("runningMean").get<std::vector<float>>();
           bp.runningVar = normJson.at("runningVar").get<std::vector<float>>();
           coreConfig.parameters.normParams.push_back(std::move(bp));
+        }
+      }
+
+      if (paramsJson.contains("residual")) {
+        for (const auto& resJson : paramsJson.at("residual")) {
+          CNN::ResidualProjection<float> rp;
+          rp.inC = resJson.at("inC").get<ulong>();
+          rp.outC = resJson.at("outC").get<ulong>();
+          rp.weights = resJson.at("weights").get<std::vector<float>>();
+          rp.biases = resJson.at("biases").get<std::vector<float>>();
+          coreConfig.parameters.residualParams.push_back(std::move(rp));
         }
       }
 

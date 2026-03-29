@@ -1003,6 +1003,14 @@ void Runner::saveCNNModel(const std::string& filePath) const
     case CNN::LayerType::FLATTEN:
       layerJson["type"] = "flatten";
       break;
+
+    case CNN::LayerType::RESIDUAL_START:
+      layerJson["type"] = "residual_start";
+      break;
+
+    case CNN::LayerType::RESIDUAL_END:
+      layerJson["type"] = "residual_end";
+      break;
     }
 
     cnnLayersArr.push_back(layerJson);
@@ -1126,6 +1134,22 @@ void Runner::saveCNNModel(const std::string& filePath) const
     }
 
     paramsJson["instancenorm"] = normArr;
+  }
+
+  // Residual projection parameters
+  if (!core.getParameters().residualParams.empty()) {
+    nlohmann::ordered_json resArr = nlohmann::ordered_json::array();
+
+    for (const auto& rp : core.getParameters().residualParams) {
+      nlohmann::ordered_json rpJson;
+      rpJson["inC"] = rp.inC;
+      rpJson["outC"] = rp.outC;
+      rpJson["weights"] = rp.weights;
+      rpJson["biases"] = rp.biases;
+      resArr.push_back(rpJson);
+    }
+
+    paramsJson["residual"] = resArr;
   }
 
   // Dense parameters

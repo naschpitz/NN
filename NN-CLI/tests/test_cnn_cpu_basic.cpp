@@ -224,6 +224,83 @@ static void testCNNTrainAndTestMNIST()
   std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
 }
 
+static void testCNNResidualMNIST()
+{
+  std::cout << "  testCNNResidualMNIST... " << std::flush;
+
+  if (!runFullTests) {
+    std::cout << "(skipped — use --full to enable)" << std::endl;
+    return;
+  }
+
+  QString modelPath = tempDir() + "/cnn_mnist_residual_trained.json";
+
+  // Train ResNet-like architecture on MNIST (10 epochs, 60k samples, Adam + crossEntropy + residual blocks)
+  auto trainResult =
+    runNNCLI({"--config", fixturePath("mnist_cnn_residual_config.json"), "--mode", "train", "--device", "cpu",
+              "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
+              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
+             3600000); // 60 min timeout
+
+  CHECK(trainResult.exitCode == 0, "CNN Residual MNIST: training exit code 0");
+  CHECK(QFile::exists(modelPath), "CNN Residual MNIST: trained model file exists");
+
+  if (trainResult.exitCode != 0 || !QFile::exists(modelPath)) {
+    std::cout << "(training failed, skipping test step)" << std::endl;
+    return;
+  }
+
+  // Verify model contains residual markers and projection weights
+  if (QFile::exists(modelPath)) {
+    QFile model(modelPath);
+
+    if (model.open(QIODevice::ReadOnly)) {
+      QByteArray data = model.readAll();
+      model.close();
+      CHECK(data.contains("residual_start"), "CNN Residual MNIST: model has residual_start");
+      CHECK(data.contains("residual_end"), "CNN Residual MNIST: model has residual_end");
+      // Second block has 16→32 channel change, so projection weights must exist
+      CHECK(data.contains("\"residual\""), "CNN Residual MNIST: model has residual params");
+    }
+  }
+
+  // Evaluate against MNIST test data (10k samples)
+  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "cpu", "--idx-data",
+                              examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
+                              examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
+                             600000); // 10 min timeout
+
+  CHECK(testResult.exitCode == 0, "CNN Residual MNIST: test exit code 0");
+  CHECK(testResult.stdOut.contains("Test Results:"), "CNN Residual MNIST: 'Test Results:'");
+  CHECK(testResult.stdOut.contains("Samples evaluated: 10000"), "CNN Residual MNIST: 'Samples evaluated: 10000'");
+
+  double avgLoss = -1;
+  int idx = testResult.stdOut.indexOf("Average loss:");
+
+  if (idx >= 0) {
+    QString lossStr = testResult.stdOut.mid(idx + QString("Average loss:").length()).trimmed();
+    lossStr = lossStr.left(lossStr.indexOf('\n'));
+    avgLoss = lossStr.toDouble();
+  }
+
+  CHECK(avgLoss > 0 && avgLoss < 2.5, "CNN Residual MNIST: average loss < 2.5");
+
+  double accuracy = -1;
+  int accIdx = testResult.stdOut.indexOf("Accuracy:");
+
+  if (accIdx >= 0) {
+    QString accStr = testResult.stdOut.mid(accIdx + QString("Accuracy:").length()).trimmed();
+    accStr = accStr.left(accStr.indexOf('%'));
+    accuracy = accStr.toDouble();
+  }
+
+  CHECK(accuracy > 25.0, "CNN Residual MNIST: accuracy > 25%");
+
+  std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
+}
+
+//===================================================================================================================//
+
 void runCNNCPUBasicTests()
 {
   testCNNNetworkDetection();
@@ -232,4 +309,5 @@ void runCNNCPUBasicTests()
   testCNNTest();
   testCNNTrainWithWeightedLoss();
   testCNNTrainAndTestMNIST();
+  testCNNResidualMNIST();
 }

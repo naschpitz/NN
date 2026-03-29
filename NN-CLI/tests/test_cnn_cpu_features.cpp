@@ -375,9 +375,157 @@ static void testCNNGlobalDualPoolEndToEnd()
 
 //===================================================================================================================//
 
+static void testCNNResidualEndToEnd()
+{
+  std::cout << "  testCNNResidualEndToEnd... ";
+
+  // Identity residual: Conv(4,same)→ReLU→residual_start→Conv(4,same)→ReLU→residual_end→GAP→Flatten→Dense(2)
+  QString configPath = tempDir() + "/cnn_res_config.json";
+  QFile configFile(configPath);
+
+  if (configFile.exists())
+    configFile.remove();
+
+  if (configFile.open(QIODevice::WriteOnly)) {
+    const char* configJson = R"({
+  "mode": "train",
+  "device": "cpu",
+  "progressReports": 0,
+  "saveModelInterval": 0,
+  "inputShape": { "c": 1, "h": 8, "w": 8 },
+  "convolutionalLayersConfig": [
+    { "type": "conv", "numFilters": 4, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
+    { "type": "relu" },
+    { "type": "residual_start" },
+    { "type": "conv", "numFilters": 4, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
+    { "type": "relu" },
+    { "type": "residual_end" },
+    { "type": "globalavgpool" },
+    { "type": "flatten" }
+  ],
+  "denseLayersConfig": [
+    { "numNeurons": 2, "actvFunc": "sigmoid" }
+  ],
+  "trainingConfig": {
+    "numEpochs": 200,
+    "learningRate": 0.5
+  }
+})";
+
+    configFile.write(configJson);
+    configFile.close();
+  }
+
+  // Write samples
+  QString samplesPath = tempDir() + "/cnn_res_samples.json";
+  QFile samplesFile(samplesPath);
+
+  if (samplesFile.exists())
+    samplesFile.remove();
+
+  if (samplesFile.open(QIODevice::WriteOnly)) {
+    QJsonArray samples;
+
+    for (int s = 0; s < 2; s++) {
+      QJsonObject sample;
+      QJsonArray input;
+
+      for (int i = 0; i < 64; i++)
+        input.append(s == 0 ? (i / 64.0) : (1.0 - i / 64.0));
+
+      QJsonArray output;
+      output.append(s == 0 ? 1.0 : 0.0);
+      output.append(s == 0 ? 0.0 : 1.0);
+
+      sample["input"] = input;
+      sample["output"] = output;
+      samples.append(sample);
+    }
+
+    QJsonObject root;
+    root["samples"] = samples;
+    samplesFile.write(QJsonDocument(root).toJson());
+    samplesFile.close();
+  }
+
+  // Train
+  QString modelPath = tempDir() + "/cnn_res_model.json";
+
+  auto trainResult = runNNCLI(
+    {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
+
+  CHECK(trainResult.exitCode == 0, "CNN Residual e2e: train exit code 0");
+  CHECK(trainResult.stdOut.contains("Training completed."), "CNN Residual e2e: training completed");
+  CHECK(QFile::exists(modelPath), "CNN Residual e2e: model file created");
+
+  // Verify model JSON contains residual_start/end
+  if (QFile::exists(modelPath)) {
+    QFile model(modelPath);
+
+    if (model.open(QIODevice::ReadOnly)) {
+      QByteArray data = model.readAll();
+      model.close();
+      CHECK(data.contains("residual_start"), "CNN Residual e2e: model contains residual_start");
+      CHECK(data.contains("residual_end"), "CNN Residual e2e: model contains residual_end");
+    }
+
+    // Predict
+    QString predictPath = tempDir() + "/cnn_res_predict_input.json";
+    QFile predictFile(predictPath);
+
+    if (predictFile.open(QIODevice::WriteOnly)) {
+      QJsonObject root;
+      QJsonArray inputs;
+
+      for (int s = 0; s < 2; s++) {
+        QJsonArray input;
+
+        for (int i = 0; i < 64; i++)
+          input.append(s == 0 ? (i / 64.0) : (1.0 - i / 64.0));
+
+        inputs.append(input);
+      }
+
+      root["inputs"] = inputs;
+      predictFile.write(QJsonDocument(root).toJson());
+      predictFile.close();
+    }
+
+    QString predictOutput = tempDir() + "/cnn_res_predict_output.json";
+
+    auto predResult =
+      runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath, "--output",
+                predictOutput});
+
+    CHECK(predResult.exitCode == 0, "CNN Residual e2e: predict exit code 0");
+
+    if (QFile::exists(predictOutput)) {
+      QFile outFile(predictOutput);
+
+      if (outFile.open(QIODevice::ReadOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(outFile.readAll());
+        QJsonArray outputs = doc.object()["outputs"].toArray();
+        CHECK(outputs.size() == 2, "CNN Residual e2e: 2 predictions");
+
+        if (outputs.size() == 2) {
+          double diff = std::abs(outputs[0].toArray()[0].toDouble() - outputs[1].toArray()[0].toDouble());
+          CHECK(diff > 0.01, "CNN Residual e2e: predictions are distinct");
+        }
+
+        outFile.close();
+      }
+    }
+  }
+
+  std::cout << std::endl;
+}
+
+//===================================================================================================================//
+
 void runCNNCPUFeatureTests()
 {
   testCNNCheckpointParameters();
   testCNNCheckpointInstanceNormRoundTrip();
   testCNNGlobalDualPoolEndToEnd();
+  testCNNResidualEndToEnd();
 }

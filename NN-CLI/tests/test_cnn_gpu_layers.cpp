@@ -324,6 +324,22 @@ static void testCNNGPUPredictLayerIsolation()
     // 16. conv + bn + relu + maxpool + conv + bn + relu + globaldualpool + flatten (full combo with GDP)
     {"conv_bn_maxpool_conv_bn_gdp_flatten",
      R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"instancenorm"},{"type":"relu"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"valid"},{"type":"instancenorm"},{"type":"relu"},{"type":"globaldualpool"},{"type":"flatten"}])"},
+
+    // 17. residual identity: conv(4,same)→relu→res(conv(4,same)→relu)→gap→flatten
+    {"res_identity_conv_relu_gap_flatten",
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"globalavgpool"},{"type":"flatten"}])"},
+
+    // 18. residual projection: res(conv(4,same)→relu)→gap→flatten (1→4 channel change)
+    {"res_proj_conv_relu_gap_flatten",
+     R"([{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"globalavgpool"},{"type":"flatten"}])"},
+
+    // 19. residual + pool + residual + gap: res(conv4)→pool→res(conv4)→gap→flatten
+    {"res_pool_res_gap_flatten",
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"globalavgpool"},{"type":"flatten"}])"},
+
+    // 20. residual + pool + residual + globaldualpool
+    {"res_pool_res_gdp_flatten",
+     R"([{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"pool","poolType":"max","poolH":2,"poolW":2,"strideY":2,"strideX":2},{"type":"residual_start"},{"type":"conv","numFilters":4,"filterH":3,"filterW":3,"strideY":1,"strideX":1,"slidingStrategy":"same"},{"type":"relu"},{"type":"residual_end"},{"type":"globaldualpool"},{"type":"flatten"}])"},
   };
   // clang-format on
 
