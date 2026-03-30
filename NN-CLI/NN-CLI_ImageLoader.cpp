@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <numeric>
 #include <stdexcept>
 
@@ -31,26 +32,52 @@ namespace NN_CLI
       throw std::runtime_error("Failed to load image: " + imagePath + " (" + stbi_failure_reason() + ")");
     }
 
-    // Resize if the loaded image doesn't match target dimensions
-    std::vector<unsigned char> resizedBuf;
-    unsigned char* source = pixels;
+    stbir_pixel_layout layout;
 
-    if (origW != targetW || origH != targetH) {
-      resizedBuf.resize(static_cast<size_t>(targetW) * targetH * targetC);
+    if (targetC == 1)
+      layout = STBIR_1CHANNEL;
+    else if (targetC == 3)
+      layout = STBIR_RGB;
+    else if (targetC == 4)
+      layout = STBIR_RGBA;
+    else
+      layout = STBIR_1CHANNEL; // fallback
 
-      stbir_pixel_layout layout;
+    // Letterbox: scale to fit within target dimensions preserving aspect ratio, then centre on black canvas.
+    float scaleH = static_cast<float>(targetH) / static_cast<float>(origH);
+    float scaleW = static_cast<float>(targetW) / static_cast<float>(origW);
+    float scale = std::min(scaleH, scaleW);
 
-      if (targetC == 1)
-        layout = STBIR_1CHANNEL;
-      else if (targetC == 3)
-        layout = STBIR_RGB;
-      else if (targetC == 4)
-        layout = STBIR_RGBA;
-      else
-        layout = STBIR_1CHANNEL; // fallback
+    int scaledW = static_cast<int>(std::round(origW * scale));
+    int scaledH = static_cast<int>(std::round(origH * scale));
 
-      stbir_resize_uint8_linear(pixels, origW, origH, 0, resizedBuf.data(), targetW, targetH, 0, layout);
-      source = resizedBuf.data();
+    // Clamp to target bounds (rounding may exceed by 1)
+    scaledW = std::min(scaledW, targetW);
+    scaledH = std::min(scaledH, targetH);
+
+    // Resize the image to the scaled dimensions
+    std::vector<unsigned char> scaledBuf(static_cast<size_t>(scaledW) * scaledH * targetC);
+
+    if (origW != scaledW || origH != scaledH) {
+      stbir_resize_uint8_linear(pixels, origW, origH, 0, scaledBuf.data(), scaledW, scaledH, 0, layout);
+    } else {
+      std::memcpy(scaledBuf.data(), pixels, scaledBuf.size());
+    }
+
+    stbi_image_free(pixels);
+
+    // Create black canvas at target dimensions
+    std::vector<unsigned char> canvas(static_cast<size_t>(targetW) * targetH * targetC, 0);
+
+    // Centre the scaled image on the canvas
+    int offsetY = (targetH - scaledH) / 2;
+    int offsetX = (targetW - scaledW) / 2;
+    int scaledStride = scaledW * targetC;
+    int canvasStride = targetW * targetC;
+
+    for (int y = 0; y < scaledH; ++y) {
+      std::memcpy(canvas.data() + (offsetY + y) * canvasStride + offsetX * targetC, scaledBuf.data() + y * scaledStride,
+                  static_cast<size_t>(scaledStride));
     }
 
     // Convert to flat NCHW float vector, normalised to [0, 1]
@@ -59,15 +86,14 @@ namespace NN_CLI
     for (int c = 0; c < targetC; ++c) {
       for (int h = 0; h < targetH; ++h) {
         for (int w = 0; w < targetW; ++w) {
-          // stb_image stores as interleaved HWC: pixel[h * W * C + w * C + c]
-          float val = static_cast<float>(source[h * targetW * targetC + w * targetC + c]) / 255.0f;
+          // Canvas is interleaved HWC: pixel[h * W * C + w * C + c]
+          float val = static_cast<float>(canvas[h * canvasStride + w * targetC + c]) / 255.0f;
           // NCHW layout: data[c * H * W + h * W + w]
           result[c * targetH * targetW + h * targetW + w] = val;
         }
       }
     }
 
-    stbi_image_free(pixels);
     return result;
   }
 
