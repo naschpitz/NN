@@ -76,10 +76,9 @@ CMakeLists.txt.user*
 # ----------------
 build/
 
-# Augment
-# -------
-.augment/
-INSTRUCTIONS.md
+# Claude Code
+# ----------
+.claude/
 
 # Local planning / todo files
 todo/
