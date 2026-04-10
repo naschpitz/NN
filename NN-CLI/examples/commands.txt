@@ -21,4 +21,4 @@
 
 4. Test MNIST (use the auto-generated model from examples/MNIST/train/output/):
 
-./build/NN-CLI --config examples/MNIST/train/output/trained_E-*_S-*_L-*.json --mode test --idx-data examples/MNIST/test/t10k-images.idx3-ubyte --idx-labels examples/MNIST/test/t10k-labels.idx1-ubyte --log-level infoS
+./build/NN-CLI --config examples/MNIST/train/output/trained_E-*_S-*_L-*.json --mode test --idx-data examples/MNIST/test/t10k-images.idx3-ubyte --idx-labels examples/MNIST/test/t10k-labels.idx1-ubyte --log-level info
