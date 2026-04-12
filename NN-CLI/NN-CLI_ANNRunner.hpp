@@ -35,7 +35,7 @@ namespace NN_CLI
       std::pair<ANN::Samples<float>, bool> loadSamplesFromOptions(const std::string& modeName, QString& inputFilePath);
 
       //-- Training helpers --//
-      void setupTrainingCallback(const QString& inputFilePath,
+      void setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> valCore = nullptr,
                                  const DataLoader<ANN::Sample<float>>* valDataLoader = nullptr,
                                  const std::vector<ulong>* valIndices = nullptr);
       int finishTraining(const QString& inputFilePath);

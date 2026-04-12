@@ -120,7 +120,16 @@ int ANNRunner::train()
   if (this->logLevel >= LogLevel::INFO)
     TrainingSummary::printANN(this->coreConfig, this->augConfig, trainSamples, valSamples, valRatio, valAuto);
 
-  this->setupTrainingCallback(inputFilePath, valConfig.enabled ? &dataLoader : nullptr,
+  // Create a separate core for validation to avoid re-entering the training core's GPU buffers
+  std::shared_ptr<ANN::Core<float>> valCore;
+
+  if (valConfig.enabled) {
+    ANN::CoreConfig<float> valCoreConfig = this->coreConfig;
+    valCoreConfig.modeType = ANN::ModeType::TEST;
+    valCore = std::shared_ptr<ANN::Core<float>>(ANN::Core<float>::makeCore(valCoreConfig).release());
+  }
+
+  this->setupTrainingCallback(inputFilePath, valCore, valConfig.enabled ? &dataLoader : nullptr,
                               valConfig.enabled ? &split.valIndices : nullptr);
 
   if (valConfig.enabled) {
@@ -377,7 +386,8 @@ ValidationMetadata ANNRunner::buildValidationMetadata() const
 
 //===================================================================================================================//
 
-void ANNRunner::setupTrainingCallback(const QString& inputFilePath, const DataLoader<ANN::Sample<float>>* valDataLoader,
+void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> valCore,
+                                      const DataLoader<ANN::Sample<float>>* valDataLoader,
                                       const std::vector<ulong>* valIndices)
 {
   static ulong lastCallbackEpoch = 0;
@@ -395,7 +405,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, const DataLo
   }
 
   this->core->setTrainingCallback(
-    [this, inputFilePath, valProviderPtr, valIndices](const ANN::TrainingProgress<float>& progress) {
+    [this, inputFilePath, valCore, valProviderPtr, valIndices](const ANN::TrainingProgress<float>& progress) {
       if (this->logLevel > LogLevel::QUIET) {
         ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
                           progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
@@ -413,10 +423,11 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, const DataLo
             std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
         }
 
-        // Run validation at check intervals
-        if (this->valState.enabled && valProviderPtr && valIndices &&
+        // Run validation at check intervals using separate core
+        if (this->valState.enabled && valCore && valProviderPtr && valIndices &&
             lastCallbackEpoch % this->valState.checkInterval == 0) {
-          auto valResult = this->core->test(valIndices->size(), *valProviderPtr);
+          valCore->setParameters(this->core->getParameters());
+          auto valResult = valCore->test(valIndices->size(), *valProviderPtr);
           this->valState.lastValLoss = valResult.averageLoss;
 
           if (valResult.averageLoss < this->valState.bestValLoss) {

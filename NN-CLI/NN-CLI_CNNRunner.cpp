@@ -123,7 +123,16 @@ int CNNRunner::train()
   if (this->logLevel >= LogLevel::INFO)
     TrainingSummary::printCNN(this->coreConfig, this->augConfig, trainSamples, valSamples, valRatio, valAuto);
 
-  this->setupTrainingCallback(inputFilePath, valConfig.enabled ? &dataLoader : nullptr,
+  // Create a separate core for validation to avoid re-entering the training core's GPU buffers
+  std::shared_ptr<CNN::Core<float>> valCore;
+
+  if (valConfig.enabled) {
+    CNN::CoreConfig<float> valCoreConfig = this->coreConfig;
+    valCoreConfig.modeType = CNN::ModeType::TEST;
+    valCore = std::shared_ptr<CNN::Core<float>>(CNN::Core<float>::makeCore(valCoreConfig).release());
+  }
+
+  this->setupTrainingCallback(inputFilePath, valCore, valConfig.enabled ? &dataLoader : nullptr,
                               valConfig.enabled ? &split.valIndices : nullptr);
 
   if (valConfig.enabled) {
@@ -381,7 +390,8 @@ ValidationMetadata CNNRunner::buildValidationMetadata() const
 
 //===================================================================================================================//
 
-void CNNRunner::setupTrainingCallback(const QString& inputFilePath, const DataLoader<CNN::Sample<float>>* valDataLoader,
+void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<CNN::Core<float>> valCore,
+                                      const DataLoader<CNN::Sample<float>>* valDataLoader,
                                       const std::vector<ulong>* valIndices)
 {
   static ulong lastCallbackEpoch = 0;
@@ -399,7 +409,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, const DataLo
   }
 
   this->core->setTrainingCallback(
-    [this, inputFilePath, valProviderPtr, valIndices](const CNN::TrainingProgress<float>& progress) {
+    [this, inputFilePath, valCore, valProviderPtr, valIndices](const CNN::TrainingProgress<float>& progress) {
       if (this->logLevel > LogLevel::QUIET) {
         ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
                           progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
@@ -417,10 +427,11 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, const DataLo
             std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
         }
 
-        // Run validation at check intervals
-        if (this->valState.enabled && valProviderPtr && valIndices &&
+        // Run validation at check intervals using separate core
+        if (this->valState.enabled && valCore && valProviderPtr && valIndices &&
             lastCallbackEpoch % this->valState.checkInterval == 0) {
-          auto valResult = this->core->test(valIndices->size(), *valProviderPtr);
+          valCore->setParameters(this->core->getParameters());
+          auto valResult = valCore->test(valIndices->size(), *valProviderPtr);
           this->valState.lastValLoss = valResult.averageLoss;
 
           if (valResult.averageLoss < this->valState.bestValLoss) {
