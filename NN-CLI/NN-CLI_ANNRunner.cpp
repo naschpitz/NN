@@ -543,14 +543,15 @@ int ANNRunner::finishTraining(const QString& inputFilePath)
 
   const auto& trainingConfig = this->core->getTrainingConfig();
   const auto& trainingMetadata = this->core->getTrainingMetadata();
+  ulong actualEpochs = trainingMetadata.lastEpoch > 0 ? trainingMetadata.lastEpoch : trainingConfig.numEpochs;
 
   std::string outputPathStr;
 
   if (this->parser.isSet("output")) {
     outputPathStr = this->parser.value("output").toStdString();
   } else {
-    outputPathStr = ModelSerializer::generateDefaultOutputPath(inputFilePath, trainingConfig.numEpochs,
-                                                               trainingMetadata.numSamples, trainingMetadata.finalLoss);
+    outputPathStr = ModelSerializer::generateDefaultOutputPath(inputFilePath, actualEpochs, trainingMetadata.numSamples,
+                                                               trainingMetadata.finalLoss);
   }
 
   ModelSerializer::saveANNModel(outputPathStr, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
