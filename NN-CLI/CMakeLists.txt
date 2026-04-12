@@ -46,8 +46,11 @@ add_executable(NN-CLI
   NN-CLI_ImageLoader.cpp
   NN-CLI_Loader.cpp
   NN-CLI_ModelSerializer.cpp
+  NN-CLI_PredictSummary.cpp
   NN-CLI_ProgressBar.cpp
   NN-CLI_Runner.cpp
+  NN-CLI_SummaryTable.cpp
+  NN-CLI_TestSummary.cpp
   NN-CLI_TrainingSummary.cpp
   NN-CLI_Utils.cpp
 )
@@ -97,6 +100,7 @@ add_executable(test_nncli
   NN-CLI_ImageLoader.cpp
   NN-CLI_Loader.cpp
   NN-CLI_ProgressBar.cpp
+  NN-CLI_SummaryTable.cpp
   NN-CLI_TrainingSummary.cpp
 )
 target_include_directories(test_nncli PRIVATE

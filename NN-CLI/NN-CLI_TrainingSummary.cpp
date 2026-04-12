@@ -1,4 +1,5 @@
 #include "NN-CLI_TrainingSummary.hpp"
+#include "NN-CLI_SummaryTable.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -7,21 +8,6 @@
 
 namespace NN_CLI
 {
-
-  //===================================================================================================================//
-
-  std::string TrainingSummary::formatWithCommas(ulong value)
-  {
-    std::string str = std::to_string(value);
-    int insertPos = static_cast<int>(str.length()) - 3;
-
-    while (insertPos > 0) {
-      str.insert(insertPos, ",");
-      insertPos -= 3;
-    }
-
-    return str;
-  }
 
   //===================================================================================================================//
 
@@ -224,7 +210,7 @@ namespace NN_CLI
 
     if (validationSamples > 0) {
       std::ostringstream oss;
-      oss << formatWithCommas(validationSamples) << " (" << static_cast<int>(validationRatio * 100) << "%"
+      oss << SummaryTable::formatWithCommas(validationSamples) << " (" << static_cast<int>(validationRatio * 100) << "%"
           << (validationAuto ? ", auto" : "") << ")";
       validationStr = oss.str();
     } else {
@@ -238,7 +224,7 @@ namespace NN_CLI
     std::ostringstream lrOss;
     lrOss << tc.learningRate;
 
-    std::vector<Row> rows;
+    std::vector<SummaryRow> rows;
     rows.push_back({"Device", deviceStr});
     rows.push_back({"Input shape", inputShapeStr});
     rows.push_back({"Network type", "CNN"});
@@ -246,9 +232,9 @@ namespace NN_CLI
     rows.push_back({"Conv layers", std::to_string(convCount)});
     rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"Residual blocks", std::to_string(residualCount)});
-    rows.push_back({"Total parameters", formatWithCommas(totalParams)});
+    rows.push_back({"Total parameters", SummaryTable::formatWithCommas(totalParams)});
     rows.push_back({"", ""}); // separator
-    rows.push_back({"Training samples", formatWithCommas(trainSamples)});
+    rows.push_back({"Training samples", SummaryTable::formatWithCommas(trainSamples)});
     rows.push_back({"Validation samples", validationStr});
 
     if (augStr != "None")
@@ -267,7 +253,7 @@ namespace NN_CLI
     rows.push_back({"Cost function", costStr});
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
-    printTable("Training Configuration", rows);
+    SummaryTable::print("Training Configuration", rows);
   }
 
   //===================================================================================================================//
@@ -316,7 +302,7 @@ namespace NN_CLI
 
     if (validationSamples > 0) {
       std::ostringstream oss;
-      oss << formatWithCommas(validationSamples) << " (" << static_cast<int>(validationRatio * 100) << "%"
+      oss << SummaryTable::formatWithCommas(validationSamples) << " (" << static_cast<int>(validationRatio * 100) << "%"
           << (validationAuto ? ", auto" : "") << ")";
       validationStr = oss.str();
     } else {
@@ -326,13 +312,13 @@ namespace NN_CLI
     std::ostringstream lrOss;
     lrOss << tc.learningRate;
 
-    std::vector<Row> rows;
+    std::vector<SummaryRow> rows;
     rows.push_back({"Device", deviceStr});
     rows.push_back({"Network type", "ANN"});
     rows.push_back({"", ""}); // separator
     rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"", ""}); // separator
-    rows.push_back({"Training samples", formatWithCommas(trainSamples)});
+    rows.push_back({"Training samples", SummaryTable::formatWithCommas(trainSamples)});
     rows.push_back({"Validation samples", validationStr});
     rows.push_back({"", ""}); // separator
     rows.push_back({"Epochs", std::to_string(tc.numEpochs)});
@@ -346,55 +332,7 @@ namespace NN_CLI
     rows.push_back({"Cost function", costStr});
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
-    printTable("Training Configuration", rows);
-  }
-
-  //===================================================================================================================//
-
-  void TrainingSummary::printTable(const std::string& title, const std::vector<Row>& rows)
-  {
-    // Compute column widths from content
-    ulong keyW = title.size(); // minimum: title must fit
-    ulong valueW = 0;
-
-    for (const auto& r : rows) {
-      if (r.key.empty())
-        continue; // separator
-
-      keyW = std::max(keyW, r.key.size());
-      valueW = std::max(valueW, r.value.size());
-    }
-
-    // Ensure the title fits across both columns (keyW + 3 + valueW >= title.size())
-    ulong totalInner = keyW + 3 + valueW; // " | " between columns
-
-    if (totalInner < title.size()) {
-      valueW += title.size() - totalInner;
-    }
-
-    std::string sep = "+" + std::string(keyW + 2, '-') + "+" + std::string(valueW + 2, '-') + "+";
-    ulong titleSpace = keyW + valueW + 5; // total inner width between outer '|'
-
-    std::cout << "\n";
-    std::cout << sep << "\n";
-    ulong pad = titleSpace - title.size();
-    ulong padLeft = pad / 2;
-    ulong padRight = pad - padLeft;
-    std::cout << "|" << std::string(padLeft, ' ') << title << std::string(padRight, ' ') << "|\n";
-    std::cout << sep << "\n";
-
-    for (const auto& r : rows) {
-      if (r.key.empty()) {
-        std::cout << sep << "\n";
-        continue;
-      }
-
-      std::cout << "| " << std::left << std::setw(static_cast<int>(keyW)) << r.key << " | "
-                << std::setw(static_cast<int>(valueW)) << r.value << " |\n";
-    }
-
-    std::cout << sep << "\n";
-    std::cout << "\n";
+    SummaryTable::print("Training Configuration", rows);
   }
 
 } // namespace NN_CLI

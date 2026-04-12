@@ -5,6 +5,8 @@
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
+#include "NN-CLI_PredictSummary.hpp"
+#include "NN-CLI_TestSummary.hpp"
 #include "NN-CLI_TrainingSummary.hpp"
 #include "NN-CLI_Utils.hpp"
 
@@ -178,8 +180,8 @@ int ANNRunner::test()
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  if (this->logLevel >= LogLevel::INFO)
-    std::cout << "Running ANN evaluation...\n";
+  if (this->logLevel > LogLevel::QUIET)
+    TestSummary::printANN(this->coreConfig, dataLoader.numSamples());
 
   if (this->logLevel > LogLevel::QUIET) {
     ulong progressReports = this->ioConfig.progressReports;
@@ -234,16 +236,12 @@ int ANNRunner::predict()
     }
   }
 
-  if (this->logLevel >= LogLevel::INFO)
-    std::cout << "Loading inputs from: " << inputPath.toStdString() << "\n";
-
   ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
   std::vector<ANN::Input<float>> inputs =
     ANNLoader::loadInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
 
-  if (this->logLevel >= LogLevel::INFO) {
-    std::cout << "Loaded " << inputs.size() << " input(s), each with " << inputs[0].size() << " values\n";
-  }
+  if (this->logLevel > LogLevel::QUIET)
+    PredictSummary::printANN(this->coreConfig, inputs.size(), inputPath.toStdString(), outputPath.toStdString());
 
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = ANN::Utils<float>::formatISO8601();
