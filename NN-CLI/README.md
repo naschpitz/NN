@@ -176,7 +176,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   | `size` | `float` | `0.15` | Fixed validation fraction (0.0–1.0). Only used when `autoSize` is `false` |
   | `checkInterval` | `int` | `1` | Run validation every N epochs (1 = every epoch) |
 
-  Auto-size ratios: <1k samples → 20%, 1k–10k → 15%, 10k–100k → 10%, >100k → 5%.
+  Auto-size ratios: <1k samples → 20%, 1k–10k → 15%, 10k–100k → 10%, 100k–1M → 2%, >1M → 1%.
   To disable validation: `"validationDataset": { "enabled": false }`
 
   Example — only rotation (strong) and translation, nothing else:

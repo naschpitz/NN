@@ -43,16 +43,40 @@ namespace NN_CLI
 
   float DataSplitter::computeAutoValSize(ulong totalSamples)
   {
-    if (totalSamples > 100000)
-      return 0.05f;
+    // Log-linear interpolation between anchor points to avoid discontinuities.
+    // Anchor points (samples → validation ratio):
+    //   100 → 20%,  1k → 15%,  10k → 10%,  100k → 5%,  1M → 1%
+    struct Anchor {
+        double logN;
+        double ratio;
+    };
 
-    if (totalSamples > 10000)
-      return 0.10f;
+    static const Anchor anchors[] = {
+      {std::log(100.0), 0.20},    {std::log(1000.0), 0.15},    {std::log(10000.0), 0.10},
+      {std::log(100000.0), 0.05}, {std::log(1000000.0), 0.01},
+    };
 
-    if (totalSamples > 1000)
-      return 0.15f;
+    static const int numAnchors = sizeof(anchors) / sizeof(anchors[0]);
 
-    return 0.20f;
+    double logN = std::log(static_cast<double>(std::max(totalSamples, 1UL)));
+
+    // Clamp to anchor range
+    if (logN <= anchors[0].logN)
+      return static_cast<float>(anchors[0].ratio);
+
+    if (logN >= anchors[numAnchors - 1].logN)
+      return static_cast<float>(anchors[numAnchors - 1].ratio);
+
+    // Find the two anchors that bracket logN and interpolate
+    for (int i = 0; i < numAnchors - 1; i++) {
+      if (logN <= anchors[i + 1].logN) {
+        double t = (logN - anchors[i].logN) / (anchors[i + 1].logN - anchors[i].logN);
+        double ratio = anchors[i].ratio + t * (anchors[i + 1].ratio - anchors[i].ratio);
+        return static_cast<float>(ratio);
+      }
+    }
+
+    return 0.01f;
   }
 
 } // namespace NN_CLI

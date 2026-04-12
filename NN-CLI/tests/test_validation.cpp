@@ -36,16 +36,31 @@ static void testAutoValSizeThresholds()
 {
   std::cout << "  testAutoValSizeThresholds... ";
 
-  CHECK_NEAR(DataSplitter::computeAutoValSize(500), 0.20f, 0.001f, "<1k → 20%");
-  CHECK_NEAR(DataSplitter::computeAutoValSize(999), 0.20f, 0.001f, "999 → 20%");
-  CHECK_NEAR(DataSplitter::computeAutoValSize(1000), 0.20f, 0.001f, "1000 → 20% (boundary)");
-  CHECK_NEAR(DataSplitter::computeAutoValSize(1001), 0.15f, 0.001f, "1001 → 15%");
-  CHECK_NEAR(DataSplitter::computeAutoValSize(5000), 0.15f, 0.001f, "5k → 15%");
-  CHECK_NEAR(DataSplitter::computeAutoValSize(10000), 0.15f, 0.001f, "10k → 15% (boundary)");
-  CHECK_NEAR(DataSplitter::computeAutoValSize(10001), 0.10f, 0.001f, "10001 → 10%");
-  CHECK_NEAR(DataSplitter::computeAutoValSize(50000), 0.10f, 0.001f, "50k → 10%");
-  CHECK_NEAR(DataSplitter::computeAutoValSize(100000), 0.10f, 0.001f, "100k → 10% (boundary)");
-  CHECK_NEAR(DataSplitter::computeAutoValSize(100001), 0.05f, 0.001f, "100001 → 5%");
+  // Exact anchor points
+  CHECK_NEAR(DataSplitter::computeAutoValSize(100), 0.20f, 0.001f, "100 → 20%");
+  CHECK_NEAR(DataSplitter::computeAutoValSize(1000), 0.15f, 0.001f, "1k → 15%");
+  CHECK_NEAR(DataSplitter::computeAutoValSize(10000), 0.10f, 0.001f, "10k → 10%");
+  CHECK_NEAR(DataSplitter::computeAutoValSize(100000), 0.05f, 0.001f, "100k → 5%");
+  CHECK_NEAR(DataSplitter::computeAutoValSize(1000000), 0.01f, 0.001f, "1M → 1%");
+
+  // Smooth interpolation: midpoints should be between anchors, not cliff edges
+  float mid1k10k = DataSplitter::computeAutoValSize(3162); // ~sqrt(1k*10k)
+  CHECK(mid1k10k > 0.10f && mid1k10k < 0.15f, "3.2k is between 10% and 15%");
+
+  float mid10k100k = DataSplitter::computeAutoValSize(31623); // ~sqrt(10k*100k)
+  CHECK(mid10k100k > 0.05f && mid10k100k < 0.10f, "31.6k is between 5% and 10%");
+
+  float mid100k1M = DataSplitter::computeAutoValSize(316228); // ~sqrt(100k*1M)
+  CHECK(mid100k1M > 0.01f && mid100k1M < 0.05f, "316k is between 1% and 5%");
+
+  // Monotonically decreasing
+  CHECK(DataSplitter::computeAutoValSize(500) > DataSplitter::computeAutoValSize(5000), "500 > 5k ratio");
+  CHECK(DataSplitter::computeAutoValSize(5000) > DataSplitter::computeAutoValSize(50000), "5k > 50k ratio");
+  CHECK(DataSplitter::computeAutoValSize(50000) > DataSplitter::computeAutoValSize(500000), "50k > 500k ratio");
+
+  // Clamping at boundaries
+  CHECK_NEAR(DataSplitter::computeAutoValSize(10), 0.20f, 0.001f, "tiny → clamped to 20%");
+  CHECK_NEAR(DataSplitter::computeAutoValSize(10000000), 0.01f, 0.001f, "10M → clamped to 1%");
 
   std::cout << "PASS" << std::endl;
 }

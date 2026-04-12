@@ -130,7 +130,7 @@
   <tr><td><code>trainingConfig.augmentationTransforms.gaussianNoise</code></td><td>float</td><td>No</td><td>Noise standard deviation (default 0.02 = σ=0.02; 0 = disabled)</td></tr>
   <tr><td><code>trainingConfig.validationDataset</code></td><td>object</td><td>No</td><td>Validation dataset split configuration (see below)</td></tr>
   <tr><td><code>trainingConfig.validationDataset.enabled</code></td><td>bool</td><td>No</td><td>Enable validation split (default true)</td></tr>
-  <tr><td><code>trainingConfig.validationDataset.autoSize</code></td><td>bool</td><td>No</td><td>Auto-select split ratio based on dataset size (default true). Ratios: &lt;1k samples = 20%, 1k-10k = 15%, 10k-100k = 10%, &gt;100k = 5%</td></tr>
+  <tr><td><code>trainingConfig.validationDataset.autoSize</code></td><td>bool</td><td>No</td><td>Auto-select split ratio based on dataset size (default true). Ratios: &lt;1k samples = 20%, 1k-10k = 15%, 10k-100k = 10%, 100k-1M = 2%, &gt;1M = 1%</td></tr>
   <tr><td><code>trainingConfig.validationDataset.size</code></td><td>float</td><td>No</td><td>Fixed validation fraction, range 0.0-1.0 (default 0.15). Used when <code>autoSize</code> is false</td></tr>
   <tr><td><code>trainingConfig.validationDataset.checkInterval</code></td><td>int</td><td>No</td><td>Run validation every N epochs (default 1)</td></tr>
   <tr><td><code>numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
