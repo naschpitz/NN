@@ -435,35 +435,19 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         // Run validation at check intervals using separate core (skip epoch 0 — no training yet)
         if (lastCallbackEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
             validationIndices && lastCallbackEpoch % this->validationState.checkInterval == 0) {
-          std::cerr << "\n[DEBUG] Validation starting: epoch=" << lastCallbackEpoch
-                    << " validationSamples=" << validationIndices->size() << std::endl;
+          validationCore->setParameters(this->core->getParameters());
+          validationCore->syncParametersToGPU();
+          auto validationResult = validationCore->test(validationIndices->size(), *validationProviderPtr);
+          this->validationState.lastValLoss = validationResult.averageLoss;
 
-          try {
-            std::cerr << "[DEBUG] setParameters..." << std::endl;
-            validationCore->setParameters(this->core->getParameters());
+          if (validationResult.averageLoss < this->validationState.bestValLoss) {
+            this->validationState.bestValLoss = validationResult.averageLoss;
+            this->validationState.bestValEpoch = lastCallbackEpoch;
+          }
 
-            std::cerr << "[DEBUG] syncParametersToGPU..." << std::endl;
-            validationCore->syncParametersToGPU();
-
-            std::cerr << "[DEBUG] test()..." << std::endl;
-            auto validationResult = validationCore->test(validationIndices->size(), *validationProviderPtr);
-
-            std::cerr << "[DEBUG] test() done, loss=" << validationResult.averageLoss << std::endl;
-            this->validationState.lastValLoss = validationResult.averageLoss;
-
-            if (validationResult.averageLoss < this->validationState.bestValLoss) {
-              this->validationState.bestValLoss = validationResult.averageLoss;
-              this->validationState.bestValEpoch = lastCallbackEpoch;
-            }
-
-            if (this->logLevel > LogLevel::QUIET) {
-              std::cout << " - Validation Loss: " << std::fixed << std::setprecision(6) << validationResult.averageLoss;
-              std::cout.unsetf(std::ios_base::floatfield);
-            }
-          } catch (const std::exception& e) {
-            std::cerr << "[DEBUG] Validation exception: " << e.what() << std::endl;
-          } catch (...) {
-            std::cerr << "[DEBUG] Validation unknown exception" << std::endl;
+          if (this->logLevel > LogLevel::QUIET) {
+            std::cout << " - Validation Loss: " << std::fixed << std::setprecision(6) << validationResult.averageLoss;
+            std::cout.unsetf(std::ios_base::floatfield);
           }
         }
 
