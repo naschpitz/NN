@@ -118,7 +118,7 @@ int ANNRunner::train()
   ulong trainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
   ulong validationSamples = validationConfig.enabled ? split.validationIndices.size() : 0;
 
-  if (this->logLevel >= LogLevel::INFO)
+  if (this->logLevel > LogLevel::QUIET)
     TrainingSummary::printANN(this->coreConfig, this->augConfig, trainSamples, validationSamples, validationRatio,
                               validationAuto);
 
@@ -425,9 +425,9 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
 
-      // Run validation at check intervals using separate core
-      if (this->validationState.enabled && validationCore && validationProviderPtr && validationIndices &&
-          lastCallbackEpoch % this->validationState.checkInterval == 0) {
+      // Run validation at check intervals using separate core (skip epoch 0 — no training yet)
+      if (lastCallbackEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
+          validationIndices && lastCallbackEpoch % this->validationState.checkInterval == 0) {
         validationCore->setParameters(this->core->getParameters());
         auto validationResult = validationCore->test(validationIndices->size(), *validationProviderPtr);
         this->validationState.lastValLoss = validationResult.averageLoss;
