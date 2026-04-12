@@ -234,6 +234,7 @@ namespace NN_CLI
     rows.push_back({"Residual blocks", std::to_string(residualCount)});
     rows.push_back({"Total parameters", SummaryTable::formatWithCommas(totalParams)});
     rows.push_back({"", ""}); // separator
+    rows.push_back({"Total samples", SummaryTable::formatWithCommas(trainSamples + validationSamples)});
     rows.push_back({"Training samples", SummaryTable::formatWithCommas(trainSamples)});
     rows.push_back({"Validation samples", validationStr});
 
@@ -318,6 +319,7 @@ namespace NN_CLI
     rows.push_back({"", ""}); // separator
     rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"", ""}); // separator
+    rows.push_back({"Total samples", SummaryTable::formatWithCommas(trainSamples + validationSamples)});
     rows.push_back({"Training samples", SummaryTable::formatWithCommas(trainSamples)});
     rows.push_back({"Validation samples", validationStr});
     rows.push_back({"", ""}); // separator
