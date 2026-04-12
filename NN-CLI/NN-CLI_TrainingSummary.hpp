@@ -7,6 +7,7 @@
 #include <CNN_CoreConfig.hpp>
 
 #include <string>
+#include <vector>
 
 namespace NN_CLI
 {
@@ -28,6 +29,14 @@ namespace NN_CLI
 
     private:
       static std::string formatWithCommas(ulong value);
+
+      // Table row: key-value pair. Empty key = section separator.
+      struct Row {
+          std::string key;
+          std::string value;
+      };
+
+      static void printTable(const std::string& title, const std::vector<Row>& rows);
   };
 
 } // namespace NN_CLI

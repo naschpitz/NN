@@ -159,7 +159,7 @@ namespace NN_CLI
     // Augmentation string
     std::string augStr;
 
-    if (augConfig.augmentationFactor > 0 || augConfig.balanceAugmentation || augConfig.augmentationProbability > 0) {
+    if (augConfig.augmentationFactor > 0 || augConfig.balanceAugmentation) {
       std::vector<std::string> parts;
 
       if (augConfig.transforms.horizontalFlip)
@@ -231,59 +231,43 @@ namespace NN_CLI
       validationStr = "Disabled";
     }
 
-    // Print table
-    const int keyW = 21;
-    const int valW = 55;
-    std::string sep = "+" + std::string(keyW + 2, '-') + "+" + std::string(valW + 2, '-') + "+";
-    std::string titleLine(keyW + valW + 5, '-');
+    // Build rows
+    std::string inputShapeStr =
+      std::to_string(inputShape.c) + " x " + std::to_string(inputShape.h) + " x " + std::to_string(inputShape.w);
 
-    std::cout << "\n";
-    std::cout << "+" << titleLine << "+\n";
-    std::cout << "|" << std::string((titleLine.size() - 22) / 2, ' ') << "Training Configuration"
-              << std::string((titleLine.size() - 22 + 1) / 2, ' ') << "|\n";
-    std::cout << sep << "\n";
+    std::ostringstream lrOss;
+    lrOss << tc.learningRate;
 
-    auto row = [&](const std::string& key, const std::string& val) {
-      std::cout << "| " << std::left << std::setw(keyW) << key << " | " << std::setw(valW) << val << " |\n";
-    };
-
-    row("Device", deviceStr);
-    row("Input shape",
-        std::to_string(inputShape.c) + " x " + std::to_string(inputShape.h) + " x " + std::to_string(inputShape.w));
-    row("Network type", "CNN");
-    std::cout << sep << "\n";
-    row("Conv layers", std::to_string(convCount));
-    row("Dense layers", std::to_string(denseCount));
-    row("Residual blocks", std::to_string(residualCount));
-    row("Total parameters", formatWithCommas(totalParams));
-    std::cout << sep << "\n";
-    row("Training samples", formatWithCommas(trainSamples));
-    row("Validation samples", validationStr);
+    std::vector<Row> rows;
+    rows.push_back({"Device", deviceStr});
+    rows.push_back({"Input shape", inputShapeStr});
+    rows.push_back({"Network type", "CNN"});
+    rows.push_back({"", ""}); // separator
+    rows.push_back({"Conv layers", std::to_string(convCount)});
+    rows.push_back({"Dense layers", std::to_string(denseCount)});
+    rows.push_back({"Residual blocks", std::to_string(residualCount)});
+    rows.push_back({"Total parameters", formatWithCommas(totalParams)});
+    rows.push_back({"", ""}); // separator
+    rows.push_back({"Training samples", formatWithCommas(trainSamples)});
+    rows.push_back({"Validation samples", validationStr});
 
     if (augStr != "None")
-      row("Augmentation", augStr);
+      rows.push_back({"Augmentation", augStr});
 
-    row("Class weights", weightsStr);
-    std::cout << sep << "\n";
-    row("Epochs", std::to_string(tc.numEpochs));
-    row("Batch size", std::to_string(tc.batchSize));
-
-    {
-      std::ostringstream oss;
-      oss << tc.learningRate;
-      row("Learning rate", oss.str());
-    }
-
-    row("Optimizer", optStr);
+    rows.push_back({"Class weights", weightsStr});
+    rows.push_back({"", ""}); // separator
+    rows.push_back({"Epochs", std::to_string(tc.numEpochs)});
+    rows.push_back({"Batch size", std::to_string(tc.batchSize)});
+    rows.push_back({"Learning rate", lrOss.str()});
+    rows.push_back({"Optimizer", optStr});
 
     if (tc.dropoutRate > 0)
-      row("Dropout", std::to_string(static_cast<int>(tc.dropoutRate * 100)) + "%");
+      rows.push_back({"Dropout", std::to_string(static_cast<int>(tc.dropoutRate * 100)) + "%"});
 
-    row("Cost function", costStr);
-    row("Shuffle", tc.shuffleSamples ? "Yes" : "No");
-    std::cout << sep << "\n";
-    std::cout << "\n";
-    std::cout.unsetf(std::ios_base::floatfield);
+    rows.push_back({"Cost function", costStr});
+    rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
+
+    printTable("Training Configuration", rows);
   }
 
   //===================================================================================================================//
@@ -339,48 +323,78 @@ namespace NN_CLI
       validationStr = "Disabled";
     }
 
-    const int keyW = 21;
-    const int valW = 55;
-    std::string sep = "+" + std::string(keyW + 2, '-') + "+" + std::string(valW + 2, '-') + "+";
-    std::string titleLine(keyW + valW + 5, '-');
+    std::ostringstream lrOss;
+    lrOss << tc.learningRate;
 
-    std::cout << "\n";
-    std::cout << "+" << titleLine << "+\n";
-    std::cout << "|" << std::string((titleLine.size() - 22) / 2, ' ') << "Training Configuration"
-              << std::string((titleLine.size() - 22 + 1) / 2, ' ') << "|\n";
-    std::cout << sep << "\n";
-
-    auto row = [&](const std::string& key, const std::string& val) {
-      std::cout << "| " << std::left << std::setw(keyW) << key << " | " << std::setw(valW) << val << " |\n";
-    };
-
-    row("Device", deviceStr);
-    row("Network type", "ANN");
-    std::cout << sep << "\n";
-    row("Dense layers", std::to_string(denseCount));
-    std::cout << sep << "\n";
-    row("Training samples", formatWithCommas(trainSamples));
-    row("Validation samples", validationStr);
-    std::cout << sep << "\n";
-    row("Epochs", std::to_string(tc.numEpochs));
-    row("Batch size", std::to_string(tc.batchSize));
-
-    {
-      std::ostringstream oss;
-      oss << tc.learningRate;
-      row("Learning rate", oss.str());
-    }
-
-    row("Optimizer", optStr);
+    std::vector<Row> rows;
+    rows.push_back({"Device", deviceStr});
+    rows.push_back({"Network type", "ANN"});
+    rows.push_back({"", ""}); // separator
+    rows.push_back({"Dense layers", std::to_string(denseCount)});
+    rows.push_back({"", ""}); // separator
+    rows.push_back({"Training samples", formatWithCommas(trainSamples)});
+    rows.push_back({"Validation samples", validationStr});
+    rows.push_back({"", ""}); // separator
+    rows.push_back({"Epochs", std::to_string(tc.numEpochs)});
+    rows.push_back({"Batch size", std::to_string(tc.batchSize)});
+    rows.push_back({"Learning rate", lrOss.str()});
+    rows.push_back({"Optimizer", optStr});
 
     if (tc.dropoutRate > 0)
-      row("Dropout", std::to_string(static_cast<int>(tc.dropoutRate * 100)) + "%");
+      rows.push_back({"Dropout", std::to_string(static_cast<int>(tc.dropoutRate * 100)) + "%"});
 
-    row("Cost function", costStr);
-    row("Shuffle", tc.shuffleSamples ? "Yes" : "No");
+    rows.push_back({"Cost function", costStr});
+    rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
+
+    printTable("Training Configuration", rows);
+  }
+
+  //===================================================================================================================//
+
+  void TrainingSummary::printTable(const std::string& title, const std::vector<Row>& rows)
+  {
+    // Compute column widths from content
+    ulong keyW = title.size(); // minimum: title must fit
+    ulong valueW = 0;
+
+    for (const auto& r : rows) {
+      if (r.key.empty())
+        continue; // separator
+
+      keyW = std::max(keyW, r.key.size());
+      valueW = std::max(valueW, r.value.size());
+    }
+
+    // Ensure the title fits across both columns (keyW + 3 + valueW >= title.size())
+    ulong totalInner = keyW + 3 + valueW; // " | " between columns
+
+    if (totalInner < title.size()) {
+      valueW += title.size() - totalInner;
+    }
+
+    std::string sep = "+" + std::string(keyW + 2, '-') + "+" + std::string(valueW + 2, '-') + "+";
+    ulong titleSpace = keyW + valueW + 5; // total inner width between outer '|'
+
+    std::cout << "\n";
+    std::cout << sep << "\n";
+    ulong pad = titleSpace - title.size();
+    ulong padLeft = pad / 2;
+    ulong padRight = pad - padLeft;
+    std::cout << "|" << std::string(padLeft, ' ') << title << std::string(padRight, ' ') << "|\n";
+    std::cout << sep << "\n";
+
+    for (const auto& r : rows) {
+      if (r.key.empty()) {
+        std::cout << sep << "\n";
+        continue;
+      }
+
+      std::cout << "| " << std::left << std::setw(static_cast<int>(keyW)) << r.key << " | "
+                << std::setw(static_cast<int>(valueW)) << r.value << " |\n";
+    }
+
     std::cout << sep << "\n";
     std::cout << "\n";
-    std::cout.unsetf(std::ios_base::floatfield);
   }
 
 } // namespace NN_CLI
