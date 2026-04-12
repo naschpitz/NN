@@ -431,6 +431,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       if (lastCallbackEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
           validationIndices && lastCallbackEpoch % this->validationState.checkInterval == 0) {
         validationCore->setParameters(this->core->getParameters());
+        validationCore->syncParametersToGPU();
         auto validationResult = validationCore->test(validationIndices->size(), *validationProviderPtr);
         this->validationState.lastValLoss = validationResult.averageLoss;
 
