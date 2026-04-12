@@ -48,13 +48,13 @@ namespace NN_CLI
   //-- Helper: serialize validation metadata --//
   //===================================================================================================================//
 
-  static void serializeValidationMeta(nlohmann::ordered_json& mdJson, const ValidationMetadata& valMeta)
+  static void serializeValidationMeta(nlohmann::ordered_json& mdJson, const ValidationMetadata& validationMeta)
   {
-    if (valMeta.enabled) {
-      mdJson["numValidationSamples"] = valMeta.numValSamples;
-      mdJson["finalValidationLoss"] = valMeta.lastValLoss;
-      mdJson["bestValidationLoss"] = valMeta.bestValLoss;
-      mdJson["bestValidationEpoch"] = valMeta.bestValEpoch;
+    if (validationMeta.enabled) {
+      mdJson["numValidationSamples"] = validationMeta.numValSamples;
+      mdJson["finalValidationLoss"] = validationMeta.lastValLoss;
+      mdJson["bestValidationLoss"] = validationMeta.bestValLoss;
+      mdJson["bestValidationEpoch"] = validationMeta.bestValEpoch;
     }
   }
 
@@ -81,7 +81,7 @@ namespace NN_CLI
 
   void ModelSerializer::saveANNModel(const std::string& filePath, const ANN::Core<float>& core,
                                      const ANN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                                     const AugmentationConfig& augConfig, const ValidationMetadata& valMeta)
+                                     const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta)
   {
     nlohmann::ordered_json json;
 
@@ -172,7 +172,7 @@ namespace NN_CLI
     mdJson["durationFormatted"] = md.durationFormatted;
     mdJson["numSamples"] = md.numSamples;
     mdJson["finalLoss"] = md.finalLoss;
-    serializeValidationMeta(mdJson, valMeta);
+    serializeValidationMeta(mdJson, validationMeta);
     json["trainingMetadata"] = mdJson;
 
     // Parameters
@@ -190,7 +190,7 @@ namespace NN_CLI
 
   void ModelSerializer::saveCNNModel(const std::string& filePath, const CNN::Core<float>& core,
                                      const CNN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                                     const AugmentationConfig& augConfig, const ValidationMetadata& valMeta)
+                                     const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta)
   {
     nlohmann::ordered_json json;
 
@@ -353,7 +353,7 @@ namespace NN_CLI
     mdJson["durationFormatted"] = md.durationFormatted;
     mdJson["numSamples"] = md.numSamples;
     mdJson["finalLoss"] = md.finalLoss;
-    serializeValidationMeta(mdJson, valMeta);
+    serializeValidationMeta(mdJson, validationMeta);
     json["trainingMetadata"] = mdJson;
 
     // Parameters

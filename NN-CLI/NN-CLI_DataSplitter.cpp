@@ -26,11 +26,11 @@ namespace NN_CLI
 
     for (auto& [cls, indices] : classIndices) {
       std::shuffle(indices.begin(), indices.end(), rng);
-      ulong valCount = static_cast<ulong>(std::round(indices.size() * ratio));
+      ulong validationCount = static_cast<ulong>(std::round(indices.size() * ratio));
 
       for (ulong i = 0; i < indices.size(); i++) {
-        if (i < valCount)
-          split.valIndices.push_back(indices[i]);
+        if (i < validationCount)
+          split.validationIndices.push_back(indices[i]);
         else
           split.trainIndices.push_back(indices[i]);
       }

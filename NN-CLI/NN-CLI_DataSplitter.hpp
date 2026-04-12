@@ -12,7 +12,7 @@ namespace NN_CLI
 
   struct DataSplit {
       std::vector<ulong> trainIndices;
-      std::vector<ulong> valIndices;
+      std::vector<ulong> validationIndices;
   };
 
   class DataSplitter

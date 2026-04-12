@@ -61,15 +61,15 @@ static void testStratifiedSplitBasic()
   DataSplit split = DataSplitter::stratifiedSplit(outputs, 0.20f);
 
   // Total should be preserved
-  CHECK(split.trainIndices.size() + split.valIndices.size() == 100, "total preserved");
+  CHECK(split.trainIndices.size() + split.validationIndices.size() == 100, "total preserved");
 
   // Roughly 20% validation
-  CHECK(split.valIndices.size() >= 18 && split.valIndices.size() <= 22, "~20% validation");
+  CHECK(split.validationIndices.size() >= 18 && split.validationIndices.size() <= 22, "~20% validation");
 
   // No duplicates
   std::vector<ulong> all;
   all.insert(all.end(), split.trainIndices.begin(), split.trainIndices.end());
-  all.insert(all.end(), split.valIndices.begin(), split.valIndices.end());
+  all.insert(all.end(), split.validationIndices.begin(), split.validationIndices.end());
   std::sort(all.begin(), all.end());
 
   for (ulong i = 1; i < all.size(); i++) {
@@ -92,7 +92,7 @@ static void testStratifiedSplitPreservesClassDistribution()
   DataSplit split = DataSplitter::stratifiedSplit(outputs, 0.20f);
 
   // Count class distribution in train and val
-  std::map<ulong, ulong> trainCounts, valCounts, totalCounts;
+  std::map<ulong, ulong> trainCounts, validationCounts, totalCounts;
 
   for (ulong idx : split.trainIndices) {
     const auto& out = outputs[idx];
@@ -100,10 +100,10 @@ static void testStratifiedSplitPreservesClassDistribution()
     trainCounts[cls]++;
   }
 
-  for (ulong idx : split.valIndices) {
+  for (ulong idx : split.validationIndices) {
     const auto& out = outputs[idx];
     ulong cls = static_cast<ulong>(std::distance(out.begin(), std::max_element(out.begin(), out.end())));
-    valCounts[cls]++;
+    validationCounts[cls]++;
   }
 
   for (ulong i = 0; i < count; i++) {
@@ -115,11 +115,11 @@ static void testStratifiedSplitPreservesClassDistribution()
   // Every class present in total should be present in both splits
   for (const auto& [cls, total] : totalCounts) {
     CHECK(trainCounts.count(cls) > 0, "class present in train split");
-    CHECK(valCounts.count(cls) > 0, "class present in val split");
+    CHECK(validationCounts.count(cls) > 0, "class present in validation split");
 
     // Val should be roughly 20% of each class (within ±2 samples due to rounding)
     ulong expectedVal = static_cast<ulong>(std::round(total * 0.20f));
-    ulong actualVal = valCounts[cls];
+    ulong actualVal = validationCounts[cls];
     CHECK(actualVal >= expectedVal - 2 && actualVal <= expectedVal + 2,
           "val count proportional for class " + std::to_string(cls));
   }
@@ -139,11 +139,11 @@ static void testStratifiedSplitDeterministic()
   DataSplit split2 = DataSplitter::stratifiedSplit(outputs, 0.15f, 42);
 
   CHECK(split1.trainIndices == split2.trainIndices, "train indices identical with same seed");
-  CHECK(split1.valIndices == split2.valIndices, "val indices identical with same seed");
+  CHECK(split1.validationIndices == split2.validationIndices, "val indices identical with same seed");
 
   // Different seed should produce different split
   DataSplit split3 = DataSplitter::stratifiedSplit(outputs, 0.15f, 99);
-  CHECK(split3.valIndices != split1.valIndices, "different seed → different split");
+  CHECK(split3.validationIndices != split1.validationIndices, "different seed → different split");
 
   std::cout << "PASS" << std::endl;
 }
@@ -157,18 +157,18 @@ static void testStratifiedSplitEdgeCases()
   // Single sample
   std::vector<std::vector<float>> single = {{1.0f, 0.0f}};
   DataSplit splitSingle = DataSplitter::stratifiedSplit(single, 0.20f);
-  CHECK(splitSingle.trainIndices.size() + splitSingle.valIndices.size() == 1, "single sample total preserved");
+  CHECK(splitSingle.trainIndices.size() + splitSingle.validationIndices.size() == 1, "single sample total preserved");
 
   // Zero ratio — all training
   auto outputs = makeImbalancedOutputs(50, 2);
   DataSplit splitZero = DataSplitter::stratifiedSplit(outputs, 0.0f);
-  CHECK(splitZero.valIndices.empty(), "zero ratio → no validation");
+  CHECK(splitZero.validationIndices.empty(), "zero ratio → no validation");
   CHECK(splitZero.trainIndices.size() == 50, "zero ratio → all training");
 
   // 100% ratio — all validation
   DataSplit splitAll = DataSplitter::stratifiedSplit(outputs, 1.0f);
   CHECK(splitAll.trainIndices.empty(), "100% ratio → no training");
-  CHECK(splitAll.valIndices.size() == 50, "100% ratio → all validation");
+  CHECK(splitAll.validationIndices.size() == 50, "100% ratio → all validation");
 
   std::cout << "PASS" << std::endl;
 }

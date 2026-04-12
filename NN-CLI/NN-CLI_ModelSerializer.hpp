@@ -31,11 +31,11 @@ namespace NN_CLI
       //-- Model saving --//
       static void saveANNModel(const std::string& filePath, const ANN::Core<float>& core,
                                const ANN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                               const AugmentationConfig& augConfig, const ValidationMetadata& valMeta);
+                               const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
 
       static void saveCNNModel(const std::string& filePath, const CNN::Core<float>& core,
                                const CNN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                               const AugmentationConfig& augConfig, const ValidationMetadata& valMeta);
+                               const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
 
       //-- Output path helpers --//
       static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);

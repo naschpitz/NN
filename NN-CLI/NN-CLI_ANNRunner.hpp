@@ -35,9 +35,10 @@ namespace NN_CLI
       std::pair<ANN::Samples<float>, bool> loadSamplesFromOptions(const std::string& modeName, QString& inputFilePath);
 
       //-- Training helpers --//
-      void setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> valCore = nullptr,
-                                 const DataLoader<ANN::Sample<float>>* valDataLoader = nullptr,
-                                 const std::vector<ulong>* valIndices = nullptr);
+      void setupTrainingCallback(const QString& inputFilePath,
+                                 std::shared_ptr<ANN::Core<float>> validationCore = nullptr,
+                                 const DataLoader<ANN::Sample<float>>* validationDataLoader = nullptr,
+                                 const std::vector<ulong>* validationIndices = nullptr);
       int finishTraining(const QString& inputFilePath);
       ValidationMetadata buildValidationMetadata() const;
 
@@ -62,7 +63,7 @@ namespace NN_CLI
           float lastValLoss = 0.0f;
       };
 
-      ValidationState valState;
+      ValidationState validationState;
   };
 
 } // namespace NN_CLI

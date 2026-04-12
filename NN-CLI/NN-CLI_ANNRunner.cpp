@@ -96,43 +96,45 @@ int ANNRunner::train()
   }
 
   // Validation split
-  const auto& valConfig = this->augConfig.validationDataset;
+  const auto& validationConfig = this->augConfig.validationDataset;
   DataSplit split;
-  float valRatio = 0.0f;
-  bool valAuto = false;
+  float validationRatio = 0.0f;
+  bool validationAuto = false;
 
-  if (valConfig.enabled) {
-    valRatio = valConfig.autoSize ? DataSplitter::computeAutoValSize(dataLoader.numSamples()) : valConfig.size;
-    valAuto = valConfig.autoSize;
+  if (validationConfig.enabled) {
+    validationRatio =
+      validationConfig.autoSize ? DataSplitter::computeAutoValSize(dataLoader.numSamples()) : validationConfig.size;
+    validationAuto = validationConfig.autoSize;
     auto allOutputs = dataLoader.getAllOutputs();
-    split = DataSplitter::stratifiedSplit(allOutputs, valRatio);
-    this->valState.enabled = true;
-    this->valState.checkInterval = valConfig.checkInterval;
-    this->valState.numValSamples = split.valIndices.size();
+    split = DataSplitter::stratifiedSplit(allOutputs, validationRatio);
+    this->validationState.enabled = true;
+    this->validationState.checkInterval = validationConfig.checkInterval;
+    this->validationState.numValSamples = split.validationIndices.size();
   } else {
-    this->valState.enabled = false;
+    this->validationState.enabled = false;
   }
 
   // Print training summary
-  ulong trainSamples = valConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
-  ulong valSamples = valConfig.enabled ? split.valIndices.size() : 0;
+  ulong trainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
+  ulong validationSamples = validationConfig.enabled ? split.validationIndices.size() : 0;
 
   if (this->logLevel >= LogLevel::INFO)
-    TrainingSummary::printANN(this->coreConfig, this->augConfig, trainSamples, valSamples, valRatio, valAuto);
+    TrainingSummary::printANN(this->coreConfig, this->augConfig, trainSamples, validationSamples, validationRatio,
+                              validationAuto);
 
   // Create a separate core for validation to avoid re-entering the training core's GPU buffers
-  std::shared_ptr<ANN::Core<float>> valCore;
+  std::shared_ptr<ANN::Core<float>> validationCore;
 
-  if (valConfig.enabled) {
-    ANN::CoreConfig<float> valCoreConfig = this->coreConfig;
-    valCoreConfig.modeType = ANN::ModeType::TEST;
-    valCore = std::shared_ptr<ANN::Core<float>>(ANN::Core<float>::makeCore(valCoreConfig).release());
+  if (validationConfig.enabled) {
+    ANN::CoreConfig<float> validationCoreConfig = this->coreConfig;
+    validationCoreConfig.modeType = ANN::ModeType::TEST;
+    validationCore = std::shared_ptr<ANN::Core<float>>(ANN::Core<float>::makeCore(validationCoreConfig).release());
   }
 
-  this->setupTrainingCallback(inputFilePath, valCore, valConfig.enabled ? &dataLoader : nullptr,
-                              valConfig.enabled ? &split.valIndices : nullptr);
+  this->setupTrainingCallback(inputFilePath, validationCore, validationConfig.enabled ? &dataLoader : nullptr,
+                              validationConfig.enabled ? &split.validationIndices : nullptr);
 
-  if (valConfig.enabled) {
+  if (validationConfig.enabled) {
     auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
                                                        this->augConfig.augmentationProbability);
     this->core->train(split.trainIndices.size(), trainProvider);
@@ -380,15 +382,15 @@ std::pair<ANN::Samples<float>, bool> ANNRunner::loadSamplesFromOptions(const std
 
 ValidationMetadata ANNRunner::buildValidationMetadata() const
 {
-  return {this->valState.enabled, this->valState.numValSamples, this->valState.lastValLoss, this->valState.bestValLoss,
-          this->valState.bestValEpoch};
+  return {this->validationState.enabled, this->validationState.numValSamples, this->validationState.lastValLoss,
+          this->validationState.bestValLoss, this->validationState.bestValEpoch};
 }
 
 //===================================================================================================================//
 
-void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> valCore,
-                                      const DataLoader<ANN::Sample<float>>* valDataLoader,
-                                      const std::vector<ulong>* valIndices)
+void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> validationCore,
+                                      const DataLoader<ANN::Sample<float>>* validationDataLoader,
+                                      const std::vector<ulong>* validationIndices)
 {
   static ulong lastCallbackEpoch = 0;
   static float lastEpochLoss = 0.0f;
@@ -397,56 +399,56 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
   static ProgressBar progressBar(this->ioConfig.progressReports);
 
-  std::shared_ptr<ANN::SampleProvider<float>> valProviderPtr;
+  std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr;
 
-  if (valDataLoader && valIndices && !valIndices->empty()) {
-    auto provider = valDataLoader->makeSampleProvider(*valIndices, {}, 0.0f);
-    valProviderPtr = std::make_shared<ANN::SampleProvider<float>>(std::move(provider));
+  if (validationDataLoader && validationIndices && !validationIndices->empty()) {
+    auto provider = validationDataLoader->makeSampleProvider(*validationIndices, {}, 0.0f);
+    validationProviderPtr = std::make_shared<ANN::SampleProvider<float>>(std::move(provider));
   }
 
-  this->core->setTrainingCallback(
-    [this, inputFilePath, valCore, valProviderPtr, valIndices](const ANN::TrainingProgress<float>& progress) {
-      if (this->logLevel > LogLevel::QUIET) {
-        ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
-                          progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
-        progressBar.update(info);
+  this->core->setTrainingCallback([this, inputFilePath, validationCore, validationProviderPtr,
+                                   validationIndices](const ANN::TrainingProgress<float>& progress) {
+    if (this->logLevel > LogLevel::QUIET) {
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
+                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
+      progressBar.update(info);
+    }
+
+    if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
+        std::string checkpointPath =
+          ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+        ModelSerializer::saveANNModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                      this->buildValidationMetadata());
+
+        if (this->logLevel > LogLevel::QUIET)
+          std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
       }
 
-      if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
-        if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
-          std::string checkpointPath =
-            ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-          ModelSerializer::saveANNModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                        this->buildValidationMetadata());
+      // Run validation at check intervals using separate core
+      if (this->validationState.enabled && validationCore && validationProviderPtr && validationIndices &&
+          lastCallbackEpoch % this->validationState.checkInterval == 0) {
+        validationCore->setParameters(this->core->getParameters());
+        auto validationResult = validationCore->test(validationIndices->size(), *validationProviderPtr);
+        this->validationState.lastValLoss = validationResult.averageLoss;
 
-          if (this->logLevel > LogLevel::QUIET)
-            std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
+        if (validationResult.averageLoss < this->validationState.bestValLoss) {
+          this->validationState.bestValLoss = validationResult.averageLoss;
+          this->validationState.bestValEpoch = lastCallbackEpoch;
         }
 
-        // Run validation at check intervals using separate core
-        if (this->valState.enabled && valCore && valProviderPtr && valIndices &&
-            lastCallbackEpoch % this->valState.checkInterval == 0) {
-          valCore->setParameters(this->core->getParameters());
-          auto valResult = valCore->test(valIndices->size(), *valProviderPtr);
-          this->valState.lastValLoss = valResult.averageLoss;
-
-          if (valResult.averageLoss < this->valState.bestValLoss) {
-            this->valState.bestValLoss = valResult.averageLoss;
-            this->valState.bestValEpoch = lastCallbackEpoch;
-          }
-
-          if (this->logLevel > LogLevel::QUIET) {
-            std::cout << " - Validation Loss: " << std::fixed << std::setprecision(6) << valResult.averageLoss;
-            std::cout.unsetf(std::ios_base::floatfield);
-          }
+        if (this->logLevel > LogLevel::QUIET) {
+          std::cout << " - Validation Loss: " << std::fixed << std::setprecision(6) << validationResult.averageLoss;
+          std::cout.unsetf(std::ios_base::floatfield);
         }
-
-        lastCallbackEpoch = progress.currentEpoch;
       }
 
-      if (progress.epochLoss > 0)
-        lastEpochLoss = progress.epochLoss;
-    });
+      lastCallbackEpoch = progress.currentEpoch;
+    }
+
+    if (progress.epochLoss > 0)
+      lastEpochLoss = progress.epochLoss;
+  });
 }
 
 //===================================================================================================================//

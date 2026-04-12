@@ -104,7 +104,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void TrainingSummary::printCNN(const CNN::CoreConfig<float>& cnnConfig, const AugmentationConfig& augConfig,
-                                 ulong trainSamples, ulong valSamples, float valRatio, bool valAuto)
+                                 ulong trainSamples, ulong validationSamples, float validationRatio,
+                                 bool validationAuto)
   {
     const auto& tc = cnnConfig.trainingConfig;
     const auto& layers = cnnConfig.layersConfig;
@@ -219,15 +220,15 @@ namespace NN_CLI
     }
 
     // Validation string
-    std::string valStr;
+    std::string validationStr;
 
-    if (valSamples > 0) {
+    if (validationSamples > 0) {
       std::ostringstream oss;
-      oss << formatWithCommas(valSamples) << " (" << static_cast<int>(valRatio * 100) << "%"
-          << (valAuto ? ", auto" : "") << ")";
-      valStr = oss.str();
+      oss << formatWithCommas(validationSamples) << " (" << static_cast<int>(validationRatio * 100) << "%"
+          << (validationAuto ? ", auto" : "") << ")";
+      validationStr = oss.str();
     } else {
-      valStr = "Disabled";
+      validationStr = "Disabled";
     }
 
     // Print table
@@ -257,7 +258,7 @@ namespace NN_CLI
     row("Total parameters", formatWithCommas(totalParams));
     std::cout << sep << "\n";
     row("Training samples", formatWithCommas(trainSamples));
-    row("Validation samples", valStr);
+    row("Validation samples", validationStr);
     row("Augmentation", augStr);
     row("Class weights", weightsStr);
     std::cout << sep << "\n";
@@ -285,7 +286,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void TrainingSummary::printANN(const ANN::CoreConfig<float>& annConfig, const AugmentationConfig& augConfig,
-                                 ulong trainSamples, ulong valSamples, float valRatio, bool valAuto)
+                                 ulong trainSamples, ulong validationSamples, float validationRatio,
+                                 bool validationAuto)
   {
     const auto& tc = annConfig.trainingConfig;
     const auto& costConfig = annConfig.costFunctionConfig;
@@ -323,15 +325,15 @@ namespace NN_CLI
     optStr[0] = toupper(optStr[0]);
 
     // Validation string
-    std::string valStr;
+    std::string validationStr;
 
-    if (valSamples > 0) {
+    if (validationSamples > 0) {
       std::ostringstream oss;
-      oss << formatWithCommas(valSamples) << " (" << static_cast<int>(valRatio * 100) << "%"
-          << (valAuto ? ", auto" : "") << ")";
-      valStr = oss.str();
+      oss << formatWithCommas(validationSamples) << " (" << static_cast<int>(validationRatio * 100) << "%"
+          << (validationAuto ? ", auto" : "") << ")";
+      validationStr = oss.str();
     } else {
-      valStr = "Disabled";
+      validationStr = "Disabled";
     }
 
     const int keyW = 21;
@@ -355,7 +357,7 @@ namespace NN_CLI
     row("Dense layers", std::to_string(denseCount));
     std::cout << sep << "\n";
     row("Training samples", formatWithCommas(trainSamples));
-    row("Validation samples", valStr);
+    row("Validation samples", validationStr);
     std::cout << sep << "\n";
     row("Epochs", std::to_string(tc.numEpochs));
     row("Batch size", std::to_string(tc.batchSize));
