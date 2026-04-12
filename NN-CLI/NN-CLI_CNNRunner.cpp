@@ -129,6 +129,8 @@ int CNNRunner::train()
   if (valConfig.enabled) {
     CNN::CoreConfig<float> valCoreConfig = this->coreConfig;
     valCoreConfig.modeType = CNN::ModeType::TEST;
+    valCoreConfig.numGPUs = 1; // Single GPU is sufficient for the small validation set
+    valCoreConfig.numThreads = 1;
     valCore = std::shared_ptr<CNN::Core<float>>(CNN::Core<float>::makeCore(valCoreConfig).release());
   }
 

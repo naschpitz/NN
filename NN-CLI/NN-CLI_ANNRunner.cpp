@@ -126,6 +126,8 @@ int ANNRunner::train()
   if (valConfig.enabled) {
     ANN::CoreConfig<float> valCoreConfig = this->coreConfig;
     valCoreConfig.modeType = ANN::ModeType::TEST;
+    valCoreConfig.numGPUs = 1; // Single GPU is sufficient for the small validation set
+    valCoreConfig.numThreads = 1;
     valCore = std::shared_ptr<ANN::Core<float>>(ANN::Core<float>::makeCore(valCoreConfig).release());
   }
 
