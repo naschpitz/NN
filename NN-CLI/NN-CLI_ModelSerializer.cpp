@@ -21,27 +21,63 @@ namespace NN_CLI
 
   static void serializeAugConfig(nlohmann::ordered_json& tcJson, const AugmentationConfig& augConfig)
   {
-    if (augConfig.augmentationFactor > 0)
-      tcJson["augmentationFactor"] = augConfig.augmentationFactor;
+    tcJson["augmentationFactor"] = augConfig.augmentationFactor;
+    tcJson["balanceAugmentation"] = augConfig.balanceAugmentation;
+    tcJson["autoClassWeights"] = augConfig.autoClassWeights;
+    tcJson["augmentationProbability"] = augConfig.augmentationProbability;
 
-    if (augConfig.balanceAugmentation)
-      tcJson["balanceAugmentation"] = augConfig.balanceAugmentation;
+    nlohmann::ordered_json atJson;
+    atJson["horizontalFlip"] = augConfig.transforms.horizontalFlip;
+    atJson["rotation"] = augConfig.transforms.rotation;
+    atJson["translation"] = augConfig.transforms.translation;
+    atJson["brightness"] = augConfig.transforms.brightness;
+    atJson["contrast"] = augConfig.transforms.contrast;
+    atJson["gaussianNoise"] = augConfig.transforms.gaussianNoise;
+    tcJson["augmentationTransforms"] = atJson;
+  }
 
-    if (augConfig.autoClassWeights)
-      tcJson["autoClassWeights"] = augConfig.autoClassWeights;
+  //===================================================================================================================//
+  //-- Helper: serialize validation config --//
+  //===================================================================================================================//
 
-    if (augConfig.augmentationFactor > 0 || augConfig.balanceAugmentation) {
-      tcJson["augmentationProbability"] = augConfig.augmentationProbability;
+  static void serializeValidationConfig(nlohmann::ordered_json& tcJson, const AugmentationConfig& augConfig)
+  {
+    const auto& vc = augConfig.validationConfig;
+    nlohmann::ordered_json vcJson;
+    vcJson["enabled"] = vc.enabled;
+    vcJson["autoSize"] = vc.autoSize;
+    vcJson["size"] = vc.size;
+    vcJson["checkInterval"] = vc.checkInterval;
+    tcJson["validation"] = vcJson;
+  }
 
-      nlohmann::ordered_json atJson;
-      atJson["horizontalFlip"] = augConfig.transforms.horizontalFlip;
-      atJson["rotation"] = augConfig.transforms.rotation;
-      atJson["translation"] = augConfig.transforms.translation;
-      atJson["brightness"] = augConfig.transforms.brightness;
-      atJson["contrast"] = augConfig.transforms.contrast;
-      atJson["gaussianNoise"] = augConfig.transforms.gaussianNoise;
-      tcJson["augmentationTransforms"] = atJson;
-    }
+  //===================================================================================================================//
+  //-- Helper: serialize monitoring config --//
+  //===================================================================================================================//
+
+  template <typename CoreT>
+  static void serializeMonitoringConfig(nlohmann::ordered_json& tcJson, const CoreT& core)
+  {
+    const auto& mc = core.getTrainingConfig().monitoringConfig;
+    nlohmann::ordered_json mcJson;
+    mcJson["enabled"] = mc.enabled;
+    mcJson["checkInterval"] = mc.checkInterval;
+    mcJson["patience"] = mc.patience;
+
+    nlohmann::ordered_json metricsJson;
+
+    nlohmann::ordered_json lsJson;
+    lsJson["enabled"] = mc.metrics.lossStagnation.enabled;
+    lsJson["minDelta"] = mc.metrics.lossStagnation.minDelta;
+    metricsJson["lossStagnation"] = lsJson;
+
+    nlohmann::ordered_json leJson;
+    leJson["enabled"] = mc.metrics.lossExplosion.enabled;
+    leJson["threshold"] = mc.metrics.lossExplosion.threshold;
+    metricsJson["lossExplosion"] = leJson;
+
+    mcJson["metrics"] = metricsJson;
+    tcJson["monitoring"] = mcJson;
   }
 
   //===================================================================================================================//
@@ -143,25 +179,24 @@ namespace NN_CLI
     tcJson["batchSize"] = core.getTrainingConfig().batchSize;
     tcJson["shuffleSamples"] = core.getTrainingConfig().shuffleSamples;
 
-    if (core.getTrainingConfig().dropoutRate > 0.0f)
-      tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
+    tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
 
-    if (core.getTrainingConfig().optimizer.type != ANN::OptimizerType::SGD) {
-      nlohmann::ordered_json optJson;
-      optJson["type"] = ANN::Optimizer<float>::typeToName(core.getTrainingConfig().optimizer.type);
-      optJson["beta1"] = core.getTrainingConfig().optimizer.beta1;
-      optJson["beta2"] = core.getTrainingConfig().optimizer.beta2;
-      optJson["epsilon"] = core.getTrainingConfig().optimizer.epsilon;
-      tcJson["optimizer"] = optJson;
-    }
+    nlohmann::ordered_json optJson;
+    optJson["type"] = ANN::Optimizer<float>::typeToName(core.getTrainingConfig().optimizer.type);
+    optJson["beta1"] = core.getTrainingConfig().optimizer.beta1;
+    optJson["beta2"] = core.getTrainingConfig().optimizer.beta2;
+    optJson["epsilon"] = core.getTrainingConfig().optimizer.epsilon;
+    tcJson["optimizer"] = optJson;
 
     serializeAugConfig(tcJson, augConfig);
+    serializeValidationConfig(tcJson, augConfig);
+    serializeMonitoringConfig(tcJson, core);
     json["training"] = tcJson;
 
     // Test config
-    nlohmann::ordered_json testConfigJson;
-    testConfigJson["batchSize"] = coreConfig.testConfig.batchSize;
-    json["test"] = testConfigJson;
+    nlohmann::ordered_json testJson;
+    testJson["batchSize"] = coreConfig.testConfig.batchSize;
+    json["test"] = testJson;
 
     // Training metadata
     const auto& md = core.getTrainingMetadata();
@@ -335,26 +370,24 @@ namespace NN_CLI
     tcJson["learningRate"] = core.getTrainingConfig().learningRate;
     tcJson["batchSize"] = core.getTrainingConfig().batchSize;
     tcJson["shuffleSamples"] = core.getTrainingConfig().shuffleSamples;
+    tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
 
-    if (core.getTrainingConfig().dropoutRate > 0.0f)
-      tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
-
-    if (core.getTrainingConfig().optimizer.type != CNN::OptimizerType::SGD) {
-      nlohmann::ordered_json optJson;
-      optJson["type"] = CNN::Optimizer<float>::typeToName(core.getTrainingConfig().optimizer.type);
-      optJson["beta1"] = core.getTrainingConfig().optimizer.beta1;
-      optJson["beta2"] = core.getTrainingConfig().optimizer.beta2;
-      optJson["epsilon"] = core.getTrainingConfig().optimizer.epsilon;
-      tcJson["optimizer"] = optJson;
-    }
+    nlohmann::ordered_json optJson;
+    optJson["type"] = CNN::Optimizer<float>::typeToName(core.getTrainingConfig().optimizer.type);
+    optJson["beta1"] = core.getTrainingConfig().optimizer.beta1;
+    optJson["beta2"] = core.getTrainingConfig().optimizer.beta2;
+    optJson["epsilon"] = core.getTrainingConfig().optimizer.epsilon;
+    tcJson["optimizer"] = optJson;
 
     serializeAugConfig(tcJson, augConfig);
+    serializeValidationConfig(tcJson, augConfig);
+    serializeMonitoringConfig(tcJson, core);
     json["training"] = tcJson;
 
     // Test config
-    nlohmann::ordered_json testConfigJson;
-    testConfigJson["batchSize"] = coreConfig.testConfig.batchSize;
-    json["test"] = testConfigJson;
+    nlohmann::ordered_json testJson;
+    testJson["batchSize"] = coreConfig.testConfig.batchSize;
+    json["test"] = testJson;
 
     // Training metadata
     const auto& md = core.getTrainingMetadata();

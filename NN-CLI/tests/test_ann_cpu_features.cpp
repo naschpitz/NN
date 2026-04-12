@@ -225,7 +225,7 @@ static void testANNDropoutRateParsing()
   file.close();
 
   auto tc = json["training"].toObject();
-  CHECK(!tc.contains("dropoutRate"), "dropoutRate not saved when 0.0 (default)");
+  CHECK(tc.contains("dropoutRate"), "dropoutRate always saved for complete snapshot");
 
   std::cout << std::endl;
 }
