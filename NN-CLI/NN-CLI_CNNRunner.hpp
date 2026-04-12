@@ -8,6 +8,7 @@
 #include "NN-CLI_ModelSerializer.hpp"
 
 #include <CNN_Core.hpp>
+#include <CNN_TrainingMonitor.hpp>
 
 #include <QCommandLineParser>
 
@@ -37,6 +38,7 @@ namespace NN_CLI
       //-- Training helpers --//
       void setupTrainingCallback(const QString& inputFilePath,
                                  std::shared_ptr<CNN::Core<float>> validationCore = nullptr,
+                                 std::shared_ptr<CNN::TrainingMonitor<float>> trainingMonitor = nullptr,
                                  const DataLoader<CNN::Sample<float>>* validationDataLoader = nullptr,
                                  const std::vector<ulong>* validationIndices = nullptr);
       int finishTraining(const QString& inputFilePath);

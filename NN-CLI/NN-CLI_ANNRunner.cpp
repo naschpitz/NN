@@ -1,6 +1,7 @@
 #include "NN-CLI_ANNRunner.hpp"
 
 #include "NN-CLI_ANNLoader.hpp"
+#include <ANN_TrainingMonitor.hpp>
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
@@ -125,6 +126,15 @@ int ANNRunner::train()
     TrainingSummary::printANN(this->coreConfig, this->augConfig, trainSamples, validationSamples, validationRatio,
                               validationAuto);
 
+  // When validation is enabled, NN-CLI handles monitoring with validation loss.
+  std::shared_ptr<ANN::TrainingMonitor<float>> trainingMonitor;
+
+  if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
+    trainingMonitor = std::make_shared<ANN::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
+    this->coreConfig.trainingConfig.monitoringConfig.enabled = false;
+    this->core = ANN::Core<float>::makeCore(this->coreConfig);
+  }
+
   // Create a separate core for validation to avoid re-entering the training core's GPU buffers
   std::shared_ptr<ANN::Core<float>> validationCore;
 
@@ -134,7 +144,8 @@ int ANNRunner::train()
     validationCore = std::shared_ptr<ANN::Core<float>>(ANN::Core<float>::makeCore(validationCoreConfig).release());
   }
 
-  this->setupTrainingCallback(inputFilePath, validationCore, validationConfig.enabled ? &dataLoader : nullptr,
+  this->setupTrainingCallback(inputFilePath, validationCore, trainingMonitor,
+                              validationConfig.enabled ? &dataLoader : nullptr,
                               validationConfig.enabled ? &split.validationIndices : nullptr);
 
   if (validationConfig.enabled) {
@@ -388,6 +399,7 @@ ValidationMetadata ANNRunner::buildValidationMetadata() const
 //===================================================================================================================//
 
 void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> validationCore,
+                                      std::shared_ptr<ANN::TrainingMonitor<float>> trainingMonitor,
                                       const DataLoader<ANN::Sample<float>>* validationDataLoader,
                                       const std::vector<ulong>* validationIndices)
 {
@@ -407,7 +419,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     validationProviderPtr = std::make_shared<ANN::SampleProvider<float>>(std::move(provider));
   }
 
-  this->core->setTrainingCallback([this, inputFilePath, validationCore, validationProviderPtr,
+  this->core->setTrainingCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
                                    validationIndices](const ANN::TrainingProgress<float>& progress) {
     {
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
@@ -449,13 +461,60 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             this->validationState.bestValEpoch = lastCallbackEpoch;
           }
 
+          bool monitorShouldStop = false;
+          bool monitorIsNewBest = false;
+
+          if (trainingMonitor) {
+            monitorShouldStop = trainingMonitor->checkEpoch(lastCallbackEpoch, lastEpochLoss,
+                                                            std::optional<float>(validationResult.averageLoss));
+            monitorIsNewBest = trainingMonitor->isNewBest();
+          }
+
           if (this->logLevel > LogLevel::QUIET) {
             std::cout << std::string(20, '\b') << " - Validation Loss: " << std::fixed << std::setprecision(6)
-                      << validationResult.averageLoss << std::endl;
+                      << validationResult.averageLoss;
             std::cout.unsetf(std::ios_base::floatfield);
           }
-        } else if (this->validationState.enabled && this->logLevel > LogLevel::QUIET) {
-          std::cout << std::endl;
+
+          if (monitorIsNewBest || progress.isNewBest) {
+            std::string bestPath =
+              ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+            ModelSerializer::saveANNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                          this->buildValidationMetadata());
+
+            if (this->logLevel > LogLevel::QUIET)
+              std::cout << " [best]";
+          }
+
+          if (this->logLevel > LogLevel::QUIET)
+            std::cout << std::endl;
+
+          if (monitorShouldStop) {
+            if (this->logLevel > LogLevel::QUIET)
+              std::cout << "[Monitor] Training stopped: " << trainingMonitor->stopReason() << "\n";
+
+            this->core->requestStop();
+          }
+        } else {
+          if (progress.isNewBest) {
+            std::string bestPath =
+              ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+            ModelSerializer::saveANNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                          this->buildValidationMetadata());
+
+            if (this->logLevel > LogLevel::QUIET)
+              std::cout << " [best]";
+          }
+
+          if (this->validationState.enabled && this->logLevel > LogLevel::QUIET)
+            std::cout << std::endl;
+
+          if (progress.stoppedEarly) {
+            if (this->logLevel > LogLevel::QUIET)
+              std::cout << "\n[Monitor] Training stopped: " << this->core->getTrainingMetadata().stopReason << "\n";
+
+            this->core->requestStop();
+          }
         }
 
         lastCallbackEpoch = progress.currentEpoch;

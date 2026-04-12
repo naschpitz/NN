@@ -131,10 +131,10 @@ int CNNRunner::train()
 
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
   // Disable the library's internal monitor to avoid duplicate monitoring with training loss only.
-  std::shared_ptr<CNN::TrainingMonitor<float>> validationMonitor;
+  std::shared_ptr<CNN::TrainingMonitor<float>> trainingMonitor;
 
   if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
-    validationMonitor = std::make_shared<CNN::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
+    trainingMonitor = std::make_shared<CNN::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
     this->coreConfig.trainingConfig.monitoringConfig.enabled = false;
     this->core = CNN::Core<float>::makeCore(this->coreConfig);
   }
@@ -148,7 +148,8 @@ int CNNRunner::train()
     validationCore = std::shared_ptr<CNN::Core<float>>(CNN::Core<float>::makeCore(validationCoreConfig).release());
   }
 
-  this->setupTrainingCallback(inputFilePath, validationCore, validationConfig.enabled ? &dataLoader : nullptr,
+  this->setupTrainingCallback(inputFilePath, validationCore, trainingMonitor,
+                              validationConfig.enabled ? &dataLoader : nullptr,
                               validationConfig.enabled ? &split.validationIndices : nullptr);
 
   if (validationConfig.enabled) {
@@ -403,6 +404,7 @@ ValidationMetadata CNNRunner::buildValidationMetadata() const
 //===================================================================================================================//
 
 void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<CNN::Core<float>> validationCore,
+                                      std::shared_ptr<CNN::TrainingMonitor<float>> trainingMonitor,
                                       const DataLoader<CNN::Sample<float>>* validationDataLoader,
                                       const std::vector<ulong>* validationIndices)
 {
@@ -422,7 +424,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     validationProviderPtr = std::make_shared<CNN::SampleProvider<float>>(std::move(provider));
   }
 
-  this->core->setTrainingCallback([this, inputFilePath, validationCore, validationMonitor, validationProviderPtr,
+  this->core->setTrainingCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
                                    validationIndices](const CNN::TrainingProgress<float>& progress) {
     {
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
@@ -469,10 +471,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           bool monitorShouldStop = false;
           bool monitorIsNewBest = false;
 
-          if (validationMonitor) {
-            monitorShouldStop = validationMonitor->checkEpoch(lastCallbackEpoch, lastEpochLoss,
-                                                              std::optional<float>(validationResult.averageLoss));
-            monitorIsNewBest = validationMonitor->isNewBest();
+          if (trainingMonitor) {
+            monitorShouldStop = trainingMonitor->checkEpoch(lastCallbackEpoch, lastEpochLoss,
+                                                            std::optional<float>(validationResult.averageLoss));
+            monitorIsNewBest = trainingMonitor->isNewBest();
           }
 
           if (this->logLevel > LogLevel::QUIET) {
@@ -498,7 +500,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           // Early stopping
           if (monitorShouldStop) {
             if (this->logLevel > LogLevel::QUIET)
-              std::cout << "[Monitor] Training stopped: " << validationMonitor->stopReason() << "\n";
+              std::cout << "[Monitor] Training stopped: " << trainingMonitor->stopReason() << "\n";
 
             this->core->requestStop();
           }
