@@ -210,8 +210,8 @@ namespace NN_CLI
 
     if (validationSamples > 0) {
       std::ostringstream oss;
-      oss << SummaryTable::formatWithCommas(validationSamples) << " (" << static_cast<int>(validationRatio * 100) << "%"
-          << (validationAuto ? ", auto" : "") << ")";
+      oss << SummaryTable::formatWithCommas(validationSamples) << " (" << std::fixed << std::setprecision(2)
+          << (validationRatio * 100) << "%" << (validationAuto ? ", auto" : "") << ")";
       validationStr = oss.str();
     } else {
       validationStr = "Disabled";
@@ -303,8 +303,8 @@ namespace NN_CLI
 
     if (validationSamples > 0) {
       std::ostringstream oss;
-      oss << SummaryTable::formatWithCommas(validationSamples) << " (" << static_cast<int>(validationRatio * 100) << "%"
-          << (validationAuto ? ", auto" : "") << ")";
+      oss << SummaryTable::formatWithCommas(validationSamples) << " (" << std::fixed << std::setprecision(2)
+          << (validationRatio * 100) << "%" << (validationAuto ? ", auto" : "") << ")";
       validationStr = oss.str();
     } else {
       validationStr = "Disabled";
