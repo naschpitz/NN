@@ -187,9 +187,9 @@ namespace NN_CLI
           t.gaussianNoise = at.at("gaussianNoise").get<float>();
       }
 
-      if (tc.contains("validationDataset")) {
-        const auto& vd = tc.at("validationDataset");
-        auto& vc = config.validationDataset;
+      if (tc.contains("validationConfig")) {
+        const auto& vd = tc.at("validationConfig");
+        auto& vc = config.validationConfig;
 
         if (vd.contains("enabled"))
           vc.enabled = vd.at("enabled").get<bool>();

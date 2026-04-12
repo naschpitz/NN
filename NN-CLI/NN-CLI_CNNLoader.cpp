@@ -190,6 +190,44 @@ namespace NN_CLI
         if (opt.contains("epsilon"))
           coreConfig.trainingConfig.optimizer.epsilon = opt.at("epsilon").get<float>();
       }
+
+      if (tc.contains("monitoring")) {
+        const auto& mon = tc.at("monitoring");
+        auto& mc = coreConfig.trainingConfig.monitoringConfig;
+
+        if (mon.contains("enabled"))
+          mc.enabled = mon.at("enabled").get<bool>();
+
+        if (mon.contains("checkInterval"))
+          mc.checkInterval = mon.at("checkInterval").get<ulong>();
+
+        if (mon.contains("patience"))
+          mc.patience = mon.at("patience").get<ulong>();
+
+        if (mon.contains("metrics")) {
+          const auto& metrics = mon.at("metrics");
+
+          if (metrics.contains("lossStagnation")) {
+            const auto& ls = metrics.at("lossStagnation");
+
+            if (ls.contains("enabled"))
+              mc.metrics.lossStagnation.enabled = ls.at("enabled").get<bool>();
+
+            if (ls.contains("minDelta"))
+              mc.metrics.lossStagnation.minDelta = ls.at("minDelta").get<float>();
+          }
+
+          if (metrics.contains("lossExplosion")) {
+            const auto& le = metrics.at("lossExplosion");
+
+            if (le.contains("enabled"))
+              mc.metrics.lossExplosion.enabled = le.at("enabled").get<bool>();
+
+            if (le.contains("threshold"))
+              mc.metrics.lossExplosion.threshold = le.at("threshold").get<float>();
+          }
+        }
+      }
     }
 
     if (json.contains("testConfig")) {

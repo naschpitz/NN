@@ -17,7 +17,7 @@ namespace NN_CLI
       bool autoClassWeights = false; // true = auto-compute inverse-frequency class weights
       float augmentationProbability = 0.5f; // Probability of applying each enabled transform (default 50%)
       AugmentationTransforms transforms; // Which transforms to apply and their intensities
-      ValidationDatasetConfig validationDataset; // Validation split config
+      ValidationDatasetConfig validationConfig; // Validation split config
   };
 
 } // namespace NN_CLI

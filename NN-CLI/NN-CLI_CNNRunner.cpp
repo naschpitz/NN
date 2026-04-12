@@ -1,6 +1,7 @@
 #include "NN-CLI_CNNRunner.hpp"
 
 #include "NN-CLI_CNNLoader.hpp"
+#include <CNN_TrainingMonitor.hpp>
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
@@ -102,7 +103,7 @@ int CNNRunner::train()
   }
 
   // Validation split
-  const auto& validationConfig = this->augConfig.validationDataset;
+  const auto& validationConfig = this->augConfig.validationConfig;
   DataSplit split;
   float validationRatio = 0.0f;
   bool validationAuto = false;
@@ -127,6 +128,16 @@ int CNNRunner::train()
   if (this->logLevel > LogLevel::QUIET)
     TrainingSummary::printCNN(this->coreConfig, this->augConfig, trainSamples, validationSamples, validationRatio,
                               validationAuto);
+
+  // When validation is enabled, NN-CLI handles monitoring with validation loss.
+  // Disable the library's internal monitor to avoid duplicate monitoring with training loss only.
+  std::shared_ptr<CNN::TrainingMonitor<float>> validationMonitor;
+
+  if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
+    validationMonitor = std::make_shared<CNN::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
+    this->coreConfig.trainingConfig.monitoringConfig.enabled = false;
+    this->core = CNN::Core<float>::makeCore(this->coreConfig);
+  }
 
   // Create a separate core for validation to avoid re-entering the training core's GPU buffers
   std::shared_ptr<CNN::Core<float>> validationCore;
@@ -411,7 +422,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     validationProviderPtr = std::make_shared<CNN::SampleProvider<float>>(std::move(provider));
   }
 
-  this->core->setTrainingCallback([this, inputFilePath, validationCore, validationProviderPtr,
+  this->core->setTrainingCallback([this, inputFilePath, validationCore, validationMonitor, validationProviderPtr,
                                    validationIndices](const CNN::TrainingProgress<float>& progress) {
     {
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
@@ -454,14 +465,64 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             this->validationState.bestValEpoch = lastCallbackEpoch;
           }
 
+          // Feed validation loss to the NN-CLI-level monitor (if monitoring is enabled)
+          bool monitorShouldStop = false;
+          bool monitorIsNewBest = false;
+
+          if (validationMonitor) {
+            monitorShouldStop = validationMonitor->checkEpoch(lastCallbackEpoch, lastEpochLoss,
+                                                              std::optional<float>(validationResult.averageLoss));
+            monitorIsNewBest = validationMonitor->isNewBest();
+          }
+
           if (this->logLevel > LogLevel::QUIET) {
-            // Erase " - Validating XXX.X%" (20 chars) and replace with final result
             std::cout << std::string(20, '\b') << " - Validation Loss: " << std::fixed << std::setprecision(6)
-                      << validationResult.averageLoss << std::endl;
+                      << validationResult.averageLoss;
             std::cout.unsetf(std::ios_base::floatfield);
           }
-        } else if (this->validationState.enabled && this->logLevel > LogLevel::QUIET) {
-          std::cout << std::endl;
+
+          // Save best model
+          if (monitorIsNewBest || progress.isNewBest) {
+            std::string bestPath =
+              ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+            ModelSerializer::saveCNNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                          this->buildValidationMetadata());
+
+            if (this->logLevel > LogLevel::QUIET)
+              std::cout << " [best]";
+          }
+
+          if (this->logLevel > LogLevel::QUIET)
+            std::cout << std::endl;
+
+          // Early stopping
+          if (monitorShouldStop) {
+            if (this->logLevel > LogLevel::QUIET)
+              std::cout << "[Monitor] Training stopped: " << validationMonitor->stopReason() << "\n";
+
+            this->core->requestStop();
+          }
+        } else {
+          // No validation this epoch — handle library-level monitoring signals
+          if (progress.isNewBest) {
+            std::string bestPath =
+              ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+            ModelSerializer::saveCNNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                          this->buildValidationMetadata());
+
+            if (this->logLevel > LogLevel::QUIET)
+              std::cout << " [best]";
+          }
+
+          if (this->validationState.enabled && this->logLevel > LogLevel::QUIET)
+            std::cout << std::endl; // End held line when validation is enabled but skipped this epoch
+
+          if (progress.stoppedEarly) {
+            if (this->logLevel > LogLevel::QUIET)
+              std::cout << "\n[Monitor] Training stopped: " << this->core->getTrainingMetadata().stopReason << "\n";
+
+            this->core->requestStop();
+          }
         }
 
         lastCallbackEpoch = progress.currentEpoch;

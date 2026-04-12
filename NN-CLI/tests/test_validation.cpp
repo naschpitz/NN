@@ -194,7 +194,7 @@ static void testValidationConfigParsing()
 {
   std::cout << "  testValidationConfigParsing... ";
 
-  // Create a temp config file with validationDataset
+  // Create a temp config file with validationConfig
   QString configPath = tempDir() + "/val_config_test.json";
   QFile file(configPath);
   file.open(QIODevice::WriteOnly);
@@ -203,7 +203,7 @@ static void testValidationConfigParsing()
     "trainingConfig": {
       "numEpochs": 10,
       "learningRate": 0.01,
-      "validationDataset": {
+      "validationConfig": {
         "enabled": false,
         "autoSize": false,
         "size": 0.25,
@@ -216,10 +216,10 @@ static void testValidationConfigParsing()
 
   AugmentationConfig config = Loader::loadAugmentationConfig(configPath.toStdString());
 
-  CHECK(config.validationDataset.enabled == false, "enabled parsed correctly");
-  CHECK(config.validationDataset.autoSize == false, "autoSize parsed correctly");
-  CHECK_NEAR(config.validationDataset.size, 0.25f, 0.001f, "size parsed correctly");
-  CHECK(config.validationDataset.checkInterval == 5, "checkInterval parsed correctly");
+  CHECK(config.validationConfig.enabled == false, "enabled parsed correctly");
+  CHECK(config.validationConfig.autoSize == false, "autoSize parsed correctly");
+  CHECK_NEAR(config.validationConfig.size, 0.25f, 0.001f, "size parsed correctly");
+  CHECK(config.validationConfig.checkInterval == 5, "checkInterval parsed correctly");
 
   std::cout << "PASS" << std::endl;
 }
@@ -230,7 +230,7 @@ static void testValidationConfigDefaults()
 {
   std::cout << "  testValidationConfigDefaults... ";
 
-  // Config without validationDataset — should use defaults
+  // Config without validationConfig — should use defaults
   QString configPath = tempDir() + "/val_config_defaults.json";
   QFile file(configPath);
   file.open(QIODevice::WriteOnly);
@@ -246,10 +246,10 @@ static void testValidationConfigDefaults()
 
   AugmentationConfig config = Loader::loadAugmentationConfig(configPath.toStdString());
 
-  CHECK(config.validationDataset.enabled == true, "default enabled is true");
-  CHECK(config.validationDataset.autoSize == true, "default autoSize is true");
-  CHECK_NEAR(config.validationDataset.size, 0.15f, 0.001f, "default size is 0.15");
-  CHECK(config.validationDataset.checkInterval == 1, "default checkInterval is 1");
+  CHECK(config.validationConfig.enabled == true, "default enabled is true");
+  CHECK(config.validationConfig.autoSize == true, "default autoSize is true");
+  CHECK_NEAR(config.validationConfig.size, 0.15f, 0.001f, "default size is 0.15");
+  CHECK(config.validationConfig.checkInterval == 1, "default checkInterval is 1");
 
   std::cout << "PASS" << std::endl;
 }

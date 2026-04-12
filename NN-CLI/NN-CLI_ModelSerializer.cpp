@@ -172,6 +172,18 @@ namespace NN_CLI
     mdJson["durationFormatted"] = md.durationFormatted;
     mdJson["numSamples"] = md.numSamples;
     mdJson["finalLoss"] = md.finalLoss;
+
+    if (md.lastEpoch > 0)
+      mdJson["lastEpoch"] = md.lastEpoch;
+
+    if (!md.stopReason.empty())
+      mdJson["stopReason"] = md.stopReason;
+
+    if (md.bestEpoch > 0) {
+      mdJson["bestEpoch"] = md.bestEpoch;
+      mdJson["bestLoss"] = md.bestLoss;
+    }
+
     serializeValidationMeta(mdJson, validationMeta);
     json["trainingMetadata"] = mdJson;
 
@@ -353,6 +365,18 @@ namespace NN_CLI
     mdJson["durationFormatted"] = md.durationFormatted;
     mdJson["numSamples"] = md.numSamples;
     mdJson["finalLoss"] = md.finalLoss;
+
+    if (md.lastEpoch > 0)
+      mdJson["lastEpoch"] = md.lastEpoch;
+
+    if (!md.stopReason.empty())
+      mdJson["stopReason"] = md.stopReason;
+
+    if (md.bestEpoch > 0) {
+      mdJson["bestEpoch"] = md.bestEpoch;
+      mdJson["bestLoss"] = md.bestLoss;
+    }
+
     serializeValidationMeta(mdJson, validationMeta);
     json["trainingMetadata"] = mdJson;
 

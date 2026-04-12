@@ -99,7 +99,7 @@ int ANNRunner::train()
   }
 
   // Validation split
-  const auto& validationConfig = this->augConfig.validationDataset;
+  const auto& validationConfig = this->augConfig.validationConfig;
   DataSplit split;
   float validationRatio = 0.0f;
   bool validationAuto = false;
