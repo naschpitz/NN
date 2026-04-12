@@ -198,6 +198,17 @@ void GPUBufferManager<T>::allocateBuffers()
 //===================================================================================================================//
 
 template <typename T>
+void GPUBufferManager<T>::syncParametersToGPU()
+{
+  std::vector<T> flatWeights = Utils<T>::flatten(this->parameters.weights);
+  std::vector<T> flatBiases = Utils<T>::flatten(this->parameters.biases);
+  this->core->template writeBuffer<T>("weights", flatWeights, 0);
+  this->core->template writeBuffer<T>("biases", flatBiases, 0);
+}
+
+//===================================================================================================================//
+
+template <typename T>
 void GPUBufferManager<T>::syncParametersFromGPU()
 {
   // Read updated weights and biases from GPU back to CPU parameters

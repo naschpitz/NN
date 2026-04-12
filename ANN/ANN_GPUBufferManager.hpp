@@ -33,7 +33,8 @@ namespace ANN
       void allocateBuffers();
 
       //-- Parameter synchronization --//
-      void syncParametersFromGPU();
+      void syncParametersFromGPU(); // GPU → CPU
+      void syncParametersToGPU(); // CPU → GPU
 
       //-- Data I/O --//
       Output<T> readOutput();
