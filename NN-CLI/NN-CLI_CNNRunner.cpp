@@ -402,6 +402,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   lastEpochLoss = 0.0f;
 
   static ProgressBar progressBar(this->ioConfig.progressReports);
+  progressBar.setHoldEpochLine(validationCore != nullptr);
 
   std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr;
 
@@ -435,9 +436,22 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         // Run validation at check intervals using separate core (skip epoch 0 — no training yet)
         if (lastCallbackEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
             validationIndices && lastCallbackEpoch % this->validationState.checkInterval == 0) {
+          ulong validationTotal = validationIndices->size();
+
+          if (this->logLevel > LogLevel::QUIET)
+            std::cout << " Validating 0%" << std::flush;
+
           validationCore->setParameters(this->core->getParameters());
           validationCore->syncParametersToGPU();
-          auto validationResult = validationCore->test(validationIndices->size(), *validationProviderPtr);
+
+          if (this->logLevel > LogLevel::QUIET) {
+            validationCore->setProgressCallback([validationTotal](ulong current, ulong total) {
+              int pct = static_cast<int>(static_cast<float>(current) / validationTotal * 100);
+              std::cout << "\b\b\b\b" << std::setw(3) << pct << "%" << std::flush;
+            });
+          }
+
+          auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
           this->validationState.lastValLoss = validationResult.averageLoss;
 
           if (validationResult.averageLoss < this->validationState.bestValLoss) {
@@ -446,9 +460,14 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           }
 
           if (this->logLevel > LogLevel::QUIET) {
-            std::cout << " - Validation Loss: " << std::fixed << std::setprecision(6) << validationResult.averageLoss;
+            // Erase "Validating XXX%" (16 chars) and replace with final result
+            std::cout << "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
+                      << "Validation Loss: " << std::fixed << std::setprecision(6) << validationResult.averageLoss
+                      << std::endl;
             std::cout.unsetf(std::ios_base::floatfield);
           }
+        } else if (this->validationState.enabled && this->logLevel > LogLevel::QUIET) {
+          std::cout << std::endl;
         }
 
         lastCallbackEpoch = progress.currentEpoch;
