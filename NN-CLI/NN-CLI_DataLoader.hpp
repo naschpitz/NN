@@ -81,7 +81,12 @@ namespace NN_CLI
       // The provider receives the full shuffled index array, batch size, and current batch index.
       // It returns the current batch's samples and prefetches the next batch in the background
       // using a persistent worker thread.
-      ProviderT makeSampleProvider(const Loader::AugmentationTransforms& transforms = {},
+      ProviderT makeSampleProvider(const AugmentationTransforms& transforms = {},
+                                   float augmentationProbability = 0.5f) const;
+
+      // Build a SampleProvider that only serves samples from the given index subset.
+      ProviderT makeSampleProvider(const std::vector<ulong>& subsetIndices,
+                                   const AugmentationTransforms& transforms = {},
                                    float augmentationProbability = 0.5f) const;
 
     private:
@@ -99,12 +104,11 @@ namespace NN_CLI
       std::shared_ptr<QThreadPool> ioPool = std::make_shared<QThreadPool>();
 
       // Load a batch of samples by their entry indices.
-      std::vector<SampleT> loadBatch(const std::vector<ulong>& entryIndices,
-                                     const Loader::AugmentationTransforms& transforms,
+      std::vector<SampleT> loadBatch(const std::vector<ulong>& entryIndices, const AugmentationTransforms& transforms,
                                      float augmentationProbability) const;
 
       // Retrieve a single sample by entry index, optionally applying augmentation.
-      SampleT loadSample(ulong entryIndex, std::mt19937& rng, const Loader::AugmentationTransforms& transforms,
+      SampleT loadSample(ulong entryIndex, std::mt19937& rng, const AugmentationTransforms& transforms,
                          float augmentationProbability) const;
   };
 

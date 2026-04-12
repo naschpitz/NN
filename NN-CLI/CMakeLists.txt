@@ -36,12 +36,19 @@ endif()
 
 add_executable(NN-CLI
   main.cpp
+  NN-CLI_ANNLoader.cpp
+  NN-CLI_ANNRunner.cpp
+  NN-CLI_CNNLoader.cpp
+  NN-CLI_CNNRunner.cpp
   NN-CLI_DataLoader.cpp
+  NN-CLI_DataSplitter.cpp
   NN-CLI_DataType.cpp
   NN-CLI_ImageLoader.cpp
   NN-CLI_Loader.cpp
+  NN-CLI_ModelSerializer.cpp
   NN-CLI_ProgressBar.cpp
   NN-CLI_Runner.cpp
+  NN-CLI_TrainingSummary.cpp
   NN-CLI_Utils.cpp
 )
 
@@ -83,11 +90,14 @@ add_executable(test_nncli
   tests/test_cnn_gpu_saveload.cpp
   tests/test_errors.cpp
   tests/test_dataloader.cpp
+  tests/test_validation.cpp
   NN-CLI_DataLoader.cpp
+  NN-CLI_DataSplitter.cpp
   NN-CLI_DataType.cpp
   NN-CLI_ImageLoader.cpp
   NN-CLI_Loader.cpp
   NN-CLI_ProgressBar.cpp
+  NN-CLI_TrainingSummary.cpp
 )
 target_include_directories(test_nncli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}

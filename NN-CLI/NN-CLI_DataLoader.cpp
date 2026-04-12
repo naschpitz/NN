@@ -210,7 +210,7 @@ namespace NN_CLI
 
   template <typename SampleT>
   std::vector<SampleT> DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices,
-                                                      const Loader::AugmentationTransforms& transforms,
+                                                      const AugmentationTransforms& transforms,
                                                       float augmentationProbability) const
   {
     ulong count = entryIndices.size();
@@ -252,8 +252,7 @@ namespace NN_CLI
 
   template <typename SampleT>
   typename DataLoader<SampleT>::ProviderT
-  DataLoader<SampleT>::makeSampleProvider(const Loader::AugmentationTransforms& transforms,
-                                          float augmentationProbability) const
+  DataLoader<SampleT>::makeSampleProvider(const AugmentationTransforms& transforms, float augmentationProbability) const
   {
     // Dedicated single-thread pool for prefetch orchestration — independent of
     // both the global pool (used by training) and ioPool (used by loadBatch).
@@ -306,12 +305,81 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+  //-- makeSampleProvider (subset) --//
+  //===================================================================================================================//
+
+  template <typename SampleT>
+  typename DataLoader<SampleT>::ProviderT
+  DataLoader<SampleT>::makeSampleProvider(const std::vector<ulong>& subsetIndices,
+                                          const AugmentationTransforms& transforms, float augmentationProbability) const
+  {
+    // The subset provider remaps: the library sees indices 0..N-1, but we translate
+    // them to the actual entry indices in subsetIndices.
+    auto subsetPtr = std::make_shared<std::vector<ulong>>(subsetIndices);
+
+    auto prefetchPool = std::make_shared<QThreadPool>();
+    prefetchPool->setMaxThreadCount(1);
+
+    using BatchPtr = std::shared_ptr<std::vector<SampleT>>;
+    auto prefetch = std::make_shared<QFuture<BatchPtr>>();
+    auto hasPrefetch = std::make_shared<bool>(false);
+
+    return [this, subsetPtr, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability](
+             const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
+      ulong numSamples = sampleIndices.size();
+      ulong start = batchIndex * batchSize;
+      ulong end = std::min(start + batchSize, numSamples);
+
+      // Remap: sampleIndices contains shuffled indices 0..N-1 into the subset,
+      // and subsetPtr maps those to actual entry indices.
+      auto remapBatch = [&subsetPtr](const std::vector<ulong>& sampleIndices, ulong from, ulong to) {
+        std::vector<ulong> mapped;
+        mapped.reserve(to - from);
+
+        for (ulong i = from; i < to; i++)
+          mapped.push_back((*subsetPtr)[sampleIndices[i]]);
+
+        return mapped;
+      };
+
+      BatchPtr batchPtr;
+
+      if (*hasPrefetch) {
+        prefetch->waitForFinished();
+        batchPtr = prefetch->result();
+        *hasPrefetch = false;
+      } else {
+        std::vector<ulong> indices = remapBatch(sampleIndices, start, end);
+        batchPtr =
+          std::make_shared<std::vector<SampleT>>(this->loadBatch(indices, transforms, augmentationProbability));
+      }
+
+      ulong nextStart = end;
+
+      if (nextStart < numSamples) {
+        ulong nextEnd = std::min(nextStart + batchSize, numSamples);
+
+        *prefetch = QtConcurrent::run(prefetchPool.get(),
+                                      [this, indices = remapBatch(sampleIndices, nextStart, nextEnd), transforms,
+                                       augmentationProbability]() -> BatchPtr {
+                                        return std::make_shared<std::vector<SampleT>>(
+                                          this->loadBatch(indices, transforms, augmentationProbability));
+                                      });
+
+        *hasPrefetch = true;
+      }
+
+      return std::move(*batchPtr);
+    };
+  }
+
+  //===================================================================================================================//
   //-- loadSample specializations --//
   //===================================================================================================================//
 
   template <>
   ANN::Sample<float> DataLoader<ANN::Sample<float>>::loadSample(ulong entryIndex, std::mt19937& rng,
-                                                                const Loader::AugmentationTransforms& transforms,
+                                                                const AugmentationTransforms& transforms,
                                                                 float augmentationProbability) const
   {
     const AugmentedEntry& entry = this->entries[entryIndex];
@@ -357,7 +425,7 @@ namespace NN_CLI
 
   template <>
   CNN::Sample<float> DataLoader<CNN::Sample<float>>::loadSample(ulong entryIndex, std::mt19937& rng,
-                                                                const Loader::AugmentationTransforms& transforms,
+                                                                const AugmentationTransforms& transforms,
                                                                 float augmentationProbability) const
   {
     const AugmentedEntry& entry = this->entries[entryIndex];

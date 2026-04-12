@@ -29,6 +29,7 @@ void runCNNGPUSaveLoadTests();
 // Other tests
 void runErrorTests();
 void runDataLoaderTests();
+void runValidationTests();
 
 int main(int argc, char* argv[])
 {
@@ -83,6 +84,10 @@ int main(int argc, char* argv[])
   std::cout << std::endl;
   std::cout << "=== DataLoader Tests ===" << std::endl;
   runDataLoaderTests();
+
+  std::cout << std::endl;
+  std::cout << "=== Validation Split Tests ===" << std::endl;
+  runValidationTests();
 
   // Cleanup temp files
   cleanupTemp();

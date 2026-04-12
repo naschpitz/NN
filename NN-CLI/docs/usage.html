@@ -35,6 +35,8 @@
     <li><a href="#devices">Devices</a></li>
     <li><a href="#detection">Network Type Detection</a></li>
     <li><a href="#output">Output Behaviour</a></li>
+    <li><a href="#training-summary">Training Summary</a></li>
+    <li><a href="#validation">Validation Dataset</a></li>
     <li><a href="#progress">Progress Bar</a></li>
     <li><a href="#errors">Error Handling</a></li>
   </ol>
@@ -73,7 +75,7 @@
 
 <div class="card">
 <h3><span class="badge-blue">train</span></h3>
-<p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model JSON to <code>--output</code> (or auto-generated path).</p>
+<p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model JSON to <code>--output</code> (or auto-generated path). Before training begins, a <a href="#training-summary">training summary table</a> is printed showing the full configuration. If <a href="#validation">validation</a> is enabled (the default), a stratified validation split is created and validation loss is reported during training.</p>
 <pre><code>NN-CLI -c config.json -m train -s samples.json
 NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 </code></pre>
@@ -129,7 +131,49 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 }
 </code></pre>
 
-<h2 id="progress">7. Progress Bar</h2>
+<h2 id="training-summary">7. Training Summary</h2>
+<p>Before training begins, NN-CLI prints a summary table showing the full training configuration at a glance. This helps verify that all settings are correct before committing to a potentially long training run.</p>
+<p>The summary includes:</p>
+<ul>
+  <li><strong>Device</strong> -- CPU or GPU, with thread/GPU count</li>
+  <li><strong>Network type</strong> -- ANN or CNN</li>
+  <li><strong>Input shape</strong> -- dimensions of input data</li>
+  <li><strong>Layer counts</strong> -- convolutional, dense, and residual layers (CNN) or total layers (ANN)</li>
+  <li><strong>Total parameters</strong> -- trainable weight and bias count</li>
+  <li><strong>Training / validation samples</strong> -- sample counts after any augmentation and validation split</li>
+  <li><strong>Augmentation</strong> -- factor, balance mode, and enabled transforms</li>
+  <li><strong>Class weights</strong> -- whether auto class weights are enabled</li>
+  <li><strong>Hyperparameters</strong> -- epochs, batch size, learning rate, optimizer, dropout rate</li>
+  <li><strong>Cost function</strong> -- type and configuration</li>
+  <li><strong>Shuffle</strong> -- whether sample shuffling is enabled</li>
+</ul>
+
+<h2 id="validation">8. Validation Dataset</h2>
+<p>NN-CLI supports automatic validation dataset splitting. When enabled (the default), a portion of the training samples is held out for validation. After each epoch (or every N epochs, controlled by <code>checkInterval</code>), the model is evaluated on the validation set and the validation loss is reported.</p>
+
+<h3>Auto-sizing</h3>
+<p>When <code>autoSize</code> is true (the default), the validation split ratio is chosen automatically based on the total dataset size:</p>
+<table>
+  <tr><th>Dataset Size</th><th>Validation Ratio</th></tr>
+  <tr><td>&lt; 1,000 samples</td><td>20%</td></tr>
+  <tr><td>1,000 -- 10,000</td><td>15%</td></tr>
+  <tr><td>10,000 -- 100,000</td><td>10%</td></tr>
+  <tr><td>&gt; 100,000</td><td>5%</td></tr>
+</table>
+<p>Set <code>autoSize</code> to false and specify <code>size</code> (0.0--1.0) to use a fixed ratio instead.</p>
+
+<h3>Stratified splitting</h3>
+<p>The split is stratified, meaning it preserves the class distribution from the original dataset in both the training and validation subsets. The split is also deterministic -- the same dataset and configuration always produce the same split.</p>
+
+<h3>Output</h3>
+<p>Validation loss is reported after the epoch progress line:</p>
+<pre><code>Epoch    5/100 [...] 100.0% - Loss: 0.045678
+Validation Loss: 0.052341
+</code></pre>
+
+<p>See <a href="formats.html#ann-config">Data Formats</a> for the full <code>validationDataset</code> configuration reference.</p>
+
+<h2 id="progress">9. Progress Bar</h2>
 <p>During training, NN-CLI displays a real-time progress bar:</p>
 <pre><code><span class="comment">Single GPU/CPU:</span>
 Epoch    1/1000 [████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░] 50.0% - Loss: 0.234567
@@ -139,7 +183,7 @@ Epoch    1/1000 [████████░░░░│████████
 </code></pre>
 <p>Updates are throttled: prints on epoch completion, epoch change, every 500 samples, and on the first sample.</p>
 
-<h2 id="errors">8. Error Handling</h2>
+<h2 id="errors">10. Error Handling</h2>
 <p>NN-CLI validates all inputs and provides clear error messages:</p>
 <table>
   <tr><th>Condition</th><th>Error</th></tr>

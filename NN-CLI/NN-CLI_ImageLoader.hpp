@@ -1,7 +1,7 @@
 #ifndef NN_CLI_IMAGELOADER_HPP
 #define NN_CLI_IMAGELOADER_HPP
 
-#include "NN-CLI_Loader.hpp"
+#include "NN-CLI_AugmentationTransforms.hpp"
 
 #include <random>
 #include <string>
@@ -42,8 +42,7 @@ namespace NN_CLI
       // Apply a random combination of transforms to an NCHW buffer.
       // rng: random engine for reproducibility.
       static void applyRandomTransforms(std::vector<float>& data, int c, int h, int w, std::mt19937& rng,
-                                        const Loader::AugmentationTransforms& transforms = {},
-                                        float probability = 0.5f);
+                                        const AugmentationTransforms& transforms = {}, float probability = 0.5f);
 
       // Individual transforms (all operate on NCHW [0,1] data)
       static void horizontalFlip(std::vector<float>& data, int c, int h, int w);

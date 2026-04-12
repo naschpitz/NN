@@ -305,7 +305,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void ImageLoader::applyRandomTransforms(std::vector<float>& data, int c, int h, int w, std::mt19937& rng,
-                                          const Loader::AugmentationTransforms& transforms, float probability)
+                                          const AugmentationTransforms& transforms, float probability)
   {
     std::bernoulli_distribution coin(probability);
 

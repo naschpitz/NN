@@ -1,0 +1,35 @@
+#ifndef NN_CLI_TRAININGSUMMARY_HPP
+#define NN_CLI_TRAININGSUMMARY_HPP
+
+#include "NN-CLI_AugmentationConfig.hpp"
+
+#include <ANN_CoreConfig.hpp>
+#include <CNN_CoreConfig.hpp>
+
+#include <string>
+
+namespace NN_CLI
+{
+
+  using ulong = unsigned long;
+
+  class TrainingSummary
+  {
+    public:
+      // Print a formatted training configuration table to stdout.
+      static void printCNN(const CNN::CoreConfig<float>& cnnConfig, const AugmentationConfig& augConfig,
+                           ulong trainSamples, ulong valSamples, float valRatio, bool valAuto);
+
+      static void printANN(const ANN::CoreConfig<float>& annConfig, const AugmentationConfig& augConfig,
+                           ulong trainSamples, ulong valSamples, float valRatio, bool valAuto);
+
+      // Count total trainable parameters from config (no model instantiation needed).
+      static ulong countCNNParameters(const CNN::CoreConfig<float>& config);
+
+    private:
+      static std::string formatWithCommas(ulong value);
+  };
+
+} // namespace NN_CLI
+
+#endif // NN_CLI_TRAININGSUMMARY_HPP
