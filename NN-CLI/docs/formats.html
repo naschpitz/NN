@@ -81,11 +81,26 @@
       <span class="string">"contrast"</span>: <span class="number">0.2</span>,
       <span class="string">"gaussianNoise"</span>: <span class="number">0.02</span>
     },
-    <span class="string">"validationDataset"</span>: {
+    <span class="string">"validationConfig"</span>: {
       <span class="string">"enabled"</span>: <span class="keyword">true</span>,
       <span class="string">"autoSize"</span>: <span class="keyword">true</span>,
       <span class="string">"size"</span>: <span class="number">0.15</span>,
       <span class="string">"checkInterval"</span>: <span class="number">1</span>
+    },
+    <span class="string">"monitoring"</span>: {
+      <span class="string">"enabled"</span>: <span class="keyword">true</span>,
+      <span class="string">"checkInterval"</span>: <span class="number">5</span>,
+      <span class="string">"patience"</span>: <span class="number">20</span>,
+      <span class="string">"metrics"</span>: {
+        <span class="string">"lossStagnation"</span>: {
+          <span class="string">"enabled"</span>: <span class="keyword">true</span>,
+          <span class="string">"minDelta"</span>: <span class="number">0.0001</span>
+        },
+        <span class="string">"lossExplosion"</span>: {
+          <span class="string">"enabled"</span>: <span class="keyword">true</span>,
+          <span class="string">"threshold"</span>: <span class="number">10.0</span>
+        }
+      }
     }
   }
 }
@@ -128,11 +143,19 @@
   <tr><td><code>trainingConfig.augmentationTransforms.brightness</code></td><td>float</td><td>No</td><td>Max brightness delta (default 0.1 = ±0.1; 0 = disabled)</td></tr>
   <tr><td><code>trainingConfig.augmentationTransforms.contrast</code></td><td>float</td><td>No</td><td>Max contrast delta from 1.0 (default 0.2 = range 0.8–1.2×; 0 = disabled)</td></tr>
   <tr><td><code>trainingConfig.augmentationTransforms.gaussianNoise</code></td><td>float</td><td>No</td><td>Noise standard deviation (default 0.02 = σ=0.02; 0 = disabled)</td></tr>
-  <tr><td><code>trainingConfig.validationDataset</code></td><td>object</td><td>No</td><td>Validation dataset split configuration (see below)</td></tr>
-  <tr><td><code>trainingConfig.validationDataset.enabled</code></td><td>bool</td><td>No</td><td>Enable validation split (default true)</td></tr>
-  <tr><td><code>trainingConfig.validationDataset.autoSize</code></td><td>bool</td><td>No</td><td>Auto-select split ratio based on dataset size (default true). Ratios: &lt;1k samples = 20%, 1k-10k = 15%, 10k-100k = 10%, 100k-1M = 2%, &gt;1M = 1%</td></tr>
-  <tr><td><code>trainingConfig.validationDataset.size</code></td><td>float</td><td>No</td><td>Fixed validation fraction, range 0.0-1.0 (default 0.15). Used when <code>autoSize</code> is false</td></tr>
-  <tr><td><code>trainingConfig.validationDataset.checkInterval</code></td><td>int</td><td>No</td><td>Run validation every N epochs (default 1)</td></tr>
+  <tr><td><code>trainingConfig.validationConfig</code></td><td>object</td><td>No</td><td>Validation dataset split configuration (see below)</td></tr>
+  <tr><td><code>trainingConfig.validationConfig.enabled</code></td><td>bool</td><td>No</td><td>Enable validation split (default true)</td></tr>
+  <tr><td><code>trainingConfig.validationConfig.autoSize</code></td><td>bool</td><td>No</td><td>Auto-select split ratio based on dataset size (default true). Ratios: &lt;1k samples = 20%, 1k-10k = 15%, 10k-100k = 10%, 100k-1M = 2%, &gt;1M = 1%</td></tr>
+  <tr><td><code>trainingConfig.validationConfig.size</code></td><td>float</td><td>No</td><td>Fixed validation fraction, range 0.0-1.0 (default 0.15). Used when <code>autoSize</code> is false</td></tr>
+  <tr><td><code>trainingConfig.validationConfig.checkInterval</code></td><td>int</td><td>No</td><td>Run validation every N epochs (default 1)</td></tr>
+  <tr><td><code>trainingConfig.monitoring</code></td><td>object</td><td>No</td><td>Training monitoring and early stopping configuration</td></tr>
+  <tr><td><code>trainingConfig.monitoring.enabled</code></td><td>bool</td><td>No</td><td>Enable training monitoring (default false)</td></tr>
+  <tr><td><code>trainingConfig.monitoring.checkInterval</code></td><td>int</td><td>No</td><td>Evaluate metrics every N epochs (default 5)</td></tr>
+  <tr><td><code>trainingConfig.monitoring.patience</code></td><td>int</td><td>No</td><td>Stop after this many check intervals without improvement (default 20)</td></tr>
+  <tr><td><code>trainingConfig.monitoring.metrics.lossStagnation.enabled</code></td><td>bool</td><td>No</td><td>Track loss improvement (default true)</td></tr>
+  <tr><td><code>trainingConfig.monitoring.metrics.lossStagnation.minDelta</code></td><td>float</td><td>No</td><td>Minimum improvement threshold (default 0.0001)</td></tr>
+  <tr><td><code>trainingConfig.monitoring.metrics.lossExplosion.enabled</code></td><td>bool</td><td>No</td><td>Detect loss explosion (default true)</td></tr>
+  <tr><td><code>trainingConfig.monitoring.metrics.lossExplosion.threshold</code></td><td>float</td><td>No</td><td>Stop if loss exceeds threshold x best loss (default 10.0)</td></tr>
   <tr><td><code>numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>numGPUs</code></td><td>int</td><td>No</td><td>Number of GPUs to use (0 = all available)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
@@ -194,11 +217,16 @@
     <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
     <span class="string">"augmentationProbability"</span>: <span class="number">0.5</span>,
     <span class="string">"augmentationTransforms"</span>: { <span class="string">"horizontalFlip"</span>: <span class="keyword">true</span>, <span class="string">"rotation"</span>: <span class="number">15.0</span> },
-    <span class="string">"validationDataset"</span>: {
+    <span class="string">"validationConfig"</span>: {
       <span class="string">"enabled"</span>: <span class="keyword">true</span>,
       <span class="string">"autoSize"</span>: <span class="keyword">true</span>,
       <span class="string">"size"</span>: <span class="number">0.15</span>,
       <span class="string">"checkInterval"</span>: <span class="number">1</span>
+    },
+    <span class="string">"monitoring"</span>: {
+      <span class="string">"enabled"</span>: <span class="keyword">true</span>,
+      <span class="string">"checkInterval"</span>: <span class="number">5</span>,
+      <span class="string">"patience"</span>: <span class="number">20</span>
     }
   }
 }
@@ -210,7 +238,7 @@
   <strong>Detection rule:</strong> If the JSON contains <code>"inputShape"</code> or <code>"convolutionalLayersConfig"</code>, NN-CLI treats it as a CNN config. Otherwise it's ANN.
 </div>
 
-<p>The <code>trainingConfig</code> fields (including <code>validationDataset</code>, augmentation, optimizer, dropout, etc.) are identical for both ANN and CNN. See the <a href="#ann-config">ANN Configuration</a> field table above for the full reference.</p>
+<p>The <code>trainingConfig</code> fields (including <code>validationConfig</code>, <code>monitoring</code>, augmentation, optimizer, dropout, etc.) are identical for both ANN and CNN. See the <a href="#ann-config">ANN Configuration</a> field table above for the full reference.</p>
 
 <h3>CNN Layer Type Fields</h3>
 <table>

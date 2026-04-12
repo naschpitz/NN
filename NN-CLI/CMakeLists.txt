@@ -94,6 +94,8 @@ add_executable(test_nncli
   tests/test_errors.cpp
   tests/test_dataloader.cpp
   tests/test_validation.cpp
+  tests/test_monitoring.cpp
+  NN-CLI_ANNLoader.cpp
   NN-CLI_DataLoader.cpp
   NN-CLI_DataSplitter.cpp
   NN-CLI_DataType.cpp

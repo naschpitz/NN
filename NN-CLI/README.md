@@ -167,7 +167,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   | `contrast` | `float` | `0.2` | range 0.8–1.2× (delta from 1.0) | `0` |
   | `gaussianNoise` | `float` | `0.02` | σ=0.02 noise stddev | `0` |
 
-- `validationDataset`: Object controlling train/validation split for overfitting detection. A held-out portion of training samples is evaluated after each epoch (or every N epochs) and the validation loss is reported alongside training loss. The split is stratified (preserves class distribution) and deterministic.
+- `validationConfig`: Object controlling train/validation split for overfitting detection. A held-out portion of training samples is evaluated after each epoch (or every N epochs) and the validation loss is reported alongside training loss. The split is stratified (preserves class distribution) and deterministic.
 
   | Field | Type | Default | Description |
   |---|---|---|---|
@@ -177,7 +177,27 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   | `checkInterval` | `int` | `1` | Run validation every N epochs (1 = every epoch) |
 
   Auto-size ratios: <1k samples → 20%, 1k–10k → 15%, 10k–100k → 10%, 100k–1M → 2%, >1M → 1%.
-  To disable validation: `"validationDataset": { "enabled": false }`
+  To disable validation: `"validationConfig": { "enabled": false }`
+
+- `monitoring`: Object controlling training health monitoring and early stopping. Tracks loss trends and stops training when no progress is being made. When validation is enabled, the monitor uses validation loss; otherwise it uses training loss. Saves the best model to `output/best_model.json` (overwritten on each new best).
+
+  | Field | Type | Default | Description |
+  |---|---|---|---|
+  | `enabled` | `bool` | `false` | Enable training monitoring |
+  | `checkInterval` | `int` | `5` | Evaluate health metrics every N epochs |
+  | `patience` | `int` | `20` | Stop after this many consecutive check intervals without improvement |
+  | `metrics.lossStagnation.enabled` | `bool` | `true` | Track whether loss is improving |
+  | `metrics.lossStagnation.minDelta` | `float` | `0.0001` | Minimum loss decrease to count as improvement |
+  | `metrics.lossExplosion.enabled` | `bool` | `true` | Detect loss blowing up (NaN or sudden spike) |
+  | `metrics.lossExplosion.threshold` | `float` | `10.0` | Stop if loss exceeds this × best loss |
+
+  Example — enable monitoring with custom patience:
+  ```json
+  "monitoring": {
+      "enabled": true,
+      "patience": 30
+  }
+  ```
 
   Example — only rotation (strong) and translation, nothing else:
 
@@ -293,7 +313,8 @@ Each layer has a `type` field:
 - `autoClassWeights`: Auto-compute inverse-frequency class weights (default: `false`)
 - `augmentationProbability`: Probability of applying each enabled transform (default: `0.5`)
 - `augmentationTransforms`: Control individual transforms (same fields as ANN — see above for defaults)
-- `validationDataset`: Train/validation split for overfitting detection (same fields as ANN — see above for details)
+- `validationConfig`: Train/validation split for overfitting detection (same fields as ANN — see above for details)
+- `monitoring`: Training health monitoring and early stopping (same fields as ANN — see above for details)
 
 #### CNN Test Configuration
 

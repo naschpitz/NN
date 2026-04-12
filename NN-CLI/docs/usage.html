@@ -37,6 +37,7 @@
     <li><a href="#output">Output Behaviour</a></li>
     <li><a href="#training-summary">Training Summary</a></li>
     <li><a href="#validation">Validation Dataset</a></li>
+    <li><a href="#monitoring">Training Monitoring</a></li>
     <li><a href="#progress">Progress Bar</a></li>
     <li><a href="#errors">Error Handling</a></li>
   </ol>
@@ -172,9 +173,36 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 Validation Loss: 0.052341
 </code></pre>
 
-<p>See <a href="formats.html#ann-config">Data Formats</a> for the full <code>validationDataset</code> configuration reference.</p>
+<p>See <a href="formats.html#ann-config">Data Formats</a> for the full <code>validationConfig</code> configuration reference.</p>
 
-<h2 id="progress">9. Progress Bar</h2>
+<h2 id="monitoring">9. Training Monitoring</h2>
+<p>NN-CLI supports training monitoring with early stopping. When enabled, the monitor evaluates metrics at regular intervals and can stop training early if the model is no longer improving or if training has become unstable.</p>
+
+<h3>Loss stagnation</h3>
+<p>Tracks whether the loss is still improving. Training is stopped when the loss does not improve by at least <code>minDelta</code> for <code>patience</code> consecutive check intervals. For example, with <code>checkInterval: 5</code> and <code>patience: 20</code>, training stops if there is no improvement for 20 consecutive checks (every 5 epochs), i.e., 100 epochs without meaningful progress.</p>
+
+<h3>Loss explosion</h3>
+<p>Detects when training has become unstable. Training is stopped immediately if the current loss exceeds <code>threshold</code> times the best recorded loss, or if the loss becomes NaN. For example, with <code>threshold: 10.0</code>, training stops if the loss grows to more than 10x the best loss seen so far.</p>
+
+<h3>Best model</h3>
+<p>Whenever a new best loss is recorded, the model is saved to <code>output/best_model.json</code> (relative to the input file's location). This file is overwritten each time a new best is found, so it always contains the best model seen during training.</p>
+
+<h3>Loss source</h3>
+<p>When validation is enabled, the monitor uses the validation loss to evaluate metrics. Otherwise, it uses the training loss. This ensures the monitor tracks generalisation performance when a validation set is available.</p>
+
+<h3>Output indicators</h3>
+<p>During training, the epoch line shows a <code>[best]</code> marker when a new best loss is recorded:</p>
+<pre><code>Epoch   10/1000 [...] 100.0% - Loss: 0.034521 [best]
+</code></pre>
+<p>When early stopping triggers, a <code>[Monitor]</code> message is printed explaining the reason:</p>
+<pre><code>[Monitor] Early stopping: loss stagnation (no improvement for 20 checks)
+[Monitor] Early stopping: loss explosion (current: 5.234, best: 0.034, threshold: 10.0x)
+[Monitor] Early stopping: loss is NaN
+</code></pre>
+
+<p>See <a href="formats.html#ann-config">Data Formats</a> for the full <code>monitoring</code> configuration reference.</p>
+
+<h2 id="progress">10. Progress Bar</h2>
 <p>During training, NN-CLI displays a real-time progress bar:</p>
 <pre><code><span class="comment">Single GPU/CPU:</span>
 Epoch    1/1000 [████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░] 50.0% - Loss: 0.234567
@@ -184,7 +212,7 @@ Epoch    1/1000 [████████░░░░│████████
 </code></pre>
 <p>Updates are throttled: prints on epoch completion, epoch change, every 500 samples, and on the first sample.</p>
 
-<h2 id="errors">10. Error Handling</h2>
+<h2 id="errors">11. Error Handling</h2>
 <p>NN-CLI validates all inputs and provides clear error messages:</p>
 <table>
   <tr><th>Condition</th><th>Error</th></tr>

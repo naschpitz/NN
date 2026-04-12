@@ -30,6 +30,7 @@ void runCNNGPUSaveLoadTests();
 void runErrorTests();
 void runDataLoaderTests();
 void runValidationTests();
+void runMonitoringTests();
 
 int main(int argc, char* argv[])
 {
@@ -88,6 +89,10 @@ int main(int argc, char* argv[])
   std::cout << std::endl;
   std::cout << "=== Validation Split Tests ===" << std::endl;
   runValidationTests();
+
+  std::cout << std::endl;
+  std::cout << "=== Monitoring Tests ===" << std::endl;
+  runMonitoringTests();
 
   // Cleanup temp files
   cleanupTemp();
