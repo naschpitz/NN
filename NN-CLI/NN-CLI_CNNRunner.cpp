@@ -483,10 +483,9 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             std::cout.unsetf(std::ios_base::floatfield);
           }
 
-          // Save best model
+          // Save best model (single file, overwritten on each new best)
           if (monitorIsNewBest || progress.isNewBest) {
-            std::string bestPath =
-              ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+            std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
             ModelSerializer::saveCNNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                           this->buildValidationMetadata());
 
@@ -507,8 +506,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         } else {
           // No validation this epoch — handle library-level monitoring signals
           if (progress.isNewBest) {
-            std::string bestPath =
-              ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+            std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
             ModelSerializer::saveCNNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                           this->buildValidationMetadata());
 

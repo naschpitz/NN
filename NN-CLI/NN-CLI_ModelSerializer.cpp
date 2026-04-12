@@ -490,4 +490,20 @@ namespace NN_CLI
     return outputPath.toStdString();
   }
 
+  //===================================================================================================================//
+
+  std::string ModelSerializer::generateBestModelPath(const QString& inputFilePath)
+  {
+    QFileInfo inputInfo(inputFilePath);
+    QDir inputDir = inputInfo.absoluteDir();
+    QDir outputDir(inputDir.filePath("output"));
+
+    if (!outputDir.exists()) {
+      inputDir.mkdir("output");
+    }
+
+    QString outputPath = outputDir.filePath("best_model.json");
+    return outputPath.toStdString();
+  }
+
 } // namespace NN_CLI

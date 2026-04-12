@@ -477,8 +477,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           }
 
           if (monitorIsNewBest || progress.isNewBest) {
-            std::string bestPath =
-              ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+            std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
             ModelSerializer::saveANNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                           this->buildValidationMetadata());
 
@@ -497,8 +496,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           }
         } else {
           if (progress.isNewBest) {
-            std::string bestPath =
-              ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+            std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
             ModelSerializer::saveANNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                           this->buildValidationMetadata());
 

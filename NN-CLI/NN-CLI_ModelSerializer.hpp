@@ -42,6 +42,7 @@ namespace NN_CLI
       static std::string generateDefaultOutputPath(const QString& inputFilePath, ulong epochs, ulong samples,
                                                    float loss);
       static std::string generateCheckpointPath(const QString& inputFilePath, ulong epoch, float loss);
+      static std::string generateBestModelPath(const QString& inputFilePath);
   };
 
 } // namespace NN_CLI
