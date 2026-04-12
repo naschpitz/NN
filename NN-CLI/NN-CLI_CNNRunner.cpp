@@ -433,7 +433,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           ulong validationTotal = validationIndices->size();
 
           if (this->logLevel > LogLevel::QUIET)
-            std::cout << " Validating   0.0%" << std::flush;
+            std::cout << " - Validating   0.0%" << std::flush;
 
           validationCore->setParameters(this->core->getParameters());
           validationCore->syncParametersToGPU();
@@ -455,10 +455,9 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           }
 
           if (this->logLevel > LogLevel::QUIET) {
-            // Erase " Validating XXX.X%" (18 chars) and replace with final result
-            std::cout << "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
-                      << "Validation Loss: " << std::fixed << std::setprecision(6) << validationResult.averageLoss
-                      << std::endl;
+            // Erase " - Validating XXX.X%" (20 chars) and replace with final result
+            std::cout << std::string(20, '\b') << " - Validation Loss: " << std::fixed << std::setprecision(6)
+                      << validationResult.averageLoss << std::endl;
             std::cout.unsetf(std::ios_base::floatfield);
           }
         } else if (this->validationState.enabled && this->logLevel > LogLevel::QUIET) {

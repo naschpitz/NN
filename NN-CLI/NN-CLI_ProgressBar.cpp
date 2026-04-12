@@ -82,7 +82,7 @@ namespace NN_CLI
       out << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss;
 
       if (this->holdEpochLine) {
-        out << std::string(20, ' '); // Pad but no newline — caller will append validation loss
+        // No padding, no newline — caller will append validation loss
       } else {
         out << std::string(20, ' ') << std::endl;
       }
