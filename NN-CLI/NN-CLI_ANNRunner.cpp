@@ -22,6 +22,7 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
 #include <numeric>
 
 using namespace NN_CLI;
@@ -392,6 +393,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 {
   static ulong lastCallbackEpoch = 0;
   static float lastEpochLoss = 0.0f;
+  static std::mutex epochTransitionMutex;
   lastCallbackEpoch = 0;
   lastEpochLoss = 0.0f;
 
@@ -412,37 +414,41 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       progressBar.update(info);
     }
 
-    if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
-      if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
-        std::string checkpointPath =
-          ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
-        ModelSerializer::saveANNModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                      this->buildValidationMetadata());
+    {
+      std::lock_guard<std::mutex> lock(epochTransitionMutex);
 
-        if (this->logLevel > LogLevel::QUIET)
-          std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
-      }
+      if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+        if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
+          std::string checkpointPath =
+            ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+          ModelSerializer::saveANNModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                        this->buildValidationMetadata());
 
-      // Run validation at check intervals using separate core (skip epoch 0 — no training yet)
-      if (lastCallbackEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
-          validationIndices && lastCallbackEpoch % this->validationState.checkInterval == 0) {
-        validationCore->setParameters(this->core->getParameters());
-        auto validationResult = validationCore->test(validationIndices->size(), *validationProviderPtr);
-        this->validationState.lastValLoss = validationResult.averageLoss;
-
-        if (validationResult.averageLoss < this->validationState.bestValLoss) {
-          this->validationState.bestValLoss = validationResult.averageLoss;
-          this->validationState.bestValEpoch = lastCallbackEpoch;
+          if (this->logLevel > LogLevel::QUIET)
+            std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
         }
 
-        if (this->logLevel > LogLevel::QUIET) {
-          std::cout << " - Validation Loss: " << std::fixed << std::setprecision(6) << validationResult.averageLoss;
-          std::cout.unsetf(std::ios_base::floatfield);
-        }
-      }
+        // Run validation at check intervals using separate core (skip epoch 0 — no training yet)
+        if (lastCallbackEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
+            validationIndices && lastCallbackEpoch % this->validationState.checkInterval == 0) {
+          validationCore->setParameters(this->core->getParameters());
+          auto validationResult = validationCore->test(validationIndices->size(), *validationProviderPtr);
+          this->validationState.lastValLoss = validationResult.averageLoss;
 
-      lastCallbackEpoch = progress.currentEpoch;
-    }
+          if (validationResult.averageLoss < this->validationState.bestValLoss) {
+            this->validationState.bestValLoss = validationResult.averageLoss;
+            this->validationState.bestValEpoch = lastCallbackEpoch;
+          }
+
+          if (this->logLevel > LogLevel::QUIET) {
+            std::cout << " - Validation Loss: " << std::fixed << std::setprecision(6) << validationResult.averageLoss;
+            std::cout.unsetf(std::ios_base::floatfield);
+          }
+        }
+
+        lastCallbackEpoch = progress.currentEpoch;
+      }
+    } // lock_guard released
 
     if (progress.epochLoss > 0)
       lastEpochLoss = progress.epochLoss;
