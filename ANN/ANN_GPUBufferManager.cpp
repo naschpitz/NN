@@ -38,9 +38,8 @@ void GPUBufferManager<T>::initializeParameters()
   this->parameters.weights.resize(numLayers);
   this->parameters.biases.resize(numLayers);
 
-  // Random number generator for weight initialization
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  // Deterministic seed for reproducible weight initialization
+  std::mt19937 gen(42);
 
   for (ulong l = 1; l < numLayers; l++) {
     const Layer& layer = this->layersConfig[l];
