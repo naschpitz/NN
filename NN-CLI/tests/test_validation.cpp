@@ -231,7 +231,7 @@ static void testValidationConfigDefaults()
 
   AugmentationConfig config = Loader::loadAugmentationConfig(configPath.toStdString());
 
-  CHECK(config.validationDataset.enabled == true, "default enabled is true");
+  CHECK(config.validationDataset.enabled == false, "default enabled is false");
   CHECK(config.validationDataset.autoSize == true, "default autoSize is true");
   CHECK_NEAR(config.validationDataset.size, 0.15f, 0.001f, "default size is 0.15");
   CHECK(config.validationDataset.checkInterval == 1, "default checkInterval is 1");

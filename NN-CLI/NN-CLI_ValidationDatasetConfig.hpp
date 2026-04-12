@@ -9,7 +9,7 @@ namespace NN_CLI
   using ulong = unsigned long;
 
   struct ValidationDatasetConfig {
-      bool enabled = true; // Enable validation split
+      bool enabled = false; // Enable validation split (default off — requires separate validation core)
       bool autoSize = true; // Auto-select split ratio based on dataset size
       float size = 0.15f; // Fixed validation fraction (used when autoSize is false)
       ulong checkInterval = 1; // Run validation every N epochs (1 = every epoch)
