@@ -4,7 +4,7 @@
   "progressReports": 0,
   "saveModelInterval": 0,
   "inputShape": { "c": 1, "h": 28, "w": 28 },
-  "convolutionalLayersConfig": [
+  "convolutionalLayers": [
     { "type": "conv", "numFilters": 16, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
     { "type": "instancenorm" },
     { "type": "relu" },
@@ -32,13 +32,13 @@
     { "type": "globalavgpool" },
     { "type": "flatten" }
   ],
-  "denseLayersConfig": [
+  "denseLayers": [
     { "numNeurons": 10, "actvFunc": "softmax" }
   ],
-  "costFunctionConfig": {
+  "costFunction": {
     "type": "crossEntropy"
   },
-  "trainingConfig": {
+  "training": {
     "numEpochs": 10,
     "batchSize": 64,
     "learningRate": 0.001,

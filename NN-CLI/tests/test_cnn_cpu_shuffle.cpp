@@ -32,8 +32,8 @@ static void testCNNShuffleSamplesCLI()
   if (fileTrue.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(fileTrue.readAll());
     QJsonObject root = doc.object();
-    CHECK(root.contains("trainingConfig"), "CNN shuffle=true: has 'trainingConfig'");
-    QJsonObject tc = root["trainingConfig"].toObject();
+    CHECK(root.contains("training"), "CNN shuffle=true: has 'trainingConfig'");
+    QJsonObject tc = root["training"].toObject();
     CHECK(tc.contains("shuffleSamples"), "CNN shuffle=true: has 'shuffleSamples'");
     CHECK(tc["shuffleSamples"].toBool() == true, "CNN shuffle=true: shuffleSamples is true");
     fileTrue.close();
@@ -46,7 +46,7 @@ static void testCNNShuffleSamplesCLI()
   if (fileFalse.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(fileFalse.readAll());
     QJsonObject root = doc.object();
-    QJsonObject tc = root["trainingConfig"].toObject();
+    QJsonObject tc = root["training"].toObject();
     CHECK(tc.contains("shuffleSamples"), "CNN shuffle=false: has 'shuffleSamples'");
     CHECK(tc["shuffleSamples"].toBool() == false, "CNN shuffle=false: shuffleSamples is false");
     fileFalse.close();

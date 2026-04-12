@@ -4,16 +4,16 @@
   "numThreads": 1,
   "progressReports": 100,
   "saveModelInterval": 10,
-  "layersConfig": [
+  "layers": [
     { "numNeurons": 2, "actvFunc": "relu" },
     { "numNeurons": 8, "actvFunc": "relu" },
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "costFunctionConfig": {
+  "costFunction": {
     "type": "weightedSquaredDifference",
     "weights": [3.0, 1.0]
   },
-  "trainingConfig": {
+  "training": {
     "numEpochs": 100,
     "learningRate": 0.5
   }

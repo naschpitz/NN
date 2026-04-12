@@ -141,9 +141,9 @@ static void testCNNTrainWithWeightedLoss()
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject root = doc.object();
 
-    CHECK(root.contains("costFunctionConfig"), "CNN weighted train: saved model has 'costFunctionConfig'");
+    CHECK(root.contains("costFunction"), "CNN weighted train: saved model has 'costFunctionConfig'");
 
-    QJsonObject cfc = root["costFunctionConfig"].toObject();
+    QJsonObject cfc = root["costFunction"].toObject();
     CHECK(cfc["type"].toString() == "weightedSquaredDifference",
           "CNN weighted train: type is 'weightedSquaredDifference'");
     CHECK(cfc.contains("weights"), "CNN weighted train: has 'weights'");

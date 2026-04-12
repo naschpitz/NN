@@ -4,12 +4,12 @@
   "numThreads": 1,
   "progressReports": 0,
   "saveModelInterval": 0,
-  "layersConfig": [
+  "layers": [
     { "numNeurons": 2, "actvFunc": "relu" },
     { "numNeurons": 8, "actvFunc": "relu" },
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "trainingConfig": {
+  "training": {
     "numEpochs": 200,
     "learningRate": 0.5,
     "dropoutRate": 0.3

@@ -48,16 +48,16 @@
   <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="string">"inputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
-  <span class="string">"layersConfig"</span>: [
+  <span class="string">"layers"</span>: [
     { <span class="string">"numNeurons"</span>: <span class="number">784</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">10</span>,  <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="string">"costFunctionConfig"</span>: {
+  <span class="string">"costFunction"</span>: {
     <span class="string">"type"</span>: <span class="string">"weightedSquaredDifference"</span>,
     <span class="string">"weights"</span>: [<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">5.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>]
   },
-  <span class="string">"trainingConfig"</span>: {
+  <span class="string">"training"</span>: {
     <span class="string">"numEpochs"</span>: <span class="number">100</span>,
     <span class="string">"batchSize"</span>: <span class="number">64</span>,
     <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
@@ -81,7 +81,7 @@
       <span class="string">"contrast"</span>: <span class="number">0.2</span>,
       <span class="string">"gaussianNoise"</span>: <span class="number">0.02</span>
     },
-    <span class="string">"validationConfig"</span>: {
+    <span class="string">"validation"</span>: {
       <span class="string">"enabled"</span>: <span class="keyword">true</span>,
       <span class="string">"autoSize"</span>: <span class="keyword">true</span>,
       <span class="string">"size"</span>: <span class="number">0.15</span>,
@@ -116,46 +116,46 @@
   <tr><td><code>outputType</code></td><td>string</td><td>No</td><td><code>vector</code> (default) or <code>image</code>; overridden by <code>--output-type</code></td></tr>
   <tr><td><code>inputShape</code></td><td>object</td><td>Image</td><td>Input image dimensions (<code>c</code>, <code>h</code>, <code>w</code>); required when <code>inputType</code> is <code>image</code></td></tr>
   <tr><td><code>outputShape</code></td><td>object</td><td>Image</td><td>Output image dimensions (<code>c</code>, <code>h</code>, <code>w</code>); required when <code>outputType</code> is <code>image</code></td></tr>
-  <tr><td><code>layersConfig</code></td><td>array</td><td>Yes</td><td>Layer definitions (first = input, last = output)</td></tr>
+  <tr><td><code>layers</code></td><td>array</td><td>Yes</td><td>Layer definitions (first = input, last = output)</td></tr>
   <tr><td><code>layersConfig[].numNeurons</code></td><td>int</td><td>Yes</td><td>Number of neurons</td></tr>
   <tr><td><code>layersConfig[].actvFunc</code></td><td>string</td><td>Yes</td><td><code>relu</code>, <code>sigmoid</code>, <code>tanh</code>, or <code>softmax</code></td></tr>
-  <tr><td><code>costFunctionConfig</code></td><td>object</td><td>No</td><td>Cost function configuration (default: squared difference)</td></tr>
-  <tr><td><code>costFunctionConfig.type</code></td><td>string</td><td>No</td><td><code>squaredDifference</code> (default), <code>weightedSquaredDifference</code>, or <code>crossEntropy</code></td></tr>
-  <tr><td><code>costFunctionConfig.weights</code></td><td>array</td><td>Weighted</td><td>Per-output-neuron weights (required when type is <code>weightedSquaredDifference</code>)</td></tr>
-  <tr><td><code>trainingConfig.numEpochs</code></td><td>int</td><td>Train</td><td>Number of epochs</td></tr>
-  <tr><td><code>trainingConfig.batchSize</code></td><td>int</td><td>No</td><td>Mini-batch size (default 64)</td></tr>
-  <tr><td><code>trainingConfig.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate (base α for both SGD and Adam)</td></tr>
-  <tr><td><code>trainingConfig.shuffleSamples</code></td><td>bool</td><td>No</td><td>Shuffle sample order each epoch (default true)</td></tr>
-  <tr><td><code>trainingConfig.dropoutRate</code></td><td>float</td><td>No</td><td>Dropout probability for hidden layers (default 0.0 = disabled). Inverted dropout scales activations by 1/(1−p) during training</td></tr>
-  <tr><td><code>trainingConfig.optimizer</code></td><td>object</td><td>No</td><td>Optimizer configuration (default: SGD)</td></tr>
-  <tr><td><code>trainingConfig.optimizer.type</code></td><td>string</td><td>No</td><td><code>"sgd"</code> (default) or <code>"adam"</code></td></tr>
-  <tr><td><code>trainingConfig.optimizer.beta1</code></td><td>float</td><td>No</td><td>Adam first moment decay rate (default 0.9)</td></tr>
-  <tr><td><code>trainingConfig.optimizer.beta2</code></td><td>float</td><td>No</td><td>Adam second moment decay rate (default 0.999)</td></tr>
-  <tr><td><code>trainingConfig.optimizer.epsilon</code></td><td>float</td><td>No</td><td>Adam numerical stability constant (default 1e-8)</td></tr>
-  <tr><td><code>trainingConfig.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>
-  <tr><td><code>trainingConfig.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false)</td></tr>
-  <tr><td><code>trainingConfig.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false)</td></tr>
-  <tr><td><code>trainingConfig.augmentationProbability</code></td><td>float</td><td>No</td><td>Probability of applying each enabled transform per sample (default 0.5 = 50%)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms</code></td><td>object</td><td>No</td><td>Control augmentation transform intensities (0 = disabled; defaults shown)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.horizontalFlip</code></td><td>bool</td><td>No</td><td>Mirror along vertical axis (default true; false = disabled)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.rotation</code></td><td>float</td><td>No</td><td>Max rotation in degrees (default 15.0 = ±15°; 0 = disabled)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.translation</code></td><td>float</td><td>No</td><td>Max shift as fraction of image size (default 0.1 = ±10%; 0 = disabled)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.brightness</code></td><td>float</td><td>No</td><td>Max brightness delta (default 0.1 = ±0.1; 0 = disabled)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.contrast</code></td><td>float</td><td>No</td><td>Max contrast delta from 1.0 (default 0.2 = range 0.8–1.2×; 0 = disabled)</td></tr>
-  <tr><td><code>trainingConfig.augmentationTransforms.gaussianNoise</code></td><td>float</td><td>No</td><td>Noise standard deviation (default 0.02 = σ=0.02; 0 = disabled)</td></tr>
-  <tr><td><code>trainingConfig.validationConfig</code></td><td>object</td><td>No</td><td>Validation dataset split configuration (see below)</td></tr>
-  <tr><td><code>trainingConfig.validationConfig.enabled</code></td><td>bool</td><td>No</td><td>Enable validation split (default true)</td></tr>
-  <tr><td><code>trainingConfig.validationConfig.autoSize</code></td><td>bool</td><td>No</td><td>Auto-select split ratio based on dataset size (default true). Ratios: &lt;1k samples = 20%, 1k-10k = 15%, 10k-100k = 10%, 100k-1M = 2%, &gt;1M = 1%</td></tr>
-  <tr><td><code>trainingConfig.validationConfig.size</code></td><td>float</td><td>No</td><td>Fixed validation fraction, range 0.0-1.0 (default 0.15). Used when <code>autoSize</code> is false</td></tr>
-  <tr><td><code>trainingConfig.validationConfig.checkInterval</code></td><td>int</td><td>No</td><td>Run validation every N epochs (default 1)</td></tr>
-  <tr><td><code>trainingConfig.monitoring</code></td><td>object</td><td>No</td><td>Training monitoring and early stopping configuration</td></tr>
-  <tr><td><code>trainingConfig.monitoring.enabled</code></td><td>bool</td><td>No</td><td>Enable training monitoring (default false)</td></tr>
-  <tr><td><code>trainingConfig.monitoring.checkInterval</code></td><td>int</td><td>No</td><td>Evaluate metrics every N epochs (default 5)</td></tr>
-  <tr><td><code>trainingConfig.monitoring.patience</code></td><td>int</td><td>No</td><td>Stop after this many check intervals without improvement (default 20)</td></tr>
-  <tr><td><code>trainingConfig.monitoring.metrics.lossStagnation.enabled</code></td><td>bool</td><td>No</td><td>Track loss improvement (default true)</td></tr>
-  <tr><td><code>trainingConfig.monitoring.metrics.lossStagnation.minDelta</code></td><td>float</td><td>No</td><td>Minimum improvement threshold (default 0.0001)</td></tr>
-  <tr><td><code>trainingConfig.monitoring.metrics.lossExplosion.enabled</code></td><td>bool</td><td>No</td><td>Detect loss explosion (default true)</td></tr>
-  <tr><td><code>trainingConfig.monitoring.metrics.lossExplosion.threshold</code></td><td>float</td><td>No</td><td>Stop if loss exceeds threshold x best loss (default 10.0)</td></tr>
+  <tr><td><code>costFunction</code></td><td>object</td><td>No</td><td>Cost function configuration (default: squared difference)</td></tr>
+  <tr><td><code>costFunction.type</code></td><td>string</td><td>No</td><td><code>squaredDifference</code> (default), <code>weightedSquaredDifference</code>, or <code>crossEntropy</code></td></tr>
+  <tr><td><code>costFunction.weights</code></td><td>array</td><td>Weighted</td><td>Per-output-neuron weights (required when type is <code>weightedSquaredDifference</code>)</td></tr>
+  <tr><td><code>training.numEpochs</code></td><td>int</td><td>Train</td><td>Number of epochs</td></tr>
+  <tr><td><code>training.batchSize</code></td><td>int</td><td>No</td><td>Mini-batch size (default 64)</td></tr>
+  <tr><td><code>training.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate (base α for both SGD and Adam)</td></tr>
+  <tr><td><code>training.shuffleSamples</code></td><td>bool</td><td>No</td><td>Shuffle sample order each epoch (default true)</td></tr>
+  <tr><td><code>training.dropoutRate</code></td><td>float</td><td>No</td><td>Dropout probability for hidden layers (default 0.0 = disabled). Inverted dropout scales activations by 1/(1−p) during training</td></tr>
+  <tr><td><code>training.optimizer</code></td><td>object</td><td>No</td><td>Optimizer configuration (default: SGD)</td></tr>
+  <tr><td><code>training.optimizer.type</code></td><td>string</td><td>No</td><td><code>"sgd"</code> (default) or <code>"adam"</code></td></tr>
+  <tr><td><code>training.optimizer.beta1</code></td><td>float</td><td>No</td><td>Adam first moment decay rate (default 0.9)</td></tr>
+  <tr><td><code>training.optimizer.beta2</code></td><td>float</td><td>No</td><td>Adam second moment decay rate (default 0.999)</td></tr>
+  <tr><td><code>training.optimizer.epsilon</code></td><td>float</td><td>No</td><td>Adam numerical stability constant (default 1e-8)</td></tr>
+  <tr><td><code>training.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>
+  <tr><td><code>training.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false)</td></tr>
+  <tr><td><code>training.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false)</td></tr>
+  <tr><td><code>training.augmentationProbability</code></td><td>float</td><td>No</td><td>Probability of applying each enabled transform per sample (default 0.5 = 50%)</td></tr>
+  <tr><td><code>training.augmentationTransforms</code></td><td>object</td><td>No</td><td>Control augmentation transform intensities (0 = disabled; defaults shown)</td></tr>
+  <tr><td><code>training.augmentationTransforms.horizontalFlip</code></td><td>bool</td><td>No</td><td>Mirror along vertical axis (default true; false = disabled)</td></tr>
+  <tr><td><code>training.augmentationTransforms.rotation</code></td><td>float</td><td>No</td><td>Max rotation in degrees (default 15.0 = ±15°; 0 = disabled)</td></tr>
+  <tr><td><code>training.augmentationTransforms.translation</code></td><td>float</td><td>No</td><td>Max shift as fraction of image size (default 0.1 = ±10%; 0 = disabled)</td></tr>
+  <tr><td><code>training.augmentationTransforms.brightness</code></td><td>float</td><td>No</td><td>Max brightness delta (default 0.1 = ±0.1; 0 = disabled)</td></tr>
+  <tr><td><code>training.augmentationTransforms.contrast</code></td><td>float</td><td>No</td><td>Max contrast delta from 1.0 (default 0.2 = range 0.8–1.2×; 0 = disabled)</td></tr>
+  <tr><td><code>training.augmentationTransforms.gaussianNoise</code></td><td>float</td><td>No</td><td>Noise standard deviation (default 0.02 = σ=0.02; 0 = disabled)</td></tr>
+  <tr><td><code>training.validation</code></td><td>object</td><td>No</td><td>Validation dataset split configuration (see below)</td></tr>
+  <tr><td><code>training.validation.enabled</code></td><td>bool</td><td>No</td><td>Enable validation split (default true)</td></tr>
+  <tr><td><code>training.validation.autoSize</code></td><td>bool</td><td>No</td><td>Auto-select split ratio based on dataset size (default true). Ratios: &lt;1k samples = 20%, 1k-10k = 15%, 10k-100k = 10%, 100k-1M = 2%, &gt;1M = 1%</td></tr>
+  <tr><td><code>training.validation.size</code></td><td>float</td><td>No</td><td>Fixed validation fraction, range 0.0-1.0 (default 0.15). Used when <code>autoSize</code> is false</td></tr>
+  <tr><td><code>training.validation.checkInterval</code></td><td>int</td><td>No</td><td>Run validation every N epochs (default 1)</td></tr>
+  <tr><td><code>training.monitoring</code></td><td>object</td><td>No</td><td>Training monitoring and early stopping configuration</td></tr>
+  <tr><td><code>training.monitoring.enabled</code></td><td>bool</td><td>No</td><td>Enable training monitoring (default false)</td></tr>
+  <tr><td><code>training.monitoring.checkInterval</code></td><td>int</td><td>No</td><td>Evaluate metrics every N epochs (default 5)</td></tr>
+  <tr><td><code>training.monitoring.patience</code></td><td>int</td><td>No</td><td>Stop after this many check intervals without improvement (default 20)</td></tr>
+  <tr><td><code>training.monitoring.metrics.lossStagnation.enabled</code></td><td>bool</td><td>No</td><td>Track loss improvement (default true)</td></tr>
+  <tr><td><code>training.monitoring.metrics.lossStagnation.minDelta</code></td><td>float</td><td>No</td><td>Minimum improvement threshold (default 0.0001)</td></tr>
+  <tr><td><code>training.monitoring.metrics.lossExplosion.enabled</code></td><td>bool</td><td>No</td><td>Detect loss explosion (default true)</td></tr>
+  <tr><td><code>training.monitoring.metrics.lossExplosion.threshold</code></td><td>float</td><td>No</td><td>Stop if loss exceeds threshold x best loss (default 10.0)</td></tr>
   <tr><td><code>numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>numGPUs</code></td><td>int</td><td>No</td><td>Number of GPUs to use (0 = all available)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
@@ -184,7 +184,7 @@
   <span class="string">"inputType"</span>: <span class="string">"image"</span>,
   <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
   <span class="string">"inputShape"</span>: { <span class="string">"c"</span>: <span class="number">1</span>, <span class="string">"h"</span>: <span class="number">28</span>, <span class="string">"w"</span>: <span class="number">28</span> },
-  <span class="string">"convolutionalLayersConfig"</span>: [
+  <span class="string">"convolutionalLayers"</span>: [
     { <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">8</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>,
       <span class="string">"strideY"</span>: <span class="number">1</span>, <span class="string">"strideX"</span>: <span class="number">1</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"valid"</span> },
     { <span class="string">"type"</span>: <span class="string">"instancenorm"</span> },
@@ -199,15 +199,15 @@
     { <span class="string">"type"</span>: <span class="string">"globalavgpool"</span> },
     { <span class="string">"type"</span>: <span class="string">"flatten"</span> }
   ],
-  <span class="string">"denseLayersConfig"</span>: [
+  <span class="string">"denseLayers"</span>: [
     { <span class="string">"numNeurons"</span>: <span class="number">128</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">10</span>,  <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="string">"costFunctionConfig"</span>: {
+  <span class="string">"costFunction"</span>: {
     <span class="string">"type"</span>: <span class="string">"weightedSquaredDifference"</span>,
     <span class="string">"weights"</span>: [<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">5.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>]
   },
-  <span class="string">"trainingConfig"</span>: {
+  <span class="string">"training"</span>: {
     <span class="string">"numEpochs"</span>: <span class="number">10</span>,
     <span class="string">"batchSize"</span>: <span class="number">64</span>,
     <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
@@ -217,7 +217,7 @@
     <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
     <span class="string">"augmentationProbability"</span>: <span class="number">0.5</span>,
     <span class="string">"augmentationTransforms"</span>: { <span class="string">"horizontalFlip"</span>: <span class="keyword">true</span>, <span class="string">"rotation"</span>: <span class="number">15.0</span> },
-    <span class="string">"validationConfig"</span>: {
+    <span class="string">"validation"</span>: {
       <span class="string">"enabled"</span>: <span class="keyword">true</span>,
       <span class="string">"autoSize"</span>: <span class="keyword">true</span>,
       <span class="string">"size"</span>: <span class="number">0.15</span>,
@@ -235,10 +235,10 @@
 <p>CNN configs also support <code>inputType</code>, <code>outputType</code>, and <code>outputShape</code>. The <code>inputShape</code> is always required for CNN (used by the network itself). When <code>outputType</code> is <code>"image"</code>, <code>outputShape</code> must be provided for image reconstruction.</p>
 
 <div class="info-box">
-  <strong>Detection rule:</strong> If the JSON contains <code>"inputShape"</code> or <code>"convolutionalLayersConfig"</code>, NN-CLI treats it as a CNN config. Otherwise it's ANN.
+  <strong>Detection rule:</strong> If the JSON contains <code>"inputShape"</code> or <code>"convolutionalLayers"</code>, NN-CLI treats it as a CNN config. Otherwise it's ANN.
 </div>
 
-<p>The <code>trainingConfig</code> fields (including <code>validationConfig</code>, <code>monitoring</code>, augmentation, optimizer, dropout, etc.) are identical for both ANN and CNN. See the <a href="#ann-config">ANN Configuration</a> field table above for the full reference.</p>
+<p>The <code>training</code> fields (including <code>validation</code>, <code>monitoring</code>, augmentation, optimizer, dropout, etc.) are identical for both ANN and CNN. See the <a href="#ann-config">ANN Configuration</a> field table above for the full reference.</p>
 
 <h3>CNN Layer Type Fields</h3>
 <table>
@@ -392,11 +392,11 @@
   <span class="string">"saveModelInterval"</span>: <span class="number">10</span>,
   <span class="string">"inputType"</span>: <span class="string">"image"</span>,
   <span class="string">"outputType"</span>: <span class="string">"vector"</span>,
-  <span class="string">"layersConfig"</span>: [...],
-  <span class="string">"costFunctionConfig"</span>: {
+  <span class="string">"layers"</span>: [...],
+  <span class="string">"costFunction"</span>: {
     <span class="string">"type"</span>: <span class="string">"squaredDifference"</span>
   },
-  <span class="string">"trainingConfig"</span>: {...},
+  <span class="string">"training"</span>: {...},
   <span class="string">"trainingMetadata"</span>: {
     <span class="string">"startTime"</span>: <span class="string">"..."</span>, <span class="string">"endTime"</span>: <span class="string">"..."</span>,
     <span class="string">"durationSeconds"</span>: <span class="number">123.4</span>,

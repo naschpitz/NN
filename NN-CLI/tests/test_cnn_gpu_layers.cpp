@@ -30,11 +30,11 @@ static QString writeGPUTestConfig(const QString& path, const QString& convLayers
   "progressReports": 0,
   "saveModelInterval": 0,
   "inputShape": { "c": 1, "h": 8, "w": 8 },
-  "convolutionalLayersConfig": %1,
-  "denseLayersConfig": [
+  "convolutionalLayers": %1,
+  "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "trainingConfig": {
+  "training": {
     "numEpochs": 50,
     "learningRate": 0.01
   }

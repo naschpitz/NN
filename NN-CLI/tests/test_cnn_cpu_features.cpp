@@ -27,15 +27,15 @@ static void testCNNCheckpointParameters()
   "progressReports": 0,
   "saveModelInterval": 5,
   "inputShape": { "c": 1, "h": 4, "w": 4 },
-  "convolutionalLayersConfig": [
+  "convolutionalLayers": [
     { "type": "conv", "numFilters": 1, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
     { "type": "relu" },
     { "type": "flatten" }
   ],
-  "denseLayersConfig": [
+  "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "trainingConfig": {
+  "training": {
     "numEpochs": 20,
     "learningRate": 0.1
   }
@@ -132,16 +132,16 @@ static void testCNNCheckpointInstanceNormRoundTrip()
   "progressReports": 0,
   "saveModelInterval": 5,
   "inputShape": { "c": 1, "h": 4, "w": 4 },
-  "convolutionalLayersConfig": [
+  "convolutionalLayers": [
     { "type": "conv", "numFilters": 2, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
     { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "flatten" }
   ],
-  "denseLayersConfig": [
+  "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "trainingConfig": {
+  "training": {
     "numEpochs": 20,
     "learningRate": 0.1
   }
@@ -247,16 +247,16 @@ static void testCNNGlobalDualPoolEndToEnd()
   "progressReports": 0,
   "saveModelInterval": 0,
   "inputShape": { "c": 1, "h": 8, "w": 8 },
-  "convolutionalLayersConfig": [
+  "convolutionalLayers": [
     { "type": "conv", "numFilters": 4, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
     { "type": "relu" },
     { "type": "globaldualpool" },
     { "type": "flatten" }
   ],
-  "denseLayersConfig": [
+  "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "trainingConfig": {
+  "training": {
     "numEpochs": 200,
     "learningRate": 0.5
   }
@@ -338,9 +338,8 @@ static void testCNNGlobalDualPoolEndToEnd()
 
     QString predictOutput = tempDir() + "/cnn_gdp_predict_output.json";
 
-    auto predResult =
-      runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath, "--output",
-                predictOutput});
+    auto predResult = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath,
+                                "--output", predictOutput});
 
     CHECK(predResult.exitCode == 0, "CNN GDP e2e: predict exit code 0");
     CHECK(QFile::exists(predictOutput), "CNN GDP e2e: predict output file created");
@@ -393,7 +392,7 @@ static void testCNNResidualEndToEnd()
   "progressReports": 0,
   "saveModelInterval": 0,
   "inputShape": { "c": 1, "h": 8, "w": 8 },
-  "convolutionalLayersConfig": [
+  "convolutionalLayers": [
     { "type": "conv", "numFilters": 4, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
     { "type": "relu" },
     { "type": "residual_start" },
@@ -403,10 +402,10 @@ static void testCNNResidualEndToEnd()
     { "type": "globalavgpool" },
     { "type": "flatten" }
   ],
-  "denseLayersConfig": [
+  "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "trainingConfig": {
+  "training": {
     "numEpochs": 200,
     "learningRate": 0.5
   }
@@ -493,9 +492,8 @@ static void testCNNResidualEndToEnd()
 
     QString predictOutput = tempDir() + "/cnn_res_predict_output.json";
 
-    auto predResult =
-      runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath, "--output",
-                predictOutput});
+    auto predResult = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath,
+                                "--output", predictOutput});
 
     CHECK(predResult.exitCode == 0, "CNN Residual e2e: predict exit code 0");
 

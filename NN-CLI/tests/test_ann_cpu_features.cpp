@@ -109,8 +109,8 @@ static void testANNShuffleSamplesCLI()
   if (fileTrue.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(fileTrue.readAll());
     QJsonObject root = doc.object();
-    CHECK(root.contains("trainingConfig"), "ANN shuffle=true: has 'trainingConfig'");
-    QJsonObject tc = root["trainingConfig"].toObject();
+    CHECK(root.contains("training"), "ANN shuffle=true: has 'trainingConfig'");
+    QJsonObject tc = root["training"].toObject();
     CHECK(tc.contains("shuffleSamples"), "ANN shuffle=true: has 'shuffleSamples'");
     CHECK(tc["shuffleSamples"].toBool() == true, "ANN shuffle=true: shuffleSamples is true");
     fileTrue.close();
@@ -123,7 +123,7 @@ static void testANNShuffleSamplesCLI()
   if (fileFalse.open(QIODevice::ReadOnly)) {
     QJsonDocument doc = QJsonDocument::fromJson(fileFalse.readAll());
     QJsonObject root = doc.object();
-    QJsonObject tc = root["trainingConfig"].toObject();
+    QJsonObject tc = root["training"].toObject();
     CHECK(tc.contains("shuffleSamples"), "ANN shuffle=false: has 'shuffleSamples'");
     CHECK(tc["shuffleSamples"].toBool() == false, "ANN shuffle=false: shuffleSamples is false");
     fileFalse.close();
@@ -168,7 +168,7 @@ static void testANNTrainWithDropout()
   auto json = QJsonDocument::fromJson(file.readAll()).object();
   file.close();
 
-  auto tc = json["trainingConfig"].toObject();
+  auto tc = json["training"].toObject();
   CHECK(tc.contains("dropoutRate"), "dropoutRate saved in model JSON");
   CHECK(std::abs(tc["dropoutRate"].toDouble() - 0.3) < 0.01, "dropoutRate value is 0.3");
 
@@ -196,7 +196,7 @@ static void testANNTrainWithAugmentation()
   auto json = QJsonDocument::fromJson(file.readAll()).object();
   file.close();
 
-  auto cfc = json["costFunctionConfig"].toObject();
+  auto cfc = json["costFunction"].toObject();
   CHECK(cfc["type"].toString() == "weightedSquaredDifference",
         "auto class weights set cost function to weightedSquaredDifference");
   CHECK(cfc.contains("weights"), "auto class weights present in model");
@@ -224,7 +224,7 @@ static void testANNDropoutRateParsing()
   auto json = QJsonDocument::fromJson(file.readAll()).object();
   file.close();
 
-  auto tc = json["trainingConfig"].toObject();
+  auto tc = json["training"].toObject();
   CHECK(!tc.contains("dropoutRate"), "dropoutRate not saved when 0.0 (default)");
 
   std::cout << std::endl;

@@ -51,11 +51,11 @@ namespace NN_CLI
     if (deviceType.has_value())
       coreConfig.deviceType = deviceType.value();
 
-    if (!json.contains("layersConfig")) {
+    if (!json.contains("layers")) {
       throw std::runtime_error("Config file missing 'layersConfig': " + configFilePath);
     }
 
-    for (const auto& layerJson : json.at("layersConfig")) {
+    for (const auto& layerJson : json.at("layers")) {
       ANN::Layer layer;
       layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
 
@@ -64,8 +64,8 @@ namespace NN_CLI
       coreConfig.layersConfig.push_back(layer);
     }
 
-    if (json.contains("costFunctionConfig")) {
-      const auto& cfc = json.at("costFunctionConfig");
+    if (json.contains("costFunction")) {
+      const auto& cfc = json.at("costFunction");
       coreConfig.costFunctionConfig.type = ANN::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
@@ -73,8 +73,8 @@ namespace NN_CLI
       }
     }
 
-    if (json.contains("trainingConfig")) {
-      const auto& tc = json.at("trainingConfig");
+    if (json.contains("training")) {
+      const auto& tc = json.at("training");
       coreConfig.trainingConfig.numEpochs = tc.at("numEpochs").get<ulong>();
       coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
 
@@ -143,8 +143,8 @@ namespace NN_CLI
       }
     }
 
-    if (json.contains("testConfig")) {
-      const auto& tc = json.at("testConfig");
+    if (json.contains("test")) {
+      const auto& tc = json.at("test");
 
       if (tc.contains("batchSize"))
         coreConfig.testConfig.batchSize = tc.at("batchSize").get<ulong>();

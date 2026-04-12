@@ -6,12 +6,12 @@
   "saveModelInterval": 10,
   "inputType": "image",
   "inputShape": { "c": 1, "h": 4, "w": 4 },
-  "layersConfig": [
+  "layers": [
     { "numNeurons": 16, "actvFunc": "relu" },
     { "numNeurons": 8, "actvFunc": "relu" },
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "trainingConfig": {
+  "training": {
     "numEpochs": 100,
     "learningRate": 0.5
   }

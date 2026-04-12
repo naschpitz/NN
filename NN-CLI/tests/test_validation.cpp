@@ -199,11 +199,11 @@ static void testValidationConfigParsing()
   QFile file(configPath);
   file.open(QIODevice::WriteOnly);
   file.write(R"({
-    "layersConfig": [{"numNeurons": 4, "actvFunc": "relu"}],
-    "trainingConfig": {
+    "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
+    "training": {
       "numEpochs": 10,
       "learningRate": 0.01,
-      "validationConfig": {
+      "validation": {
         "enabled": false,
         "autoSize": false,
         "size": 0.25,
@@ -235,8 +235,8 @@ static void testValidationConfigDefaults()
   QFile file(configPath);
   file.open(QIODevice::WriteOnly);
   file.write(R"({
-    "layersConfig": [{"numNeurons": 4, "actvFunc": "relu"}],
-    "trainingConfig": {
+    "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
+    "training": {
       "numEpochs": 10,
       "learningRate": 0.01
     }

@@ -36,16 +36,16 @@ static void testCNNMultiInputPredictDiversity()
   "progressReports": 0,
   "saveModelInterval": 0,
   "inputShape": { "c": 1, "h": 4, "w": 4 },
-  "convolutionalLayersConfig": [
+  "convolutionalLayers": [
     { "type": "conv", "numFilters": 2, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
     { "type": "instancenorm" },
     { "type": "relu" },
     { "type": "flatten" }
   ],
-  "denseLayersConfig": [
+  "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "trainingConfig": {
+  "training": {
     "numEpochs": 20,
     "learningRate": 0.1
   }

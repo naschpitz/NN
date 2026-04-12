@@ -3,13 +3,13 @@
   "device": "cpu",
   "progressReports": 1000,
   "saveModelInterval": 10,
-  "layersConfig": [
+  "layers": [
     { "numNeurons": 784, "actvFunc": "relu" },
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
-  "trainingConfig": {
+  "training": {
     "numEpochs": 30,
     "batchSize": 512,
     "learningRate": 0.01,

@@ -3,15 +3,15 @@
   "device": "cpu",
   "progressReports": 0,
   "saveModelInterval": 0,
-  "layersConfig": [
+  "layers": [
     { "numNeurons": 784, "actvFunc": "relu" },
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "softmax" }
   ],
-  "costFunctionConfig": {
+  "costFunction": {
     "type": "crossEntropy"
   },
-  "trainingConfig": {
+  "training": {
     "numEpochs": 10,
     "batchSize": 64,
     "learningRate": 0.001,

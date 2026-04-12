@@ -23,10 +23,10 @@ namespace NN_CLI
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
 
-    // ANN configs use "layersConfig" for their dense layers.
-    // CNN configs use "convolutionalLayersConfig" and/or "denseLayersConfig".
+    // ANN configs use "layers" for their dense layers.
+    // CNN configs use "convolutionalLayers" and/or "denseLayers".
     // "inputShape" is NOT used for detection — both types can have it (e.g. ANN image input).
-    if (json.contains("layersConfig")) {
+    if (json.contains("layers")) {
       return NetworkType::ANN;
     }
 
@@ -149,8 +149,8 @@ namespace NN_CLI
 
     AugmentationConfig config;
 
-    if (json.contains("trainingConfig")) {
-      const auto& tc = json.at("trainingConfig");
+    if (json.contains("training")) {
+      const auto& tc = json.at("training");
 
       if (tc.contains("augmentationFactor"))
         config.augmentationFactor = tc.at("augmentationFactor").get<ulong>();
@@ -187,8 +187,8 @@ namespace NN_CLI
           t.gaussianNoise = at.at("gaussianNoise").get<float>();
       }
 
-      if (tc.contains("validationConfig")) {
-        const auto& vd = tc.at("validationConfig");
+      if (tc.contains("validation")) {
+        const auto& vd = tc.at("validation");
         auto& vc = config.validationConfig;
 
         if (vd.contains("enabled"))

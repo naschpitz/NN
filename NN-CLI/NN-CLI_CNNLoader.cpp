@@ -65,8 +65,8 @@ namespace NN_CLI
     coreConfig.inputShape.w = shapeJson.at("w").get<ulong>();
 
     // CNN layers
-    if (json.contains("convolutionalLayersConfig")) {
-      for (const auto& layerJson : json.at("convolutionalLayersConfig")) {
+    if (json.contains("convolutionalLayers")) {
+      for (const auto& layerJson : json.at("convolutionalLayers")) {
         std::string type = layerJson.at("type").get<std::string>();
         CNN::CNNLayerConfig layerConfig;
 
@@ -138,8 +138,8 @@ namespace NN_CLI
     }
 
     // Dense layers
-    if (json.contains("denseLayersConfig")) {
-      for (const auto& layerJson : json.at("denseLayersConfig")) {
+    if (json.contains("denseLayers")) {
+      for (const auto& layerJson : json.at("denseLayers")) {
         CNN::DenseLayerConfig dense;
         dense.numNeurons = layerJson.at("numNeurons").get<ulong>();
 
@@ -150,8 +150,8 @@ namespace NN_CLI
     }
 
     // Cost function config
-    if (json.contains("costFunctionConfig")) {
-      const auto& cfc = json.at("costFunctionConfig");
+    if (json.contains("costFunction")) {
+      const auto& cfc = json.at("costFunction");
       coreConfig.costFunctionConfig.type = CNN::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
@@ -160,8 +160,8 @@ namespace NN_CLI
     }
 
     // Training config
-    if (json.contains("trainingConfig")) {
-      const auto& tc = json.at("trainingConfig");
+    if (json.contains("training")) {
+      const auto& tc = json.at("training");
       coreConfig.trainingConfig.numEpochs = tc.at("numEpochs").get<ulong>();
       coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
 
@@ -230,8 +230,8 @@ namespace NN_CLI
       }
     }
 
-    if (json.contains("testConfig")) {
-      const auto& tc = json.at("testConfig");
+    if (json.contains("test")) {
+      const auto& tc = json.at("test");
 
       if (tc.contains("batchSize"))
         coreConfig.testConfig.batchSize = tc.at("batchSize").get<ulong>();

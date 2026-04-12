@@ -2,7 +2,7 @@
 
 A command-line interface for training, testing, and predicting with Neural Networks (ANN and CNN).
 
-The network type is **auto-detected** from the configuration file: if the config contains `inputShape` or `convolutionalLayersConfig`, it is treated as a CNN; otherwise as an ANN.
+The network type is **auto-detected** from the configuration file: if the config contains `inputShape` or `convolutionalLayers`, it is treated as a CNN; otherwise as an ANN.
 
 ## Building
 
@@ -63,17 +63,17 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
   "saveModelInterval": 10,
   "inputType": "vector",
   "outputType": "vector",
-  "layersConfig": [
+  "layers": [
     { "numNeurons": 784, "actvFunc": "none" },
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
-  "costFunctionConfig": {
+  "costFunction": {
     "type": "weightedSquaredDifference",
     "weights": [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   },
-  "trainingConfig": {
+  "training": {
     "numEpochs": 100,
     "batchSize": 64,
     "learningRate": 0.01,
@@ -91,7 +91,7 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
       "gaussianNoise": 0.02
     }
   },
-  "testConfig": {
+  "test": {
     "batchSize": 64
   }
 }
@@ -105,7 +105,7 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
   "device": "gpu",
   "inputType": "vector",
   "outputType": "vector",
-  "layersConfig": [
+  "layers": [
     { "numNeurons": 784, "actvFunc": "none" },
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 64, "actvFunc": "relu" },
@@ -131,9 +131,9 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
 - `inputShape`: Input image dimensions (`c`, `h`, `w`) — required when `inputType` is `"image"`
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
 
-#### ANN Cost Function Configuration (`costFunctionConfig`)
+#### ANN Cost Function Configuration (`costFunction`)
 
-Optional object placed between `layersConfig` and `trainingConfig`. Controls the cost function used during training:
+Optional object placed between `layers` and `training`. Controls the cost function used during training:
 
 - `type`: `"squaredDifference"` (default) or `"weightedSquaredDifference"`
 - `weights`: Array of per-output-neuron weights (required when type is `"weightedSquaredDifference"`). Each weight multiplies the squared difference for the corresponding output neuron, allowing rare classes to receive higher penalty.
@@ -154,7 +154,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `dropoutRate`: Dropout probability for hidden layers (default: `0.0` = disabled). Uses inverted dropout — activations are scaled by 1/(1−p) during training, no adjustment at inference
 - `augmentationFactor`: Multiply each class by N× using random transforms (default: `0` = disabled). NN-CLI applies transforms before passing samples to the library
 - `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). When combined with `augmentationFactor`, the balanced count is also multiplied
-- `autoClassWeights`: Auto-compute inverse-frequency class weights and set `weightedSquaredDifference` cost function (default: `false`). Only applies when no manual `costFunctionConfig.weights` are specified
+- `autoClassWeights`: Auto-compute inverse-frequency class weights and set `weightedSquaredDifference` cost function (default: `false`). Only applies when no manual `costFunction.weights` are specified
 - `augmentationProbability`: Probability of applying each enabled transform per augmented sample (default: `0.5` = 50% chance)
 - `augmentationTransforms`: Object controlling individual augmentation transforms. Numeric values control intensity; set to `0` to disable. `horizontalFlip` is a boolean (no intensity parameter). Defaults shown below:
 
@@ -167,7 +167,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   | `contrast` | `float` | `0.2` | range 0.8–1.2× (delta from 1.0) | `0` |
   | `gaussianNoise` | `float` | `0.02` | σ=0.02 noise stddev | `0` |
 
-- `validationConfig`: Object controlling train/validation split for overfitting detection. A held-out portion of training samples is evaluated after each epoch (or every N epochs) and the validation loss is reported alongside training loss. The split is stratified (preserves class distribution) and deterministic.
+- `validation`: Object controlling train/validation split for overfitting detection. A held-out portion of training samples is evaluated after each epoch (or every N epochs) and the validation loss is reported alongside training loss. The split is stratified (preserves class distribution) and deterministic.
 
   | Field | Type | Default | Description |
   |---|---|---|---|
@@ -177,7 +177,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   | `checkInterval` | `int` | `1` | Run validation every N epochs (1 = every epoch) |
 
   Auto-size ratios: <1k samples → 20%, 1k–10k → 15%, 10k–100k → 10%, 100k–1M → 2%, >1M → 1%.
-  To disable validation: `"validationConfig": { "enabled": false }`
+  To disable validation: `"validation": { "enabled": false }`
 
 - `monitoring`: Object controlling training health monitoring and early stopping. Tracks loss trends and stops training when no progress is being made. When validation is enabled, the monitor uses validation loss; otherwise it uses training loss. Saves the best model to `output/best_model.json` (overwritten on each new best).
 
@@ -231,21 +231,21 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   "inputType": "vector",
   "outputType": "vector",
   "inputShape": { "c": 1, "h": 28, "w": 28 },
-  "convolutionalLayersConfig": [
+  "convolutionalLayers": [
     { "type": "conv", "numFilters": 8, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "valid" },
     { "type": "relu" },
     { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
     { "type": "flatten" }
   ],
-  "denseLayersConfig": [
+  "denseLayers": [
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
-  "costFunctionConfig": {
+  "costFunction": {
     "type": "weightedSquaredDifference",
     "weights": [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   },
-  "trainingConfig": {
+  "training": {
     "numEpochs": 10,
     "batchSize": 64,
     "learningRate": 0.01,
@@ -259,7 +259,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
       "rotation": 15.0
     }
   },
-  "testConfig": {
+  "test": {
     "batchSize": 64
   }
 }
@@ -278,14 +278,14 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `inputShape`: Input tensor dimensions (`c` channels, `h` height, `w` width)
 - `outputShape`: Output image dimensions (`c`, `h`, `w`) — required when `outputType` is `"image"`
 
-#### CNN Cost Function Configuration (`costFunctionConfig`)
+#### CNN Cost Function Configuration (`costFunction`)
 
-Same as ANN — optional object placed between `denseLayersConfig` and `trainingConfig`:
+Same as ANN — optional object placed between `denseLayers` and `training`:
 
 - `type`: `"squaredDifference"` (default) or `"weightedSquaredDifference"`
 - `weights`: Array of per-output-neuron weights (required when type is `"weightedSquaredDifference"`)
 
-#### CNN Layers Configuration (`convolutionalLayersConfig`)
+#### CNN Layers Configuration (`convolutionalLayers`)
 
 Each layer has a `type` field:
 
@@ -296,7 +296,7 @@ Each layer has a `type` field:
   - `poolType` (`max` or `avg`), `poolH`, `poolW`, `strideY`, `strideX`
 - **flatten**: Flatten 3D feature maps to 1D vector
 
-#### Dense Layers Configuration (`denseLayersConfig`)
+#### Dense Layers Configuration (`denseLayers`)
 
 - `numNeurons`: Number of neurons in the layer
 - `actvFunc`: Activation function (`relu`, `sigmoid`, `tanh`)
@@ -313,7 +313,7 @@ Each layer has a `type` field:
 - `autoClassWeights`: Auto-compute inverse-frequency class weights (default: `false`)
 - `augmentationProbability`: Probability of applying each enabled transform (default: `0.5`)
 - `augmentationTransforms`: Control individual transforms (same fields as ANN — see above for defaults)
-- `validationConfig`: Train/validation split for overfitting detection (same fields as ANN — see above for details)
+- `validation`: Train/validation split for overfitting detection (same fields as ANN — see above for details)
 - `monitoring`: Training health monitoring and early stopping (same fields as ANN — see above for details)
 
 #### CNN Test Configuration

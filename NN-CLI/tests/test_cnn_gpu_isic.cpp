@@ -37,7 +37,7 @@ static QString writeISICLikeConfig(const QString& path, const QString& device)
   "progressReports": 0,
   "saveModelInterval": 0,
   "inputShape": { "c": 1, "h": 16, "w": 16 },
-  "convolutionalLayersConfig": [
+  "convolutionalLayers": [
     { "type": "conv", "numFilters": 4, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
     { "type": "instancenorm" },
     { "type": "relu" },
@@ -57,14 +57,14 @@ static QString writeISICLikeConfig(const QString& path, const QString& device)
     { "type": "pool", "poolType": "avg", "poolH": 4, "poolW": 4, "strideY": 4, "strideX": 4 },
     { "type": "flatten" }
   ],
-  "denseLayersConfig": [
+  "denseLayers": [
     { "numNeurons": 4, "actvFunc": "relu" },
     { "numNeurons": 3, "actvFunc": "softmax" }
   ],
-  "costFunctionConfig": {
+  "costFunction": {
     "type": "crossEntropy"
   },
-  "trainingConfig": {
+  "training": {
     "numEpochs": 100,
     "batchSize": 2,
     "learningRate": 0.005,

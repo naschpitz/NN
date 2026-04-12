@@ -124,7 +124,7 @@ namespace NN_CLI
       layersArr.push_back(layerJson);
     }
 
-    json["layersConfig"] = layersArr;
+    json["layers"] = layersArr;
 
     // Cost function config
     nlohmann::ordered_json cfcJson;
@@ -134,7 +134,7 @@ namespace NN_CLI
       cfcJson["weights"] = core.getCostFunctionConfig().weights;
     }
 
-    json["costFunctionConfig"] = cfcJson;
+    json["costFunction"] = cfcJson;
 
     // Training config
     nlohmann::ordered_json tcJson;
@@ -156,12 +156,12 @@ namespace NN_CLI
     }
 
     serializeAugConfig(tcJson, augConfig);
-    json["trainingConfig"] = tcJson;
+    json["training"] = tcJson;
 
     // Test config
     nlohmann::ordered_json testConfigJson;
     testConfigJson["batchSize"] = coreConfig.testConfig.batchSize;
-    json["testConfig"] = testConfigJson;
+    json["test"] = testConfigJson;
 
     // Training metadata
     const auto& md = core.getTrainingMetadata();
@@ -305,7 +305,7 @@ namespace NN_CLI
       cnnLayersArr.push_back(layerJson);
     }
 
-    json["convolutionalLayersConfig"] = cnnLayersArr;
+    json["convolutionalLayers"] = cnnLayersArr;
 
     // Dense layers config
     nlohmann::ordered_json denseLayersArr = nlohmann::ordered_json::array();
@@ -317,7 +317,7 @@ namespace NN_CLI
       denseLayersArr.push_back(layerJson);
     }
 
-    json["denseLayersConfig"] = denseLayersArr;
+    json["denseLayers"] = denseLayersArr;
 
     // Cost function config
     nlohmann::ordered_json cfcJson;
@@ -327,7 +327,7 @@ namespace NN_CLI
       cfcJson["weights"] = core.getCostFunctionConfig().weights;
     }
 
-    json["costFunctionConfig"] = cfcJson;
+    json["costFunction"] = cfcJson;
 
     // Training config
     nlohmann::ordered_json tcJson;
@@ -349,12 +349,12 @@ namespace NN_CLI
     }
 
     serializeAugConfig(tcJson, augConfig);
-    json["trainingConfig"] = tcJson;
+    json["training"] = tcJson;
 
     // Test config
     nlohmann::ordered_json testConfigJson;
     testConfigJson["batchSize"] = coreConfig.testConfig.batchSize;
-    json["testConfig"] = testConfigJson;
+    json["test"] = testConfigJson;
 
     // Training metadata
     const auto& md = core.getTrainingMetadata();

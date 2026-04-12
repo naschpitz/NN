@@ -77,12 +77,12 @@ make -j$(nproc)
 <pre><code><span class="comment"># 1. Create a minimal config file</span>
 cat &gt; tiny_config.json &lt;&lt; <span class="string">'EOF'</span>
 {
-  <span class="string">"layersConfig"</span>: [
+  <span class="string">"layers"</span>: [
     { <span class="string">"numNeurons"</span>: <span class="number">2</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">4</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">1</span>, <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="string">"trainingConfig"</span>: {
+  <span class="string">"training"</span>: {
     <span class="string">"numEpochs"</span>: <span class="number">100</span>,
     <span class="string">"batchSize"</span>: <span class="number">64</span>,
     <span class="string">"learningRate"</span>: <span class="number">0.1</span>

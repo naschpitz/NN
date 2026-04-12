@@ -18,8 +18,8 @@ static void testMonitoringConfigParsing()
   file.open(QIODevice::WriteOnly);
   file.write(R"({
     "mode": "train",
-    "layersConfig": [{"numNeurons": 4, "actvFunc": "relu"}],
-    "trainingConfig": {
+    "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
+    "training": {
       "numEpochs": 100,
       "learningRate": 0.01,
       "monitoring": {
@@ -60,8 +60,8 @@ static void testMonitoringConfigDefaults()
   file.open(QIODevice::WriteOnly);
   file.write(R"({
     "mode": "train",
-    "layersConfig": [{"numNeurons": 4, "actvFunc": "relu"}],
-    "trainingConfig": {
+    "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
+    "training": {
       "numEpochs": 10,
       "learningRate": 0.01
     }

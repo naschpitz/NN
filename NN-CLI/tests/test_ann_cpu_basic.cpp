@@ -115,9 +115,9 @@ static void testANNTrainWithWeightedLoss()
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject root = doc.object();
 
-    CHECK(root.contains("costFunctionConfig"), "ANN weighted train: saved model has 'costFunctionConfig'");
+    CHECK(root.contains("costFunction"), "ANN weighted train: saved model has 'costFunctionConfig'");
 
-    QJsonObject cfc = root["costFunctionConfig"].toObject();
+    QJsonObject cfc = root["costFunction"].toObject();
     CHECK(cfc["type"].toString() == "weightedSquaredDifference",
           "ANN weighted train: type is 'weightedSquaredDifference'");
     CHECK(cfc.contains("weights"), "ANN weighted train: has 'weights'");
