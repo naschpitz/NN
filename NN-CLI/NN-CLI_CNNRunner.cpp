@@ -430,14 +430,13 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
 
       if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+        // Save checkpoint (deferred message printing until after validation finishes the epoch line)
+        std::string checkpointPath;
+
         if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
-          std::string checkpointPath =
-            ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+          checkpointPath = ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
           ModelSerializer::saveCNNModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                         this->buildValidationMetadata());
-
-          if (this->logLevel > LogLevel::QUIET)
-            std::cout << "\nCheckpoint saved to: " << checkpointPath << "\n";
         }
 
         // Run validation at check intervals using separate core (skip epoch 0 — no training yet)
@@ -524,6 +523,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             this->core->requestStop();
           }
         }
+
+        // Print checkpoint message after epoch line is complete
+        if (!checkpointPath.empty() && this->logLevel > LogLevel::QUIET)
+          std::cout << "Checkpoint saved to: " << checkpointPath << "\n";
 
         lastCallbackEpoch = progress.currentEpoch;
       }
