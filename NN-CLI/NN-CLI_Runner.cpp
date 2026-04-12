@@ -34,20 +34,6 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
     deviceOverride = this->parser.value("device").toLower().toStdString();
   }
 
-  // Extract num-epochs override
-  std::optional<ulong> numEpochsOverride;
-
-  if (this->parser.isSet("num-epochs")) {
-    numEpochsOverride = this->parser.value("num-epochs").toULong();
-  }
-
-  // Extract shuffle-samples override
-  std::optional<bool> shuffleSamplesOverride;
-
-  if (this->parser.isSet("shuffle-samples")) {
-    shuffleSamplesOverride = (this->parser.value("shuffle-samples").toLower() == "true");
-  }
-
   // Load I/O config (inputType, outputType, shapes) with optional CLI overrides
   std::optional<std::string> inputTypeOverride;
 
@@ -101,23 +87,11 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
 
     this->annCoreConfig = ANNLoader::loadConfig(configPath.toStdString(), annModeOverride, annDeviceOverride);
     this->annCoreConfig.logLevel = static_cast<ANN::LogLevel>(this->logLevel);
-
-    if (numEpochsOverride.has_value())
-      this->annCoreConfig.trainingConfig.numEpochs = numEpochsOverride.value();
-
-    if (shuffleSamplesOverride.has_value())
-      this->annCoreConfig.trainingConfig.shuffleSamples = shuffleSamplesOverride.value();
     this->mode = ANN::Mode::typeToName(this->annCoreConfig.modeType);
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
     this->cnnCoreConfig = CNNLoader::loadConfig(configPath.toStdString(), modeOverride, deviceOverride);
     this->cnnCoreConfig.logLevel = static_cast<CNN::LogLevel>(this->logLevel);
-
-    if (numEpochsOverride.has_value())
-      this->cnnCoreConfig.trainingConfig.numEpochs = numEpochsOverride.value();
-
-    if (shuffleSamplesOverride.has_value())
-      this->cnnCoreConfig.trainingConfig.shuffleSamples = shuffleSamplesOverride.value();
     this->mode = CNN::Mode::typeToName(this->cnnCoreConfig.modeType);
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
   }

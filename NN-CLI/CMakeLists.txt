@@ -85,7 +85,6 @@ add_executable(test_nncli
   tests/test_cnn_cpu_features.cpp
   tests/test_cnn_cpu_saveload.cpp
   tests/test_cnn_cpu_predict.cpp
-  tests/test_cnn_cpu_shuffle.cpp
   tests/test_cnn_gpu_layers.cpp
   tests/test_cnn_gpu_diagnostic.cpp
   tests/test_cnn_gpu_isic.cpp

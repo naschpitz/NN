@@ -19,7 +19,6 @@ void runCNNCPUBasicTests();
 void runCNNCPUFeatureTests();
 void runCNNCPUSaveLoadTests();
 void runCNNCPUPredictTests();
-void runCNNCPUShuffleTests();
 void runCNNGPULayerTests();
 void runCNNGPUDiagnosticTests();
 void runCNNGPUISICTests();
@@ -68,7 +67,6 @@ int main(int argc, char* argv[])
   runCNNCPUFeatureTests();
   runCNNCPUSaveLoadTests();
   runCNNCPUPredictTests();
-  runCNNCPUShuffleTests();
 
   std::cout << std::endl;
   std::cout << "=== CNN GPU Tests ===" << std::endl;
