@@ -435,14 +435,15 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           ulong validationTotal = validationIndices->size();
 
           if (this->logLevel > LogLevel::QUIET)
-            std::cout << " Validating 0%" << std::flush;
+            std::cout << " Validating   0.0%" << std::flush;
 
           validationCore->setParameters(this->core->getParameters());
 
           if (this->logLevel > LogLevel::QUIET) {
             validationCore->setProgressCallback([validationTotal](ulong current, ulong total) {
-              int pct = static_cast<int>(static_cast<float>(current) / validationTotal * 100);
-              std::cout << "\b\b\b\b" << std::setw(3) << pct << "%" << std::flush;
+              float pct = static_cast<float>(current) / validationTotal * 100.0f;
+              std::cout << "\b\b\b\b\b\b" << std::fixed << std::setprecision(1) << std::setw(5) << pct << "%"
+                        << std::flush;
             });
           }
 
@@ -455,7 +456,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           }
 
           if (this->logLevel > LogLevel::QUIET) {
-            std::cout << "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
+            std::cout << "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
                       << "Validation Loss: " << std::fixed << std::setprecision(6) << validationResult.averageLoss
                       << std::endl;
             std::cout.unsetf(std::ios_base::floatfield);
