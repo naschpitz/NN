@@ -409,12 +409,6 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
   this->core->setTrainingCallback([this, inputFilePath, validationCore, validationProviderPtr,
                                    validationIndices](const ANN::TrainingProgress<float>& progress) {
-    if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
-                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
-      progressBar.update(info);
-    }
-
     {
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
 
@@ -466,6 +460,13 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         }
 
         lastCallbackEpoch = progress.currentEpoch;
+      }
+
+      // Progress bar update inside mutex to prevent overwriting validation output
+      if (this->logLevel > LogLevel::QUIET) {
+        ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
+                          progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
+        progressBar.update(info);
       }
     } // lock_guard released
 
