@@ -233,7 +233,7 @@ namespace NN_CLI
 
     // Print table
     const int keyW = 21;
-    const int valW = 35;
+    const int valW = 55;
     std::string sep = "+" + std::string(keyW + 2, '-') + "+" + std::string(valW + 2, '-') + "+";
     std::string titleLine(keyW + valW + 5, '-');
 
@@ -259,7 +259,10 @@ namespace NN_CLI
     std::cout << sep << "\n";
     row("Training samples", formatWithCommas(trainSamples));
     row("Validation samples", validationStr);
-    row("Augmentation", augStr);
+
+    if (augStr != "None")
+      row("Augmentation", augStr);
+
     row("Class weights", weightsStr);
     std::cout << sep << "\n";
     row("Epochs", std::to_string(tc.numEpochs));
@@ -337,7 +340,7 @@ namespace NN_CLI
     }
 
     const int keyW = 21;
-    const int valW = 35;
+    const int valW = 55;
     std::string sep = "+" + std::string(keyW + 2, '-') + "+" + std::string(valW + 2, '-') + "+";
     std::string titleLine(keyW + valW + 5, '-');
 

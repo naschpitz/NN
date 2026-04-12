@@ -128,7 +128,6 @@ namespace NN_CLI
     ulong originalCount = this->fromMemory ? this->memorySamples.size() : this->manifest.size();
 
     if (augmentationFactor == 0 && !balanceAugmentation) {
-      std::cout << "Training samples: " << originalCount << " (no augmentation)\n";
       return;
     }
 
@@ -179,9 +178,6 @@ namespace NN_CLI
         this->entries.push_back({srcIdx, true});
       }
     }
-
-    std::cout << "Data augmentation: " << originalCount << " original + " << (this->entries.size() - originalCount)
-              << " augmented = " << this->entries.size() << " total samples\n";
   }
 
   //===================================================================================================================//
