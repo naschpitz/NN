@@ -17,6 +17,12 @@ namespace ANN
       std::string durationFormatted; // Human-readable duration (e.g., "1y 2mo 3d 4h 5m 6s")
       ulong numSamples; // Number of training samples used
       T finalLoss; // Average loss at the end of training
+
+      // Monitoring fields
+      ulong lastEpoch = 0; // Epoch at which this model was saved
+      std::string stopReason; // Why training stopped (empty = completed all epochs)
+      ulong bestEpoch = 0; // Epoch with best loss
+      T bestLoss = 0; // Best loss value
   };
 }
 

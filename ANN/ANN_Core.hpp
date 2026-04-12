@@ -10,6 +10,7 @@
 #include "ANN_ProgressCallback.hpp"
 #include "ANN_TestResult.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 
@@ -108,6 +109,17 @@ namespace ANN
         progressCallback = callback;
       }
 
+      // Request early training termination. The training loop checks this at epoch boundaries.
+      void requestStop()
+      {
+        stopRequested.store(true);
+      }
+
+      bool isStopRequested() const
+      {
+        return stopRequested.load();
+      }
+
       //-- Log level --//
       void setLogLevel(LogLevel level)
       {
@@ -149,6 +161,7 @@ namespace ANN
 
       TrainingCallback<T> trainingCallback;
       ProgressCallback progressCallback;
+      std::atomic<bool> stopRequested{false};
 
     private:
       //-- Timing state --//

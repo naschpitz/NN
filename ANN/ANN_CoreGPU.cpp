@@ -1,4 +1,5 @@
 #include "ANN_CoreGPU.hpp"
+#include "ANN_TrainingMonitor.hpp"
 #include "ANN_Utils.hpp"
 
 #include <algorithm>
@@ -134,7 +135,15 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
   std::mt19937 rng(std::random_device{}());
 
-  for (ulong e = 0; e < numEpochs; e++) {
+  // Create training monitor if monitoring is enabled
+  const MonitoringConfig& monitoringConfig = this->trainingConfig.monitoringConfig;
+  std::unique_ptr<TrainingMonitor<T>> monitor;
+
+  if (monitoringConfig.enabled) {
+    monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
+  }
+
+  for (ulong e = 0; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = 0;
 
     // Shuffle sample order for this epoch
@@ -222,8 +231,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     // Store final loss from the last epoch
     this->trainingMetadata.finalLoss = avgEpochLoss;
 
-    // Report epoch completion (gpuIndex = -1 indicates combined result)
-    if (this->trainingCallback) {
+    // Check training health if monitor is active
+    if (monitor) {
+      bool shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
+
+      // Build epoch progress with monitoring signals
       TrainingProgress<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
@@ -231,9 +243,42 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       progress.totalSamples = numSamples;
       progress.sampleLoss = 0;
       progress.epochLoss = avgEpochLoss;
-      progress.gpuIndex = -1; // Epoch completion is not GPU-specific
+      progress.gpuIndex = -1;
       progress.totalGPUs = static_cast<int>(this->numGPUs);
-      this->trainingCallback(progress);
+      progress.isNewBest = monitor->isNewBest();
+
+      if (shouldStop) {
+        progress.stoppedEarly = true;
+        this->trainingMetadata.stopReason = monitor->stopReason();
+      }
+
+      this->trainingMetadata.lastEpoch = e + 1;
+      this->trainingMetadata.bestEpoch = monitor->bestEpoch();
+      this->trainingMetadata.bestLoss = monitor->bestLoss();
+
+      if (this->trainingCallback) {
+        this->trainingCallback(progress);
+      }
+
+      if (shouldStop) {
+        break;
+      }
+    } else {
+      // Report epoch completion (gpuIndex = -1 indicates combined result)
+      if (this->trainingCallback) {
+        TrainingProgress<T> progress;
+        progress.currentEpoch = e + 1;
+        progress.totalEpochs = numEpochs;
+        progress.currentSample = numSamples;
+        progress.totalSamples = numSamples;
+        progress.sampleLoss = 0;
+        progress.epochLoss = avgEpochLoss;
+        progress.gpuIndex = -1;
+        progress.totalGPUs = static_cast<int>(this->numGPUs);
+        this->trainingCallback(progress);
+      }
+
+      this->trainingMetadata.lastEpoch = e + 1;
     }
   }
 

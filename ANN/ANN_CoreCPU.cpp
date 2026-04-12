@@ -1,4 +1,5 @@
 #include "ANN_CoreCPU.hpp"
+#include "ANN_TrainingMonitor.hpp"
 #include "ANN_Utils.hpp"
 
 #include <QThreadPool>
@@ -151,7 +152,15 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
   std::mt19937 rng(std::random_device{}());
 
-  for (ulong e = 0; e < numEpochs; e++) {
+  // Create training monitor if monitoring is enabled
+  const MonitoringConfig& monitoringConfig = this->trainingConfig.monitoringConfig;
+  std::unique_ptr<TrainingMonitor<T>> monitor;
+
+  if (monitoringConfig.enabled) {
+    monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
+  }
+
+  for (ulong e = 0; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = 0;
 
     // Shuffle sample order for this epoch
@@ -220,10 +229,44 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
     // Report epoch completion
     T avgEpochLoss = epochLoss / static_cast<T>(numSamples);
-    this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss, callbackMutex);
 
     // Store final loss from the last epoch
     this->trainingMetadata.finalLoss = avgEpochLoss;
+
+    // Check training health if monitor is active
+    if (monitor) {
+      bool shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
+
+      // Build epoch progress with monitoring signals
+      TrainingProgress<T> progress;
+      progress.currentEpoch = e + 1;
+      progress.totalEpochs = numEpochs;
+      progress.currentSample = numSamples;
+      progress.totalSamples = numSamples;
+      progress.sampleLoss = 0;
+      progress.epochLoss = avgEpochLoss;
+      progress.isNewBest = monitor->isNewBest();
+
+      if (shouldStop) {
+        progress.stoppedEarly = true;
+        this->trainingMetadata.stopReason = monitor->stopReason();
+      }
+
+      this->trainingMetadata.lastEpoch = e + 1;
+      this->trainingMetadata.bestEpoch = monitor->bestEpoch();
+      this->trainingMetadata.bestLoss = monitor->bestLoss();
+
+      if (this->trainingCallback) {
+        this->trainingCallback(progress);
+      }
+
+      if (shouldStop) {
+        break;
+      }
+    } else {
+      this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss, callbackMutex);
+      this->trainingMetadata.lastEpoch = e + 1;
+    }
   }
 
   this->trainingEnd();

@@ -51,6 +51,8 @@ add_library(ANN STATIC
   ANN_Types.hpp
   ANN_Optimizer.hpp ANN_Optimizer.cpp
   ANN_TrainingConfig.hpp
+  ANN_MonitoringConfig.hpp
+  ANN_TrainingMonitor.hpp ANN_TrainingMonitor.cpp
   ANN_Parameters.hpp
   ANN_Sample.hpp
   ANN_ProgressCallback.hpp

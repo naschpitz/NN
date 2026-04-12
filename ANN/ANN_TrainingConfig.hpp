@@ -1,6 +1,7 @@
 #ifndef ANN_TRAININGCONFIG_HPP
 #define ANN_TRAININGCONFIG_HPP
 
+#include "ANN_MonitoringConfig.hpp"
 #include "ANN_Optimizer.hpp"
 #include "ANN_ValidationConfig.hpp"
 
@@ -19,6 +20,7 @@ namespace ANN
       float dropoutRate = 0.0f; // Dropout probability for hidden layers (0.0 = disabled)
       Optimizer<T> optimizer; // Optimizer (default: SGD)
       ValidationConfig validationDataset; // Validation split config (default: enabled, auto-size)
+      MonitoringConfig monitoringConfig; // Training health monitoring (default: disabled)
   };
 }
 
