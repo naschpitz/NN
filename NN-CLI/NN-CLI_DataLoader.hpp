@@ -66,7 +66,10 @@ namespace NN_CLI
       void loadFromMemory(std::vector<SampleT>&& samples, int inputC, int inputH, int inputW);
 
       // Compute augmentation plan (expand entries without loading data).
-      void planAugmentation(ulong augmentationFactor, bool balanceAugmentation);
+      // When subsetIndices is provided, only augments those entries and returns the augmented indices.
+      // When empty (default), augments all entries in place.
+      std::vector<ulong> planAugmentation(ulong augmentationFactor, bool balanceAugmentation,
+                                          const std::vector<ulong>& subsetIndices = {});
 
       // Total number of samples (original + augmented).
       ulong numSamples() const

@@ -76,12 +76,45 @@ int ANNRunner::train()
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  dataLoader.planAugmentation(this->augConfig.augmentationFactor, this->augConfig.balanceAugmentation);
+  // Validation split first — augmentation and class weights must only use training data
+  const auto& validationConfig = this->augConfig.validationConfig;
+  DataSplit split;
+  float validationRatio = 0.0f;
+  bool validationAuto = false;
 
-  // Auto-compute class weights
+  if (validationConfig.enabled) {
+    validationRatio =
+      validationConfig.autoSize ? DataSplitter::computeAutoValSize(dataLoader.numSamples()) : validationConfig.size;
+    validationAuto = validationConfig.autoSize;
+    auto allOutputs = dataLoader.getAllOutputs();
+    split = DataSplitter::stratifiedSplit(allOutputs, validationRatio);
+    this->validationState.enabled = true;
+    this->validationState.checkInterval = validationConfig.checkInterval;
+    this->validationState.numValSamples = split.validationIndices.size();
+
+    // Augment only training indices (validation stays original)
+    split.trainIndices = dataLoader.planAugmentation(this->augConfig.augmentationFactor,
+                                                     this->augConfig.balanceAugmentation, split.trainIndices);
+  } else {
+    this->validationState.enabled = false;
+    dataLoader.planAugmentation(this->augConfig.augmentationFactor, this->augConfig.balanceAugmentation);
+  }
+
+  // Auto-compute class weights from training samples only (excludes validation split)
   if (this->augConfig.autoClassWeights && this->coreConfig.costFunctionConfig.weights.empty()) {
     auto allOutputs = dataLoader.getAllOutputs();
-    std::vector<float> weights = computeClassWeightsFromOutputs(allOutputs);
+    std::vector<std::vector<float>> trainingOutputs;
+
+    if (validationConfig.enabled) {
+      trainingOutputs.reserve(split.trainIndices.size());
+
+      for (ulong idx : split.trainIndices)
+        trainingOutputs.push_back(allOutputs[idx]);
+    } else {
+      trainingOutputs = std::move(allOutputs);
+    }
+
+    std::vector<float> weights = computeClassWeightsFromOutputs(trainingOutputs);
     this->coreConfig.costFunctionConfig.type = ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
     this->coreConfig.costFunctionConfig.weights = weights;
     this->core = ANN::Core<float>::makeCore(this->coreConfig);
@@ -97,25 +130,6 @@ int ANNRunner::train()
 
       std::cout << "]\n";
     }
-  }
-
-  // Validation split
-  const auto& validationConfig = this->augConfig.validationConfig;
-  DataSplit split;
-  float validationRatio = 0.0f;
-  bool validationAuto = false;
-
-  if (validationConfig.enabled) {
-    validationRatio =
-      validationConfig.autoSize ? DataSplitter::computeAutoValSize(dataLoader.numSamples()) : validationConfig.size;
-    validationAuto = validationConfig.autoSize;
-    auto allOutputs = dataLoader.getAllOutputs();
-    split = DataSplitter::stratifiedSplit(allOutputs, validationRatio);
-    this->validationState.enabled = true;
-    this->validationState.checkInterval = validationConfig.checkInterval;
-    this->validationState.numValSamples = split.validationIndices.size();
-  } else {
-    this->validationState.enabled = false;
   }
 
   // Print training summary

@@ -123,39 +123,52 @@ namespace NN_CLI
   }
 
   template <typename SampleT>
-  void DataLoader<SampleT>::planAugmentation(ulong augmentationFactor, bool balanceAugmentation)
+  std::vector<ulong> DataLoader<SampleT>::planAugmentation(ulong augmentationFactor, bool balanceAugmentation,
+                                                           const std::vector<ulong>& subsetIndices)
   {
-    ulong originalCount = this->fromMemory ? this->memorySamples.size() : this->manifest.size();
+    bool useSubset = !subsetIndices.empty();
 
-    if (augmentationFactor == 0 && !balanceAugmentation) {
-      return;
-    }
+    if (augmentationFactor == 0 && !balanceAugmentation)
+      return useSubset ? subsetIndices : std::vector<ulong>{};
 
-    if (originalCount == 0)
-      return;
-
-    // Count samples per class
     auto getClassIndex = [](const std::vector<float>& output) -> ulong {
       return static_cast<ulong>(std::distance(output.begin(), std::max_element(output.begin(), output.end())));
     };
 
-    std::map<ulong, std::vector<ulong>> classIndices;
+    // Group entries by class — either from subset or from all original entries
+    std::map<ulong, std::vector<ulong>> classEntries;
 
-    for (ulong i = 0; i < originalCount; i++) {
-      const std::vector<float>& output =
-        this->fromMemory ? sampleOutput(this->memorySamples[i]) : this->manifest[i].output;
-      ulong cls = getClassIndex(output);
-      classIndices[cls].push_back(i);
+    if (useSubset) {
+      for (ulong entryIdx : subsetIndices) {
+        const AugmentedEntry& entry = this->entries[entryIdx];
+        const std::vector<float>& output = this->fromMemory ? sampleOutput(this->memorySamples[entry.sourceIndex])
+                                                            : this->manifest[entry.sourceIndex].output;
+        ulong cls = getClassIndex(output);
+        classEntries[cls].push_back(entryIdx);
+      }
+    } else {
+      ulong originalCount = this->fromMemory ? this->memorySamples.size() : this->manifest.size();
+
+      if (originalCount == 0)
+        return {};
+
+      for (ulong i = 0; i < originalCount; i++) {
+        const std::vector<float>& output =
+          this->fromMemory ? sampleOutput(this->memorySamples[i]) : this->manifest[i].output;
+        ulong cls = getClassIndex(output);
+        classEntries[cls].push_back(i);
+      }
     }
 
     ulong maxClassCount = 0;
 
-    for (const auto& [cls, indices] : classIndices)
+    for (const auto& [cls, indices] : classEntries)
       maxClassCount = std::max(maxClassCount, static_cast<ulong>(indices.size()));
 
-    std::mt19937 rng(42); // deterministic augmentation plan
+    std::mt19937 rng(42);
+    std::vector<ulong> result = useSubset ? subsetIndices : std::vector<ulong>{};
 
-    for (const auto& [cls, indices] : classIndices) {
+    for (const auto& [cls, indices] : classEntries) {
       ulong currentCount = indices.size();
       ulong targetCount = currentCount;
 
@@ -167,6 +180,7 @@ namespace NN_CLI
 
         if (augmentationFactor > 0)
           balancedTarget = maxClassCount * augmentationFactor;
+
         targetCount = std::max(targetCount, balancedTarget);
       }
 
@@ -174,10 +188,16 @@ namespace NN_CLI
 
       for (ulong i = 0; i < toGenerate; i++) {
         std::uniform_int_distribution<ulong> dist(0, currentCount - 1);
-        ulong srcIdx = indices[dist(rng)];
-        this->entries.push_back({srcIdx, true});
+        ulong srcEntryIdx = indices[dist(rng)];
+        ulong srcSourceIdx = useSubset ? this->entries[srcEntryIdx].sourceIndex : srcEntryIdx;
+        this->entries.push_back({srcSourceIdx, true});
+
+        if (useSubset)
+          result.push_back(this->entries.size() - 1);
       }
     }
+
+    return result;
   }
 
   //===================================================================================================================//
