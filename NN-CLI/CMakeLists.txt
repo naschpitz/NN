@@ -45,6 +45,7 @@ add_executable(NN-CLI
   NN-CLI_DataType.cpp
   NN-CLI_ImageLoader.cpp
   NN-CLI_Loader.cpp
+  NN-CLI_LossReferenceTable.cpp
   NN-CLI_ModelSerializer.cpp
   NN-CLI_PredictSummary.cpp
   NN-CLI_ProgressBar.cpp

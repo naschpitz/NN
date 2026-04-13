@@ -1,6 +1,7 @@
 #include "NN-CLI_CNNRunner.hpp"
 
 #include "NN-CLI_CNNLoader.hpp"
+#include "NN-CLI_LossReferenceTable.hpp"
 #include <CNN_TrainingMonitor.hpp>
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
@@ -142,9 +143,17 @@ int CNNRunner::train()
   ulong numOriginalTrainSamples = totalOriginalSamples - numValidationSamples;
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
-  if (this->logLevel > LogLevel::QUIET)
+  if (this->logLevel > LogLevel::QUIET) {
     TrainingSummary::printCNN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
                               numValidationSamples, validationRatio, validationAuto);
+
+    ulong numOutputClasses = this->coreConfig.layersConfig.denseLayers.empty()
+                               ? 0
+                               : this->coreConfig.layersConfig.denseLayers.back().numNeurons;
+
+    if (numOutputClasses >= 2)
+      LossReferenceTable::print(numOutputClasses);
+  }
 
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
   // Disable the library's internal monitor to avoid duplicate monitoring with training loss only.

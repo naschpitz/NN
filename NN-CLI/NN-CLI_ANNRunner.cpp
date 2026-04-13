@@ -1,6 +1,7 @@
 #include "NN-CLI_ANNRunner.hpp"
 
 #include "NN-CLI_ANNLoader.hpp"
+#include "NN-CLI_LossReferenceTable.hpp"
 #include <ANN_TrainingMonitor.hpp>
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
@@ -140,9 +141,16 @@ int ANNRunner::train()
   ulong numOriginalTrainSamples = totalOriginalSamples - numValidationSamples;
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
-  if (this->logLevel > LogLevel::QUIET)
+  if (this->logLevel > LogLevel::QUIET) {
     TrainingSummary::printANN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
                               numValidationSamples, validationRatio, validationAuto);
+
+    ulong numOutputClasses =
+      this->coreConfig.layersConfig.empty() ? 0 : this->coreConfig.layersConfig.back().numNeurons;
+
+    if (numOutputClasses >= 2)
+      LossReferenceTable::print(numOutputClasses);
+  }
 
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
   std::shared_ptr<ANN::TrainingMonitor<float>> trainingMonitor;
