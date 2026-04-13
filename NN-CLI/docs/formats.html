@@ -79,7 +79,14 @@
       <span class="string">"translation"</span>: <span class="number">0.1</span>,
       <span class="string">"brightness"</span>: <span class="number">0.1</span>,
       <span class="string">"contrast"</span>: <span class="number">0.2</span>,
-      <span class="string">"gaussianNoise"</span>: <span class="number">0.02</span>
+      <span class="string">"gaussianNoise"</span>: <span class="number">0.02</span>,
+      <span class="string">"randomErasing"</span>: <span class="number">0.0</span>,
+      <span class="string">"hueShift"</span>: <span class="number">0.0</span>,
+      <span class="string">"scaling"</span>: <span class="number">0.0</span>,
+      <span class="string">"elasticDeformation"</span>: {
+        <span class="string">"alpha"</span>: <span class="number">0.0</span>,
+        <span class="string">"sigma"</span>: <span class="number">5.0</span>
+      }
     },
     <span class="string">"validation"</span>: {
       <span class="string">"enabled"</span>: <span class="keyword">true</span>,
@@ -143,6 +150,12 @@
   <tr><td><code>training.augmentationTransforms.brightness</code></td><td>float</td><td>No</td><td>Max brightness delta (default 0.1 = ±0.1; 0 = disabled)</td></tr>
   <tr><td><code>training.augmentationTransforms.contrast</code></td><td>float</td><td>No</td><td>Max contrast delta from 1.0 (default 0.2 = range 0.8–1.2×; 0 = disabled)</td></tr>
   <tr><td><code>training.augmentationTransforms.gaussianNoise</code></td><td>float</td><td>No</td><td>Noise standard deviation (default 0.02 = σ=0.02; 0 = disabled)</td></tr>
+  <tr><td><code>training.augmentationTransforms.randomErasing</code></td><td>float</td><td>No</td><td>Max area fraction to erase/cutout (default 0.0 = disabled). Masks a random rectangle with zeros</td></tr>
+  <tr><td><code>training.augmentationTransforms.hueShift</code></td><td>float</td><td>No</td><td>Max hue shift as fraction of 360 degrees (default 0.0 = disabled). Shifts image color hue</td></tr>
+  <tr><td><code>training.augmentationTransforms.scaling</code></td><td>float</td><td>No</td><td>Max zoom deviation from 1.0x (default 0.0 = disabled). Randomly zooms in/out</td></tr>
+  <tr><td><code>training.augmentationTransforms.elasticDeformation</code></td><td>object</td><td>No</td><td>Elastic deformation config (disabled when alpha = 0)</td></tr>
+  <tr><td><code>training.augmentationTransforms.elasticDeformation.alpha</code></td><td>float</td><td>No</td><td>Deformation intensity (default 0.0 = disabled)</td></tr>
+  <tr><td><code>training.augmentationTransforms.elasticDeformation.sigma</code></td><td>float</td><td>No</td><td>Deformation field smoothness (default 5.0)</td></tr>
   <tr><td><code>training.validation</code></td><td>object</td><td>No</td><td>Validation dataset split configuration (see below)</td></tr>
   <tr><td><code>training.validation.enabled</code></td><td>bool</td><td>No</td><td>Enable validation split (default true)</td></tr>
   <tr><td><code>training.validation.autoSize</code></td><td>bool</td><td>No</td><td>Auto-select split ratio based on dataset size (default true). Ratios: &lt;1k samples = 20%, 1k-10k = 15%, 10k-100k = 10%, 100k-1M = 2%, &gt;1M = 1%</td></tr>
@@ -169,7 +182,14 @@
   <span class="string">"translation"</span>: <span class="number">0.15</span>,
   <span class="string">"brightness"</span>: <span class="number">0</span>,
   <span class="string">"contrast"</span>: <span class="number">0</span>,
-  <span class="string">"gaussianNoise"</span>: <span class="number">0</span>
+  <span class="string">"gaussianNoise"</span>: <span class="number">0</span>,
+  <span class="string">"randomErasing"</span>: <span class="number">0</span>,
+  <span class="string">"hueShift"</span>: <span class="number">0</span>,
+  <span class="string">"scaling"</span>: <span class="number">0</span>,
+  <span class="string">"elasticDeformation"</span>: {
+    <span class="string">"alpha"</span>: <span class="number">0</span>,
+    <span class="string">"sigma"</span>: <span class="number">5.0</span>
+  }
 }
 </code></pre>
 
