@@ -162,6 +162,18 @@ int CNNRunner::train()
   if (validationConfig.enabled) {
     CNN::CoreConfig<float> validationCoreConfig = this->coreConfig;
     validationCoreConfig.modeType = CNN::ModeType::TEST;
+
+    // Auto-balance validation loss so minority classes contribute equally
+    auto allOutputs = dataLoader.getAllOutputs();
+    std::vector<std::vector<float>> validationOutputs;
+    validationOutputs.reserve(split.validationIndices.size());
+
+    for (ulong idx : split.validationIndices)
+      validationOutputs.push_back(allOutputs[idx]);
+
+    std::vector<float> validationWeights = computeClassWeightsFromOutputs(validationOutputs);
+    validationCoreConfig.costFunctionConfig.weights = validationWeights;
+
     validationCore = std::shared_ptr<CNN::Core<float>>(CNN::Core<float>::makeCore(validationCoreConfig).release());
   }
 
