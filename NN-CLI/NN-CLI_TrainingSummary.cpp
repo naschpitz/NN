@@ -90,8 +90,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void TrainingSummary::printCNN(const CNN::CoreConfig<float>& cnnConfig, const AugmentationConfig& augConfig,
-                                 ulong trainSamples, ulong validationSamples, float validationRatio,
-                                 bool validationAuto)
+                                 ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
+                                 float validationRatio, bool validationAuto)
   {
     const auto& tc = cnnConfig.trainingConfig;
     const auto& layers = cnnConfig.layersConfig;
@@ -208,9 +208,9 @@ namespace NN_CLI
     // Validation string
     std::string validationStr;
 
-    if (validationSamples > 0) {
+    if (numValidationSamples > 0) {
       std::ostringstream oss;
-      oss << SummaryTable::formatWithCommas(validationSamples) << " (" << std::fixed << std::setprecision(2)
+      oss << SummaryTable::formatWithCommas(numValidationSamples) << " (" << std::fixed << std::setprecision(2)
           << (validationRatio * 100) << "%" << (validationAuto ? ", auto" : "") << ")";
       validationStr = oss.str();
     } else {
@@ -234,8 +234,17 @@ namespace NN_CLI
     rows.push_back({"Residual blocks", std::to_string(residualCount)});
     rows.push_back({"Total parameters", SummaryTable::formatWithCommas(totalParams)});
     rows.push_back({"", ""}); // separator
-    rows.push_back({"Total samples", SummaryTable::formatWithCommas(trainSamples + validationSamples)});
-    rows.push_back({"Training samples", SummaryTable::formatWithCommas(trainSamples)});
+    rows.push_back({"Total samples", SummaryTable::formatWithCommas(numOriginalTrainSamples + numValidationSamples)});
+
+    if (numTrainSamples != numOriginalTrainSamples) {
+      ulong numAugmented = numTrainSamples - numOriginalTrainSamples;
+      rows.push_back({"Training samples", SummaryTable::formatWithCommas(numOriginalTrainSamples) + " + " +
+                                            SummaryTable::formatWithCommas(numAugmented) +
+                                            " augmented = " + SummaryTable::formatWithCommas(numTrainSamples)});
+    } else {
+      rows.push_back({"Training samples", SummaryTable::formatWithCommas(numTrainSamples)});
+    }
+
     rows.push_back({"Validation samples", validationStr});
 
     if (augStr != "None")
@@ -260,8 +269,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void TrainingSummary::printANN(const ANN::CoreConfig<float>& annConfig, const AugmentationConfig& augConfig,
-                                 ulong trainSamples, ulong validationSamples, float validationRatio,
-                                 bool validationAuto)
+                                 ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
+                                 float validationRatio, bool validationAuto)
   {
     const auto& tc = annConfig.trainingConfig;
     const auto& costConfig = annConfig.costFunctionConfig;
@@ -301,9 +310,9 @@ namespace NN_CLI
     // Validation string
     std::string validationStr;
 
-    if (validationSamples > 0) {
+    if (numValidationSamples > 0) {
       std::ostringstream oss;
-      oss << SummaryTable::formatWithCommas(validationSamples) << " (" << std::fixed << std::setprecision(2)
+      oss << SummaryTable::formatWithCommas(numValidationSamples) << " (" << std::fixed << std::setprecision(2)
           << (validationRatio * 100) << "%" << (validationAuto ? ", auto" : "") << ")";
       validationStr = oss.str();
     } else {
@@ -319,8 +328,17 @@ namespace NN_CLI
     rows.push_back({"", ""}); // separator
     rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"", ""}); // separator
-    rows.push_back({"Total samples", SummaryTable::formatWithCommas(trainSamples + validationSamples)});
-    rows.push_back({"Training samples", SummaryTable::formatWithCommas(trainSamples)});
+    rows.push_back({"Total samples", SummaryTable::formatWithCommas(numOriginalTrainSamples + numValidationSamples)});
+
+    if (numTrainSamples != numOriginalTrainSamples) {
+      ulong numAugmented = numTrainSamples - numOriginalTrainSamples;
+      rows.push_back({"Training samples", SummaryTable::formatWithCommas(numOriginalTrainSamples) + " + " +
+                                            SummaryTable::formatWithCommas(numAugmented) +
+                                            " augmented = " + SummaryTable::formatWithCommas(numTrainSamples)});
+    } else {
+      rows.push_back({"Training samples", SummaryTable::formatWithCommas(numTrainSamples)});
+    }
+
     rows.push_back({"Validation samples", validationStr});
     rows.push_back({"", ""}); // separator
     rows.push_back({"Epochs", std::to_string(tc.numEpochs)});

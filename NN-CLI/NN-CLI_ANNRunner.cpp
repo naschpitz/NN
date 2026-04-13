@@ -76,6 +76,9 @@ int ANNRunner::train()
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
+  // Capture total original sample count before any augmentation or splitting
+  ulong totalOriginalSamples = dataLoader.numSamples();
+
   // Validation split first — augmentation and class weights must only use training data
   const auto& validationConfig = this->augConfig.validationConfig;
   DataSplit split;
@@ -133,12 +136,13 @@ int ANNRunner::train()
   }
 
   // Print training summary
-  ulong trainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
-  ulong validationSamples = validationConfig.enabled ? split.validationIndices.size() : 0;
+  ulong numValidationSamples = validationConfig.enabled ? split.validationIndices.size() : 0;
+  ulong numOriginalTrainSamples = totalOriginalSamples - numValidationSamples;
+  ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
   if (this->logLevel > LogLevel::QUIET)
-    TrainingSummary::printANN(this->coreConfig, this->augConfig, trainSamples, validationSamples, validationRatio,
-                              validationAuto);
+    TrainingSummary::printANN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
+                              numValidationSamples, validationRatio, validationAuto);
 
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
   std::shared_ptr<ANN::TrainingMonitor<float>> trainingMonitor;

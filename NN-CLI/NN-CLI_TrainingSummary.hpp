@@ -19,10 +19,12 @@ namespace NN_CLI
     public:
       // Print a formatted training configuration table to stdout.
       static void printCNN(const CNN::CoreConfig<float>& cnnConfig, const AugmentationConfig& augConfig,
-                           ulong trainSamples, ulong validationSamples, float validationRatio, bool validationAuto);
+                           ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
+                           float validationRatio, bool validationAuto);
 
       static void printANN(const ANN::CoreConfig<float>& annConfig, const AugmentationConfig& augConfig,
-                           ulong trainSamples, ulong validationSamples, float validationRatio, bool validationAuto);
+                           ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
+                           float validationRatio, bool validationAuto);
 
       // Count total trainable parameters from config (no model instantiation needed).
       static ulong countCNNParameters(const CNN::CoreConfig<float>& config);
