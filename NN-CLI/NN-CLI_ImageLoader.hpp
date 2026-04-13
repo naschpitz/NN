@@ -53,6 +53,11 @@ namespace NN_CLI
       static void randomTranslation(std::vector<float>& data, int c, int h, int w, float maxFraction,
                                     std::mt19937& rng);
       static void addGaussianNoise(std::vector<float>& data, float stddev, std::mt19937& rng);
+      static void randomErasing(std::vector<float>& data, int c, int h, int w, float maxArea, std::mt19937& rng);
+      static void randomHueShift(std::vector<float>& data, int c, int h, int w, float maxShift, std::mt19937& rng);
+      static void randomScaling(std::vector<float>& data, int c, int h, int w, float maxScale, std::mt19937& rng);
+      static void elasticDeformation(std::vector<float>& data, int c, int h, int w, float alpha, float sigma,
+                                     std::mt19937& rng);
   };
 
 } // namespace NN_CLI

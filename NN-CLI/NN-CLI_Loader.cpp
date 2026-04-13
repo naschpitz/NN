@@ -185,6 +185,25 @@ namespace NN_CLI
 
         if (at.contains("gaussianNoise"))
           t.gaussianNoise = at.at("gaussianNoise").get<float>();
+
+        if (at.contains("randomErasing"))
+          t.randomErasing = at.at("randomErasing").get<float>();
+
+        if (at.contains("hueShift"))
+          t.hueShift = at.at("hueShift").get<float>();
+
+        if (at.contains("scaling"))
+          t.scaling = at.at("scaling").get<float>();
+
+        if (at.contains("elasticDeformation")) {
+          const auto& ed = at.at("elasticDeformation");
+
+          if (ed.contains("alpha"))
+            t.elasticDeformation.alpha = ed.at("alpha").get<float>();
+
+          if (ed.contains("sigma"))
+            t.elasticDeformation.sigma = ed.at("sigma").get<float>();
+        }
       }
 
       if (tc.contains("validation")) {

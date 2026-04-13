@@ -169,6 +169,18 @@ namespace NN_CLI
         parts.push_back(oss.str());
       }
 
+      if (augConfig.transforms.randomErasing > 0)
+        parts.push_back("erase " + std::to_string(static_cast<int>(augConfig.transforms.randomErasing * 100)) + "%");
+
+      if (augConfig.transforms.hueShift > 0)
+        parts.push_back("hue " + std::to_string(static_cast<int>(augConfig.transforms.hueShift * 100)) + "%");
+
+      if (augConfig.transforms.scaling > 0)
+        parts.push_back("scale " + std::to_string(static_cast<int>(augConfig.transforms.scaling * 100)) + "%");
+
+      if (augConfig.transforms.elasticDeformation.alpha > 0)
+        parts.push_back("elastic");
+
       if (parts.empty()) {
         augStr = "None";
       } else {

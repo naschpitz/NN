@@ -33,6 +33,17 @@ namespace NN_CLI
     atJson["brightness"] = augConfig.transforms.brightness;
     atJson["contrast"] = augConfig.transforms.contrast;
     atJson["gaussianNoise"] = augConfig.transforms.gaussianNoise;
+    atJson["randomErasing"] = augConfig.transforms.randomErasing;
+    atJson["hueShift"] = augConfig.transforms.hueShift;
+    atJson["scaling"] = augConfig.transforms.scaling;
+
+    if (augConfig.transforms.elasticDeformation.alpha > 0.0f) {
+      nlohmann::ordered_json edJson;
+      edJson["alpha"] = augConfig.transforms.elasticDeformation.alpha;
+      edJson["sigma"] = augConfig.transforms.elasticDeformation.sigma;
+      atJson["elasticDeformation"] = edJson;
+    }
+
     tcJson["augmentationTransforms"] = atJson;
   }
 

@@ -166,6 +166,12 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   | `brightness` | `float` | `0.1` | ±0.1 max delta | `0` |
   | `contrast` | `float` | `0.2` | range 0.8–1.2× (delta from 1.0) | `0` |
   | `gaussianNoise` | `float` | `0.02` | σ=0.02 noise stddev | `0` |
+  | `randomErasing` | `float` | `0.0` | Max area fraction to erase (cutout) | `0` |
+  | `hueShift` | `float` | `0.0` | Max hue shift (fraction of 360°) | `0` |
+  | `scaling` | `float` | `0.0` | Max zoom deviation from 1.0× | `0` |
+  | `elasticDeformation` | `object` | — | Elastic deformation config | `alpha: 0` |
+  | `elasticDeformation.alpha` | `float` | `0.0` | Deformation intensity | `0` |
+  | `elasticDeformation.sigma` | `float` | `5.0` | Deformation smoothness | — |
 
 - `validation`: Object controlling train/validation split for overfitting detection. A held-out portion of training samples is evaluated after each epoch (or every N epochs) and the validation loss is reported alongside training loss. The split is stratified (preserves class distribution) and deterministic.
 
