@@ -29,7 +29,7 @@ namespace NN_CLI
       {1.00f, "Perfect", false},
       {0.90f, "Very confident", false},
       {0.70f, "Fairly confident", false},
-      {0.50f, "Coin flip (2-class)", false},
+      {0.50f, "50% confidence", false},
       {randomConfidence, "Random (" + std::to_string(numClasses) + "-class)", true},
       {0.10f, "Confident, wrong", false},
       {0.05f, "Very wrong", false},
