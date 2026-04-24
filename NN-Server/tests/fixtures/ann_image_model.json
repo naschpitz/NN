@@ -5,7 +5,7 @@
     "h": 4,
     "w": 4
   },
-  "layersConfig": [
+  "layers": [
     {
       "numNeurons": 16,
       "actvFunc": "relu"
@@ -19,7 +19,7 @@
       "actvFunc": "sigmoid"
     }
   ],
-  "costFunctionConfig": {
+  "costFunction": {
     "type": "crossEntropy"
   },
   "parameters": {

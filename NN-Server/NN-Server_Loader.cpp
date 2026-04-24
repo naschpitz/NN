@@ -23,10 +23,10 @@ namespace NN_Server
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
 
-    // ANN configs use "layersConfig" for their dense layers.
-    // CNN configs use "convolutionalLayersConfig" and/or "denseLayersConfig".
+    // ANN configs use "layers" for their dense layers.
+    // CNN configs use "convolutionalLayers" and/or "denseLayers".
     // "inputShape" is NOT used for detection — both types can have it (e.g. ANN image input).
-    if (json.contains("layersConfig")) {
+    if (json.contains("layers")) {
       return NetworkType::ANN;
     }
 
@@ -50,7 +50,7 @@ namespace NN_Server
 
     InputConfig config;
 
-    bool isCNN = !json.contains("layersConfig");
+    bool isCNN = !json.contains("layers");
 
     if (json.contains("inputType") && json["inputType"].get<std::string>() == "image") {
       config.isImage = true;
@@ -137,19 +137,19 @@ namespace NN_Server
     if (json.contains("numGPUs"))
       coreConfig.numGPUs = json.at("numGPUs").get<int>();
 
-    if (!json.contains("layersConfig")) {
-      throw std::runtime_error("Config file missing 'layersConfig': " + configFilePath);
+    if (!json.contains("layers")) {
+      throw std::runtime_error("Config file missing 'layers': " + configFilePath);
     }
 
-    for (const auto& layerJson : json.at("layersConfig")) {
+    for (const auto& layerJson : json.at("layers")) {
       ANN::Layer layer;
       layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
       layer.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
       coreConfig.layersConfig.push_back(layer);
     }
 
-    if (json.contains("costFunctionConfig")) {
-      const auto& cfc = json.at("costFunctionConfig");
+    if (json.contains("costFunction")) {
+      const auto& cfc = json.at("costFunction");
       coreConfig.costFunctionConfig.type = ANN::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
@@ -211,8 +211,8 @@ namespace NN_Server
     coreConfig.inputShape.w = shapeJson.at("w").get<ulong>();
 
     // CNN layers
-    if (json.contains("convolutionalLayersConfig")) {
-      for (const auto& layerJson : json.at("convolutionalLayersConfig")) {
+    if (json.contains("convolutionalLayers")) {
+      for (const auto& layerJson : json.at("convolutionalLayers")) {
         std::string type = layerJson.at("type").get<std::string>();
         CNN::CNNLayerConfig layerConfig;
 
@@ -244,6 +244,9 @@ namespace NN_Server
         } else if (type == "globalavgpool") {
           layerConfig.type = CNN::LayerType::GLOBALAVGPOOL;
           layerConfig.config = CNN::GlobalAvgPoolLayerConfig{};
+        } else if (type == "globaldualpool") {
+          layerConfig.type = CNN::LayerType::GLOBALDUALPOOL;
+          layerConfig.config = CNN::GlobalDualPoolLayerConfig{};
         } else if (type == "instancenorm") {
           layerConfig.type = CNN::LayerType::INSTANCENORM;
           CNN::NormLayerConfig bn;
@@ -264,6 +267,12 @@ namespace NN_Server
           if (layerJson.contains("momentum"))
             bn.momentum = layerJson.at("momentum").get<float>();
           layerConfig.config = bn;
+        } else if (type == "residual_start") {
+          layerConfig.type = CNN::LayerType::RESIDUAL_START;
+          layerConfig.config = CNN::ResidualStartConfig{};
+        } else if (type == "residual_end") {
+          layerConfig.type = CNN::LayerType::RESIDUAL_END;
+          layerConfig.config = CNN::ResidualEndConfig{};
         } else {
           throw std::runtime_error("Unknown CNN layer type: " + type);
         }
@@ -273,8 +282,8 @@ namespace NN_Server
     }
 
     // Dense layers
-    if (json.contains("denseLayersConfig")) {
-      for (const auto& layerJson : json.at("denseLayersConfig")) {
+    if (json.contains("denseLayers")) {
+      for (const auto& layerJson : json.at("denseLayers")) {
         CNN::DenseLayerConfig dense;
         dense.numNeurons = layerJson.at("numNeurons").get<ulong>();
         dense.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
@@ -283,8 +292,8 @@ namespace NN_Server
     }
 
     // Cost function config
-    if (json.contains("costFunctionConfig")) {
-      const auto& cfc = json.at("costFunctionConfig");
+    if (json.contains("costFunction")) {
+      const auto& cfc = json.at("costFunction");
       coreConfig.costFunctionConfig.type = CNN::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
@@ -321,6 +330,17 @@ namespace NN_Server
         bp.runningMean = normJson.at("runningMean").get<std::vector<float>>();
         bp.runningVar = normJson.at("runningVar").get<std::vector<float>>();
         coreConfig.parameters.normParams.push_back(std::move(bp));
+      }
+    }
+
+    if (paramsJson.contains("residual")) {
+      for (const auto& resJson : paramsJson.at("residual")) {
+        CNN::ResidualParameters<float> rp;
+        rp.inC = resJson.at("inC").get<ulong>();
+        rp.outC = resJson.at("outC").get<ulong>();
+        rp.weights = resJson.at("weights").get<std::vector<float>>();
+        rp.biases = resJson.at("biases").get<std::vector<float>>();
+        coreConfig.parameters.residualParams.push_back(std::move(rp));
       }
     }
 
