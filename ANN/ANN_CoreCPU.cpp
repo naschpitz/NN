@@ -33,7 +33,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
+PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
 {
   this->predictStart();
 
@@ -44,7 +44,8 @@ PredictResults<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
 
   // Use stepWorker as worker[0] so its internal state stays current for the
   // step-by-step training path (predict → backpropagate → accumulate → update).
-  // Create additional workers only if more threads are needed.
+  // Create additional workers only if more threads are needed. Workers are
+  // allocated once and reused across batches.
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> extraWorkers;
 
   for (int i = 1; i < numThreads; i++) {
@@ -52,39 +53,54 @@ PredictResults<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
                                                               this->parameters, this->costFunctionConfig, false));
   }
 
-  // Build a raw-pointer array: [stepWorker, extra0, extra1, ...]
   std::vector<CoreCPUWorker<T>*> workerPtrs;
   workerPtrs.push_back(this->stepWorker.get());
 
   for (auto& w : extraWorkers)
     workerPtrs.push_back(w.get());
 
-  ulong numInputs = inputs.size();
-  PredictResults<T> results(numInputs);
+  PredictResults<T> results;
+  results.reserve(numSamples);
 
-  // Atomic counter for assigning unique worker indices to threads
-  std::atomic<int> nextWorkerIndex{0};
-
-  QVector<ulong> indices(numInputs);
-
-  for (ulong i = 0; i < numInputs; i++)
-    indices[i] = i;
-
+  // Match the test() pattern: pull batches from the provider and process each
+  // with QtConcurrent across the worker pool. Bounded memory regardless of
+  // total dataset size — only one batch lives in memory at a time.
+  ulong batchSize = std::max<ulong>(static_cast<ulong>(numThreads), this->testConfig.batchSize);
+  ulong numBatches = (numSamples + batchSize - 1) / batchSize;
   std::atomic<ulong> completedInputs{0};
 
-  QtConcurrent::blockingMap(indices, [&, numThreads, numInputs](ulong idx) {
-    thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
-    CoreCPUWorker<T>& worker = *workerPtrs[workerIndex];
+  for (ulong batchIndex = 0; batchIndex < numBatches; batchIndex++) {
+    Inputs<T> batch = provider(batchSize, batchIndex);
+    ulong batchN = batch.size();
 
-    worker.propagate(inputs[idx]);
-    results[idx].output = worker.getOutput();
-    results[idx].logits = worker.getOutputLogits();
+    if (batchN == 0)
+      break;
 
-    ulong completed = ++completedInputs;
+    PredictResults<T> batchResults(batchN);
 
-    if (this->progressCallback)
-      this->progressCallback(completed, numInputs);
-  });
+    std::atomic<int> nextWorkerIndex{0};
+    QVector<ulong> indices(batchN);
+
+    for (ulong i = 0; i < batchN; i++)
+      indices[i] = i;
+
+    QtConcurrent::blockingMap(indices, [&, numThreads](ulong idx) {
+      thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+      CoreCPUWorker<T>& worker = *workerPtrs[workerIndex];
+
+      worker.propagate(batch[idx]);
+      batchResults[idx].output = worker.getOutput();
+      batchResults[idx].logits = worker.getOutputLogits();
+
+      ulong completed = ++completedInputs;
+
+      if (this->progressCallback)
+        this->progressCallback(completed, numSamples);
+    });
+
+    for (auto& r : batchResults)
+      results.push_back(std::move(r));
+  }
 
   this->predictEnd();
 

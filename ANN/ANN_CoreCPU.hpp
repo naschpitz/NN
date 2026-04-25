@@ -21,7 +21,8 @@ namespace ANN
       CoreCPU(const CoreConfig<T>& config);
 
       //-- Core interface --//
-      PredictResults<T> predict(const Inputs<T>& inputs) override;
+      using Core<T>::predict; // Bring in the eager Inputs<T> overload from the base
+      PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
       PredictResult<T> predict(const Input<T>& input) override;
       void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
       TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;

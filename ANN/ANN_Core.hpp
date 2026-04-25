@@ -27,11 +27,18 @@ namespace ANN
       static std::unique_ptr<Core<T>> makeCore(const CoreConfig<T>& config);
 
       //-- Core interface --//
-      // predict returns both the post-activation output and the pre-activation (z) of the
-      // last layer. The logits are required for calibration / OOD-detection scores
-      // (max-logit, logit-norm, free-energy) that softmax discards.
-      virtual PredictResults<T> predict(const Inputs<T>& inputs) = 0;
-      virtual PredictResult<T> predict(const Input<T>& input); // Overridden in CoreCPU to avoid threading
+      // Streaming predict: pulls inputs in batches from `provider` and runs
+      // forward propagation on each batch. Lets callers score arbitrarily
+      // large datasets without holding the full Inputs<T> in memory. The
+      // eager overloads below wrap this one.
+      virtual PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) = 0;
+      // Eager predict overloads. Both ultimately delegate to the streaming
+      // version above; the single-input one is overridden in CoreCPU to
+      // avoid spawning a thread pool on a single sample. .output is the
+      // post-activation, .logits the pre-activation z of the last layer
+      // (used for calibration / OOD scores that softmax discards).
+      PredictResults<T> predict(const Inputs<T>& inputs);
+      virtual PredictResult<T> predict(const Input<T>& input);
       virtual void train(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
       virtual TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
 
