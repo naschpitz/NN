@@ -5,7 +5,9 @@
 #include "NN-CLI_Loader.hpp"
 
 #include <ANN_Sample.hpp>
+#include <ANN_SampleProvider.hpp>
 #include <CNN_Sample.hpp>
+#include <CNN_SampleProvider.hpp>
 
 #include <QThreadPool>
 
