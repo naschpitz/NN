@@ -39,38 +39,33 @@ static void testMultiLayerNetwork()
 {
   std::cout << "--- testMultiLayerNetwork ---" << std::endl;
 
-  // 2 → 4 → 4 → 1 network
+  // 2 → 8 → 8 → 1 network with Adam — robust convergence on the trivial
+  // {(1,1)→1, (0,0)→0} task. Was 4-RELU + SGD with a 5-attempt retry loop.
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU},
-                                          {4, ANN::ActvFuncType::RELU},
-                                          {4, ANN::ActvFuncType::RELU},
+                                          {8, ANN::ActvFuncType::RELU},
+                                          {8, ANN::ActvFuncType::RELU},
                                           {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.numEpochs = 1000;
+  config.trainingConfig.learningRate = 0.05;
+  config.trainingConfig.optimizer.type = ANN::OptimizerType::ADAM;
+  config.trainingConfig.shuffleSeed = 42;
+  config.numThreads = 1;
   config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
-  bool converged = false;
-  ANN::Output<double> p0, p1;
-
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
-    auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-    p0 = core->predict({1.0, 1.0}).output;
-    p1 = core->predict({0.0, 0.0}).output;
-
-    if (p0[0] > 0.7 && p1[0] < 0.3)
-      converged = true;
-  }
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
+  ANN::Output<double> p0 = core->predict({1.0, 1.0}).output;
+  ANN::Output<double> p1 = core->predict({0.0, 0.0}).output;
 
   std::cout << "  high=" << p0[0] << "  low=" << p1[0] << std::endl;
-  CHECK(converged, "multi-layer network converged (5 attempts)");
+  CHECK(p0[0] > 0.7, "multi-layer (1,1) ≈ 1");
+  CHECK(p1[0] < 0.3, "multi-layer (0,0) ≈ 0");
 }
 
 //===================================================================================================================//
@@ -88,27 +83,21 @@ static void testMultiOutput()
 
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5;
+  config.numThreads = 1;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0, 0.0, 1.0}}, {{0.0, 1.0}, {0.0, 1.0, 0.0}}};
 
-  bool converged = false;
-  ANN::Output<double> pred;
-
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
-    auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-    pred = core->predict({1.0, 0.0}).output;
-
-    if (pred[0] > 0.7 && pred[1] < 0.3 && pred[2] > 0.7)
-      converged = true;
-  }
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
+  ANN::Output<double> pred = core->predict({1.0, 0.0}).output;
 
   std::cout << "  pred=[" << pred[0] << "," << pred[1] << "," << pred[2] << "]" << std::endl;
   CHECK(pred.size() == 3, "multi-output size = 3");
-  CHECK(converged, "multi-output converged (5 attempts)");
+  CHECK(pred[0] > 0.7, "multi-output: out[0] > 0.7");
+  CHECK(pred[1] < 0.3, "multi-output: out[1] < 0.3");
+  CHECK(pred[2] > 0.7, "multi-output: out[2] > 0.7");
 }
 
 //===================================================================================================================//
@@ -167,28 +156,21 @@ static void testTrainWithTanh()
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::TANH}, {1, ANN::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 500;
+  config.numThreads = 1;
   config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
-  bool converged = false;
-  ANN::Output<double> p0, p1;
-
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
-    auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-    p0 = core->predict({1.0, 1.0}).output;
-    p1 = core->predict({0.0, 0.0}).output;
-
-    if (p0[0] > 0.7 && p1[0] < 0.3)
-      converged = true;
-  }
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
+  ANN::Output<double> p0 = core->predict({1.0, 1.0}).output;
+  ANN::Output<double> p1 = core->predict({0.0, 0.0}).output;
 
   std::cout << "  high=" << p0[0] << "  low=" << p1[0] << std::endl;
-  CHECK(converged, "tanh network converged (5 attempts)");
+  CHECK(p0[0] > 0.7, "tanh network: high input → out > 0.7");
+  CHECK(p1[0] < 0.3, "tanh network: low input → out < 0.3");
 }
 
 //===================================================================================================================//

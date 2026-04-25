@@ -152,43 +152,33 @@ static void testShuffleSamplesTraining()
     config.trainingConfig.numEpochs = 500;
     config.trainingConfig.learningRate = 0.5;
     config.trainingConfig.shuffleSamples = shuffle;
+    config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+    config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
     config.progressReports = 0;
     config.logLevel = ANN::LogLevel::ERROR;
     return config;
   };
 
   // Train with shuffle enabled
-  bool shuffleConverged = false;
+  auto shuffleCore = ANN::Core<double>::makeCore(makeConfig(true));
+  shuffleCore->train(samples.size(), ANN::makeSampleProvider(samples));
+  auto sp0 = shuffleCore->predict({1.0, 1.0}).output;
+  auto sp1 = shuffleCore->predict({0.0, 0.0}).output;
 
-  for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
-    auto core = ANN::Core<double>::makeCore(makeConfig(true));
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto p0 = core->predict({1.0, 1.0}).output;
-    auto p1 = core->predict({0.0, 0.0}).output;
-
-    if (p0[0] > 0.7 && p1[0] < 0.3)
-      shuffleConverged = true;
-  }
-
-  CHECK(shuffleConverged, "shuffle=true converged (5 attempts)");
+  CHECK(sp0[0] > 0.7, "shuffle=true: (1,1) ≈ 1");
+  CHECK(sp1[0] < 0.3, "shuffle=true: (0,0) ≈ 0");
 
   // Train with shuffle disabled
-  bool noShuffleConverged = false;
+  auto noShuffleCore = ANN::Core<double>::makeCore(makeConfig(false));
+  noShuffleCore->train(samples.size(), ANN::makeSampleProvider(samples));
+  auto np0 = noShuffleCore->predict({1.0, 1.0}).output;
+  auto np1 = noShuffleCore->predict({0.0, 0.0}).output;
 
-  for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
-    auto core = ANN::Core<double>::makeCore(makeConfig(false));
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto p0 = core->predict({1.0, 1.0}).output;
-    auto p1 = core->predict({0.0, 0.0}).output;
+  CHECK(np0[0] > 0.7, "shuffle=false: (1,1) ≈ 1");
+  CHECK(np1[0] < 0.3, "shuffle=false: (0,0) ≈ 0");
 
-    if (p0[0] > 0.7 && p1[0] < 0.3)
-      noShuffleConverged = true;
-  }
-
-  CHECK(noShuffleConverged, "shuffle=false converged (5 attempts)");
-
-  std::cout << "  shuffle=true converged: " << shuffleConverged << "  shuffle=false converged: " << noShuffleConverged
-            << std::endl;
+  std::cout << "  shuffle=true: high=" << sp0[0] << " low=" << sp1[0] << "  shuffle=false: high=" << np0[0]
+            << " low=" << np1[0] << std::endl;
 }
 
 //===================================================================================================================//

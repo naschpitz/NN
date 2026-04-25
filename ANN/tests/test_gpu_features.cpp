@@ -256,38 +256,28 @@ static void testGPUSoftmaxTrain()
   ANN::Samples<float> samples = {
     {{1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}}};
 
-  bool converged = false;
+  ANN::CoreConfig<float> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::GPU;
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
+  config.trainingConfig.numEpochs = 500;
+  config.trainingConfig.learningRate = 0.1f;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.progressReports = 0;
+  config.numGPUs = 1;
+  config.logLevel = ANN::LogLevel::ERROR;
 
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
+  auto core = ANN::Core<float>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    ANN::CoreConfig<float> config;
-    config.modeType = ANN::ModeType::TRAIN;
-    config.deviceType = ANN::DeviceType::GPU;
-    config.layersConfig =
-      makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
-    config.trainingConfig.numEpochs = 500;
-    config.trainingConfig.learningRate = 0.1f;
-    config.progressReports = 0;
-    config.numGPUs = 1;
-    config.logLevel = ANN::LogLevel::ERROR;
+  auto out0 = core->predict({1.0f, 0.0f}).output;
+  auto out1 = core->predict({0.0f, 1.0f}).output;
+  auto out2 = core->predict({1.0f, 1.0f}).output;
 
-    auto core = ANN::Core<float>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-
-    auto out0 = core->predict({1.0f, 0.0f}).output;
-    auto out1 = core->predict({0.0f, 1.0f}).output;
-    auto out2 = core->predict({1.0f, 1.0f}).output;
-
-    bool classOk = out0[0] > out0[1] && out0[0] > out0[2] && out1[1] > out1[0] && out1[1] > out1[2] &&
-                   out2[2] > out2[0] && out2[2] > out2[1];
-
-    if (classOk)
-      converged = true;
-  }
-
-  CHECK(converged, "GPU softmax train: converged (5 attempts)");
+  CHECK(out0[0] > out0[1] && out0[0] > out0[2], "GPU softmax train: class 0 dominant");
+  CHECK(out1[1] > out1[0] && out1[1] > out1[2], "GPU softmax train: class 1 dominant");
+  CHECK(out2[2] > out2[0] && out2[2] > out2[1], "GPU softmax train: class 2 dominant");
 }
 
 //===================================================================================================================//

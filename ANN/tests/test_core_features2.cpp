@@ -43,6 +43,8 @@ static void testSoftmaxTrain()
 
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no flaky shuffle order.
+  config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
 
   // One-hot encoded targets

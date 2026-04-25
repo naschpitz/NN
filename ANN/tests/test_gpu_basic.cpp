@@ -9,37 +9,28 @@ static void testGPUTrainSimple()
   // Simple 2→4→1 network trained on GPU with sigmoid
   ANN::Samples<float> samples = {{{1.0f, 1.0f}, {1.0f}}, {{0.0f, 0.0f}, {0.0f}}};
 
-  bool converged = false;
-  ANN::Output<float> p0, p1;
+  ANN::CoreConfig<float> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::GPU;
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
+  config.trainingConfig.numEpochs = 500;
+  config.trainingConfig.learningRate = 0.5f;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.progressReports = 0;
+  config.numGPUs = 1;
+  config.logLevel = ANN::LogLevel::ERROR;
 
-    ANN::CoreConfig<float> config;
-    config.modeType = ANN::ModeType::TRAIN;
-    config.deviceType = ANN::DeviceType::GPU;
-    config.layersConfig = makeLayersConfig(
-      {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+  auto core = ANN::Core<float>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    config.trainingConfig.numEpochs = 500;
-    config.trainingConfig.learningRate = 0.5f;
-    config.progressReports = 0;
-    config.numGPUs = 1;
-    config.logLevel = ANN::LogLevel::ERROR;
-
-    auto core = ANN::Core<float>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-
-    p0 = core->predict({1.0f, 1.0f}).output;
-    p1 = core->predict({0.0f, 0.0f}).output;
-
-    if (p0[0] > 0.7f && p1[0] < 0.3f)
-      converged = true;
-  }
+  ANN::Output<float> p0 = core->predict({1.0f, 1.0f}).output;
+  ANN::Output<float> p1 = core->predict({0.0f, 0.0f}).output;
 
   std::cout << "  high=" << p0[0] << "  low=" << p1[0] << std::endl;
-  CHECK(converged, "GPU train converged (5 attempts)");
+  CHECK(p0[0] > 0.7f, "GPU train: high input > 0.7");
+  CHECK(p1[0] < 0.3f, "GPU train: low input < 0.3");
 }
 
 //===================================================================================================================//
@@ -146,45 +137,31 @@ static void testGPUShuffleSamples()
     config.trainingConfig.numEpochs = 500;
     config.trainingConfig.learningRate = 0.5f;
     config.trainingConfig.shuffleSamples = shuffle;
+    config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
     config.progressReports = 0;
     config.numGPUs = 1;
     config.logLevel = ANN::LogLevel::ERROR;
     return config;
   };
 
-  bool shuffleConverged = false;
+  auto shuffleCore = ANN::Core<float>::makeCore(makeConfig(true));
+  shuffleCore->train(samples.size(), ANN::makeSampleProvider(samples));
+  auto sp0 = shuffleCore->predict({1.0f, 1.0f}).output;
+  auto sp1 = shuffleCore->predict({0.0f, 0.0f}).output;
 
-  for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
-    auto core = ANN::Core<float>::makeCore(makeConfig(true));
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto p0 = core->predict({1.0f, 1.0f}).output;
-    auto p1 = core->predict({0.0f, 0.0f}).output;
+  CHECK(sp0[0] > 0.7f, "GPU shuffle=true: (1,1) ≈ 1");
+  CHECK(sp1[0] < 0.3f, "GPU shuffle=true: (0,0) ≈ 0");
 
-    if (p0[0] > 0.7f && p1[0] < 0.3f)
-      shuffleConverged = true;
-  }
+  auto noShuffleCore = ANN::Core<float>::makeCore(makeConfig(false));
+  noShuffleCore->train(samples.size(), ANN::makeSampleProvider(samples));
+  auto np0 = noShuffleCore->predict({1.0f, 1.0f}).output;
+  auto np1 = noShuffleCore->predict({0.0f, 0.0f}).output;
 
-  CHECK(shuffleConverged, "GPU shuffle=true converged (5 attempts)");
+  CHECK(np0[0] > 0.7f, "GPU shuffle=false: (1,1) ≈ 1");
+  CHECK(np1[0] < 0.3f, "GPU shuffle=false: (0,0) ≈ 0");
 
-  bool noShuffleConverged = false;
-
-  for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
-    auto core = ANN::Core<float>::makeCore(makeConfig(false));
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto p0 = core->predict({1.0f, 1.0f}).output;
-    auto p1 = core->predict({0.0f, 0.0f}).output;
-
-    if (p0[0] > 0.7f && p1[0] < 0.3f)
-      noShuffleConverged = true;
-  }
-
-  CHECK(noShuffleConverged, "GPU shuffle=false converged (5 attempts)");
-
-  std::cout << "  shuffle=true: " << shuffleConverged << "  shuffle=false: " << noShuffleConverged << std::endl;
+  std::cout << "  shuffle=true: high=" << sp0[0] << " low=" << sp1[0] << "  shuffle=false: high=" << np0[0]
+            << " low=" << np1[0] << std::endl;
 }
 
 //===================================================================================================================//

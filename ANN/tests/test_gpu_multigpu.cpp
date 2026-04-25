@@ -16,6 +16,7 @@ static void testMultiGPUTrainSimple()
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5f;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 2;
   config.logLevel = ANN::LogLevel::ERROR;
@@ -23,21 +24,13 @@ static void testMultiGPUTrainSimple()
   ANN::Samples<float> samples = {
     {{0.0f, 0.0f}, {0.0f}}, {{1.0f, 0.0f}, {1.0f}}, {{0.0f, 1.0f}, {1.0f}}, {{1.0f, 1.0f}, {0.0f}}};
 
-  bool converged = false;
+  auto core = ANN::Core<float>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
+  auto high = core->predict({1.0f, 0.0f}).output[0];
+  auto low = core->predict({0.0f, 0.0f}).output[0];
 
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
-    auto core = ANN::Core<float>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto high = core->predict({1.0f, 0.0f}).output[0];
-    auto low = core->predict({0.0f, 0.0f}).output[0];
-
-    if (high > 0.5f && low < 0.5f)
-      converged = true;
-  }
-
-  CHECK(converged, "multi-GPU train converged (5 attempts)");
+  CHECK(high > 0.5f, "multi-GPU train: (1,0) > 0.5");
+  CHECK(low < 0.5f, "multi-GPU train: (0,0) < 0.5");
 }
 
 //===================================================================================================================//
@@ -120,38 +113,27 @@ static void testMultiGPUCrossEntropyTraining()
   ANN::Samples<float> samples = {
     {{1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}}};
 
-  bool converged = false;
+  ANN::CoreConfig<float> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::GPU;
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
+  config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
+  config.trainingConfig.numEpochs = 500;
+  config.trainingConfig.learningRate = 0.1f;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.progressReports = 0;
+  config.numGPUs = 2;
+  config.logLevel = ANN::LogLevel::ERROR;
 
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
+  auto core = ANN::Core<float>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    ANN::CoreConfig<float> config;
-    config.modeType = ANN::ModeType::TRAIN;
-    config.deviceType = ANN::DeviceType::GPU;
-    config.layersConfig =
-      makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
-    config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
-    config.trainingConfig.numEpochs = 500;
-    config.trainingConfig.learningRate = 0.1f;
-    config.progressReports = 0;
-    config.numGPUs = 2;
-    config.logLevel = ANN::LogLevel::ERROR;
+  auto out0 = core->predict({1.0f, 0.0f}).output;
+  float sum0 = out0[0] + out0[1] + out0[2];
 
-    auto core = ANN::Core<float>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-
-    auto out0 = core->predict({1.0f, 0.0f}).output;
-    float sum0 = out0[0] + out0[1] + out0[2];
-
-    bool sumsOk = std::fabs(sum0 - 1.0f) < 0.01f;
-    bool classOk = out0[0] > out0[1] && out0[0] > out0[2];
-
-    if (sumsOk && classOk)
-      converged = true;
-  }
-
-  CHECK(converged, "multi-GPU cross-entropy converged (5 attempts)");
+  CHECK_NEAR(sum0, 1.0f, 0.01f, "multi-GPU CE: out0 sums to 1");
+  CHECK(out0[0] > out0[1] && out0[0] > out0[2], "multi-GPU CE: class 0 dominant");
 }
 
 //===================================================================================================================//

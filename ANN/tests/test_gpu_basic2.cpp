@@ -8,46 +8,36 @@ static void testGPUCrossEntropyTraining()
   ANN::Samples<float> samples = {
     {{1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}}};
 
-  bool converged = false;
+  ANN::CoreConfig<float> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::GPU;
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
 
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
+  config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
+  config.trainingConfig.numEpochs = 500;
+  config.trainingConfig.learningRate = 0.1f;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.progressReports = 0;
+  config.numGPUs = 1;
+  config.logLevel = ANN::LogLevel::ERROR;
 
-    ANN::CoreConfig<float> config;
-    config.modeType = ANN::ModeType::TRAIN;
-    config.deviceType = ANN::DeviceType::GPU;
-    config.layersConfig =
-      makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
+  auto core = ANN::Core<float>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
-    config.trainingConfig.numEpochs = 500;
-    config.trainingConfig.learningRate = 0.1f;
-    config.progressReports = 0;
-    config.numGPUs = 1;
-    config.logLevel = ANN::LogLevel::ERROR;
+  auto out0 = core->predict({1.0f, 0.0f}).output;
+  auto out1 = core->predict({0.0f, 1.0f}).output;
+  auto out2 = core->predict({1.0f, 1.0f}).output;
 
-    auto core = ANN::Core<float>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
+  // Softmax outputs should sum to 1
+  CHECK_NEAR(out0[0] + out0[1] + out0[2], 1.0f, 0.01f, "GPU CE+softmax: out0 sums to 1");
+  CHECK_NEAR(out1[0] + out1[1] + out1[2], 1.0f, 0.01f, "GPU CE+softmax: out1 sums to 1");
+  CHECK_NEAR(out2[0] + out2[1] + out2[2], 1.0f, 0.01f, "GPU CE+softmax: out2 sums to 1");
 
-    auto out0 = core->predict({1.0f, 0.0f}).output;
-    auto out1 = core->predict({0.0f, 1.0f}).output;
-    auto out2 = core->predict({1.0f, 1.0f}).output;
-
-    // Softmax outputs should sum to 1
-    bool sumsOk = std::fabs(out0[0] + out0[1] + out0[2] - 1.0f) < 0.01f &&
-                  std::fabs(out1[0] + out1[1] + out1[2] - 1.0f) < 0.01f &&
-                  std::fabs(out2[0] + out2[1] + out2[2] - 1.0f) < 0.01f;
-
-    // Correct class should have highest probability
-    bool classOk = out0[0] > out0[1] && out0[0] > out0[2] && out1[1] > out1[0] && out1[1] > out1[2] &&
-                   out2[2] > out2[0] && out2[2] > out2[1];
-
-    if (sumsOk && classOk)
-      converged = true;
-  }
-
-  CHECK(converged, "GPU cross-entropy + softmax converged (5 attempts)");
+  // Correct class should have highest probability
+  CHECK(out0[0] > out0[1] && out0[0] > out0[2], "GPU CE+softmax: class 0 dominant");
+  CHECK(out1[1] > out1[0] && out1[1] > out1[2], "GPU CE+softmax: class 1 dominant");
+  CHECK(out2[2] > out2[0] && out2[2] > out2[1], "GPU CE+softmax: class 2 dominant");
 }
 
 //===================================================================================================================//

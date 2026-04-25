@@ -82,6 +82,8 @@ static void testCrossEntropyTraining()
   config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
   config.logLevel = ANN::LogLevel::ERROR;
 
@@ -92,32 +94,22 @@ static void testCrossEntropyTraining()
     {{1.0, 1.0}, {0.0, 0.0, 1.0}} // class 2
   };
 
-  bool converged = false;
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
+  auto out0 = core->predict({1.0, 0.0}).output;
+  auto out1 = core->predict({0.0, 1.0}).output;
+  auto out2 = core->predict({1.0, 1.0}).output;
 
-    auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
+  // Each output should sum to 1 (softmax)
+  CHECK_NEAR(out0[0] + out0[1] + out0[2], 1.0, 1e-5, "CE+softmax: out0 sums to 1");
+  CHECK_NEAR(out1[0] + out1[1] + out1[2], 1.0, 1e-5, "CE+softmax: out1 sums to 1");
+  CHECK_NEAR(out2[0] + out2[1] + out2[2], 1.0, 1e-5, "CE+softmax: out2 sums to 1");
 
-    auto out0 = core->predict({1.0, 0.0}).output;
-    auto out1 = core->predict({0.0, 1.0}).output;
-    auto out2 = core->predict({1.0, 1.0}).output;
-
-    // Each output should sum to 1 (softmax)
-    bool sumsOk = std::fabs(out0[0] + out0[1] + out0[2] - 1.0) < 1e-5 &&
-                  std::fabs(out1[0] + out1[1] + out1[2] - 1.0) < 1e-5 &&
-                  std::fabs(out2[0] + out2[1] + out2[2] - 1.0) < 1e-5;
-
-    // Correct class should have highest probability with > 0.5 confidence
-    bool classOk = out0[0] > 0.5 && out1[1] > 0.5 && out2[2] > 0.5;
-
-    if (sumsOk && classOk)
-      converged = true;
-  }
-
-  CHECK(converged, "cross-entropy + softmax converged (5 attempts)");
+  // Correct class should have highest probability with > 0.5 confidence
+  CHECK(out0[0] > 0.5, "CE+softmax: class 0 confidence > 0.5");
+  CHECK(out1[1] > 0.5, "CE+softmax: class 1 confidence > 0.5");
+  CHECK(out2[2] > 0.5, "CE+softmax: class 2 confidence > 0.5");
 }
 
 //===================================================================================================================//
@@ -136,6 +128,8 @@ static void testCrossEntropyLossDecreases()
   config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 50;
   config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no flaky shuffle order.
+  config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
   config.logLevel = ANN::LogLevel::ERROR;
 

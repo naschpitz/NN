@@ -84,10 +84,9 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
     for (ulong i = 0; i < batchN; i++)
       indices[i] = i;
 
-    QtConcurrent::blockingMap(indices, [&, numThreads](ulong idx) {
-      thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
-      CoreCPUWorker<T>& worker = *workerPtrs[workerIndex];
-
+    // See the comment in train() — numThreads=1 takes the serial path because
+    // QtConcurrent's pool has many OS threads and would race on worker[0].
+    auto processInput = [&](ulong idx, CoreCPUWorker<T>& worker) {
       worker.propagate(batch[idx]);
       batchResults[idx].output = worker.getOutput();
       batchResults[idx].logits = worker.getOutputLogits();
@@ -96,7 +95,17 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
 
       if (this->progressCallback)
         this->progressCallback(completed, numSamples);
-    });
+    };
+
+    if (numThreads == 1) {
+      for (ulong idx : indices)
+        processInput(idx, *workerPtrs[0]);
+    } else {
+      QtConcurrent::blockingMap(indices, [&, numThreads](ulong idx) {
+        thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+        processInput(idx, *workerPtrs[workerIndex]);
+      });
+    }
 
     for (auto& r : batchResults)
       results.push_back(std::move(r));
@@ -114,11 +123,17 @@ PredictResult<T> CoreCPU<T>::predict(const Input<T>& input)
 {
   // Direct single-input predict using stepWorker — avoids QtConcurrent::blockingMap
   // to prevent deadlocks when called from inside another blockingMap (e.g., CNN training).
+  // We still record predictMetadata so getPredictMetadata() returns timing info on
+  // every code path, matching the streaming overload's behaviour.
+  this->predictStart();
+
   this->stepWorker->propagate(input);
 
   PredictResult<T> result;
   result.output = this->stepWorker->getOutput();
   result.logits = this->stepWorker->getOutputLogits();
+
+  this->predictEnd();
   return result;
 }
 
@@ -171,7 +186,8 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   // Sample index indirection for shuffling
   std::vector<ulong> sampleIndices(numSamples);
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
-  std::mt19937 rng(std::random_device{}());
+  // Reproducible when trainingConfig.shuffleSeed != 0; non-deterministic otherwise.
+  std::mt19937 rng(this->trainingConfig.shuffleSeed != 0 ? this->trainingConfig.shuffleSeed : std::random_device{}());
 
   // Create training monitor if monitoring is enabled
   const MonitoringConfig& monitoringConfig = this->trainingConfig.monitoringConfig;
@@ -215,28 +231,32 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       QVector<ulong> localIndices(currentBatchSize);
       std::iota(localIndices.begin(), localIndices.end(), 0);
 
-      QtConcurrent::blockingMap(localIndices, [&, numThreads](ulong localIdx) {
-        // Each thread gets a unique worker index on first use (thread_local persists for thread lifetime)
-        thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
-        CoreCPUWorker<T>& worker = *workers[workerIndex];
-
-        // Process the sample
+      // numThreads=1 takes a sequential path — QtConcurrent's pool has many OS
+      // threads, all of which would land on worker[0] under the modulo, racing
+      // on its accumulators. The serial path is also bit-deterministic, which
+      // is what tests rely on when they set shuffleSeed and numThreads=1.
+      auto processSample = [&](ulong localIdx, CoreCPUWorker<T>& worker) {
         const Sample<T>& sample = batchSamples[localIdx];
         worker.propagate(sample.input, true);
         T sampleLoss = worker.computeLoss(sample.output);
-
         worker.backpropagate(sample.output);
-
-        // Accumulate loss to worker's local accumulator (no atomic needed - each thread has its own worker)
         worker.addToAccumLoss(sampleLoss);
-
-        // Accumulate gradients to worker's local accumulators (no mutex needed)
         worker.accumulate();
 
-        // Increment completed samples counter and report progress
         ulong completed = ++completedSamples;
         this->reportProgress(e + 1, numEpochs, completed, numSamples, sampleLoss, 0, callbackMutex);
-      });
+      };
+
+      if (numThreads == 1) {
+        for (ulong localIdx : localIndices)
+          processSample(localIdx, *workers[0]);
+      } else {
+        QtConcurrent::blockingMap(localIndices, [&, numThreads](ulong localIdx) {
+          // Each thread gets a unique worker index on first use (thread_local persists for thread lifetime)
+          thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+          processSample(localIdx, *workers[workerIndex]);
+        });
+      }
 
       // Merge all worker accumulators into global accumulators
       for (int i = 0; i < numThreads; i++) {
@@ -345,8 +365,9 @@ TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
       batchIndices[i] = i;
     }
 
-    QtConcurrent::blockingMap(batchIndices, [&, numThreads, numLayers](ulong idx) {
-      thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+    // See train()'s comment — numThreads=1 takes the serial path because
+    // QtConcurrent's pool has many OS threads and would race on worker[0].
+    auto processTestSample = [&, numLayers](ulong idx, int workerIndex) {
       CoreCPUWorker<T>& worker = *workers[workerIndex];
 
       const Sample<T>& sample = batch[idx];
@@ -361,7 +382,17 @@ TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
 
       if (predIdx == expIdx)
         workerCorrects[workerIndex]++;
-    });
+    };
+
+    if (numThreads == 1) {
+      for (ulong idx : batchIndices)
+        processTestSample(idx, 0);
+    } else {
+      QtConcurrent::blockingMap(batchIndices, [&, numThreads](ulong idx) {
+        thread_local int workerIndex = nextWorkerIndex.fetch_add(1) % numThreads;
+        processTestSample(idx, workerIndex);
+      });
+    }
 
     for (int i = 0; i < numThreads; i++) {
       totalLoss += workerLosses[i];

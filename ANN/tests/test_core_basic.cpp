@@ -54,40 +54,37 @@ static void testTrainXOR()
 
   ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{0.0, 1.0}, {1.0}}, {{1.0, 0.0}, {1.0}}, {{1.0, 1.0}, {0.0}}};
 
-  bool converged = false;
-  ANN::Output<double> p00, p01, p10, p11;
+  ANN::CoreConfig<double> config;
+  config.modeType = ANN::ModeType::TRAIN;
+  config.deviceType = ANN::DeviceType::CPU;
+  // Bigger hidden layer (8 RELUs) + Adam — combination known to converge XOR
+  // robustly. SGD on a 4-unit hidden layer with deterministic init was prone
+  // to saddles; the test was concealing it with a 5-attempt retry loop.
+  config.layersConfig =
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {8, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
+  config.trainingConfig.numEpochs = 3000;
+  config.trainingConfig.learningRate = 0.05;
+  config.trainingConfig.optimizer.type = ANN::OptimizerType::ADAM;
+  config.trainingConfig.shuffleSeed = 42; // Fully deterministic.
+  config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
+  config.progressReports = 0;
+  config.logLevel = ANN::LogLevel::ERROR;
 
-    ANN::CoreConfig<double> config;
-    config.modeType = ANN::ModeType::TRAIN;
-    config.deviceType = ANN::DeviceType::CPU;
-    config.layersConfig =
-      makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    config.trainingConfig.numEpochs = 2000;
-    config.trainingConfig.learningRate = 0.1;
-    config.progressReports = 0;
-    config.logLevel = ANN::LogLevel::ERROR;
-
-    auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
-
-    p00 = core->predict({0.0, 0.0}).output;
-    p01 = core->predict({0.0, 1.0}).output;
-    p10 = core->predict({1.0, 0.0}).output;
-    p11 = core->predict({1.0, 1.0}).output;
-
-    if (p00[0] < 0.3 && p01[0] > 0.7 && p10[0] > 0.7 && p11[0] < 0.3) {
-      converged = true;
-    }
-  }
+  ANN::Output<double> p00 = core->predict({0.0, 0.0}).output;
+  ANN::Output<double> p01 = core->predict({0.0, 1.0}).output;
+  ANN::Output<double> p10 = core->predict({1.0, 0.0}).output;
+  ANN::Output<double> p11 = core->predict({1.0, 1.0}).output;
 
   std::cout << "  XOR: [0,0]=" << p00[0] << " [0,1]=" << p01[0] << " [1,0]=" << p10[0] << " [1,1]=" << p11[0]
             << std::endl;
-  CHECK(converged, "XOR converged (5 attempts)");
+  CHECK(p00[0] < 0.3, "XOR(0,0) ≈ 0");
+  CHECK(p01[0] > 0.7, "XOR(0,1) ≈ 1");
+  CHECK(p10[0] > 0.7, "XOR(1,0) ≈ 1");
+  CHECK(p11[0] < 0.3, "XOR(1,1) ≈ 0");
 }
 
 //===================================================================================================================//
@@ -358,44 +355,38 @@ static void testBatchPredictAfterTraining()
   ANN::CoreConfig<double> config;
   config.modeType = ANN::ModeType::TRAIN;
   config.deviceType = ANN::DeviceType::CPU;
+  // Same robust config as testTrainXOR: 8-unit hidden + Adam + fixed shuffle.
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {8, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 2000;
-  config.trainingConfig.learningRate = 0.1;
+  config.trainingConfig.numEpochs = 3000;
+  config.trainingConfig.learningRate = 0.05;
+  config.trainingConfig.optimizer.type = ANN::OptimizerType::ADAM;
+  config.trainingConfig.shuffleSeed = 42;
+  config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
   config.logLevel = ANN::LogLevel::ERROR;
 
-  bool converged = false;
-  ANN::PredictResults<double> results;
+  auto core = ANN::Core<double>::makeCore(config);
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
-    if (attempt > 0)
-      std::cout << "  retry #" << attempt << std::endl;
+  ANN::Inputs<double> inputs = {{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}};
+  auto sliceProvider = [&inputs](ulong batchSize, ulong batchIndex) {
+    ulong start = batchIndex * batchSize;
+    ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
 
-    auto core = ANN::Core<double>::makeCore(config);
-    core->train(samples.size(), ANN::makeSampleProvider(samples));
+    if (start >= end)
+      return ANN::Inputs<double>{};
+    return ANN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
+  };
 
-    // Batch predict all 4 XOR inputs via a slice-and-yield provider.
-    ANN::Inputs<double> inputs = {{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}};
-    auto sliceProvider = [&inputs](ulong batchSize, ulong batchIndex) {
-      ulong start = batchIndex * batchSize;
-      ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
-
-      if (start >= end)
-        return ANN::Inputs<double>{};
-      return ANN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
-    };
-
-    results = core->predict(inputs.size(), sliceProvider);
-
-    if (results[0].output[0] < 0.5 && results[1].output[0] > 0.5 && results[2].output[0] > 0.5 &&
-        results[3].output[0] < 0.5)
-      converged = true;
-  }
+  ANN::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
 
   CHECK(results.size() == 4, "batch predict returns 4 outputs");
-  CHECK(converged, "XOR batch predict converged (5 attempts)");
+  CHECK(results[0].output[0] < 0.5, "XOR(0,0) ≈ 0");
+  CHECK(results[1].output[0] > 0.5, "XOR(0,1) ≈ 1");
+  CHECK(results[2].output[0] > 0.5, "XOR(1,0) ≈ 1");
+  CHECK(results[3].output[0] < 0.5, "XOR(1,1) ≈ 0");
 }
 
 //===================================================================================================================//
