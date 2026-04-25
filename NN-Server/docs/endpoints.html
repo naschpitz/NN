@@ -87,7 +87,8 @@ Content-Type: application/json
 <pre><code>Content-Type: application/json
 
 {
-  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.01</span>, <span class="number">0.02</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.00</span>]
+  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.01</span>, <span class="number">0.02</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.00</span>],
+  <span class="string">"logits"</span>: [<span class="number">-2.10</span>, <span class="number">1.65</span>, <span class="number">-2.93</span>, <span class="number">-1.85</span>, <span class="number">-2.84</span>, <span class="number">-2.91</span>, <span class="number">-2.20</span>, <span class="number">-2.95</span>, <span class="number">-1.83</span>, <span class="number">-2.97</span>, <span class="number">-3.40</span>]
 }</code></pre>
 
 <h4>curl example</h4>
@@ -97,6 +98,10 @@ Content-Type: application/json
 
 <div class="info-box">
 <strong>Input size:</strong> For ANN models, the array length must match the first layer's <code>numNeurons</code>. For CNN models, it must equal <code>C × H × W</code> from the model's <code>inputShape</code>.
+</div>
+
+<div class="info-box">
+<strong>output vs logits:</strong> <code>output</code> holds the post-activation values of the last layer (e.g. softmax probabilities). <code>logits</code> holds the pre-activation values <code>z</code> that feed the final activation. Softmax is shift-invariant — <code>softmax(z) = softmax(z + c)</code> — so it discards magnitude information; two very different logit vectors can yield the same probabilities. Exposing logits lets clients compute calibration / out-of-distribution detection scores: <em>max-logit</em> <code>max(zᵢ)</code>, <em>logit-norm</em> <code>‖z‖</code>, and the <em>free-energy</em> score <code>E(x) = −log Σ exp(zᵢ)</code> (lower = more in-distribution). Argmax of <code>logits</code> always equals argmax of softmax <code>output</code>, so existing class-prediction code keeps working.
 </div>
 
 <h3>Image Input — <code>Content-Type: image/*</code></h3>
@@ -113,11 +118,12 @@ Content-Length: 32451
 <pre><code>Content-Type: application/json
 
 {
-  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, <span class="number">0.12</span>]
+  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, <span class="number">0.12</span>],
+  <span class="string">"logits"</span>: [<span class="number">-2.10</span>, <span class="number">1.65</span>, <span class="number">-2.93</span>, <span class="number">-0.16</span>]
 }</code></pre>
 
 <h4>Response — <code>200 OK</code> (Image output)</h4>
-<p>When the model's <code>"outputType"</code> is <code>"image"</code>, the response is a PNG image instead:</p>
+<p>When the model's <code>"outputType"</code> is <code>"image"</code>, the response is a PNG image instead. Logits are not emitted for image-output models (they aren't meaningful in that context).</p>
 <pre><code>Content-Type: image/png
 
 <span class="comment">&lt;raw PNG bytes&gt;</span></code></pre>

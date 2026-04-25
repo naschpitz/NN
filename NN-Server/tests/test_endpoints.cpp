@@ -266,9 +266,12 @@ static void testPredictImageSingle()
 
   nlohmann::json body = nlohmann::json::parse(resp.body.toStdString());
   CHECK(body.contains("output") && body["output"].is_array(), "image_single: has output array");
+  CHECK(body.contains("logits") && body["logits"].is_array(), "image_single: has logits array");
 
   auto output = body["output"].get<std::vector<float>>();
+  auto logits = body["logits"].get<std::vector<float>>();
   CHECK(static_cast<int>(output.size()) == NUM_OUTPUT, "image_single: output length == " + std::to_string(NUM_OUTPUT));
+  CHECK(logits.size() == output.size(), "image_single: logits length matches output");
 
   // Softmax outputs should sum to ~1.0
   float total = 0.0f;
@@ -276,6 +279,19 @@ static void testPredictImageSingle()
   for (float v : output)
     total += v;
   CHECK_NEAR(total, 1.0f, 0.01f, "image_single: softmax sums to ~1.0");
+
+  // Argmax of logits and softmax outputs must agree (softmax preserves ranking).
+  size_t argmaxOutput = 0;
+  size_t argmaxLogits = 0;
+
+  for (size_t i = 1; i < output.size(); ++i) {
+    if (output[i] > output[argmaxOutput])
+      argmaxOutput = i;
+    if (logits[i] > logits[argmaxLogits])
+      argmaxLogits = i;
+  }
+
+  CHECK(argmaxOutput == argmaxLogits, "image_single: argmax(output) == argmax(logits)");
 
   std::cout << std::endl;
 }

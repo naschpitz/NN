@@ -34,13 +34,22 @@ namespace NN_Server
 
       static std::string getHeader(const QByteArray& headers, const std::string& name);
 
+      // Predict result: post-activation output and pre-activation (z) logits
+      // of the dense head's last layer. Logits enable OOD-detection scores
+      // (max-logit, logit-norm, free-energy) that softmax discards.
+      struct PredictionResult
+      {
+          std::vector<float> output;
+          std::vector<float> logits;
+      };
+
       int processJsonPredict(QTcpSocket& socket, const QByteArray& body);
       int processImagePredict(QTcpSocket& socket, const QByteArray& imageData);
 
-      std::vector<float> runPrediction(const std::vector<float>& flatInput);
+      PredictionResult runPrediction(const std::vector<float>& flatInput);
       std::vector<float> decodeImageInput(const QByteArray& imageData);
 
-      void sendPredictResponse(QTcpSocket& socket, const std::vector<float>& output);
+      void sendPredictResponse(QTcpSocket& socket, const PredictionResult& result);
       static void sendJsonResponse(QTcpSocket& socket, int statusCode, const std::string& body);
       static void sendBinaryResponse(QTcpSocket& socket, int statusCode, const std::string& contentType,
                                      const std::vector<unsigned char>& body);

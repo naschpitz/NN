@@ -92,10 +92,15 @@
     <span class="number">0.0021</span>,   <span class="comment">// class 8</span>
     <span class="number">0.0098</span>,   <span class="comment">// class 9</span>
     <span class="number">0.0051</span>    <span class="comment">// class 10</span>
+  ],
+  <span class="string">"logits"</span>: [
+    <span class="number">-3.10</span>, <span class="number">-3.83</span>, <span class="number">-4.14</span>, <span class="number">2.91</span>, <span class="number">-1.61</span>,
+    <span class="number">-2.80</span>, <span class="number">-2.43</span>, <span class="number">-0.95</span>, <span class="number">-3.16</span>, <span class="number">-1.69</span>, <span class="number">-2.34</span>
   ]
 }
 </code></pre>
-<p>The model predicts class 3 with 94.1% confidence. The image is automatically resized to the model's input shape (3×450×600 for this model).</p>
+<p>The model predicts class 3 with 94.1% confidence. Its logit (<code>2.91</code>) is significantly above the rest, confirming a confident in-distribution prediction. The image is automatically resized to the model's input shape (3×450×600 for this model).</p>
+<p>To detect out-of-distribution inputs, compute the <strong>free-energy</strong> score from <code>logits</code>: <code>E(x) = −log Σ exp(zᵢ)</code>. For this response <code>E ≈ −2.92</code> — strongly negative, indicating in-distribution. Black or noise inputs typically yield <code>E &gt;&gt; 0</code> with all logits clustered tightly together regardless of how confident softmax appears.</p>
 
 <h2 id="json-prediction">2. JSON Input Prediction (ANN)</h2>
 <p>For dense (ANN) models or when you want to provide pre-processed input directly:</p>
@@ -118,7 +123,8 @@
 
 <h3>Response</h3>
 <pre><code>{
-  <span class="string">"output"</span>: [<span class="number">0.23</span>, <span class="number">0.77</span>]
+  <span class="string">"output"</span>: [<span class="number">0.23</span>, <span class="number">0.77</span>],
+  <span class="string">"logits"</span>: [<span class="number">-0.62</span>, <span class="number">0.59</span>]
 }
 </code></pre>
 

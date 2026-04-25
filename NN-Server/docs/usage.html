@@ -128,8 +128,10 @@ Content-Type: application/json
 
 <h3>Response — <code>200 OK</code></h3>
 <pre><code>{
-  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.01</span>, <span class="number">0.02</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.00</span>]
+  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.01</span>, <span class="number">0.02</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.00</span>],
+  <span class="string">"logits"</span>: [<span class="number">-2.10</span>, <span class="number">1.65</span>, <span class="number">-2.93</span>, <span class="number">-1.85</span>, <span class="number">-2.84</span>, <span class="number">-2.91</span>, <span class="number">-2.20</span>, <span class="number">-2.95</span>, <span class="number">-1.83</span>, <span class="number">-2.97</span>, <span class="number">-3.40</span>]
 }</code></pre>
+<p>See <a href="#output-format">Output Formats</a> below for details on <code>logits</code>.</p>
 
 <h2 id="predict-image">4. Predict with Image Input</h2>
 <p>Send raw image bytes (JPEG, PNG, BMP, etc.) directly. The server decodes the image, resizes it to the model's <code>inputShape</code>, normalises pixel values to [0, 1], and converts to NCHW layout.</p>
@@ -153,16 +155,24 @@ Content-Length: 32451
 <h2 id="output-format">5. Output Formats</h2>
 
 <h3>JSON Output (default)</h3>
-<p>When the model's <code>"outputType"</code> is <code>"vector"</code> (or absent), predictions are returned as a JSON array:</p>
+<p>When the model's <code>"outputType"</code> is <code>"vector"</code> (or absent), predictions are returned as a JSON object with two parallel arrays:</p>
 <pre><code>Content-Type: application/json
 
 {
-  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, ...]
+  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, ...],
+  <span class="string">"logits"</span>: [<span class="number">-2.10</span>, <span class="number">1.65</span>, <span class="number">-2.93</span>, ...]
 }</code></pre>
-<p>For classification models with softmax output, the values sum to approximately 1.0 and represent class probabilities.</p>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td><code>output</code></td><td>Post-activation values of the last layer (e.g. softmax probabilities — sum to ≈1.0 for classification)</td></tr>
+  <tr><td><code>logits</code></td><td>Pre-activation values <code>z</code> of the last layer — input to the final activation function</td></tr>
+</table>
+<div class="info-box">
+<strong>Why logits?</strong> Softmax is shift-invariant — <code>softmax(z) = softmax(z + c)</code> — so it discards magnitude information. Two very different logit vectors can produce the same softmax probabilities (e.g. <code>[-50, 50]</code> and <code>[-0.2, 0.4]</code> both map to ~<code>[0, 1]</code>), but only the first reflects a confident decision. Exposing logits lets clients compute calibration and out-of-distribution scores: <em>max-logit</em> <code>max(zᵢ)</code>, <em>logit-norm</em> <code>‖z‖</code>, and the <em>free-energy</em> score <code>E(x) = −log Σ exp(zᵢ)</code> (lower = more in-distribution). Argmax of <code>logits</code> always equals argmax of softmax <code>output</code>, so existing class-prediction code keeps working unchanged.
+</div>
 
 <h3>Image Output</h3>
-<p>When the model's <code>"outputType"</code> is <code>"image"</code>, the <code>"outputShape"</code> field is required. The output vector is reconstructed into a PNG image using that shape:</p>
+<p>When the model's <code>"outputType"</code> is <code>"image"</code>, the <code>"outputShape"</code> field is required. The output vector is reconstructed into a PNG image using that shape (logits are not emitted for image-output models — they are not meaningful in that context):</p>
 <pre><code>Content-Type: image/png
 
 <span class="comment">&lt;raw PNG bytes&gt;</span></code></pre>

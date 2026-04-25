@@ -261,8 +261,8 @@ namespace NN_Server
     }
 
     try {
-      std::vector<float> output = runPrediction(inputJson.at("input").get<std::vector<float>>());
-      sendPredictResponse(socket, output);
+      PredictionResult result = runPrediction(inputJson.at("input").get<std::vector<float>>());
+      sendPredictResponse(socket, result);
       return 200;
     } catch (const std::exception& e) {
       std::string msg = "{\"error\":\"Prediction failed: " + std::string(e.what()) + "\"}";
@@ -277,8 +277,8 @@ namespace NN_Server
   {
     try {
       std::vector<float> inputVec = decodeImageInput(imageData);
-      std::vector<float> output = runPrediction(inputVec);
-      sendPredictResponse(socket, output);
+      PredictionResult result = runPrediction(inputVec);
+      sendPredictResponse(socket, result);
       return 200;
     } catch (const std::exception& e) {
       std::string msg = "{\"error\":\"Prediction failed: " + std::string(e.what()) + "\"}";
@@ -289,15 +289,17 @@ namespace NN_Server
 
   //===================================================================================================================//
 
-  std::vector<float> RequestHandler::runPrediction(const std::vector<float>& flatInput)
+  RequestHandler::PredictionResult RequestHandler::runPrediction(const std::vector<float>& flatInput)
   {
     CoreHandle handle = this->corePool->acquire();
 
     try {
-      std::vector<float> output;
+      PredictionResult result;
 
       if (this->corePool->networkType() == NetworkType::ANN) {
-        output = handle.annCore->predict(flatInput);
+        ANN::PredictResult<float> annResult = handle.annCore->predict(flatInput);
+        result.output = std::move(annResult.output);
+        result.logits = std::move(annResult.logits);
       } else {
         const CNN::Shape3D& shape = handle.cnnCore->getInputShape();
 
@@ -310,11 +312,13 @@ namespace NN_Server
 
         CNN::Input<float> input(shape);
         input.data = flatInput;
-        output = handle.cnnCore->predict(input);
+        CNN::PredictResult<float> cnnResult = handle.cnnCore->predict(input);
+        result.output = std::move(cnnResult.output);
+        result.logits = std::move(cnnResult.logits);
       }
 
       this->corePool->release(handle);
-      return output;
+      return result;
     } catch (...) {
       this->corePool->release(handle);
       throw;
@@ -342,17 +346,19 @@ namespace NN_Server
 
   //===================================================================================================================//
 
-  void RequestHandler::sendPredictResponse(QTcpSocket& socket, const std::vector<float>& output)
+  void RequestHandler::sendPredictResponse(QTcpSocket& socket, const PredictionResult& result)
   {
     const OutputConfig& outCfg = this->corePool->outputConfig();
 
     if (outCfg.isImage && outCfg.hasShape()) {
+      // Image output (e.g. autoencoder): logits are not meaningful, return PNG only.
       std::vector<unsigned char> pngData = ImageLoader::saveImageToMemory(
-        output, static_cast<int>(outCfg.c), static_cast<int>(outCfg.h), static_cast<int>(outCfg.w));
+        result.output, static_cast<int>(outCfg.c), static_cast<int>(outCfg.h), static_cast<int>(outCfg.w));
       sendBinaryResponse(socket, 200, "image/png", pngData);
     } else {
       nlohmann::json outputJson;
-      outputJson["output"] = output;
+      outputJson["output"] = result.output;
+      outputJson["logits"] = result.logits;
       sendJsonResponse(socket, 200, outputJson.dump());
     }
   }
