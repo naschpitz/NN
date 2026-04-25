@@ -91,3 +91,10 @@ examples/ISIC-MILK10k/
 # ---------------------------------------------
 tests/fixtures/output/
 examples/ISIC-2020/
+
+# Calibration OOD datasets (downloaded on demand)
+extern-datasets/
+
+# Calibration intermediate files (paths are user-specific, regenerable)
+**/calibration-*-inputs.json
+**/calibration-*-predict.json
