@@ -16,28 +16,28 @@ namespace ANN
 
   class ActvFunc
   {
-  public:
-    static ActvFuncType nameToType(const std::string& name);
-    static std::string typeToName(const ActvFuncType& actvFuncType);
+    public:
+      static ActvFuncType nameToType(const std::string& name);
+      static std::string typeToName(const ActvFuncType& actvFuncType);
 
-    // Per-neuron (relu, sigmoid, tanh)
-    static float calculate(float x, ActvFuncType type, bool derivative = false);
+      // Per-neuron (relu, sigmoid, tanh)
+      static float calculate(float x, ActvFuncType type, bool derivative = false);
 
-    // Layer-wide (all types including softmax)
-    // Forward  (derivative=false): reads zs, writes actvs. dCost_dActvs and dCost_dZs unused.
-    // Backward (derivative=true) : reads zs, actvs, dCost_dActvs, writes dCost_dZs.
-    template <typename T>
-    static void calculate(const T* zs, T* actvs, unsigned long numNeurons, ActvFuncType type, bool derivative,
-                          const T* dCost_dActvs = nullptr, T* dCost_dZs = nullptr);
+      // Layer-wide (all types including softmax)
+      // Forward  (derivative=false): reads zs, writes actvs. dCost_dActvs and dCost_dZs unused.
+      // Backward (derivative=true) : reads zs, actvs, dCost_dActvs, writes dCost_dZs.
+      template <typename T>
+      static void calculate(const T* zs, T* actvs, unsigned long numNeurons, ActvFuncType type, bool derivative,
+                            const T* dCost_dActvs = nullptr, T* dCost_dZs = nullptr);
 
-  private:
-    static float relu(float x);
-    static float sigmoid(float x);
-    static float tanh(float x);
+    private:
+      static float relu(float x);
+      static float sigmoid(float x);
+      static float tanh(float x);
 
-    static float drelu(float x);
-    static float dsigmoid(float x);
-    static float dtanh(float x);
+      static float drelu(float x);
+      static float dsigmoid(float x);
+      static float dtanh(float x);
   };
 
   //===================================================================================================================//

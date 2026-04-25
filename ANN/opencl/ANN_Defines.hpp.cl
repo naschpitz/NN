@@ -17,8 +17,8 @@ typedef enum { ACTV_RELU = 0, ACTV_SIGMOID = 1, ACTV_TANH = 2, ACTV_SOFTMAX = 3,
 //===================================================================================================================//
 
 typedef struct {
-  ulong numNeurons;
-  ActvFuncType actvFuncType;
+    ulong numNeurons;
+    ActvFuncType actvFuncType;
 } Layer;
 
 #endif // ANN_DEFINES_HPP_CL

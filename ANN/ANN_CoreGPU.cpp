@@ -55,9 +55,9 @@ PredictResults<T> CoreGPU<T>::predict(const Inputs<T>& inputs)
   ulong remainder = numInputs % this->numGPUs;
 
   struct GPUWorkItem {
-    size_t gpuIdx;
-    ulong startIdx;
-    ulong endIdx;
+      size_t gpuIdx;
+      ulong startIdx;
+      ulong endIdx;
   };
 
   QVector<GPUWorkItem> workItems;
@@ -122,9 +122,9 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   }
 
   struct GPUWorkItem {
-    size_t gpuIdx;
-    ulong localStart; // Start index into batchSamples (0-based)
-    ulong localEnd; // End index into batchSamples
+      size_t gpuIdx;
+      ulong localStart; // Start index into batchSamples (0-based)
+      ulong localEnd; // End index into batchSamples
   };
 
   // Per-GPU cumulative sample counters for progress tracking across mini-batches
@@ -314,9 +314,9 @@ TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
     ulong remainder = batchLen % this->numGPUs;
 
     struct GPUWorkItem {
-      size_t gpuIdx;
-      ulong startIdx;
-      ulong endIdx;
+        size_t gpuIdx;
+        ulong startIdx;
+        ulong endIdx;
     };
 
     QVector<GPUWorkItem> workItems;
