@@ -67,14 +67,28 @@
 </table>
 
 <h3>Sample&lt;T&gt; <span class="badge badge-blue">ANN_Sample.hpp</span></h3>
-<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">struct</span> <span class="type">Sample</span> {
-    Input&lt;T&gt;  input;   <span class="comment">// Feature vector</span>
-    Output&lt;T&gt; output;  <span class="comment">// Expected label vector</span>
-};
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>input</code></td><td><code>Input&lt;T&gt;</code></td><td>Feature vector</td></tr>
+  <tr><td><code>output</code></td><td><code>Output&lt;T&gt;</code></td><td>Expected label vector</td></tr>
+</table>
+<p><code>Samples&lt;T&gt;</code> is <code>std::vector&lt;Sample&lt;T&gt;&gt;</code>.</p>
 
-<span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">using</span> Samples = std::vector&lt;Sample&lt;T&gt;&gt;;
+<h3>SampleProvider&lt;T&gt; <span class="badge badge-blue">ANN_SampleProvider.hpp</span></h3>
+<p>Lazy supplier used by <code>train()</code> and <code>test()</code>. Given the full shuffled index array, a batch size, and a 0-based batch index, returns the batch of samples. Lets callers stream data on demand instead of holding the full <code>Samples&lt;T&gt;</code> in memory.</p>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">using</span> SampleProvider =
+  std::function&lt;Samples&lt;T&gt;(<span class="keyword">const</span> std::vector&lt;<span class="type">ulong</span>&gt;&amp; sampleIndices,
+                          <span class="type">ulong</span> batchSize,
+                          <span class="type">ulong</span> batchIndex)&gt;;
+</code></pre>
+<p>Helper: <code>makeSampleProvider(samples)</code> wraps an in-memory <code>Samples&lt;T&gt;</code> so no prefetching is needed.</p>
+
+<h3>InputProvider&lt;T&gt; <span class="badge badge-blue">ANN_InputProvider.hpp</span></h3>
+<p>Lazy supplier used by the streaming <code>predict()</code>. Mirrors <code>SampleProvider</code> but without the expected-output side, since predict has no labels. The last batch may be shorter than <code>batchSize</code>.</p>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">using</span> InputProvider =
+  std::function&lt;Inputs&lt;T&gt;(<span class="type">ulong</span> batchSize, <span class="type">ulong</span> batchIndex)&gt;;
 </code></pre>
 
 <!-- ========== ENUMS ========== -->

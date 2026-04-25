@@ -3,7 +3,9 @@
 
 #include "ANN_Types.hpp"
 #include "ANN_CoreConfig.hpp"
+#include "ANN_InputProvider.hpp"
 #include "ANN_Sample.hpp"
+#include "ANN_SampleProvider.hpp"
 #include "ANN_TrainingProgress.hpp"
 #include "ANN_TrainingMetadata.hpp"
 #include "ANN_PredictMetadata.hpp"

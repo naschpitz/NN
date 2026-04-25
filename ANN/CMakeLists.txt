@@ -54,7 +54,9 @@ add_library(ANN STATIC
   ANN_MonitoringConfig.hpp
   ANN_TrainingMonitor.hpp ANN_TrainingMonitor.cpp
   ANN_Parameters.hpp
+  ANN_InputProvider.hpp
   ANN_Sample.hpp
+  ANN_SampleProvider.hpp
   ANN_ProgressCallback.hpp
   ANN_TrainingProgress.hpp
   ANN_TrainingMetadata.hpp

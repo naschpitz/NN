@@ -32,6 +32,7 @@ the calling application (e.g. [NN-CLI](https://github.com/naschpitz/NN-CLI)) han
 #include <ANN_Core.hpp>
 #include <ANN_CoreConfig.hpp>
 #include <ANN_Sample.hpp>
+#include <ANN_SampleProvider.hpp>
 
 // Configure
 ANN::CoreConfig<float> config;

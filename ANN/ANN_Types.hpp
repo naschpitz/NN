@@ -1,7 +1,6 @@
 #ifndef ANN_TYPES_HPP
 #define ANN_TYPES_HPP
 
-#include <functional>
 #include <sys/types.h>
 #include <vector>
 
@@ -14,14 +13,6 @@ namespace ANN
 
   template <typename T>
   using Inputs = std::vector<Input<T>>;
-
-  // Lazy supplier for streaming predict(): given a batch size and a 0-based
-  // batch index, returns the corresponding chunk of inputs. The last batch
-  // may be shorter than batchSize. Mirrors SampleProvider used by train/test
-  // and lets callers decode large image sets in chunks instead of loading
-  // everything in memory up front.
-  template <typename T>
-  using InputProvider = std::function<Inputs<T>(ulong batchSize, ulong batchIndex)>;
 
   template <typename T>
   using Output = std::vector<T>;
