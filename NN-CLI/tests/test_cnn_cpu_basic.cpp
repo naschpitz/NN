@@ -236,17 +236,18 @@ static void testCNNResidualMNIST()
   QString modelPath = tempDir() + "/cnn_mnist_residual_trained.json";
 
   // Train ResNet-like architecture on MNIST (10 epochs, 60k samples, Adam + crossEntropy + residual blocks)
+  // Residual is deeper than the plain-conv MNIST test, so the training pass is markedly slower; 60min was not enough.
   auto trainResult =
     runNNCLI({"--config", fixturePath("mnist_cnn_residual_config.json"), "--mode", "train", "--device", "cpu",
               "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
               examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
-             3600000); // 60 min timeout
+             7200000); // 2h timeout
 
   CHECK(trainResult.exitCode == 0, "CNN Residual MNIST: training exit code 0");
   CHECK(QFile::exists(modelPath), "CNN Residual MNIST: trained model file exists");
 
   if (trainResult.exitCode != 0 || !QFile::exists(modelPath)) {
-    std::cout << "(training failed, skipping test step)" << std::endl;
+    std::cout << "(training failed exit=" << trainResult.exitCode << ", skipping test step)" << std::endl;
     return;
   }
 

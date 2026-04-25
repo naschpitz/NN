@@ -18,7 +18,8 @@ static void testInvalidMode()
   auto result = runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "invalid"});
 
   CHECK(result.exitCode == 1, "Invalid mode: exit code 1");
-  CHECK(result.stdErr.contains("Error: Mode must be 'train', 'predict', or 'test'."), "Invalid mode: error message");
+  CHECK(result.stdErr.contains("Error: Mode must be 'train', 'predict', 'test', or 'calibrate'."),
+        "Invalid mode: error message");
   std::cout << std::endl;
 }
 

@@ -171,6 +171,9 @@ namespace NN_CLI
       if (tc.contains("shuffleSamples"))
         coreConfig.trainingConfig.shuffleSamples = tc.at("shuffleSamples").get<bool>();
 
+      if (tc.contains("shuffleSeed"))
+        coreConfig.trainingConfig.shuffleSeed = tc.at("shuffleSeed").get<uint32_t>();
+
       if (tc.contains("dropoutRate"))
         coreConfig.trainingConfig.dropoutRate = tc.at("dropoutRate").get<float>();
 
