@@ -304,7 +304,18 @@ int ANNRunner::predict()
     });
   }
 
-  ANN::PredictResults<float> results = this->core->predict(inputs);
+  // The streaming predict API takes a provider that yields one batch at a
+  // time. The batch JSON is already loaded into `inputs`, so we just slice it.
+  auto sliceProvider = [&inputs](ulong batchSize, ulong batchIndex) {
+    ulong start = batchIndex * batchSize;
+    ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
+
+    if (start >= end)
+      return ANN::Inputs<float>{};
+    return ANN::Inputs<float>(inputs.begin() + start, inputs.begin() + end);
+  };
+
+  ANN::PredictResults<float> results = this->core->predict(inputs.size(), sliceProvider);
 
   auto batchEnd = std::chrono::system_clock::now();
   std::string endTimeStr = ANN::Utils<float>::formatISO8601();
