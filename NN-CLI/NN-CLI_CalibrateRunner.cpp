@@ -8,8 +8,12 @@
 #include <json.hpp>
 
 #include <QFile>
+#include <QThreadPool>
+#include <QVector>
+#include <QtConcurrent>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -470,82 +474,96 @@ std::vector<std::vector<float>> CalibrateRunner::runPredict(const std::vector<st
                                                             const std::string& progressLabel)
 {
   std::vector<std::vector<float>> result;
-  result.reserve(imagePaths.size());
-
   ulong total = imagePaths.size();
   ulong progressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
 
+  // Pick target dimensions (CNN uses 3D inputShape; ANN's image path uses ioConfig).
+  int targetC = (this->networkType == NetworkType::CNN) ? static_cast<int>(this->cnnCoreConfig.inputShape.c)
+                                                        : static_cast<int>(this->ioConfig.inputC);
+  int targetH = (this->networkType == NetworkType::CNN) ? static_cast<int>(this->cnnCoreConfig.inputShape.h)
+                                                        : static_cast<int>(this->ioConfig.inputH);
+  int targetW = (this->networkType == NetworkType::CNN) ? static_cast<int>(this->cnnCoreConfig.inputShape.w)
+                                                        : static_cast<int>(this->ioConfig.inputW);
+
+  // Phase 1: load + resize + normalise images in parallel.
+  // JPEG decode is CPU-bound and dominates wall time at this scale (52 k images
+  // × ~10 ms each ≈ 9 min single-threaded). QtConcurrent::blockingMap uses
+  // the global thread pool, scaling roughly linearly with available cores;
+  // the GPU then sees a fully-buffered Inputs<T> and is no longer starved.
+  std::vector<std::vector<float>> flats(imagePaths.size());
+  std::vector<bool> ok(imagePaths.size(), false);
+
   if (this->logLevel > LogLevel::QUIET)
-    ProgressBar::printLoadingProgress(progressLabel, 0, total, progressReports);
+    ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
 
+  std::atomic<ulong> loadedCount{0};
+  QVector<int> indices(static_cast<int>(total));
+
+  for (int i = 0; i < static_cast<int>(total); i++)
+    indices[i] = i;
+
+  QtConcurrent::blockingMap(indices, [&](int i) {
+    try {
+      flats[i] = ImageLoader::loadImage(imagePaths[i], targetC, targetH, targetW);
+      ok[i] = true;
+    } catch (const std::exception& e) {
+      if (this->logLevel >= LogLevel::WARNING)
+        std::cerr << "\n[warn] Skipping " << imagePaths[i] << ": " << e.what() << "\n";
+    }
+
+    ulong done = ++loadedCount;
+
+    if (this->logLevel > LogLevel::QUIET)
+      ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
+  });
+
+  if (this->logLevel > LogLevel::QUIET)
+    std::cout << "\n";
+
+  // Phase 2: hand the (now in-memory) inputs to the GPU.
   if (this->networkType == NetworkType::CNN) {
-    int targetC = static_cast<int>(this->cnnCoreConfig.inputShape.c);
-    int targetH = static_cast<int>(this->cnnCoreConfig.inputShape.h);
-    int targetW = static_cast<int>(this->cnnCoreConfig.inputShape.w);
-
     CNN::Inputs<float> inputs;
     inputs.reserve(imagePaths.size());
 
-    for (ulong i = 0; i < total; i++) {
-      try {
-        std::vector<float> flat = ImageLoader::loadImage(imagePaths[i], targetC, targetH, targetW);
-        CNN::Input<float> input(this->cnnCoreConfig.inputShape);
-        input.data = std::move(flat);
-        inputs.push_back(std::move(input));
-      } catch (const std::exception& e) {
-        if (this->logLevel >= LogLevel::WARNING)
-          std::cerr << "\n[warn] Skipping " << imagePaths[i] << ": " << e.what() << "\n";
-
+    for (std::size_t i = 0; i < imagePaths.size(); i++) {
+      if (!ok[i])
         continue;
-      }
 
-      if (this->logLevel > LogLevel::QUIET)
-        ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, i + 1, total, progressReports);
+      CNN::Input<float> input(this->cnnCoreConfig.inputShape);
+      input.data = std::move(flats[i]);
+      inputs.push_back(std::move(input));
     }
 
     if (this->logLevel > LogLevel::QUIET) {
-      std::cout << "\n";
       this->cnnCore->setProgressCallback([progressReports, &progressLabel](ulong current, ulong totalCb) {
         ProgressBar::printLoadingProgress(progressLabel, current, totalCb, progressReports);
       });
     }
 
     CNN::PredictResults<float> predicts = this->cnnCore->predict(inputs);
+    result.reserve(predicts.size());
 
     for (auto& p : predicts)
       result.push_back(std::move(p.logits));
   } else {
-    // ANN path (image input → flatten to 1D)
-    int targetC = static_cast<int>(this->ioConfig.inputC);
-    int targetH = static_cast<int>(this->ioConfig.inputH);
-    int targetW = static_cast<int>(this->ioConfig.inputW);
-
     ANN::Inputs<float> inputs;
     inputs.reserve(imagePaths.size());
 
-    for (ulong i = 0; i < total; i++) {
-      try {
-        std::vector<float> flat = ImageLoader::loadImage(imagePaths[i], targetC, targetH, targetW);
-        inputs.push_back(std::move(flat));
-      } catch (const std::exception& e) {
-        if (this->logLevel >= LogLevel::WARNING)
-          std::cerr << "\n[warn] Skipping " << imagePaths[i] << ": " << e.what() << "\n";
-
+    for (std::size_t i = 0; i < imagePaths.size(); i++) {
+      if (!ok[i])
         continue;
-      }
 
-      if (this->logLevel > LogLevel::QUIET)
-        ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, i + 1, total, progressReports);
+      inputs.push_back(std::move(flats[i]));
     }
 
     if (this->logLevel > LogLevel::QUIET) {
-      std::cout << "\n";
       this->annCore->setProgressCallback([progressReports, &progressLabel](ulong current, ulong totalCb) {
         ProgressBar::printLoadingProgress(progressLabel, current, totalCb, progressReports);
       });
     }
 
     ANN::PredictResults<float> predicts = this->annCore->predict(inputs);
+    result.reserve(predicts.size());
 
     for (auto& p : predicts)
       result.push_back(std::move(p.logits));
