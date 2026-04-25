@@ -28,16 +28,14 @@ namespace ANN
 
       //-- Core interface --//
       // Streaming predict: pulls inputs in batches from `provider` and runs
-      // forward propagation on each batch. Lets callers score arbitrarily
-      // large datasets without holding the full Inputs<T> in memory. The
-      // eager overloads below wrap this one.
+      // forward propagation on each batch. Callers with an in-memory Inputs<T>
+      // build a one-shot provider over it; callers with images / IDX files
+      // decode each batch lazily. .output is the post-activation, .logits is
+      // the pre-activation z of the last layer (used for calibration /
+      // OOD scores that softmax discards).
       virtual PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) = 0;
-      // Eager predict overloads. Both ultimately delegate to the streaming
-      // version above; the single-input one is overridden in CoreCPU to
-      // avoid spawning a thread pool on a single sample. .output is the
-      // post-activation, .logits the pre-activation z of the last layer
-      // (used for calibration / OOD scores that softmax discards).
-      PredictResults<T> predict(const Inputs<T>& inputs);
+      // Single-input convenience. Overridden in CoreCPU to avoid spawning a
+      // thread pool on a single sample.
       virtual PredictResult<T> predict(const Input<T>& input);
       virtual void train(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
       virtual TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;

@@ -302,9 +302,20 @@ static void testBatchPredict()
 
   auto core = ANN::Core<double>::makeCore(config);
 
-  // Batch predict with multiple inputs at once
+  // Batch predict with multiple inputs at once. The streaming API takes a
+  // provider that yields one batch at a time; for in-memory data we slice
+  // the original Inputs<T> by (batchSize, batchIndex).
   ANN::Inputs<double> inputs = {{1.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
-  ANN::PredictResults<double> results = core->predict(inputs);
+  auto sliceProvider = [&inputs](ulong batchSize, ulong batchIndex) {
+    ulong start = batchIndex * batchSize;
+    ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
+
+    if (start >= end)
+      return ANN::Inputs<double>{};
+    return ANN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
+  };
+
+  ANN::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
 
   CHECK(results.size() == 4, "batch predict returns 4 outputs");
 
@@ -365,9 +376,18 @@ static void testBatchPredictAfterTraining()
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    // Batch predict all 4 XOR inputs
+    // Batch predict all 4 XOR inputs via a slice-and-yield provider.
     ANN::Inputs<double> inputs = {{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}};
-    results = core->predict(inputs);
+    auto sliceProvider = [&inputs](ulong batchSize, ulong batchIndex) {
+      ulong start = batchIndex * batchSize;
+      ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
+
+      if (start >= end)
+        return ANN::Inputs<double>{};
+      return ANN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
+    };
+
+    results = core->predict(inputs.size(), sliceProvider);
 
     if (results[0].output[0] < 0.5 && results[1].output[0] > 0.5 && results[2].output[0] > 0.5 &&
         results[3].output[0] < 0.5)

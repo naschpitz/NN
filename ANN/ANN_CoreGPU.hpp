@@ -17,7 +17,7 @@ namespace ANN
     public:
       CoreGPU(const CoreConfig<T>& config);
 
-      using Core<T>::predict; // Bring in single-input + eager Inputs<T> convenience wrappers
+      using Core<T>::predict; // Bring in single-input convenience overload from the base
       PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
       void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
       TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
