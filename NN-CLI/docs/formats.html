@@ -465,6 +465,38 @@
   ...
 </code></pre>
 
+<h3>Calibrate Output (threshold.json)</h3>
+<p><code>NN-CLI -m calibrate</code> emits a JSON file with the picked free-energy threshold plus diagnostic statistics from the calibration run:</p>
+<pre><code>{
+  <span class="string">"freeEnergyThreshold"</span>: <span class="number">12.98</span>,
+  <span class="string">"idPercentileUsed"</span>: <span class="number">95.0</span>,
+  <span class="string">"rule"</span>: <span class="string">"predicted_ood = (free_energy &gt; freeEnergyThreshold)"</span>,
+  <span class="string">"idStats"</span>: {
+    <span class="string">"n"</span>: <span class="number">500</span>,
+    <span class="string">"min"</span>: <span class="number">8.25</span>,  <span class="string">"max"</span>: <span class="number">15.92</span>,
+    <span class="string">"mean"</span>: <span class="number">11.44</span>,
+    <span class="string">"p1"</span>:  <span class="number">9.20</span>,  <span class="string">"p5"</span>:  <span class="number">10.05</span>,
+    <span class="string">"p50"</span>: <span class="number">11.41</span>, <span class="string">"p90"</span>: <span class="number">12.53</span>,
+    <span class="string">"p95"</span>: <span class="number">12.98</span>, <span class="string">"p99"</span>: <span class="number">13.80</span>
+  },
+  <span class="string">"oodStats"</span>: {
+    <span class="string">"n"</span>: <span class="number">1500</span>,
+    <span class="string">"min"</span>: <span class="number">8.65</span>,  <span class="string">"max"</span>: <span class="number">23.60</span>,
+    <span class="string">"mean"</span>: <span class="number">12.38</span>,
+    <span class="string">"p1"</span>:  <span class="number">10.08</span>, <span class="string">"p5"</span>:  <span class="number">10.60</span>,
+    <span class="string">"p50"</span>: <span class="number">12.21</span>, <span class="string">"p95"</span>: <span class="number">14.63</span>,
+    <span class="string">"p99"</span>: <span class="number">16.98</span>
+  },
+  <span class="string">"confusion"</span>: {
+    <span class="string">"idAccepted"</span>: <span class="number">475</span>, <span class="string">"idRejected"</span>: <span class="number">25</span>,
+    <span class="string">"oodAccepted"</span>: <span class="number">1115</span>, <span class="string">"oodRejected"</span>: <span class="number">385</span>,
+    <span class="string">"idAcceptanceRate"</span>: <span class="number">0.95</span>,
+    <span class="string">"oodRejectionRate"</span>: <span class="number">0.2567</span>
+  }
+}
+</code></pre>
+<p>Consumers (e.g. a downstream client app) embed <code>freeEnergyThreshold</code> as a constant and flag predictions with <code>E &gt; threshold</code> as low-confidence / likely OOD. The threshold is tied to the specific trained checkpoint — retrain the model, rerun <code>--mode calibrate</code>.</p>
+
 </main>
 </div>
 <footer class="site-footer">NN-CLI Documentation</footer>

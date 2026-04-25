@@ -25,7 +25,7 @@
 <main class="main">
 
 <h1>NN-CLI — Neural Network Command Line Interface</h1>
-<p>A unified command-line tool for training, testing, and predicting with both <strong>ANN</strong> (Artificial Neural Networks) and <strong>CNN</strong> (Convolutional Neural Networks). NN-CLI auto-detects the network type from your configuration file and delegates to the appropriate library.</p>
+<p>A unified command-line tool for training, testing, predicting, and calibrating with both <strong>ANN</strong> (Artificial Neural Networks) and <strong>CNN</strong> (Convolutional Neural Networks). NN-CLI auto-detects the network type from your configuration file and delegates to the appropriate library.</p>
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:2rem 0">
   <div class="card" style="text-align:center">
@@ -54,7 +54,7 @@
 <ol>
   <li><strong>Provide a JSON config</strong> — defines network architecture and training parameters</li>
   <li><strong>NN-CLI detects</strong> whether it's an ANN or CNN configuration</li>
-  <li><strong>Choose a mode</strong> — <code>train</code>, <code>test</code>, or <code>predict</code></li>
+  <li><strong>Choose a mode</strong> — <code>train</code>, <code>test</code>, <code>predict</code>, or <code>calibrate</code></li>
   <li><strong>Supply data</strong> — JSON samples, IDX binary files, or a single input</li>
   <li><strong>Get results</strong> — trained model JSON, test metrics, or prediction output</li>
 </ol>

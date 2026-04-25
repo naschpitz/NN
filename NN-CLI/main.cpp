@@ -12,21 +12,29 @@ void printUsage()
 {
   std::cout << "NN-CLI - Neural Network Command Line Interface (ANN + CNN)\n\n";
   std::cout << "Usage:\n";
-  std::cout << "  NN-CLI --config <file> --mode train [options]       # Training\n";
-  std::cout << "  NN-CLI --config <file> --mode predict --input <f>   # Predict (batch)\n";
-  std::cout << "  NN-CLI --config <file> --mode test [options]        # Evaluation\n\n";
+  std::cout << "  NN-CLI --config <file> --mode train [options]                       # Training\n";
+  std::cout << "  NN-CLI --config <file> --mode predict --input <f>                   # Predict (batch)\n";
+  std::cout << "  NN-CLI --config <file> --mode test [options]                        # Evaluation\n";
+  std::cout << "  NN-CLI --config <file> --mode calibrate --id-images <dir> [opts]   # OOD threshold\n\n";
   std::cout << "Options:\n";
   std::cout << "  --config, -c <file>    Path to JSON configuration file (required)\n";
-  std::cout << "  --mode, -m <mode>      Mode: 'train', 'predict', or 'test' (overrides config file)\n";
+  std::cout << "  --mode, -m <mode>      Mode: 'train', 'predict', 'test', or 'calibrate'\n";
   std::cout << "  --device, -d <device>  Device: 'cpu' or 'gpu' (overrides config file)\n";
   std::cout << "  --input, -i <file>     Path to JSON file with batch inputs (predict mode, required)\n";
   std::cout << "  --input-type <type>    Input data type: 'vector' or 'image' (overrides config file)\n";
   std::cout << "  --samples, -s <file>   Path to JSON file with samples (train/test modes)\n";
   std::cout << "  --idx-data <file>      Path to IDX3 data file (alternative to --samples)\n";
   std::cout << "  --idx-labels <file>    Path to IDX1 labels file (requires --idx-data)\n";
-  std::cout << "  --output, -o <file>    Output file/dir (default: predict_<input>.json or folder for images)\n";
+  std::cout << "  --output, -o <file>    Output file/dir (default: predict_<input>.json or threshold.json)\n";
   std::cout << "  --output-type <type>   Output data type: 'vector' or 'image' (overrides config file)\n";
   std::cout << "  --log-level, -l <lvl>  Log level: quiet, error, warning, info, debug (default: error)\n";
+  std::cout << "\nCalibrate-mode options:\n";
+  std::cout << "  --id-images <dir>      Directory of in-distribution images (recursed) [required]\n";
+  std::cout << "  --ood-dir <dir>        OOD images directory (default: <cwd>/extern-datasets/ood)\n";
+  std::cout << "  --id-sample-count <N>  Random subsample size for ID set (default 500)\n";
+  std::cout << "  --ood-sample-count <N> Random subsample size for OOD set (default 1500)\n";
+  std::cout << "  --id-percentile <P>    ID percentile used as the threshold (default 95)\n";
+  std::cout << "  --no-fetch             Don't auto-download OOD if --ood-dir is empty (default: fetch)\n";
   std::cout << "  --help, -h             Show this help message\n";
 }
 
@@ -44,9 +52,31 @@ int main(int argc, char* argv[])
   QCommandLineOption configOption(QStringList() << "c" << "config", "Path to JSON configuration file.", "file");
   parser.addOption(configOption);
 
-  // Mode option (train, predict, or test)
-  QCommandLineOption modeOption(QStringList() << "m" << "mode", "Mode: 'train', 'predict', or 'test'.", "mode");
+  // Mode option (train, predict, test, or calibrate)
+  QCommandLineOption modeOption(QStringList() << "m" << "mode", "Mode: 'train', 'predict', 'test', or 'calibrate'.",
+                                "mode");
   parser.addOption(modeOption);
+
+  // Calibrate-mode options
+  QCommandLineOption idImagesOption("id-images", "Calibrate: directory of in-distribution images (recursed).", "dir");
+  parser.addOption(idImagesOption);
+
+  QCommandLineOption oodDirOption(
+    "ood-dir", "Calibrate: OOD root (default: <cwd>/extern-datasets/ood). Auto-fetched if empty.", "dir");
+  parser.addOption(oodDirOption);
+
+  QCommandLineOption idSampleCountOption("id-sample-count", "Calibrate: ID subsample size (default 500).", "N");
+  parser.addOption(idSampleCountOption);
+
+  QCommandLineOption oodSampleCountOption("ood-sample-count", "Calibrate: OOD subsample size (default 1500).", "N");
+  parser.addOption(oodSampleCountOption);
+
+  QCommandLineOption idPercentileOption("id-percentile", "Calibrate: ID percentile used as the threshold (default 95).",
+                                        "P");
+  parser.addOption(idPercentileOption);
+
+  QCommandLineOption noFetchOption("no-fetch", "Calibrate: don't auto-download OOD even if --ood-dir is empty.");
+  parser.addOption(noFetchOption);
 
   // Device option (cpu or gpu)
   QCommandLineOption deviceOption(QStringList() << "d" << "device", "Device: 'cpu' or 'gpu' (default: cpu).", "device",
@@ -108,8 +138,8 @@ int main(int argc, char* argv[])
   if (parser.isSet(modeOption)) {
     QString modeStr = parser.value(modeOption).toLower();
 
-    if (modeStr != "train" && modeStr != "predict" && modeStr != "test") {
-      std::cerr << "Error: Mode must be 'train', 'predict', or 'test'.\n";
+    if (modeStr != "train" && modeStr != "predict" && modeStr != "test" && modeStr != "calibrate") {
+      std::cerr << "Error: Mode must be 'train', 'predict', 'test', or 'calibrate'.\n";
       return 1;
     }
   }

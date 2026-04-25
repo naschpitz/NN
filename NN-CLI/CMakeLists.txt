@@ -38,6 +38,7 @@ add_executable(NN-CLI
   main.cpp
   NN-CLI_ANNLoader.cpp
   NN-CLI_ANNRunner.cpp
+  NN-CLI_CalibrateRunner.cpp
   NN-CLI_CNNLoader.cpp
   NN-CLI_CNNRunner.cpp
   NN-CLI_DataLoader.cpp

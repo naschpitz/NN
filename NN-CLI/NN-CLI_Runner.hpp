@@ -35,6 +35,7 @@ namespace NN_CLI
       LogLevel logLevel;
       NetworkType networkType;
       std::string mode; // "train", "test", "predict"
+      bool isCalibrateMode = false; // true when --mode calibrate; runs as predict internally
       IOConfig ioConfig;
       AugmentationConfig augConfig;
 

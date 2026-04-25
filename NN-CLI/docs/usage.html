@@ -57,7 +57,7 @@
 <table class="options-table">
   <tr><th>Option</th><th>Short</th><th>Argument</th><th>Default</th><th>Description</th></tr>
   <tr><td><code>--config</code></td><td><code>-c</code></td><td>file</td><td><em>required</em></td><td>Path to JSON configuration file</td></tr>
-  <tr><td><code>--mode</code></td><td><code>-m</code></td><td>string</td><td>from config</td><td><code>train</code>, <code>predict</code>, or <code>test</code></td></tr>
+  <tr><td><code>--mode</code></td><td><code>-m</code></td><td>string</td><td>from config</td><td><code>train</code>, <code>predict</code>, <code>test</code>, or <code>calibrate</code></td></tr>
   <tr><td><code>--device</code></td><td><code>-d</code></td><td>string</td><td><code>cpu</code></td><td><code>cpu</code> or <code>gpu</code></td></tr>
   <tr><td><code>--input</code></td><td><code>-i</code></td><td>file</td><td>—</td><td>Input JSON for predict mode</td></tr>
   <tr><td><code>--input-type</code></td><td>—</td><td>string</td><td><code>vector</code></td><td><code>vector</code> or <code>image</code> (overrides config)</td></tr>
@@ -94,6 +94,25 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 <p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files. The config must include pre-trained <code>parameters</code>. Prints test metrics (sample count, average loss).</p>
 <pre><code>NN-CLI -c trained_model.json -m test -s test_samples.json
 </code></pre>
+
+<h3><span class="badge-blue">calibrate</span></h3>
+<p>Picks a free-energy out-of-distribution threshold for the trained model. Runs predict on a random subsample of in-distribution images (<code>--id-images</code>) and a random subsample of OOD images (<code>--ood-dir</code>), computes the free-energy <code>E(x) = −log Σᵢ exp(zᵢ)</code> for each, and writes a <code>threshold.json</code> to <code>--output</code> (default: next to the model config). The threshold is taken at the chosen ID percentile (default 95th) — by construction at most that fraction of real in-distribution scans will trip the warning at runtime.</p>
+<pre><code>NN-CLI -c best_model.json -m calibrate \
+       --id-images train-datasets/isicMILK10k/input \
+       --ood-dir extern-datasets/ood
+</code></pre>
+<p>If <code>--ood-dir</code> is empty (or doesn't exist), it is auto-populated by downloading <a href="https://www.robots.ox.ac.uk/~vgg/data/dtd/">DTD</a> (textures, ~600 MB), <a href="http://places2.csail.mit.edu/">Places365 val_256</a> (scenes, ~500 MB), and generating a small set of synthetic OOD images (solid colours, noise, checker pattern). Pass <code>--no-fetch</code> to disable auto-download.</p>
+<table>
+  <tr><th>Option</th><th>Default</th><th>Notes</th></tr>
+  <tr><td><code>--id-images</code></td><td>—</td><td>Required. Directory of in-distribution images (recursed).</td></tr>
+  <tr><td><code>--ood-dir</code></td><td><code>&lt;cwd&gt;/extern-datasets/ood</code></td><td>OOD root. Auto-populated if empty.</td></tr>
+  <tr><td><code>--id-sample-count</code></td><td><code>500</code></td><td>Random subsample size for ID set (seeded).</td></tr>
+  <tr><td><code>--ood-sample-count</code></td><td><code>1500</code></td><td>Random subsample size for OOD set (seeded).</td></tr>
+  <tr><td><code>--id-percentile</code></td><td><code>95</code></td><td>ID-distribution percentile used as the threshold.</td></tr>
+  <tr><td><code>--no-fetch</code></td><td>off</td><td>Don't auto-download even if <code>--ood-dir</code> is empty.</td></tr>
+  <tr><td><code>--output</code></td><td><code>&lt;config_dir&gt;/threshold.json</code></td><td>Where to write the threshold + diagnostic stats.</td></tr>
+</table>
+<p>The score has limited discrimination on a 2-class head (<code>E ≈ −max(z₀, z₁)</code> up to a small correction). It reliably catches obvious failure modes (all-black input, very dark photos) but doesn't cleanly flag every OOD input. For tighter gating, consider a higher-capacity dense head or training with outlier exposure.</p>
 </div>
 
 <h2 id="devices">4. Devices</h2>

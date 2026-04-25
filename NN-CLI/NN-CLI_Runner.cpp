@@ -2,6 +2,7 @@
 
 #include "NN-CLI_ANNLoader.hpp"
 #include "NN-CLI_ANNRunner.hpp"
+#include "NN-CLI_CalibrateRunner.hpp"
 #include "NN-CLI_CNNLoader.hpp"
 #include "NN-CLI_CNNRunner.hpp"
 #include "NN-CLI_Loader.hpp"
@@ -26,6 +27,15 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
 
   if (this->parser.isSet("mode")) {
     modeOverride = this->parser.value("mode").toLower().toStdString();
+  }
+
+  // "calibrate" is a CLI-only mode that internally drives predict. The
+  // model's underlying ModeType enum (TRAIN/TEST/PREDICT) doesn't know
+  // about it, so we redirect the override to "predict" before passing
+  // it down and remember locally that we're in calibrate mode.
+  if (modeOverride.has_value() && modeOverride.value() == "calibrate") {
+    this->isCalibrateMode = true;
+    modeOverride = std::string("predict");
   }
 
   std::optional<std::string> deviceOverride;
@@ -101,6 +111,12 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
 
 int Runner::run()
 {
+  if (this->isCalibrateMode) {
+    CalibrateRunner calibrateRunner(this->parser, this->logLevel, this->networkType, this->ioConfig, this->augConfig,
+                                    this->annCore, this->annCoreConfig, this->cnnCore, this->cnnCoreConfig);
+    return calibrateRunner.run();
+  }
+
   if (this->networkType == NetworkType::ANN) {
     ANNRunner annRunner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->annCore,
                         this->annCoreConfig);
