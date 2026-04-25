@@ -120,17 +120,20 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 <p>The <code>output/</code> directory is created automatically relative to the input file's location.</p>
 
 <h3>Predict Output</h3>
-<p>When <code>outputType</code> is <code>"vector"</code> (default), the result is JSON with prediction metadata and output vector. When <code>outputType</code> is <code>"image"</code>, the output vector is saved as a PNG/JPEG/BMP image file instead.</p>
+<p>When <code>outputType</code> is <code>"vector"</code> (default), the result is JSON with prediction metadata, an <code>outputs</code> array (post-activation values, one per input) and a <code>logits</code> array (pre-activation z of the last layer, one per input). When <code>outputType</code> is <code>"image"</code>, the output vector is saved as a PNG/JPEG/BMP image file instead.</p>
 <pre><code>{
   <span class="string">"predictMetadata"</span>: {
     <span class="string">"startTime"</span>: <span class="string">"2024-01-15 10:30:45"</span>,
     <span class="string">"endTime"</span>: <span class="string">"2024-01-15 10:30:46"</span>,
     <span class="string">"durationSeconds"</span>: <span class="number">0.042</span>,
-    <span class="string">"durationFormatted"</span>: <span class="string">"0.042s"</span>
+    <span class="string">"durationFormatted"</span>: <span class="string">"0.042s"</span>,
+    <span class="string">"numInputs"</span>: <span class="number">1</span>
   },
-  <span class="string">"output"</span>: [<span class="number">0.05</span>, <span class="number">0.92</span>, <span class="number">0.03</span>, ...]
+  <span class="string">"outputs"</span>: [[<span class="number">0.05</span>, <span class="number">0.92</span>, <span class="number">0.03</span>]],
+  <span class="string">"logits"</span>: [[<span class="number">-2.31</span>, <span class="number">0.62</span>, <span class="number">-2.79</span>]]
 }
 </code></pre>
+<p><code>logits</code> are the raw values that feed the final activation. Use them to compute calibration / out-of-distribution scores (max-logit, logit-norm, free-energy <code>−log Σ exp(zᵢ)</code>) that softmax discards because softmax is shift-invariant.</p>
 
 <h2 id="training-summary">7. Training Summary</h2>
 <p>Before training begins, NN-CLI prints a summary table showing the full training configuration at a glance. This helps verify that all settings are correct before committing to a potentially long training run.</p>

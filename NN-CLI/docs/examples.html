@@ -78,7 +78,11 @@
 <p>Run prediction:</p>
 <pre><code><span class="func">NN-CLI</span> -c trained_xor.json -m predict -i input.json -o prediction.json</code></pre>
 <p><strong>Expected output in <code>prediction.json</code>:</strong></p>
-<pre><code>{ <span class="keyword">"outputs"</span>: [[<span class="number">0.95</span>]] }</code></pre>
+<pre><code>{
+  <span class="keyword">"outputs"</span>: [[<span class="number">0.95</span>]],
+  <span class="keyword">"logits"</span>:  [[<span class="number">2.94</span>]]
+}</code></pre>
+<p>The <code>logits</code> array carries the pre-activation <code>z</code> of the last layer — useful for OOD-detection scores (max-logit, free-energy) that softmax/sigmoid would otherwise hide.</p>
 </div>
 
 <h2 id="cnn-image">2. Image Classification (CNN)</h2>

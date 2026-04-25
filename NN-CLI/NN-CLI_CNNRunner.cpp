@@ -306,7 +306,7 @@ int CNNRunner::predict()
     });
   }
 
-  std::vector<CNN::Output<float>> outputs = this->core->predict(inputs);
+  CNN::PredictResults<float> results = this->core->predict(inputs);
 
   auto batchEnd = std::chrono::system_clock::now();
   std::string endTimeStr = ANN::Utils<float>::formatISO8601();
@@ -326,16 +326,16 @@ int CNNRunner::predict()
     if (!outDir.exists())
       QDir().mkpath(outputPath);
 
-    for (size_t i = 0; i < outputs.size(); ++i) {
+    for (size_t i = 0; i < results.size(); ++i) {
       QString imgName = QString::number(i) + ".png";
       std::string imgPath = outDir.filePath(imgName).toStdString();
-      ImageLoader::saveImage(imgPath, outputs[i], static_cast<int>(this->ioConfig.outputC),
+      ImageLoader::saveImage(imgPath, results[i].output, static_cast<int>(this->ioConfig.outputC),
                              static_cast<int>(this->ioConfig.outputH), static_cast<int>(this->ioConfig.outputW));
     }
 
     if (this->logLevel > LogLevel::QUIET) {
       std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
-      std::cout << "  Images: " << outputs.size() << "\n";
+      std::cout << "  Images: " << results.size() << "\n";
       std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x"
                 << this->ioConfig.outputW << "\n";
       std::cout << "  Duration: " << batchDurationFormatted << "\n";
@@ -344,7 +344,20 @@ int CNNRunner::predict()
     return 0;
   }
 
-  // Standard vector output: save as JSON
+  // Standard vector output: save as JSON.
+  // For each input we emit both the post-activation `output` and the pre-activation
+  // `logits` of the dense head so callers can compute calibration / OOD scores
+  // (max-logit, logit-norm, free-energy) that softmax discards.
+  std::vector<CNN::Output<float>> outputs;
+  std::vector<CNN::Logits<float>> logits;
+  outputs.reserve(results.size());
+  logits.reserve(results.size());
+
+  for (const auto& r : results) {
+    outputs.push_back(r.output);
+    logits.push_back(r.logits);
+  }
+
   nlohmann::ordered_json resultJson;
   nlohmann::ordered_json predictMetadataJson;
   predictMetadataJson["startTime"] = startTimeStr;
@@ -354,6 +367,7 @@ int CNNRunner::predict()
   predictMetadataJson["numInputs"] = inputs.size();
   resultJson["predictMetadata"] = predictMetadataJson;
   resultJson["outputs"] = outputs;
+  resultJson["logits"] = logits;
 
   QFile outputFile(outputPath);
 

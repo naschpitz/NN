@@ -327,7 +327,7 @@
 <p>When <code>inputType</code> is <code>"image"</code>, each element is a path to an image file instead of a numeric array.</p>
 
 <h3>Output format</h3>
-<p>For vector output, the result JSON contains an <code>"outputs"</code> array with one entry per input, plus batch metadata:</p>
+<p>For vector output, the result JSON contains an <code>"outputs"</code> array (post-activation values, one entry per input) and a parallel <code>"logits"</code> array (pre-activation values <code>z</code> of the last layer), plus batch metadata:</p>
 <pre><code>{
   <span class="string">"predictMetadata"</span>: {
     <span class="string">"startTime"</span>: <span class="string">"2026-02-22T10:30:00-03:00"</span>,
@@ -339,9 +339,16 @@
   <span class="string">"outputs"</span>: [
     [<span class="number">0.95</span>, <span class="number">0.05</span>],
     [<span class="number">0.10</span>, <span class="number">0.90</span>]
+  ],
+  <span class="string">"logits"</span>: [
+    [<span class="number">2.94</span>, <span class="number">0.00</span>],
+    [<span class="number">-2.20</span>, <span class="number">0.00</span>]
   ]
 }
 </code></pre>
+<div class="info-box">
+  <strong>Why logits?</strong> Softmax is shift-invariant — <code>softmax(z) = softmax(z + c)</code> — so it discards magnitude information. Two very different logit vectors can produce the same probabilities (e.g. <code>[-50, 50]</code> vs <code>[-0.2, 0.4]</code> both yield ~<code>[0, 1]</code>). Exposing logits lets downstream consumers compute calibration / out-of-distribution detection scores: <em>max-logit</em> <code>max(zᵢ)</code>, <em>logit-norm</em> <code>‖z‖</code>, and the <em>free-energy</em> score <code>E(x) = −log Σ exp(zᵢ)</code>. Lower energy = more in-distribution.
+</div>
 <p>For image output, numbered PNG images (<code>0.png</code>, <code>1.png</code>, ...) are saved to a folder.</p>
 
 <h2 id="idx">5. IDX Binary Format</h2>
@@ -428,7 +435,7 @@
 </code></pre>
 
 <h3>Predict Output (vector)</h3>
-<p>When <code>outputType</code> is <code>"vector"</code> (default), prediction produces a JSON file with an <code>"outputs"</code> array (one entry per input) and batch metadata:</p>
+<p>When <code>outputType</code> is <code>"vector"</code> (default), prediction produces a JSON file with an <code>"outputs"</code> array (post-activation, one entry per input), a parallel <code>"logits"</code> array (pre-activation <code>z</code> of the last layer), and batch metadata:</p>
 <pre><code>{
   <span class="string">"predictMetadata"</span>: {
     <span class="string">"startTime"</span>: <span class="string">"2026-02-22T10:30:00-03:00"</span>,
@@ -440,9 +447,14 @@
   <span class="string">"outputs"</span>: [
     [<span class="number">0.95</span>, <span class="number">0.05</span>],
     [<span class="number">0.10</span>, <span class="number">0.90</span>]
+  ],
+  <span class="string">"logits"</span>: [
+    [<span class="number">2.94</span>, <span class="number">0.00</span>],
+    [<span class="number">-2.20</span>, <span class="number">0.00</span>]
   ]
 }
 </code></pre>
+<p><code>logits</code> are useful for calibration / out-of-distribution detection (max-logit, logit-norm, free-energy <code>−log Σ exp(zᵢ)</code>) — information softmax discards.</p>
 
 <h3>Predict Output (image)</h3>
 <p>When <code>outputType</code> is <code>"image"</code>, the output vectors are reconstructed into images using <code>outputShape</code> (<code>c</code>, <code>h</code>, <code>w</code>) and saved as numbered PNG files inside a folder:</p>

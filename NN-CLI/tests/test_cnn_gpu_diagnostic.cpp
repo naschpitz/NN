@@ -239,8 +239,8 @@ static void testCNNGPUPredictDeepDiagnostic()
     testInput.data[i] = static_cast<float>(i) / 63.0f;
 
   std::cout << "    Running predict on CPU and GPU..." << std::flush;
-  auto cpuOutput = cpuCore->predict(testInput);
-  auto gpuOutput = gpuCore->predict(testInput);
+  auto cpuOutput = cpuCore->predict(testInput).output;
+  auto gpuOutput = gpuCore->predict(testInput).output;
   std::cout << " done" << std::endl;
 
   // Compare final outputs
@@ -435,8 +435,8 @@ static void testCNNGPUPredictDeepDiagnostic()
   for (int i = 0; i < 64; i++)
     testInput2.data[i] = static_cast<float>(63 - i) / 63.0f;
 
-  auto cpuOutput2 = cpuCore->predict(testInput2);
-  auto gpuOutput2 = gpuCore->predict(testInput2);
+  auto cpuOutput2 = cpuCore->predict(testInput2).output;
+  auto gpuOutput2 = gpuCore->predict(testInput2).output;
 
   CHECK(compareVectors("final_output_2", cpuOutput2, gpuOutput2, 1e-4f),
         "Deep diag: CPU and GPU match on second input");
