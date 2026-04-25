@@ -64,7 +64,7 @@ static void testGPUParametersDuringTraining()
   predictConfig.logLevel = ANN::LogLevel::ERROR;
 
   auto predictCore = ANN::Core<float>::makeCore(predictConfig);
-  auto out = predictCore->predict({1.0f, 0.0f});
+  auto out = predictCore->predict({1.0f, 0.0f}).output;
   CHECK(std::isfinite(out[0]), "GPU params: predict with trained params works");
 }
 
@@ -96,7 +96,7 @@ static void testGPUDifferentActivations()
     auto core = ANN::Core<float>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    auto out = core->predict({1.0f, 0.0f});
+    auto out = core->predict({1.0f, 0.0f}).output;
     CHECK(std::isfinite(out[0]), ("GPU " + name + ": output is finite").c_str());
   }
 }
@@ -126,7 +126,7 @@ static void testGPUMultiLayerNetwork()
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  auto out = core->predict({1.0f, 0.0f, 0.0f});
+  auto out = core->predict({1.0f, 0.0f, 0.0f}).output;
   CHECK(std::isfinite(out[0]), "GPU multi-layer: output is finite");
   CHECK(out[0] >= 0.0f && out[0] <= 1.0f, "GPU multi-layer: output in [0,1]");
 }
@@ -153,7 +153,7 @@ static void testGPUMultiOutput()
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  auto out = core->predict({1.0f, 0.0f});
+  auto out = core->predict({1.0f, 0.0f}).output;
   CHECK(out.size() == 3, "GPU multi-output: 3 outputs");
 
   for (ulong i = 0; i < 3; i++)
@@ -186,12 +186,12 @@ static void testGPUWeightedLossAffectsTraining()
   auto config1 = makeConfig({10.0f, 1.0f});
   auto core1 = ANN::Core<float>::makeCore(config1);
   core1->train(samples.size(), ANN::makeSampleProvider(samples));
-  auto out1 = core1->predict({1.0f, 0.0f});
+  auto out1 = core1->predict({1.0f, 0.0f}).output;
 
   auto config2 = makeConfig({1.0f, 10.0f});
   auto core2 = ANN::Core<float>::makeCore(config2);
   core2->train(samples.size(), ANN::makeSampleProvider(samples));
-  auto out2 = core2->predict({1.0f, 0.0f});
+  auto out2 = core2->predict({1.0f, 0.0f}).output;
 
   bool different = std::fabs(out1[0] - out2[0]) > 0.01f || std::fabs(out1[1] - out2[1]) > 0.01f;
   CHECK(different, "GPU weighted loss: different weights produce different outputs");
@@ -219,7 +219,7 @@ static void testGPUShuffleSamplesNoShuffle()
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  auto out = core->predict({1.0f, 0.0f});
+  auto out = core->predict({1.0f, 0.0f}).output;
   CHECK(std::isfinite(out[0]), "GPU no-shuffle: output is finite");
 }
 
@@ -236,7 +236,7 @@ static void testGPUSoftmaxPredict()
   config.logLevel = ANN::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
-  auto out = core->predict({1.0f, 0.5f});
+  auto out = core->predict({1.0f, 0.5f}).output;
 
   CHECK(out.size() == 3, "GPU softmax predict: 3 outputs");
 
@@ -276,9 +276,9 @@ static void testGPUSoftmaxTrain()
     auto core = ANN::Core<float>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    auto out0 = core->predict({1.0f, 0.0f});
-    auto out1 = core->predict({0.0f, 1.0f});
-    auto out2 = core->predict({1.0f, 1.0f});
+    auto out0 = core->predict({1.0f, 0.0f}).output;
+    auto out1 = core->predict({0.0f, 1.0f}).output;
+    auto out2 = core->predict({1.0f, 1.0f}).output;
 
     bool classOk = out0[0] > out0[1] && out0[0] > out0[2] && out1[1] > out1[0] && out1[1] > out1[2] &&
                    out2[2] > out2[0] && out2[2] > out2[1];
@@ -304,7 +304,7 @@ static void testGPUSoftmaxHiddenLayer()
   config.logLevel = ANN::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
-  auto out = core->predict({1.0f, 0.5f});
+  auto out = core->predict({1.0f, 0.5f}).output;
 
   CHECK(out.size() == 1, "GPU softmax hidden: 1 output");
   CHECK(std::isfinite(out[0]), "GPU softmax hidden: output is finite");
@@ -333,7 +333,7 @@ static void testGPUDropoutTraining()
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  auto out = core->predict({1.0f, 0.0f});
+  auto out = core->predict({1.0f, 0.0f}).output;
   CHECK(std::isfinite(out[0]), "GPU dropout: output is finite");
   CHECK(out[0] >= 0.0f && out[0] <= 1.0f, "GPU dropout: output in [0,1]");
 }

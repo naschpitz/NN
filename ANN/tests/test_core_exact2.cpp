@@ -101,9 +101,9 @@ static void testCrossEntropyTraining()
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    auto out0 = core->predict({1.0, 0.0});
-    auto out1 = core->predict({0.0, 1.0});
-    auto out2 = core->predict({1.0, 1.0});
+    auto out0 = core->predict({1.0, 0.0}).output;
+    auto out1 = core->predict({0.0, 1.0}).output;
+    auto out2 = core->predict({1.0, 1.0}).output;
 
     // Each output should sum to 1 (softmax)
     bool sumsOk = std::fabs(out0[0] + out0[1] + out0[2] - 1.0) < 1e-5 &&

@@ -125,9 +125,11 @@ sudo make install
     <span class="comment">// Extract trained parameters (for persistence by caller)</span>
     <span class="keyword">const</span> <span class="keyword">auto</span>&amp; params = core-&gt;<span class="func">getParameters</span>();
 
-    <span class="comment">// Run a prediction</span>
+    <span class="comment">// Run a prediction. predict() returns PredictResult&lt;T&gt;:</span>
+    <span class="comment">//   .output — post-activation values of the last layer</span>
+    <span class="comment">//   .logits — pre-activation z (useful for OOD detection)</span>
     ANN::Input&lt;<span class="type">float</span>&gt; input = { <span class="number">0.5</span>, <span class="number">0.3</span>, <span class="number">0.8</span> };
-    ANN::Output&lt;<span class="type">float</span>&gt; output = core-&gt;<span class="func">predict</span>(input);
+    ANN::PredictResult&lt;<span class="type">float</span>&gt; result = core-&gt;<span class="func">predict</span>(input);
 
     <span class="keyword">return</span> <span class="number">0</span>;
 }

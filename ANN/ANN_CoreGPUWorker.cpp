@@ -70,7 +70,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreGPUWorker<T>::predict(const Input<T>& input)
+PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 {
   // Set up predict kernels if not done yet
   if (!this->kernelBuilder->predictKernelsSetup) {
@@ -84,7 +84,10 @@ Output<T> CoreGPUWorker<T>::predict(const Input<T>& input)
   // Execute predict kernels
   this->core->run();
 
-  return this->bufferManager->readOutput();
+  PredictResult<T> result;
+  result.output = this->bufferManager->readOutput();
+  result.logits = this->bufferManager->readOutputLogits();
+  return result;
 }
 
 //===================================================================================================================//
@@ -189,8 +192,8 @@ std::pair<T, ulong> CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulon
 //===================================================================================================================//
 
 template <typename T>
-Outputs<T> CoreGPUWorker<T>::predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
-                                           const ProgressCallback& callback)
+PredictResults<T> CoreGPUWorker<T>::predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
+                                                  const ProgressCallback& callback)
 {
   // Set up predict kernels if not done yet (forward pass only)
   if (!this->kernelBuilder->predictKernelsSetup) {
@@ -198,8 +201,8 @@ Outputs<T> CoreGPUWorker<T>::predictSubset(const Inputs<T>& inputs, ulong startI
     this->kernelBuilder->predictKernelsSetup = true;
   }
 
-  Outputs<T> outputs;
-  outputs.reserve(endIdx - startIdx);
+  PredictResults<T> results;
+  results.reserve(endIdx - startIdx);
 
   for (ulong i = startIdx; i < endIdx; i++) {
     const Input<T>& input = inputs[i];
@@ -210,15 +213,16 @@ Outputs<T> CoreGPUWorker<T>::predictSubset(const Inputs<T>& inputs, ulong startI
     // Execute forward pass kernels only
     this->core->run();
 
-    // Read predicted output
-    Output<T> predicted = this->bufferManager->readOutput();
-    outputs.push_back(std::move(predicted));
+    PredictResult<T> r;
+    r.output = this->bufferManager->readOutput();
+    r.logits = this->bufferManager->readOutputLogits();
+    results.push_back(std::move(r));
 
     if (callback)
       callback(i - startIdx + 1, endIdx - startIdx);
   }
 
-  return outputs;
+  return results;
 }
 
 //===================================================================================================================//

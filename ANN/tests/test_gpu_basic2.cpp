@@ -30,9 +30,9 @@ static void testGPUCrossEntropyTraining()
     auto core = ANN::Core<float>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    auto out0 = core->predict({1.0f, 0.0f});
-    auto out1 = core->predict({0.0f, 1.0f});
-    auto out2 = core->predict({1.0f, 1.0f});
+    auto out0 = core->predict({1.0f, 0.0f}).output;
+    auto out1 = core->predict({0.0f, 1.0f}).output;
+    auto out2 = core->predict({1.0f, 1.0f}).output;
 
     // Softmax outputs should sum to 1
     bool sumsOk = std::fabs(out0[0] + out0[1] + out0[2] - 1.0f) < 0.01f &&
@@ -85,7 +85,7 @@ static void testGPUCrossEntropyCPUParity()
   cpuConfig.logLevel = ANN::LogLevel::ERROR;
 
   auto cpuCore = ANN::Core<float>::makeCore(cpuConfig);
-  ANN::Output<float> cpuPred = cpuCore->predict({1.0f, 0.0f});
+  ANN::Output<float> cpuPred = cpuCore->predict({1.0f, 0.0f}).output;
 
   // GPU predict
   ANN::CoreConfig<float> gpuConfig;
@@ -96,7 +96,7 @@ static void testGPUCrossEntropyCPUParity()
   gpuConfig.logLevel = ANN::LogLevel::ERROR;
 
   auto gpuCore = ANN::Core<float>::makeCore(gpuConfig);
-  ANN::Output<float> gpuPred = gpuCore->predict({1.0f, 0.0f});
+  ANN::Output<float> gpuPred = gpuCore->predict({1.0f, 0.0f}).output;
 
   std::cout << "  CPU=[" << cpuPred[0] << "," << cpuPred[1] << "]" << "  GPU=[" << gpuPred[0] << "," << gpuPred[1]
             << "]" << std::endl;

@@ -41,6 +41,9 @@ namespace ANN
       //-- Output access --//
       Output<T> getOutput() const;
 
+      // Pre-activation z-vector of the last layer (input to the final activation).
+      Logits<T> getOutputLogits() const;
+
       //-- Activation access (for test accuracy check) --//
       const Tensor2D<T>& getActvs() const
       {

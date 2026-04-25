@@ -61,7 +61,7 @@ static void testExactForwardBackwardSquaredDifference()
   // --- Verify forward pass ---
   // Note: per-neuron activations (relu, sigmoid) are computed via float cast in C++,
   // so expected values account for float precision loss.
-  ANN::Output<double> out = core->predict({1.0, 0.5});
+  ANN::Output<double> out = core->predict({1.0, 0.5}).output;
   CHECK_NEAR(out[0], 0.50749945640563965, 1e-12, "SD forward: output exact");
 
   // --- Verify backward pass via train (1 epoch, 1 sample, SGD lr=1.0, no shuffle) ---
@@ -130,7 +130,7 @@ static void testExactForwardBackwardCrossEntropy()
 
   // --- Verify forward pass exactly ---
   // Softmax is computed in double (template T), but hidden ReLU goes through float.
-  ANN::Output<double> out = core->predict({1.0, 0.5});
+  ANN::Output<double> out = core->predict({1.0, 0.5}).output;
   CHECK_NEAR(out[0], 0.4625701553971332, 1e-12, "CE forward: a2[0] exact");
   CHECK_NEAR(out[1], 0.5374298446028668, 1e-12, "CE forward: a2[1] exact");
   CHECK_NEAR(out[0] + out[1], 1.0, 1e-14, "CE forward: softmax sums to 1");
@@ -192,7 +192,7 @@ static void testExactForwardBackwardWeightedCrossEntropy()
   auto core = ANN::Core<double>::makeCore(config);
 
   // Forward pass same as unweighted — cost function weights only affect gradients
-  ANN::Output<double> out = core->predict({1.0, 0.5});
+  ANN::Output<double> out = core->predict({1.0, 0.5}).output;
   CHECK_NEAR(out[0], 0.4625701553971332, 1e-12, "WCE forward: a2[0]");
   CHECK_NEAR(out[1], 0.5374298446028668, 1e-12, "WCE forward: a2[1]");
 

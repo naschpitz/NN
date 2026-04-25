@@ -38,7 +38,7 @@ static void testPredictSimple()
   config.parameters.biases[1] = {0.0};
 
   auto core = ANN::Core<double>::makeCore(config);
-  ANN::Output<double> out = core->predict({1.0, 1.0});
+  ANN::Output<double> out = core->predict({1.0, 1.0}).output;
 
   CHECK(out.size() == 1, "output size = 1");
   // z = 0.5*1 + 0.5*1 + 0 = 1.0, sigmoid(1.0) ≈ 0.7311
@@ -75,10 +75,10 @@ static void testTrainXOR()
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    p00 = core->predict({0.0, 0.0});
-    p01 = core->predict({0.0, 1.0});
-    p10 = core->predict({1.0, 0.0});
-    p11 = core->predict({1.0, 1.0});
+    p00 = core->predict({0.0, 0.0}).output;
+    p01 = core->predict({0.0, 1.0}).output;
+    p10 = core->predict({1.0, 0.0}).output;
+    p11 = core->predict({1.0, 1.0}).output;
 
     if (p00[0] < 0.3 && p01[0] > 0.7 && p10[0] > 0.7 && p11[0] < 0.3) {
       converged = true;
@@ -217,7 +217,7 @@ static void testParameterRoundTrip()
   auto trainCore = ANN::Core<double>::makeCore(trainConfig);
   trainCore->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  ANN::Output<double> originalPred = trainCore->predict({1.0, 1.0});
+  ANN::Output<double> originalPred = trainCore->predict({1.0, 1.0}).output;
   ANN::Parameters<double> params = trainCore->getParameters();
 
   // Check parameters are non-empty
@@ -232,7 +232,7 @@ static void testParameterRoundTrip()
   predConfig.parameters = params;
 
   auto predCore = ANN::Core<double>::makeCore(predConfig);
-  ANN::Output<double> loadedPred = predCore->predict({1.0, 1.0});
+  ANN::Output<double> loadedPred = predCore->predict({1.0, 1.0}).output;
 
   std::cout << "  original=" << originalPred[0] << "  from_params=" << loadedPred[0] << std::endl;
   CHECK_NEAR(originalPred[0], loadedPred[0], 1e-10, "parameter round-trip exact match");
@@ -304,13 +304,13 @@ static void testBatchPredict()
 
   // Batch predict with multiple inputs at once
   ANN::Inputs<double> inputs = {{1.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}};
-  ANN::Outputs<double> outputs = core->predict(inputs);
+  ANN::PredictResults<double> results = core->predict(inputs);
 
-  CHECK(outputs.size() == 4, "batch predict returns 4 outputs");
+  CHECK(results.size() == 4, "batch predict returns 4 outputs");
 
   // Each output should have 1 element
-  for (size_t i = 0; i < outputs.size(); i++)
-    CHECK(outputs[i].size() == 1, "output[" + std::to_string(i) + "] size = 1");
+  for (size_t i = 0; i < results.size(); i++)
+    CHECK(results[i].output.size() == 1, "output[" + std::to_string(i) + "] size = 1");
 
   // Verify known values
   double exp_11 = 1.0 / (1.0 + std::exp(-1.0)); // sigmoid(0.5 + 0.5) = sigmoid(1.0)
@@ -318,15 +318,20 @@ static void testBatchPredict()
   double exp_10 = 1.0 / (1.0 + std::exp(-0.5)); // sigmoid(0.5)
   double exp_01 = 1.0 / (1.0 + std::exp(-0.5)); // sigmoid(0.5)
 
-  CHECK_NEAR(outputs[0][0], exp_11, 1e-5, "batch predict {1,1}");
-  CHECK_NEAR(outputs[1][0], exp_00, 1e-5, "batch predict {0,0}");
-  CHECK_NEAR(outputs[2][0], exp_10, 1e-5, "batch predict {1,0}");
-  CHECK_NEAR(outputs[3][0], exp_01, 1e-5, "batch predict {0,1}");
+  CHECK_NEAR(results[0].output[0], exp_11, 1e-5, "batch predict {1,1}");
+  CHECK_NEAR(results[1].output[0], exp_00, 1e-5, "batch predict {0,0}");
+  CHECK_NEAR(results[2].output[0], exp_10, 1e-5, "batch predict {1,0}");
+  CHECK_NEAR(results[3].output[0], exp_01, 1e-5, "batch predict {0,1}");
+
+  // Logits sanity: each batch result should also carry a same-sized logits vector
+  for (size_t i = 0; i < results.size(); i++)
+    CHECK(results[i].logits.size() == results[i].output.size(),
+          "logits[" + std::to_string(i) + "] size matches output");
 
   // Verify batch predict matches single predict
   for (size_t i = 0; i < inputs.size(); i++) {
-    ANN::Output<double> single = core->predict(inputs[i]);
-    CHECK_NEAR(outputs[i][0], single[0], 1e-10, "batch[" + std::to_string(i) + "] matches single predict");
+    ANN::Output<double> single = core->predict(inputs[i]).output;
+    CHECK_NEAR(results[i].output[0], single[0], 1e-10, "batch[" + std::to_string(i) + "] matches single predict");
   }
 }
 
@@ -351,7 +356,7 @@ static void testBatchPredictAfterTraining()
   config.logLevel = ANN::LogLevel::ERROR;
 
   bool converged = false;
-  ANN::Outputs<double> outputs;
+  ANN::PredictResults<double> results;
 
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
     if (attempt > 0)
@@ -362,13 +367,14 @@ static void testBatchPredictAfterTraining()
 
     // Batch predict all 4 XOR inputs
     ANN::Inputs<double> inputs = {{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}};
-    outputs = core->predict(inputs);
+    results = core->predict(inputs);
 
-    if (outputs[0][0] < 0.5 && outputs[1][0] > 0.5 && outputs[2][0] > 0.5 && outputs[3][0] < 0.5)
+    if (results[0].output[0] < 0.5 && results[1].output[0] > 0.5 && results[2].output[0] > 0.5 &&
+        results[3].output[0] < 0.5)
       converged = true;
   }
 
-  CHECK(outputs.size() == 4, "batch predict returns 4 outputs");
+  CHECK(results.size() == 4, "batch predict returns 4 outputs");
   CHECK(converged, "XOR batch predict converged (5 attempts)");
 }
 

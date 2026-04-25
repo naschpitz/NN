@@ -22,7 +22,7 @@ static void testParameterRoundTrip()
   auto trainCore = ANN::Core<double>::makeCore(trainConfig);
   trainCore->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  ANN::Output<double> originalPred = trainCore->predict({1.0, 1.0});
+  ANN::Output<double> originalPred = trainCore->predict({1.0, 1.0}).output;
 
   // Extract trained parameters via getters
   const ANN::Parameters<double>& trainedParams = trainCore->getParameters();
@@ -37,7 +37,7 @@ static void testParameterRoundTrip()
   loadConfig.parameters = trainedParams;
 
   auto loadedCore = ANN::Core<double>::makeCore(loadConfig);
-  ANN::Output<double> loadedPred = loadedCore->predict({1.0, 1.0});
+  ANN::Output<double> loadedPred = loadedCore->predict({1.0, 1.0}).output;
 
   std::cout << "  original=" << originalPred[0] << "  loaded=" << loadedPred[0] << std::endl;
   CHECK_NEAR(originalPred[0], loadedPred[0], 1e-10, "parameter round-trip exact match");
@@ -91,8 +91,8 @@ static void testParameterRoundTripPreservesArchitecture()
 
   // Verify predictions match
   ANN::Input<double> input = {0.5, 0.3, 0.7};
-  ANN::Output<double> origPred = core->predict(input);
-  ANN::Output<double> loadPred = loaded->predict(input);
+  ANN::Output<double> origPred = core->predict(input).output;
+  ANN::Output<double> loadPred = loaded->predict(input).output;
 
   CHECK(origPred.size() == 2, "output size = 2");
   CHECK_NEAR(origPred[0], loadPred[0], 1e-10, "pred[0] matches after round-trip");

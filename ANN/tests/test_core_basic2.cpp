@@ -21,9 +21,9 @@ static void testDifferentActivations()
     return ANN::Core<double>::makeCore(config);
   };
 
-  double reluOut = makeCore(ANN::ActvFuncType::RELU)->predict(input)[0];
-  double sigOut = makeCore(ANN::ActvFuncType::SIGMOID)->predict(input)[0];
-  double tanhOut = makeCore(ANN::ActvFuncType::TANH)->predict(input)[0];
+  double reluOut = makeCore(ANN::ActvFuncType::RELU)->predict(input).output[0];
+  double sigOut = makeCore(ANN::ActvFuncType::SIGMOID)->predict(input).output[0];
+  double tanhOut = makeCore(ANN::ActvFuncType::TANH)->predict(input).output[0];
 
   std::cout << "  relu=" << reluOut << " sigmoid=" << sigOut << " tanh=" << tanhOut << std::endl;
 
@@ -62,8 +62,8 @@ static void testMultiLayerNetwork()
       std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
-    p0 = core->predict({1.0, 1.0});
-    p1 = core->predict({0.0, 0.0});
+    p0 = core->predict({1.0, 1.0}).output;
+    p1 = core->predict({0.0, 0.0}).output;
 
     if (p0[0] > 0.7 && p1[0] < 0.3)
       converged = true;
@@ -100,7 +100,7 @@ static void testMultiOutput()
       std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
-    pred = core->predict({1.0, 0.0});
+    pred = core->predict({1.0, 0.0}).output;
 
     if (pred[0] > 0.7 && pred[1] < 0.3 && pred[2] > 0.7)
       converged = true;
@@ -134,7 +134,7 @@ static void testStepByStepAPI()
   ANN::Output<double> expected = {1.0};
 
   // Manual training loop (1 epoch, 1 sample)
-  ANN::Output<double> beforePred = core->predict(input);
+  ANN::Output<double> beforePred = core->predict(input).output;
 
   core->resetAccumulators();
   core->predict(input); // Forward pass (stores state in stepWorker)
@@ -142,7 +142,7 @@ static void testStepByStepAPI()
   core->accumulate();
   core->update(1);
 
-  ANN::Output<double> afterPred = core->predict(input);
+  ANN::Output<double> afterPred = core->predict(input).output;
 
   std::cout << "  before=" << beforePred[0] << "  after=" << afterPred[0] << std::endl;
 
@@ -180,8 +180,8 @@ static void testTrainWithTanh()
       std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<double>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
-    p0 = core->predict({1.0, 1.0});
-    p1 = core->predict({0.0, 0.0});
+    p0 = core->predict({1.0, 1.0}).output;
+    p1 = core->predict({0.0, 0.0}).output;
 
     if (p0[0] > 0.7 && p1[0] < 0.3)
       converged = true;

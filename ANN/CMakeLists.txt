@@ -58,6 +58,7 @@ add_library(ANN STATIC
   ANN_ProgressCallback.hpp
   ANN_TrainingProgress.hpp
   ANN_TrainingMetadata.hpp
+  ANN_PredictResult.hpp
   ANN_TestResult.hpp
   ANN_CoreConfig.hpp
   opencl/ANN_Defines.hpp.cl

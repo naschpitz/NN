@@ -33,7 +33,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 //===================================================================================================================//
 
 template <typename T>
-Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
+PredictResults<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
 {
   this->predictStart();
 
@@ -60,7 +60,7 @@ Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
     workerPtrs.push_back(w.get());
 
   ulong numInputs = inputs.size();
-  Outputs<T> outputs(numInputs);
+  PredictResults<T> results(numInputs);
 
   // Atomic counter for assigning unique worker indices to threads
   std::atomic<int> nextWorkerIndex{0};
@@ -77,7 +77,8 @@ Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
     CoreCPUWorker<T>& worker = *workerPtrs[workerIndex];
 
     worker.propagate(inputs[idx]);
-    outputs[idx] = worker.getOutput();
+    results[idx].output = worker.getOutput();
+    results[idx].logits = worker.getOutputLogits();
 
     ulong completed = ++completedInputs;
 
@@ -87,18 +88,22 @@ Outputs<T> CoreCPU<T>::predict(const Inputs<T>& inputs)
 
   this->predictEnd();
 
-  return outputs;
+  return results;
 }
 
 //===================================================================================================================//
 
 template <typename T>
-Output<T> CoreCPU<T>::predict(const Input<T>& input)
+PredictResult<T> CoreCPU<T>::predict(const Input<T>& input)
 {
   // Direct single-input predict using stepWorker — avoids QtConcurrent::blockingMap
   // to prevent deadlocks when called from inside another blockingMap (e.g., CNN training).
   this->stepWorker->propagate(input);
-  return this->stepWorker->getOutput();
+
+  PredictResult<T> result;
+  result.output = this->stepWorker->getOutput();
+  result.logits = this->stepWorker->getOutputLogits();
+  return result;
 }
 
 //===================================================================================================================//

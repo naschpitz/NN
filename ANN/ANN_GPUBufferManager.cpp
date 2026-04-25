@@ -256,6 +256,33 @@ Output<T> GPUBufferManager<T>::readOutput()
 //===================================================================================================================//
 
 template <typename T>
+Logits<T> GPUBufferManager<T>::readOutputLogits()
+{
+  // The "zs" buffer is allocated with the same per-layer offsets as "actvs"
+  // (layer 0's slot is unused since the input layer has no pre-activation).
+  // The last layer's logits live at the same offset as the output activations.
+  ulong numLayers = this->layersConfig.size();
+
+  ulong outputOffset = 0;
+
+  for (ulong l = 0; l < numLayers - 1; l++) {
+    outputOffset += this->layersConfig[l].numNeurons;
+  }
+
+  ulong totalNumNeurons = this->layersConfig.getTotalNumNeurons();
+  ulong outputNumNeurons = totalNumNeurons - outputOffset;
+
+  Logits<T> logits;
+  logits.resize(outputNumNeurons);
+
+  this->core->readBuffer("zs", logits, outputOffset);
+
+  return logits;
+}
+
+//===================================================================================================================//
+
+template <typename T>
 Tensor1D<T> GPUBufferManager<T>::readInputGradients()
 {
   // Read dCost_dActvs for the input layer (layer 0) from GPU

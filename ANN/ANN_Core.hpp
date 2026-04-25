@@ -7,6 +7,7 @@
 #include "ANN_TrainingProgress.hpp"
 #include "ANN_TrainingMetadata.hpp"
 #include "ANN_PredictMetadata.hpp"
+#include "ANN_PredictResult.hpp"
 #include "ANN_ProgressCallback.hpp"
 #include "ANN_TestResult.hpp"
 
@@ -26,9 +27,11 @@ namespace ANN
       static std::unique_ptr<Core<T>> makeCore(const CoreConfig<T>& config);
 
       //-- Core interface --//
-      virtual Outputs<T> predict(const Inputs<T>& inputs) = 0;
-      virtual Output<T>
-      predict(const Input<T>& input); // Single-input predict (overridden in CoreCPU to avoid threading)
+      // predict returns both the post-activation output and the pre-activation (z) of the
+      // last layer. The logits are required for calibration / OOD-detection scores
+      // (max-logit, logit-norm, free-energy) that softmax discards.
+      virtual PredictResults<T> predict(const Inputs<T>& inputs) = 0;
+      virtual PredictResult<T> predict(const Input<T>& input); // Overridden in CoreCPU to avoid threading
       virtual void train(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
       virtual TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
 

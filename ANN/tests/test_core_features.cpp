@@ -163,8 +163,8 @@ static void testShuffleSamplesTraining()
   for (int attempt = 0; attempt < 5 && !shuffleConverged; ++attempt) {
     auto core = ANN::Core<double>::makeCore(makeConfig(true));
     core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto p0 = core->predict({1.0, 1.0});
-    auto p1 = core->predict({0.0, 0.0});
+    auto p0 = core->predict({1.0, 1.0}).output;
+    auto p1 = core->predict({0.0, 0.0}).output;
 
     if (p0[0] > 0.7 && p1[0] < 0.3)
       shuffleConverged = true;
@@ -178,8 +178,8 @@ static void testShuffleSamplesTraining()
   for (int attempt = 0; attempt < 5 && !noShuffleConverged; ++attempt) {
     auto core = ANN::Core<double>::makeCore(makeConfig(false));
     core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto p0 = core->predict({1.0, 1.0});
-    auto p1 = core->predict({0.0, 0.0});
+    auto p0 = core->predict({1.0, 1.0}).output;
+    auto p1 = core->predict({0.0, 0.0}).output;
 
     if (p0[0] > 0.7 && p1[0] < 0.3)
       noShuffleConverged = true;
@@ -224,8 +224,8 @@ static void testShuffleSamplesNoShuffle()
   core2->train(samples.size(), ANN::makeSampleProvider(samples));
   core3->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  auto pred2 = core2->predict({1.0, 1.0});
-  auto pred3 = core3->predict({1.0, 1.0});
+  auto pred2 = core2->predict({1.0, 1.0}).output;
+  auto pred3 = core3->predict({1.0, 1.0}).output;
 
   std::cout << "  run1=" << pred2[0] << "  run2=" << pred3[0] << std::endl;
   CHECK_NEAR(pred2[0], pred3[0], 1e-10, "shuffle=false: identical runs produce identical results");

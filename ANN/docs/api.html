@@ -56,9 +56,10 @@
 <table>
   <tr><th>Alias</th><th>Definition</th><th>Description</th></tr>
   <tr><td><code>Input&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Single input vector</td></tr>
-  <tr><td><code>Output&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Single output vector</td></tr>
   <tr><td><code>Inputs&lt;T&gt;</code></td><td><code>std::vector&lt;Input&lt;T&gt;&gt;</code></td><td>Batch of inputs</td></tr>
-  <tr><td><code>Outputs&lt;T&gt;</code></td><td><code>std::vector&lt;Output&lt;T&gt;&gt;</code></td><td>Batch of outputs</td></tr>
+  <tr><td><code>Output&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Single output vector (post-activation)</td></tr>
+  <tr><td><code>Logits&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Pre-activation values (z) of the last layer — input to the final activation function</td></tr>
+  <tr><td><code>PredictResults&lt;T&gt;</code></td><td><code>std::vector&lt;PredictResult&lt;T&gt;&gt;</code></td><td>Batch of predict results</td></tr>
   <tr><td><code>Tensor1D&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>1-D tensor</td></tr>
   <tr><td><code>Tensor2D&lt;T&gt;</code></td><td><code>std::vector&lt;std::vector&lt;T&gt;&gt;</code></td><td>2-D tensor (matrix)</td></tr>
   <tr><td><code>Tensor3D&lt;T&gt;</code></td><td><code>std::vector&lt;std::vector&lt;std::vector&lt;T&gt;&gt;&gt;</code></td><td>3-D tensor</td></tr>
@@ -245,6 +246,14 @@
   <tr><td><code>durationFormatted</code></td><td><code>std::string</code></td><td>Human-readable duration</td></tr>
 </table>
 
+<h3>PredictResult&lt;T&gt; <span class="badge badge-blue">ANN_PredictResult.hpp</span></h3>
+<p>Returned by <code>predict()</code>. Carries both the post-activation output and the pre-activation (z) values of the last layer. Logits enable calibration / out-of-distribution detection scores (max-logit, logit-norm, free-energy <code>−log Σ exp(zᵢ)</code>) that softmax discards because softmax is shift-invariant: <code>softmax(z) = softmax(z + c)</code>.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>output</code></td><td><code>Output&lt;T&gt;</code></td><td>Post-activation values of the last layer (e.g. softmax probabilities)</td></tr>
+  <tr><td><code>logits</code></td><td><code>Logits&lt;T&gt;</code></td><td>Pre-activation values (z) of the last layer — input to the final activation function</td></tr>
+</table>
+
 <h3>TestResult&lt;T&gt; <span class="badge badge-blue">ANN_TestResult.hpp</span></h3>
 <p>Returned by <code>test()</code> after evaluation completes.</p>
 <table>
@@ -263,8 +272,8 @@
 <h3>Public Methods</h3>
 <table>
   <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
-  <tr><td><code>predict(const Inputs&lt;T&gt;&amp;)</code></td><td><code>Outputs&lt;T&gt;</code></td><td><strong>Virtual:</strong> batch propagation — distributes inputs across threads/GPUs. Output order matches input order.</td></tr>
-  <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>Output&lt;T&gt;</code></td><td><strong>Virtual:</strong> single-input prediction. CoreCPU overrides this to use the step worker directly (no threading), avoiding deadlocks when called from within another thread pool. Default implementation delegates to the batch version.</td></tr>
+  <tr><td><code>predict(const Inputs&lt;T&gt;&amp;)</code></td><td><code>PredictResults&lt;T&gt;</code></td><td><strong>Virtual:</strong> batch propagation — distributes inputs across threads/GPUs. Output order matches input order. Each result carries both <code>output</code> (post-activation) and <code>logits</code> (pre-activation z of the last layer).</td></tr>
+  <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>PredictResult&lt;T&gt;</code></td><td><strong>Virtual:</strong> single-input prediction. CoreCPU overrides this to use the step worker directly (no threading), avoiding deadlocks when called from within another thread pool. Default implementation delegates to the batch version.</td></tr>
   <tr><td><code>train(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>void</code></td><td>Full training loop over all epochs</td></tr>
   <tr><td><code>test(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>TestResult&lt;T&gt;</code></td><td>Evaluate loss on a test set using on-demand sample loading</td></tr>
   <tr><td><code>backpropagate(const Output&lt;T&gt;&amp;)</code></td><td><code>Tensor1D&lt;T&gt;</code></td><td>Compute gradients; returns input-layer gradient</td></tr>
@@ -320,8 +329,8 @@
 <h3>CoreGPUWorker Methods</h3>
 <table>
   <tr><th>Method</th><th>Description</th></tr>
-  <tr><td><code>predict(input)</code></td><td>Single-sample inference on GPU</td></tr>
-  <tr><td><code>predictSubset(inputs, start, end)</code></td><td>Batch inference on a range of inputs (called by CoreGPU)</td></tr>
+  <tr><td><code>predict(input)</code></td><td>Single-sample inference on GPU. Returns <code>PredictResult&lt;T&gt;</code>.</td></tr>
+  <tr><td><code>predictSubset(inputs, start, end)</code></td><td>Batch inference on a range of inputs (called by CoreGPU). Returns <code>PredictResults&lt;T&gt;</code>.</td></tr>
   <tr><td><code>testSubset(samples, start, end)</code></td><td>Evaluate a range of samples</td></tr>
 </table>
 

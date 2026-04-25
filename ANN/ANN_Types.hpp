@@ -11,13 +11,16 @@ namespace ANN
   using Input = std::vector<T>;
 
   template <typename T>
-  using Output = std::vector<T>;
-
-  template <typename T>
   using Inputs = std::vector<Input<T>>;
 
   template <typename T>
-  using Outputs = std::vector<Output<T>>;
+  using Output = std::vector<T>;
+
+  // Pre-activation values (z) of the last layer. Useful for
+  // out-of-distribution detection scores (max-logit, logit-norm,
+  // free-energy) that cannot be recovered from softmax outputs.
+  template <typename T>
+  using Logits = std::vector<T>;
 
   template <typename T>
   using Tensor1D = std::vector<T>;

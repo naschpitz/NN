@@ -31,8 +31,8 @@ static void testGPUTrainSimple()
     auto core = ANN::Core<float>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    p0 = core->predict({1.0f, 1.0f});
-    p1 = core->predict({0.0f, 0.0f});
+    p0 = core->predict({1.0f, 1.0f}).output;
+    p1 = core->predict({0.0f, 0.0f}).output;
 
     if (p0[0] > 0.7f && p1[0] < 0.3f)
       converged = true;
@@ -61,7 +61,7 @@ static void testGPUPredict()
   config.logLevel = ANN::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
-  ANN::Output<float> out = core->predict({1.0f, 1.0f});
+  ANN::Output<float> out = core->predict({1.0f, 1.0f}).output;
 
   CHECK(out.size() == 1, "GPU predict output size = 1");
   // z = 0.5*1 + 0.5*1 = 1.0, sigmoid(1.0) ≈ 0.7311
@@ -104,8 +104,8 @@ static void testGPUvsCPUParity()
   cpuConfig.logLevel = ANN::LogLevel::ERROR;
 
   auto cpuCore = ANN::Core<float>::makeCore(cpuConfig);
-  ANN::Output<float> cpuPred1 = cpuCore->predict({1.0f, 1.0f});
-  ANN::Output<float> cpuPred2 = cpuCore->predict({0.0f, 0.0f});
+  ANN::Output<float> cpuPred1 = cpuCore->predict({1.0f, 1.0f}).output;
+  ANN::Output<float> cpuPred2 = cpuCore->predict({0.0f, 0.0f}).output;
 
   // GPU predict
   ANN::CoreConfig<float> gpuConfig;
@@ -116,8 +116,8 @@ static void testGPUvsCPUParity()
   gpuConfig.logLevel = ANN::LogLevel::ERROR;
 
   auto gpuCore = ANN::Core<float>::makeCore(gpuConfig);
-  ANN::Output<float> gpuPred1 = gpuCore->predict({1.0f, 1.0f});
-  ANN::Output<float> gpuPred2 = gpuCore->predict({0.0f, 0.0f});
+  ANN::Output<float> gpuPred1 = gpuCore->predict({1.0f, 1.0f}).output;
+  ANN::Output<float> gpuPred2 = gpuCore->predict({0.0f, 0.0f}).output;
 
   std::cout << "  CPU[1,1]=" << cpuPred1[0] << "  GPU[1,1]=" << gpuPred1[0] << std::endl;
   std::cout << "  CPU[0,0]=" << cpuPred2[0] << "  GPU[0,0]=" << gpuPred2[0] << std::endl;
@@ -159,8 +159,8 @@ static void testGPUShuffleSamples()
       std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<float>::makeCore(makeConfig(true));
     core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto p0 = core->predict({1.0f, 1.0f});
-    auto p1 = core->predict({0.0f, 0.0f});
+    auto p0 = core->predict({1.0f, 1.0f}).output;
+    auto p1 = core->predict({0.0f, 0.0f}).output;
 
     if (p0[0] > 0.7f && p1[0] < 0.3f)
       shuffleConverged = true;
@@ -175,8 +175,8 @@ static void testGPUShuffleSamples()
       std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<float>::makeCore(makeConfig(false));
     core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto p0 = core->predict({1.0f, 1.0f});
-    auto p1 = core->predict({0.0f, 0.0f});
+    auto p0 = core->predict({1.0f, 1.0f}).output;
+    auto p1 = core->predict({0.0f, 0.0f}).output;
 
     if (p0[0] > 0.7f && p1[0] < 0.3f)
       noShuffleConverged = true;

@@ -38,6 +38,8 @@ namespace ANN
 
       //-- Data I/O --//
       Output<T> readOutput();
+      // Read pre-activation z-vector of the last layer (input to the final activation function).
+      Logits<T> readOutputLogits();
       Tensor1D<T> readInputGradients();
 
       //-- Gradient access (for multi-GPU merging) --//

@@ -16,7 +16,7 @@ static void testSoftmaxPredict()
   config.parameters.biases[1] = {0.0, 0.0, 0.0};
 
   auto core = ANN::Core<double>::makeCore(config);
-  ANN::Output<double> out = core->predict({1.0, 1.0});
+  ANN::Output<double> out = core->predict({1.0, 1.0}).output;
 
   // Outputs should sum to 1
   double sum = out[0] + out[1] + out[2];
@@ -56,9 +56,9 @@ static void testSoftmaxTrain()
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   // After training, the highest output should match the target class
-  auto out0 = core->predict({1.0, 0.0});
-  auto out1 = core->predict({0.0, 1.0});
-  auto out2 = core->predict({1.0, 1.0});
+  auto out0 = core->predict({1.0, 0.0}).output;
+  auto out1 = core->predict({0.0, 1.0}).output;
+  auto out2 = core->predict({1.0, 1.0}).output;
 
   // Each output should sum to 1
   CHECK_NEAR(out0[0] + out0[1] + out0[2], 1.0, 1e-5, "softmax train out0 sums to 1");
@@ -93,8 +93,8 @@ static void testSoftmaxHiddenLayer()
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  auto out1 = core->predict({1.0, 1.0});
-  auto out0 = core->predict({0.0, 0.0});
+  auto out1 = core->predict({1.0, 1.0}).output;
+  auto out0 = core->predict({0.0, 0.0}).output;
 
   CHECK(out1[0] > out0[0], "softmax hidden: (1,1) > (0,0)");
 }
@@ -124,10 +124,10 @@ static void testDropoutTraining()
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
   // Predict (no dropout during inference)
-  auto r00 = core->predict({0, 0});
-  auto r01 = core->predict({0, 1});
-  auto r10 = core->predict({1, 0});
-  auto r11 = core->predict({1, 1});
+  auto r00 = core->predict({0, 0}).output;
+  auto r01 = core->predict({0, 1}).output;
+  auto r10 = core->predict({1, 0}).output;
+  auto r11 = core->predict({1, 1}).output;
 
   CHECK(r00[0] < 0.4, "XOR(0,0) < 0.4 with dropout training");
   CHECK(r01[0] > 0.6, "XOR(0,1) > 0.6 with dropout training");

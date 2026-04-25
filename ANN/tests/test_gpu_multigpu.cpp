@@ -30,8 +30,8 @@ static void testMultiGPUTrainSimple()
       std::cout << "  retry #" << attempt << std::endl;
     auto core = ANN::Core<float>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
-    auto high = core->predict({1.0f, 0.0f})[0];
-    auto low = core->predict({0.0f, 0.0f})[0];
+    auto high = core->predict({1.0f, 0.0f}).output[0];
+    auto low = core->predict({0.0f, 0.0f}).output[0];
 
     if (high > 0.5f && low < 0.5f)
       converged = true;
@@ -141,7 +141,7 @@ static void testMultiGPUCrossEntropyTraining()
     auto core = ANN::Core<float>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    auto out0 = core->predict({1.0f, 0.0f});
+    auto out0 = core->predict({1.0f, 0.0f}).output;
     float sum0 = out0[0] + out0[1] + out0[2];
 
     bool sumsOk = std::fabs(sum0 - 1.0f) < 0.01f;
@@ -182,7 +182,7 @@ static void testMultiGPUDifferentActivations()
     auto core = ANN::Core<float>::makeCore(config);
     core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-    auto out = core->predict({1.0f, 0.0f});
+    auto out = core->predict({1.0f, 0.0f}).output;
     CHECK(std::isfinite(out[0]), ("multi-GPU " + name + ": output is finite").c_str());
   }
 }
@@ -209,7 +209,7 @@ static void testMultiGPUMultiOutput()
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  auto out = core->predict({1.0f, 0.0f});
+  auto out = core->predict({1.0f, 0.0f}).output;
   CHECK(out.size() == 3, "multi-GPU multi-output: 3 outputs");
 
   for (ulong i = 0; i < 3; i++)
@@ -239,7 +239,7 @@ static void testMultiGPUDropoutTraining()
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  auto out = core->predict({1.0f, 0.0f});
+  auto out = core->predict({1.0f, 0.0f}).output;
   CHECK(std::isfinite(out[0]), "multi-GPU dropout: output is finite");
   CHECK(out[0] >= 0.0f && out[0] <= 1.0f, "multi-GPU dropout: output in [0,1]");
 }
@@ -278,7 +278,7 @@ static void testMultiGPUParametersDuringTraining()
   predictConfig.logLevel = ANN::LogLevel::ERROR;
 
   auto predictCore = ANN::Core<float>::makeCore(predictConfig);
-  auto out = predictCore->predict({1.0f, 0.0f});
+  auto out = predictCore->predict({1.0f, 0.0f}).output;
   CHECK(std::isfinite(out[0]), "multi-GPU params: predict with trained params works");
 }
 

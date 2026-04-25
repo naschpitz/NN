@@ -31,8 +31,8 @@ namespace ANN
                     const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                     OpenCLWrapper::Core& sharedCore, ulong progressReports = 1000, LogLevel logLevel = LogLevel::ERROR);
 
-      //-- Predict --//
-      Output<T> predict(const Input<T>& input);
+      //-- Predict (returns post-activation output and pre-activation logits) --//
+      PredictResult<T> predict(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
       T trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
@@ -42,8 +42,8 @@ namespace ANN
       std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
-      Outputs<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
-                               const ProgressCallback& callback = nullptr);
+      PredictResults<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
+                                      const ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training (for external orchestration) --//
       Tensor1D<T> backpropagate(const Output<T>& expected);
