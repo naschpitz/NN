@@ -15,92 +15,92 @@ namespace ANN
   template <typename T>
   class Utils
   {
-    public:
-      // Format current time as ISO 8601 string
-      static std::string formatISO8601();
+  public:
+    // Format current time as ISO 8601 string
+    static std::string formatISO8601();
 
-      // Format duration in seconds as human-readable string (e.g., "1y 2mo 3d 4h 5m 6s")
-      static std::string formatDuration(double totalSeconds);
+    // Format duration in seconds as human-readable string (e.g., "1y 2mo 3d 4h 5m 6s")
+    static std::string formatDuration(double totalSeconds);
 
-      template <typename V>
-      static ulong count(const V& nestedVec)
-      {
-        ulong result = 0;
+    template <typename V>
+    static ulong count(const V& nestedVec)
+    {
+      ulong result = 0;
 
-        Utils<T>::countHelper(result, nestedVec);
+      Utils<T>::countHelper(result, nestedVec);
 
-        return result;
+      return result;
+    }
+
+    template <typename V>
+    static Tensor1D<T> flatten(const V& nestedVec)
+    {
+      Tensor1D<T> result;
+
+      Utils<T>::flattenHelper(result, nestedVec);
+
+      return result;
+    }
+
+    // Unflatten a 1D vector into a 2D tensor (for biases) using the shape template
+    static void unflatten(const Tensor1D<T>& flat, Tensor2D<T>& target)
+    {
+      ulong idx = 0;
+
+      for (auto& row : target) {
+        for (auto& elem : row) {
+          elem = flat[idx++];
+        }
       }
+    }
 
-      template <typename V>
-      static Tensor1D<T> flatten(const V& nestedVec)
-      {
-        Tensor1D<T> result;
+    // Unflatten a 1D vector into a 3D tensor (for weights) using the shape template
+    static void unflatten(const Tensor1D<T>& flat, Tensor3D<T>& target)
+    {
+      ulong idx = 0;
 
-        Utils<T>::flattenHelper(result, nestedVec);
-
-        return result;
-      }
-
-      // Unflatten a 1D vector into a 2D tensor (for biases) using the shape template
-      static void unflatten(const Tensor1D<T>& flat, Tensor2D<T>& target)
-      {
-        ulong idx = 0;
-
-        for (auto& row : target) {
+      for (auto& layer : target) {
+        for (auto& row : layer) {
           for (auto& elem : row) {
             elem = flat[idx++];
           }
         }
       }
+    }
 
-      // Unflatten a 1D vector into a 3D tensor (for weights) using the shape template
-      static void unflatten(const Tensor1D<T>& flat, Tensor3D<T>& target)
-      {
-        ulong idx = 0;
+  private:
+    // Helper to detect if a type is a std::vector
+    template <typename U>
+    struct is_vector : std::false_type {
+    };
 
-        for (auto& layer : target) {
-          for (auto& row : layer) {
-            for (auto& elem : row) {
-              elem = flat[idx++];
-            }
-          }
+    template <typename U, typename A>
+    struct is_vector<std::vector<U, A>> : std::true_type {
+    };
+
+    template <typename V>
+    static void flattenHelper(Tensor1D<T>& result, const V& nestedVec)
+    {
+      for (const auto& nestedVecItem : nestedVec) {
+        if constexpr (is_vector<std::decay_t<decltype(nestedVecItem)>>::value) {
+          Utils<T>::flattenHelper(result, nestedVecItem);
+        } else {
+          result.push_back(nestedVecItem);
         }
       }
+    }
 
-    private:
-      // Helper to detect if a type is a std::vector
-      template <typename U>
-      struct is_vector : std::false_type {
-      };
-
-      template <typename U, typename A>
-      struct is_vector<std::vector<U, A>> : std::true_type {
-      };
-
-      template <typename V>
-      static void flattenHelper(Tensor1D<T>& result, const V& nestedVec)
-      {
-        for (const auto& nestedVecItem : nestedVec) {
-          if constexpr (is_vector<std::decay_t<decltype(nestedVecItem)>>::value) {
-            Utils<T>::flattenHelper(result, nestedVecItem);
-          } else {
-            result.push_back(nestedVecItem);
-          }
+    template <typename V>
+    static void countHelper(ulong& result, const V& nestedVec)
+    {
+      for (const auto& nestedVecItem : nestedVec) {
+        if constexpr (is_vector<std::decay_t<decltype(nestedVecItem)>>::value) {
+          Utils<T>::countHelper(result, nestedVecItem);
+        } else {
+          result++;
         }
       }
-
-      template <typename V>
-      static void countHelper(ulong& result, const V& nestedVec)
-      {
-        for (const auto& nestedVecItem : nestedVec) {
-          if constexpr (is_vector<std::decay_t<decltype(nestedVecItem)>>::value) {
-            Utils<T>::countHelper(result, nestedVecItem);
-          } else {
-            result++;
-          }
-        }
-      }
+    }
   };
 }
 

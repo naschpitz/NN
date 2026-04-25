@@ -8,7 +8,7 @@
 namespace ANN
 {
   struct TestConfig {
-      ulong batchSize = 64; // Mini-batch size for test evaluation (default = 64)
+    ulong batchSize = 64; // Mini-batch size for test evaluation (default = 64)
   };
 }
 

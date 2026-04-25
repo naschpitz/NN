@@ -8,14 +8,14 @@
 namespace ANN
 {
   struct Layer {
-      ulong numNeurons;
-      ActvFuncType actvFuncType;
+    ulong numNeurons;
+    ActvFuncType actvFuncType;
   };
 
   class LayersConfig : public std::vector<Layer>
   {
-    public:
-      ulong getTotalNumNeurons() const;
+  public:
+    ulong getTotalNumNeurons() const;
   };
 }
 

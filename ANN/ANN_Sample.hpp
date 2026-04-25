@@ -11,8 +11,8 @@ namespace ANN
 {
   template <typename T>
   struct Sample {
-      Input<T> input;
-      Output<T> output;
+    Input<T> input;
+    Output<T> output;
   };
 
   template <typename T>

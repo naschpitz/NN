@@ -17,95 +17,95 @@ namespace ANN
   template <typename T>
   class CoreCPUWorker : public Worker<T>
   {
-    public:
-      CoreCPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
-                    const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
-                    bool allocateTrainingBuffers = true);
+  public:
+    CoreCPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
+                  const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
+                  bool allocateTrainingBuffers = true);
 
-      //-- Forward pass --//
-      void propagate(const Input<T>& input, bool applyDropout = false);
+    //-- Forward pass --//
+    void propagate(const Input<T>& input, bool applyDropout = false);
 
-      //-- Backward pass --//
-      void backpropagate(const Output<T>& output);
+    //-- Backward pass --//
+    void backpropagate(const Output<T>& output);
 
-      //-- Backward pass returning input gradients (for CNN step-by-step) --//
-      Tensor1D<T> backpropagateAndReturnInputGradients(const Output<T>& output);
+    //-- Backward pass returning input gradients (for CNN step-by-step) --//
+    Tensor1D<T> backpropagateAndReturnInputGradients(const Output<T>& output);
 
-      //-- Loss --//
-      T computeLoss(const Output<T>& expected);
+    //-- Loss --//
+    T computeLoss(const Output<T>& expected);
 
-      //-- Accumulation --//
-      void accumulate();
-      void resetAccumulators();
+    //-- Accumulation --//
+    void accumulate();
+    void resetAccumulators();
 
-      //-- Output access --//
-      Output<T> getOutput() const;
+    //-- Output access --//
+    Output<T> getOutput() const;
 
-      // Pre-activation z-vector of the last layer (input to the final activation).
-      Logits<T> getOutputLogits() const;
+    // Pre-activation z-vector of the last layer (input to the final activation).
+    Logits<T> getOutputLogits() const;
 
-      //-- Activation access (for test accuracy check) --//
-      const Tensor2D<T>& getActvs() const
-      {
-        return actvs;
-      }
+    //-- Activation access (for test accuracy check) --//
+    const Tensor2D<T>& getActvs() const
+    {
+      return actvs;
+    }
 
-      //-- Accumulator access (for merging by CoreCPU) --//
-      const Tensor3D<T>& getAccumWeights() const
-      {
-        return accum_dCost_dWeights;
-      }
+    //-- Accumulator access (for merging by CoreCPU) --//
+    const Tensor3D<T>& getAccumWeights() const
+    {
+      return accum_dCost_dWeights;
+    }
 
-      const Tensor2D<T>& getAccumBiases() const
-      {
-        return accum_dCost_dBiases;
-      }
+    const Tensor2D<T>& getAccumBiases() const
+    {
+      return accum_dCost_dBiases;
+    }
 
-      T getAccumLoss() const
-      {
-        return accum_loss;
-      }
+    T getAccumLoss() const
+    {
+      return accum_loss;
+    }
 
-      void resetAccumLoss()
-      {
-        accum_loss = 0;
-      }
+    void resetAccumLoss()
+    {
+      accum_loss = 0;
+    }
 
-      void addToAccumLoss(T loss)
-      {
-        accum_loss += loss;
-      }
+    void addToAccumLoss(T loss)
+    {
+      accum_loss += loss;
+    }
 
-    private:
-      //-- Shared references (owned by CoreCPU/Core) --//
-      const LayersConfig& layersConfig;
-      const TrainingConfig<T>& trainingConfig;
-      const Parameters<T>& parameters;
+  private:
+    //-- Shared references (owned by CoreCPU/Core) --//
+    const LayersConfig& layersConfig;
+    const TrainingConfig<T>& trainingConfig;
+    const Parameters<T>& parameters;
 
-      //-- Per-worker state --//
-      Tensor2D<T> actvs;
-      Tensor2D<T> zs;
-      Tensor2D<T> dCost_dActvs;
-      Tensor3D<T> dCost_dWeights;
-      Tensor2D<T> dCost_dBiases;
+    //-- Per-worker state --//
+    Tensor2D<T> actvs;
+    Tensor2D<T> zs;
+    Tensor2D<T> dCost_dActvs;
+    Tensor3D<T> dCost_dWeights;
+    Tensor2D<T> dCost_dBiases;
 
-      //-- Per-worker accumulators --//
-      Tensor3D<T> accum_dCost_dWeights;
-      Tensor2D<T> accum_dCost_dBiases;
-      T accum_loss = 0;
+    //-- Per-worker accumulators --//
+    Tensor3D<T> accum_dCost_dWeights;
+    Tensor2D<T> accum_dCost_dBiases;
+    T accum_loss = 0;
 
-      //-- Dropout --//
-      Tensor2D<T> dropoutMasks;
-      std::mt19937 rng{std::random_device{}()};
+    //-- Dropout --//
+    Tensor2D<T> dropoutMasks;
+    std::mt19937 rng{std::random_device{}()};
 
-      //-- Gradient helpers --//
-      T calc_dCost_dActv(ulong j, const Output<T>& output);
-      T calc_dCost_dActv(ulong l, ulong k);
-      T calc_dCost_dWeight(ulong l, ulong j, ulong k);
-      T calc_dCost_dBias(ulong l, ulong j);
+    //-- Gradient helpers --//
+    T calc_dCost_dActv(ulong j, const Output<T>& output);
+    T calc_dCost_dActv(ulong l, ulong k);
+    T calc_dCost_dWeight(ulong l, ulong j, ulong k);
+    T calc_dCost_dBias(ulong l, ulong j);
 
-      //-- Allocation --//
-      void allocate(bool allocateTrainingBuffers);
+    //-- Allocation --//
+    void allocate(bool allocateTrainingBuffers);
   };
 }
 
