@@ -21,6 +21,7 @@
     "numEpochs": 10,
     "batchSize": 64,
     "learningRate": 0.001,
+    "shuffleSeed": 42,
     "optimizer": { "type": "adam" }
   }
 }

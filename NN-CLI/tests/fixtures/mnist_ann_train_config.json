@@ -12,9 +12,10 @@
     "type": "crossEntropy"
   },
   "training": {
-    "numEpochs": 10,
+    "numEpochs": 20,
     "batchSize": 64,
     "learningRate": 0.001,
+    "shuffleSeed": 42,
     "optimizer": { "type": "adam" }
   }
 }
