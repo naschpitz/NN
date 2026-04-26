@@ -104,8 +104,21 @@ cloned=false
 # Check if already cloned (for re-installs / updates)
 if [ -d "$REPO_DIR/.git" ]; then
   echo "  Existing installation found at $REPO_DIR"
-  echo "  Pulling latest changes..."
   cd "$REPO_DIR"
+
+  # Migrate clones still on the old "master" branch.
+  # GitHub default is now "main"; "origin/master" no longer exists, so a plain
+  # `git pull` would fail with "couldn't find remote ref master".
+  current_branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo "")
+  if [ "$current_branch" = "master" ]; then
+    echo "  Migrating local 'master' branch to 'main' (default branch was renamed upstream)..."
+    git fetch origin
+    git branch -m master main
+    git branch -u origin/main main
+    git remote set-head origin -a >/dev/null 2>&1 || true
+  fi
+
+  echo "  Pulling latest changes..."
   git pull
   git submodule update --init --recursive
   cloned=true
