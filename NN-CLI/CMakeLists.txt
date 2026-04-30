@@ -70,6 +70,36 @@ target_link_libraries(NN-CLI
     PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent
 )
 
+# tcmalloc replaces glibc's malloc/free across the whole process. Glibc's per-thread
+# arena strategy fragments badly under the workload here (many ioPool workers,
+# thousands of mid-size std::vector<float> allocations per batch from augmentation
+# transforms and uint8->float conversion), and never returns arena memory to the OS.
+# tcmalloc/jemalloc handle this pattern dramatically better. tcmalloc was already on
+# the system; jemalloc would also work if preferred (-ljemalloc).
+#
+# --no-as-needed forces the linker to keep the dependency even though the NN-CLI
+# code never references tcmalloc symbols directly — without it, modern linkers
+# strip the link as unused and glibc malloc stays in effect.
+find_library(TCMALLOC_LIB NAMES tcmalloc_minimal tcmalloc)
+
+# Fallback: -dev package (unversioned .so symlink) often isn't installed; locate
+# the versioned runtime library directly.
+if(NOT TCMALLOC_LIB)
+    find_file(TCMALLOC_LIB
+        NAMES libtcmalloc_minimal.so.4 libtcmalloc.so.4
+        PATHS /usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu /usr/lib /lib
+        NO_DEFAULT_PATH
+    )
+endif()
+
+if(TCMALLOC_LIB)
+    message(STATUS "Linking tcmalloc: ${TCMALLOC_LIB}")
+    target_link_options(NN-CLI PRIVATE "LINKER:--no-as-needed")
+    target_link_libraries(NN-CLI PRIVATE ${TCMALLOC_LIB})
+else()
+    message(WARNING "tcmalloc not found — falling back to glibc malloc (expect higher RSS under heavy augmentation)")
+endif()
+
 include(GNUInstallDirs)
 install(TARGETS NN-CLI
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
