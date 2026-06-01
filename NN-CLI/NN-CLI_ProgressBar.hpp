@@ -1,6 +1,7 @@
 #ifndef NN_CLI_PROGRESSBAR_HPP
 #define NN_CLI_PROGRESSBAR_HPP
 
+#include <chrono>
 #include <mutex>
 #include <ostream>
 #include <vector>
@@ -52,6 +53,10 @@ namespace NN_CLI
       ulong progressReports;
       int barWidth;
       bool holdEpochLine = false;
+
+      //-- Per-epoch throughput timer (images/second + ETA) --//
+      ulong timerEpoch = 0; // currentEpoch the timer was last reset for
+      std::chrono::steady_clock::time_point epochStartTime;
 
       //-- Multi-GPU progress tracking --//
       std::mutex mutex;

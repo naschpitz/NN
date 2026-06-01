@@ -1,9 +1,34 @@
 #include "NN-CLI_ProgressBar.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+
+namespace
+{
+  // Format a duration in seconds as "m:ss" (or "h:mm:ss" past an hour).
+  std::string formatEta(double seconds)
+  {
+    if (seconds < 0.0)
+      seconds = 0.0;
+
+    long total = static_cast<long>(seconds + 0.5);
+    long h = total / 3600;
+    long m = (total % 3600) / 60;
+    long s = total % 60;
+
+    std::ostringstream out;
+
+    if (h > 0)
+      out << h << ":" << std::setfill('0') << std::setw(2) << m << ":" << std::setw(2) << s;
+    else
+      out << std::setfill('0') << std::setw(2) << m << ":" << std::setw(2) << s;
+
+    return out.str();
+  }
+} // namespace
 
 namespace NN_CLI
 {
@@ -24,6 +49,12 @@ namespace NN_CLI
   {
     bool isEpochComplete = (progress.epochLoss > 0);
     bool isMultiGPU = (progress.totalGPUs > 1);
+
+    // Reset the per-epoch throughput timer when a new epoch begins.
+    if (!isEpochComplete && this->timerEpoch != progress.currentEpoch) {
+      this->timerEpoch = progress.currentEpoch;
+      this->epochStartTime = std::chrono::steady_clock::now();
+    }
 
     // Reset GPU state at the start of each epoch and render 0% bar immediately
     if (progress.gpuIndex >= 0 && this->currentEpoch != progress.currentEpoch) {
@@ -87,7 +118,32 @@ namespace NN_CLI
         out << std::string(20, ' ') << std::endl;
       }
     } else {
-      out << " - Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss << "   ";
+      out << " - Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss;
+
+      // Per-epoch throughput (images/second) and ETA. For multi-GPU, base it on the
+      // average per-GPU progress so the rate reflects total throughput.
+      double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - this->epochStartTime).count();
+
+      double fractionDone;
+
+      if (isMultiGPU) {
+        std::vector<float> gpuProg = this->getGpuProgress();
+        double sum = 0.0;
+
+        for (float p : gpuProg)
+          sum += p;
+
+        fractionDone = gpuProg.empty() ? 0.0 : sum / static_cast<double>(gpuProg.size());
+      } else {
+        fractionDone =
+          (progress.totalSamples > 0) ? static_cast<double>(progress.currentSample) / progress.totalSamples : 0.0;
+      }
+
+      double samplesDone = fractionDone * static_cast<double>(progress.totalSamples);
+      double rate = (elapsed > 0.0) ? samplesDone / elapsed : 0.0;
+      double eta = (rate > 0.0) ? (static_cast<double>(progress.totalSamples) - samplesDone) / rate : 0.0;
+
+      out << " - " << std::setw(6) << static_cast<long>(rate) << " img/s - ETA " << formatEta(eta) << "   ";
     }
 
     std::cout << out.str() << std::flush;
@@ -99,6 +155,7 @@ namespace NN_CLI
     this->gpuProgress.clear();
     this->totalGPUs = 0;
     this->currentEpoch = 0;
+    this->timerEpoch = 0;
   }
 
   //===================================================================================================================//
