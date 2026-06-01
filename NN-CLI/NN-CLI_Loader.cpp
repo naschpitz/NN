@@ -158,6 +158,9 @@ namespace NN_CLI
       if (tc.contains("balanceAugmentation"))
         config.balanceAugmentation = tc.at("balanceAugmentation").get<bool>();
 
+      if (tc.contains("fullAugmentation"))
+        config.fullAugmentation = tc.at("fullAugmentation").get<bool>();
+
       if (tc.contains("autoClassWeights"))
         config.autoClassWeights = tc.at("autoClassWeights").get<bool>();
 

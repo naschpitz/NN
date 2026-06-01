@@ -145,8 +145,11 @@ namespace NN_CLI
     // Augmentation string
     std::string augStr;
 
-    if (augConfig.augmentationFactor > 0 || augConfig.balanceAugmentation) {
+    if (augConfig.augmentationFactor > 0 || augConfig.balanceAugmentation || augConfig.fullAugmentation) {
       std::vector<std::string> parts;
+
+      if (augConfig.fullAugmentation)
+        parts.push_back("all-images");
 
       if (augConfig.transforms.horizontalFlip)
         parts.push_back("flip");

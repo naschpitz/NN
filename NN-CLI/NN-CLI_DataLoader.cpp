@@ -124,11 +124,12 @@ namespace NN_CLI
 
   template <typename SampleT>
   std::vector<ulong> DataLoader<SampleT>::planAugmentation(ulong augmentationFactor, bool balanceAugmentation,
+                                                           bool fullAugmentation,
                                                            const std::vector<ulong>& subsetIndices)
   {
     bool useSubset = !subsetIndices.empty();
 
-    if (augmentationFactor == 0 && !balanceAugmentation)
+    if (augmentationFactor == 0 && !balanceAugmentation && !fullAugmentation)
       return useSubset ? subsetIndices : std::vector<ulong>{};
 
     auto getClassIndex = [](const std::vector<float>& output) -> ulong {
@@ -194,6 +195,22 @@ namespace NN_CLI
 
         if (useSubset)
           result.push_back(this->entries.size() - 1);
+      }
+    }
+
+    // fullAugmentation: also mark the original training entries as augmented (the
+    // oversampled copies above are already marked). Only the training subset (or the
+    // whole original set when no validation split) is touched — validation entries
+    // are never augmented.
+    if (fullAugmentation) {
+      if (useSubset) {
+        for (ulong idx : subsetIndices)
+          this->entries[idx].augmented = true;
+      } else {
+        ulong originalCount = this->fromMemory ? this->memorySamples.size() : this->manifest.size();
+
+        for (ulong i = 0; i < originalCount; i++)
+          this->entries[i].augmented = true;
       }
     }
 

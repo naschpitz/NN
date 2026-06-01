@@ -72,6 +72,7 @@
     },
     <span class="string">"augmentationFactor"</span>: <span class="number">2</span>,
     <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
+    <span class="string">"fullAugmentation"</span>: <span class="keyword">true</span>,
     <span class="string">"autoClassWeights"</span>: <span class="keyword">true</span>,
     <span class="string">"augmentationProbability"</span>: <span class="number">0.5</span>,
     <span class="string">"augmentationTransforms"</span>: {
@@ -142,7 +143,8 @@
   <tr><td><code>training.optimizer.beta2</code></td><td>float</td><td>No</td><td>Adam second moment decay rate (default 0.999)</td></tr>
   <tr><td><code>training.optimizer.epsilon</code></td><td>float</td><td>No</td><td>Adam numerical stability constant (default 1e-8)</td></tr>
   <tr><td><code>training.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>
-  <tr><td><code>training.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false)</td></tr>
+  <tr><td><code>training.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false). Only the oversampled copies are augmented; originals are kept as-is</td></tr>
+  <tr><td><code>training.fullAugmentation</code></td><td>bool</td><td>No</td><td>Augment <em>all</em> training samples every epoch (not just the oversampled copies), for stronger regularisation (default false). Composable with balanceAugmentation/augmentationFactor; validation samples are never augmented</td></tr>
   <tr><td><code>training.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false)</td></tr>
   <tr><td><code>training.augmentationProbability</code></td><td>float</td><td>No</td><td>Probability of applying each enabled transform per sample (default 0.5 = 50%)</td></tr>
   <tr><td><code>training.augmentationTransforms</code></td><td>object</td><td>No</td><td>Control augmentation transform intensities (0 = disabled; defaults shown)</td></tr>
@@ -237,6 +239,7 @@
     <span class="string">"optimizer"</span>: { <span class="string">"type"</span>: <span class="string">"adam"</span> },
     <span class="string">"augmentationFactor"</span>: <span class="number">2</span>,
     <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
+    <span class="string">"fullAugmentation"</span>: <span class="keyword">true</span>,
     <span class="string">"augmentationProbability"</span>: <span class="number">0.5</span>,
     <span class="string">"augmentationTransforms"</span>: { <span class="string">"horizontalFlip"</span>: <span class="keyword">true</span>, <span class="string">"rotation"</span>: <span class="number">15.0</span> },
     <span class="string">"validation"</span>: {

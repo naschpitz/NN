@@ -23,6 +23,7 @@ namespace NN_CLI
   {
     tcJson["augmentationFactor"] = augConfig.augmentationFactor;
     tcJson["balanceAugmentation"] = augConfig.balanceAugmentation;
+    tcJson["fullAugmentation"] = augConfig.fullAugmentation;
     tcJson["autoClassWeights"] = augConfig.autoClassWeights;
     tcJson["augmentationProbability"] = augConfig.augmentationProbability;
 

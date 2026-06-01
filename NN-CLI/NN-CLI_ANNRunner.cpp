@@ -97,11 +97,13 @@ int ANNRunner::train()
     this->validationState.numValSamples = split.validationIndices.size();
 
     // Augment only training indices (validation stays original)
-    split.trainIndices = dataLoader.planAugmentation(this->augConfig.augmentationFactor,
-                                                     this->augConfig.balanceAugmentation, split.trainIndices);
+    split.trainIndices =
+      dataLoader.planAugmentation(this->augConfig.augmentationFactor, this->augConfig.balanceAugmentation,
+                                  this->augConfig.fullAugmentation, split.trainIndices);
   } else {
     this->validationState.enabled = false;
-    dataLoader.planAugmentation(this->augConfig.augmentationFactor, this->augConfig.balanceAugmentation);
+    dataLoader.planAugmentation(this->augConfig.augmentationFactor, this->augConfig.balanceAugmentation,
+                                this->augConfig.fullAugmentation);
   }
 
   // Auto-compute class weights from training samples only (excludes validation split)

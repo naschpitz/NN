@@ -80,6 +80,7 @@ NN-CLI --config <model_file> --mode test --samples <samples_file> [options]
     "dropoutRate": 0.3,
     "augmentationFactor": 2,
     "balanceAugmentation": true,
+    "fullAugmentation": true,
     "autoClassWeights": true,
     "augmentationProbability": 0.5,
     "augmentationTransforms": {
@@ -153,7 +154,8 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `shuffleSamples`: Shuffle sample order each epoch (default: `true`)
 - `dropoutRate`: Dropout probability for hidden layers (default: `0.0` = disabled). Uses inverted dropout — activations are scaled by 1/(1−p) during training, no adjustment at inference
 - `augmentationFactor`: Multiply each class by N× using random transforms (default: `0` = disabled). NN-CLI applies transforms before passing samples to the library
-- `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). When combined with `augmentationFactor`, the balanced count is also multiplied
+- `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). When combined with `augmentationFactor`, the balanced count is also multiplied. Only the oversampled (extra) copies are augmented; the original samples are kept as-is
+- `fullAugmentation`: Apply augmentation transforms to **all** training samples every epoch — not just the oversampled copies — for stronger regularisation (default: `false`). Independent of, and composable with, `balanceAugmentation`/`augmentationFactor` (validation samples are never augmented)
 - `autoClassWeights`: Auto-compute inverse-frequency class weights and set `weightedSquaredDifference` cost function (default: `false`). Only applies when no manual `costFunction.weights` are specified
 - `augmentationProbability`: Probability of applying each enabled transform per augmented sample (default: `0.5` = 50% chance)
 - `augmentationTransforms`: Object controlling individual augmentation transforms. Numeric values control intensity; set to `0` to disable. `horizontalFlip` is a boolean (no intensity parameter). Defaults shown below:
@@ -258,6 +260,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
     "dropoutRate": 0.3,
     "augmentationFactor": 2,
     "balanceAugmentation": true,
+    "fullAugmentation": true,
     "autoClassWeights": true,
     "augmentationProbability": 0.5,
     "augmentationTransforms": {
@@ -315,7 +318,8 @@ Each layer has a `type` field:
 - `shuffleSamples`: Shuffle sample order each epoch (default: `true`)
 - `dropoutRate`: Dropout probability for dense hidden layers (default: `0.0` = disabled). Convolutional layers are not affected
 - `augmentationFactor`: Multiply each class by N× using random image transforms (default: `0` = disabled)
-- `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`)
+- `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). Only the oversampled copies are augmented; originals are kept as-is
+- `fullAugmentation`: Apply augmentation to all training samples every epoch (not just the oversampled copies), for stronger regularisation (default: `false`). Composable with `balanceAugmentation`/`augmentationFactor`
 - `autoClassWeights`: Auto-compute inverse-frequency class weights (default: `false`)
 - `augmentationProbability`: Probability of applying each enabled transform (default: `0.5`)
 - `augmentationTransforms`: Control individual transforms (same fields as ANN — see above for defaults)

@@ -70,7 +70,9 @@ namespace NN_CLI
       // Compute augmentation plan (expand entries without loading data).
       // When subsetIndices is provided, only augments those entries and returns the augmented indices.
       // When empty (default), augments all entries in place.
-      std::vector<ulong> planAugmentation(ulong augmentationFactor, bool balanceAugmentation,
+      // fullAugmentation: when true, mark every training entry (originals included) as augmented,
+      // so random transforms are applied to all samples each epoch — not just the oversampled copies.
+      std::vector<ulong> planAugmentation(ulong augmentationFactor, bool balanceAugmentation, bool fullAugmentation,
                                           const std::vector<ulong>& subsetIndices = {});
 
       // Total number of samples (original + augmented).
