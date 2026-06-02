@@ -1,5 +1,7 @@
 #include "NN-CLI_DataLoader.hpp"
 
+#include "NN-CLI_GpuAugmenter.hpp"
+
 #include <QFile>
 #include <QFileInfo>
 
@@ -120,6 +122,17 @@ namespace NN_CLI
   static const std::vector<float>& sampleOutput(const CNN::Sample<float>& s)
   {
     return s.output;
+  }
+
+  // Helper to get a mutable reference to a sample's input data (for GPU augmentation).
+  static std::vector<float>& sampleInputData(ANN::Sample<float>& s)
+  {
+    return s.input;
+  }
+
+  static std::vector<float>& sampleInputData(CNN::Sample<float>& s)
+  {
+    return s.input.data;
   }
 
   template <typename SampleT>
@@ -279,6 +292,37 @@ namespace NN_CLI
 
     for (auto& f : futures)
       f.waitForFinished();
+
+    // GPU augmentation: samples were decoded above without augmentation. Gather the
+    // augmented entries' image data, augment the whole group on a GPU, scatter back.
+    if (this->gpuAugmenterPool != nullptr && !this->gpuAugmenterPool->empty()) {
+      ulong elems = static_cast<ulong>(this->inputC) * this->inputH * this->inputW;
+
+      if (elems > 0) {
+        std::vector<ulong> augPos;
+
+        for (ulong i = 0; i < count; i++) {
+          if (this->entries[entryIndices[i]].augmented)
+            augPos.push_back(i);
+        }
+
+        if (!augPos.empty()) {
+          std::vector<float> buf(augPos.size() * elems);
+
+          for (ulong j = 0; j < augPos.size(); j++) {
+            const std::vector<float>& in = sampleInputData(batch[augPos[j]]);
+            std::copy(in.begin(), in.end(), buf.begin() + j * elems);
+          }
+
+          this->gpuAugmenterPool->augment(buf, augPos.size(), transforms, augmentationProbability);
+
+          for (ulong j = 0; j < augPos.size(); j++) {
+            std::vector<float>& in = sampleInputData(batch[augPos[j]]);
+            std::copy(buf.begin() + j * elems, buf.begin() + (j + 1) * elems, in.begin());
+          }
+        }
+      }
+    }
 
     return batch;
   }
@@ -440,7 +484,8 @@ namespace NN_CLI
     }
 
     // Apply augmentation if this is an augmented entry
-    if (entry.augmented) {
+    // CPU augmentation; skipped when a GPU augmenter pool will augment the batch instead.
+    if (entry.augmented && this->gpuAugmenterPool == nullptr) {
       bool hasImageShape = (this->inputC > 0 && this->inputH > 0 && this->inputW > 0);
 
       if (hasImageShape) {
@@ -492,8 +537,8 @@ namespace NN_CLI
       }
     }
 
-    // Apply augmentation if this is an augmented entry
-    if (entry.augmented) {
+    // CPU augmentation; skipped when a GPU augmenter pool will augment the batch instead.
+    if (entry.augmented && this->gpuAugmenterPool == nullptr) {
       ImageLoader::applyRandomTransforms(sample.input.data, this->inputC, this->inputH, this->inputW, rng, transforms,
                                          augmentationProbability);
     }

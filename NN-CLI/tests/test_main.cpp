@@ -30,6 +30,7 @@ void runErrorTests();
 void runDataLoaderTests();
 void runValidationTests();
 void runMonitoringTests();
+void runGpuAugmentTests();
 
 int main(int argc, char* argv[])
 {
@@ -75,6 +76,10 @@ int main(int argc, char* argv[])
   runCNNGPUISICTests();
   runCNNGPUMNISTTests();
   runCNNGPUSaveLoadTests();
+
+  std::cout << std::endl;
+  std::cout << "=== GPU Augmentation Tests ===" << std::endl;
+  runGpuAugmentTests();
 
   std::cout << std::endl;
   std::cout << "=== Error Handling Tests ===" << std::endl;

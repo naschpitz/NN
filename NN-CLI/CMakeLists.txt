@@ -42,6 +42,7 @@ add_executable(NN-CLI
   NN-CLI_CNNLoader.cpp
   NN-CLI_CNNRunner.cpp
   NN-CLI_DataLoader.cpp
+  NN-CLI_GpuAugmenter.cpp
   NN-CLI_DataSplitter.cpp
   NN-CLI_DataType.cpp
   NN-CLI_ImageLoader.cpp
@@ -126,8 +127,10 @@ add_executable(test_nncli
   tests/test_dataloader.cpp
   tests/test_validation.cpp
   tests/test_monitoring.cpp
+  tests/test_gpu_augment.cpp
   NN-CLI_ANNLoader.cpp
   NN-CLI_DataLoader.cpp
+  NN-CLI_GpuAugmenter.cpp
   NN-CLI_DataSplitter.cpp
   NN-CLI_DataType.cpp
   NN-CLI_ImageLoader.cpp

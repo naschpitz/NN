@@ -23,6 +23,8 @@ namespace NN_CLI
 
   using ulong = unsigned long;
 
+  class GpuAugmenterPool; // GPU augmentation (defined in NN-CLI_GpuAugmenter.hpp)
+
   // Lightweight manifest entry — stores paths/labels, NOT pixel data.
   struct SampleManifest {
       std::string inputPath; // File path for image inputs
@@ -96,6 +98,13 @@ namespace NN_CLI
                                    const AugmentationTransforms& transforms = {},
                                    float augmentationProbability = 0.5f) const;
 
+      // When set, image augmentation runs on the GPU (batch-level) instead of on the
+      // CPU per sample. The pool is owned by the caller and must outlive this loader.
+      void setGpuAugmenterPool(GpuAugmenterPool* pool)
+      {
+        this->gpuAugmenterPool = pool;
+      }
+
     private:
       std::vector<SampleManifest> manifest; // Original samples — paths + labels (JSON path)
       std::vector<SampleT> memorySamples; // Original samples — fully loaded (memory path)
@@ -105,6 +114,8 @@ namespace NN_CLI
       int inputC = 0, inputH = 0, inputW = 0;
       int outputC = 0, outputH = 0, outputW = 0;
       IOConfig ioConfig;
+
+      GpuAugmenterPool* gpuAugmenterPool = nullptr; // Optional GPU augmentation (not owned)
 
       // Dedicated thread pool for image loading — separate from the global pool
       // used by the training loop, so prefetch work doesn't compete with training.

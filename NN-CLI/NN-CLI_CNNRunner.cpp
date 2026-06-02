@@ -1,8 +1,10 @@
 #include "NN-CLI_CNNRunner.hpp"
 
 #include "NN-CLI_CNNLoader.hpp"
+#include "NN-CLI_GpuAugmenter.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
 #include <CNN_TrainingMonitor.hpp>
+#include <OCLW_Core.hpp>
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
@@ -186,6 +188,31 @@ int CNNRunner::train()
     validationCoreConfig.costFunctionConfig.weights = validationWeights;
 
     validationCore = std::shared_ptr<CNN::Core<float>>(CNN::Core<float>::makeCore(validationCoreConfig).release());
+  }
+
+  // GPU augmentation: when training on GPU with image input, augment batches on the
+  // GPU(s) instead of the CPU (which otherwise starves the GPU). Auto-enabled.
+  std::unique_ptr<GpuAugmenterPool> gpuAugPool;
+
+  if (this->coreConfig.deviceType == CNN::DeviceType::GPU && this->ioConfig.inputType == DataType::IMAGE) {
+    OpenCLWrapper::Core::initialize(false);
+    int totalGpus = static_cast<int>(OpenCLWrapper::Core::getNumDevices());
+    int numAugGpus = (this->coreConfig.numGPUs > 0) ? std::min(totalGpus, this->coreConfig.numGPUs) : totalGpus;
+
+    if (numAugGpus > 0) {
+      std::vector<int> deviceIndices;
+
+      for (int i = 0; i < numAugGpus; i++)
+        deviceIndices.push_back(i);
+
+      gpuAugPool =
+        std::make_unique<GpuAugmenterPool>(deviceIndices, static_cast<ulong>(inputC), static_cast<ulong>(inputH),
+                                           static_cast<ulong>(inputW), this->logLevel);
+      dataLoader.setGpuAugmenterPool(gpuAugPool.get());
+
+      if (this->logLevel >= LogLevel::INFO)
+        std::cout << "GPU augmentation enabled on " << numAugGpus << " GPU(s).\n";
+    }
   }
 
   this->setupTrainingCallback(inputFilePath, validationCore, trainingMonitor,
