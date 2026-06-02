@@ -3,8 +3,8 @@ cmake-build-*/
 .idea/
 *.user
 
-# Claude Code
-.claude/
+# AI agent instructions
+AGENTS.md
 
 # Local planning / todo files
 todo/
