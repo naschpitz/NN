@@ -66,6 +66,13 @@ namespace ANN
         this->core->template readBuffer<U>(name, hostBuffer, offset);
       }
 
+      //-- OpenCL core access (lets external code share this worker's context/buffers
+      //   instead of round-tripping through host memory) --//
+      OpenCLWrapper::Core* getCore()
+      {
+        return this->core;
+      }
+
       //-- Components (public for direct access by CNN and CoreGPU) --//
       std::unique_ptr<GPUBufferManager<T>> bufferManager;
       std::unique_ptr<GPUKernelBuilder<T>> kernelBuilder;
