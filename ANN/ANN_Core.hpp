@@ -13,8 +13,6 @@
 #include "ANN_ProgressCallback.hpp"
 #include "ANN_TestResult.hpp"
 
-#include <OCLW_Core.hpp>
-
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -103,20 +101,6 @@ namespace ANN
       const CostFunctionConfig<T>& getCostFunctionConfig() const
       {
         return costFunctionConfig;
-      }
-
-      //-- GPU integration --//
-      // Number of OpenCL workers backing this core (0 for non-GPU cores).
-      virtual size_t getNumGPUWorkers() const
-      {
-        return 0;
-      }
-
-      // Access the OpenCL core for GPU worker `idx`, so external code can share its
-      // context/buffers. Returns nullptr for non-GPU cores.
-      virtual OpenCLWrapper::Core* getOpenCLCore(size_t /*idx*/ = 0)
-      {
-        return nullptr;
       }
 
       //-- Setters --//

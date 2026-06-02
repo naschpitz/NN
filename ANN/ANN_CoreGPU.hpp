@@ -28,24 +28,6 @@ namespace ANN
       void resetAccumulators() override;
       void update(ulong numSamples) override;
 
-      //-- Worker access (for diagnostics/testing) --//
-      CoreGPUWorker<T>* getWorker(size_t idx = 0)
-      {
-        return (idx < gpuWorkers.size()) ? gpuWorkers[idx].get() : nullptr;
-      }
-
-      //-- GPU integration (see ANN::Core) --//
-      size_t getNumGPUWorkers() const override
-      {
-        return gpuWorkers.size();
-      }
-
-      OpenCLWrapper::Core* getOpenCLCore(size_t idx = 0) override
-      {
-        CoreGPUWorker<T>* worker = getWorker(idx);
-        return worker ? worker->getCore() : nullptr;
-      }
-
     private:
       //-- GPU workers (one per GPU) --//
       std::vector<std::unique_ptr<CoreGPUWorker<T>>> gpuWorkers;
