@@ -166,10 +166,6 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
       std::vector<T> inputVec(sample.input.data.begin(), sample.input.data.end());
       this->core->template writeBuffer<T>("cnn_actvs", inputVec, 0);
 
-      // Optional in-place GPU augmentation of the freshly-uploaded sample (offset 0)
-      if (this->augmentHook)
-        this->augmentHook(0);
-
       std::vector<T> expectedVec(sample.output.begin(), sample.output.end());
       this->core->template writeBuffer<T>("outputs", expectedVec, 0);
 
@@ -197,10 +193,6 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
       const auto& input = batchSamples[n].input;
       std::vector<T> inputVec(input.data.begin(), input.data.end());
       this->core->template writeBuffer<T>("cnn_actvs", inputVec, n * sampleStride);
-
-      // Optional in-place GPU augmentation of this sample at its batch offset
-      if (this->augmentHook)
-        this->augmentHook(n * sampleStride);
     }
 
     // Identify BN layer positions to determine segments

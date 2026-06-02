@@ -13,11 +13,8 @@
 #include "CNN_ProgressCallback.hpp"
 #include "CNN_TestResult.hpp"
 
-#include <OCLW_Core.hpp>
-
 #include <atomic>
 #include <chrono>
-#include <functional>
 #include <memory>
 
 //===================================================================================================================//
@@ -103,25 +100,6 @@ namespace CNN
       {
         return coreConfig.costFunctionConfig;
       }
-
-      //-- GPU augmentation integration --//
-      // Number of OpenCL workers backing this core (0 for non-GPU cores).
-      virtual size_t getNumGPUWorkers() const
-      {
-        return 0;
-      }
-
-      // Access the OpenCL core for GPU worker `idx`, so external code (e.g. NN-CLI's
-      // GPU augmenter) can share its context/buffers. Returns nullptr for non-GPU cores.
-      virtual OpenCLWrapper::Core* getOpenCLCore(size_t /*idx*/ = 0)
-      {
-        return nullptr;
-      }
-
-      // Install a per-sample augmentation hook on GPU worker `idx`. The hook runs after
-      // each sample's input is uploaded (at the given buffer offset) and before the
-      // forward pass. No-op for non-GPU cores.
-      virtual void setAugmentHook(const std::function<void(ulong)>& /*hook*/, size_t /*idx*/ = 0) {}
 
       //-- Setters --//
       void setParameters(const Parameters<T>& params)
