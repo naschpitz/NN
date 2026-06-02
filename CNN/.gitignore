@@ -76,9 +76,8 @@ CMakeLists.txt.user*
 # ----------------
 build/
 
-# Claude
-# ------
-.claude/
+# AI agent instructions
+AGENTS.md
 
 # Local planning / todo files
 todo/
