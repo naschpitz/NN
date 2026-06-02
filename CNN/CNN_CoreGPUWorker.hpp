@@ -10,6 +10,7 @@
 #include <ANN_CoreGPUWorker.hpp>
 #include <OCLW_Core.hpp>
 
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -68,6 +69,22 @@ namespace CNN
         this->core->template readBuffer<U>(name, hostBuffer, offset);
       }
 
+      //-- OpenCL core access (lets external code, e.g. NN-CLI's GPU augmenter, share
+      //   this worker's context/buffers instead of round-tripping through host memory) --//
+      OpenCLWrapper::Core* getCore()
+      {
+        return this->core;
+      }
+
+      //-- Augmentation hook: invoked once per training sample, right after the sample's
+      //   input is uploaded to cnn_actvs (at the given offset) and before the forward
+      //   pass, so an external augmenter can transform the input in place on the GPU.
+      //   No-op when unset. --//
+      void setAugmentHook(std::function<void(ulong)> hook)
+      {
+        this->augmentHook = std::move(hook);
+      }
+
       //-- Components (public for direct access by CoreGPU) --//
       std::unique_ptr<GPUBufferManager<T>> bufferManager;
       std::unique_ptr<GPUKernelBuilder<T>> kernelBuilder;
@@ -80,6 +97,9 @@ namespace CNN
       //-- OpenCL state --//
       std::unique_ptr<OpenCLWrapper::Core> ownedCore; // Owned core (standalone mode)
       OpenCLWrapper::Core* core = nullptr; // Pointer to active core (owned or shared);
+
+      //-- Optional per-sample augmentation hook (set by external GPU augmenter) --//
+      std::function<void(ulong)> augmentHook;
   };
 }
 

@@ -29,6 +29,26 @@ namespace CNN
         return (idx < gpuWorkers.size()) ? gpuWorkers[idx].get() : nullptr;
       }
 
+      //-- GPU augmentation integration (see CNN::Core) --//
+      size_t getNumGPUWorkers() const override
+      {
+        return gpuWorkers.size();
+      }
+
+      OpenCLWrapper::Core* getOpenCLCore(size_t idx = 0) override
+      {
+        CoreGPUWorker<T>* worker = getWorker(idx);
+        return worker ? worker->getCore() : nullptr;
+      }
+
+      void setAugmentHook(const std::function<void(ulong)>& hook, size_t idx = 0) override
+      {
+        CoreGPUWorker<T>* worker = getWorker(idx);
+
+        if (worker)
+          worker->setAugmentHook(hook);
+      }
+
     private:
       //-- GPU workers (one per GPU) --//
       std::vector<std::unique_ptr<CoreGPUWorker<T>>> gpuWorkers;
