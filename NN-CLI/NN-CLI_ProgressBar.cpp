@@ -50,10 +50,12 @@ namespace NN_CLI
     bool isEpochComplete = (progress.epochLoss > 0);
     bool isMultiGPU = (progress.totalGPUs > 1);
 
-    // Reset the per-epoch throughput timer when a new epoch begins.
+    // Reset the per-epoch throughput timer and running loss when a new epoch begins.
     if (!isEpochComplete && this->timerEpoch != progress.currentEpoch) {
       this->timerEpoch = progress.currentEpoch;
       this->epochStartTime = std::chrono::steady_clock::now();
+      this->runningLossSum = 0.0;
+      this->runningLossCount = 0;
     }
 
     // Reset GPU state at the start of each epoch and render 0% bar immediately
@@ -83,6 +85,12 @@ namespace NN_CLI
       gpuPercent = std::min(1.0f, std::max(0.0f, gpuPercent));
 
       this->updateGpuProgress(progress.gpuIndex, gpuPercent);
+    }
+
+    // Accumulate running loss for smoothed display (per-sample callbacks carry sampleLoss)
+    if (!isEpochComplete) {
+      this->runningLossSum += static_cast<double>(progress.sampleLoss);
+      this->runningLossCount++;
     }
 
     // Throttle output based on progressReports
@@ -118,7 +126,8 @@ namespace NN_CLI
         out << std::string(20, ' ') << std::endl;
       }
     } else {
-      out << " - Loss: " << std::fixed << std::setprecision(6) << progress.sampleLoss;
+      double runningAvg = this->runningLossCount > 0 ? this->runningLossSum / this->runningLossCount : 0.0;
+      out << " - Loss: " << std::fixed << std::setprecision(6) << runningAvg;
 
       // Per-epoch throughput (images/second) and ETA. For multi-GPU, base it on the
       // average per-GPU progress so the rate reflects total throughput.
@@ -156,6 +165,8 @@ namespace NN_CLI
     this->totalGPUs = 0;
     this->currentEpoch = 0;
     this->timerEpoch = 0;
+    this->runningLossSum = 0.0;
+    this->runningLossCount = 0;
   }
 
   //===================================================================================================================//

@@ -58,6 +58,10 @@ namespace NN_CLI
       ulong timerEpoch = 0; // currentEpoch the timer was last reset for
       std::chrono::steady_clock::time_point epochStartTime;
 
+      //-- Running loss accumulator (smoothed per-epoch average) --//
+      double runningLossSum = 0.0;
+      ulong runningLossCount = 0;
+
       //-- Multi-GPU progress tracking --//
       std::mutex mutex;
       std::vector<float> gpuProgress; // Progress percentage for each GPU (0.0 - 1.0)
