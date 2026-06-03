@@ -475,7 +475,6 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   lastEpochLoss = 0.0f;
 
   static ProgressBar progressBar(this->ioConfig.progressReports);
-  progressBar.setHoldEpochLine(validationCore != nullptr);
 
   std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr;
 

@@ -281,7 +281,7 @@ namespace NN_CLI
     std::ostringstream t;
 
     for (int i = 0; i < this->lastRenderedLines; i++)
-      t << "\n\033[K";
+      t << "\r\033[K\n";
 
     t << "\033[" << this->lastRenderedLines << "A";
 
@@ -317,9 +317,9 @@ namespace NN_CLI
     const double n = static_cast<double>(steps);
     const int gpus = std::max(1, this->numGpus);
 
-    out << "\n  Timing summary — epoch " << epoch << " (" << steps << " steps, avg ms/step)\n";
+    out << "\n  Timing summary — epoch " << epoch << " (" << steps << " batches, avg ms/batch)\n";
     out << "  ┌────────────────┬───────────┬────────┐\n";
-    out << "  │ phase          │   ms/step │      % │\n";
+    out << "  │ phase          │  ms/batch │      % │\n";
     out << "  ├────────────────┼───────────┼────────┤\n";
 
     for (Phase ph : kOrchPhases) {
@@ -344,7 +344,7 @@ namespace NN_CLI
 
     if (runs > 0) {
       const double launchesPerStep = static_cast<double>(runs) / n / gpus;
-      out << "  gpu launches/step per GPU: " << fmt(launchesPerStep, 0, 0)
+      out << "  gpu launches/batch per GPU: " << fmt(launchesPerStep, 0, 0)
           << "  (one run() per sample in the fast path)\n";
     }
   }
@@ -380,7 +380,7 @@ namespace NN_CLI
 
     const int gpus = std::max(1, this->numGpus);
 
-    out << "\n  Timing summary — whole run (" << steps << " steps total)\n";
+    out << "\n  Timing summary — whole run (" << steps << " batches total)\n";
     out << "  ┌────────────────┬───────────────┬────────┐\n";
     out << "  │ phase          │     total (s) │      % │\n";
     out << "  ├────────────────┼───────────────┼────────┤\n";
@@ -407,7 +407,7 @@ namespace NN_CLI
 
     if (runs > 0) {
       const double launchesPerStep = static_cast<double>(runs) / static_cast<double>(steps) / gpus;
-      out << "  gpu launches/step per GPU: " << fmt(launchesPerStep, 0, 0)
+      out << "  gpu launches/batch per GPU: " << fmt(launchesPerStep, 0, 0)
           << " — each launch is a single-sample fused forward+backward run()\n";
     }
   }

@@ -507,7 +507,6 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   lastEpochLoss = 0.0f;
 
   static ProgressBar progressBar(this->ioConfig.progressReports);
-  progressBar.setHoldEpochLine(validationCore != nullptr);
 
   // Wire the per-phase timing profiler to the CNN library's timing callback.
   this->profiler.reset();
@@ -568,7 +567,6 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             this->validationState.bestValEpoch = lastCallbackEpoch;
           }
 
-          // Feed validation loss to the NN-CLI-level monitor (if monitoring is enabled)
           bool monitorShouldStop = false;
           bool monitorIsNewBest = false;
 
@@ -579,7 +577,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           }
 
           if (this->logLevel > LogLevel::QUIET) {
-            std::cout << std::string(20, '\b') << " - Validation Loss: " << std::fixed << std::setprecision(6)
+            std::cout << "\r\033[K - Validation Loss: " << std::fixed << std::setprecision(6)
                       << validationResult.averageLoss;
             std::cout.unsetf(std::ios_base::floatfield);
           }
@@ -614,9 +612,6 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             if (this->logLevel > LogLevel::QUIET)
               std::cout << " [best]";
           }
-
-          if (this->validationState.enabled && this->logLevel > LogLevel::QUIET)
-            std::cout << std::endl; // End held line when validation is enabled but skipped this epoch
 
           if (progress.stoppedEarly) {
             if (this->logLevel > LogLevel::QUIET)

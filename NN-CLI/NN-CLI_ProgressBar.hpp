@@ -31,13 +31,6 @@ namespace NN_CLI
       // Update and display progress (call from training callback)
       void update(const ProgressInfo& progress);
 
-      // When true, the epoch-complete line is NOT terminated with a newline,
-      // allowing the caller to append validation loss before ending the line.
-      void setHoldEpochLine(bool hold)
-      {
-        this->holdEpochLine = hold;
-      }
-
       // Reset state (call before starting a new training session)
       void reset();
 
@@ -52,7 +45,6 @@ namespace NN_CLI
       //-- Configuration --//
       ulong progressReports;
       int barWidth;
-      bool holdEpochLine = false;
 
       //-- Per-epoch throughput timer (images/second + ETA) --//
       ulong timerEpoch = 0; // currentEpoch the timer was last reset for

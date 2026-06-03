@@ -120,12 +120,7 @@ namespace NN_CLI
     // Show loss and learning rate information
     if (isEpochComplete) {
       out << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss;
-
-      if (this->holdEpochLine) {
-        // No padding, no newline — caller will append validation loss
-      } else {
-        out << std::string(20, ' ') << std::endl;
-      }
+      out << std::string(20, ' ') << std::endl;
     } else {
       double runningAvg = this->runningLossCount > 0 ? this->runningLossSum / this->runningLossCount : 0.0;
       out << " - Loss: " << std::fixed << std::setprecision(6) << runningAvg;
