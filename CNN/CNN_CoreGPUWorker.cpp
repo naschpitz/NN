@@ -126,10 +126,16 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 
 template <typename T>
 T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                                const TrainingCallback<T>& callback)
+                                const TrainingCallback<T>& callback, const TimingCallback& timingCallback, int gpuIndex)
 {
   ulong N = batchSamples.size();
   ulong sampleStride = this->bufferManager->totalActvSize;
+
+  // Instrumentation: notify NN-CLI of phase boundaries (no-op when unset).
+  auto emit = [&timingCallback, gpuIndex](TimingPhase phase, TimingEvent event) {
+    if (timingCallback)
+      timingCallback(phase, event, gpuIndex);
+  };
 
   // Detect whether any BN layers exist
   const auto& cnnLayers = this->workerConfig.layersConfig.cnnLayers;
@@ -160,9 +166,12 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
       this->kernelBuilder->setupTrainingKernels();
     }
 
+    T prevAccumLoss = zeroVal;
+
     for (ulong s = 0; s < N; s++) {
       const Sample<T>& sample = batchSamples[s];
 
+      emit(TimingPhase::H2DUpload, TimingEvent::Begin);
       std::vector<T> inputVec(sample.input.data.begin(), sample.input.data.end());
       this->core->template writeBuffer<T>("cnn_actvs", inputVec, 0);
 
@@ -171,16 +180,25 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
 
       if (this->bufferManager->annGPUWorker->bufferManager->hasDropout)
         this->bufferManager->annGPUWorker->bufferManager->generateAndUploadDropoutMask();
+      emit(TimingPhase::H2DUpload, TimingEvent::End);
 
+      emit(TimingPhase::GpuCompute, TimingEvent::Begin);
       this->core->run();
+      emit(TimingPhase::GpuCompute, TimingEvent::End);
 
       if (callback) {
+        std::vector<T> accumLoss(1);
+        this->core->template readBuffer<T>("accum_loss", accumLoss, 0);
+        T currentAccumLoss = accumLoss[0];
+        T sampleLoss = currentAccumLoss - prevAccumLoss;
+        prevAccumLoss = currentAccumLoss;
+
         TrainingProgress<T> progress;
         progress.currentEpoch = epoch;
         progress.totalEpochs = totalEpochs;
         progress.currentSample = s + 1;
         progress.totalSamples = totalSamples;
-        progress.sampleLoss = static_cast<T>(0);
+        progress.sampleLoss = sampleLoss;
         progress.epochLoss = static_cast<T>(0);
         callback(progress);
       }
@@ -189,11 +207,15 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
     // ---- BATCH NORM PATH: segment-based processing with cross-sample statistics ----
 
     // Write all sample inputs to the unified activation buffer at sample offsets
+    emit(TimingPhase::H2DUpload, TimingEvent::Begin);
+
     for (ulong n = 0; n < N; n++) {
       const auto& input = batchSamples[n].input;
       std::vector<T> inputVec(input.data.begin(), input.data.end());
       this->core->template writeBuffer<T>("cnn_actvs", inputVec, n * sampleStride);
     }
+
+    emit(TimingPhase::H2DUpload, TimingEvent::End);
 
     // Identify BN layer positions to determine segments
     std::vector<ulong> bnLayerIndices;
@@ -209,6 +231,10 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
         normCounter++;
       }
     }
+
+    // BN path: forward and backward are separate run() blocks interleaved with tiny
+    // async expected-output uploads; report the whole compute region as GpuCompute.
+    emit(TimingPhase::GpuCompute, TimingEvent::Begin);
 
     // ---- FORWARD PASS ----
     ulong segStart = 0;
@@ -244,6 +270,8 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
     }
 
     // ---- ANN FORWARD + BACKWARD (per sample) ----
+    T prevAccumLoss = zeroVal;
+
     for (ulong n = 0; n < N; n++) {
       this->core->clearKernels();
       this->kernelBuilder->addCopyBridgeKernels(n);
@@ -277,12 +305,18 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
       this->core->run();
 
       if (callback) {
+        std::vector<T> accumLoss(1);
+        this->core->template readBuffer<T>("accum_loss", accumLoss, 0);
+        T currentAccumLoss = accumLoss[0];
+        T sampleLoss = currentAccumLoss - prevAccumLoss;
+        prevAccumLoss = currentAccumLoss;
+
         TrainingProgress<T> progress;
         progress.currentEpoch = epoch;
         progress.totalEpochs = totalEpochs;
         progress.currentSample = n + 1;
         progress.totalSamples = totalSamples;
-        progress.sampleLoss = static_cast<T>(0);
+        progress.sampleLoss = sampleLoss;
         progress.epochLoss = static_cast<T>(0);
         callback(progress);
       }
@@ -348,6 +382,8 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
     this->core->clearKernels();
     this->kernelBuilder->addBatchNormRunningStatsUpdate(N);
     this->core->run();
+
+    emit(TimingPhase::GpuCompute, TimingEvent::End);
   }
 
   // Read accumulated loss

@@ -33,8 +33,11 @@ namespace CNN
       PredictResult<T> predict(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
+      // timingCallback/gpuIndex are optional instrumentation: when set, the worker
+      // notifies phase boundaries (H2DUpload / GpuCompute) tagged with its GPU index.
       T trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                    const TrainingCallback<T>& callback);
+                    const TrainingCallback<T>& callback, const TimingCallback& timingCallback = nullptr,
+                    int gpuIndex = -1);
 
       //-- Testing --//
       std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);

@@ -12,6 +12,7 @@
 #include "CNN_PredictResult.hpp"
 #include "CNN_ProgressCallback.hpp"
 #include "CNN_TestResult.hpp"
+#include "CNN_TimingCallback.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -120,6 +121,14 @@ namespace CNN
         progressCallback = callback;
       }
 
+      // Optional instrumentation hook. When set, the training loop notifies the
+      // consumer at phase boundaries (begin/end) so it can measure durations.
+      // No-op overhead when unset.
+      void setTimingCallback(TimingCallback callback)
+      {
+        timingCallback = callback;
+      }
+
       // Request early training termination. The training loop checks this at epoch boundaries.
       void requestStop()
       {
@@ -174,7 +183,15 @@ namespace CNN
       //-- Internal state --//
       TrainingCallback<T> trainingCallback;
       ProgressCallback progressCallback;
+      TimingCallback timingCallback;
       std::atomic<bool> stopRequested{false};
+
+      // Notify the consumer that a measurable phase begins/ends. Cheap no-op when unset.
+      void emitTiming(TimingPhase phase, TimingEvent event, int gpuIndex = -1) const
+      {
+        if (timingCallback)
+          timingCallback(phase, event, gpuIndex);
+      }
 
     private:
       //-- Timing state --//

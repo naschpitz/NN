@@ -174,7 +174,9 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       ulong currentBatchSize = batchEnd - batchStart;
 
       // Fetch batch samples via provider
+      this->emitTiming(TimingPhase::DataFetch, TimingEvent::Begin);
       Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchIndex);
+      this->emitTiming(TimingPhase::DataFetch, TimingEvent::End);
 
       // Distribute the batch across GPUs
       ulong samplesPerGPU = currentBatchSize / this->numGPUs;
@@ -190,6 +192,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       std::vector<T> gpuLosses(this->numGPUs, 0);
 
+      this->emitTiming(TimingPhase::GpuTrain, TimingEvent::Begin);
       QtConcurrent::blockingMap(workItems, [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples,
                                             &gpuCumulativeSamples](const GPUWorkItem& item) {
         // Build the per-GPU sub-batch
@@ -211,9 +214,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
           };
         }
 
-        gpuLosses[item.gpuIdx] =
-          this->gpuWorkers[item.gpuIdx]->trainSubset(gpuSamples, numSamples, e + 1, numEpochs, callback);
+        gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->trainSubset(
+          gpuSamples, numSamples, e + 1, numEpochs, callback, this->timingCallback, static_cast<int>(item.gpuIdx));
       });
+
+      this->emitTiming(TimingPhase::GpuTrain, TimingEvent::End);
 
       // Save training kernels after first batch
       if (!kernelsSaved) {
@@ -234,21 +239,26 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       }
 
       // Merge CNN and ANN gradients across workers, then unified update
+      this->emitTiming(TimingPhase::GradMerge, TimingEvent::Begin);
       this->mergeCNNGradients();
       this->mergeANNGradients();
+      this->emitTiming(TimingPhase::GradMerge, TimingEvent::End);
 
       // Update weights after each mini-batch (parallel across GPUs)
       {
+        this->emitTiming(TimingPhase::WeightUpdate, TimingEvent::Begin);
         QVector<size_t> gpuIndices;
 
         for (size_t i = 0; i < this->numGPUs; i++)
           gpuIndices.append(i);
         QtConcurrent::blockingMap(
           gpuIndices, [this, currentBatchSize](size_t gpuIdx) { this->gpuWorkers[gpuIdx]->update(currentBatchSize); });
+        this->emitTiming(TimingPhase::WeightUpdate, TimingEvent::End);
       }
 
       // Restore training kernels after update
       if (kernelsSaved) {
+        this->emitTiming(TimingPhase::KernelRestore, TimingEvent::Begin);
         QVector<size_t> gpuIndices;
 
         for (size_t i = 0; i < this->numGPUs; i++)
@@ -257,6 +267,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
           this->gpuWorkers[gpuIdx]->restoreKernels(savedKernels[gpuIdx]);
           this->gpuWorkers[gpuIdx]->setTrainingKernelsReady(true);
         });
+        this->emitTiming(TimingPhase::KernelRestore, TimingEvent::End);
       }
     }
 
