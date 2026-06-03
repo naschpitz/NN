@@ -509,6 +509,12 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   static ProgressBar progressBar(this->ioConfig.progressReports);
   progressBar.setHoldEpochLine(validationCore != nullptr);
 
+  // Wire the per-phase timing profiler to the CNN library's timing callback.
+  this->profiler.reset();
+  this->core->setTimingCallback([this](CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex) {
+    this->profiler.onEvent(phase, event, gpuIndex);
+  });
+
   std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr;
 
   if (validationDataLoader && validationIndices && !validationIndices->empty()) {
@@ -522,6 +528,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
 
       if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+        // Wipe the floating live timing table before we commit epoch-boundary output.
+        this->profiler.clearLiveTable(std::cout);
+        const ulong finishedEpoch = lastCallbackEpoch;
+
         // Save checkpoint (deferred message printing until after validation finishes the epoch line)
         std::string checkpointPath;
 
@@ -620,6 +630,12 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         if (!checkpointPath.empty() && this->logLevel > LogLevel::QUIET)
           std::cout << "Checkpoint saved to: " << checkpointPath << "\n";
 
+        // Per-epoch timing summary (committed below the finished epoch line), then
+        // reset the per-epoch accumulators for the new epoch.
+        if (finishedEpoch > 0 && this->logLevel > LogLevel::QUIET)
+          this->profiler.renderEpochSummary(std::cout, finishedEpoch);
+        this->profiler.setEpoch(progress.currentEpoch);
+
         lastCallbackEpoch = progress.currentEpoch;
       }
 
@@ -628,6 +644,12 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
                           progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
         progressBar.update(info);
+
+        // Live per-phase timing table, drawn just below the progress bar (cursor
+        // save/restore leaves the bar line untouched). Only during the epoch — the
+        // epoch-complete line is left for validation output to append to.
+        if (progress.epochLoss == 0)
+          this->profiler.renderLiveTable(std::cout);
       }
     } // lock_guard released
 
@@ -640,8 +662,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
 int CNNRunner::finishTraining(const QString& inputFilePath)
 {
-  if (this->logLevel > LogLevel::QUIET)
+  if (this->logLevel > LogLevel::QUIET) {
     std::cout << "\nTraining completed.\n";
+    this->profiler.renderFinalSummary(std::cout);
+  }
 
   const auto& trainingConfig = this->core->getTrainingConfig();
   const auto& trainingMetadata = this->core->getTrainingMetadata();
