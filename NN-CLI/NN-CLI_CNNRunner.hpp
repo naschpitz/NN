@@ -6,6 +6,7 @@
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
+#include "NN-CLI_TrainingProfiler.hpp"
 
 #include <CNN_Core.hpp>
 #include <CNN_TrainingMonitor.hpp>
@@ -66,6 +67,9 @@ namespace NN_CLI
       };
 
       ValidationState validationState;
+
+      //-- Per-phase timing profiler (fed by CNN's timing callback) --//
+      TrainingProfiler profiler;
   };
 
 } // namespace NN_CLI

@@ -54,6 +54,7 @@ add_executable(NN-CLI
   NN-CLI_Runner.cpp
   NN-CLI_SummaryTable.cpp
   NN-CLI_TestSummary.cpp
+  NN-CLI_TrainingProfiler.cpp
   NN-CLI_TrainingSummary.cpp
   NN-CLI_Utils.cpp
 )
