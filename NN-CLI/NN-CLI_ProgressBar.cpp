@@ -64,7 +64,7 @@ namespace NN_CLI
 
       // Render 0% bar so the user sees progress start immediately
       std::ostringstream out;
-      out << "\rEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
+      out << "\r\033[KEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
 
       if (isMultiGPU) {
         std::vector<float> zeroProg(progress.totalGPUs, 0.0f);
@@ -104,9 +104,10 @@ namespace NN_CLI
       return; // Suppress all sample progress output
     }
 
-    // Build output
+    // Build output — \r\033[K clears the line including trailing chars from a
+    // previous, longer render before we write the new contents.
     std::ostringstream out;
-    out << "\rEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
+    out << "\r\033[KEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
 
     if (isMultiGPU && !isEpochComplete) {
       std::vector<float> gpuProg = this->getGpuProgress();
