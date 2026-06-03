@@ -48,8 +48,8 @@ namespace NN_CLI
     this->stepInProgress = false;
     this->lastStep = StepView{};
     this->lastRenderedLines = 0;
+    this->lastRenderedBatchNumber = static_cast<ulong>(-1);
     this->numGpus = 1; // re-detected from events
-    this->haveRenderTime = false;
   }
 
   void TrainingProfiler::setNumGpus(int numGpus)
@@ -119,7 +119,7 @@ namespace NN_CLI
     view.h2dPerGpu = h2dSum / this->numGpus;
     view.computePerGpu = computeSum / this->numGpus;
     view.runs = runs;
-    view.stepNumber = this->totalStepCount + 1;
+    view.batchNumber = this->stepCount;
     view.valid = true;
 
     // Roll into epoch + total accumulators.
@@ -201,14 +201,6 @@ namespace NN_CLI
 
   void TrainingProfiler::renderLiveTable(std::ostream& out)
   {
-    // Throttle: the training callback fires once per sample, but the snapshot only
-    // changes once per step. Cap the redraw rate so we stay light yet real-time.
-    const Clock::time_point now = Clock::now();
-
-    if (this->haveRenderTime &&
-        std::chrono::duration<double>(now - this->lastRenderTime).count() < this->minRenderIntervalSec)
-      return;
-
     StepView v;
     {
       std::lock_guard<std::mutex> lock(this->mutex);
@@ -216,18 +208,24 @@ namespace NN_CLI
       if (!this->lastStep.valid)
         return;
 
+      // The table only changes when a new step is finalized. Skip redraws that would
+      // just paint the same numbers — the training callback fires per-sample (up to
+      // 128 k times per epoch) while a step lasts tens of seconds.
+      if (this->lastStep.batchNumber == this->lastRenderedBatchNumber)
+        return;
+
       v = this->lastStep;
     }
-
-    this->lastRenderTime = now;
-    this->haveRenderTime = true;
 
     const double total = v.orchTotal > 0.0 ? v.orchTotal : 1.0;
     const ulong launchesPerGpu = v.runs / static_cast<ulong>(std::max(1, this->numGpus));
     const double msPerLaunch = launchesPerGpu > 0 ? v.computePerGpu / static_cast<double>(launchesPerGpu) : 0.0;
 
+    // Write the timing table lines below the progress bar (the bar was just drawn
+    // by progressBar.update() on the current line). Use explicit relative cursor
+    // movement — no \033[s / \033[u — so the table never corrupts the bar line or
+    // leaks into an unrelated screen region.
     std::ostringstream t;
-    t << "\033[s"; // save cursor (sits at end of the progress-bar line)
 
     int lineCount = 0;
     auto line = [&](const std::string& s) {
@@ -235,7 +233,7 @@ namespace NN_CLI
       lineCount++;
     };
 
-    line("  ┌─ timings (step " + std::to_string(v.stepNumber) + ", ms/step) " + std::string(28, '-'));
+    line("  ┌─ timings (batch " + std::to_string(v.batchNumber) + ", ms/batch) " + std::string(28, '-'));
 
     for (Phase ph : kOrchPhases) {
       const int p = static_cast<int>(ph);
@@ -246,7 +244,6 @@ namespace NN_CLI
           << fmt(pct, 5) << " %";
       line(row.str());
 
-      // Sub-breakdown of gpu_train into the parallel per-GPU worker phases.
       if (ph == Phase::GpuTrain) {
         std::ostringstream h2d;
         h2d << "  │   ├ " << std::left << std::setw(14) << "h2d_upload" << std::right << fmt(v.h2dPerGpu, 9)
@@ -265,9 +262,12 @@ namespace NN_CLI
     line(tot.str());
     line("  └" + std::string(46, '-'));
 
-    t << "\033[u"; // restore cursor back to the progress-bar line
+    // Move cursor back up to the progress-bar line so the next \r from
+    // progressBar.update() lands on the bar, not inside the timing block.
+    t << "\033[" << lineCount << "A";
 
-    this->lastRenderedLines = lineCount; // lines drawn below the progress bar
+    this->lastRenderedLines = lineCount;
+    this->lastRenderedBatchNumber = v.batchNumber;
 
     out << t.str();
     out.flush();
@@ -279,15 +279,16 @@ namespace NN_CLI
       return;
 
     std::ostringstream t;
-    t << "\033[s";
 
     for (int i = 0; i < this->lastRenderedLines; i++)
       t << "\n\033[K";
 
-    t << "\033[u";
+    t << "\033[" << this->lastRenderedLines << "A";
+
     out << t.str();
     out.flush();
     this->lastRenderedLines = 0;
+    this->lastRenderedBatchNumber = static_cast<ulong>(-1);
   }
 
   void TrainingProfiler::renderEpochSummary(std::ostream& out, ulong epoch)

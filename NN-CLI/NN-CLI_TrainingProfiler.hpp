@@ -89,7 +89,7 @@ namespace NN_CLI
           double computePerGpu = 0.0; // per-GPU avg ms
           double orchTotal = 0.0; // sum of orchestrator phases
           ulong runs = 0; // GPU run() launches this step (all GPUs)
-          ulong stepNumber = 0;
+          ulong batchNumber = 0; // 0-based mini-batch index, resets per epoch
           bool valid = false;
       };
 
@@ -118,11 +118,7 @@ namespace NN_CLI
       mutable std::mutex mutex;
       StepView lastStep;
       int lastRenderedLines = 0;
-
-      //-- Live-render throttle (the callback fires per-sample; cap redraw rate) --//
-      Clock::time_point lastRenderTime{};
-      bool haveRenderTime = false;
-      double minRenderIntervalSec = 0.15;
+      ulong lastRenderedBatchNumber = static_cast<ulong>(-1);
 
       //-- Helpers --//
       static const char* phaseLabel(CNN::TimingPhase phase);
