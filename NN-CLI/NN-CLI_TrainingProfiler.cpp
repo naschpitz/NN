@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <sys/ioctl.h>
 
 #include <unistd.h>
 
@@ -411,24 +412,42 @@ namespace NN_CLI
     const ulong launchesPerGpu = v.runs / static_cast<ulong>(std::max(1, this->numGpus));
     const double msPerLaunch = launchesPerGpu > 0 ? v.computePerGpu / static_cast<double>(launchesPerGpu) : 0.0;
 
-    // Fixed column widths: phaseW, msW, pctW (pctW includes the % sign)
     constexpr int phaseW = 16;
-    constexpr int msW = 10;
     constexpr int pctW = 7;
+    constexpr int tableOverhead = phaseW + pctW + 10;
+    constexpr int minMsW = 10;
+
+    struct winsize ws;
+    ulong termWidth = 0;
+
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
+      termWidth = static_cast<ulong>(ws.ws_col);
+
+    if (termWidth == 0 && ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
+      termWidth = static_cast<ulong>(ws.ws_col);
+
+    ulong containerWidth = termWidth > 5 ? termWidth - 5 : 120;
+    int msW = static_cast<int>(
+      containerWidth > static_cast<ulong>(tableOverhead + minMsW) ? containerWidth - tableOverhead : minMsW);
+    msW = std::max(msW, minMsW);
 
     auto sep = [&]() {
       lines.push_back("+-" + std::string(phaseW, '-') + "-+-" + std::string(msW, '-') + "-+-" + std::string(pctW, '-') +
                       "-+");
     };
 
-    char buf[128];
-    snprintf(buf, sizeof(buf), " Timing - batch %lu (current, ms/batch)", static_cast<unsigned long>(v.batchNumber));
-    lines.push_back(buf);
+    auto row = [&](const std::string& phase, const std::string& ms, const std::string& pct) {
+      std::ostringstream oss;
+      oss << "| " << std::left << std::setw(phaseW) << phase << " | " << std::right << std::setw(msW) << ms << " | "
+          << std::left << std::setw(pctW) << pct << " |";
+      lines.push_back(oss.str());
+    };
+
+    lines.push_back(" Timing - batch " + std::to_string(v.batchNumber) + " (current, ms/batch)");
 
     sep();
 
-    snprintf(buf, sizeof(buf), "| %-*s | %*s | %-*s |", phaseW, "phase", msW, "ms/batch", pctW, "%");
-    lines.push_back(buf);
+    row("phase", "ms/batch", "%");
 
     sep();
 
@@ -437,31 +456,40 @@ namespace NN_CLI
       const double ms = v.orch[p];
       const double pct = ms / total * 100.0;
 
-      snprintf(buf, sizeof(buf), "| %-*s | %*.1f | %*.*f%% |", phaseW, phaseLabel(ph), msW, ms, pctW - 1, 1, pct);
-      lines.push_back(buf);
+      std::ostringstream msStr;
+      msStr << std::fixed << std::setprecision(1) << ms;
+
+      std::ostringstream pctStr;
+      pctStr << std::fixed << std::setprecision(1) << pct << "%";
+
+      row(phaseLabel(ph), msStr.str(), pctStr.str());
 
       if (ph == Phase::GpuTrain) {
-        char subPhase[32];
-        snprintf(subPhase, sizeof(subPhase), " + h2d_upload");
-        snprintf(buf, sizeof(buf), "| %-*s | %*.1f | %-*s |", phaseW, subPhase, msW, v.h2dPerGpu, pctW, " (gpu)");
-        lines.push_back(buf);
+        std::ostringstream h2dStr;
+        h2dStr << std::fixed << std::setprecision(1) << v.h2dPerGpu;
+        row(" + h2d_upload", h2dStr.str(), " (gpu)");
 
-        snprintf(subPhase, sizeof(subPhase), " + gpu_compute");
-        snprintf(buf, sizeof(buf), "| %-*s | %*.1f | %-*s |", phaseW, subPhase, msW, v.computePerGpu, pctW, " (gpu)");
-        lines.push_back(buf);
+        std::ostringstream compStr;
+        compStr << std::fixed << std::setprecision(1) << v.computePerGpu;
+        row(" + gpu_compute", compStr.str(), " (gpu)");
       }
     }
 
     sep();
 
-    snprintf(buf, sizeof(buf), "| %-*s | %*.1f | %-*s |", phaseW, "TOTAL", msW, total, pctW, "");
-    lines.push_back(buf);
+    {
+      std::ostringstream totalStr;
+      totalStr << std::fixed << std::setprecision(1) << total;
+      row("TOTAL", totalStr.str(), "");
+    }
 
     sep();
 
     if (launchesPerGpu > 0) {
-      snprintf(buf, sizeof(buf), " gpu launches/batch per GPU: %lu (%.2f ms each)", launchesPerGpu, msPerLaunch);
-      lines.push_back(buf);
+      std::ostringstream oss;
+      oss << " gpu launches/batch per GPU: " << launchesPerGpu << " (" << std::fixed << std::setprecision(2)
+          << msPerLaunch << " ms each)";
+      lines.push_back(oss.str());
     }
 
     return lines;
