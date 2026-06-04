@@ -276,18 +276,21 @@ namespace NN_CLI
 
       if (ph == Phase::GpuTrain) {
         std::ostringstream h2d;
-        h2d << "  |   + h2d_upload | " << fmt(v.h2dPerGpu, 9) << " |   (gpu)|";
+        h2d << "  | " << std::left << std::setw(14) << "+ h2d_upload" << std::right << " | " << fmt(v.h2dPerGpu, 9)
+            << " |   (gpu)|";
         line(h2d.str());
 
         std::ostringstream comp;
-        comp << "  |   + gpu_compute| " << fmt(v.computePerGpu, 9) << " |   (gpu)|";
+        comp << "  | " << std::left << std::setw(14) << "+ gpu_compute" << std::right << " | "
+             << fmt(v.computePerGpu, 9) << " |   (gpu)|";
         line(comp.str());
       }
     }
 
     line("  +----------------+-----------+--------+");
     std::ostringstream tot;
-    tot << "  | " << std::left << std::setw(14) << "TOTAL" << std::right << " | " << fmt(total, 9) << " |        |";
+    tot << "  | " << std::left << std::setw(14) << "TOTAL" << std::right << " | " << fmt(total, 9) << " | "
+        << fmt(100.0, 5) << " %|";
     line(tot.str());
     line("  +----------------+-----------+--------+");
 
@@ -369,14 +372,16 @@ namespace NN_CLI
       if (ph == Phase::GpuTrain) {
         const double h2d = tot[static_cast<int>(Phase::H2DUpload)] / 1000.0 / gpus;
         const double comp = tot[static_cast<int>(Phase::GpuCompute)] / 1000.0 / gpus;
-        out << "  |   + h2d_upload | " << fmt(h2d, 13, 2) << " |   (gpu)|\n";
-        out << "  |   + gpu_compute| " << fmt(comp, 13, 2) << " |   (gpu)|\n";
+        out << "  | " << std::left << std::setw(14) << "+ h2d_upload" << std::right << " | " << fmt(h2d, 13, 2)
+            << " |   (gpu)|\n";
+        out << "  | " << std::left << std::setw(14) << "+ gpu_compute" << std::right << " | " << fmt(comp, 13, 2)
+            << " |   (gpu)|\n";
       }
     }
 
     out << "  +----------------+---------------+--------+\n";
     out << "  | " << std::left << std::setw(14) << "TOTAL" << std::right << " | " << fmt(orchTotal / 1000.0, 13, 2)
-        << " |        |\n";
+        << " | " << fmt(100.0, 5) << " %|\n";
     out << "  +----------------+---------------+--------+\n";
 
     if (runs > 0) {

@@ -11,7 +11,7 @@
 
 #include <QThreadPool>
 
-#include <functional>
+#include <atomic>
 #include <functional>
 #include <map>
 #include <memory>
@@ -111,6 +111,15 @@ namespace NN_CLI
         this->loadingCallback = std::move(callback);
       }
 
+      // Temporarily mute/unmute the loading callback. Used to stop the validation provider
+      // (which shares this loader) from driving the training "Loading samples" bar while
+      // validation streams its own samples at an epoch boundary. const + mutable: this is a
+      // transient display flag, not part of the loader's logical state.
+      void setLoadingEnabled(bool enabled) const
+      {
+        this->loadingEnabled.store(enabled, std::memory_order_relaxed);
+      }
+
     private:
       std::vector<SampleManifest> manifest; // Original samples — paths + labels (JSON path)
       std::vector<SampleT> memorySamples; // Original samples — fully loaded (memory path)
@@ -124,6 +133,7 @@ namespace NN_CLI
       GpuAugmenterPool* gpuAugmenterPool = nullptr;
 
       std::function<void(ulong, ulong, ulong, ulong)> loadingCallback;
+      mutable std::atomic<bool> loadingEnabled{true};
 
       // Dedicated thread pool for image loading — separate from the global pool
       // used by the training loop, so prefetch work doesn't compete with training.

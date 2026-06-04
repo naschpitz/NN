@@ -273,7 +273,8 @@ namespace NN_CLI
     auto onSample = [this, &loaded, count, batchIndex, totalBatches, reportInterval]() {
       ulong n = loaded.fetch_add(1, std::memory_order_relaxed) + 1;
 
-      if (this->loadingCallback && (n == count || n % reportInterval == 0))
+      if (this->loadingCallback && this->loadingEnabled.load(std::memory_order_relaxed) &&
+          (n == count || n % reportInterval == 0))
         this->loadingCallback(n, count, batchIndex, totalBatches);
     };
 

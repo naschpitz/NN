@@ -62,7 +62,10 @@ namespace NN_CLI
 
       // Render a determinate loading progress bar into the ncurses progress window.
       // batchNum and totalBatches are displayed in the label (e.g. "Loading samples (1/3): [████░░] 32/64").
-      static void renderLoadingBar(WINDOW* win, ulong current, ulong total, ulong batchNum = 1, ulong totalBatches = 1);
+      // numGpus must match the epoch bar's GPU count so both bars reserve the same right-side
+      // space and line up vertically (the loader runs ahead of training, so it must be told).
+      static void renderLoadingBar(WINDOW* win, ulong current, ulong total, ulong batchNum = 1, ulong totalBatches = 1,
+                                   int numGpus = 1);
 
     private:
       //-- Configuration --//
