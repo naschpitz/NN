@@ -63,10 +63,7 @@ int CNNRunner::train()
 
   // Show loading status in the TUI while samples are processed.
   if (this->tui->isInitialized())
-    ProgressBar::writeStatus(this->tui->progressWindow(), "Loading training data...");
-
-  if (this->tui->isInitialized())
-    this->tui->pollInput();
+    this->tui->refreshConfigPanel();
 
   QString inputFilePath;
   DataLoader<CNN::Sample<float>> dataLoader;
@@ -91,11 +88,9 @@ int CNNRunner::train()
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  if (this->tui->isInitialized()) {
-    char buf[64];
-    snprintf(buf, sizeof(buf), "Loaded %lu training samples", static_cast<unsigned long>(dataLoader.numSamples()));
-    ProgressBar::writeStatus(this->tui->progressWindow(), buf);
-  }
+  if (this->tui->isInitialized())
+    ProgressBar::writeStatus(this->tui->progressWindow(),
+                             "Loaded " + std::to_string(dataLoader.numSamples()) + " training samples");
 
   this->tui->pollInput();
 
@@ -229,6 +224,16 @@ int CNNRunner::train()
   this->setupTrainingCallback(inputFilePath, validationCore, trainingMonitor,
                               validationConfig.enabled ? &dataLoader : nullptr,
                               validationConfig.enabled ? &split.validationIndices : nullptr);
+
+  if (this->tui && this->tui->isInitialized()) {
+    auto loadingWin = this->tui->loadingWindow();
+    auto& tuiMutex = this->tui->mutex();
+    dataLoader.setLoadingCallback(
+      [loadingWin, &tuiMutex](ulong current, ulong total, ulong batchNum, ulong totalBatches) {
+        std::lock_guard<std::recursive_mutex> lock(tuiMutex);
+        ProgressBar::renderLoadingBar(loadingWin, current, total, batchNum, totalBatches);
+      });
+  }
 
   if (validationConfig.enabled) {
     auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,

@@ -12,6 +12,7 @@
 #include <QThreadPool>
 
 #include <functional>
+#include <functional>
 #include <map>
 #include <memory>
 #include <random>
@@ -105,6 +106,11 @@ namespace NN_CLI
         this->gpuAugmenterPool = pool;
       }
 
+      void setLoadingCallback(std::function<void(ulong, ulong, ulong, ulong)> callback)
+      {
+        this->loadingCallback = std::move(callback);
+      }
+
     private:
       std::vector<SampleManifest> manifest; // Original samples — paths + labels (JSON path)
       std::vector<SampleT> memorySamples; // Original samples — fully loaded (memory path)
@@ -115,15 +121,18 @@ namespace NN_CLI
       int outputC = 0, outputH = 0, outputW = 0;
       IOConfig ioConfig;
 
-      GpuAugmenterPool* gpuAugmenterPool = nullptr; // Optional GPU augmentation (not owned)
+      GpuAugmenterPool* gpuAugmenterPool = nullptr;
+
+      std::function<void(ulong, ulong, ulong, ulong)> loadingCallback;
 
       // Dedicated thread pool for image loading — separate from the global pool
       // used by the training loop, so prefetch work doesn't compete with training.
       std::shared_ptr<QThreadPool> ioPool = std::make_shared<QThreadPool>();
 
       // Load a batch of samples by their entry indices.
+      // batchIndex and totalBatches are passed through to the loading callback for progress display.
       std::vector<SampleT> loadBatch(const std::vector<ulong>& entryIndices, const AugmentationTransforms& transforms,
-                                     float augmentationProbability) const;
+                                     float augmentationProbability, ulong batchIndex = 1, ulong totalBatches = 1) const;
 
       // Retrieve a single sample by entry index, optionally applying augmentation.
       SampleT loadSample(ulong entryIndex, std::mt19937& rng, const AugmentationTransforms& transforms,

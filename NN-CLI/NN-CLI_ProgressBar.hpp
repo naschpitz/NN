@@ -60,6 +60,10 @@ namespace NN_CLI
       // Renders "Validating [████░░░░] XX.X%" using the full window width.
       static void renderValidationBar(WINDOW* win, float pct);
 
+      // Render a determinate loading progress bar into the ncurses progress window.
+      // batchNum and totalBatches are displayed in the label (e.g. "Loading samples (1/3): [████░░] 32/64").
+      static void renderLoadingBar(WINDOW* win, ulong current, ulong total, ulong batchNum = 1, ulong totalBatches = 1);
+
     private:
       //-- Configuration --//
       ulong progressReports;

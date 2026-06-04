@@ -43,6 +43,11 @@ namespace NN_CLI
         return this->progressWin_;
       }
 
+      WINDOW* loadingWindow() const
+      {
+        return this->loadingWin_;
+      }
+
       void setTimingLines(const std::vector<std::string>& lines);
       void addEpochLine(const std::string& line);
       void redraw();
@@ -61,6 +66,7 @@ namespace NN_CLI
       bool handleScrollInput(int ch);
 
       WINDOW* progressWin_ = nullptr;
+      WINDOW* loadingWin_ = nullptr;
 
       int rows_ = 0;
       int cols_ = 0;

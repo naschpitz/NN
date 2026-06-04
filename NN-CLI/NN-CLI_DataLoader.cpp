@@ -11,6 +11,7 @@
 #include <QtConcurrent>
 
 #include <algorithm>
+#include <atomic>
 #include <iostream>
 #include <stdexcept>
 
@@ -255,19 +256,26 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename SampleT>
-  std::vector<SampleT> DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices,
-                                                      const AugmentationTransforms& transforms,
-                                                      float augmentationProbability) const
+  std::vector<SampleT>
+  DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices, const AugmentationTransforms& transforms,
+                                 float augmentationProbability, ulong batchIndex, ulong totalBatches) const
   {
     ulong count = entryIndices.size();
     std::vector<SampleT> batch(count);
 
-    // Load all images in parallel using a dedicated I/O thread pool
-    // (separate from the global pool used by the training loop).
     int numThreads = std::min(this->ioPool->maxThreadCount(), static_cast<int>(count));
 
     ulong chunkSize = count / numThreads;
     ulong remainder = count % numThreads;
+
+    std::atomic<ulong> loaded{0};
+    ulong reportInterval = std::max(static_cast<ulong>(1), count / 100);
+    auto onSample = [this, &loaded, count, batchIndex, totalBatches, reportInterval]() {
+      ulong n = loaded.fetch_add(1, std::memory_order_relaxed) + 1;
+
+      if (this->loadingCallback && (n == count || n % reportInterval == 0))
+        this->loadingCallback(n, count, batchIndex, totalBatches);
+    };
 
     QVector<QFuture<void>> futures;
     futures.reserve(numThreads);
@@ -280,14 +288,16 @@ namespace NN_CLI
       ulong chunkEnd = offset + thisChunk;
       offset = chunkEnd;
 
-      futures.append(QtConcurrent::run(this->ioPool.get(), [this, &entryIndices, &batch, &transforms,
-                                                            augmentationProbability, chunkStart, chunkEnd]() {
-        std::mt19937 rng(std::random_device{}());
+      futures.append(
+        QtConcurrent::run(this->ioPool.get(), [this, &entryIndices, &batch, &transforms, augmentationProbability,
+                                               chunkStart, chunkEnd, &onSample]() {
+          std::mt19937 rng(std::random_device{}());
 
-        for (ulong i = chunkStart; i < chunkEnd; i++) {
-          batch[i] = this->loadSample(entryIndices[i], rng, transforms, augmentationProbability);
-        }
-      }));
+          for (ulong i = chunkStart; i < chunkEnd; i++) {
+            batch[i] = this->loadSample(entryIndices[i], rng, transforms, augmentationProbability);
+            onSample();
+          }
+        }));
     }
 
     for (auto& f : futures)
@@ -345,8 +355,9 @@ namespace NN_CLI
       ulong numSamples = sampleIndices.size();
       ulong start = batchIndex * batchSize;
       ulong end = std::min(start + batchSize, numSamples);
+      ulong totalBatches = (numSamples + batchSize - 1) / batchSize;
+      ulong batchNum = batchIndex + 1;
 
-      // If the previous call prefetched this batch, retrieve it; otherwise load now.
       BatchPtr batchPtr;
 
       if (*hasPrefetch) {
@@ -355,24 +366,23 @@ namespace NN_CLI
         *hasPrefetch = false;
       } else {
         std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
-        batchPtr =
-          std::make_shared<std::vector<SampleT>>(this->loadBatch(indices, transforms, augmentationProbability));
+        batchPtr = std::make_shared<std::vector<SampleT>>(
+          this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches));
       }
 
-      // Prefetch the next batch on the dedicated prefetch pool.
-      // That thread calls loadBatch which uses ioPool for parallel image I/O.
       ulong nextStart = end;
 
       if (nextStart < numSamples) {
         ulong nextEnd = std::min(nextStart + batchSize, numSamples);
         std::vector<ulong> nextIndices(sampleIndices.begin() + nextStart, sampleIndices.begin() + nextEnd);
 
-        *prefetch = QtConcurrent::run(
-          prefetchPool.get(),
-          [this, indices = std::move(nextIndices), transforms, augmentationProbability]() -> BatchPtr {
-            return std::make_shared<std::vector<SampleT>>(
-              this->loadBatch(indices, transforms, augmentationProbability));
-          });
+        *prefetch = QtConcurrent::run(prefetchPool.get(),
+                                      [this, indices = std::move(nextIndices), transforms, augmentationProbability,
+                                       batchNum, totalBatches]() -> BatchPtr {
+                                        ulong nextBatchNum = batchNum + 1;
+                                        return std::make_shared<std::vector<SampleT>>(this->loadBatch(
+                                          indices, transforms, augmentationProbability, nextBatchNum, totalBatches));
+                                      });
 
         *hasPrefetch = true;
       }
@@ -406,6 +416,8 @@ namespace NN_CLI
       ulong numSamples = sampleIndices.size();
       ulong start = batchIndex * batchSize;
       ulong end = std::min(start + batchSize, numSamples);
+      ulong totalBatches = (numSamples + batchSize - 1) / batchSize;
+      ulong batchNum = batchIndex + 1;
 
       // Remap: sampleIndices contains shuffled indices 0..N-1 into the subset,
       // and subsetPtr maps those to actual entry indices.
@@ -427,8 +439,8 @@ namespace NN_CLI
         *hasPrefetch = false;
       } else {
         std::vector<ulong> indices = remapBatch(sampleIndices, start, end);
-        batchPtr =
-          std::make_shared<std::vector<SampleT>>(this->loadBatch(indices, transforms, augmentationProbability));
+        batchPtr = std::make_shared<std::vector<SampleT>>(
+          this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches));
       }
 
       ulong nextStart = end;
@@ -438,9 +450,10 @@ namespace NN_CLI
 
         *prefetch = QtConcurrent::run(prefetchPool.get(),
                                       [this, indices = remapBatch(sampleIndices, nextStart, nextEnd), transforms,
-                                       augmentationProbability]() -> BatchPtr {
-                                        return std::make_shared<std::vector<SampleT>>(
-                                          this->loadBatch(indices, transforms, augmentationProbability));
+                                       augmentationProbability, batchNum, totalBatches]() -> BatchPtr {
+                                        ulong nextBatchNum = batchNum + 1;
+                                        return std::make_shared<std::vector<SampleT>>(this->loadBatch(
+                                          indices, transforms, augmentationProbability, nextBatchNum, totalBatches));
                                       });
 
         *hasPrefetch = true;
