@@ -74,6 +74,7 @@ namespace NN_CLI
       int timingH_ = 0;
       int epochsY_ = 0;
       int epochsH_ = 0;
+      int helpY_ = 0;
 
       int configScroll_ = 0;
 

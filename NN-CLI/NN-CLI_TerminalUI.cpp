@@ -128,11 +128,14 @@ namespace NN_CLI
     this->rows_ = getmaxy(stdscr);
     this->cols_ = getmaxx(stdscr);
 
-    if (this->rows_ < 15 || this->cols_ < 40)
+    if (this->rows_ < 16 || this->cols_ < 40)
       return;
 
+    int screenRows = this->rows_ - 1;
+    this->helpY_ = screenRows;
+
     this->trainingH_ = 5;
-    int remaining = this->rows_ - this->trainingH_;
+    int remaining = screenRows - this->trainingH_;
 
     this->configH_ = std::max(5, std::min(remaining - 10, remaining * 35 / 100));
     this->timingH_ = std::max(5, std::min(remaining - this->configH_ - 3, 16));
@@ -290,6 +293,15 @@ namespace NN_CLI
           mvaddch(this->epochsY_ + 1 + i, indicatorCol, ACS_VLINE);
       }
     }
+
+    //--- Help bar ---//
+    mvaddch(this->helpY_, 0, ACS_LLCORNER);
+    mvhline(this->helpY_, 1, ACS_HLINE, this->cols_ - 2);
+    mvaddch(this->helpY_, this->cols_ - 1, ACS_LRCORNER);
+
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvaddstr(this->helpY_, 3, "Tab: switch panel  jk/arrows: scroll  PgUp/PgDn: page  Home/End: jump");
+    attroff(COLOR_PAIR(2) | A_BOLD);
   }
 
   //===================================================================================================================//
