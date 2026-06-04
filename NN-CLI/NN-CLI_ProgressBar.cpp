@@ -10,6 +10,8 @@
 
 namespace
 {
+  constexpr int kLabelWidth = 28;
+
   std::string formatEta(double seconds)
   {
     if (seconds < 0.0)
@@ -71,23 +73,37 @@ namespace NN_CLI
         out << " - Loss: " << std::fixed << std::setprecision(6) << 0.0f << "   ";
         std::cout << out.str() << std::flush;
       } else {
-        // ncurses: render 0% bar into the window (2-line window now)
+        // ncurses: render 0% bar into the window
         ::werase(win);
 
-        std::ostringstream header;
-        header << "Epoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
-        ::waddstr(win, header.str().c_str());
+        {
+          char rawLabel[32];
+          int labelLen =
+            snprintf(rawLabel, sizeof(rawLabel), "Epoch %*lu/%lu", 4, static_cast<unsigned long>(progress.currentEpoch),
+                     static_cast<unsigned long>(progress.totalEpochs));
+          int labelPad = kLabelWidth - labelLen;
+
+          if (labelPad < 0)
+            labelPad = 0;
+
+          ::waddstr(win, rawLabel);
+
+          for (int i = 0; i < labelPad; i++)
+            ::waddstr(win, " ");
+
+          ::waddstr(win, " [");
+        }
 
         int cols0 = ::getmaxx(win);
-        int labelLen = 17;
-        int pctLen = 8;
+        int labelLen = kLabelWidth + 2;
+        constexpr int rightPad = 20;
         int gpuInfoLen = 0;
 
         if (isMultiGPU) {
           gpuInfoLen = 9 * progress.totalGPUs - 1;
         }
 
-        int overhead = labelLen + pctLen + gpuInfoLen;
+        int overhead = labelLen + rightPad + gpuInfoLen;
         int bw = std::max(10, cols0 - overhead);
 
         if (isMultiGPU) {
@@ -173,21 +189,40 @@ namespace NN_CLI
 
       int cols = ::getmaxx(win);
 
-      int labelLen = 17;
-      int pctLen = 8;
+      int labelLen = kLabelWidth + 2;
+      constexpr int rightPad = 20;
       int gpuInfoLen = 0;
 
-      if (isMultiGPU && !isEpochComplete) {
+      // Reserve the per-GPU suffix width whenever multi-GPU — including the epoch-complete
+      // frame, even though it shows no suffix. Otherwise the completed bar would render
+      // full-width and its "]" would jut ~gpuInfoLen columns right of the loading bar's "]",
+      // which keeps reserving this space. The reservation keeps both brackets aligned; the
+      // suffix itself is still only rendered while the epoch is in progress (see below).
+      if (isMultiGPU) {
         gpuInfoLen = 9 * progress.totalGPUs - 1;
       }
 
-      int overhead = labelLen + pctLen + gpuInfoLen;
+      int overhead = labelLen + rightPad + gpuInfoLen;
       int effBarWidth = std::max(10, cols - overhead);
 
-      // Line 0: epoch + progress bar [+ per-GPU percentages inline]
-      std::ostringstream header;
-      header << "Epoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
-      ::waddstr(win, header.str().c_str());
+      // Line 1: epoch + progress bar [+ per-GPU percentages inline]
+      {
+        char rawLabel[32];
+        int labelLen2 =
+          snprintf(rawLabel, sizeof(rawLabel), "Epoch %*lu/%lu", 4, static_cast<unsigned long>(progress.currentEpoch),
+                   static_cast<unsigned long>(progress.totalEpochs));
+        int labelPad = kLabelWidth - labelLen2;
+
+        if (labelPad < 0)
+          labelPad = 0;
+
+        ::waddstr(win, rawLabel);
+
+        for (int i = 0; i < labelPad; i++)
+          ::waddstr(win, " ");
+
+        ::waddstr(win, " [");
+      }
 
       if (isMultiGPU && !isEpochComplete) {
         std::vector<float> gpuProg = this->getGpuProgress();
@@ -382,26 +417,43 @@ namespace NN_CLI
     ::doupdate();
   }
 
-  void ProgressBar::renderLoadingBar(WINDOW* win, ulong current, ulong total, ulong batchNum, ulong totalBatches)
+  void ProgressBar::renderLoadingBar(WINDOW* win, ulong current, ulong total, ulong batchNum, ulong totalBatches,
+                                     int numGpus)
   {
     if (!win)
       return;
 
     float pct = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
-    char labelBuf[64];
-    snprintf(labelBuf, sizeof(labelBuf), "Loading samples (%lu/%lu): [", static_cast<unsigned long>(batchNum),
-             static_cast<unsigned long>(totalBatches));
+    char rawLabel[32];
+    int labelLen = snprintf(rawLabel, sizeof(rawLabel), "Loading samples (%lu/%lu)",
+                            static_cast<unsigned long>(batchNum), static_cast<unsigned long>(totalBatches));
+    int labelPad = kLabelWidth - labelLen;
+
+    if (labelPad < 0)
+      labelPad = 0;
 
     int cols = ::getmaxx(win);
-    int labelLen = static_cast<int>(std::strlen(labelBuf));
-    int countLen = 32;
-    int barWidth = std::max(10, cols - labelLen - countLen);
+    constexpr int rightPad = 20;
+
+    // Mirror the epoch bar's geometry so the two bars line up vertically: the label is
+    // padded to kLabelWidth, followed by " [" (2 chars), and in multi-GPU mode the bar is
+    // shortened by the per-GPU suffix width the epoch bar reserves ("(0:  0% | 1:  0%)").
+    // numGpus is supplied by the caller (the prefetch loader runs ahead of the first
+    // training update, so it cannot be discovered dynamically here).
+    int gpus = std::max(1, numGpus);
+    int gpuInfoLen = (gpus > 1) ? 9 * gpus - 1 : 0;
+    int barWidth = std::max(10, cols - kLabelWidth - 2 - rightPad - gpuInfoLen);
 
     ::werase(win);
 
     ::wattron(win, COLOR_PAIR(3));
-    ::waddstr(win, labelBuf);
+    ::waddstr(win, rawLabel);
+
+    for (int i = 0; i < labelPad; i++)
+      ::waddstr(win, " ");
+
+    ::waddstr(win, " [");
     ::wattroff(win, COLOR_PAIR(3));
 
     int filled = static_cast<int>(pct * barWidth);

@@ -17,6 +17,7 @@
 #include <json.hpp>
 
 #include <ANN_Utils.hpp>
+#include <OCLW_Core.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -196,10 +197,24 @@ int ANNRunner::train()
   if (this->tui && this->tui->isInitialized()) {
     auto loadingWin = this->tui->loadingWindow();
     auto& tuiMutex = this->tui->mutex();
+
+    // Reserve the same per-GPU suffix width as the epoch bar so the two bars line up.
+    // The prefetch loader runs ahead of the first training update, so resolve the GPU
+    // count up front (same logic the GPU core uses) instead of discovering it dynamically.
+    int loadingBarGpus = 1;
+
+    if (this->coreConfig.deviceType == ANN::DeviceType::GPU) {
+      OpenCLWrapper::Core::initialize(false);
+      int availableGpus = static_cast<int>(OpenCLWrapper::Core::getNumDevices());
+      loadingBarGpus =
+        (this->coreConfig.numGPUs > 0) ? std::min(availableGpus, this->coreConfig.numGPUs) : availableGpus;
+      loadingBarGpus = std::max(1, loadingBarGpus);
+    }
+
     dataLoader.setLoadingCallback(
-      [loadingWin, &tuiMutex](ulong current, ulong total, ulong batchNum, ulong totalBatches) {
+      [loadingWin, &tuiMutex, loadingBarGpus](ulong current, ulong total, ulong batchNum, ulong totalBatches) {
         std::lock_guard<std::recursive_mutex> lock(tuiMutex);
-        ProgressBar::renderLoadingBar(loadingWin, current, total, batchNum, totalBatches);
+        ProgressBar::renderLoadingBar(loadingWin, current, total, batchNum, totalBatches, loadingBarGpus);
       });
   }
 
@@ -501,7 +516,8 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   }
 
   this->core->setTrainingCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
-                                   validationIndices, tui](const ANN::TrainingProgress<float>& progress) {
+                                   validationIndices, validationDataLoader,
+                                   tui](const ANN::TrainingProgress<float>& progress) {
     {
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
 
@@ -533,7 +549,12 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             });
           }
 
+          // Mute the loading bar while validation streams its own samples through the shared
+          // loader, so the "Loading samples" bar isn't hijacked by validation's batch counts
+          // (validation has its own "Validating" bar on the progress window).
+          validationDataLoader->setLoadingEnabled(false);
           auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
+          validationDataLoader->setLoadingEnabled(true);
           this->validationState.lastValLoss = validationResult.averageLoss;
           valLoss = validationResult.averageLoss;
           hasValLoss = true;
