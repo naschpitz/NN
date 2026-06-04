@@ -480,14 +480,14 @@ namespace NN_CLI
     const ulong launchesPerGpu = v.runs / static_cast<ulong>(std::max(1, this->numGpus));
     const double msPerLaunch = launchesPerGpu > 0 ? v.computePerGpu / static_cast<double>(launchesPerGpu) : 0.0;
 
-    // Fixed column widths matching the live table format
+    // Fixed column widths: phaseW, msW, pctW (pctW includes the % sign)
     constexpr int phaseW = 16;
-    constexpr int msW = 11;
-    constexpr int pctW = 8;
+    constexpr int msW = 10;
+    constexpr int pctW = 7;
 
     auto sep = [&]() {
-      lines.push_back("+" + std::string(phaseW + 1, '-') + "+" + std::string(msW + 1, '-') + "+" +
-                      std::string(pctW + 1, '-') + "+");
+      lines.push_back("+-" + std::string(phaseW, '-') + "-+-" + std::string(msW, '-') + "-+-" + std::string(pctW, '-') +
+                      "-+");
     };
 
     char buf[128];
@@ -496,7 +496,7 @@ namespace NN_CLI
 
     sep();
 
-    snprintf(buf, sizeof(buf), "| %-14s  | %*s | %*s |", "phase", msW - 1, "ms/batch", pctW - 1, "%");
+    snprintf(buf, sizeof(buf), "| %-*s | %*s | %-*s |", phaseW, "phase", msW, "ms/batch", pctW, "%");
     lines.push_back(buf);
 
     sep();
@@ -506,20 +506,24 @@ namespace NN_CLI
       const double ms = v.orch[p];
       const double pct = ms / total * 100.0;
 
-      snprintf(buf, sizeof(buf), "| %-14s  | %*.1f | %5.1f%% |", phaseLabel(ph), msW - 1, ms, pct);
+      snprintf(buf, sizeof(buf), "| %-*s | %*.1f | %*.*f%% |", phaseW, phaseLabel(ph), msW, ms, pctW - 1, 1, pct);
       lines.push_back(buf);
 
       if (ph == Phase::GpuTrain) {
-        snprintf(buf, sizeof(buf), "|   + h2d_upload | %*.1f |  (gpu) |", msW - 1, v.h2dPerGpu);
+        char subPhase[32];
+        snprintf(subPhase, sizeof(subPhase), " + h2d_upload");
+        snprintf(buf, sizeof(buf), "| %-*s | %*.1f | %-*s |", phaseW, subPhase, msW, v.h2dPerGpu, pctW, " (gpu)");
         lines.push_back(buf);
-        snprintf(buf, sizeof(buf), "|   + gpu_compute| %*.1f |  (gpu) |", msW - 1, v.computePerGpu);
+
+        snprintf(subPhase, sizeof(subPhase), " + gpu_compute");
+        snprintf(buf, sizeof(buf), "| %-*s | %*.1f | %-*s |", phaseW, subPhase, msW, v.computePerGpu, pctW, " (gpu)");
         lines.push_back(buf);
       }
     }
 
     sep();
 
-    snprintf(buf, sizeof(buf), "| %-14s  | %*.1f | %*s |", "TOTAL", msW - 1, total, pctW - 1, "");
+    snprintf(buf, sizeof(buf), "| %-*s | %*.1f | %-*s |", phaseW, "TOTAL", msW, total, pctW, "");
     lines.push_back(buf);
 
     sep();
