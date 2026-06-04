@@ -105,6 +105,11 @@ namespace NN_CLI
     std::signal(SIGINT, SIG_DFL);
     std::signal(SIGTERM, SIG_DFL);
 
+    if (this->loadingWin_) {
+      delwin(this->loadingWin_);
+      this->loadingWin_ = nullptr;
+    }
+
     if (this->progressWin_) {
       delwin(this->progressWin_);
       this->progressWin_ = nullptr;
@@ -134,7 +139,7 @@ namespace NN_CLI
     int screenRows = this->rows_ - 1;
     this->helpY_ = screenRows;
 
-    this->trainingH_ = 5;
+    this->trainingH_ = 6;
     int remaining = screenRows - this->trainingH_;
 
     this->configH_ = std::max(5, std::min(remaining - 10, remaining * 35 / 100));
@@ -156,7 +161,13 @@ namespace NN_CLI
       this->progressWin_ = nullptr;
     }
 
-    this->progressWin_ = newwin(3, this->cols_ - 2, this->trainingY_ + 1, 1);
+    if (this->loadingWin_) {
+      delwin(this->loadingWin_);
+      this->loadingWin_ = nullptr;
+    }
+
+    this->loadingWin_ = newwin(1, this->cols_ - 2, this->trainingY_ + 1, 1);
+    this->progressWin_ = newwin(3, this->cols_ - 2, this->trainingY_ + 2, 1);
   }
 
   //===================================================================================================================//
@@ -321,6 +332,9 @@ namespace NN_CLI
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
+    if (this->loadingWin_)
+      wnoutrefresh(this->loadingWin_);
+
     if (this->progressWin_)
       wnoutrefresh(this->progressWin_);
 
@@ -344,6 +358,9 @@ namespace NN_CLI
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
+    if (this->loadingWin_)
+      wnoutrefresh(this->loadingWin_);
+
     if (this->progressWin_)
       wnoutrefresh(this->progressWin_);
 
@@ -356,6 +373,9 @@ namespace NN_CLI
     this->layout();
     this->drawAllPanels();
     wnoutrefresh(stdscr);
+
+    if (this->loadingWin_)
+      wnoutrefresh(this->loadingWin_);
 
     if (this->progressWin_)
       wnoutrefresh(this->progressWin_);
@@ -371,6 +391,11 @@ namespace NN_CLI
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
+    if (this->loadingWin_) {
+      touchwin(this->loadingWin_);
+      wnoutrefresh(this->loadingWin_);
+    }
+
     if (this->progressWin_) {
       touchwin(this->progressWin_);
       wnoutrefresh(this->progressWin_);
@@ -383,6 +408,11 @@ namespace NN_CLI
     if (ch != ERR && ch != KEY_RESIZE && this->handleScrollInput(ch)) {
       this->drawAllPanels();
       wnoutrefresh(stdscr);
+
+      if (this->loadingWin_) {
+        touchwin(this->loadingWin_);
+        wnoutrefresh(this->loadingWin_);
+      }
 
       if (this->progressWin_) {
         touchwin(this->progressWin_);
@@ -412,6 +442,9 @@ namespace NN_CLI
     if (this->handleScrollInput(ch)) {
       this->drawAllPanels();
       wnoutrefresh(stdscr);
+
+      if (this->loadingWin_)
+        wnoutrefresh(this->loadingWin_);
 
       if (this->progressWin_)
         wnoutrefresh(this->progressWin_);

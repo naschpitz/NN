@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <curses.h>
 #include <iomanip>
 #include <iostream>
@@ -341,7 +342,7 @@ namespace NN_CLI
       return;
 
     int cols = ::getmaxx(win);
-    int barWidth = std::max(10, cols - 24); // label + brackets + pct ≈ 24 chars
+    int barWidth = std::max(10, cols - 24);
 
     ::wmove(win, 0, 0);
     ::wclrtoeol(win);
@@ -376,6 +377,56 @@ namespace NN_CLI
     // Clear line 1 (epoch stats) during validation
     ::wmove(win, 1, 0);
     ::wclrtoeol(win);
+
+    ::wnoutrefresh(win);
+    ::doupdate();
+  }
+
+  void ProgressBar::renderLoadingBar(WINDOW* win, ulong current, ulong total, ulong batchNum, ulong totalBatches)
+  {
+    if (!win)
+      return;
+
+    float pct = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
+
+    char labelBuf[64];
+    snprintf(labelBuf, sizeof(labelBuf), "Loading samples (%lu/%lu): [", static_cast<unsigned long>(batchNum),
+             static_cast<unsigned long>(totalBatches));
+
+    int cols = ::getmaxx(win);
+    int labelLen = static_cast<int>(std::strlen(labelBuf));
+    int countLen = 32;
+    int barWidth = std::max(10, cols - labelLen - countLen);
+
+    ::werase(win);
+
+    ::wattron(win, COLOR_PAIR(3));
+    ::waddstr(win, labelBuf);
+    ::wattroff(win, COLOR_PAIR(3));
+
+    int filled = static_cast<int>(pct * barWidth);
+
+    if (filled > barWidth)
+      filled = barWidth;
+
+    if (filled < 0)
+      filled = 0;
+
+    ::wattron(win, COLOR_PAIR(1));
+
+    for (int i = 0; i < filled; i++)
+      ::waddstr(win, "█");
+    ::wattroff(win, COLOR_PAIR(1));
+
+    for (int i = filled; i < barWidth; i++)
+      ::waddstr(win, "░");
+
+    ::wattron(win, COLOR_PAIR(3));
+    char buf[64];
+    snprintf(buf, sizeof(buf), "] %lu/%lu  %5.1f%%", static_cast<unsigned long>(current),
+             static_cast<unsigned long>(total), static_cast<double>(pct * 100.0));
+    ::waddstr(win, buf);
+    ::wattroff(win, COLOR_PAIR(3));
 
     ::wnoutrefresh(win);
     ::doupdate();
