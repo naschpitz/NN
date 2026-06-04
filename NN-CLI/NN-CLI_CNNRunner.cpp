@@ -508,6 +508,11 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
   static ProgressBar progressBar(this->ioConfig.progressReports);
 
+  // When validation is enabled, the epoch-complete line is left open so the validation
+  // loss is appended to it on the same line; the epoch-boundary handler (which runs only
+  // when saveModelInterval > 0) then commits it. Otherwise the bar commits the line itself.
+  progressBar.setHoldEpochLine(validationCore != nullptr && this->ioConfig.saveModelInterval > 0);
+
   // Wire the per-phase timing profiler to the CNN library's timing callback.
   this->profiler.reset();
   this->core->setTimingCallback([this](CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex) {
@@ -527,8 +532,9 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
 
       if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
-        // Wipe the floating live timing table before we commit epoch-boundary output.
-        this->profiler.clearLiveTable(std::cout);
+        // The finished epoch's bar line was rendered held (no newline) and its live
+        // timing table was already wiped when that line was committed below, so the
+        // cursor sits at the end of "Epoch N ... - Loss: X", ready for us to append.
         const ulong finishedEpoch = lastCallbackEpoch;
 
         // Save checkpoint (deferred message printing until after validation finishes the epoch line)
@@ -577,7 +583,9 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           }
 
           if (this->logLevel > LogLevel::QUIET) {
-            std::cout << "\r\033[K - Validation Loss: " << std::fixed << std::setprecision(6)
+            // Replace the " - Validating   0.0%" suffix (20 chars) in place so the
+            // result stays on the same line as the epoch's progress bar.
+            std::cout << std::string(20, '\b') << " - Validation Loss: " << std::fixed << std::setprecision(6)
                       << validationResult.averageLoss;
             std::cout.unsetf(std::ios_base::floatfield);
           }
@@ -613,6 +621,11 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
               std::cout << " [best]";
           }
 
+          // Commit the held epoch line (validation was enabled but skipped this epoch,
+          // so nothing appended a newline of its own).
+          if (finishedEpoch > 0 && this->validationState.enabled && this->logLevel > LogLevel::QUIET)
+            std::cout << std::endl;
+
           if (progress.stoppedEarly) {
             if (this->logLevel > LogLevel::QUIET)
               std::cout << "\n[Monitor] Training stopped: " << this->core->getTrainingMetadata().stopReason << "\n";
@@ -625,10 +638,9 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         if (!checkpointPath.empty() && this->logLevel > LogLevel::QUIET)
           std::cout << "Checkpoint saved to: " << checkpointPath << "\n";
 
-        // Per-epoch timing summary (committed below the finished epoch line), then
-        // reset the per-epoch accumulators for the new epoch.
-        if (finishedEpoch > 0 && this->logLevel > LogLevel::QUIET)
-          this->profiler.renderEpochSummary(std::cout, finishedEpoch);
+        // No per-epoch timing summary: the committed epoch lines stack uninterrupted and
+        // the single live timing table floats below the in-progress bar (current timing
+        // only). Reset the per-epoch accumulators for the new epoch.
         this->profiler.setEpoch(progress.currentEpoch);
 
         lastCallbackEpoch = progress.currentEpoch;
@@ -638,11 +650,17 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       if (this->logLevel > LogLevel::QUIET) {
         ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
                           progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
+
+        // On epoch completion the bar line is committed, so first wipe the live timing
+        // table floating below it — nothing should sit between consecutive epoch lines.
+        if (progress.epochLoss > 0)
+          this->profiler.clearLiveTable(std::cout);
+
         progressBar.update(info);
 
-        // Live per-phase timing table, drawn just below the progress bar (cursor
-        // save/restore leaves the bar line untouched). Only during the epoch — the
-        // epoch-complete line is left for validation output to append to.
+        // During the epoch, float the single live timing table just below the in-progress
+        // bar (current timing only). The epoch-complete line is held for validation to
+        // append to, so no table is drawn under it.
         if (progress.epochLoss == 0)
           this->profiler.renderLiveTable(std::cout);
       }
