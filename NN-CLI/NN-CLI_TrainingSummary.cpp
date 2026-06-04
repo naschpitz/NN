@@ -89,23 +89,6 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TrainingSummary::printCNN(const CNN::CoreConfig<float>& cnnConfig, const AugmentationConfig& augConfig,
-                                 ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
-                                 float validationRatio, bool validationAuto)
-  {
-    auto lines = collectCNN(cnnConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
-                            validationRatio, validationAuto);
-
-    for (const auto& l : lines) {
-      if (!l.empty())
-        std::cout << l << "\n";
-      else
-        std::cout << "\n";
-    }
-  }
-
-  //===================================================================================================================//
-
   std::vector<std::string> TrainingSummary::collectCNN(const CNN::CoreConfig<float>& cnnConfig,
                                                        const AugmentationConfig& augConfig,
                                                        ulong numOriginalTrainSamples, ulong numTrainSamples,
@@ -298,23 +281,6 @@ namespace NN_CLI
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
     return SummaryTable::collect("Training Configuration", rows);
-  }
-
-  //===================================================================================================================//
-
-  void TrainingSummary::printANN(const ANN::CoreConfig<float>& annConfig, const AugmentationConfig& augConfig,
-                                 ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
-                                 float validationRatio, bool validationAuto)
-  {
-    auto lines = collectANN(annConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
-                            validationRatio, validationAuto);
-
-    for (const auto& l : lines) {
-      if (!l.empty())
-        std::cout << l << "\n";
-      else
-        std::cout << "\n";
-    }
   }
 
   //===================================================================================================================//

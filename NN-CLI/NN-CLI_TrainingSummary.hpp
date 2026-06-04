@@ -17,14 +17,6 @@ namespace NN_CLI
   class TrainingSummary
   {
     public:
-      static void printCNN(const CNN::CoreConfig<float>& cnnConfig, const AugmentationConfig& augConfig,
-                           ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
-                           float validationRatio, bool validationAuto);
-
-      static void printANN(const ANN::CoreConfig<float>& annConfig, const AugmentationConfig& augConfig,
-                           ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
-                           float validationRatio, bool validationAuto);
-
       // Return table lines without printing (for ncurses rendering).
       static std::vector<std::string> collectCNN(const CNN::CoreConfig<float>& cnnConfig,
                                                  const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,

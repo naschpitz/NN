@@ -89,11 +89,6 @@ namespace NN_CLI
     this->numGpus = 1;
   }
 
-  void TrainingProfiler::setNumGpus(int numGpus)
-  {
-    this->numGpus = std::max(1, numGpus);
-  }
-
   //===================================================================================================================//
   //-- Hot path: phase boundary events (lock-free) --//
   //===================================================================================================================//
@@ -198,12 +193,6 @@ namespace NN_CLI
 
     std::lock_guard<std::mutex> lock(this->mutex);
     this->lastStep.valid = false;
-  }
-
-  bool TrainingProfiler::hasData() const
-  {
-    std::lock_guard<std::mutex> lock(this->mutex);
-    return this->lastStep.valid;
   }
 
   //===================================================================================================================//
@@ -332,64 +321,6 @@ namespace NN_CLI
     this->lastRenderedLines = 0;
     this->lastRenderedBatchNumber = static_cast<ulong>(-1);
     g_liveTableLines = 0;
-  }
-
-  void TrainingProfiler::renderEpochSummary(std::ostream& out, ulong epoch)
-  {
-    std::array<double, kNumPhases> ep;
-    ulong steps;
-    ulong runs;
-    {
-      std::lock_guard<std::mutex> lock(this->mutex);
-      ep = this->epochMs;
-      steps = this->stepCount;
-      runs = this->epochRuns;
-    }
-
-    if (steps == 0)
-      return;
-
-    double orchTotal = 0.0;
-
-    for (Phase ph : kOrchPhases)
-      orchTotal += ep[static_cast<int>(ph)];
-
-    if (orchTotal <= 0.0)
-      return;
-
-    const double n = static_cast<double>(steps);
-    const int gpus = std::max(1, this->numGpus);
-
-    out << "\n  Timing summary - epoch " << epoch << " (" << steps << " batches, avg ms/batch)\n";
-    out << "  +----------------+-----------+--------+\n";
-    out << "  | phase          |  ms/batch |      % |\n";
-    out << "  +----------------+-----------+--------+\n";
-
-    for (Phase ph : kOrchPhases) {
-      const int p = static_cast<int>(ph);
-      const double ms = ep[p] / n;
-      const double pct = ep[p] / orchTotal * 100.0;
-      out << "  | " << std::left << std::setw(14) << phaseLabel(ph) << std::right << " | " << fmt(ms, 9) << " | "
-          << fmt(pct, 5) << " %|\n";
-
-      if (ph == Phase::GpuTrain) {
-        const double h2d = ep[static_cast<int>(Phase::H2DUpload)] / n / gpus;
-        const double comp = ep[static_cast<int>(Phase::GpuCompute)] / n / gpus;
-        out << "  |   + h2d_upload | " << fmt(h2d, 9) << " |   (gpu)|\n";
-        out << "  |   + gpu_compute| " << fmt(comp, 9) << " |   (gpu)|\n";
-      }
-    }
-
-    out << "  +----------------+-----------+--------+\n";
-    out << "  | " << std::left << std::setw(14) << "TOTAL" << std::right << " | " << fmt(orchTotal / n, 9)
-        << " |        |\n";
-    out << "  +----------------+-----------+--------+\n";
-
-    if (runs > 0) {
-      const double launchesPerStep = static_cast<double>(runs) / n / gpus;
-      out << "  gpu launches/batch per GPU: " << fmt(launchesPerStep, 0, 0)
-          << "  (one run() per sample in the fast path)\n";
-    }
   }
 
   void TrainingProfiler::renderFinalSummary(std::ostream& out)

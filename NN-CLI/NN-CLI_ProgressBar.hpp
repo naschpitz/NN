@@ -37,9 +37,6 @@ namespace NN_CLI
       // If `win` is non-null, renders into the ncurses window.
       void update(const ProgressInfo& progress, WINDOW* win = nullptr);
 
-      // Reset state (call before starting a new training session)
-      void reset();
-
       // When true, the epoch-complete line is left open (no trailing newline) so the
       // caller can append to it (e.g. " - Validation Loss: ...") and commit it itself.
       // When false, the bar commits the epoch line with its own newline.
@@ -58,9 +55,6 @@ namespace NN_CLI
 
       // Clear the status line (line 2) of the progress window.
       static void clearStatus(WINDOW* win);
-
-      // Render a small progress bar on the status line (line 2).
-      static void writeProgressBar(WINDOW* win, const char* label, float pct, int barWidth = 30);
 
       // Replace the epoch progress bar (line 0) with a validation bar.
       // Renders "Validating [████░░░░] XX.X%" using the full window width.
