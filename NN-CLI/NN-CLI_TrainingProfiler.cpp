@@ -1,9 +1,12 @@
 #include "NN-CLI_TrainingProfiler.hpp"
 
 #include <algorithm>
+#include <csignal>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
+
+#include <unistd.h>
 
 namespace NN_CLI
 {
@@ -12,6 +15,46 @@ namespace NN_CLI
 
   namespace
   {
+    // Lines the live timing table currently occupies below the progress-bar line. The
+    // table is drawn below the cursor and the cursor then steps back up onto the bar, so
+    // on an abrupt exit (Ctrl-C) the table would be left stranded below the shell prompt.
+    // The termination handler reads this count and wipes the block first. Async-signal-
+    // safe: it only reads a sig_atomic_t and calls write()/signal()/raise().
+    volatile std::sig_atomic_t g_liveTableLines = 0;
+
+    void writeRaw(const char* s, std::size_t n)
+    {
+      while (n > 0) {
+        const ssize_t w = ::write(STDOUT_FILENO, s, n);
+
+        if (w <= 0)
+          break;
+
+        s += w;
+        n -= static_cast<std::size_t>(w);
+      }
+    }
+
+    void onTerminateSignal(int sig)
+    {
+      const int k = g_liveTableLines;
+
+      if (k > 0) {
+        writeRaw("\r", 1);
+
+        for (int i = 0; i < k; i++) // step down into each table line and erase it
+          writeRaw("\n\033[K", 4);
+
+        for (int i = 0; i < k; i++) // return to the progress-bar line
+          writeRaw("\033[A", 3);
+
+        g_liveTableLines = 0;
+      }
+
+      std::signal(sig, SIG_DFL);
+      std::raise(sig);
+    }
+
     // Orchestrator phases, in display order. These are sequential / non-overlapping
     // and together account for the whole batch wall time (the % denominator).
     constexpr Phase kOrchPhases[] = {Phase::DataFetch, Phase::GpuTrain, Phase::GradMerge, Phase::WeightUpdate,
@@ -34,6 +77,15 @@ namespace NN_CLI
 
   void TrainingProfiler::reset()
   {
+    // Wipe the floating live table on Ctrl-C / kill so it is not left below the prompt.
+    static bool handlersInstalled = false;
+
+    if (!handlersInstalled) {
+      std::signal(SIGINT, onTerminateSignal);
+      std::signal(SIGTERM, onTerminateSignal);
+      handlersInstalled = true;
+    }
+
     std::lock_guard<std::mutex> lock(this->mutex);
 
     std::memset(this->stepMs, 0, sizeof(this->stepMs));
@@ -165,6 +217,12 @@ namespace NN_CLI
     this->epochMs.fill(0.0);
     this->epochRuns = 0;
     this->stepCount = 0;
+
+    // Drop the finished epoch's last-batch snapshot so the live table does not flash
+    // stale numbers (labelled with the old batch index) at the start of the new epoch.
+    // It redraws as soon as the new epoch's first batch finalizes.
+    std::lock_guard<std::mutex> lock(this->mutex);
+    this->lastStep.valid = false;
   }
 
   bool TrainingProfiler::hasData() const
@@ -233,34 +291,44 @@ namespace NN_CLI
       lineCount++;
     };
 
-    line("  ┌─ timings (batch " + std::to_string(v.batchNumber) + ", ms/batch) " + std::string(28, '-'));
+    // Blank separator line between the progress bar and the timing table. It is counted
+    // in lineCount so clearLiveTable wipes it along with the rest of the floating block.
+    // The box uses the same drawing style as the other tables (e.g. renderEpochSummary).
+    line("");
+    line("  Timing — batch " + std::to_string(v.batchNumber) + " (current, ms/batch)");
+    line("  ┌────────────────┬───────────┬────────┐");
+    line("  │ phase          │  ms/batch │      % │");
+    line("  ├────────────────┼───────────┼────────┤");
 
     for (Phase ph : kOrchPhases) {
       const int p = static_cast<int>(ph);
       const double ms = v.orch[p];
       const double pct = ms / total * 100.0;
       std::ostringstream row;
-      row << "  │ " << std::left << std::setw(16) << phaseLabel(ph) << std::right << fmt(ms, 9) << " ms  "
-          << fmt(pct, 5) << " %";
+      row << "  │ " << std::left << std::setw(14) << phaseLabel(ph) << std::right << " │ " << fmt(ms, 9) << " │ "
+          << fmt(pct, 5) << " %│";
       line(row.str());
 
       if (ph == Phase::GpuTrain) {
         std::ostringstream h2d;
-        h2d << "  │   ├ " << std::left << std::setw(14) << "h2d_upload" << std::right << fmt(v.h2dPerGpu, 9)
-            << " ms   (per-GPU, async)";
+        h2d << "  │   ├ h2d_upload │ " << fmt(v.h2dPerGpu, 9) << " │   (gpu)│";
         line(h2d.str());
 
         std::ostringstream comp;
-        comp << "  │   └ " << std::left << std::setw(14) << "gpu_compute" << std::right << fmt(v.computePerGpu, 9)
-             << " ms   (per-GPU, fwd+bwd; " << launchesPerGpu << " launches @ " << fmt(msPerLaunch, 0, 2) << " ms)";
+        comp << "  │   └ gpu_compute│ " << fmt(v.computePerGpu, 9) << " │   (gpu)│";
         line(comp.str());
       }
     }
 
+    line("  ├────────────────┼───────────┼────────┤");
     std::ostringstream tot;
-    tot << "  │ " << std::left << std::setw(16) << "TOTAL" << std::right << fmt(total, 9) << " ms";
+    tot << "  │ " << std::left << std::setw(14) << "TOTAL" << std::right << " │ " << fmt(total, 9) << " │        │";
     line(tot.str());
-    line("  └" + std::string(46, '-'));
+    line("  └────────────────┴───────────┴────────┘");
+
+    if (launchesPerGpu > 0)
+      line("  gpu launches/batch per GPU: " + fmt(launchesPerGpu, 0, 0) + "  (one run() per sample, " +
+           fmt(msPerLaunch, 0, 2) + " ms each)");
 
     // Move cursor back up to the progress-bar line so the next \r from
     // progressBar.update() lands on the bar, not inside the timing block.
@@ -268,6 +336,7 @@ namespace NN_CLI
 
     this->lastRenderedLines = lineCount;
     this->lastRenderedBatchNumber = v.batchNumber;
+    g_liveTableLines = lineCount;
 
     out << t.str();
     out.flush();
@@ -278,10 +347,13 @@ namespace NN_CLI
     if (this->lastRenderedLines <= 0)
       return;
 
+    // Called with the cursor on the progress-bar line (the table floats just below it).
+    // Step down into each table line and erase it, then return to the bar line. The bar
+    // line itself is left untouched so the caller can rewrite/commit it.
     std::ostringstream t;
 
     for (int i = 0; i < this->lastRenderedLines; i++)
-      t << "\r\033[K\n";
+      t << "\n\033[K";
 
     t << "\033[" << this->lastRenderedLines << "A";
 
@@ -289,6 +361,7 @@ namespace NN_CLI
     out.flush();
     this->lastRenderedLines = 0;
     this->lastRenderedBatchNumber = static_cast<ulong>(-1);
+    g_liveTableLines = 0;
   }
 
   void TrainingProfiler::renderEpochSummary(std::ostream& out, ulong epoch)
@@ -332,7 +405,7 @@ namespace NN_CLI
       if (ph == Phase::GpuTrain) {
         const double h2d = ep[static_cast<int>(Phase::H2DUpload)] / n / gpus;
         const double comp = ep[static_cast<int>(Phase::GpuCompute)] / n / gpus;
-        out << "  │   ├ h2d_upload  │ " << fmt(h2d, 9) << " │   (gpu)│\n";
+        out << "  │   ├ h2d_upload │ " << fmt(h2d, 9) << " │   (gpu)│\n";
         out << "  │   └ gpu_compute│ " << fmt(comp, 9) << " │   (gpu)│\n";
       }
     }
@@ -395,7 +468,7 @@ namespace NN_CLI
       if (ph == Phase::GpuTrain) {
         const double h2d = tot[static_cast<int>(Phase::H2DUpload)] / 1000.0 / gpus;
         const double comp = tot[static_cast<int>(Phase::GpuCompute)] / 1000.0 / gpus;
-        out << "  │   ├ h2d_upload  │ " << fmt(h2d, 13, 2) << " │   (gpu)│\n";
+        out << "  │   ├ h2d_upload │ " << fmt(h2d, 13, 2) << " │   (gpu)│\n";
         out << "  │   └ gpu_compute│ " << fmt(comp, 13, 2) << " │   (gpu)│\n";
       }
     }

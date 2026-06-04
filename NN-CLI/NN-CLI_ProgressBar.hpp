@@ -34,6 +34,14 @@ namespace NN_CLI
       // Reset state (call before starting a new training session)
       void reset();
 
+      // When true, the epoch-complete line is left open (no trailing newline) so the
+      // caller can append to it (e.g. " - Validation Loss: ...") and commit it itself.
+      // When false, the bar commits the epoch line with its own newline.
+      void setHoldEpochLine(bool hold)
+      {
+        this->holdEpochLine = hold;
+      }
+
       // Simple loading progress bar (static, self-contained)
       // Prints: "Loading samples: [████████░░░░░░░░] 1234/5000  24.7%"
       // progressReports controls frequency: how many updates to show (same as trainingConfig.progressReports).
@@ -59,6 +67,9 @@ namespace NN_CLI
       std::vector<float> gpuProgress; // Progress percentage for each GPU (0.0 - 1.0)
       int totalGPUs = 0;
       ulong currentEpoch = 0;
+
+      //-- Epoch-line ownership: when held, the caller appends to and commits the line --//
+      bool holdEpochLine = false;
 
       //-- Internal methods --//
       void resetGpuState(int numGPUs, ulong epoch);
