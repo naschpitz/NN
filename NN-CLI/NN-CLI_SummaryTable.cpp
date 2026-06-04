@@ -4,10 +4,28 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <vector>
 
 namespace NN_CLI
 {
+
+  namespace
+  {
+    ulong detectTerminalWidth()
+    {
+      struct winsize ws;
+
+      if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
+        return static_cast<ulong>(ws.ws_col);
+
+      if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
+        return static_cast<ulong>(ws.ws_col);
+
+      return 120;
+    }
+  }
 
   //===================================================================================================================//
 
@@ -41,24 +59,25 @@ namespace NN_CLI
     std::vector<std::string> lines;
 
     ulong keyW = 0;
-    ulong valueW = 0;
+    ulong contentValueW = 0;
 
     for (const auto& r : rows) {
       if (!r.key.empty())
         keyW = std::max(keyW, r.key.size());
 
       if (!r.value.empty())
-        valueW = std::max(valueW, r.value.size());
+        contentValueW = std::max(contentValueW, r.value.size());
     }
 
     keyW = std::max(keyW, title.size());
     keyW = std::max(keyW, 6UL);
-    valueW = std::max(valueW, 6UL);
+    contentValueW = std::max(contentValueW, 6UL);
 
-    constexpr ulong kMaxValueWidth = 70;
-
-    if (valueW > kMaxValueWidth)
-      valueW = kMaxValueWidth;
+    ulong termWidth = detectTerminalWidth();
+    ulong containerWidth = termWidth > 5 ? termWidth - 5 : termWidth;
+    ulong tableOverhead = keyW + 7;
+    ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : contentValueW;
+    valueW = std::max(valueW, contentValueW);
 
     ulong totalInner = keyW + 3 + valueW;
 
