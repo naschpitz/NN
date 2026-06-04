@@ -279,17 +279,6 @@ namespace NN_CLI
     }
   }
 
-  void ProgressBar::reset()
-  {
-    std::lock_guard<std::mutex> lock(this->mutex);
-    this->gpuProgress.clear();
-    this->totalGPUs = 0;
-    this->currentEpoch = 0;
-    this->timerEpoch = 0;
-    this->runningLossSum = 0.0;
-    this->runningLossCount = 0;
-  }
-
   //===================================================================================================================//
 
   void ProgressBar::printLoadingProgress(const std::string& label, size_t current, size_t total, ulong progressReports,
@@ -342,46 +331,6 @@ namespace NN_CLI
 
     ::wmove(win, 2, 0);
     ::wclrtoeol(win);
-    ::wnoutrefresh(win);
-    ::doupdate();
-  }
-
-  void ProgressBar::writeProgressBar(WINDOW* win, const char* label, float pct, int barWidth)
-  {
-    if (!win)
-      return;
-
-    ::wmove(win, 2, 0);
-    ::wclrtoeol(win);
-
-    ::wattron(win, COLOR_PAIR(3));
-    ::waddstr(win, label);
-    ::waddstr(win, " [");
-    ::wattroff(win, COLOR_PAIR(3));
-
-    int filled = static_cast<int>(pct / 100.0f * barWidth);
-
-    if (filled > barWidth)
-      filled = barWidth;
-
-    if (filled < 0)
-      filled = 0;
-
-    ::wattron(win, COLOR_PAIR(1));
-
-    for (int i = 0; i < filled; i++)
-      ::waddstr(win, "█");
-    ::wattroff(win, COLOR_PAIR(1));
-
-    for (int i = filled; i < barWidth; i++)
-      ::waddstr(win, "░");
-
-    ::wattron(win, COLOR_PAIR(3));
-    char pctBuf[16];
-    snprintf(pctBuf, sizeof(pctBuf), "] %5.1f%%", static_cast<double>(pct));
-    ::waddstr(win, pctBuf);
-    ::wattroff(win, COLOR_PAIR(3));
-
     ::wnoutrefresh(win);
     ::doupdate();
   }

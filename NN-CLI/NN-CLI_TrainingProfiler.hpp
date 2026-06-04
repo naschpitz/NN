@@ -21,17 +21,14 @@ namespace NN_CLI
       TrainingProfiler();
 
       void onEvent(CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex);
-      void setNumGpus(int numGpus);
       void setEpoch(ulong epoch);
-      bool hasData() const;
 
       //-- std::ostream rendering (non-TUI mode) --//
       void renderLiveTable(std::ostream& out);
       void clearLiveTable(std::ostream& out);
-      void renderEpochSummary(std::ostream& out, ulong epoch);
       void renderFinalSummary(std::ostream& out);
 
-      //-- TUI table lines (for CDK label) --//
+      //-- TUI table lines --//
       std::vector<std::string> getTimingLines() const;
 
       void reset();

@@ -7,10 +7,8 @@
 #include <OCLW_Core.hpp>
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
-#include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 #include "NN-CLI_PredictSummary.hpp"
-#include "NN-CLI_TerminalUI.hpp"
 #include "NN-CLI_TestSummary.hpp"
 #include "NN-CLI_TrainingSummary.hpp"
 #include "NN-CLI_Utils.hpp"

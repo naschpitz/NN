@@ -3,24 +3,11 @@
 
 #include <cmath>
 #include <iomanip>
-#include <iostream>
 #include <sstream>
 #include <vector>
 
 namespace NN_CLI
 {
-
-  void LossReferenceTable::print(ulong numClasses)
-  {
-    auto lines = collect(numClasses);
-
-    for (const auto& l : lines) {
-      if (!l.empty())
-        std::cout << l << "\n";
-      else
-        std::cout << "\n";
-    }
-  }
 
   std::vector<std::string> LossReferenceTable::collect(ulong numClasses)
   {
