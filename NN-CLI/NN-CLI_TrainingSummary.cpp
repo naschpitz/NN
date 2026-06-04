@@ -93,6 +93,25 @@ namespace NN_CLI
                                  ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
                                  float validationRatio, bool validationAuto)
   {
+    auto lines = collectCNN(cnnConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
+                            validationRatio, validationAuto);
+
+    for (const auto& l : lines) {
+      if (!l.empty())
+        std::cout << l << "\n";
+      else
+        std::cout << "\n";
+    }
+  }
+
+  //===================================================================================================================//
+
+  std::vector<std::string> TrainingSummary::collectCNN(const CNN::CoreConfig<float>& cnnConfig,
+                                                       const AugmentationConfig& augConfig,
+                                                       ulong numOriginalTrainSamples, ulong numTrainSamples,
+                                                       ulong numValidationSamples, float validationRatio,
+                                                       bool validationAuto)
+  {
     const auto& tc = cnnConfig.trainingConfig;
     const auto& layers = cnnConfig.layersConfig;
     const auto& inputShape = cnnConfig.inputShape;
@@ -278,7 +297,7 @@ namespace NN_CLI
     rows.push_back({"Cost function", costStr});
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
-    SummaryTable::print("Training Configuration", rows);
+    return SummaryTable::collect("Training Configuration", rows);
   }
 
   //===================================================================================================================//
@@ -286,6 +305,25 @@ namespace NN_CLI
   void TrainingSummary::printANN(const ANN::CoreConfig<float>& annConfig, const AugmentationConfig& augConfig,
                                  ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
                                  float validationRatio, bool validationAuto)
+  {
+    auto lines = collectANN(annConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
+                            validationRatio, validationAuto);
+
+    for (const auto& l : lines) {
+      if (!l.empty())
+        std::cout << l << "\n";
+      else
+        std::cout << "\n";
+    }
+  }
+
+  //===================================================================================================================//
+
+  std::vector<std::string> TrainingSummary::collectANN(const ANN::CoreConfig<float>& annConfig,
+                                                       const AugmentationConfig& augConfig,
+                                                       ulong numOriginalTrainSamples, ulong numTrainSamples,
+                                                       ulong numValidationSamples, float validationRatio,
+                                                       bool validationAuto)
   {
     const auto& tc = annConfig.trainingConfig;
     const auto& costConfig = annConfig.costFunctionConfig;
@@ -367,7 +405,7 @@ namespace NN_CLI
     rows.push_back({"Cost function", costStr});
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
-    SummaryTable::print("Training Configuration", rows);
+    return SummaryTable::collect("Training Configuration", rows);
   }
 
 } // namespace NN_CLI

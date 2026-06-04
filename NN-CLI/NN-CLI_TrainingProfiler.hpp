@@ -13,31 +13,6 @@
 
 #include <sys/types.h>
 
-//===================================================================================================================//
-//-- Reusable training-phase profiler --//
-//
-// Consumes the begin/end phase events emitted by the CNN library (CNN::TimingCallback)
-// and turns them into a live, per-step / per-epoch / whole-run breakdown of where the
-// training time goes. This is a real, reusable measurement class — not throwaway code:
-// wire any library that emits CNN::TimingPhase events into onEvent() and it just works.
-//
-// Hot path (onEvent) is lock-free: each phase boundary only timestamps / accumulates
-// into a row owned by a single thread (row 0 = orchestrator/main thread; rows 1..N =
-// per-GPU worker threads). Aggregation and rendering take a small mutex off the hot path.
-//
-// A "step" is one mini-batch (one weight update). Step boundaries are detected from the
-// DataFetch-Begin event, so no extra wiring is needed. Epoch boundaries are fed in via
-// setEpoch() from the existing training callback.
-//
-// Display semantics:
-//   * Orchestrator phases (data_fetch, gpu_train, grad_merge, weight_update,
-//     kernel_restore) are sequential and non-overlapping: they sum to the batch wall
-//     time and carry the % column.
-//   * Worker phases (h2d_upload, gpu_compute) run in parallel across GPUs inside
-//     gpu_train; they are normalized to a per-GPU average (sum / numGpus) so they line
-//     up with the gpu_train wall time. They are shown indented as a sub-breakdown.
-//===================================================================================================================//
-
 namespace NN_CLI
 {
   class TrainingProfiler
@@ -45,35 +20,25 @@ namespace NN_CLI
     public:
       TrainingProfiler();
 
-      // Event sink — wire to CNN::Core::setTimingCallback(). Thread-safe, lock-free.
       void onEvent(CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex);
-
-      // Number of GPUs, used to normalize the parallel worker phases. Default 1.
       void setNumGpus(int numGpus);
-
-      // Feed the current epoch (from the training callback). A change rolls up the
-      // finished epoch and resets per-epoch accumulators.
       void setEpoch(ulong epoch);
-
-      // True once at least one full step has been measured.
       bool hasData() const;
 
-      // Draw the compact live table just below the progress bar, using ANSI cursor
-      // save/restore so the progress bar line is left untouched.
+      //-- std::ostream rendering (non-TUI mode) --//
       void renderLiveTable(std::ostream& out);
-
-      // Wipe the floating live-table region (call before committing an epoch line).
       void clearLiveTable(std::ostream& out);
-
-      // One-shot tables for the logger / final report.
       void renderEpochSummary(std::ostream& out, ulong epoch);
       void renderFinalSummary(std::ostream& out);
+
+      //-- TUI table lines (for CDK label) --//
+      std::vector<std::string> getTimingLines() const;
 
       void reset();
 
     private:
       static constexpr int kNumPhases = static_cast<int>(CNN::TimingPhase::Count);
-      static constexpr int kMaxRows = 65; // row 0 = orchestrator, rows 1..64 = GPUs
+      static constexpr int kMaxRows = 65;
 
       using Clock = std::chrono::steady_clock;
 
@@ -82,18 +47,17 @@ namespace NN_CLI
         return (gpuIndex < 0) ? 0 : (gpuIndex + 1 < kMaxRows ? gpuIndex + 1 : kMaxRows - 1);
       }
 
-      // Snapshot of one finalized step, in milliseconds, ready to render.
       struct StepView {
-          std::array<double, kNumPhases> orch{}; // orchestrator-phase ms (row 0)
-          double h2dPerGpu = 0.0; // per-GPU avg ms
-          double computePerGpu = 0.0; // per-GPU avg ms
-          double orchTotal = 0.0; // sum of orchestrator phases
-          ulong runs = 0; // GPU run() launches this step (all GPUs)
-          ulong batchNumber = 0; // 0-based mini-batch index, resets per epoch
+          std::array<double, kNumPhases> orch{};
+          double h2dPerGpu = 0.0;
+          double computePerGpu = 0.0;
+          double orchTotal = 0.0;
+          ulong runs = 0;
+          ulong batchNumber = 0;
           bool valid = false;
       };
 
-      void finalizeStep(); // roll current step into epoch/total + publish snapshot
+      void finalizeStep();
 
       //-- Configuration --//
       int numGpus = 1;
@@ -104,17 +68,16 @@ namespace NN_CLI
       ulong stepRuns[kMaxRows];
       bool stepInProgress = false;
 
-      //-- Aggregates (orchestrator phases store row-0 ms; worker phases store the
-      //   summed-across-GPU ms, normalized at render time) --//
+      //-- Aggregates --//
       std::array<double, kNumPhases> epochMs{};
       std::array<double, kNumPhases> totalMs{};
       ulong epochRuns = 0;
       ulong totalRuns = 0;
-      ulong stepCount = 0; // steps in current epoch
-      ulong totalStepCount = 0; // steps over whole run
+      ulong stepCount = 0;
+      ulong totalStepCount = 0;
       ulong currentEpoch = 0;
 
-      //-- Published snapshot for rendering (guarded) --//
+      //-- Published snapshot for rendering --//
       mutable std::mutex mutex;
       StepView lastStep;
       int lastRenderedLines = 0;
@@ -122,6 +85,7 @@ namespace NN_CLI
 
       //-- Helpers --//
       static const char* phaseLabel(CNN::TimingPhase phase);
+      static std::string fmt(double v, int width, int prec = 1);
   };
 
 } // namespace NN_CLI

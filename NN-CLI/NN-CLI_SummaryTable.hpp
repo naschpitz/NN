@@ -18,10 +18,11 @@ namespace NN_CLI
   class SummaryTable
   {
     public:
-      // Print an auto-sized ASCII table with a centered title.
       static void print(const std::string& title, const std::vector<SummaryRow>& rows);
 
-      // Format a number with commas: 1234567 → "1,234,567"
+      // Return table lines without printing (for rendering in ncurses).
+      static std::vector<std::string> collect(const std::string& title, const std::vector<SummaryRow>& rows);
+
       static std::string formatWithCommas(ulong value);
   };
 

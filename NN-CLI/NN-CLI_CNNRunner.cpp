@@ -10,6 +10,7 @@
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 #include "NN-CLI_PredictSummary.hpp"
+#include "NN-CLI_TerminalUI.hpp"
 #include "NN-CLI_TestSummary.hpp"
 #include "NN-CLI_TrainingSummary.hpp"
 #include "NN-CLI_Utils.hpp"
@@ -51,11 +52,23 @@ CNNRunner::CNNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConf
 
 int CNNRunner::train()
 {
-  // Reject conflicting input formats
   if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
     std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
     return 1;
   }
+
+  // Create and init the ncurses TUI immediately so the user sees it right away.
+  this->tui = std::make_shared<TerminalUI>();
+
+  if (this->logLevel > LogLevel::QUIET)
+    this->tui->init();
+
+  // Show loading status in the TUI while samples are processed.
+  if (this->tui->isInitialized())
+    ProgressBar::writeStatus(this->tui->progressWindow(), "Loading training data...");
+
+  if (this->tui->isInitialized())
+    this->tui->pollInput();
 
   QString inputFilePath;
   DataLoader<CNN::Sample<float>> dataLoader;
@@ -72,15 +85,24 @@ int CNNRunner::train()
   } else {
     auto [samples, success] = this->loadSamplesFromOptions("training", inputFilePath);
 
-    if (!success)
+    if (!success) {
+      this->tui->shutdown();
       return 1;
+    }
+
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  // Capture total original sample count before any augmentation or splitting
+  if (this->tui->isInitialized()) {
+    char buf[64];
+    snprintf(buf, sizeof(buf), "Loaded %lu training samples", static_cast<unsigned long>(dataLoader.numSamples()));
+    ProgressBar::writeStatus(this->tui->progressWindow(), buf);
+  }
+
+  this->tui->pollInput();
+
   ulong totalOriginalSamples = dataLoader.numSamples();
 
-  // Validation split first — augmentation and class weights must only use training data
   const auto& validationConfig = this->augConfig.validationConfig;
   DataSplit split;
   float validationRatio = 0.0f;
@@ -96,7 +118,6 @@ int CNNRunner::train()
     this->validationState.checkInterval = validationConfig.checkInterval;
     this->validationState.numValSamples = split.validationIndices.size();
 
-    // Augment only training indices (validation stays original)
     split.trainIndices =
       dataLoader.planAugmentation(this->augConfig.augmentationFactor, this->augConfig.balanceAugmentation,
                                   this->augConfig.fullAugmentation, split.trainIndices);
@@ -106,7 +127,6 @@ int CNNRunner::train()
                                 this->augConfig.fullAugmentation);
   }
 
-  // Auto-compute class weights from training samples only (excludes validation split)
   if (this->augConfig.autoClassWeights && this->coreConfig.costFunctionConfig.weights.empty()) {
     auto allOutputs = dataLoader.getAllOutputs();
     std::vector<std::vector<float>> trainingOutputs;
@@ -122,45 +142,45 @@ int CNNRunner::train()
 
     std::vector<float> weights = computeClassWeightsFromOutputs(trainingOutputs);
 
-    if (this->coreConfig.costFunctionConfig.type == CNN::CostFunctionType::SQUARED_DIFFERENCE) {
+    if (this->coreConfig.costFunctionConfig.type == CNN::CostFunctionType::SQUARED_DIFFERENCE)
       this->coreConfig.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
-    }
 
     this->coreConfig.costFunctionConfig.weights = weights;
     this->core = CNN::Core<float>::makeCore(this->coreConfig);
-
-    if (this->logLevel >= LogLevel::INFO) {
-      std::cout << "Auto class weights: [";
-
-      for (ulong i = 0; i < weights.size(); i++) {
-        if (i > 0)
-          std::cout << ", ";
-        std::cout << std::fixed << std::setprecision(4) << weights[i];
-      }
-
-      std::cout << "]\n";
-    }
   }
 
-  // Print training summary
+  // Collect config table lines for the TUI config panel.
   ulong numValidationSamples = validationConfig.enabled ? split.validationIndices.size() : 0;
   ulong numOriginalTrainSamples = totalOriginalSamples - numValidationSamples;
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
   if (this->logLevel > LogLevel::QUIET) {
-    TrainingSummary::printCNN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
-                              numValidationSamples, validationRatio, validationAuto);
+    std::vector<std::string> configLines;
+
+    auto trainLines =
+      TrainingSummary::collectCNN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
+                                  numValidationSamples, validationRatio, validationAuto);
+    configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
 
     ulong numOutputClasses = this->coreConfig.layersConfig.denseLayers.empty()
                                ? 0
                                : this->coreConfig.layersConfig.denseLayers.back().numNeurons;
 
-    if (numOutputClasses >= 2)
-      LossReferenceTable::print(numOutputClasses);
+    if (numOutputClasses >= 2) {
+      auto lossLines = LossReferenceTable::collect(numOutputClasses);
+      configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
+    }
+
+    this->tui->setConfigLines(configLines);
+  }
+
+  // Clear loading status, render config panel
+  if (this->tui->isInitialized()) {
+    ProgressBar::clearStatus(this->tui->progressWindow());
+    this->tui->refreshConfigPanel();
   }
 
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
-  // Disable the library's internal monitor to avoid duplicate monitoring with training loss only.
   std::shared_ptr<CNN::TrainingMonitor<float>> trainingMonitor;
 
   if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
@@ -169,14 +189,12 @@ int CNNRunner::train()
     this->core = CNN::Core<float>::makeCore(this->coreConfig);
   }
 
-  // Create a separate core for validation to avoid re-entering the training core's GPU buffers
   std::shared_ptr<CNN::Core<float>> validationCore;
 
   if (validationConfig.enabled) {
     CNN::CoreConfig<float> validationCoreConfig = this->coreConfig;
     validationCoreConfig.modeType = CNN::ModeType::TEST;
 
-    // Auto-balance validation loss so minority classes contribute equally
     auto allOutputs = dataLoader.getAllOutputs();
     std::vector<std::vector<float>> validationOutputs;
     validationOutputs.reserve(split.validationIndices.size());
@@ -190,8 +208,6 @@ int CNNRunner::train()
     validationCore = std::shared_ptr<CNN::Core<float>>(CNN::Core<float>::makeCore(validationCoreConfig).release());
   }
 
-  // GPU augmentation: when training on GPU with image input, augment batches on the
-  // GPU(s) instead of the CPU (which otherwise starves the GPU). Auto-enabled.
   std::unique_ptr<GpuAugmenterPool> gpuAugPool;
 
   if (this->coreConfig.deviceType == CNN::DeviceType::GPU && this->ioConfig.inputType == DataType::IMAGE) {
@@ -209,9 +225,6 @@ int CNNRunner::train()
         std::make_unique<GpuAugmenterPool>(deviceIndices, static_cast<ulong>(inputC), static_cast<ulong>(inputH),
                                            static_cast<ulong>(inputW), this->logLevel);
       dataLoader.setGpuAugmenterPool(gpuAugPool.get());
-
-      if (this->logLevel >= LogLevel::INFO)
-        std::cout << "GPU augmentation enabled on " << numAugGpus << " GPU(s).\n";
     }
   }
 
@@ -508,10 +521,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
   static ProgressBar progressBar(this->ioConfig.progressReports);
 
-  // When validation is enabled, the epoch-complete line is left open so the validation
-  // loss is appended to it on the same line; the epoch-boundary handler (which runs only
-  // when saveModelInterval > 0) then commits it. Otherwise the bar commits the line itself.
-  progressBar.setHoldEpochLine(validationCore != nullptr && this->ioConfig.saveModelInterval > 0);
+  progressBar.setHoldEpochLine(false);
+
+  // TUI is already created in train(); capture it for the callback lambda.
+  auto tui = this->tui;
 
   // Wire the per-phase timing profiler to the CNN library's timing callback.
   this->profiler.reset();
@@ -527,142 +540,152 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   }
 
   this->core->setTrainingCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
-                                   validationIndices](const CNN::TrainingProgress<float>& progress) {
+                                   validationIndices, tui](const CNN::TrainingProgress<float>& progress) {
     {
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
 
-      if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
-        // The finished epoch's bar line was rendered held (no newline) and its live
-        // timing table was already wiped when that line was committed below, so the
-        // cursor sits at the end of "Epoch N ... - Loss: X", ready for us to append.
+      // Epoch transition: process epoch-end tasks when a new epoch starts.
+      // saveModelInterval controls checkpoint frequency only; epoch
+      // transitions must always be processed for TUI, validation, and
+      // monitoring logic to work.
+      bool epochTransition = progress.currentEpoch > lastCallbackEpoch;
+
+      if (epochTransition) {
         const ulong finishedEpoch = lastCallbackEpoch;
 
-        // Save checkpoint (deferred message printing until after validation finishes the epoch line)
+        // --- Checkpointing (controlled by saveModelInterval) ---
         std::string checkpointPath;
 
-        if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
+        if (this->ioConfig.saveModelInterval > 0 && lastCallbackEpoch > 0 &&
+            lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
           checkpointPath = ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
           ModelSerializer::saveCNNModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                         this->buildValidationMetadata());
         }
 
-        // Run validation at check intervals using separate core (skip epoch 0 — no training yet)
+        // --- Validation ---
+        bool isBest = false;
+        bool monitorShouldStop = false;
+        float valLoss = 0.0f;
+        bool hasValLoss = false;
+
         if (lastCallbackEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
             validationIndices && lastCallbackEpoch % this->validationState.checkInterval == 0) {
           ulong validationTotal = validationIndices->size();
 
-          if (this->logLevel > LogLevel::QUIET)
-            std::cout << " - Validating   0.0%" << std::flush;
-
           validationCore->setParameters(this->core->getParameters());
           validationCore->syncParametersToGPU();
 
-          if (this->logLevel > LogLevel::QUIET) {
-            validationCore->setProgressCallback([validationTotal](ulong current, ulong total) {
+          // Show validation progress on the progress window line 2
+          if (tui && tui->isInitialized()) {
+            validationCore->setProgressCallback([tui, validationTotal](ulong current, ulong) {
               float pct = static_cast<float>(current) / validationTotal * 100.0f;
-              std::cout << "\b\b\b\b\b\b" << std::fixed << std::setprecision(1) << std::setw(5) << pct << "%"
-                        << std::flush;
+              std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+              ProgressBar::renderValidationBar(tui->progressWindow(), pct);
             });
           }
 
           auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
           this->validationState.lastValLoss = validationResult.averageLoss;
+          valLoss = validationResult.averageLoss;
+          hasValLoss = true;
+
+          // Clear the validation status line
+          if (tui && tui->isInitialized()) {
+            std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+            ProgressBar::clearStatus(tui->progressWindow());
+          }
 
           if (validationResult.averageLoss < this->validationState.bestValLoss) {
             this->validationState.bestValLoss = validationResult.averageLoss;
             this->validationState.bestValEpoch = lastCallbackEpoch;
           }
 
-          bool monitorShouldStop = false;
-          bool monitorIsNewBest = false;
-
           if (trainingMonitor) {
             monitorShouldStop = trainingMonitor->checkEpoch(lastCallbackEpoch, lastEpochLoss,
                                                             std::optional<float>(validationResult.averageLoss));
-            monitorIsNewBest = trainingMonitor->isNewBest();
-          }
-
-          if (this->logLevel > LogLevel::QUIET) {
-            // Replace the " - Validating   0.0%" suffix (20 chars) in place so the
-            // result stays on the same line as the epoch's progress bar.
-            std::cout << std::string(20, '\b') << " - Validation Loss: " << std::fixed << std::setprecision(6)
-                      << validationResult.averageLoss;
-            std::cout.unsetf(std::ios_base::floatfield);
-          }
-
-          // Save best model (single file, overwritten on each new best)
-          if (monitorIsNewBest || progress.isNewBest) {
-            std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-            ModelSerializer::saveCNNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                          this->buildValidationMetadata());
-
-            if (this->logLevel > LogLevel::QUIET)
-              std::cout << " [best]";
-          }
-
-          if (this->logLevel > LogLevel::QUIET)
-            std::cout << std::endl;
-
-          // Early stopping
-          if (monitorShouldStop) {
-            if (this->logLevel > LogLevel::QUIET)
-              std::cout << "[Monitor] Training stopped: " << trainingMonitor->stopReason() << "\n";
-
-            this->core->requestStop();
-          }
-        } else {
-          // No validation this epoch — handle library-level monitoring signals
-          if (progress.isNewBest) {
-            std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-            ModelSerializer::saveCNNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                          this->buildValidationMetadata());
-
-            if (this->logLevel > LogLevel::QUIET)
-              std::cout << " [best]";
-          }
-
-          // Commit the held epoch line (validation was enabled but skipped this epoch,
-          // so nothing appended a newline of its own).
-          if (finishedEpoch > 0 && this->validationState.enabled && this->logLevel > LogLevel::QUIET)
-            std::cout << std::endl;
-
-          if (progress.stoppedEarly) {
-            if (this->logLevel > LogLevel::QUIET)
-              std::cout << "\n[Monitor] Training stopped: " << this->core->getTrainingMetadata().stopReason << "\n";
-
-            this->core->requestStop();
+            isBest = trainingMonitor->isNewBest();
           }
         }
 
-        // Print checkpoint message after epoch line is complete
-        if (!checkpointPath.empty() && this->logLevel > LogLevel::QUIET)
-          std::cout << "Checkpoint saved to: " << checkpointPath << "\n";
+        // --- Best model save ---
+        if (isBest || progress.isNewBest) {
+          std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
+          ModelSerializer::saveCNNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                        this->buildValidationMetadata());
+        }
 
-        // No per-epoch timing summary: the committed epoch lines stack uninterrupted and
-        // the single live timing table floats below the in-progress bar (current timing
-        // only). Reset the per-epoch accumulators for the new epoch.
+        // --- TUI history (skip epoch 0 line) ---
+        if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && finishedEpoch > 0) {
+          char histLine[256];
+          int written = snprintf(histLine, sizeof(histLine), "Epoch %lu: Loss %.6f",
+                                 static_cast<unsigned long>(finishedEpoch), static_cast<double>(lastEpochLoss));
+
+          if (hasValLoss)
+            snprintf(histLine + written, sizeof(histLine) - static_cast<size_t>(written), "  Val: %.6f",
+                     static_cast<double>(valLoss));
+
+          if (isBest || progress.isNewBest)
+            snprintf(histLine + strlen(histLine), sizeof(histLine) - strlen(histLine), " [best]");
+
+          if (!checkpointPath.empty())
+            snprintf(histLine + strlen(histLine), sizeof(histLine) - strlen(histLine), " (checkpoint)");
+
+          tui->addEpochLine(histLine);
+        }
+
+        // --- Timing window reset ---
+        if (tui && tui->isInitialized()) {
+          tui->setTimingLines({" Timing - waiting for first batch"});
+        }
+
+        // --- Monitor stop requests ---
+        if (monitorShouldStop) {
+          if (tui && tui->isInitialized())
+            tui->addEpochLine("[Monitor] Training stopped: " + trainingMonitor->stopReason());
+
+          this->core->requestStop();
+        }
+
+        if (progress.stoppedEarly) {
+          if (tui && tui->isInitialized())
+            tui->addEpochLine("[Monitor] Training stopped: " + this->core->getTrainingMetadata().stopReason);
+
+          this->core->requestStop();
+        }
+
         this->profiler.setEpoch(progress.currentEpoch);
-
         lastCallbackEpoch = progress.currentEpoch;
       }
 
-      // Progress bar update inside mutex to prevent overwriting validation output
       if (this->logLevel > LogLevel::QUIET) {
         ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
                           progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
 
-        // On epoch completion the bar line is committed, so first wipe the live timing
-        // table floating below it — nothing should sit between consecutive epoch lines.
-        if (progress.epochLoss > 0)
-          this->profiler.clearLiveTable(std::cout);
+        if (tui && tui->isInitialized()) {
+          std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
 
-        progressBar.update(info);
+          progressBar.update(info, tui->progressWindow());
 
-        // During the epoch, float the single live timing table just below the in-progress
-        // bar (current timing only). The epoch-complete line is held for validation to
-        // append to, so no table is drawn under it.
-        if (progress.epochLoss == 0)
-          this->profiler.renderLiveTable(std::cout);
+          if (progress.epochLoss == 0) {
+            auto timingLines = this->profiler.getTimingLines();
+
+            if (!timingLines.empty())
+              tui->setTimingLines(timingLines);
+          } else {
+            tui->setTimingLines({" Timing - no data yet"});
+          }
+
+          tui->refresh();
+        } else {
+          if (progress.epochLoss > 0)
+            this->profiler.clearLiveTable(std::cout);
+
+          progressBar.update(info);
+
+          if (progress.epochLoss == 0)
+            this->profiler.renderLiveTable(std::cout);
+        }
       }
     } // lock_guard released
 
@@ -675,6 +698,12 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
 int CNNRunner::finishTraining(const QString& inputFilePath)
 {
+  // Exit ncurses mode before printing final summary to stdout
+  if (this->tui) {
+    this->tui->shutdown();
+    this->tui.reset();
+  }
+
   if (this->logLevel > LogLevel::QUIET) {
     std::cout << "\nTraining completed.\n";
     this->profiler.renderFinalSummary(std::cout);

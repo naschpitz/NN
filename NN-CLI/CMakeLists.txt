@@ -53,23 +53,38 @@ add_executable(NN-CLI
   NN-CLI_ProgressBar.cpp
   NN-CLI_Runner.cpp
   NN-CLI_SummaryTable.cpp
+  NN-CLI_TerminalUI.cpp
   NN-CLI_TestSummary.cpp
   NN-CLI_TrainingProfiler.cpp
   NN-CLI_TrainingSummary.cpp
   NN-CLI_Utils.cpp
 )
 
+# ncurses for the training terminal UI
+set(CURSES_NEED_WIDE TRUE)
+set(CURSES_NEED_NCURSES TRUE)
+find_package(Curses REQUIRED)
+if(NOT CURSES_LIBRARY MATCHES "ncursesw")
+  find_library(NCURSESW_LIBRARY NAMES ncursesw)
+  if(NCURSESW_LIBRARY)
+    set(CURSES_LIBRARIES ${NCURSESW_LIBRARY})
+    message(STATUS "Forcing ncursesw: ${NCURSESW_LIBRARY}")
+  endif()
+endif()
+
 # nlohmann JSON library (header-only, used directly by NN-CLI for config serialisation)
 # stb image library (header-only, used for image loading/saving)
 target_include_directories(NN-CLI PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
+    ${CURSES_INCLUDE_DIR}
 )
 
 # Link to CNN — ANN, OpenCLWrapper, Qt::Core, OpenCL are propagated automatically via PUBLIC
 target_link_libraries(NN-CLI
     PRIVATE CNN
     PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent
+    PRIVATE ${CURSES_LIBRARIES}
 )
 
 # tcmalloc replaces glibc's malloc/free across the whole process. Glibc's per-thread
@@ -144,9 +159,11 @@ target_include_directories(test_nncli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
+    ${CURSES_INCLUDE_DIR}
 )
 target_link_libraries(test_nncli PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Concurrent
     CNN
+    ${CURSES_LIBRARIES}
 )

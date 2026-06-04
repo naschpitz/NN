@@ -6,6 +6,7 @@
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
+#include "NN-CLI_TerminalUI.hpp"
 
 #include <ANN_Core.hpp>
 #include <ANN_TrainingMonitor.hpp>
@@ -66,6 +67,9 @@ namespace NN_CLI
       };
 
       ValidationState validationState;
+
+      //-- ncurses terminal UI (only active during training) --//
+      std::shared_ptr<TerminalUI> tui;
   };
 
 } // namespace NN_CLI

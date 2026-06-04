@@ -8,6 +8,7 @@
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 #include "NN-CLI_PredictSummary.hpp"
+#include "NN-CLI_TerminalUI.hpp"
 #include "NN-CLI_TestSummary.hpp"
 #include "NN-CLI_TrainingSummary.hpp"
 #include "NN-CLI_Utils.hpp"
@@ -49,11 +50,21 @@ ANNRunner::ANNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConf
 
 int ANNRunner::train()
 {
-  // Reject conflicting input formats
   if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
     std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
     return 1;
   }
+
+  this->tui = std::make_shared<TerminalUI>();
+
+  if (this->logLevel > LogLevel::QUIET)
+    this->tui->init();
+
+  if (this->tui->isInitialized())
+    ProgressBar::writeStatus(this->tui->progressWindow(), "Loading training data...");
+
+  if (this->tui->isInitialized())
+    this->tui->pollInput();
 
   QString inputFilePath;
   DataLoader<ANN::Sample<float>> dataLoader;
@@ -72,15 +83,22 @@ int ANNRunner::train()
   } else {
     auto [samples, success] = this->loadSamplesFromOptions("training", inputFilePath);
 
-    if (!success)
+    if (!success) {
+      this->tui->shutdown();
       return 1;
+    }
+
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  // Capture total original sample count before any augmentation or splitting
+  if (this->tui->isInitialized()) {
+    char buf[64];
+    snprintf(buf, sizeof(buf), "Loaded %lu training samples", static_cast<unsigned long>(dataLoader.numSamples()));
+    ProgressBar::writeStatus(this->tui->progressWindow(), buf);
+  }
+
   ulong totalOriginalSamples = dataLoader.numSamples();
 
-  // Validation split first — augmentation and class weights must only use training data
   const auto& validationConfig = this->augConfig.validationConfig;
   DataSplit split;
   float validationRatio = 0.0f;
@@ -96,7 +114,6 @@ int ANNRunner::train()
     this->validationState.checkInterval = validationConfig.checkInterval;
     this->validationState.numValSamples = split.validationIndices.size();
 
-    // Augment only training indices (validation stays original)
     split.trainIndices =
       dataLoader.planAugmentation(this->augConfig.augmentationFactor, this->augConfig.balanceAugmentation,
                                   this->augConfig.fullAugmentation, split.trainIndices);
@@ -106,7 +123,6 @@ int ANNRunner::train()
                                 this->augConfig.fullAugmentation);
   }
 
-  // Auto-compute class weights from training samples only (excludes validation split)
   if (this->augConfig.autoClassWeights && this->coreConfig.costFunctionConfig.weights.empty()) {
     auto allOutputs = dataLoader.getAllOutputs();
     std::vector<std::vector<float>> trainingOutputs;
@@ -124,37 +140,36 @@ int ANNRunner::train()
     this->coreConfig.costFunctionConfig.type = ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
     this->coreConfig.costFunctionConfig.weights = weights;
     this->core = ANN::Core<float>::makeCore(this->coreConfig);
-
-    if (this->logLevel >= LogLevel::INFO) {
-      std::cout << "Auto class weights: [";
-
-      for (ulong i = 0; i < weights.size(); i++) {
-        if (i > 0)
-          std::cout << ", ";
-        std::cout << std::fixed << std::setprecision(4) << weights[i];
-      }
-
-      std::cout << "]\n";
-    }
   }
 
-  // Print training summary
   ulong numValidationSamples = validationConfig.enabled ? split.validationIndices.size() : 0;
   ulong numOriginalTrainSamples = totalOriginalSamples - numValidationSamples;
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
   if (this->logLevel > LogLevel::QUIET) {
-    TrainingSummary::printANN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
-                              numValidationSamples, validationRatio, validationAuto);
+    std::vector<std::string> configLines;
+
+    auto trainLines =
+      TrainingSummary::collectANN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
+                                  numValidationSamples, validationRatio, validationAuto);
+    configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
 
     ulong numOutputClasses =
       this->coreConfig.layersConfig.empty() ? 0 : this->coreConfig.layersConfig.back().numNeurons;
 
-    if (numOutputClasses >= 2)
-      LossReferenceTable::print(numOutputClasses);
+    if (numOutputClasses >= 2) {
+      auto lossLines = LossReferenceTable::collect(numOutputClasses);
+      configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
+    }
+
+    this->tui->setConfigLines(configLines);
   }
 
-  // When validation is enabled, NN-CLI handles monitoring with validation loss.
+  if (this->tui->isInitialized()) {
+    ProgressBar::clearStatus(this->tui->progressWindow());
+    this->tui->refreshConfigPanel();
+  }
+
   std::shared_ptr<ANN::TrainingMonitor<float>> trainingMonitor;
 
   if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
@@ -163,14 +178,12 @@ int ANNRunner::train()
     this->core = ANN::Core<float>::makeCore(this->coreConfig);
   }
 
-  // Create a separate core for validation to avoid re-entering the training core's GPU buffers
   std::shared_ptr<ANN::Core<float>> validationCore;
 
   if (validationConfig.enabled) {
     ANN::CoreConfig<float> validationCoreConfig = this->coreConfig;
     validationCoreConfig.modeType = ANN::ModeType::TEST;
 
-    // Auto-balance validation loss so minority classes contribute equally
     auto allOutputs = dataLoader.getAllOutputs();
     std::vector<std::vector<float>> validationOutputs;
     validationOutputs.reserve(split.validationIndices.size());
@@ -476,6 +489,8 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
   static ProgressBar progressBar(this->ioConfig.progressReports);
 
+  auto tui = this->tui;
+
   std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr;
 
   if (validationDataLoader && validationIndices && !validationIndices->empty()) {
@@ -484,12 +499,11 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   }
 
   this->core->setTrainingCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
-                                   validationIndices](const ANN::TrainingProgress<float>& progress) {
+                                   validationIndices, tui](const ANN::TrainingProgress<float>& progress) {
     {
       std::lock_guard<std::mutex> lock(epochTransitionMutex);
 
       if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
-        // Save checkpoint (deferred message printing until after validation finishes the epoch line)
         std::string checkpointPath;
 
         if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
@@ -498,98 +512,99 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
                                         this->buildValidationMetadata());
         }
 
-        // Run validation at check intervals using separate core (skip epoch 0 — no training yet)
+        bool isBest = false;
+        bool monitorShouldStop = false;
+        float valLoss = 0.0f;
+        bool hasValLoss = false;
+
         if (lastCallbackEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
             validationIndices && lastCallbackEpoch % this->validationState.checkInterval == 0) {
           ulong validationTotal = validationIndices->size();
 
-          if (this->logLevel > LogLevel::QUIET)
-            std::cout << " - Validating   0.0%" << std::flush;
-
           validationCore->setParameters(this->core->getParameters());
 
-          if (this->logLevel > LogLevel::QUIET) {
-            validationCore->setProgressCallback([validationTotal](ulong current, ulong total) {
+          if (tui && tui->isInitialized()) {
+            validationCore->setProgressCallback([tui, validationTotal](ulong current, ulong) {
               float pct = static_cast<float>(current) / validationTotal * 100.0f;
-              std::cout << "\b\b\b\b\b\b" << std::fixed << std::setprecision(1) << std::setw(5) << pct << "%"
-                        << std::flush;
+              std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+              ProgressBar::renderValidationBar(tui->progressWindow(), pct);
             });
           }
 
           auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
           this->validationState.lastValLoss = validationResult.averageLoss;
+          valLoss = validationResult.averageLoss;
+          hasValLoss = true;
+
+          if (tui && tui->isInitialized()) {
+            std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+            ProgressBar::clearStatus(tui->progressWindow());
+          }
 
           if (validationResult.averageLoss < this->validationState.bestValLoss) {
             this->validationState.bestValLoss = validationResult.averageLoss;
             this->validationState.bestValEpoch = lastCallbackEpoch;
           }
 
-          bool monitorShouldStop = false;
-          bool monitorIsNewBest = false;
-
           if (trainingMonitor) {
             monitorShouldStop = trainingMonitor->checkEpoch(lastCallbackEpoch, lastEpochLoss,
                                                             std::optional<float>(validationResult.averageLoss));
-            monitorIsNewBest = trainingMonitor->isNewBest();
-          }
-
-          if (this->logLevel > LogLevel::QUIET) {
-            std::cout << std::string(20, '\b') << " - Validation Loss: " << std::fixed << std::setprecision(6)
-                      << validationResult.averageLoss;
-            std::cout.unsetf(std::ios_base::floatfield);
-          }
-
-          if (monitorIsNewBest || progress.isNewBest) {
-            std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-            ModelSerializer::saveANNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                          this->buildValidationMetadata());
-
-            if (this->logLevel > LogLevel::QUIET)
-              std::cout << " [best]";
-          }
-
-          if (this->logLevel > LogLevel::QUIET)
-            std::cout << std::endl;
-
-          if (monitorShouldStop) {
-            if (this->logLevel > LogLevel::QUIET)
-              std::cout << "[Monitor] Training stopped: " << trainingMonitor->stopReason() << "\n";
-
-            this->core->requestStop();
-          }
-        } else {
-          if (progress.isNewBest) {
-            std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-            ModelSerializer::saveANNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                          this->buildValidationMetadata());
-
-            if (this->logLevel > LogLevel::QUIET)
-              std::cout << " [best]";
-          }
-
-          if (this->validationState.enabled && this->logLevel > LogLevel::QUIET)
-            std::cout << std::endl;
-
-          if (progress.stoppedEarly) {
-            if (this->logLevel > LogLevel::QUIET)
-              std::cout << "\n[Monitor] Training stopped: " << this->core->getTrainingMetadata().stopReason << "\n";
-
-            this->core->requestStop();
+            isBest = trainingMonitor->isNewBest();
           }
         }
 
-        // Print checkpoint message after epoch line is complete
-        if (!checkpointPath.empty() && this->logLevel > LogLevel::QUIET)
-          std::cout << "Checkpoint saved to: " << checkpointPath << "\n";
+        if (isBest || progress.isNewBest) {
+          std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
+          ModelSerializer::saveANNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                        this->buildValidationMetadata());
+        }
+
+        if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && lastCallbackEpoch > 0) {
+          char histLine[256];
+          int written = snprintf(histLine, sizeof(histLine), "Epoch %lu: Loss %.6f",
+                                 static_cast<unsigned long>(lastCallbackEpoch), static_cast<double>(lastEpochLoss));
+
+          if (hasValLoss)
+            snprintf(histLine + written, sizeof(histLine) - static_cast<size_t>(written), "  Val: %.6f",
+                     static_cast<double>(valLoss));
+
+          if (isBest || progress.isNewBest)
+            snprintf(histLine + strlen(histLine), sizeof(histLine) - strlen(histLine), " [best]");
+
+          if (!checkpointPath.empty())
+            snprintf(histLine + strlen(histLine), sizeof(histLine) - strlen(histLine), " (checkpoint)");
+
+          tui->addEpochLine(histLine);
+        }
+
+        if (monitorShouldStop) {
+          if (tui && tui->isInitialized())
+            tui->addEpochLine("[Monitor] Training stopped: " + trainingMonitor->stopReason());
+
+          this->core->requestStop();
+        }
+
+        if (progress.stoppedEarly) {
+          if (tui && tui->isInitialized())
+            tui->addEpochLine("[Monitor] Training stopped: " + this->core->getTrainingMetadata().stopReason);
+
+          this->core->requestStop();
+        }
 
         lastCallbackEpoch = progress.currentEpoch;
       }
 
-      // Progress bar update inside mutex to prevent overwriting validation output
       if (this->logLevel > LogLevel::QUIET) {
         ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
                           progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
-        progressBar.update(info);
+
+        if (tui && tui->isInitialized()) {
+          std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+          progressBar.update(info, tui->progressWindow());
+          tui->refresh();
+        } else {
+          progressBar.update(info);
+        }
       }
     } // lock_guard released
 
@@ -602,6 +617,11 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
 int ANNRunner::finishTraining(const QString& inputFilePath)
 {
+  if (this->tui) {
+    this->tui->shutdown();
+    this->tui.reset();
+  }
+
   if (this->logLevel > LogLevel::QUIET)
     std::cout << "\nTraining completed.\n";
 

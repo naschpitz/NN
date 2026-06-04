@@ -6,6 +6,7 @@
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
+#include "NN-CLI_TerminalUI.hpp"
 #include "NN-CLI_TrainingProfiler.hpp"
 
 #include <CNN_Core.hpp>
@@ -70,6 +71,9 @@ namespace NN_CLI
 
       //-- Per-phase timing profiler (fed by CNN's timing callback) --//
       TrainingProfiler profiler;
+
+      //-- ncurses terminal UI (only active during training) --//
+      std::shared_ptr<TerminalUI> tui;
   };
 
 } // namespace NN_CLI
