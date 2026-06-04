@@ -56,8 +56,9 @@ namespace NN_CLI
 
     private:
       void layout();
-      void drawPanelFrame(int y, int h, const char* title);
+      void drawPanelFrame(int y, int h, const char* title, int titleColor = 2);
       void drawAllPanels();
+      bool handleScrollInput(int ch);
 
       WINDOW* progressWin_ = nullptr;
 
@@ -75,6 +76,10 @@ namespace NN_CLI
       int epochsH_ = 0;
 
       int configScroll_ = 0;
+
+      bool epochsActive_ = false;
+      int epochScroll_ = 0;
+      bool epochsAutoScroll_ = true;
 
       std::recursive_mutex mutex_;
 
