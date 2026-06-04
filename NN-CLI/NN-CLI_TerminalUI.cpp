@@ -330,10 +330,62 @@ namespace NN_CLI
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
-    if (this->progressWin_)
+    if (this->progressWin_) {
+      touchwin(this->progressWin_);
       wnoutrefresh(this->progressWin_);
+    }
 
     doupdate();
+
+    // Non-blocking input check for config scroll
+    int ch = getch();
+
+    if (ch != ERR && ch != KEY_RESIZE) {
+      int contentH = this->configH_ - 2;
+      int maxScroll = std::max(0, static_cast<int>(this->configLines_.size()) - contentH);
+      bool scrolled = false;
+
+      switch (ch) {
+      case KEY_UP:
+      case 'k':
+        this->configScroll_ = std::max(0, this->configScroll_ - 1);
+        scrolled = true;
+        break;
+      case KEY_DOWN:
+      case 'j':
+        this->configScroll_ = std::min(maxScroll, this->configScroll_ + 1);
+        scrolled = true;
+        break;
+      case KEY_PPAGE:
+        this->configScroll_ = std::max(0, this->configScroll_ - contentH);
+        scrolled = true;
+        break;
+      case KEY_NPAGE:
+        this->configScroll_ = std::min(maxScroll, this->configScroll_ + contentH);
+        scrolled = true;
+        break;
+      case KEY_HOME:
+        this->configScroll_ = 0;
+        scrolled = true;
+        break;
+      case KEY_END:
+        this->configScroll_ = maxScroll;
+        scrolled = true;
+        break;
+      }
+
+      if (scrolled) {
+        this->drawAllPanels();
+        wnoutrefresh(stdscr);
+
+        if (this->progressWin_) {
+          touchwin(this->progressWin_);
+          wnoutrefresh(this->progressWin_);
+        }
+
+        doupdate();
+      }
+    }
   }
 
   //===================================================================================================================//
