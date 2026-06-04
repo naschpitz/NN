@@ -3,26 +3,36 @@
 
 #include <cmath>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <vector>
 
 namespace NN_CLI
 {
 
-  //===================================================================================================================//
-
   void LossReferenceTable::print(ulong numClasses)
   {
+    auto lines = collect(numClasses);
+
+    for (const auto& l : lines) {
+      if (!l.empty())
+        std::cout << l << "\n";
+      else
+        std::cout << "\n";
+    }
+  }
+
+  std::vector<std::string> LossReferenceTable::collect(ulong numClasses)
+  {
     if (numClasses < 2)
-      return;
+      return {};
 
     float randomConfidence = 1.0f / static_cast<float>(numClasses);
 
-    // Fixed reference points: confidence → interpretation
     struct RefPoint {
         float confidence;
         std::string interpretation;
-        bool isRandom; // true = computed from numClasses
+        bool isRandom;
     };
 
     std::vector<RefPoint> points = {
@@ -36,7 +46,6 @@ namespace NN_CLI
       {0.01f, "Extremely wrong", false},
     };
 
-    // Remove duplicates: if random confidence matches a fixed point (e.g., 2 classes → 50% = coin flip)
     std::vector<RefPoint> filtered;
 
     for (const auto& p : points) {
@@ -44,14 +53,13 @@ namespace NN_CLI
 
       if (!p.isRandom) {
         if (std::fabs(p.confidence - randomConfidence) < 0.01f)
-          duplicate = true; // Skip fixed point that overlaps with random
+          duplicate = true;
       }
 
       if (!duplicate)
         filtered.push_back(p);
     }
 
-    // Build rows
     std::vector<SummaryRow> rows;
 
     for (const auto& p : filtered) {
@@ -67,7 +75,7 @@ namespace NN_CLI
     }
 
     std::string title = "Loss Reference (" + std::to_string(numClasses) + " classes)";
-    SummaryTable::print(title, rows);
+    return SummaryTable::collect(title, rows);
   }
 
 } // namespace NN_CLI

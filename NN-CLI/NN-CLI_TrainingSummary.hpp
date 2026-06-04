@@ -17,7 +17,6 @@ namespace NN_CLI
   class TrainingSummary
   {
     public:
-      // Print a formatted training configuration table to stdout.
       static void printCNN(const CNN::CoreConfig<float>& cnnConfig, const AugmentationConfig& augConfig,
                            ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
                            float validationRatio, bool validationAuto);
@@ -26,7 +25,17 @@ namespace NN_CLI
                            ulong numOriginalTrainSamples, ulong numTrainSamples, ulong numValidationSamples,
                            float validationRatio, bool validationAuto);
 
-      // Count total trainable parameters from config (no model instantiation needed).
+      // Return table lines without printing (for ncurses rendering).
+      static std::vector<std::string> collectCNN(const CNN::CoreConfig<float>& cnnConfig,
+                                                 const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
+                                                 ulong numTrainSamples, ulong numValidationSamples,
+                                                 float validationRatio, bool validationAuto);
+
+      static std::vector<std::string> collectANN(const ANN::CoreConfig<float>& annConfig,
+                                                 const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
+                                                 ulong numTrainSamples, ulong numValidationSamples,
+                                                 float validationRatio, bool validationAuto);
+
       static ulong countCNNParameters(const CNN::CoreConfig<float>& config);
   };
 

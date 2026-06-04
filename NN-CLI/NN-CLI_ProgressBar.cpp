@@ -2,13 +2,13 @@
 
 #include <algorithm>
 #include <chrono>
+#include <curses.h>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 
 namespace
 {
-  // Format a duration in seconds as "m:ss" (or "h:mm:ss" past an hour).
   std::string formatEta(double seconds)
   {
     if (seconds < 0.0)
@@ -33,24 +33,18 @@ namespace
 namespace NN_CLI
 {
 
-  //===================================================================================================================//
-  //-- Constructor --//
-  //===================================================================================================================//
-
   ProgressBar::ProgressBar(ulong progressReports, int barWidth) : progressReports(progressReports), barWidth(barWidth)
   {
   }
 
   //===================================================================================================================//
-  //-- Public Interface --//
-  //===================================================================================================================//
 
-  void ProgressBar::update(const ProgressInfo& progress)
+  void ProgressBar::update(const ProgressInfo& progress, WINDOW* win)
   {
     bool isEpochComplete = (progress.epochLoss > 0);
     bool isMultiGPU = (progress.totalGPUs > 1);
 
-    // Reset the per-epoch throughput timer and running loss when a new epoch begins.
+    // Reset per-epoch timer / loss when a new epoch begins.
     if (!isEpochComplete && this->timerEpoch != progress.currentEpoch) {
       this->timerEpoch = progress.currentEpoch;
       this->epochStartTime = std::chrono::steady_clock::now();
@@ -62,79 +56,148 @@ namespace NN_CLI
     if (progress.gpuIndex >= 0 && this->currentEpoch != progress.currentEpoch) {
       this->resetGpuState(progress.totalGPUs, progress.currentEpoch);
 
-      // Render 0% bar so the user sees progress start immediately
-      std::ostringstream out;
-      out << "\r\033[KEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
+      if (!win) {
+        std::ostringstream out;
+        out << "\r\033[KEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
 
-      if (isMultiGPU) {
-        std::vector<float> zeroProg(progress.totalGPUs, 0.0f);
-        this->renderMultiGpuBar(out, zeroProg, progress.totalGPUs);
+        if (isMultiGPU) {
+          std::vector<float> zeroProg(progress.totalGPUs, 0.0f);
+          this->renderMultiGpuBar(out, zeroProg, progress.totalGPUs);
+        } else {
+          this->renderSingleBar(out, 0.0f);
+        }
+
+        out << " - Loss: " << std::fixed << std::setprecision(6) << 0.0f << "   ";
+        std::cout << out.str() << std::flush;
       } else {
-        this->renderSingleBar(out, 0.0f);
-      }
+        // ncurses: render 0% bar into the window (2-line window now)
+        ::werase(win);
 
-      out << " - Loss: " << std::fixed << std::setprecision(6) << 0.0f << "   ";
-      std::cout << out.str() << std::flush;
+        std::ostringstream header;
+        header << "Epoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
+        ::waddstr(win, header.str().c_str());
+
+        int cols0 = ::getmaxx(win);
+        int labelLen = 17;
+        int pctLen = 8;
+        int gpuInfoLen = 0;
+
+        if (isMultiGPU) {
+          gpuInfoLen = 9 * progress.totalGPUs - 1;
+        }
+
+        int overhead = labelLen + pctLen + gpuInfoLen;
+        int bw = std::max(10, cols0 - overhead);
+
+        if (isMultiGPU) {
+          std::vector<float> zeroProg(progress.totalGPUs, 0.0f);
+          this->renderNcursesMultiBar(win, zeroProg, progress.totalGPUs, bw);
+          ::waddstr(win, "]   0.0%");
+
+          if (gpuInfoLen > 0 && bw + overhead <= cols0) {
+            std::ostringstream gpuInfo;
+            gpuInfo << " (";
+
+            for (int g = 0; g < progress.totalGPUs; g++) {
+              gpuInfo << g << ":  0%";
+
+              if (g < progress.totalGPUs - 1)
+                gpuInfo << " | ";
+            }
+
+            gpuInfo << ")";
+            ::waddstr(win, gpuInfo.str().c_str());
+          }
+        } else {
+          this->renderNcursesBar(win, 0.0f, bw);
+          ::waddstr(win, "]   0.0%");
+        }
+
+        ::wmove(win, 1, 0);
+        ::waddstr(win, "Loss: 0.000000                                        ");
+        ::wnoutrefresh(win);
+      }
     }
 
     // For multi-GPU, update per-GPU progress
     if (isMultiGPU && progress.gpuIndex >= 0) {
-      // currentSample is the cumulative number of samples this GPU has processed in this epoch
       ulong samplesPerGPU = progress.totalSamples / progress.totalGPUs;
       float gpuPercent = static_cast<float>(progress.currentSample) / samplesPerGPU;
       gpuPercent = std::min(1.0f, std::max(0.0f, gpuPercent));
-
       this->updateGpuProgress(progress.gpuIndex, gpuPercent);
     }
 
-    // Accumulate running loss for smoothed display (per-sample callbacks carry sampleLoss)
+    // Accumulate running loss
     if (!isEpochComplete) {
       this->runningLossSum += static_cast<double>(progress.sampleLoss);
       this->runningLossCount++;
     }
 
-    // Throttle output based on progressReports
+    // Throttle output
     if (!isEpochComplete && this->progressReports > 0) {
       ulong interval = std::max(static_cast<ulong>(1), progress.totalSamples / this->progressReports);
 
-      if (progress.currentSample % interval != 0 && progress.currentSample != progress.totalSamples) {
+      if (progress.currentSample % interval != 0 && progress.currentSample != progress.totalSamples)
         return;
-      }
     } else if (!isEpochComplete && this->progressReports == 0) {
-      return; // Suppress all sample progress output
+      return;
     }
 
-    // Build output — \r\033[K clears the line including trailing chars from a
-    // previous, longer render before we write the new contents.
-    std::ostringstream out;
-    out << "\r\033[KEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
+    // Compute common values
+    double runningAvg = this->runningLossCount > 0 ? this->runningLossSum / this->runningLossCount : 0.0;
 
-    if (isMultiGPU && !isEpochComplete) {
+    double fractionDone;
+
+    if (isMultiGPU) {
       std::vector<float> gpuProg = this->getGpuProgress();
-      this->renderMultiGpuBar(out, gpuProg, progress.totalGPUs);
+      double sum = 0.0;
+
+      for (float p : gpuProg)
+        sum += p;
+
+      fractionDone = gpuProg.empty() ? 0.0 : sum / static_cast<double>(gpuProg.size());
     } else {
-      float samplePercent = static_cast<float>(progress.currentSample) / progress.totalSamples;
-      this->renderSingleBar(out, samplePercent);
+      fractionDone =
+        (progress.totalSamples > 0) ? static_cast<double>(progress.currentSample) / progress.totalSamples : 0.0;
     }
 
-    // Show loss and learning rate information
-    if (isEpochComplete) {
-      out << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss;
+    double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - this->epochStartTime).count();
+    double samplesDone = fractionDone * static_cast<double>(progress.totalSamples);
+    double rate = (elapsed > 0.0) ? samplesDone / elapsed : 0.0;
+    double eta = (rate > 0.0) ? (static_cast<double>(progress.totalSamples) - samplesDone) / rate : 0.0;
 
-      // \r\033[K above already cleared any leftover from the longer in-progress line,
-      // so no padding is needed. Only commit the line ourselves when the caller is not
-      // going to append to it (e.g. a validation loss) and close it itself.
-      if (!this->holdEpochLine)
-        out << std::endl;
-    } else {
-      double runningAvg = this->runningLossCount > 0 ? this->runningLossSum / this->runningLossCount : 0.0;
-      out << " - Loss: " << std::fixed << std::setprecision(6) << runningAvg;
+    if (win) {
+      //--- ncurses rendering ---//
+      ::werase(win);
 
-      // Per-epoch throughput (images/second) and ETA. For multi-GPU, base it on the
-      // average per-GPU progress so the rate reflects total throughput.
-      double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - this->epochStartTime).count();
+      int cols = ::getmaxx(win);
 
-      double fractionDone;
+      int labelLen = 17;
+      int pctLen = 8;
+      int gpuInfoLen = 0;
+
+      if (isMultiGPU && !isEpochComplete) {
+        gpuInfoLen = 9 * progress.totalGPUs - 1;
+      }
+
+      int overhead = labelLen + pctLen + gpuInfoLen;
+      int effBarWidth = std::max(10, cols - overhead);
+
+      // Line 0: epoch + progress bar [+ per-GPU percentages inline]
+      std::ostringstream header;
+      header << "Epoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
+      ::waddstr(win, header.str().c_str());
+
+      if (isMultiGPU && !isEpochComplete) {
+        std::vector<float> gpuProg = this->getGpuProgress();
+        this->renderNcursesMultiBar(win, gpuProg, progress.totalGPUs, effBarWidth);
+      } else {
+        float samplePercent =
+          isEpochComplete ? 1.0f : static_cast<float>(progress.currentSample) / progress.totalSamples;
+        this->renderNcursesBar(win, samplePercent, effBarWidth);
+      }
+
+      float displayPct;
 
       if (isMultiGPU) {
         std::vector<float> gpuProg = this->getGpuProgress();
@@ -143,20 +206,77 @@ namespace NN_CLI
         for (float p : gpuProg)
           sum += p;
 
-        fractionDone = gpuProg.empty() ? 0.0 : sum / static_cast<double>(gpuProg.size());
+        displayPct = gpuProg.empty() ? 0.0f : static_cast<float>(sum / gpuProg.size()) * 100.0f;
       } else {
-        fractionDone =
-          (progress.totalSamples > 0) ? static_cast<double>(progress.currentSample) / progress.totalSamples : 0.0;
+        displayPct =
+          isEpochComplete ? 100.0f : static_cast<float>(progress.currentSample) / progress.totalSamples * 100.0f;
       }
 
-      double samplesDone = fractionDone * static_cast<double>(progress.totalSamples);
-      double rate = (elapsed > 0.0) ? samplesDone / elapsed : 0.0;
-      double eta = (rate > 0.0) ? (static_cast<double>(progress.totalSamples) - samplesDone) / rate : 0.0;
+      char pctBuf[16];
+      snprintf(pctBuf, sizeof(pctBuf), "] %5.1f%%", static_cast<double>(displayPct));
+      ::waddstr(win, pctBuf);
 
-      out << " - " << std::setw(6) << static_cast<long>(rate) << " img/s - ETA " << formatEta(eta) << "   ";
+      if (isMultiGPU && !isEpochComplete && gpuInfoLen > 0 && effBarWidth + overhead <= cols) {
+        std::vector<float> gpuProg = this->getGpuProgress();
+        std::ostringstream gpuInfo;
+        gpuInfo << " (";
+
+        for (int g = 0; g < static_cast<int>(gpuProg.size()); g++) {
+          gpuInfo << g << ":" << std::setw(3) << static_cast<int>(gpuProg[g] * 100) << "%";
+
+          if (g < static_cast<int>(gpuProg.size()) - 1)
+            gpuInfo << " | ";
+        }
+
+        gpuInfo << ")";
+        ::waddstr(win, gpuInfo.str().c_str());
+      }
+
+      // Line 1: loss, img/s, ETA
+      if (isEpochComplete) {
+        ::wmove(win, 1, 0);
+        ::wattron(win, COLOR_PAIR(6));
+        char lossBuf[64];
+        snprintf(lossBuf, sizeof(lossBuf), "Loss: %.6f ", static_cast<double>(progress.epochLoss));
+        ::waddstr(win, lossBuf);
+        ::wattroff(win, COLOR_PAIR(6));
+      } else {
+        ::wmove(win, 1, 0);
+
+        char statsBuf[128];
+        snprintf(statsBuf, sizeof(statsBuf), "Loss: %.6f  %6ld img/s  ETA %s   ", static_cast<double>(runningAvg),
+                 static_cast<long>(rate), formatEta(eta).c_str());
+        ::waddstr(win, statsBuf);
+      }
+
+      // Line 2: reserved for status messages (validation progress, etc.)
+      ::wnoutrefresh(win);
+    } else {
+      //--- std::cout rendering (legacy path) ---//
+      std::ostringstream out;
+      out << "\r\033[KEpoch " << std::setw(4) << progress.currentEpoch << "/" << progress.totalEpochs << " [";
+
+      if (isMultiGPU && !isEpochComplete) {
+        std::vector<float> gpuProg = this->getGpuProgress();
+        this->renderMultiGpuBar(out, gpuProg, progress.totalGPUs);
+      } else {
+        float samplePercent =
+          isEpochComplete ? 1.0f : static_cast<float>(progress.currentSample) / progress.totalSamples;
+        this->renderSingleBar(out, samplePercent);
+      }
+
+      if (isEpochComplete) {
+        out << " - Loss: " << std::fixed << std::setprecision(6) << progress.epochLoss;
+
+        if (!this->holdEpochLine)
+          out << std::endl;
+      } else {
+        out << " - Loss: " << std::fixed << std::setprecision(6) << runningAvg;
+        out << " - " << std::setw(6) << static_cast<long>(rate) << " img/s - ETA " << formatEta(eta) << "   ";
+      }
+
+      std::cout << out.str() << std::flush;
     }
-
-    std::cout << out.str() << std::flush;
   }
 
   void ProgressBar::reset()
@@ -171,23 +291,17 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- Loading Progress --//
-  //===================================================================================================================//
 
   void ProgressBar::printLoadingProgress(const std::string& label, size_t current, size_t total, ulong progressReports,
                                          int barWidth)
   {
-    // Compute reporting interval from progressReports (number of reports desired)
     ulong interval = (progressReports > 0) ? std::max(static_cast<size_t>(1), total / progressReports) : 0;
 
-    // If progressReports is 0, suppress all output
     if (interval == 0)
       return;
 
-    // Throttle: only print at first (0 and 1), last, and every interval items
-    if (current > 1 && current != total && (current % interval) != 0) {
+    if (current > 1 && current != total && (current % interval) != 0)
       return;
-    }
 
     float percent = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
     int filledWidth = static_cast<int>(percent * barWidth);
@@ -195,25 +309,131 @@ namespace NN_CLI
     std::ostringstream out;
     out << "\r" << label << " [";
 
-    for (int i = 0; i < barWidth; i++) {
+    for (int i = 0; i < barWidth; i++)
       out << (i < filledWidth ? "█" : "░");
-    }
 
     out << "] " << current << "/" << total << "  " << std::fixed << std::setprecision(1) << (percent * 100.0f) << "%";
-
-    // Pad with spaces to clear any leftover characters from previous longer lines
     out << "   ";
 
     std::cout << out.str() << std::flush;
 
-    // Print newline when complete
-    if (current == total) {
+    if (current == total)
       std::cout << std::endl;
-    }
+  }
+
+  void ProgressBar::writeStatus(WINDOW* win, const std::string& msg)
+  {
+    if (!win)
+      return;
+
+    ::wmove(win, 2, 0);
+    ::wclrtoeol(win);
+    ::wattron(win, COLOR_PAIR(3));
+    ::waddstr(win, msg.c_str());
+    ::wattroff(win, COLOR_PAIR(3));
+    ::wnoutrefresh(win);
+    ::doupdate();
+  }
+
+  void ProgressBar::clearStatus(WINDOW* win)
+  {
+    if (!win)
+      return;
+
+    ::wmove(win, 2, 0);
+    ::wclrtoeol(win);
+    ::wnoutrefresh(win);
+    ::doupdate();
+  }
+
+  void ProgressBar::writeProgressBar(WINDOW* win, const char* label, float pct, int barWidth)
+  {
+    if (!win)
+      return;
+
+    ::wmove(win, 2, 0);
+    ::wclrtoeol(win);
+
+    ::wattron(win, COLOR_PAIR(3));
+    ::waddstr(win, label);
+    ::waddstr(win, " [");
+    ::wattroff(win, COLOR_PAIR(3));
+
+    int filled = static_cast<int>(pct / 100.0f * barWidth);
+
+    if (filled > barWidth)
+      filled = barWidth;
+
+    if (filled < 0)
+      filled = 0;
+
+    ::wattron(win, COLOR_PAIR(1));
+
+    for (int i = 0; i < filled; i++)
+      ::waddstr(win, "█");
+    ::wattroff(win, COLOR_PAIR(1));
+
+    for (int i = filled; i < barWidth; i++)
+      ::waddstr(win, "░");
+
+    ::wattron(win, COLOR_PAIR(3));
+    char pctBuf[16];
+    snprintf(pctBuf, sizeof(pctBuf), "] %5.1f%%", static_cast<double>(pct));
+    ::waddstr(win, pctBuf);
+    ::wattroff(win, COLOR_PAIR(3));
+
+    ::wnoutrefresh(win);
+    ::doupdate();
+  }
+
+  void ProgressBar::renderValidationBar(WINDOW* win, float pct)
+  {
+    if (!win)
+      return;
+
+    int cols = ::getmaxx(win);
+    int barWidth = std::max(10, cols - 24); // label + brackets + pct ≈ 24 chars
+
+    ::wmove(win, 0, 0);
+    ::wclrtoeol(win);
+
+    ::wattron(win, COLOR_PAIR(3));
+    ::waddstr(win, "Validating [");
+    ::wattroff(win, COLOR_PAIR(3));
+
+    int filled = static_cast<int>(pct / 100.0f * barWidth);
+
+    if (filled > barWidth)
+      filled = barWidth;
+
+    if (filled < 0)
+      filled = 0;
+
+    ::wattron(win, COLOR_PAIR(1));
+
+    for (int i = 0; i < filled; i++)
+      ::waddstr(win, "█");
+    ::wattroff(win, COLOR_PAIR(1));
+
+    for (int i = filled; i < barWidth; i++)
+      ::waddstr(win, "░");
+
+    ::wattron(win, COLOR_PAIR(3));
+    char pctBuf[16];
+    snprintf(pctBuf, sizeof(pctBuf), "] %5.1f%%", static_cast<double>(pct));
+    ::waddstr(win, pctBuf);
+    ::wattroff(win, COLOR_PAIR(3));
+
+    // Clear line 1 (epoch stats) during validation
+    ::wmove(win, 1, 0);
+    ::wclrtoeol(win);
+
+    ::wnoutrefresh(win);
+    ::doupdate();
   }
 
   //===================================================================================================================//
-  //-- GPU State Management --//
+  //-- GPU State --//
   //===================================================================================================================//
 
   void ProgressBar::resetGpuState(int numGPUs, ulong epoch)
@@ -228,9 +448,8 @@ namespace NN_CLI
   {
     std::lock_guard<std::mutex> lock(this->mutex);
 
-    if (gpuIndex >= 0 && gpuIndex < static_cast<int>(this->gpuProgress.size())) {
+    if (gpuIndex >= 0 && gpuIndex < static_cast<int>(this->gpuProgress.size()))
       this->gpuProgress[gpuIndex] = percent;
-    }
   }
 
   std::vector<float> ProgressBar::getGpuProgress()
@@ -240,16 +459,15 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- Rendering --//
+  //-- std::cout Rendering --//
   //===================================================================================================================//
 
   void ProgressBar::renderSingleBar(std::ostream& out, float percent)
   {
     int filledWidth = static_cast<int>(percent * this->barWidth);
 
-    for (int i = 0; i < this->barWidth; i++) {
+    for (int i = 0; i < this->barWidth; i++)
       out << (i < filledWidth ? "█" : "░");
-    }
 
     out << "] " << std::fixed << std::setprecision(1) << std::setw(5) << (percent * 100) << "%";
   }
@@ -262,41 +480,64 @@ namespace NN_CLI
       float gpuPercent = (gpu < static_cast<int>(gpuProg.size())) ? gpuProg[gpu] : 0.0f;
       int filledWidth = static_cast<int>(gpuPercent * segmentWidth);
 
-      for (int i = 0; i < segmentWidth; i++) {
+      for (int i = 0; i < segmentWidth; i++)
         out << (i < filledWidth ? "█" : "░");
-      }
 
-      // Add separator between GPU segments (except after last)
-      if (gpu < numGPUs - 1) {
+      if (gpu < numGPUs - 1)
         out << "│";
-      }
     }
 
-    // Calculate average progress
     float totalPercent = 0.0f;
 
-    for (float p : gpuProg) {
+    for (float p : gpuProg)
       totalPercent += p;
-    }
 
-    if (numGPUs > 0) {
+    if (numGPUs > 0)
       totalPercent /= numGPUs;
-    }
 
-    out << "] " << std::fixed << std::setprecision(1) << std::setw(5) << (totalPercent * 100) << "% ";
+    out << "] " << std::fixed << std::setprecision(1) << std::setw(5) << (totalPercent * 100) << "% (";
+  }
 
-    // Show per-GPU percentages
-    out << "(";
+  //===================================================================================================================//
+  //-- ncurses Rendering --//
+  //===================================================================================================================//
+
+  void ProgressBar::renderNcursesBar(WINDOW* win, float percent, int barWidth)
+  {
+    int filledWidth = static_cast<int>(percent * barWidth);
+
+    ::wattron(win, COLOR_PAIR(1));
+
+    for (int i = 0; i < filledWidth; i++)
+      ::waddstr(win, "█");
+
+    ::wattroff(win, COLOR_PAIR(1));
+
+    for (int i = filledWidth; i < barWidth; i++)
+      ::waddstr(win, "░");
+  }
+
+  void ProgressBar::renderNcursesMultiBar(WINDOW* win, const std::vector<float>& gpuProg, int numGPUs, int barWidth)
+  {
+    int segmentWidth = barWidth / numGPUs;
 
     for (int gpu = 0; gpu < numGPUs; gpu++) {
       float gpuPercent = (gpu < static_cast<int>(gpuProg.size())) ? gpuProg[gpu] : 0.0f;
-      out << gpu << ":" << std::setw(3) << static_cast<int>(gpuPercent * 100) << "%";
+      int filledWidth = static_cast<int>(gpuPercent * segmentWidth);
+
+      ::wattron(win, COLOR_PAIR(1));
+
+      for (int i = 0; i < filledWidth; i++)
+        ::waddstr(win, "█");
+
+      ::wattroff(win, COLOR_PAIR(1));
+
+      for (int i = filledWidth; i < segmentWidth; i++)
+        ::waddstr(win, "░");
 
       if (gpu < numGPUs - 1)
-        out << " | ";
+        ::waddstr(win, "│");
     }
-
-    out << ")";
   }
 
 } // namespace NN_CLI
