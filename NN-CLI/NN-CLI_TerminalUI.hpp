@@ -1,6 +1,7 @@
 #ifndef NN_CLI_TERMINALUI_HPP
 #define NN_CLI_TERMINALUI_HPP
 
+#include <functional>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -59,6 +60,11 @@ namespace NN_CLI
       void refresh();
       void pollInput();
 
+      void setResizeCallback(std::function<void()> callback)
+      {
+        this->resizeCallback_ = std::move(callback);
+      }
+
       std::recursive_mutex& mutex()
       {
         return this->mutex_;
@@ -98,6 +104,8 @@ namespace NN_CLI
       bool epochsAutoScroll_ = true;
 
       std::recursive_mutex mutex_;
+      std::function<void()> resizeCallback_;
+      bool resized_ = false;
 
       std::vector<std::string> configLines_;
       std::vector<std::string> timingLines_;
