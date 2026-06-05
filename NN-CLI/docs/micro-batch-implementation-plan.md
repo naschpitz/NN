@@ -28,20 +28,28 @@ round-trips by a factor of 64.
 ./build_test/NN-CLI \
   --config examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json \
   --mode train \
-  --samples examples/ISIC-MILK10k/train-app-11/samples_test.json
+  --samples examples/ISIC-MILK10k/train-app-11/samples_test.json \
+  --output /tmp/output-test/trained.json
 ```
+
+The `--output` flag redirects the saved model to avoid overwriting the
+legitimate training output in `examples/.../output/`.
 
 For faster iteration, override epochs to 1 and use a small subset:
 
 ```bash
-sed 's/"numEpochs": 100/"numEpochs": 1/' .../isic_cnn_config.json > /tmp/test_1e.json
+sed 's/"numEpochs": 100/"numEpochs": 1/' \
+  examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json > /tmp/test_1e.json
+
 python3 -c "
 import json
-with open('.../samples_test.json') as f: d = json.load(f)
+with open('examples/ISIC-MILK10k/train-app-11/samples_test.json') as f: d = json.load(f)
 d['samples'] = d['samples'][:64]
 with open('/tmp/test_64s.json','w') as f: json.dump(d,f)
 "
-./build_test/NN-CLI --config /tmp/test_1e.json --mode train --samples /tmp/test_64s.json
+
+./build_test/NN-CLI --config /tmp/test_1e.json --mode train \
+  --samples /tmp/test_64s.json --output /tmp/output-test/trained.json
 ```
 
 ---
@@ -225,12 +233,16 @@ After implementation, compare img/s:
 
 ```bash
 # Baseline (current code)
-./build/NN-CLI --config .../app-11/isic_cnn_config.json --mode train \
-  --samples .../samples_test.json   # expect ~125 img/s
+./build/NN-CLI --config examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json \
+  --mode train --samples examples/ISIC-MILK10k/train-app-11/samples_test.json \
+  --output /tmp/output-test/trained.json
+# expect ~125 img/s
 
 # With microBatchSize=64
-./build_test/NN-CLI --config .../app-11/isic_cnn_config.json --mode train \
-  --samples .../samples_test.json   # target: measurable improvement from fewer core->run() calls
+./build_test/NN-CLI --config examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json \
+  --mode train --samples examples/ISIC-MILK10k/train-app-11/samples_test.json \
+  --output /tmp/output-test/trained.json
+# target: measurable improvement from fewer core->run() calls
 ```
 
 Use the GPU profiling instrumentation to compare:
