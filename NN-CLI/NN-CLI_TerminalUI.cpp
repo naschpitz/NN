@@ -115,6 +115,11 @@ namespace NN_CLI
       this->progressWin_ = nullptr;
     }
 
+    if (this->timingWin_) {
+      delwin(this->timingWin_);
+      this->timingWin_ = nullptr;
+    }
+
     endwin();
   }
 
@@ -133,8 +138,11 @@ namespace NN_CLI
     this->rows_ = getmaxy(stdscr);
     this->cols_ = getmaxx(stdscr);
 
-    if (this->rows_ < 16 || this->cols_ < 40)
+    if (this->rows_ < 16 || this->cols_ < 60)
       return;
+
+    this->timingWidth_ = std::max(35, this->cols_ * 35 / 100);
+    this->leftWidth_ = this->cols_ - this->timingWidth_;
 
     int screenRows = this->rows_ - 1;
     this->helpY_ = screenRows;
@@ -143,18 +151,16 @@ namespace NN_CLI
     int remaining = screenRows - this->trainingH_;
 
     this->configH_ = std::max(5, std::min(remaining - 10, remaining * 35 / 100));
-    this->timingH_ = std::max(5, std::min(remaining - this->configH_ - 3, 16));
-    this->epochsH_ = remaining - this->configH_ - this->timingH_;
+    this->epochsH_ = remaining - this->configH_;
 
     if (this->epochsH_ < 3) {
       this->epochsH_ = 3;
-      this->timingH_ = std::max(5, remaining - this->configH_ - this->epochsH_);
+      this->configH_ = std::max(5, remaining - this->epochsH_);
     }
 
     this->configY_ = 0;
     this->trainingY_ = this->configH_;
-    this->timingY_ = this->trainingY_ + this->trainingH_;
-    this->epochsY_ = this->timingY_ + this->timingH_;
+    this->epochsY_ = this->trainingY_ + this->trainingH_;
 
     if (this->progressWin_) {
       delwin(this->progressWin_);
@@ -166,8 +172,14 @@ namespace NN_CLI
       this->loadingWin_ = nullptr;
     }
 
-    this->loadingWin_ = newwin(1, this->cols_ - 2, this->trainingY_ + 1, 1);
-    this->progressWin_ = newwin(2, this->cols_ - 2, this->trainingY_ + 2, 1);
+    if (this->timingWin_) {
+      delwin(this->timingWin_);
+      this->timingWin_ = nullptr;
+    }
+
+    this->loadingWin_ = newwin(1, this->leftWidth_ - 2, this->trainingY_ + 1, 1);
+    this->progressWin_ = newwin(2, this->leftWidth_ - 2, this->trainingY_ + 2, 1);
+    this->timingWin_ = newwin(screenRows, this->timingWidth_, 0, this->leftWidth_);
   }
 
   //===================================================================================================================//
@@ -176,38 +188,43 @@ namespace NN_CLI
 
   void TerminalUI::drawPanelFrame(int y, int h, const char* title, int titleColor)
   {
+    this->drawPanelFrame(y, h, 0, this->cols_, title, titleColor);
+  }
+
+  void TerminalUI::drawPanelFrame(int y, int h, int x, int w, const char* title, int titleColor)
+  {
     if (y < 0 || y + h > this->rows_ || h < 2)
       return;
 
-    int w = this->cols_;
     int titleLen = static_cast<int>(std::strlen(title));
+    int endX = x + w - 1;
 
-    mvaddch(y, 0, ACS_ULCORNER);
+    mvaddch(y, x, ACS_ULCORNER);
 
     if (titleLen > 0 && 5 + titleLen + 2 < w) {
-      mvhline(y, 1, ACS_HLINE, 3);
-      mvaddstr(y, 4, " ");
+      mvhline(y, x + 1, ACS_HLINE, 3);
+      mvaddstr(y, x + 4, " ");
       attron(COLOR_PAIR(titleColor) | A_BOLD);
-      mvaddstr(y, 5, title);
+      mvaddstr(y, x + 5, title);
       attroff(COLOR_PAIR(titleColor) | A_BOLD);
       int after = 5 + titleLen;
-      mvaddstr(y, after, " ");
-      mvhline(y, after + 1, ACS_HLINE, w - after - 2);
+      mvaddstr(y, x + after, " ");
+      mvhline(y, x + after + 1, ACS_HLINE, endX - (x + after + 1));
     } else {
-      mvhline(y, 1, ACS_HLINE, w - 2);
+      mvhline(y, x + 1, ACS_HLINE, w - 2);
     }
 
-    mvaddch(y, w - 1, ACS_URCORNER);
+    mvaddch(y, endX, ACS_URCORNER);
 
     for (int r = 1; r < h - 1; r++) {
-      mvaddch(y + r, 0, ACS_VLINE);
-      mvhline(y + r, 1, ' ', w - 2);
-      mvaddch(y + r, w - 1, ACS_VLINE);
+      mvaddch(y + r, x, ACS_VLINE);
+      mvhline(y + r, x + 1, ' ', w - 2);
+      mvaddch(y + r, endX, ACS_VLINE);
     }
 
-    mvaddch(y + h - 1, 0, ACS_LLCORNER);
-    mvhline(y + h - 1, 1, ACS_HLINE, w - 2);
-    mvaddch(y + h - 1, w - 1, ACS_LRCORNER);
+    mvaddch(y + h - 1, x, ACS_LLCORNER);
+    mvhline(y + h - 1, x + 1, ACS_HLINE, w - 2);
+    mvaddch(y + h - 1, endX, ACS_LRCORNER);
   }
 
   //===================================================================================================================//
@@ -219,12 +236,14 @@ namespace NN_CLI
     erase();
 
     int contentH = 0;
-    int maxW = this->cols_ - 4;
-    int cfgColor = this->epochsActive_ ? 2 : 3;
-    int epColor = this->epochsActive_ ? 3 : 2;
+    int maxW = this->leftWidth_ - 4;
 
-    //--- Config panel ---//
-    this->drawPanelFrame(this->configY_, this->configH_, "Config", cfgColor);
+    int cfgColor = (this->activePanel_ == 0) ? 3 : 2;
+    int epColor = (this->activePanel_ == 1) ? 3 : 2;
+    int timColor = (this->activePanel_ == 2) ? 3 : 2;
+
+    //-- Left column: Config panel --//
+    this->drawPanelFrame(this->configY_, this->configH_, 0, this->leftWidth_, "Config", cfgColor);
     contentH = this->configH_ - 2;
 
     for (int i = 0; i < contentH; i++) {
@@ -239,11 +258,10 @@ namespace NN_CLI
       }
     }
 
-    // Scroll indicator for config
     if (static_cast<int>(this->configLines_.size()) > contentH) {
-      int indicatorCol = this->cols_ - 2;
-      int scrollFrac =
-        this->configScroll_ * (contentH - 1) / std::max(1, static_cast<int>(this->configLines_.size()) - contentH);
+      int indicatorCol = this->leftWidth_ - 2;
+      int totalCfg = static_cast<int>(this->configLines_.size());
+      int scrollFrac = this->configScroll_ * (contentH - 1) / std::max(1, totalCfg - contentH);
 
       for (int i = 0; i < contentH; i++) {
         if (i == scrollFrac)
@@ -253,23 +271,11 @@ namespace NN_CLI
       }
     }
 
-    //--- Training panel (border only; content drawn by ProgressBar into progressWin_) ---//
-    this->drawPanelFrame(this->trainingY_, this->trainingH_, "Training", 2);
+    //-- Left column: Training panel --//
+    this->drawPanelFrame(this->trainingY_, this->trainingH_, 0, this->leftWidth_, "Training", 2);
 
-    //--- Timing panel ---//
-    this->drawPanelFrame(this->timingY_, this->timingH_, "Timing", 2);
-    contentH = this->timingH_ - 2;
-
-    for (int i = 0; i < contentH && i < static_cast<int>(this->timingLines_.size()); i++) {
-      const std::string& line = this->timingLines_[i];
-      int printLen = std::min(static_cast<int>(line.size()), maxW);
-
-      if (printLen > 0)
-        mvaddnstr(this->timingY_ + 1 + i, 2, line.c_str(), printLen);
-    }
-
-    //--- Epochs panel ---//
-    this->drawPanelFrame(this->epochsY_, this->epochsH_, "Epochs", epColor);
+    //-- Left column: Epochs panel --//
+    this->drawPanelFrame(this->epochsY_, this->epochsH_, 0, this->leftWidth_, "Epochs", epColor);
     contentH = this->epochsH_ - 2;
     int totalLines = static_cast<int>(this->epochLines_.size());
     int maxScroll = std::max(0, totalLines - contentH);
@@ -292,9 +298,8 @@ namespace NN_CLI
         mvaddnstr(this->epochsY_ + 1 + i, 2, line.c_str(), printLen);
     }
 
-    // Scroll indicator for epochs
     if (totalLines > contentH) {
-      int indicatorCol = this->cols_ - 2;
+      int indicatorCol = this->leftWidth_ - 2;
       int scrollFrac = start * (contentH - 1) / std::max(1, maxScroll);
 
       for (int i = 0; i < contentH; i++) {
@@ -305,13 +310,52 @@ namespace NN_CLI
       }
     }
 
-    //--- Help bar ---//
+    //-- Right column: Timing panel (full-height) --//
+    if (this->timingWin_) {
+      int timingH = this->helpY_;
+      int timingX = this->leftWidth_;
+
+      this->drawPanelFrame(0, timingH, timingX, this->timingWidth_, "Timing", timColor);
+      contentH = timingH - 2;
+      int timingMaxW = this->timingWidth_ - 4;
+      int timingTotal = static_cast<int>(this->timingLines_.size());
+      int timingMaxScroll = std::max(0, timingTotal - contentH);
+      int timingStart = this->timingScroll_;
+
+      if (timingStart < 0)
+        timingStart = 0;
+
+      if (timingStart > timingMaxScroll)
+        timingStart = timingMaxScroll;
+
+      for (int i = 0; i < contentH && timingStart + i < timingTotal; i++) {
+        const std::string& line = this->timingLines_[timingStart + i];
+        int printLen = std::min(static_cast<int>(line.size()), timingMaxW);
+
+        if (printLen > 0)
+          mvaddnstr(1 + i, timingX + 2, line.c_str(), printLen);
+      }
+
+      if (timingTotal > contentH) {
+        int indicatorCol = this->cols_ - 2;
+        int scrollFrac = timingStart * (contentH - 1) / std::max(1, timingMaxScroll);
+
+        for (int i = 0; i < contentH; i++) {
+          if (i == scrollFrac)
+            mvaddch(1 + i, indicatorCol, ACS_CKBOARD);
+          else
+            mvaddch(1 + i, indicatorCol, ACS_VLINE);
+        }
+      }
+    }
+
+    //-- Help bar --//
     mvaddch(this->helpY_, 0, ACS_LLCORNER);
     mvhline(this->helpY_, 1, ACS_HLINE, this->cols_ - 2);
     mvaddch(this->helpY_, this->cols_ - 1, ACS_LRCORNER);
 
     attron(COLOR_PAIR(2) | A_BOLD);
-    mvaddstr(this->helpY_, 3, "Tab: switch panel  jk/arrows: scroll  PgUp/PgDn: page  Home/End: jump");
+    mvaddstr(this->helpY_, 3, "Tab: select panel  jk/arrows: scroll  PgUp/PgDn: page  Home/End: jump");
     attroff(COLOR_PAIR(2) | A_BOLD);
   }
 
@@ -337,6 +381,9 @@ namespace NN_CLI
 
     if (this->progressWin_)
       wnoutrefresh(this->progressWin_);
+
+    if (this->timingWin_)
+      wnoutrefresh(this->timingWin_);
 
     doupdate();
   }
@@ -364,6 +411,9 @@ namespace NN_CLI
     if (this->progressWin_)
       wnoutrefresh(this->progressWin_);
 
+    if (this->timingWin_)
+      wnoutrefresh(this->timingWin_);
+
     doupdate();
   }
 
@@ -379,6 +429,9 @@ namespace NN_CLI
 
     if (this->progressWin_)
       wnoutrefresh(this->progressWin_);
+
+    if (this->timingWin_)
+      wnoutrefresh(this->timingWin_);
 
     doupdate();
   }
@@ -401,6 +454,11 @@ namespace NN_CLI
       wnoutrefresh(this->progressWin_);
     }
 
+    if (this->timingWin_) {
+      touchwin(this->timingWin_);
+      wnoutrefresh(this->timingWin_);
+    }
+
     doupdate();
 
     int ch = getch();
@@ -417,6 +475,11 @@ namespace NN_CLI
       if (this->progressWin_) {
         touchwin(this->progressWin_);
         wnoutrefresh(this->progressWin_);
+      }
+
+      if (this->timingWin_) {
+        touchwin(this->timingWin_);
+        wnoutrefresh(this->timingWin_);
       }
 
       doupdate();
@@ -449,6 +512,9 @@ namespace NN_CLI
       if (this->progressWin_)
         wnoutrefresh(this->progressWin_);
 
+      if (this->timingWin_)
+        wnoutrefresh(this->timingWin_);
+
       doupdate();
     }
   }
@@ -457,11 +523,42 @@ namespace NN_CLI
   {
     switch (ch) {
     case '\t':
-      this->epochsActive_ = !this->epochsActive_;
+      this->activePanel_ = (this->activePanel_ + 1) % 3;
       return true;
     }
 
-    if (this->epochsActive_) {
+    switch (this->activePanel_) {
+    case 0: { // Config
+      int contentH = this->configH_ - 2;
+      int maxScroll = std::max(0, static_cast<int>(this->configLines_.size()) - contentH);
+
+      switch (ch) {
+      case KEY_UP:
+      case 'k':
+        this->configScroll_ = std::max(0, this->configScroll_ - 1);
+        return true;
+      case KEY_DOWN:
+      case 'j':
+        this->configScroll_ = std::min(maxScroll, this->configScroll_ + 1);
+        return true;
+      case KEY_PPAGE:
+        this->configScroll_ = std::max(0, this->configScroll_ - contentH);
+        return true;
+      case KEY_NPAGE:
+        this->configScroll_ = std::min(maxScroll, this->configScroll_ + contentH);
+        return true;
+      case KEY_HOME:
+        this->configScroll_ = 0;
+        return true;
+      case KEY_END:
+        this->configScroll_ = maxScroll;
+        return true;
+      }
+
+      break;
+    }
+
+    case 1: { // Epochs
       int contentH = this->epochsH_ - 2;
       int totalLines = static_cast<int>(this->epochLines_.size());
       int maxScroll = std::max(0, totalLines - contentH);
@@ -494,32 +591,40 @@ namespace NN_CLI
         this->epochsAutoScroll_ = false;
         return true;
       }
-    } else {
-      int contentH = this->configH_ - 2;
-      int maxScroll = std::max(0, static_cast<int>(this->configLines_.size()) - contentH);
+
+      break;
+    }
+
+    case 2: { // Timing
+      int contentH = this->helpY_ - 2;
+      int totalLines = static_cast<int>(this->timingLines_.size());
+      int maxScroll = std::max(0, totalLines - contentH);
 
       switch (ch) {
       case KEY_UP:
       case 'k':
-        this->configScroll_ = std::max(0, this->configScroll_ - 1);
+        this->timingScroll_ = std::max(0, this->timingScroll_ - 1);
         return true;
       case KEY_DOWN:
       case 'j':
-        this->configScroll_ = std::min(maxScroll, this->configScroll_ + 1);
+        this->timingScroll_ = std::min(maxScroll, this->timingScroll_ + 1);
         return true;
       case KEY_PPAGE:
-        this->configScroll_ = std::max(0, this->configScroll_ - contentH);
+        this->timingScroll_ = std::max(0, this->timingScroll_ - contentH);
         return true;
       case KEY_NPAGE:
-        this->configScroll_ = std::min(maxScroll, this->configScroll_ + contentH);
+        this->timingScroll_ = std::min(maxScroll, this->timingScroll_ + contentH);
         return true;
       case KEY_HOME:
-        this->configScroll_ = 0;
+        this->timingScroll_ = 0;
         return true;
       case KEY_END:
-        this->configScroll_ = maxScroll;
+        this->timingScroll_ = maxScroll;
         return true;
       }
+
+      break;
+    }
     }
 
     return false;
