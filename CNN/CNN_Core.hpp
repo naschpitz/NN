@@ -129,6 +129,11 @@ namespace CNN
         timingCallback = callback;
       }
 
+      void setGpuProfileCallback(GpuProfileCallback callback)
+      {
+        gpuProfileCallback = callback;
+      }
+
       // Request early training termination. The training loop checks this at epoch boundaries.
       void requestStop()
       {
@@ -184,6 +189,7 @@ namespace CNN
       TrainingCallback<T> trainingCallback;
       ProgressCallback progressCallback;
       TimingCallback timingCallback;
+      GpuProfileCallback gpuProfileCallback;
       std::atomic<bool> stopRequested{false};
 
       // Notify the consumer that a measurable phase begins/ends. Cheap no-op when unset.

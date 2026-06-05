@@ -31,6 +31,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const CoreGPUWorkerConfig<T>& workerConfig)
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
   this->core = this->ownedCore.get();
   this->core->setVerbose(this->workerConfig.logLevel >= CNN::LogLevel::DEBUG);
+  this->core->setProfiling(true);
 
   // Initialize conv parameters (He initialization if not loaded)
   Worker<T>::initializeConvParams(workerConfig.layersConfig, workerConfig.inputShape, this->parameters);
@@ -126,7 +127,8 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 
 template <typename T>
 T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                                const TrainingCallback<T>& callback, const TimingCallback& timingCallback, int gpuIndex)
+                                const TrainingCallback<T>& callback, const TimingCallback& timingCallback, int gpuIndex,
+                                const GpuProfileCallback& gpuProfileCallback)
 {
   ulong N = batchSamples.size();
   ulong sampleStride = this->bufferManager->totalActvSize;
@@ -182,8 +184,12 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
         this->bufferManager->annGPUWorker->bufferManager->generateAndUploadDropoutMask();
       emit(TimingPhase::H2DUpload, TimingEvent::End);
 
+      if (gpuProfileCallback)
+        this->core->resetProfilingResults();
+
       emit(TimingPhase::GpuCompute, TimingEvent::Begin);
       this->core->run();
+      this->collectGpuProfile(gpuProfileCallback, gpuIndex);
       emit(TimingPhase::GpuCompute, TimingEvent::End);
 
       if (callback) {
@@ -234,6 +240,9 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
 
     // BN path: forward and backward are separate run() blocks interleaved with tiny
     // async expected-output uploads; report the whole compute region as GpuCompute.
+    if (gpuProfileCallback)
+      this->core->resetProfilingResults();
+
     emit(TimingPhase::GpuCompute, TimingEvent::Begin);
 
     // ---- FORWARD PASS ----
@@ -383,6 +392,7 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
     this->kernelBuilder->addBatchNormRunningStatsUpdate(N);
     this->core->run();
 
+    this->collectGpuProfile(gpuProfileCallback, gpuIndex);
     emit(TimingPhase::GpuCompute, TimingEvent::End);
   }
 
@@ -391,6 +401,39 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
   this->core->template readBuffer<T>("accum_loss", lossVec, 0);
 
   return lossVec[0];
+}
+
+//===================================================================================================================//
+//-- GPU profiling collection --//
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int gpuIndex)
+{
+  if (!callback)
+    return;
+
+  std::vector<OpenCLWrapper::KernelTiming> timings = this->core->getKernelTimings();
+
+  if (timings.empty())
+    return;
+
+  std::map<TimingPhase, std::pair<double, ulong>> phaseAcc;
+
+  for (const auto& kt : timings) {
+    TimingPhase phase = Kernels::categorizeKernel(kt.kernelName);
+    phaseAcc[phase].first += kt.totalMs;
+    phaseAcc[phase].second += kt.callCount;
+  }
+
+  std::vector<GpuPhaseProfile> profiles;
+  profiles.reserve(phaseAcc.size());
+
+  for (const auto& pair : phaseAcc) {
+    profiles.push_back({pair.first, pair.second.first, pair.second.second});
+  }
+
+  callback(profiles, gpuIndex);
 }
 
 //===================================================================================================================//
