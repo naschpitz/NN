@@ -366,14 +366,12 @@ namespace NN_CLI
 
     ::werase(win);
 
-    ::wattron(win, COLOR_PAIR(3));
     ::waddstr(win, label);
 
     for (int i = 0; i < labelPad; i++)
       ::waddstr(win, " ");
 
     ::waddstr(win, " [");
-    ::wattroff(win, COLOR_PAIR(3));
 
     int filled = static_cast<int>(pct / 100.0f * barWidth);
 
@@ -392,11 +390,9 @@ namespace NN_CLI
     for (int i = filled; i < barWidth; i++)
       ::waddstr(win, "░");
 
-    ::wattron(win, COLOR_PAIR(3));
     char pctBuf[16];
     snprintf(pctBuf, sizeof(pctBuf), "] %5.1f%%", static_cast<double>(pct));
     ::waddstr(win, pctBuf);
-    ::wattroff(win, COLOR_PAIR(3));
 
     // Clear line 1 (epoch stats) during validation
     ::wmove(win, 1, 0);
@@ -436,14 +432,12 @@ namespace NN_CLI
 
     ::werase(win);
 
-    ::wattron(win, COLOR_PAIR(3));
     ::waddstr(win, rawLabel);
 
     for (int i = 0; i < labelPad; i++)
       ::waddstr(win, " ");
 
     ::waddstr(win, " [");
-    ::wattroff(win, COLOR_PAIR(3));
 
     int filled = static_cast<int>(pct * barWidth);
 
@@ -462,12 +456,10 @@ namespace NN_CLI
     for (int i = filled; i < barWidth; i++)
       ::waddstr(win, "░");
 
-    ::wattron(win, COLOR_PAIR(3));
     char buf[64];
     snprintf(buf, sizeof(buf), "] %lu/%lu  %5.1f%%", static_cast<unsigned long>(current),
              static_cast<unsigned long>(total), static_cast<double>(pct * 100.0));
     ::waddstr(win, buf);
-    ::wattroff(win, COLOR_PAIR(3));
 
     ::wnoutrefresh(win);
     ::doupdate();
