@@ -551,9 +551,11 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     this->profiler.onEvent(phase, event, gpuIndex);
   });
 
-  this->core->setGpuProfileCallback([this](const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex) {
-    this->profiler.onGpuProfile(profiles, gpuIndex);
-  });
+  if (this->parser.isSet("gpu-profile")) {
+    this->core->setGpuProfileCallback([this](const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex) {
+      this->profiler.onGpuProfile(profiles, gpuIndex);
+    });
+  }
 
   std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr;
 
