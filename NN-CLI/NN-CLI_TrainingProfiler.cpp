@@ -88,6 +88,24 @@ namespace NN_CLI
     this->lastRenderedLines = 0;
     this->lastRenderedBatchNumber = static_cast<ulong>(-1);
     this->numGpus = 1;
+
+    std::memset(this->stepGpuProfile, 0, sizeof(this->stepGpuProfile));
+    this->epochGpuProfileCnnFwd = 0.0;
+    this->epochGpuProfileAnnFwd = 0.0;
+    this->epochGpuProfileAnnBwd = 0.0;
+    this->epochGpuProfileCnnBwd = 0.0;
+    this->epochGpuProfileCnnAcc = 0.0;
+    this->epochGpuProfileAnnAcc = 0.0;
+    this->epochGpuProfileLoss = 0.0;
+    this->epochGpuProfileKernelCalls = 0;
+    this->totalGpuProfileCnnFwd = 0.0;
+    this->totalGpuProfileAnnFwd = 0.0;
+    this->totalGpuProfileAnnBwd = 0.0;
+    this->totalGpuProfileCnnBwd = 0.0;
+    this->totalGpuProfileCnnAcc = 0.0;
+    this->totalGpuProfileAnnAcc = 0.0;
+    this->totalGpuProfileLoss = 0.0;
+    this->totalGpuProfileKernelCalls = 0;
   }
 
   //===================================================================================================================//
@@ -129,11 +147,27 @@ namespace NN_CLI
     double h2dSum = 0.0;
     double computeSum = 0.0;
     ulong runs = 0;
+    double gpuProfileCnnFwdSum = 0.0;
+    double gpuProfileAnnFwdSum = 0.0;
+    double gpuProfileAnnBwdSum = 0.0;
+    double gpuProfileCnnBwdSum = 0.0;
+    double gpuProfileCnnAccSum = 0.0;
+    double gpuProfileAnnAccSum = 0.0;
+    double gpuProfileLossSum = 0.0;
+    ulong gpuProfileKernelCallsSum = 0;
 
     for (int g = 1; g <= this->numGpus && g < kMaxRows; g++) {
       h2dSum += this->stepMs[g][static_cast<int>(Phase::H2DUpload)];
       computeSum += this->stepMs[g][static_cast<int>(Phase::GpuCompute)];
       runs += this->stepRuns[g];
+      gpuProfileCnnFwdSum += this->stepGpuProfile[g].cnnFwd;
+      gpuProfileAnnFwdSum += this->stepGpuProfile[g].annFwd;
+      gpuProfileAnnBwdSum += this->stepGpuProfile[g].annBwd;
+      gpuProfileCnnBwdSum += this->stepGpuProfile[g].cnnBwd;
+      gpuProfileCnnAccSum += this->stepGpuProfile[g].cnnAcc;
+      gpuProfileAnnAccSum += this->stepGpuProfile[g].annAcc;
+      gpuProfileLossSum += this->stepGpuProfile[g].loss;
+      gpuProfileKernelCallsSum += this->stepGpuProfile[g].kernelCalls;
     }
 
     StepView view;
@@ -151,6 +185,14 @@ namespace NN_CLI
     view.runs = runs;
     view.batchNumber = this->stepCount;
     view.valid = true;
+    view.gpuProfileCnnFwd = gpuProfileCnnFwdSum;
+    view.gpuProfileAnnFwd = gpuProfileAnnFwdSum;
+    view.gpuProfileAnnBwd = gpuProfileAnnBwdSum;
+    view.gpuProfileCnnBwd = gpuProfileCnnBwdSum;
+    view.gpuProfileCnnAcc = gpuProfileCnnAccSum;
+    view.gpuProfileAnnAcc = gpuProfileAnnAccSum;
+    view.gpuProfileLoss = gpuProfileLossSum;
+    view.gpuProfileKernelCalls = gpuProfileKernelCallsSum;
 
     for (Phase ph : kOrchPhases) {
       const int p = static_cast<int>(ph);
@@ -171,10 +213,67 @@ namespace NN_CLI
 
     std::memset(this->stepMs, 0, sizeof(this->stepMs));
     std::memset(this->stepRuns, 0, sizeof(this->stepRuns));
+    std::memset(this->stepGpuProfile, 0, sizeof(this->stepGpuProfile));
+
+    this->epochGpuProfileCnnFwd += gpuProfileCnnFwdSum;
+    this->epochGpuProfileAnnFwd += gpuProfileAnnFwdSum;
+    this->epochGpuProfileAnnBwd += gpuProfileAnnBwdSum;
+    this->epochGpuProfileCnnBwd += gpuProfileCnnBwdSum;
+    this->epochGpuProfileCnnAcc += gpuProfileCnnAccSum;
+    this->epochGpuProfileAnnAcc += gpuProfileAnnAccSum;
+    this->epochGpuProfileLoss += gpuProfileLossSum;
+    this->epochGpuProfileKernelCalls += gpuProfileKernelCallsSum;
+    this->totalGpuProfileCnnFwd += gpuProfileCnnFwdSum;
+    this->totalGpuProfileAnnFwd += gpuProfileAnnFwdSum;
+    this->totalGpuProfileAnnBwd += gpuProfileAnnBwdSum;
+    this->totalGpuProfileCnnBwd += gpuProfileCnnBwdSum;
+    this->totalGpuProfileCnnAcc += gpuProfileCnnAccSum;
+    this->totalGpuProfileAnnAcc += gpuProfileAnnAccSum;
+    this->totalGpuProfileLoss += gpuProfileLossSum;
+    this->totalGpuProfileKernelCalls += gpuProfileKernelCallsSum;
 
     {
       std::lock_guard<std::mutex> lock(this->mutex);
       this->lastStep = view;
+    }
+  }
+
+  //===================================================================================================================//
+  //-- GPU profile data (per-sample, lock-free per-row accumulation) --//
+  //===================================================================================================================//
+
+  void TrainingProfiler::onGpuProfile(const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex)
+  {
+    const int row = rowOf(gpuIndex);
+
+    for (const auto& p : profiles) {
+      switch (p.phase) {
+      case Phase::CnnForward:
+        this->stepGpuProfile[row].cnnFwd += p.gpuMs;
+        break;
+      case Phase::AnnForward:
+        this->stepGpuProfile[row].annFwd += p.gpuMs;
+        break;
+      case Phase::AnnBackward:
+        this->stepGpuProfile[row].annBwd += p.gpuMs;
+        break;
+      case Phase::CnnBackward:
+        this->stepGpuProfile[row].cnnBwd += p.gpuMs;
+        break;
+      case Phase::CNNAccumulate:
+        this->stepGpuProfile[row].cnnAcc += p.gpuMs;
+        break;
+      case Phase::ANNAccumulate:
+        this->stepGpuProfile[row].annAcc += p.gpuMs;
+        break;
+      case Phase::LossCompute:
+        this->stepGpuProfile[row].loss += p.gpuMs;
+        break;
+      default:
+        break;
+      }
+
+      this->stepGpuProfile[row].kernelCalls += p.kernelCalls;
     }
   }
 
@@ -191,6 +290,14 @@ namespace NN_CLI
     this->epochMs.fill(0.0);
     this->epochRuns = 0;
     this->stepCount = 0;
+    this->epochGpuProfileCnnFwd = 0.0;
+    this->epochGpuProfileAnnFwd = 0.0;
+    this->epochGpuProfileAnnBwd = 0.0;
+    this->epochGpuProfileCnnBwd = 0.0;
+    this->epochGpuProfileCnnAcc = 0.0;
+    this->epochGpuProfileAnnAcc = 0.0;
+    this->epochGpuProfileLoss = 0.0;
+    this->epochGpuProfileKernelCalls = 0;
 
     std::lock_guard<std::mutex> lock(this->mutex);
     this->lastStep.valid = false;
@@ -217,6 +324,22 @@ namespace NN_CLI
       return "h2d_upload";
     case Phase::GpuCompute:
       return "gpu_compute";
+    case Phase::Augmentation:
+      return "augmentation";
+    case Phase::CnnForward:
+      return "cnn_forward";
+    case Phase::AnnForward:
+      return "ann_forward";
+    case Phase::AnnBackward:
+      return "ann_backward";
+    case Phase::CnnBackward:
+      return "cnn_backward";
+    case Phase::CNNAccumulate:
+      return "cnn_accumulate";
+    case Phase::ANNAccumulate:
+      return "ann_accumulate";
+    case Phase::LossCompute:
+      return "loss";
     default:
       return "?";
     }
@@ -274,6 +397,17 @@ namespace NN_CLI
           << fmt(pct, 5) << " %|";
       line(row.str());
 
+      if (ph == Phase::DataFetch) {
+        const double augMs = v.orch[static_cast<int>(Phase::Augmentation)];
+
+        if (augMs > 0.0) {
+          std::ostringstream augLine;
+          augLine << "  | " << std::left << std::setw(14) << "+ augmentation" << std::right << " | " << fmt(augMs, 9)
+                  << " |   (gpu)|";
+          line(augLine.str());
+        }
+      }
+
       if (ph == Phase::GpuTrain) {
         std::ostringstream h2d;
         h2d << "  | " << std::left << std::setw(14) << "+ h2d_upload" << std::right << " | " << fmt(v.h2dPerGpu, 9)
@@ -284,6 +418,29 @@ namespace NN_CLI
         comp << "  | " << std::left << std::setw(14) << "+ gpu_compute" << std::right << " | "
              << fmt(v.computePerGpu, 9) << " |   (gpu)|";
         line(comp.str());
+
+        const double gpuProfileTotal = v.gpuProfileCnnFwd + v.gpuProfileAnnFwd + v.gpuProfileAnnBwd +
+                                       v.gpuProfileCnnBwd + v.gpuProfileCnnAcc + v.gpuProfileAnnAcc + v.gpuProfileLoss;
+
+        if (gpuProfileTotal > 0.0) {
+          auto gpuSub = [&](const char* label, double msVal) {
+            if (msVal > 0.0) {
+              std::ostringstream sub;
+              sub << "  | " << std::left << std::setw(14) << ("  " + std::string(label)) << std::right << " | "
+                  << fmt(msVal, 9) << " |   gpu |";
+              line(sub.str());
+            }
+          };
+
+          line("  |                |           |  GPU-profiled breakdown: |");
+          gpuSub("cnn_forward", v.gpuProfileCnnFwd);
+          gpuSub("ann_forward", v.gpuProfileAnnFwd);
+          gpuSub("ann_backward", v.gpuProfileAnnBwd);
+          gpuSub("cnn_backward", v.gpuProfileCnnBwd);
+          gpuSub("cnn_accumulate", v.gpuProfileCnnAcc);
+          gpuSub("ann_accumulate", v.gpuProfileAnnAcc);
+          gpuSub("loss", v.gpuProfileLoss);
+        }
       }
     }
 
@@ -369,6 +526,15 @@ namespace NN_CLI
       out << "  | " << std::left << std::setw(14) << phaseLabel(ph) << std::right << " | " << fmt(s, 13, 2) << " | "
           << fmt(pct, 5) << " %|\n";
 
+      if (ph == Phase::DataFetch) {
+        const double augS = tot[static_cast<int>(Phase::Augmentation)] / 1000.0;
+
+        if (augS > 0.0) {
+          out << "  | " << std::left << std::setw(14) << "+ augmentation" << std::right << " | " << fmt(augS, 13, 2)
+              << " |   (gpu)|\n";
+        }
+      }
+
       if (ph == Phase::GpuTrain) {
         const double h2d = tot[static_cast<int>(Phase::H2DUpload)] / 1000.0 / gpus;
         const double comp = tot[static_cast<int>(Phase::GpuCompute)] / 1000.0 / gpus;
@@ -384,9 +550,52 @@ namespace NN_CLI
         << " | " << fmt(100.0, 5) << " %|\n";
     out << "  +----------------+---------------+--------+\n";
 
+    // GPU-profiled breakdown (whole-run totals)
+    {
+      const double gpuTotal = this->totalGpuProfileCnnFwd + this->totalGpuProfileAnnFwd + this->totalGpuProfileAnnBwd +
+                              this->totalGpuProfileCnnBwd + this->totalGpuProfileCnnAcc + this->totalGpuProfileAnnAcc +
+                              this->totalGpuProfileLoss;
+
+      if (gpuTotal > 0.0) {
+        out << "\n  GPU-profiled kernel time breakdown (whole run):\n";
+        out << "  +----------------+---------------+--------+\n";
+        out << "  | sub-phase      |     total (s) |      % |\n";
+        out << "  +----------------+---------------+--------+\n";
+
+        auto gpuLine = [&](const char* label, double msVal) {
+          if (msVal > 0.0) {
+            const double s = msVal / 1000.0;
+            const double pct = msVal / gpuTotal * 100.0;
+            out << "  | " << std::left << std::setw(14) << label << std::right << " | " << fmt(s, 13, 2) << " | "
+                << fmt(pct, 5) << " %|\n";
+          }
+        };
+
+        gpuLine("cnn_forward", this->totalGpuProfileCnnFwd);
+        gpuLine("ann_forward", this->totalGpuProfileAnnFwd);
+        gpuLine("ann_backward", this->totalGpuProfileAnnBwd);
+        gpuLine("cnn_backward", this->totalGpuProfileCnnBwd);
+        gpuLine("cnn_accumulate", this->totalGpuProfileCnnAcc);
+        gpuLine("ann_accumulate", this->totalGpuProfileAnnAcc);
+        gpuLine("loss", this->totalGpuProfileLoss);
+
+        out << "  +----------------+---------------+--------+\n";
+        out << "  | " << std::left << std::setw(14) << "TOTAL (gpu)" << std::right << " | "
+            << fmt(gpuTotal / 1000.0, 13, 2) << " | " << fmt(100.0, 5) << " %|\n";
+        out << "  +----------------+---------------+--------+\n";
+
+        if (this->totalGpuProfileKernelCalls > 0) {
+          const double avgKernelMs = gpuTotal / static_cast<double>(this->totalGpuProfileKernelCalls);
+          out << "  total GPU-profiled kernel calls: " << this->totalGpuProfileKernelCalls << " (avg "
+              << fmt(avgKernelMs, 0, 3) << " ms/kernel)\n";
+          out << "  (host-side gpu_compute includes kernel launch + barrier overhead)\n";
+        }
+      }
+    }
+
     if (runs > 0) {
       const double launchesPerStep = static_cast<double>(runs) / static_cast<double>(steps) / gpus;
-      out << "  gpu launches/batch per GPU: " << fmt(launchesPerStep, 0, 0)
+      out << "\n  gpu launches/batch per GPU: " << fmt(launchesPerStep, 0, 0)
           << " - each launch is a single-sample fused forward+backward run()\n";
     }
   }

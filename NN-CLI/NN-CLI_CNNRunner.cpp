@@ -220,6 +220,13 @@ int CNNRunner::train()
                               validationConfig.enabled ? &dataLoader : nullptr,
                               validationConfig.enabled ? &split.validationIndices : nullptr);
 
+  if (gpuAugPool) {
+    gpuAugPool->setTimingCallback([this](bool begin) {
+      this->profiler.onEvent(CNN::TimingPhase::Augmentation, begin ? CNN::TimingEvent::Begin : CNN::TimingEvent::End,
+                             -1);
+    });
+  }
+
   if (this->tui && this->tui->isInitialized()) {
     auto loadingWin = this->tui->loadingWindow();
     auto& tuiMutex = this->tui->mutex();
@@ -542,6 +549,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   this->profiler.reset();
   this->core->setTimingCallback([this](CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex) {
     this->profiler.onEvent(phase, event, gpuIndex);
+  });
+
+  this->core->setGpuProfileCallback([this](const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex) {
+    this->profiler.onGpuProfile(profiles, gpuIndex);
   });
 
   std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr;
