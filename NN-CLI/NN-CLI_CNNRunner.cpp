@@ -695,6 +695,8 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
           progressBar.update(info, tui->progressWindow());
 
+          tui->handleResize();
+
           auto timingLines = this->profiler.getTimingLines(tui->timingWidth());
 
           if (!timingLines.empty())
