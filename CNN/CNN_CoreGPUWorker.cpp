@@ -31,7 +31,6 @@ CoreGPUWorker<T>::CoreGPUWorker(const CoreGPUWorkerConfig<T>& workerConfig)
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
   this->core = this->ownedCore.get();
   this->core->setVerbose(this->workerConfig.logLevel >= CNN::LogLevel::DEBUG);
-  this->core->setProfiling(true);
 
   // Initialize conv parameters (He initialization if not loaded)
   Worker<T>::initializeConvParams(workerConfig.layersConfig, workerConfig.inputShape, this->parameters);
@@ -412,6 +411,11 @@ void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int
 {
   if (!callback)
     return;
+
+  if (!this->profilingEnabled) {
+    this->core->setProfiling(true);
+    this->profilingEnabled = true;
+  }
 
   std::vector<OpenCLWrapper::KernelTiming> timings = this->core->getKernelTimings();
 

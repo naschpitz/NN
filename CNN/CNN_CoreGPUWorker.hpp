@@ -87,6 +87,7 @@ namespace CNN
 
       //-- GPU profiling helper --//
       void collectGpuProfile(const GpuProfileCallback& callback, int gpuIndex);
+      bool profilingEnabled = false;
   };
 }
 
