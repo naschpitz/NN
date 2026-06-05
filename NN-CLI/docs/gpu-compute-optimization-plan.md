@@ -3,11 +3,69 @@
 ## Summary
 
 The `gpu_compute` phase dominates training time because **every sample in a batch triggers a
-separate `core->run()` call**, each launching 25–40+ OpenCL kernels with a synchronous
-`enqueueBarrier()` after every single kernel. For a batch of 64, this means **1,600–2,500+
-kernel launches per batch on a single GPU**, each incurring driver dispatch overhead and a
-full pipeline barrier. This is fundamentally why Python NN-CLI (PyTorch) is ~2× faster: it
-uses a single cuBLAS GEMM call per layer for the entire batch.
+separate `core->run()` call**, each launching ~188 OpenCL kernels with a synchronous
+`enqueueBarrier()` after every single kernel. For a batch of 4096, this means **~770,000
+kernel launches per batch**, each incurring driver dispatch overhead and a full pipeline
+barrier. This is fundamentally why Python NN-CLI (PyTorch) is ~2× faster: it uses a single
+cuBLAS GEMM call per layer for the entire batch.
+
+---
+
+## 0. Measured Profiling Data (ISIC-MILK10k, train-app-12 config)
+
+Collected via the OpenCL GPU profiling instrumentation (`CL_QUEUE_PROFILING_ENABLE`).
+Model: ISIC CNN app-12. 1 epoch, 3 batches (batchSize=4096), 7,937 samples.
+
+### Host-side wall clock (per-batch average, single GPU)
+
+| phase          | ms/batch |      % |
+|----------------|----------|--------|
+| data_fetch     |   4623.0 |   7.0 %|
+| gpu_train      |  61210.0 |  93.0 %|
+| + h2d_upload   |   3810.0 | (gpu)  |
+| + gpu_compute  |  54756.7 | (gpu)  |
+| grad_merge     |     10.0 |   0.0 %|
+| weight_update  |      3.3 |   0.0 %|
+| kernel_restore |      0.0 |   0.0 %|
+| **TOTAL**      |  65850.0 | 100.0 %|
+
+### GPU-profiled kernel execution time (whole run, summed across devices)
+
+| sub-phase      | total (s) |      % |
+|----------------|-----------|--------|
+| cnn_forward    |    28.62  |   9.0 %|
+| ann_forward    |     0.18  |   0.1 %|
+| ann_backward   |     0.38  |   0.1 %|
+| cnn_backward   |   286.19  |  90.1 %|
+| cnn_accumulate |     2.26  |   0.7 %|
+| ann_accumulate |     0.09  |   0.0 %|
+| loss           |     0.04  |   0.0 %|
+| **TOTAL (gpu)**|  **317.76** | 100.0 %|
+
+### Key metrics
+
+- **Total GPU-profiled kernel calls: 2,312,832** (across 3 batches)
+- **Avg GPU kernel execution: 0.137 ms/kernel**
+- **~188 kernels per `core->run()` call** (one per sample)
+- **~770,944 kernel launches per batch**
+- **gpu_compute = 93% of total training time**
+- **CNN backward pass = 90.1% of GPU kernel time** — the dominant bottleneck
+
+### Kernel launch overhead estimate
+
+Per-kernel average execution time (GPU-internal): **0.137 ms**.
+Host-side `gpu_compute` per sample: ~13.4 ms (for 4096 samples/batch with 2 GPUs).
+GPU kernel time per sample: ~12.9 ms (per GPU, parallel across 2 GPUs).
+
+The host-side wall clock includes kernel enqueue, per-kernel barriers, queue flush,
+and GPU execution. With ~188 kernels per sample at 0.137ms each, the GPU execution
+alone is ~25.8ms, split across 2 GPUs = ~12.9ms per GPU. Host-side time is ~13.4ms
+per sample, yielding an estimated overhead of **~0.5ms per sample (3-4%)** for kernel
+launch + barrier overhead on this hardware.
+
+However, the *real* overhead is that each kernel processes only one sample's data
+(very low GPU occupancy). If kernels were batched to process the entire batch at once,
+each kernel would do 4096× more work per launch, eliminating 99.95% of kernel launches.
 
 ---
 
@@ -15,23 +73,27 @@ uses a single cuBLAS GEMM call per layer for the entire batch.
 
 ### What happens inside one `core->run()` (fast path, no BatchNorm)
 
+Measured with ISIC-MILK10k train-app-12 config (5 conv layers, 2 dense layers):
+
 ```
-CNN forward:     im2col + gemm + relu + pool ...     ~3-6  kernels per conv layer
-Bridge:          copy_cnn_to_ann                      1     kernel
-ANN forward:     calculate_zs + calculate_actvs       ~4-6  kernels (for 2 dense layers)
-ANN backward:    dCost_dActv_last + dCost_dBias       ~7-8  kernels (for 2 dense layers)
-                 + dCost_dWeight + dCost_dActv
-Bridge reverse:  1 kernel
-CNN backward:    pool_bwd + relu_bwd + gemm_dW        ~6-8  kernels per conv layer
-                 + gemm_dInput + col2im
-Accumulate CNN:  accumulate filters + biases          ~2    kernels per conv
-Accumulate ANN:  accumulate biases + weights          2     kernels
-Loss:            calculate_sample_loss                1     kernel
+CNN forward:     im2col + gemm_conv + relu + maxpool ...  per conv layer
+Bridge:          copy_cnn_to_ann
+ANN forward:     calculate_zs + calculate_actvs            per dense layer
+ANN backward:    dCost_dActv_last + dCost_dBias
+                 + dCost_dWeight + dCost_dActv             per dense layer
+Bridge reverse:  copy_ann_grad_to_cnn
+CNN backward:    im2col_bk_filt + gemm_dFilters + dBiases
+                 + zero_conv + gemm_dInput + col2im        per conv layer
+                 + dRelu + dMaxpool/dAvgpool               per activation/pool
+Accumulate CNN:  accum_filters + accum_biases              per conv layer
+Accumulate ANN:  accumulate_dCost_dBiases/Weights
+Loss:            calculate_sample_loss
                  ───────────────────────────────────
-                 TOTAL per sample:                    ~25-40 kernels
+                 TOTAL per sample (measured):        ~188 kernels
 ```
 
-For `batchSize=64`, this is **64 × 25–40 = ~1,600–2,500+ kernel enqueues per batch**.
+For `batchSize=4096`, this is **4096 × 188 = ~770,000 kernel enqueues per batch**.
+For a more typical `batchSize=64`, this is **64 × 188 = ~12,000 kernel enqueues per batch**.
 
 ### Where the overhead comes from
 
@@ -273,17 +335,18 @@ per-sample delta that's already being computed.
 ```
 Per batch (no BatchNorm, batchSize=64, single GPU):
 
-BEFORE (current):
+BEFORE (current, measured):
   DataFetch:     load 64 images + augment on GPU + wait for prefetch
   H2DUpload:     64 × writeBuffer(input) + 64 × writeBuffer(output) + dropout masks
                  = 128+ synchronous transfers
   GpuCompute:    64 × core->run()
-                 = 64 × (~30 kernels with barriers) = ~1,920 kernel enqueues
+                 = 64 × 188 kernels with barriers = ~12,032 kernel enqueues
   GradMerge:     sum gradients (single GPU = no-op essentially)
   WeightUpdate:  1 × core->run() (update kernels)
   KernelRestore: restore training kernels
   ─────────────────────────────────────────────────────────────────
-  ~2,000+ kernel launches per batch
+  ~12,000 kernel launches per batch (188 per sample)
+  GPU time: CNN backward = 90%, CNN forward = 9%, everything else <1%
 
 AFTER (target):
   DataFetch:     async load 64 images + async GPU augment (overlapped)
@@ -297,7 +360,8 @@ AFTER (target):
   GradMerge:     sum gradients (single GPU = no-op)
   WeightUpdate:  1 × core->run()
   ─────────────────────────────────────────────────────────────────
-  ~28 kernel launches per batch (70× reduction)
+  ~28 kernel launches per batch (430× reduction from 12,000)
+  GPU time: same operations batched, higher GPU occupancy per kernel
 ```
 
 ---
