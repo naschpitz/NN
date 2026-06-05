@@ -85,68 +85,116 @@ namespace CNN
   {
     inline TimingPhase categorizeKernel(const std::string& kernelName)
     {
-      // CNN forward kernels
-      if (kernelName.find("im2col") == 0 || kernelName.find("gemm") == 0 || kernelName.find("col2im") == 0)
+      // CNN forward: im2col (forward only), gemm_conv, relu, maxpool, avgpool,
+      //              gap_propagate, gdp_propagate, norm_mean, norm_var,
+      //              norm_normalize, res_add_proj, res_add, copy_cnn_to_ann
+      if (kernelName.find("im2col") == 0 && kernelName.find("_bk_") == std::string::npos)
         return TimingPhase::CnnForward;
 
-      if (kernelName.find("calculate_relu") == 0 || kernelName == "calculate_actvs_from_relu" ||
-          kernelName.find("calculate_maxpool") == 0 || kernelName.find("calculate_avgpool") == 0 ||
-          kernelName.find("gap_propagate") == 0 || kernelName.find("gdp_propagate") == 0 ||
-          kernelName.find("norm_compute") == 0 || kernelName.find("norm_normalize") == 0 ||
-          kernelName.find("residual_add") == 0)
+      if (kernelName.find("gemm_conv") == 0)
         return TimingPhase::CnnForward;
 
-      // CNN backward kernels
-      if (kernelName.find("calculate_dCost_dRelu") == 0 || kernelName.find("calculate_dCost_dMaxpool") == 0 ||
-          kernelName.find("calculate_dCost_dAvgpool") == 0 || kernelName.find("gap_backpropagate") == 0 ||
-          kernelName.find("gdp_backpropagate") == 0 || kernelName.find("norm_dGamma") == 0 ||
-          kernelName.find("norm_dBeta") == 0 || kernelName.find("norm_dInput") == 0 ||
-          kernelName.find("calculate_dCost_dBiases_cnn") == 0 || kernelName.find("norm_") == 0 ||
-          kernelName.find("residual_bwd") == 0)
+      if (kernelName.find("relu") == 0 && kernelName.find("dRelu") == std::string::npos)
+        return TimingPhase::CnnForward;
+
+      if (kernelName.find("maxpool") == 0 && kernelName.find("dMaxpool") == std::string::npos)
+        return TimingPhase::CnnForward;
+
+      if (kernelName.find("avgpool") == 0 && kernelName.find("dAvgpool") == std::string::npos)
+        return TimingPhase::CnnForward;
+
+      if (kernelName.find("gap_propagate") == 0)
+        return TimingPhase::CnnForward;
+
+      if (kernelName.find("gdp_propagate") == 0)
+        return TimingPhase::CnnForward;
+
+      if (kernelName.find("norm_mean") == 0 || kernelName.find("norm_var") == 0 ||
+          (kernelName.find("norm_normalize") == 0 && kernelName.find("bn_batch") == std::string::npos))
+        return TimingPhase::CnnForward;
+
+      if (kernelName.find("res_add") == 0)
+        return TimingPhase::CnnForward;
+
+      if (kernelName.find("copy_cnn_to_ann") == 0)
+        return TimingPhase::CnnForward;
+
+      // CNN backward: im2col_bk_filt, gemm_dFilters, gemm_dInput, dBiases,
+      //               col2im, zero_conv, zero_pool, dRelu, dMaxpool, dAvgpool,
+      //               gap_back, gdp_back, norm_dGammaBeta, norm_dInput,
+      //               res_bwd, res_bwd_proj, copy_ann_grad_to_cnn
+      if (kernelName.find("im2col_bk") == 0)
         return TimingPhase::CnnBackward;
 
-      // Bridge
-      if (kernelName.find("copy_cnn_to_ann") == 0)
-        return TimingPhase::CnnForward; // lumped with CNN forward
+      if (kernelName.find("gemm_dFilters") == 0 || kernelName.find("gemm_dInput") == 0)
+        return TimingPhase::CnnBackward;
 
-      if (kernelName.find("copy_ann_to_cnn") == 0)
-        return TimingPhase::CnnBackward; // lumped with CNN backward
+      if (kernelName.find("dBiases") == 0)
+        return TimingPhase::CnnBackward;
 
-      // ANN forward kernels
-      if (kernelName.find("calculate_zs") == 0 || kernelName.find("calculate_actvs") == 0 ||
-          kernelName.find("apply_dropout") == 0)
+      if (kernelName.find("col2im") == 0)
+        return TimingPhase::CnnBackward;
+
+      if (kernelName.find("dRelu") == 0)
+        return TimingPhase::CnnBackward;
+
+      if (kernelName.find("dMaxpool") == 0)
+        return TimingPhase::CnnBackward;
+
+      if (kernelName.find("dAvgpool") == 0)
+        return TimingPhase::CnnBackward;
+
+      if (kernelName.find("gap_back") == 0)
+        return TimingPhase::CnnBackward;
+
+      if (kernelName.find("gdp_back") == 0)
+        return TimingPhase::CnnBackward;
+
+      if (kernelName.find("norm_dGammaBeta") == 0 || kernelName.find("norm_dInput") == 0)
+        return TimingPhase::CnnBackward;
+
+      if (kernelName.find("zero_conv") == 0 || kernelName.find("zero_pool") == 0)
+        return TimingPhase::CnnBackward;
+
+      if (kernelName.find("res_bwd") == 0)
+        return TimingPhase::CnnBackward;
+
+      if (kernelName.find("copy_ann_grad_to_cnn") == 0)
+        return TimingPhase::CnnBackward;
+
+      // CNN accumulate: accum_filters, accum_biases, accum_norm_*, bn_accum_*
+      if (kernelName.find("accum_filters") == 0 || kernelName.find("accum_biases") == 0 ||
+          kernelName.find("accum_norm_") == 0 || kernelName.find("bn_accum_") == 0)
+        return TimingPhase::CNNAccumulate;
+
+      // ANN forward: calculate_zs_layer, calculate_actvs_layer, apply_dropout_layer
+      if (kernelName.find("calculate_zs_layer") == 0 || kernelName.find("calculate_actvs_layer") == 0 ||
+          (kernelName.find("apply_dropout_layer") == 0 && kernelName.find("backward") == std::string::npos))
         return TimingPhase::AnnForward;
 
-      // ANN backward kernels
+      // ANN backward: calculate_dCost_dActv_*, calculate_dCost_dBias_*, calculate_dCost_dWeight_*,
+      //               apply_dropout_backward_layer*
       if (kernelName.find("calculate_dCost_dActv") == 0 || kernelName.find("calculate_dCost_dBias") == 0 ||
           kernelName.find("calculate_dCost_dWeight") == 0 || kernelName.find("apply_dropout_backward") == 0)
         return TimingPhase::AnnBackward;
 
-      // Accumulate kernels
-      if (kernelName.find("accumulate_dCost") == 0 || kernelName.find("accumulate_gradients") == 0) {
-        if (kernelName.find("cnn_accum") != std::string::npos || kernelName.find("cnn_dFilters") != std::string::npos ||
-            kernelName.find("cnn_dBiases") != std::string::npos ||
-            kernelName.find("cnn_norm_dGamma") != std::string::npos ||
-            kernelName.find("cnn_norm_dBeta") != std::string::npos)
-          return TimingPhase::CNNAccumulate;
-
+      // ANN accumulate: accumulate_dCost_dBiases, accumulate_dCost_dWeights
+      if (kernelName.find("accumulate_dCost_dBiases") == 0 || kernelName.find("accumulate_dCost_dWeights") == 0)
         return TimingPhase::ANNAccumulate;
-      }
 
-      // Loss kernel
+      // Loss
       if (kernelName.find("calculate_sample_loss") == 0)
         return TimingPhase::LossCompute;
 
-      // BatchNorm kernels (used in BN path, but categorize for completeness)
-      if (kernelName.find("bn_accum") == 0)
-        return TimingPhase::CNNAccumulate;
+      // BN cross-sample kernels (only in BN path)
+      if (kernelName.find("bn_batch") == 0 || kernelName.find("bn_update_running") == 0)
+        return TimingPhase::CnnForward;
 
-      // Update kernels (not profiled in the fast path sample loop, but categorize anyway)
+      // Update kernels (not profiled in sample loop, but categorize)
       if (kernelName.find("update_parameters") == 0 || kernelName.find("update_weights") == 0 ||
-          kernelName.find("update_biases") == 0)
+          kernelName.find("update_biases") == 0 || kernelName.find("norm_update_running") == 0)
         return TimingPhase::WeightUpdate;
 
-      // Default: treat as CNN forward (most kernels are in the forward path)
       return TimingPhase::CnnForward;
     }
   } // namespace Kernels
