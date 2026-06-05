@@ -285,7 +285,6 @@ namespace NN_CLI
         ::waddstr(win, statsBuf);
       }
 
-      // Line 2: reserved for status messages (validation progress, etc.)
       ::wnoutrefresh(win);
     } else {
       //--- std::cout rendering (legacy path) ---//
@@ -346,44 +345,34 @@ namespace NN_CLI
       std::cout << std::endl;
   }
 
-  void ProgressBar::writeStatus(WINDOW* win, const std::string& msg)
-  {
-    if (!win)
-      return;
-
-    ::wmove(win, 2, 0);
-    ::wclrtoeol(win);
-    ::wattron(win, COLOR_PAIR(3));
-    ::waddstr(win, msg.c_str());
-    ::wattroff(win, COLOR_PAIR(3));
-    ::wnoutrefresh(win);
-    ::doupdate();
-  }
-
-  void ProgressBar::clearStatus(WINDOW* win)
-  {
-    if (!win)
-      return;
-
-    ::wmove(win, 2, 0);
-    ::wclrtoeol(win);
-    ::wnoutrefresh(win);
-    ::doupdate();
-  }
-
-  void ProgressBar::renderValidationBar(WINDOW* win, float pct)
+  void ProgressBar::renderValidationBar(WINDOW* win, float pct, int numGpus)
   {
     if (!win)
       return;
 
     int cols = ::getmaxx(win);
-    int barWidth = std::max(10, cols - 24);
+    constexpr int rightPad = 20;
 
-    ::wmove(win, 0, 0);
-    ::wclrtoeol(win);
+    int gpus = std::max(1, numGpus);
+    int gpuInfoLen = (gpus > 1) ? 9 * gpus - 1 : 0;
+    int barWidth = std::max(10, cols - kLabelWidth - 2 - rightPad - gpuInfoLen);
+
+    const char* label = "Validating";
+    int labelLen = static_cast<int>(strlen(label));
+    int labelPad = kLabelWidth - labelLen;
+
+    if (labelPad < 0)
+      labelPad = 0;
+
+    ::werase(win);
 
     ::wattron(win, COLOR_PAIR(3));
-    ::waddstr(win, "Validating [");
+    ::waddstr(win, label);
+
+    for (int i = 0; i < labelPad; i++)
+      ::waddstr(win, " ");
+
+    ::waddstr(win, " [");
     ::wattroff(win, COLOR_PAIR(3));
 
     int filled = static_cast<int>(pct / 100.0f * barWidth);

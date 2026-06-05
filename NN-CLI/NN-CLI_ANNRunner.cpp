@@ -86,10 +86,6 @@ int ANNRunner::train()
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  if (this->tui->isInitialized())
-    ProgressBar::writeStatus(this->tui->progressWindow(),
-                             "Loaded " + std::to_string(dataLoader.numSamples()) + " training samples");
-
   ulong totalOriginalSamples = dataLoader.numSamples();
 
   const auto& validationConfig = this->augConfig.validationConfig;
@@ -159,7 +155,6 @@ int ANNRunner::train()
   }
 
   if (this->tui->isInitialized()) {
-    ProgressBar::clearStatus(this->tui->progressWindow());
     this->tui->refreshConfigPanel();
   }
 
@@ -542,10 +537,11 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           validationCore->setParameters(this->core->getParameters());
 
           if (tui && tui->isInitialized()) {
-            validationCore->setProgressCallback([tui, validationTotal](ulong current, ulong) {
+            int validationGpus = std::max(1, progress.totalGPUs);
+            validationCore->setProgressCallback([tui, validationTotal, validationGpus](ulong current, ulong) {
               float pct = static_cast<float>(current) / validationTotal * 100.0f;
               std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
-              ProgressBar::renderValidationBar(tui->progressWindow(), pct);
+              ProgressBar::renderValidationBar(tui->progressWindow(), pct, validationGpus);
             });
           }
 
@@ -558,11 +554,6 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           this->validationState.lastValLoss = validationResult.averageLoss;
           valLoss = validationResult.averageLoss;
           hasValLoss = true;
-
-          if (tui && tui->isInitialized()) {
-            std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
-            ProgressBar::clearStatus(tui->progressWindow());
-          }
 
           if (validationResult.averageLoss < this->validationState.bestValLoss) {
             this->validationState.bestValLoss = validationResult.averageLoss;
