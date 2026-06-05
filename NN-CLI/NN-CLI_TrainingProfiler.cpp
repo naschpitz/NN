@@ -604,7 +604,7 @@ namespace NN_CLI
   //-- TUI table lines (for CDK label) --//
   //===================================================================================================================//
 
-  std::vector<std::string> TrainingProfiler::getTimingLines() const
+  std::vector<std::string> TrainingProfiler::getTimingLines(int maxWidth) const
   {
     StepView v;
     {
@@ -634,11 +634,15 @@ namespace NN_CLI
     struct winsize ws;
     ulong termWidth = 0;
 
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
-      termWidth = static_cast<ulong>(ws.ws_col);
+    if (maxWidth > 0) {
+      termWidth = static_cast<ulong>(maxWidth);
+    } else {
+      if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
+        termWidth = static_cast<ulong>(ws.ws_col);
 
-    if (termWidth == 0 && ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
-      termWidth = static_cast<ulong>(ws.ws_col);
+      if (termWidth == 0 && ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
+        termWidth = static_cast<ulong>(ws.ws_col);
+    }
 
     ulong containerWidth = termWidth > 5 ? termWidth - 5 : 120;
     int msW = static_cast<int>(

@@ -30,7 +30,7 @@ namespace NN_CLI
       void renderFinalSummary(std::ostream& out);
 
       //-- TUI table lines --//
-      std::vector<std::string> getTimingLines() const;
+      std::vector<std::string> getTimingLines(int maxWidth = 0) const;
 
       void reset();
 
