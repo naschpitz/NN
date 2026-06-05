@@ -21,6 +21,7 @@ namespace NN_CLI
       TrainingProfiler();
 
       void onEvent(CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex);
+      void onGpuProfile(const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex);
       void setEpoch(ulong epoch);
 
       //-- std::ostream rendering (non-TUI mode) --//
@@ -52,6 +53,15 @@ namespace NN_CLI
           ulong runs = 0;
           ulong batchNumber = 0;
           bool valid = false;
+          // GPU-profiled sub-phase breakdown (accumulated per step)
+          double gpuProfileCnnFwd = 0.0;
+          double gpuProfileAnnFwd = 0.0;
+          double gpuProfileAnnBwd = 0.0;
+          double gpuProfileCnnBwd = 0.0;
+          double gpuProfileCnnAcc = 0.0;
+          double gpuProfileAnnAcc = 0.0;
+          double gpuProfileLoss = 0.0;
+          ulong gpuProfileKernelCalls = 0;
       };
 
       void finalizeStep();
@@ -65,6 +75,20 @@ namespace NN_CLI
       ulong stepRuns[kMaxRows];
       bool stepInProgress = false;
 
+      //-- GPU profile hot state (lock-free, per-row) --//
+      struct GpuProfileRow {
+          double cnnFwd = 0.0;
+          double annFwd = 0.0;
+          double annBwd = 0.0;
+          double cnnBwd = 0.0;
+          double cnnAcc = 0.0;
+          double annAcc = 0.0;
+          double loss = 0.0;
+          ulong kernelCalls = 0;
+      };
+
+      GpuProfileRow stepGpuProfile[kMaxRows];
+
       //-- Aggregates --//
       std::array<double, kNumPhases> epochMs{};
       std::array<double, kNumPhases> totalMs{};
@@ -73,6 +97,24 @@ namespace NN_CLI
       ulong stepCount = 0;
       ulong totalStepCount = 0;
       ulong currentEpoch = 0;
+
+      //-- GPU profile aggregates --//
+      double epochGpuProfileCnnFwd = 0.0;
+      double epochGpuProfileAnnFwd = 0.0;
+      double epochGpuProfileAnnBwd = 0.0;
+      double epochGpuProfileCnnBwd = 0.0;
+      double epochGpuProfileCnnAcc = 0.0;
+      double epochGpuProfileAnnAcc = 0.0;
+      double epochGpuProfileLoss = 0.0;
+      ulong epochGpuProfileKernelCalls = 0;
+      double totalGpuProfileCnnFwd = 0.0;
+      double totalGpuProfileAnnFwd = 0.0;
+      double totalGpuProfileAnnBwd = 0.0;
+      double totalGpuProfileCnnBwd = 0.0;
+      double totalGpuProfileCnnAcc = 0.0;
+      double totalGpuProfileAnnAcc = 0.0;
+      double totalGpuProfileLoss = 0.0;
+      ulong totalGpuProfileKernelCalls = 0;
 
       //-- Published snapshot for rendering --//
       mutable std::mutex mutex;
