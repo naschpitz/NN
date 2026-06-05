@@ -109,7 +109,7 @@ namespace NN_CLI
         if (isMultiGPU) {
           std::vector<float> zeroProg(progress.totalGPUs, 0.0f);
           this->renderNcursesMultiBar(win, zeroProg, progress.totalGPUs, bw);
-          ::waddstr(win, "]   0.0%");
+          ::waddstr(win, "]   0.000%");
 
           if (gpuInfoLen > 0 && bw + overhead <= cols0) {
             std::ostringstream gpuInfo;
@@ -127,7 +127,7 @@ namespace NN_CLI
           }
         } else {
           this->renderNcursesBar(win, 0.0f, bw);
-          ::waddstr(win, "]   0.0%");
+          ::waddstr(win, "]   0.000%");
         }
 
         ::wmove(win, 1, 0);
@@ -249,7 +249,7 @@ namespace NN_CLI
       }
 
       char pctBuf[16];
-      snprintf(pctBuf, sizeof(pctBuf), "] %5.1f%%", static_cast<double>(displayPct));
+      snprintf(pctBuf, sizeof(pctBuf), "] %6.3f%%", static_cast<double>(displayPct));
       ::waddstr(win, pctBuf);
 
       if (isMultiGPU && !isEpochComplete && gpuInfoLen > 0 && effBarWidth + overhead <= cols) {
@@ -391,7 +391,7 @@ namespace NN_CLI
       ::waddstr(win, "░");
 
     char pctBuf[16];
-    snprintf(pctBuf, sizeof(pctBuf), "] %5.1f%%", static_cast<double>(pct));
+    snprintf(pctBuf, sizeof(pctBuf), "] %6.3f%%", static_cast<double>(pct));
     ::waddstr(win, pctBuf);
 
     // Clear line 1 (epoch stats) during validation
