@@ -678,6 +678,16 @@ namespace NN_CLI
 
       row(phaseLabel(ph), msStr.str(), pctStr.str());
 
+      if (ph == Phase::DataFetch) {
+        const double augMs = v.orch[static_cast<int>(Phase::Augmentation)];
+
+        if (augMs > 0.0) {
+          std::ostringstream augStr;
+          augStr << std::fixed << std::setprecision(1) << augMs;
+          row(" + augmentation", augStr.str(), " (gpu)");
+        }
+      }
+
       if (ph == Phase::GpuTrain) {
         std::ostringstream h2dStr;
         h2dStr << std::fixed << std::setprecision(1) << v.h2dPerGpu;
@@ -686,6 +696,34 @@ namespace NN_CLI
         std::ostringstream compStr;
         compStr << std::fixed << std::setprecision(1) << v.computePerGpu;
         row(" + gpu_compute", compStr.str(), " (gpu)");
+
+        const double gpuProfileTotal = v.gpuProfileCnnFwd + v.gpuProfileAnnFwd + v.gpuProfileAnnBwd +
+                                       v.gpuProfileCnnBwd + v.gpuProfileCnnAcc + v.gpuProfileAnnAcc + v.gpuProfileLoss;
+
+        if (gpuProfileTotal > 0.0) {
+          auto gpuSub = [&](const char* label, double msVal) {
+            if (msVal > 0.0) {
+              std::ostringstream subStr;
+              subStr << std::fixed << std::setprecision(1) << msVal;
+              std::string indent = std::string("  ") + label;
+              row(indent, subStr.str(), " gpu");
+            }
+          };
+
+          gpuSub("cnn_forward", v.gpuProfileCnnFwd);
+          gpuSub("ann_forward", v.gpuProfileAnnFwd);
+          gpuSub("ann_backward", v.gpuProfileAnnBwd);
+          gpuSub("cnn_backward", v.gpuProfileCnnBwd);
+          gpuSub("cnn_accumulate", v.gpuProfileCnnAcc);
+          gpuSub("ann_accumulate", v.gpuProfileAnnAcc);
+          gpuSub("loss", v.gpuProfileLoss);
+
+          if (v.gpuProfileKernelCalls > 0) {
+            std::ostringstream kcStr;
+            kcStr << " gpu kernel calls/batch: " << v.gpuProfileKernelCalls;
+            lines.push_back(kcStr.str());
+          }
+        }
       }
     }
 
