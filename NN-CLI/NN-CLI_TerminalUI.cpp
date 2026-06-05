@@ -370,24 +370,6 @@ namespace NN_CLI
     this->configScroll_ = 0;
   }
 
-  void TerminalUI::refreshConfigPanel()
-  {
-    std::lock_guard<std::recursive_mutex> lock(this->mutex_);
-    this->drawAllPanels();
-    wnoutrefresh(stdscr);
-
-    if (this->loadingWin_)
-      wnoutrefresh(this->loadingWin_);
-
-    if (this->progressWin_)
-      wnoutrefresh(this->progressWin_);
-
-    if (this->timingWin_)
-      wnoutrefresh(this->timingWin_);
-
-    doupdate();
-  }
-
   void TerminalUI::setTimingLines(const std::vector<std::string>& lines)
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
@@ -411,8 +393,20 @@ namespace NN_CLI
     if (this->progressWin_)
       wnoutrefresh(this->progressWin_);
 
-    if (this->timingWin_)
-      wnoutrefresh(this->timingWin_);
+    doupdate();
+  }
+
+  void TerminalUI::refreshConfigPanel()
+  {
+    std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+    this->drawAllPanels();
+    wnoutrefresh(stdscr);
+
+    if (this->loadingWin_)
+      wnoutrefresh(this->loadingWin_);
+
+    if (this->progressWin_)
+      wnoutrefresh(this->progressWin_);
 
     doupdate();
   }
@@ -429,9 +423,6 @@ namespace NN_CLI
 
     if (this->progressWin_)
       wnoutrefresh(this->progressWin_);
-
-    if (this->timingWin_)
-      wnoutrefresh(this->timingWin_);
 
     doupdate();
   }
@@ -454,11 +445,6 @@ namespace NN_CLI
       wnoutrefresh(this->progressWin_);
     }
 
-    if (this->timingWin_) {
-      touchwin(this->timingWin_);
-      wnoutrefresh(this->timingWin_);
-    }
-
     doupdate();
 
     int ch = getch();
@@ -475,11 +461,6 @@ namespace NN_CLI
       if (this->progressWin_) {
         touchwin(this->progressWin_);
         wnoutrefresh(this->progressWin_);
-      }
-
-      if (this->timingWin_) {
-        touchwin(this->timingWin_);
-        wnoutrefresh(this->timingWin_);
       }
 
       doupdate();
@@ -511,9 +492,6 @@ namespace NN_CLI
 
       if (this->progressWin_)
         wnoutrefresh(this->progressWin_);
-
-      if (this->timingWin_)
-        wnoutrefresh(this->timingWin_);
 
       doupdate();
     }
