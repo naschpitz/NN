@@ -16,7 +16,7 @@ namespace NN_CLI
     void sigwinchHandler(int)
     {
       if (g_activeUI)
-        g_activeUI->redraw();
+        g_activeUI->requestResize();
     }
 
     void sigtermHandler(int sig)
@@ -129,11 +129,7 @@ namespace NN_CLI
 
   void TerminalUI::layout()
   {
-    timeout(0);
-    int ch = getch();
-
-    if (ch == KEY_RESIZE)
-      resize_term(0, 0);
+    resize_term(0, 0);
 
     this->rows_ = getmaxy(stdscr);
     this->cols_ = getmaxx(stdscr);
@@ -410,9 +406,24 @@ namespace NN_CLI
     doupdate();
   }
 
+  void TerminalUI::requestResize()
+  {
+    this->resizeRequested_.store(1, std::memory_order_relaxed);
+  }
+
+  bool TerminalUI::handleResize()
+  {
+    if (!this->resizeRequested_.exchange(0, std::memory_order_relaxed))
+      return false;
+
+    this->layout();
+    return true;
+  }
+
   void TerminalUI::redraw()
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+    this->resizeRequested_.store(0, std::memory_order_relaxed);
     this->layout();
     this->drawAllPanels();
     wnoutrefresh(stdscr);
@@ -430,6 +441,11 @@ namespace NN_CLI
   {
     if (!this->initialized_)
       return;
+
+    if (this->resizeRequested_.exchange(0, std::memory_order_relaxed)) {
+      this->redraw();
+      return;
+    }
 
     this->drawAllPanels();
     wnoutrefresh(stdscr);
@@ -474,6 +490,12 @@ namespace NN_CLI
   {
     if (!this->initialized_)
       return;
+
+    if (this->resizeRequested_.exchange(0, std::memory_order_relaxed)) {
+      std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+      this->redraw();
+      return;
+    }
 
     int ch = getch();
 
