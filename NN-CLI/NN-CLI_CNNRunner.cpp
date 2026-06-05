@@ -61,6 +61,8 @@ int CNNRunner::train()
   if (this->logLevel > LogLevel::QUIET)
     this->tui->init();
 
+  this->tui->setResizeCallback([this]() { this->profiler.resetRenderState(); });
+
   // Show loading status in the TUI while samples are processed.
   if (this->tui->isInitialized())
     this->tui->refreshConfigPanel();

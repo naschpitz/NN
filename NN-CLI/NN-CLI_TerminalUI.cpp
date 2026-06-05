@@ -138,25 +138,19 @@ namespace NN_CLI
     this->rows_ = getmaxy(stdscr);
     this->cols_ = getmaxx(stdscr);
 
-    if (this->rows_ < 16 || this->cols_ < 60)
-      return;
-
-    this->timingWidth_ = std::max(35, this->cols_ * 35 / 100);
-    this->leftWidth_ = this->cols_ - this->timingWidth_;
+    this->resized_ = true;
+    this->timingWidth_ = std::max(20, std::min(this->cols_ - 40, this->cols_ * 35 / 100));
+    this->leftWidth_ = std::max(40, this->cols_ - this->timingWidth_);
+    this->timingWidth_ = this->cols_ - this->leftWidth_;
 
     int screenRows = this->rows_ - 1;
     this->helpY_ = screenRows;
 
     this->trainingH_ = 5;
-    int remaining = screenRows - this->trainingH_;
+    int remaining = std::max(8, screenRows - this->trainingH_);
 
-    this->configH_ = std::max(5, std::min(remaining - 10, remaining * 35 / 100));
-    this->epochsH_ = remaining - this->configH_;
-
-    if (this->epochsH_ < 3) {
-      this->epochsH_ = 3;
-      this->configH_ = std::max(5, remaining - this->epochsH_);
-    }
+    this->configH_ = std::max(3, std::min(remaining - 5, remaining * 35 / 100));
+    this->epochsH_ = std::max(3, remaining - this->configH_);
 
     this->configY_ = 0;
     this->trainingY_ = this->configH_;
@@ -177,9 +171,14 @@ namespace NN_CLI
       this->timingWin_ = nullptr;
     }
 
-    this->loadingWin_ = newwin(1, this->leftWidth_ - 2, this->trainingY_ + 1, 1);
-    this->progressWin_ = newwin(2, this->leftWidth_ - 2, this->trainingY_ + 2, 1);
+    int loadW = std::max(1, this->leftWidth_ - 2);
+
+    this->loadingWin_ = newwin(1, loadW, this->trainingY_ + 1, 1);
+    this->progressWin_ = newwin(2, loadW, this->trainingY_ + 2, 1);
     this->timingWin_ = newwin(screenRows, this->timingWidth_, 0, this->leftWidth_);
+
+    if (this->resizeCallback_)
+      this->resizeCallback_();
   }
 
   //===================================================================================================================//

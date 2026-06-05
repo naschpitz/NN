@@ -23,6 +23,7 @@ namespace NN_CLI
       void onEvent(CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex);
       void onGpuProfile(const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex);
       void setEpoch(ulong epoch);
+      void resetRenderState();
 
       //-- std::ostream rendering (non-TUI mode) --//
       void renderLiveTable(std::ostream& out);
