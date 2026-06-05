@@ -139,7 +139,7 @@ namespace NN_CLI
     int screenRows = this->rows_ - 1;
     this->helpY_ = screenRows;
 
-    this->trainingH_ = 6;
+    this->trainingH_ = 5;
     int remaining = screenRows - this->trainingH_;
 
     this->configH_ = std::max(5, std::min(remaining - 10, remaining * 35 / 100));
@@ -167,7 +167,7 @@ namespace NN_CLI
     }
 
     this->loadingWin_ = newwin(1, this->cols_ - 2, this->trainingY_ + 1, 1);
-    this->progressWin_ = newwin(3, this->cols_ - 2, this->trainingY_ + 2, 1);
+    this->progressWin_ = newwin(2, this->cols_ - 2, this->trainingY_ + 2, 1);
   }
 
   //===================================================================================================================//

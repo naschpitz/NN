@@ -88,10 +88,6 @@ int CNNRunner::train()
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  if (this->tui->isInitialized())
-    ProgressBar::writeStatus(this->tui->progressWindow(),
-                             "Loaded " + std::to_string(dataLoader.numSamples()) + " training samples");
-
   this->tui->pollInput();
 
   ulong totalOriginalSamples = dataLoader.numSamples();
@@ -167,9 +163,8 @@ int CNNRunner::train()
     this->tui->setConfigLines(configLines);
   }
 
-  // Clear loading status, render config panel
+  // Render config panel
   if (this->tui->isInitialized()) {
-    ProgressBar::clearStatus(this->tui->progressWindow());
     this->tui->refreshConfigPanel();
   }
 
@@ -594,12 +589,13 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           validationCore->setParameters(this->core->getParameters());
           validationCore->syncParametersToGPU();
 
-          // Show validation progress on the progress window line 2
+          // Show validation progress on the progress window
           if (tui && tui->isInitialized()) {
-            validationCore->setProgressCallback([tui, validationTotal](ulong current, ulong) {
+            int validationGpus = std::max(1, progress.totalGPUs);
+            validationCore->setProgressCallback([tui, validationTotal, validationGpus](ulong current, ulong) {
               float pct = static_cast<float>(current) / validationTotal * 100.0f;
               std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
-              ProgressBar::renderValidationBar(tui->progressWindow(), pct);
+              ProgressBar::renderValidationBar(tui->progressWindow(), pct, validationGpus);
             });
           }
 
@@ -612,12 +608,6 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           this->validationState.lastValLoss = validationResult.averageLoss;
           valLoss = validationResult.averageLoss;
           hasValLoss = true;
-
-          // Clear the validation status line
-          if (tui && tui->isInitialized()) {
-            std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
-            ProgressBar::clearStatus(tui->progressWindow());
-          }
 
           if (validationResult.averageLoss < this->validationState.bestValLoss) {
             this->validationState.bestValLoss = validationResult.averageLoss;

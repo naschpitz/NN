@@ -50,15 +50,10 @@ namespace NN_CLI
       static void printLoadingProgress(const std::string& label, size_t current, size_t total,
                                        ulong progressReports = 1000, int barWidth = 40);
 
-      // Write a status message on line 2 of the progress window (e.g. validation progress).
-      static void writeStatus(WINDOW* win, const std::string& msg);
-
-      // Clear the status line (line 2) of the progress window.
-      static void clearStatus(WINDOW* win);
-
       // Replace the epoch progress bar (line 0) with a validation bar.
-      // Renders "Validating [████░░░░] XX.X%" using the full window width.
-      static void renderValidationBar(WINDOW* win, float pct);
+      // Renders "Validating [████░░░░] XX.X%" using the same geometry as the epoch bar.
+      // numGpus must match the epoch bar's GPU count so the bar lines up vertically.
+      static void renderValidationBar(WINDOW* win, float pct, int numGpus = 1);
 
       // Render a determinate loading progress bar into the ncurses progress window.
       // batchNum and totalBatches are displayed in the label (e.g. "Loading samples (1/3): [████░░] 32/64").
