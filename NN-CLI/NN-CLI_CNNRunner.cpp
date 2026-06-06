@@ -164,18 +164,19 @@ int CNNRunner::train()
 
     ulong configWidth = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
 
-    std::vector<std::string> configLines;
+    std::vector<SummaryTable::Section> sections;
 
-    auto trainLines =
-      TrainingSummary::collectCNN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
-                                  numValidationSamples, validationRatio, validationAuto, configWidth);
-    configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
+    auto trainRows =
+      TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
+                                      numValidationSamples, validationRatio, validationAuto);
+    sections.push_back({"Training Configuration", std::move(trainRows)});
 
     if (numOutputClasses >= 2) {
-      auto lossLines = LossReferenceTable::collect(numOutputClasses, configWidth);
-      configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
+      auto lossRows = LossReferenceTable::collectRows(numOutputClasses);
+      sections.push_back({"Loss Reference", std::move(lossRows)});
     }
 
+    auto configLines = SummaryTable::collectSections(sections, configWidth);
     this->tui->setConfigLines(configLines);
   }
 
@@ -547,19 +548,20 @@ void CNNRunner::regenerateConfigLines(ulong maxWidth)
   if (!this->configLinesLoaded_)
     return;
 
-  std::vector<std::string> configLines;
+  std::vector<SummaryTable::Section> sections;
 
-  auto trainLines = TrainingSummary::collectCNN(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
-                                                this->cachedNumTrainSamples_, this->cachedNumValSamples_,
-                                                this->cachedValRatio_, this->cachedValAuto_, maxWidth);
-  configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
+  auto trainRows = TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
+                                                   this->cachedNumTrainSamples_, this->cachedNumValSamples_,
+                                                   this->cachedValRatio_, this->cachedValAuto_);
+  sections.push_back({"Training Configuration", std::move(trainRows)});
 
   if (this->cachedNumOutputClasses_ >= 2) {
-    auto lossLines = LossReferenceTable::collect(this->cachedNumOutputClasses_, maxWidth);
-    configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
+    auto lossRows = LossReferenceTable::collectRows(this->cachedNumOutputClasses_);
+    sections.push_back({"Loss Reference", std::move(lossRows)});
   }
 
-  this->tui->setConfigLines(configLines);
+  auto lines = SummaryTable::collectSections(sections, maxWidth);
+  this->tui->setConfigLines(lines);
 }
 
 //===================================================================================================================//

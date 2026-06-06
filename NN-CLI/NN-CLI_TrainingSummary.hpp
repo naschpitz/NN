@@ -2,6 +2,7 @@
 #define NN_CLI_TRAININGSUMMARY_HPP
 
 #include "NN-CLI_AugmentationConfig.hpp"
+#include "NN-CLI_SummaryTable.hpp"
 
 #include <ANN_CoreConfig.hpp>
 #include <CNN_CoreConfig.hpp>
@@ -22,6 +23,11 @@ namespace NN_CLI
                                                  const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
                                                  ulong numTrainSamples, ulong numValidationSamples,
                                                  float validationRatio, bool validationAuto, ulong maxWidth = 0);
+
+      static std::vector<SummaryRow> collectCNNRows(const CNN::CoreConfig<float>& cnnConfig,
+                                                    const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
+                                                    ulong numTrainSamples, ulong numValidationSamples,
+                                                    float validationRatio, bool validationAuto);
 
       static std::vector<std::string> collectANN(const ANN::CoreConfig<float>& annConfig,
                                                  const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,

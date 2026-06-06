@@ -26,6 +26,19 @@ namespace NN_CLI
       static std::vector<std::string> collect(const std::string& title, const std::vector<SummaryRow>& rows,
                                               ulong maxWidth = 0);
 
+      // Variant with pre-computed column widths (both tables get identical column sizes).
+      static std::vector<std::string> collect(const std::string& title, const std::vector<SummaryRow>& rows,
+                                              ulong maxWidth, ulong keyW, ulong valueW);
+
+      // Section descriptor for uniform-width multi-section tables.
+      struct Section {
+          std::string title;
+          std::vector<SummaryRow> rows;
+      };
+
+      // Generate multiple sections with consistent column widths across all sections.
+      static std::vector<std::string> collectSections(const std::vector<Section>& sections, ulong maxWidth);
+
       static std::string formatWithCommas(ulong value);
   };
 
