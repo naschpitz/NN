@@ -61,6 +61,12 @@ int CNNRunner::train()
   if (this->logLevel > LogLevel::QUIET)
     this->tui->init();
 
+  this->trainingTui_.attach(this->tui, [this]() {
+    this->profiler.resetRenderState();
+    ulong cw = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
+    this->regenerateConfigLines(cw);
+  });
+
   // Show loading status in the TUI while samples are processed.
   if (this->tui->isInitialized())
     this->tui->refreshConfigPanel();
@@ -144,22 +150,33 @@ int CNNRunner::train()
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
   if (this->logLevel > LogLevel::QUIET) {
-    std::vector<std::string> configLines;
-
-    auto trainLines =
-      TrainingSummary::collectCNN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
-                                  numValidationSamples, validationRatio, validationAuto);
-    configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
+    this->cachedNumOrigTrainSamples_ = numOriginalTrainSamples;
+    this->cachedNumTrainSamples_ = numTrainSamples;
+    this->cachedNumValSamples_ = numValidationSamples;
+    this->cachedValRatio_ = validationRatio;
+    this->cachedValAuto_ = validationAuto;
 
     ulong numOutputClasses = this->coreConfig.layersConfig.denseLayers.empty()
                                ? 0
                                : this->coreConfig.layersConfig.denseLayers.back().numNeurons;
+    this->cachedNumOutputClasses_ = numOutputClasses;
+    this->configLinesLoaded_ = true;
+
+    ulong configWidth = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
+
+    std::vector<SummaryTable::Section> sections;
+
+    auto trainRows =
+      TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
+                                      numValidationSamples, validationRatio, validationAuto);
+    sections.push_back({"Training Configuration", std::move(trainRows)});
 
     if (numOutputClasses >= 2) {
-      auto lossLines = LossReferenceTable::collect(numOutputClasses);
-      configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
+      auto lossRows = LossReferenceTable::collectRows(numOutputClasses);
+      sections.push_back({"Loss Reference", std::move(lossRows)});
     }
 
+    auto configLines = SummaryTable::collectSections(sections, configWidth);
     this->tui->setConfigLines(configLines);
   }
 
@@ -220,37 +237,27 @@ int CNNRunner::train()
                               validationConfig.enabled ? &dataLoader : nullptr,
                               validationConfig.enabled ? &split.validationIndices : nullptr);
 
+  if (gpuAugPool) {
+    gpuAugPool->setTimingCallback([this](bool begin) {
+      this->profiler.onEvent(CNN::TimingPhase::Augmentation, begin ? CNN::TimingEvent::Begin : CNN::TimingEvent::End,
+                             -1);
+    });
+  }
+
   if (this->tui && this->tui->isInitialized()) {
-    auto loadingWin = this->tui->loadingWindow();
-    auto& tuiMutex = this->tui->mutex();
-
-    // The loading bar must reserve the same per-GPU suffix width as the epoch bar so the two
-    // line up. The prefetch loader runs ahead of the first training update, so we resolve the
-    // GPU count up front (same logic the GPU core uses) rather than discovering it dynamically.
-    int loadingBarGpus = 1;
-
-    if (this->coreConfig.deviceType == CNN::DeviceType::GPU) {
-      OpenCLWrapper::Core::initialize(false);
-      int availableGpus = static_cast<int>(OpenCLWrapper::Core::getNumDevices());
-      loadingBarGpus =
-        (this->coreConfig.numGPUs > 0) ? std::min(availableGpus, this->coreConfig.numGPUs) : availableGpus;
-      loadingBarGpus = std::max(1, loadingBarGpus);
-    }
-
-    dataLoader.setLoadingCallback(
-      [loadingWin, &tuiMutex, loadingBarGpus](ulong current, ulong total, ulong batchNum, ulong totalBatches) {
-        std::lock_guard<std::recursive_mutex> lock(tuiMutex);
-        ProgressBar::renderLoadingBar(loadingWin, current, total, batchNum, totalBatches, loadingBarGpus);
-      });
+    this->trainingTui_.resolveBarGpus(this->coreConfig.deviceType == CNN::DeviceType::GPU, this->coreConfig.numGPUs);
+    dataLoader.setLoadingCallback(this->trainingTui_.loadingCallback());
   }
 
   if (validationConfig.enabled) {
     auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
                                                        this->augConfig.augmentationProbability);
+    this->trainingTui_.markLoadingFinished();
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
     auto sampleProvider =
       dataLoader.makeSampleProvider(this->augConfig.transforms, this->augConfig.augmentationProbability);
+    this->trainingTui_.markLoadingFinished();
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
 
@@ -520,6 +527,29 @@ ValidationMetadata CNNRunner::buildValidationMetadata() const
 
 //===================================================================================================================//
 
+void CNNRunner::regenerateConfigLines(ulong maxWidth)
+{
+  if (!this->configLinesLoaded_)
+    return;
+
+  std::vector<SummaryTable::Section> sections;
+
+  auto trainRows = TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
+                                                   this->cachedNumTrainSamples_, this->cachedNumValSamples_,
+                                                   this->cachedValRatio_, this->cachedValAuto_);
+  sections.push_back({"Training Configuration", std::move(trainRows)});
+
+  if (this->cachedNumOutputClasses_ >= 2) {
+    auto lossRows = LossReferenceTable::collectRows(this->cachedNumOutputClasses_);
+    sections.push_back({"Loss Reference", std::move(lossRows)});
+  }
+
+  auto lines = SummaryTable::collectSections(sections, maxWidth);
+  this->tui->setConfigLines(lines);
+}
+
+//===================================================================================================================//
+
 void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<CNN::Core<float>> validationCore,
                                       std::shared_ptr<CNN::TrainingMonitor<float>> trainingMonitor,
                                       const DataLoader<CNN::Sample<float>>* validationDataLoader,
@@ -543,6 +573,12 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   this->core->setTimingCallback([this](CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex) {
     this->profiler.onEvent(phase, event, gpuIndex);
   });
+
+  if (this->parser.isSet("gpu-profile")) {
+    this->core->setGpuProfileCallback([this](const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex) {
+      this->profiler.onGpuProfile(profiles, gpuIndex);
+    });
+  }
 
   std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr;
 
@@ -595,6 +631,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             validationCore->setProgressCallback([tui, validationTotal, validationGpus](ulong current, ulong) {
               float pct = static_cast<float>(current) / validationTotal * 100.0f;
               std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+              tui->handleResize();
               ProgressBar::renderValidationBar(tui->progressWindow(), pct, validationGpus);
             });
           }
@@ -678,16 +715,14 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         if (tui && tui->isInitialized()) {
           std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
 
+          tui->handleResize();
+
           progressBar.update(info, tui->progressWindow());
 
-          if (progress.epochLoss == 0) {
-            auto timingLines = this->profiler.getTimingLines();
+          auto timingLines = this->profiler.getTimingLines(tui->timingWidth());
 
-            if (!timingLines.empty())
-              tui->setTimingLines(timingLines);
-          } else {
-            tui->setTimingLines({" Timing - no data yet"});
-          }
+          if (!timingLines.empty())
+            tui->setTimingLines(timingLines);
 
           tui->refresh();
         } else {

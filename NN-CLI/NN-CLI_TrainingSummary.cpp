@@ -93,7 +93,20 @@ namespace NN_CLI
                                                        const AugmentationConfig& augConfig,
                                                        ulong numOriginalTrainSamples, ulong numTrainSamples,
                                                        ulong numValidationSamples, float validationRatio,
-                                                       bool validationAuto)
+                                                       bool validationAuto, ulong maxWidth)
+  {
+    auto rows = collectCNNRows(cnnConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
+                               validationRatio, validationAuto);
+    return SummaryTable::collect("Training Configuration", rows, maxWidth);
+  }
+
+  //===================================================================================================================//
+
+  std::vector<SummaryRow> TrainingSummary::collectCNNRows(const CNN::CoreConfig<float>& cnnConfig,
+                                                          const AugmentationConfig& augConfig,
+                                                          ulong numOriginalTrainSamples, ulong numTrainSamples,
+                                                          ulong numValidationSamples, float validationRatio,
+                                                          bool validationAuto)
   {
     const auto& tc = cnnConfig.trainingConfig;
     const auto& layers = cnnConfig.layersConfig;
@@ -280,7 +293,7 @@ namespace NN_CLI
     rows.push_back({"Cost function", costStr});
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
-    return SummaryTable::collect("Training Configuration", rows);
+    return rows;
   }
 
   //===================================================================================================================//
@@ -289,7 +302,7 @@ namespace NN_CLI
                                                        const AugmentationConfig& augConfig,
                                                        ulong numOriginalTrainSamples, ulong numTrainSamples,
                                                        ulong numValidationSamples, float validationRatio,
-                                                       bool validationAuto)
+                                                       bool validationAuto, ulong maxWidth)
   {
     const auto& tc = annConfig.trainingConfig;
     const auto& costConfig = annConfig.costFunctionConfig;
@@ -371,7 +384,7 @@ namespace NN_CLI
     rows.push_back({"Cost function", costStr});
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
-    return SummaryTable::collect("Training Configuration", rows);
+    return SummaryTable::collect("Training Configuration", rows, maxWidth);
   }
 
 } // namespace NN_CLI

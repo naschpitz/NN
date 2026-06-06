@@ -28,6 +28,7 @@ void printUsage()
   std::cout << "  --output, -o <file>    Output file/dir (default: predict_<input>.json or threshold.json)\n";
   std::cout << "  --output-type <type>   Output data type: 'vector' or 'image' (overrides config file)\n";
   std::cout << "  --log-level, -l <lvl>  Log level: quiet, error, warning, info, debug (default: error)\n";
+  std::cout << "  --gpu-profile          Enable OpenCL GPU kernel profiling (adds ~12% overhead)\n";
   std::cout << "\nCalibrate-mode options:\n";
   std::cout << "  --id-images <dir>      Directory of in-distribution images (recursed) [required]\n";
   std::cout << "  --ood-dir <dir>        OOD images directory (default: <cwd>/extern-datasets/ood)\n";
@@ -124,6 +125,9 @@ int main(int argc, char* argv[])
                                     "Log level: quiet, error, warning, info, debug (default: error).", "level",
                                     "error");
   parser.addOption(logLevelOption);
+
+  QCommandLineOption gpuProfileOption("gpu-profile", "Enable OpenCL GPU kernel profiling (adds ~12% overhead).");
+  parser.addOption(gpuProfileOption);
 
   parser.process(app);
 

@@ -9,7 +9,20 @@
 namespace NN_CLI
 {
 
-  std::vector<std::string> LossReferenceTable::collect(ulong numClasses)
+  std::vector<std::string> LossReferenceTable::collect(ulong numClasses, ulong maxWidth)
+  {
+    auto rows = collectRows(numClasses);
+
+    if (rows.empty())
+      return {};
+
+    std::string title = "Loss Reference (" + std::to_string(numClasses) + " classes)";
+    return SummaryTable::collect(title, rows, maxWidth);
+  }
+
+  //===================================================================================================================//
+
+  std::vector<SummaryRow> LossReferenceTable::collectRows(ulong numClasses)
   {
     if (numClasses < 2)
       return {};
@@ -61,8 +74,7 @@ namespace NN_CLI
       rows.push_back({confStr.str(), lossStr.str() + "    " + p.interpretation});
     }
 
-    std::string title = "Loss Reference (" + std::to_string(numClasses) + " classes)";
-    return SummaryTable::collect(title, rows);
+    return rows;
   }
 
 } // namespace NN_CLI

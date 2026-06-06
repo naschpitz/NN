@@ -54,10 +54,9 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<std::string> SummaryTable::collect(const std::string& title, const std::vector<SummaryRow>& rows)
+  std::vector<std::string> SummaryTable::collect(const std::string& title, const std::vector<SummaryRow>& rows,
+                                                 ulong maxWidth)
   {
-    std::vector<std::string> lines;
-
     ulong keyW = 0;
     ulong contentValueW = 0;
 
@@ -73,11 +72,29 @@ namespace NN_CLI
     keyW = std::max(keyW, 6UL);
     contentValueW = std::max(contentValueW, 6UL);
 
-    ulong termWidth = detectTerminalWidth();
+    ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
     ulong containerWidth = termWidth > 5 ? termWidth - 5 : termWidth;
     ulong tableOverhead = keyW + 7;
     ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : contentValueW;
     valueW = std::max(valueW, contentValueW);
+
+    return collect(title, rows, maxWidth, keyW, valueW);
+  }
+
+  //===================================================================================================================//
+
+  std::vector<std::string> SummaryTable::collect(const std::string& title, const std::vector<SummaryRow>& rows,
+                                                 ulong maxWidth, ulong keyW, ulong valueW)
+  {
+    std::vector<std::string> lines;
+    ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
+    ulong containerWidth = termWidth > 5 ? termWidth - 5 : termWidth;
+    ulong tableOverhead = keyW + 7;
+    ulong maxValueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : valueW;
+    valueW = std::max(valueW, maxValueW > valueW ? valueW : std::min(valueW, maxValueW));
+    valueW = std::max(valueW, 6UL);
+    keyW = std::max(keyW, title.size());
+    keyW = std::max(keyW, 6UL);
 
     ulong totalInner = keyW + 3 + valueW;
 
@@ -117,6 +134,44 @@ namespace NN_CLI
     lines.push_back(sep);
 
     return lines;
+  }
+
+  //===================================================================================================================//
+
+  std::vector<std::string> SummaryTable::collectSections(const std::vector<Section>& sections, ulong maxWidth)
+  {
+    ulong keyW = 0;
+    ulong contentValueW = 0;
+
+    for (const auto& sec : sections) {
+      keyW = std::max(keyW, sec.title.size());
+
+      for (const auto& r : sec.rows) {
+        if (!r.key.empty())
+          keyW = std::max(keyW, r.key.size());
+
+        if (!r.value.empty())
+          contentValueW = std::max(contentValueW, r.value.size());
+      }
+    }
+
+    keyW = std::max(keyW, 6UL);
+    contentValueW = std::max(contentValueW, 6UL);
+
+    ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
+    ulong containerWidth = termWidth > 5 ? termWidth - 5 : termWidth;
+    ulong tableOverhead = keyW + 7;
+    ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : contentValueW;
+    valueW = std::max(valueW, contentValueW);
+
+    std::vector<std::string> allLines;
+
+    for (const auto& sec : sections) {
+      auto secLines = collect(sec.title, sec.rows, maxWidth, keyW, valueW);
+      allLines.insert(allLines.end(), secLines.begin(), secLines.end());
+    }
+
+    return allLines;
   }
 
 } // namespace NN_CLI

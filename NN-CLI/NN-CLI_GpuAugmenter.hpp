@@ -55,6 +55,11 @@ namespace NN_CLI
 
       void augment(std::vector<float>& batch, ulong count, const AugmentationTransforms& transforms, float probability);
 
+      void setTimingCallback(std::function<void(bool)> callback)
+      {
+        timingCallback = std::move(callback);
+      }
+
       bool empty() const
       {
         return this->augmenters.empty();
@@ -66,6 +71,7 @@ namespace NN_CLI
       std::vector<int> freeList;
       std::mutex mutex;
       std::condition_variable cv;
+      std::function<void(bool)> timingCallback;
   };
 }
 

@@ -21,7 +21,9 @@ namespace NN_CLI
       TrainingProfiler();
 
       void onEvent(CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex);
+      void onGpuProfile(const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex);
       void setEpoch(ulong epoch);
+      void resetRenderState();
 
       //-- std::ostream rendering (non-TUI mode) --//
       void renderLiveTable(std::ostream& out);
@@ -29,7 +31,7 @@ namespace NN_CLI
       void renderFinalSummary(std::ostream& out);
 
       //-- TUI table lines --//
-      std::vector<std::string> getTimingLines() const;
+      std::vector<std::string> getTimingLines(int maxWidth = 0) const;
 
       void reset();
 
@@ -52,6 +54,9 @@ namespace NN_CLI
           ulong runs = 0;
           ulong batchNumber = 0;
           bool valid = false;
+          // GPU-profiled sub-phase breakdown (accumulated per step), keyed by TimingPhase.
+          std::array<double, kNumPhases> gpuProfile{};
+          ulong gpuProfileKernelCalls = 0;
       };
 
       void finalizeStep();
@@ -65,6 +70,14 @@ namespace NN_CLI
       ulong stepRuns[kMaxRows];
       bool stepInProgress = false;
 
+      //-- GPU profile hot state (lock-free, per-row), keyed by TimingPhase --//
+      struct GpuProfileRow {
+          std::array<double, kNumPhases> ms{};
+          ulong kernelCalls = 0;
+      };
+
+      GpuProfileRow stepGpuProfile[kMaxRows];
+
       //-- Aggregates --//
       std::array<double, kNumPhases> epochMs{};
       std::array<double, kNumPhases> totalMs{};
@@ -73,6 +86,12 @@ namespace NN_CLI
       ulong stepCount = 0;
       ulong totalStepCount = 0;
       ulong currentEpoch = 0;
+
+      //-- GPU profile aggregates (keyed by TimingPhase) --//
+      std::array<double, kNumPhases> epochGpuProfile{};
+      std::array<double, kNumPhases> totalGpuProfile{};
+      ulong epochGpuProfileKernelCalls = 0;
+      ulong totalGpuProfileKernelCalls = 0;
 
       //-- Published snapshot for rendering --//
       mutable std::mutex mutex;
