@@ -263,6 +263,7 @@ int CNNRunner::train()
     dataLoader.setLoadingCallback([this, &tuiMutex, loadingBarGpus](ulong current, ulong total, ulong batchNum,
                                                                     ulong totalBatches) {
       std::lock_guard<std::recursive_mutex> lock(tuiMutex);
+      this->tui->handleResize();
       ProgressBar::renderLoadingBar(this->tui->loadingWindow(), current, total, batchNum, totalBatches, loadingBarGpus);
     });
   }
@@ -647,6 +648,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             validationCore->setProgressCallback([tui, validationTotal, validationGpus](ulong current, ulong) {
               float pct = static_cast<float>(current) / validationTotal * 100.0f;
               std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+              tui->handleResize();
               ProgressBar::renderValidationBar(tui->progressWindow(), pct, validationGpus);
             });
           }
