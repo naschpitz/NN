@@ -95,6 +95,19 @@ namespace NN_CLI
                                                        ulong numValidationSamples, float validationRatio,
                                                        bool validationAuto, ulong maxWidth)
   {
+    auto rows = collectCNNRows(cnnConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
+                               validationRatio, validationAuto);
+    return SummaryTable::collect("Training Configuration", rows, maxWidth);
+  }
+
+  //===================================================================================================================//
+
+  std::vector<SummaryRow> TrainingSummary::collectCNNRows(const CNN::CoreConfig<float>& cnnConfig,
+                                                          const AugmentationConfig& augConfig,
+                                                          ulong numOriginalTrainSamples, ulong numTrainSamples,
+                                                          ulong numValidationSamples, float validationRatio,
+                                                          bool validationAuto)
+  {
     const auto& tc = cnnConfig.trainingConfig;
     const auto& layers = cnnConfig.layersConfig;
     const auto& inputShape = cnnConfig.inputShape;
@@ -280,7 +293,7 @@ namespace NN_CLI
     rows.push_back({"Cost function", costStr});
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
-    return SummaryTable::collect("Training Configuration", rows, maxWidth);
+    return rows;
   }
 
   //===================================================================================================================//
