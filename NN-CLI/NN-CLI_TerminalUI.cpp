@@ -130,6 +130,7 @@ namespace NN_CLI
   void TerminalUI::layout()
   {
     resize_term(0, 0);
+    clearok(stdscr, TRUE);
 
     this->rows_ = getmaxy(stdscr);
     this->cols_ = getmaxx(stdscr);
@@ -172,6 +173,21 @@ namespace NN_CLI
     this->loadingWin_ = newwin(1, loadW, this->trainingY_ + 1, 1);
     this->progressWin_ = newwin(2, loadW, this->trainingY_ + 2, 1);
     this->timingWin_ = newwin(screenRows, this->timingWidth_, 0, this->leftWidth_);
+
+    if (this->loadingWin_) {
+      werase(this->loadingWin_);
+      touchwin(this->loadingWin_);
+    }
+
+    if (this->progressWin_) {
+      werase(this->progressWin_);
+      touchwin(this->progressWin_);
+    }
+
+    if (this->timingWin_) {
+      werase(this->timingWin_);
+      touchwin(this->timingWin_);
+    }
 
     if (this->resizeCallback_)
       this->resizeCallback_();
@@ -228,6 +244,7 @@ namespace NN_CLI
 
   void TerminalUI::drawAllPanels()
   {
+    touchwin(stdscr);
     erase();
 
     int contentH = 0;
