@@ -8,6 +8,7 @@
 #include "NN-CLI_ModelSerializer.hpp"
 #include "NN-CLI_TerminalUI.hpp"
 #include "NN-CLI_TrainingProfiler.hpp"
+#include "NN-CLI_TrainingTui.hpp"
 
 #include <CNN_Core.hpp>
 #include <CNN_TrainingMonitor.hpp>
@@ -76,6 +77,9 @@ namespace NN_CLI
       //-- ncurses terminal UI (only active during training) --//
       std::shared_ptr<TerminalUI> tui;
 
+      //-- Loading-bar wiring shared with the ANN runner --//
+      TrainingTui trainingTui_;
+
       //-- Cached config for on-resize regeneration --//
       ulong cachedNumOrigTrainSamples_ = 0;
       ulong cachedNumTrainSamples_ = 0;
@@ -84,14 +88,6 @@ namespace NN_CLI
       bool cachedValAuto_ = false;
       ulong cachedNumOutputClasses_ = 0;
       bool configLinesLoaded_ = false;
-
-      //-- Loading bar state (re-rendered on resize) --//
-      ulong loadCurrent_ = 0;
-      ulong loadTotal_ = 0;
-      ulong loadBatchNum_ = 0;
-      ulong loadTotalBatches_ = 0;
-      int loadBarGpus_ = 1;
-      bool loading_ = false;
   };
 
 } // namespace NN_CLI

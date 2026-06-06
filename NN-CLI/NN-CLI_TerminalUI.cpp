@@ -136,8 +136,6 @@ namespace NN_CLI
     this->rows_ = getmaxy(stdscr);
     this->cols_ = getmaxx(stdscr);
 
-    this->resized_ = true;
-
     int minTimingW = 20;
     int minLeftW = 40;
 
@@ -269,7 +267,7 @@ namespace NN_CLI
     contentH = this->configH_ - 2;
 
     for (int i = 0; i < contentH; i++) {
-      int lineIdx = this->configScroll_ + i;
+      int lineIdx = this->config_.offset + i;
 
       if (lineIdx >= 0 && lineIdx < static_cast<int>(this->configLines_.size())) {
         const std::string& line = this->configLines_[lineIdx];
@@ -280,18 +278,8 @@ namespace NN_CLI
       }
     }
 
-    if (static_cast<int>(this->configLines_.size()) > contentH) {
-      int indicatorCol = this->leftWidth_ - 2;
-      int totalCfg = static_cast<int>(this->configLines_.size());
-      int scrollFrac = this->configScroll_ * (contentH - 1) / std::max(1, totalCfg - contentH);
-
-      for (int i = 0; i < contentH; i++) {
-        if (i == scrollFrac)
-          mvaddch(this->configY_ + 1 + i, indicatorCol, ACS_CKBOARD);
-        else
-          mvaddch(this->configY_ + 1 + i, indicatorCol, ACS_VLINE);
-      }
-    }
+    this->drawScrollbar(this->leftWidth_ - 2, this->configY_ + 1, contentH, this->config_.offset,
+                        static_cast<int>(this->configLines_.size()));
 
     //-- Left column: Training panel --//
     this->drawPanelFrame(this->trainingY_, this->trainingH_, 0, this->leftWidth_, "Training", 2);
@@ -301,16 +289,7 @@ namespace NN_CLI
     contentH = this->epochsH_ - 2;
     int totalLines = static_cast<int>(this->epochLines_.size());
     int maxScroll = std::max(0, totalLines - contentH);
-    int start = this->epochScroll_;
-
-    if (this->epochsAutoScroll_)
-      start = maxScroll;
-
-    if (start < 0)
-      start = 0;
-
-    if (start > maxScroll)
-      start = maxScroll;
+    int start = this->epochs_.autoScroll ? maxScroll : std::clamp(this->epochs_.offset, 0, maxScroll);
 
     for (int i = 0; i < contentH && start + i < totalLines; i++) {
       const std::string& line = this->epochLines_[start + i];
@@ -320,17 +299,7 @@ namespace NN_CLI
         mvaddnstr(this->epochsY_ + 1 + i, 2, line.c_str(), printLen);
     }
 
-    if (totalLines > contentH) {
-      int indicatorCol = this->leftWidth_ - 2;
-      int scrollFrac = start * (contentH - 1) / std::max(1, maxScroll);
-
-      for (int i = 0; i < contentH; i++) {
-        if (i == scrollFrac)
-          mvaddch(this->epochsY_ + 1 + i, indicatorCol, ACS_CKBOARD);
-        else
-          mvaddch(this->epochsY_ + 1 + i, indicatorCol, ACS_VLINE);
-      }
-    }
+    this->drawScrollbar(this->leftWidth_ - 2, this->epochsY_ + 1, contentH, start, totalLines);
 
     //-- Right column: Timing panel (full-height) --//
     if (this->timingWin_) {
@@ -342,13 +311,7 @@ namespace NN_CLI
       int timingMaxW = this->timingWidth_ - 4;
       int timingTotal = static_cast<int>(this->timingLines_.size());
       int timingMaxScroll = std::max(0, timingTotal - contentH);
-      int timingStart = this->timingScroll_;
-
-      if (timingStart < 0)
-        timingStart = 0;
-
-      if (timingStart > timingMaxScroll)
-        timingStart = timingMaxScroll;
+      int timingStart = std::clamp(this->timing_.offset, 0, timingMaxScroll);
 
       for (int i = 0; i < contentH && timingStart + i < timingTotal; i++) {
         const std::string& line = this->timingLines_[timingStart + i];
@@ -358,17 +321,7 @@ namespace NN_CLI
           mvaddnstr(1 + i, timingX + 2, line.c_str(), printLen);
       }
 
-      if (timingTotal > contentH) {
-        int indicatorCol = this->cols_ - 2;
-        int scrollFrac = timingStart * (contentH - 1) / std::max(1, timingMaxScroll);
-
-        for (int i = 0; i < contentH; i++) {
-          if (i == scrollFrac)
-            mvaddch(1 + i, indicatorCol, ACS_CKBOARD);
-          else
-            mvaddch(1 + i, indicatorCol, ACS_VLINE);
-        }
-      }
+      this->drawScrollbar(this->cols_ - 2, 1, contentH, timingStart, timingTotal);
     }
 
     //-- Help bar --//
@@ -381,6 +334,50 @@ namespace NN_CLI
     attroff(COLOR_PAIR(2) | A_BOLD);
   }
 
+  void TerminalUI::drawScrollbar(int col, int yTop, int contentH, int scroll, int total)
+  {
+    if (total <= contentH)
+      return;
+
+    int thumb = scroll * (contentH - 1) / std::max(1, total - contentH);
+
+    for (int i = 0; i < contentH; i++)
+      mvaddch(yTop + i, col, (i == thumb) ? ACS_CKBOARD : ACS_VLINE);
+  }
+
+  //===================================================================================================================//
+  //-- Compositing --//
+  //===================================================================================================================//
+
+  void TerminalUI::present(bool runOverlay, bool touchSub)
+  {
+    this->drawAllPanels();
+    wnoutrefresh(stdscr);
+
+    // The loading bar (and any overlay) lives in its own window; repaint it on top of the panels
+    // after layout() recreated/erased the windows.
+    if (runOverlay && this->overlayCallback_)
+      this->overlayCallback_();
+
+    // drawAllPanels() blanks the stdscr cells beneath the sub-windows, so when a sub-window's own
+    // content is unchanged we must touch it to force a full re-copy on top.
+    if (this->loadingWin_) {
+      if (touchSub)
+        touchwin(this->loadingWin_);
+
+      wnoutrefresh(this->loadingWin_);
+    }
+
+    if (this->progressWin_) {
+      if (touchSub)
+        touchwin(this->progressWin_);
+
+      wnoutrefresh(this->progressWin_);
+    }
+
+    doupdate();
+  }
+
   //===================================================================================================================//
   //-- Public API --//
   //===================================================================================================================//
@@ -389,7 +386,7 @@ namespace NN_CLI
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
     this->configLines_ = lines;
-    this->configScroll_ = 0;
+    this->config_.offset = 0;
   }
 
   void TerminalUI::setTimingLines(const std::vector<std::string>& lines)
@@ -403,34 +400,16 @@ namespace NN_CLI
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
     this->epochLines_.push_back(line);
 
-    if (this->epochsAutoScroll_)
-      this->epochScroll_ = std::max(0, static_cast<int>(this->epochLines_.size()) - (this->epochsH_ - 2));
+    if (this->epochs_.autoScroll)
+      this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - (this->epochsH_ - 2));
 
-    this->drawAllPanels();
-    wnoutrefresh(stdscr);
-
-    if (this->loadingWin_)
-      wnoutrefresh(this->loadingWin_);
-
-    if (this->progressWin_)
-      wnoutrefresh(this->progressWin_);
-
-    doupdate();
+    this->present(false, false);
   }
 
   void TerminalUI::refreshConfigPanel()
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
-    this->drawAllPanels();
-    wnoutrefresh(stdscr);
-
-    if (this->loadingWin_)
-      wnoutrefresh(this->loadingWin_);
-
-    if (this->progressWin_)
-      wnoutrefresh(this->progressWin_);
-
-    doupdate();
+    this->present(false, false);
   }
 
   void TerminalUI::requestResize()
@@ -446,6 +425,12 @@ namespace NN_CLI
     this->layout();
     this->drawAllPanels();
     wnoutrefresh(stdscr);
+
+    // layout() erased the loading/progress sub-windows; let the caller repaint the loading bar
+    // on top of the freshly drawn panels so it doesn't vanish until the next mini-batch tick.
+    if (this->overlayCallback_)
+      this->overlayCallback_();
+
     return true;
   }
 
@@ -454,16 +439,10 @@ namespace NN_CLI
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
     this->resizeRequested_.store(0, std::memory_order_relaxed);
     this->layout();
-    this->drawAllPanels();
-    wnoutrefresh(stdscr);
 
-    if (this->loadingWin_)
-      wnoutrefresh(this->loadingWin_);
-
-    if (this->progressWin_)
-      wnoutrefresh(this->progressWin_);
-
-    doupdate();
+    // Full resize redraw: recreate the panels and repaint the loading-bar overlay on top so the
+    // loading line doesn't vanish until the next mini-batch tick.
+    this->present(true, false);
   }
 
   void TerminalUI::refresh()
@@ -476,39 +455,12 @@ namespace NN_CLI
       return;
     }
 
-    this->drawAllPanels();
-    wnoutrefresh(stdscr);
-
-    if (this->loadingWin_) {
-      touchwin(this->loadingWin_);
-      wnoutrefresh(this->loadingWin_);
-    }
-
-    if (this->progressWin_) {
-      touchwin(this->progressWin_);
-      wnoutrefresh(this->progressWin_);
-    }
-
-    doupdate();
+    this->present(false, true);
 
     int ch = getch();
 
-    if (ch != ERR && ch != KEY_RESIZE && this->handleScrollInput(ch)) {
-      this->drawAllPanels();
-      wnoutrefresh(stdscr);
-
-      if (this->loadingWin_) {
-        touchwin(this->loadingWin_);
-        wnoutrefresh(this->loadingWin_);
-      }
-
-      if (this->progressWin_) {
-        touchwin(this->progressWin_);
-        wnoutrefresh(this->progressWin_);
-      }
-
-      doupdate();
-    }
+    if (ch != ERR && ch != KEY_RESIZE && this->handleScrollInput(ch))
+      this->present(false, true);
   }
 
   //===================================================================================================================//
@@ -533,126 +485,57 @@ namespace NN_CLI
 
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
 
-    if (this->handleScrollInput(ch)) {
-      this->drawAllPanels();
-      wnoutrefresh(stdscr);
+    if (this->handleScrollInput(ch))
+      this->present(false, false);
+  }
 
-      if (this->loadingWin_)
-        wnoutrefresh(this->loadingWin_);
+  bool TerminalUI::applyScroll(ScrollState& s, int ch, int contentH, int total)
+  {
+    int maxScroll = std::max(0, total - contentH);
 
-      if (this->progressWin_)
-        wnoutrefresh(this->progressWin_);
-
-      doupdate();
+    switch (ch) {
+    case KEY_UP:
+    case 'k':
+      s.offset = std::max(0, s.offset - 1);
+      break;
+    case KEY_DOWN:
+    case 'j':
+      s.offset = std::min(maxScroll, s.offset + 1);
+      break;
+    case KEY_PPAGE:
+      s.offset = std::max(0, s.offset - contentH);
+      break;
+    case KEY_NPAGE:
+      s.offset = std::min(maxScroll, s.offset + contentH);
+      break;
+    case KEY_HOME:
+      s.offset = 0;
+      break;
+    case KEY_END:
+      s.offset = maxScroll;
+      break;
+    default:
+      return false;
     }
+
+    s.autoScroll = false;
+    return true;
   }
 
   bool TerminalUI::handleScrollInput(int ch)
   {
-    switch (ch) {
-    case '\t':
+    if (ch == '\t') {
       this->activePanel_ = (this->activePanel_ + 1) % 3;
       return true;
     }
 
     switch (this->activePanel_) {
-    case 0: { // Config
-      int contentH = this->configH_ - 2;
-      int maxScroll = std::max(0, static_cast<int>(this->configLines_.size()) - contentH);
-
-      switch (ch) {
-      case KEY_UP:
-      case 'k':
-        this->configScroll_ = std::max(0, this->configScroll_ - 1);
-        return true;
-      case KEY_DOWN:
-      case 'j':
-        this->configScroll_ = std::min(maxScroll, this->configScroll_ + 1);
-        return true;
-      case KEY_PPAGE:
-        this->configScroll_ = std::max(0, this->configScroll_ - contentH);
-        return true;
-      case KEY_NPAGE:
-        this->configScroll_ = std::min(maxScroll, this->configScroll_ + contentH);
-        return true;
-      case KEY_HOME:
-        this->configScroll_ = 0;
-        return true;
-      case KEY_END:
-        this->configScroll_ = maxScroll;
-        return true;
-      }
-
-      break;
-    }
-
-    case 1: { // Epochs
-      int contentH = this->epochsH_ - 2;
-      int totalLines = static_cast<int>(this->epochLines_.size());
-      int maxScroll = std::max(0, totalLines - contentH);
-
-      switch (ch) {
-      case KEY_UP:
-      case 'k':
-        this->epochScroll_ = std::max(0, this->epochScroll_ - 1);
-        this->epochsAutoScroll_ = false;
-        return true;
-      case KEY_DOWN:
-      case 'j':
-        this->epochScroll_ = std::min(maxScroll, this->epochScroll_ + 1);
-        this->epochsAutoScroll_ = false;
-        return true;
-      case KEY_PPAGE:
-        this->epochScroll_ = std::max(0, this->epochScroll_ - contentH);
-        this->epochsAutoScroll_ = false;
-        return true;
-      case KEY_NPAGE:
-        this->epochScroll_ = std::min(maxScroll, this->epochScroll_ + contentH);
-        this->epochsAutoScroll_ = false;
-        return true;
-      case KEY_HOME:
-        this->epochScroll_ = 0;
-        this->epochsAutoScroll_ = false;
-        return true;
-      case KEY_END:
-        this->epochScroll_ = maxScroll;
-        this->epochsAutoScroll_ = false;
-        return true;
-      }
-
-      break;
-    }
-
-    case 2: { // Timing
-      int contentH = this->helpY_ - 2;
-      int totalLines = static_cast<int>(this->timingLines_.size());
-      int maxScroll = std::max(0, totalLines - contentH);
-
-      switch (ch) {
-      case KEY_UP:
-      case 'k':
-        this->timingScroll_ = std::max(0, this->timingScroll_ - 1);
-        return true;
-      case KEY_DOWN:
-      case 'j':
-        this->timingScroll_ = std::min(maxScroll, this->timingScroll_ + 1);
-        return true;
-      case KEY_PPAGE:
-        this->timingScroll_ = std::max(0, this->timingScroll_ - contentH);
-        return true;
-      case KEY_NPAGE:
-        this->timingScroll_ = std::min(maxScroll, this->timingScroll_ + contentH);
-        return true;
-      case KEY_HOME:
-        this->timingScroll_ = 0;
-        return true;
-      case KEY_END:
-        this->timingScroll_ = maxScroll;
-        return true;
-      }
-
-      break;
-    }
+    case 0:
+      return this->applyScroll(this->config_, ch, this->configH_ - 2, static_cast<int>(this->configLines_.size()));
+    case 1:
+      return this->applyScroll(this->epochs_, ch, this->epochsH_ - 2, static_cast<int>(this->epochLines_.size()));
+    case 2:
+      return this->applyScroll(this->timing_, ch, this->helpY_ - 2, static_cast<int>(this->timingLines_.size()));
     }
 
     return false;

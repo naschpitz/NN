@@ -89,13 +89,9 @@ namespace NN_CLI
       void updateGpuProgress(int gpuIndex, float percent);
       std::vector<float> getGpuProgress();
 
-      //-- Rendering --//
+      //-- Rendering (std::cout legacy path) --//
       void renderSingleBar(std::ostream& out, float percent);
       void renderMultiGpuBar(std::ostream& out, const std::vector<float>& gpuProg, int numGPUs);
-
-      // ncurses rendering
-      void renderNcursesBar(WINDOW* win, float percent, int barWidth);
-      void renderNcursesMultiBar(WINDOW* win, const std::vector<float>& gpuProg, int numGPUs, int barWidth);
   };
 
 } // namespace NN_CLI
