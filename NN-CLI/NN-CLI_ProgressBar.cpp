@@ -117,7 +117,10 @@ namespace
 namespace NN_CLI
 {
 
-  ProgressBar::ProgressBar(ulong progressReports, int barWidth) : progressReports(progressReports), barWidth(barWidth)
+  ProgressBar::ProgressBar(ulong progressReports, int barWidth, ulong windowSize)
+    : progressReports(progressReports),
+      barWidth(barWidth),
+      windowSize(windowSize)
   {
   }
 
@@ -134,6 +137,7 @@ namespace NN_CLI
       this->epochStartTime = std::chrono::steady_clock::now();
       this->runningLossSum = 0.0;
       this->runningLossCount = 0;
+      this->rateWindow.clear();
     }
 
     // Reset GPU state at the start of each epoch and render 0% bar immediately
@@ -226,9 +230,31 @@ namespace NN_CLI
         (progress.totalSamples > 0) ? static_cast<double>(progress.currentSample) / progress.totalSamples : 0.0;
     }
 
-    double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - this->epochStartTime).count();
+    auto now = std::chrono::steady_clock::now();
+    double elapsed = std::chrono::duration<double>(now - this->epochStartTime).count();
     double samplesDone = fractionDone * static_cast<double>(progress.totalSamples);
-    double rate = (elapsed > 0.0) ? samplesDone / elapsed : 0.0;
+
+    // Record a sample for sliding-window rate calculation (skip epoch-complete frames)
+    if (this->windowSize > 0 && !isEpochComplete) {
+      this->rateWindow.push_back({samplesDone, now});
+
+      if (this->rateWindow.size() > this->windowSize)
+        this->rateWindow.pop_front();
+    }
+
+    // Compute rate using sliding window (or fallback to full-epoch)
+    double rate = 0.0;
+
+    if (this->windowSize > 0 && this->rateWindow.size() >= 2) {
+      const auto& oldest = this->rateWindow.front();
+      const auto& newest = this->rateWindow.back();
+      double sampleDelta = newest.samplesProcessed - oldest.samplesProcessed;
+      double timeDelta = std::chrono::duration<double>(newest.timestamp - oldest.timestamp).count();
+      rate = (timeDelta > 0.0) ? sampleDelta / timeDelta : 0.0;
+    } else {
+      rate = (elapsed > 0.0) ? samplesDone / elapsed : 0.0;
+    }
+
     double eta = (rate > 0.0) ? (static_cast<double>(progress.totalSamples) - samplesDone) / rate : 0.0;
 
     if (win) {
