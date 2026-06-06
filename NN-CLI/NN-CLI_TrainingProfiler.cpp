@@ -180,8 +180,22 @@ namespace NN_CLI
     view.runs = runs;
     view.batchNumber = this->stepCount;
     view.valid = true;
-    view.gpuProfile = gpuProfileSum;
-    view.gpuProfileKernelCalls = gpuProfileKernelCallsSum;
+
+    // gpuProfileSum is the total across all GPUs, but view.gpuProfile must be per-GPU
+    // to be directly comparable with view.computePerGpu (which is also per-GPU).
+    // epoch/total accumulators continue to store the raw sum (divided at display time).
+    {
+      std::array<double, kNumPhases> perGpu{};
+
+      for (Phase ph : kGpuSubPhases) {
+        const int p = static_cast<int>(ph);
+        perGpu[p] = gpuProfileSum[p] / this->numGpus;
+      }
+
+      view.gpuProfile = perGpu;
+    }
+
+    view.gpuProfileKernelCalls = gpuProfileKernelCallsSum / this->numGpus;
 
     for (Phase ph : kOrchPhases) {
       const int p = static_cast<int>(ph);
@@ -507,7 +521,9 @@ namespace NN_CLI
 
     // GPU-profiled breakdown (whole-run totals)
     {
-      const double gpuTotal = gpuSubTotal(this->totalGpuProfile);
+      // totalGpuProfile stores the sum across all GPUs; divide by numGpus
+      // for a per-GPU total consistent with how GpuCompute is displayed.
+      const double gpuTotal = gpuSubTotal(this->totalGpuProfile) / gpus;
 
       if (gpuTotal > 0.0) {
         out << "\n  GPU-profiled kernel time breakdown (whole run):\n";
@@ -525,7 +541,7 @@ namespace NN_CLI
         };
 
         for (Phase ph : kGpuSubPhases)
-          gpuLine(phaseLabel(ph), this->totalGpuProfile[static_cast<int>(ph)]);
+          gpuLine(phaseLabel(ph), this->totalGpuProfile[static_cast<int>(ph)] / gpus);
 
         out << "  +----------------+---------------+--------+\n";
         out << "  | " << std::left << std::setw(14) << "TOTAL (gpu)" << std::right << " | "
@@ -533,7 +549,8 @@ namespace NN_CLI
         out << "  +----------------+---------------+--------+\n";
 
         if (this->totalGpuProfileKernelCalls > 0) {
-          const double avgKernelMs = gpuTotal / static_cast<double>(this->totalGpuProfileKernelCalls);
+          const double rawGpuTotal = gpuSubTotal(this->totalGpuProfile);
+          const double avgKernelMs = rawGpuTotal / static_cast<double>(this->totalGpuProfileKernelCalls);
           out << "  total GPU-profiled kernel calls: " << this->totalGpuProfileKernelCalls << " (avg "
               << fmt(avgKernelMs, 0, 3) << " ms/kernel)\n";
           out << "  (host-side gpu_compute includes kernel launch + barrier overhead)\n";
@@ -636,18 +653,24 @@ namespace NN_CLI
         if (augMs > 0.0) {
           std::ostringstream augStr;
           augStr << std::fixed << std::setprecision(1) << augMs;
-          row(" + augmentation", augStr.str(), " (gpu)");
+          std::ostringstream augPctStr;
+          augPctStr << std::fixed << std::setprecision(1) << augMs / total * 100.0 << "%";
+          row(" + augmentation", augStr.str(), augPctStr.str());
         }
       }
 
       if (ph == Phase::GpuTrain) {
         std::ostringstream h2dStr;
         h2dStr << std::fixed << std::setprecision(1) << v.h2dPerGpu;
-        row(" + h2d_upload", h2dStr.str(), " (gpu)");
+        std::ostringstream h2dPctStr;
+        h2dPctStr << std::fixed << std::setprecision(1) << v.h2dPerGpu / total * 100.0 << "%";
+        row(" + h2d_upload", h2dStr.str(), h2dPctStr.str());
 
         std::ostringstream compStr;
         compStr << std::fixed << std::setprecision(1) << v.computePerGpu;
-        row(" + gpu_compute", compStr.str(), " (gpu)");
+        std::ostringstream compPctStr;
+        compPctStr << std::fixed << std::setprecision(1) << v.computePerGpu / total * 100.0 << "%";
+        row(" + gpu_compute", compStr.str(), compPctStr.str());
 
         const double gpuProfileTotal = gpuSubTotal(v.gpuProfile);
 
@@ -656,8 +679,10 @@ namespace NN_CLI
             if (msVal > 0.0) {
               std::ostringstream subStr;
               subStr << std::fixed << std::setprecision(1) << msVal;
+              std::ostringstream subPctStr;
+              subPctStr << std::fixed << std::setprecision(1) << msVal / total * 100.0 << "%";
               std::string indent = std::string("  ") + label;
-              row(indent, subStr.str(), " gpu");
+              row(indent, subStr.str(), subPctStr.str());
             }
           };
 
