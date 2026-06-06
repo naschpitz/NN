@@ -668,11 +668,11 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         // --- TUI history (skip epoch 0 line) ---
         if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && finishedEpoch > 0) {
           char histLine[256];
-          int written = snprintf(histLine, sizeof(histLine), "Epoch %lu: Loss %.6f",
+          int written = snprintf(histLine, sizeof(histLine), "Epoch %lu - Loss: %.6f",
                                  static_cast<unsigned long>(finishedEpoch), static_cast<double>(lastEpochLoss));
 
           if (hasValLoss)
-            snprintf(histLine + written, sizeof(histLine) - static_cast<size_t>(written), "  Val: %.6f",
+            snprintf(histLine + written, sizeof(histLine) - static_cast<size_t>(written), " | Validation Loss: %.6f",
                      static_cast<double>(valLoss));
 
           if (isBest || progress.isNewBest)
