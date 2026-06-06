@@ -45,6 +45,7 @@ namespace NN_CLI
                                  const std::vector<ulong>* validationIndices = nullptr);
       int finishTraining(const QString& inputFilePath);
       ValidationMetadata buildValidationMetadata() const;
+      void regenerateConfigLines(ulong maxWidth);
 
       //-- Class weight computation --//
       static std::vector<float> computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs);
@@ -74,6 +75,15 @@ namespace NN_CLI
 
       //-- ncurses terminal UI (only active during training) --//
       std::shared_ptr<TerminalUI> tui;
+
+      //-- Cached config for on-resize regeneration --//
+      ulong cachedNumOrigTrainSamples_ = 0;
+      ulong cachedNumTrainSamples_ = 0;
+      ulong cachedNumValSamples_ = 0;
+      float cachedValRatio_ = 0.0f;
+      bool cachedValAuto_ = false;
+      ulong cachedNumOutputClasses_ = 0;
+      bool configLinesLoaded_ = false;
   };
 
 } // namespace NN_CLI

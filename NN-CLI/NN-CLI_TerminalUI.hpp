@@ -42,6 +42,11 @@ namespace NN_CLI
         return this->timingWidth_;
       }
 
+      int leftWidth() const
+      {
+        return this->leftWidth_;
+      }
+
       void setConfigLines(const std::vector<std::string>& lines);
       void refreshConfigPanel();
 

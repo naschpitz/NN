@@ -61,7 +61,11 @@ int CNNRunner::train()
   if (this->logLevel > LogLevel::QUIET)
     this->tui->init();
 
-  this->tui->setResizeCallback([this]() { this->profiler.resetRenderState(); });
+  this->tui->setResizeCallback([this]() {
+    this->profiler.resetRenderState();
+    ulong cw = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
+    this->regenerateConfigLines(cw);
+  });
 
   // Show loading status in the TUI while samples are processed.
   if (this->tui->isInitialized())
@@ -146,19 +150,29 @@ int CNNRunner::train()
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
   if (this->logLevel > LogLevel::QUIET) {
-    std::vector<std::string> configLines;
-
-    auto trainLines =
-      TrainingSummary::collectCNN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
-                                  numValidationSamples, validationRatio, validationAuto);
-    configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
+    this->cachedNumOrigTrainSamples_ = numOriginalTrainSamples;
+    this->cachedNumTrainSamples_ = numTrainSamples;
+    this->cachedNumValSamples_ = numValidationSamples;
+    this->cachedValRatio_ = validationRatio;
+    this->cachedValAuto_ = validationAuto;
 
     ulong numOutputClasses = this->coreConfig.layersConfig.denseLayers.empty()
                                ? 0
                                : this->coreConfig.layersConfig.denseLayers.back().numNeurons;
+    this->cachedNumOutputClasses_ = numOutputClasses;
+    this->configLinesLoaded_ = true;
+
+    ulong configWidth = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
+
+    std::vector<std::string> configLines;
+
+    auto trainLines =
+      TrainingSummary::collectCNN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
+                                  numValidationSamples, validationRatio, validationAuto, configWidth);
+    configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
 
     if (numOutputClasses >= 2) {
-      auto lossLines = LossReferenceTable::collect(numOutputClasses);
+      auto lossLines = LossReferenceTable::collect(numOutputClasses, configWidth);
       configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
     }
 
@@ -524,6 +538,28 @@ ValidationMetadata CNNRunner::buildValidationMetadata() const
 {
   return {this->validationState.enabled, this->validationState.numValSamples, this->validationState.lastValLoss,
           this->validationState.bestValLoss, this->validationState.bestValEpoch};
+}
+
+//===================================================================================================================//
+
+void CNNRunner::regenerateConfigLines(ulong maxWidth)
+{
+  if (!this->configLinesLoaded_)
+    return;
+
+  std::vector<std::string> configLines;
+
+  auto trainLines = TrainingSummary::collectCNN(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
+                                                this->cachedNumTrainSamples_, this->cachedNumValSamples_,
+                                                this->cachedValRatio_, this->cachedValAuto_, maxWidth);
+  configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
+
+  if (this->cachedNumOutputClasses_ >= 2) {
+    auto lossLines = LossReferenceTable::collect(this->cachedNumOutputClasses_, maxWidth);
+    configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
+  }
+
+  this->tui->setConfigLines(configLines);
 }
 
 //===================================================================================================================//
