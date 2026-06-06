@@ -1,7 +1,6 @@
 #include "NN-CLI_TrainingProfiler.hpp"
 
 #include <algorithm>
-#include <csignal>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
@@ -16,41 +15,6 @@ namespace NN_CLI
 
   namespace
   {
-    volatile std::sig_atomic_t g_liveTableLines = 0;
-
-    void writeRaw(const char* s, std::size_t n)
-    {
-      while (n > 0) {
-        const ssize_t w = ::write(STDOUT_FILENO, s, n);
-
-        if (w <= 0)
-          break;
-
-        s += w;
-        n -= static_cast<std::size_t>(w);
-      }
-    }
-
-    void onTerminateSignal(int sig)
-    {
-      const int k = g_liveTableLines;
-
-      if (k > 0) {
-        writeRaw("\r", 1);
-
-        for (int i = 0; i < k; i++)
-          writeRaw("\n\033[K", 4);
-
-        for (int i = 0; i < k; i++)
-          writeRaw("\033[A", 3);
-
-        g_liveTableLines = 0;
-      }
-
-      std::signal(sig, SIG_DFL);
-      std::raise(sig);
-    }
-
     constexpr Phase kOrchPhases[] = {Phase::DataFetch, Phase::GpuTrain, Phase::GradMerge, Phase::WeightUpdate,
                                      Phase::KernelRestore};
 
@@ -80,14 +44,6 @@ namespace NN_CLI
 
   void TrainingProfiler::reset()
   {
-    static bool handlersInstalled = false;
-
-    if (!handlersInstalled) {
-      std::signal(SIGINT, onTerminateSignal);
-      std::signal(SIGTERM, onTerminateSignal);
-      handlersInstalled = true;
-    }
-
     std::lock_guard<std::mutex> lock(this->mutex);
 
     std::memset(this->stepMs, 0, sizeof(this->stepMs));
@@ -101,7 +57,6 @@ namespace NN_CLI
     this->currentEpoch = 0;
     this->stepInProgress = false;
     this->lastStep = StepView{};
-    this->lastRenderedLines = 0;
     this->lastRenderedBatchNumber = static_cast<ulong>(-1);
     this->numGpus = 1;
 
@@ -254,7 +209,6 @@ namespace NN_CLI
   void TrainingProfiler::resetRenderState()
   {
     this->lastRenderedBatchNumber = static_cast<ulong>(-1);
-    this->lastRenderedLines = 0;
   }
 
   //===================================================================================================================//
@@ -316,250 +270,6 @@ namespace NN_CLI
       return "loss";
     default:
       return "?";
-    }
-  }
-
-  std::string TrainingProfiler::fmt(double v, int width, int prec)
-  {
-    std::ostringstream o;
-    o << std::fixed << std::setprecision(prec) << std::setw(width) << v;
-    return o.str();
-  }
-
-  //===================================================================================================================//
-  //-- Legacy std::ostream rendering --//
-  //===================================================================================================================//
-
-  void TrainingProfiler::renderLiveTable(std::ostream& out)
-  {
-    StepView v;
-    {
-      std::lock_guard<std::mutex> lock(this->mutex);
-
-      if (!this->lastStep.valid)
-        return;
-
-      if (this->lastStep.batchNumber == this->lastRenderedBatchNumber)
-        return;
-
-      v = this->lastStep;
-    }
-
-    const double total = v.orchTotal > 0.0 ? v.orchTotal : 1.0;
-    const ulong launchesPerGpu = v.runs / static_cast<ulong>(std::max(1, this->numGpus));
-    const double msPerLaunch = launchesPerGpu > 0 ? v.computePerGpu / static_cast<double>(launchesPerGpu) : 0.0;
-
-    std::ostringstream t;
-    int lineCount = 0;
-    auto line = [&](const std::string& s) {
-      t << "\n\033[K" << s;
-      lineCount++;
-    };
-
-    line("");
-    line("  Timing - batch " + std::to_string(v.batchNumber) + " (current, ms/batch)");
-    line("  +--------------------+-----------+--------+");
-    line("  | phase             |  ms/batch |      % |");
-    line("  +--------------------+-----------+--------+");
-
-    for (Phase ph : kOrchPhases) {
-      const int p = static_cast<int>(ph);
-      const double ms = v.orch[p];
-      const double pct = ms / total * 100.0;
-      std::ostringstream row;
-      row << "  | " << std::left << std::setw(18) << phaseLabel(ph) << std::right << " | " << fmt(ms, 9) << " | "
-          << fmt(pct, 5) << " %|";
-      line(row.str());
-
-      if (ph == Phase::DataFetch) {
-        const double augMs = v.orch[static_cast<int>(Phase::Augmentation)];
-
-        if (augMs > 0.0) {
-          std::ostringstream augLine;
-          augLine << "  | " << std::left << std::setw(18) << "+ augmentation" << std::right << " | " << fmt(augMs, 9)
-                  << " |   (gpu)|";
-          line(augLine.str());
-        }
-      }
-
-      if (ph == Phase::GpuTrain) {
-        std::ostringstream h2d;
-        h2d << "  | " << std::left << std::setw(18) << "  h2d_upload" << std::right << " | " << fmt(v.h2dPerGpu, 9)
-            << " |   (gpu)|";
-        line(h2d.str());
-
-        std::ostringstream comp;
-        comp << "  | " << std::left << std::setw(18) << "  gpu_compute" << std::right << " | "
-             << fmt(v.computePerGpu, 9) << " |   (gpu)|";
-        line(comp.str());
-
-        const double gpuProfileTotal = gpuSubTotal(v.gpuProfile);
-
-        if (gpuProfileTotal > 0.0) {
-          auto gpuSub = [&](const char* label, double msVal) {
-            if (msVal > 0.0) {
-              std::ostringstream sub;
-              sub << "  | " << std::left << std::setw(18) << ("    " + std::string(label)) << std::right << " | "
-                  << fmt(msVal, 9) << " |    gpu |";
-              line(sub.str());
-            }
-          };
-
-          for (Phase ph : kGpuSubPhases)
-            gpuSub(phaseLabel(ph), v.gpuProfile[static_cast<int>(ph)]);
-        }
-      }
-    }
-
-    line("  +--------------------+-----------+--------+");
-    std::ostringstream tot;
-    tot << "  | " << std::left << std::setw(18) << "TOTAL" << std::right << " | " << fmt(total, 9) << " | "
-        << fmt(100.0, 5) << " %|";
-    line(tot.str());
-    line("  +--------------------+-----------+--------+");
-
-    if (launchesPerGpu > 0)
-      line("  gpu launches/batch per GPU: " + fmt(launchesPerGpu, 0, 0) + "  (one run() per sample, " +
-           fmt(msPerLaunch, 0, 2) + " ms each)");
-
-    t << "\033[" << lineCount << "A";
-
-    this->lastRenderedLines = lineCount;
-    this->lastRenderedBatchNumber = v.batchNumber;
-    g_liveTableLines = lineCount;
-
-    out << t.str();
-    out.flush();
-  }
-
-  void TrainingProfiler::clearLiveTable(std::ostream& out)
-  {
-    if (this->lastRenderedLines <= 0)
-      return;
-
-    std::ostringstream t;
-
-    for (int i = 0; i < this->lastRenderedLines; i++)
-      t << "\n\033[K";
-
-    t << "\033[" << this->lastRenderedLines << "A";
-
-    out << t.str();
-    out.flush();
-    this->lastRenderedLines = 0;
-    this->lastRenderedBatchNumber = static_cast<ulong>(-1);
-    g_liveTableLines = 0;
-  }
-
-  void TrainingProfiler::renderFinalSummary(std::ostream& out)
-  {
-    if (this->stepInProgress) {
-      this->finalizeStep();
-      this->stepInProgress = false;
-    }
-
-    std::array<double, kNumPhases> tot;
-    ulong steps;
-    ulong runs;
-    {
-      std::lock_guard<std::mutex> lock(this->mutex);
-      tot = this->totalMs;
-      steps = this->totalStepCount;
-      runs = this->totalRuns;
-    }
-
-    if (steps == 0)
-      return;
-
-    double orchTotal = 0.0;
-
-    for (Phase ph : kOrchPhases)
-      orchTotal += tot[static_cast<int>(ph)];
-
-    if (orchTotal <= 0.0)
-      return;
-
-    const int gpus = std::max(1, this->numGpus);
-
-    out << "\n  Timing summary - whole run (" << steps << " batches total)\n";
-    out << "  +----------------+---------------+--------+\n";
-    out << "  | phase          |     total (s) |      % |\n";
-    out << "  +----------------+---------------+--------+\n";
-
-    for (Phase ph : kOrchPhases) {
-      const int p = static_cast<int>(ph);
-      const double s = tot[p] / 1000.0;
-      const double pct = tot[p] / orchTotal * 100.0;
-      out << "  | " << std::left << std::setw(14) << phaseLabel(ph) << std::right << " | " << fmt(s, 13, 2) << " | "
-          << fmt(pct, 5) << " %|\n";
-
-      if (ph == Phase::DataFetch) {
-        const double augS = tot[static_cast<int>(Phase::Augmentation)] / 1000.0;
-
-        if (augS > 0.0) {
-          out << "  | " << std::left << std::setw(14) << "+ augmentation" << std::right << " | " << fmt(augS, 13, 2)
-              << " |   (gpu)|\n";
-        }
-      }
-
-      if (ph == Phase::GpuTrain) {
-        const double h2d = tot[static_cast<int>(Phase::H2DUpload)] / 1000.0 / gpus;
-        const double comp = tot[static_cast<int>(Phase::GpuCompute)] / 1000.0 / gpus;
-        out << "  | " << std::left << std::setw(14) << "  h2d_upload" << std::right << " | " << fmt(h2d, 13, 2)
-            << " |   (gpu)|\n";
-        out << "  | " << std::left << std::setw(14) << "  gpu_compute" << std::right << " | " << fmt(comp, 13, 2)
-            << " |   (gpu)|\n";
-      }
-    }
-
-    out << "  +----------------+---------------+--------+\n";
-    out << "  | " << std::left << std::setw(14) << "TOTAL" << std::right << " | " << fmt(orchTotal / 1000.0, 13, 2)
-        << " | " << fmt(100.0, 5) << " %|\n";
-    out << "  +----------------+---------------+--------+\n";
-
-    // GPU-profiled breakdown (whole-run totals)
-    {
-      // totalGpuProfile stores the sum across all GPUs; divide by numGpus
-      // for a per-GPU total consistent with how GpuCompute is displayed.
-      const double gpuTotal = gpuSubTotal(this->totalGpuProfile) / gpus;
-
-      if (gpuTotal > 0.0) {
-        out << "\n  GPU-profiled kernel time breakdown (whole run):\n";
-        out << "  +----------------+---------------+--------+\n";
-        out << "  | sub-phase      |     total (s) |      % |\n";
-        out << "  +----------------+---------------+--------+\n";
-
-        auto gpuLine = [&](const char* label, double msVal) {
-          if (msVal > 0.0) {
-            const double s = msVal / 1000.0;
-            const double pct = msVal / gpuTotal * 100.0;
-            out << "  | " << std::left << std::setw(14) << label << std::right << " | " << fmt(s, 13, 2) << " | "
-                << fmt(pct, 5) << " %|\n";
-          }
-        };
-
-        for (Phase ph : kGpuSubPhases)
-          gpuLine(phaseLabel(ph), this->totalGpuProfile[static_cast<int>(ph)] / gpus);
-
-        out << "  +----------------+---------------+--------+\n";
-        out << "  | " << std::left << std::setw(14) << "TOTAL (gpu)" << std::right << " | "
-            << fmt(gpuTotal / 1000.0, 13, 2) << " | " << fmt(100.0, 5) << " %|\n";
-        out << "  +----------------+---------------+--------+\n";
-
-        if (this->totalGpuProfileKernelCalls > 0) {
-          const double rawGpuTotal = gpuSubTotal(this->totalGpuProfile);
-          const double avgKernelMs = rawGpuTotal / static_cast<double>(this->totalGpuProfileKernelCalls);
-          out << "  total GPU-profiled kernel calls: " << this->totalGpuProfileKernelCalls << " (avg "
-              << fmt(avgKernelMs, 0, 3) << " ms/kernel)\n";
-          out << "  (host-side gpu_compute includes kernel launch + barrier overhead)\n";
-        }
-      }
-    }
-
-    if (runs > 0) {
-      const double launchesPerStep = static_cast<double>(runs) / static_cast<double>(steps) / gpus;
-      out << "\n  gpu launches/batch per GPU: " << fmt(launchesPerStep, 0, 0)
-          << " - each launch is a single-sample fused forward+backward run()\n";
     }
   }
 
