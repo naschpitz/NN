@@ -54,7 +54,8 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<std::string> SummaryTable::collect(const std::string& title, const std::vector<SummaryRow>& rows)
+  std::vector<std::string> SummaryTable::collect(const std::string& title, const std::vector<SummaryRow>& rows,
+                                                 ulong maxWidth)
   {
     std::vector<std::string> lines;
 
@@ -73,7 +74,7 @@ namespace NN_CLI
     keyW = std::max(keyW, 6UL);
     contentValueW = std::max(contentValueW, 6UL);
 
-    ulong termWidth = detectTerminalWidth();
+    ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
     ulong containerWidth = termWidth > 5 ? termWidth - 5 : termWidth;
     ulong tableOverhead = keyW + 7;
     ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : contentValueW;

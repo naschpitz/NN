@@ -14,7 +14,7 @@ namespace NN_CLI
   class LossReferenceTable
   {
     public:
-      static std::vector<std::string> collect(ulong numClasses);
+      static std::vector<std::string> collect(ulong numClasses, ulong maxWidth = 0);
   };
 
 } // namespace NN_CLI

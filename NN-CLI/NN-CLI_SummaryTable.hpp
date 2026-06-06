@@ -21,7 +21,10 @@ namespace NN_CLI
       static void print(const std::string& title, const std::vector<SummaryRow>& rows);
 
       // Return table lines without printing (for rendering in ncurses).
-      static std::vector<std::string> collect(const std::string& title, const std::vector<SummaryRow>& rows);
+      // maxWidth=0 means auto-detect from terminal; positive maxWidth used when rendering
+      // in a panel (e.g. config panel) and the terminal ioctl may not reflect the panel size.
+      static std::vector<std::string> collect(const std::string& title, const std::vector<SummaryRow>& rows,
+                                              ulong maxWidth = 0);
 
       static std::string formatWithCommas(ulong value);
   };
