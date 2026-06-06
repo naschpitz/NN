@@ -725,14 +725,6 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             tui->setTimingLines(timingLines);
 
           tui->refresh();
-        } else {
-          if (progress.epochLoss > 0)
-            this->profiler.clearLiveTable(std::cout);
-
-          progressBar.update(info);
-
-          if (progress.epochLoss == 0)
-            this->profiler.renderLiveTable(std::cout);
         }
       }
     } // lock_guard released
@@ -754,7 +746,6 @@ int CNNRunner::finishTraining(const QString& inputFilePath)
 
   if (this->logLevel > LogLevel::QUIET) {
     std::cout << "\nTraining completed.\n";
-    this->profiler.renderFinalSummary(std::cout);
   }
 
   const auto& trainingConfig = this->core->getTrainingConfig();

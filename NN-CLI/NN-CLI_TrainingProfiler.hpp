@@ -7,7 +7,6 @@
 #include <chrono>
 #include <cstddef>
 #include <mutex>
-#include <ostream>
 #include <string>
 #include <vector>
 
@@ -24,11 +23,6 @@ namespace NN_CLI
       void onGpuProfile(const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex);
       void setEpoch(ulong epoch);
       void resetRenderState();
-
-      //-- std::ostream rendering (non-TUI mode) --//
-      void renderLiveTable(std::ostream& out);
-      void clearLiveTable(std::ostream& out);
-      void renderFinalSummary(std::ostream& out);
 
       //-- TUI table lines --//
       std::vector<std::string> getTimingLines(int maxWidth = 0) const;
@@ -96,12 +90,10 @@ namespace NN_CLI
       //-- Published snapshot for rendering --//
       mutable std::mutex mutex;
       StepView lastStep;
-      int lastRenderedLines = 0;
       ulong lastRenderedBatchNumber = static_cast<ulong>(-1);
 
       //-- Helpers --//
       static const char* phaseLabel(CNN::TimingPhase phase);
-      static std::string fmt(double v, int width, int prec = 1);
   };
 
 } // namespace NN_CLI
