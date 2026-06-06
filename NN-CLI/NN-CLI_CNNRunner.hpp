@@ -84,6 +84,14 @@ namespace NN_CLI
       bool cachedValAuto_ = false;
       ulong cachedNumOutputClasses_ = 0;
       bool configLinesLoaded_ = false;
+
+      //-- Loading bar state (re-rendered on resize) --//
+      ulong loadCurrent_ = 0;
+      ulong loadTotal_ = 0;
+      ulong loadBatchNum_ = 0;
+      ulong loadTotalBatches_ = 0;
+      int loadBarGpus_ = 1;
+      bool loading_ = false;
   };
 
 } // namespace NN_CLI

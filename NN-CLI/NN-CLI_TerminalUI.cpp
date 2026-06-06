@@ -129,17 +129,24 @@ namespace NN_CLI
 
   void TerminalUI::layout()
   {
-    endwin();
-    refresh();
-    clear();
+    resize_term(0, 0);
 
     this->rows_ = getmaxy(stdscr);
     this->cols_ = getmaxx(stdscr);
 
     this->resized_ = true;
-    this->timingWidth_ = std::max(20, std::min(this->cols_ - 40, this->cols_ * 35 / 100));
-    this->leftWidth_ = std::max(40, this->cols_ - this->timingWidth_);
-    this->timingWidth_ = this->cols_ - this->leftWidth_;
+
+    int minTimingW = 20;
+    int minLeftW = 40;
+
+    if (this->cols_ < minLeftW + minTimingW) {
+      this->leftWidth_ = this->cols_;
+      this->timingWidth_ = 0;
+    } else {
+      int idealTimingW = this->cols_ * 35 / 100;
+      this->timingWidth_ = std::max(minTimingW, std::min(this->cols_ - minLeftW, idealTimingW));
+      this->leftWidth_ = this->cols_ - this->timingWidth_;
+    }
 
     int screenRows = this->rows_ - 1;
     this->helpY_ = screenRows;
@@ -173,7 +180,7 @@ namespace NN_CLI
 
     this->loadingWin_ = newwin(1, loadW, this->trainingY_ + 1, 1);
     this->progressWin_ = newwin(2, loadW, this->trainingY_ + 2, 1);
-    this->timingWin_ = newwin(screenRows, this->timingWidth_, 0, this->leftWidth_);
+    this->timingWin_ = (this->timingWidth_ > 0) ? newwin(screenRows, this->timingWidth_, 0, this->leftWidth_) : nullptr;
 
     if (this->loadingWin_) {
       werase(this->loadingWin_);
@@ -437,17 +444,6 @@ namespace NN_CLI
     this->layout();
     this->drawAllPanels();
     wnoutrefresh(stdscr);
-
-    if (this->loadingWin_) {
-      touchwin(this->loadingWin_);
-      wnoutrefresh(this->loadingWin_);
-    }
-
-    if (this->progressWin_) {
-      touchwin(this->progressWin_);
-      wnoutrefresh(this->progressWin_);
-    }
-
     return true;
   }
 
