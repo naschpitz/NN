@@ -154,6 +154,8 @@ namespace NN_CLI
     this->trainingY_ = this->configH_;
     this->epochsY_ = this->trainingY_ + this->trainingH_;
 
+    this->saveSubwindowContent();
+
     if (this->progressWin_) {
       delwin(this->progressWin_);
       this->progressWin_ = nullptr;
@@ -190,8 +192,54 @@ namespace NN_CLI
       touchwin(this->timingWin_);
     }
 
+    this->restoreSubwindowContent();
+
     if (this->resizeCallback_)
       this->resizeCallback_();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI::saveSubwindowContent()
+  {
+    if (this->loadingWin_) {
+      char buf[256];
+      mvwinnstr(this->loadingWin_, 0, 0, buf, sizeof(buf) - 1);
+      buf[sizeof(buf) - 1] = '\0';
+      this->savedLoadingText_ = buf;
+    }
+
+    if (this->progressWin_) {
+      char buf[256];
+      mvwinnstr(this->progressWin_, 0, 0, buf, sizeof(buf) - 1);
+      buf[sizeof(buf) - 1] = '\0';
+      this->savedProgressLine0_ = buf;
+      mvwinnstr(this->progressWin_, 1, 0, buf, sizeof(buf) - 1);
+      buf[sizeof(buf) - 1] = '\0';
+      this->savedProgressLine1_ = buf;
+    }
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI::restoreSubwindowContent()
+  {
+    if (this->loadingWin_ && !this->savedLoadingText_.empty()) {
+      mvwaddstr(this->loadingWin_, 0, 0, this->savedLoadingText_.c_str());
+      touchwin(this->loadingWin_);
+    }
+
+    if (this->progressWin_) {
+      if (!this->savedProgressLine0_.empty()) {
+        mvwaddstr(this->progressWin_, 0, 0, this->savedProgressLine0_.c_str());
+        touchwin(this->progressWin_);
+      }
+
+      if (!this->savedProgressLine1_.empty()) {
+        mvwaddstr(this->progressWin_, 1, 0, this->savedProgressLine1_.c_str());
+        touchwin(this->progressWin_);
+      }
+    }
   }
 
   //===================================================================================================================//
