@@ -230,7 +230,6 @@ int CNNRunner::train()
   }
 
   if (this->tui && this->tui->isInitialized()) {
-    auto loadingWin = this->tui->loadingWindow();
     auto& tuiMutex = this->tui->mutex();
 
     // The loading bar must reserve the same per-GPU suffix width as the epoch bar so the two
@@ -246,11 +245,11 @@ int CNNRunner::train()
       loadingBarGpus = std::max(1, loadingBarGpus);
     }
 
-    dataLoader.setLoadingCallback(
-      [loadingWin, &tuiMutex, loadingBarGpus](ulong current, ulong total, ulong batchNum, ulong totalBatches) {
-        std::lock_guard<std::recursive_mutex> lock(tuiMutex);
-        ProgressBar::renderLoadingBar(loadingWin, current, total, batchNum, totalBatches, loadingBarGpus);
-      });
+    dataLoader.setLoadingCallback([this, &tuiMutex, loadingBarGpus](ulong current, ulong total, ulong batchNum,
+                                                                    ulong totalBatches) {
+      std::lock_guard<std::recursive_mutex> lock(tuiMutex);
+      ProgressBar::renderLoadingBar(this->tui->loadingWindow(), current, total, batchNum, totalBatches, loadingBarGpus);
+    });
   }
 
   if (validationConfig.enabled) {
