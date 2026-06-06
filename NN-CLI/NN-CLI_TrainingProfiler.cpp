@@ -358,16 +358,16 @@ namespace NN_CLI
 
     line("");
     line("  Timing - batch " + std::to_string(v.batchNumber) + " (current, ms/batch)");
-    line("  +----------------+-----------+--------+");
-    line("  | phase          |  ms/batch |      % |");
-    line("  +----------------+-----------+--------+");
+    line("  +--------------------+-----------+--------+");
+    line("  | phase             |  ms/batch |      % |");
+    line("  +--------------------+-----------+--------+");
 
     for (Phase ph : kOrchPhases) {
       const int p = static_cast<int>(ph);
       const double ms = v.orch[p];
       const double pct = ms / total * 100.0;
       std::ostringstream row;
-      row << "  | " << std::left << std::setw(14) << phaseLabel(ph) << std::right << " | " << fmt(ms, 9) << " | "
+      row << "  | " << std::left << std::setw(18) << phaseLabel(ph) << std::right << " | " << fmt(ms, 9) << " | "
           << fmt(pct, 5) << " %|";
       line(row.str());
 
@@ -376,7 +376,7 @@ namespace NN_CLI
 
         if (augMs > 0.0) {
           std::ostringstream augLine;
-          augLine << "  | " << std::left << std::setw(14) << "+ augmentation" << std::right << " | " << fmt(augMs, 9)
+          augLine << "  | " << std::left << std::setw(18) << "+ augmentation" << std::right << " | " << fmt(augMs, 9)
                   << " |   (gpu)|";
           line(augLine.str());
         }
@@ -384,12 +384,12 @@ namespace NN_CLI
 
       if (ph == Phase::GpuTrain) {
         std::ostringstream h2d;
-        h2d << "  | " << std::left << std::setw(14) << "+ h2d_upload" << std::right << " | " << fmt(v.h2dPerGpu, 9)
+        h2d << "  | " << std::left << std::setw(18) << "+ h2d_upload" << std::right << " | " << fmt(v.h2dPerGpu, 9)
             << " |   (gpu)|";
         line(h2d.str());
 
         std::ostringstream comp;
-        comp << "  | " << std::left << std::setw(14) << "+ gpu_compute" << std::right << " | "
+        comp << "  | " << std::left << std::setw(18) << "+ gpu_compute" << std::right << " | "
              << fmt(v.computePerGpu, 9) << " |   (gpu)|";
         line(comp.str());
 
@@ -399,13 +399,11 @@ namespace NN_CLI
           auto gpuSub = [&](const char* label, double msVal) {
             if (msVal > 0.0) {
               std::ostringstream sub;
-              sub << "  | " << std::left << std::setw(14) << ("  " + std::string(label)) << std::right << " | "
-                  << fmt(msVal, 9) << " |   gpu |";
+              sub << "  | " << std::left << std::setw(18) << ("    " + std::string(label)) << std::right << " | "
+                  << fmt(msVal, 9) << " |    gpu |";
               line(sub.str());
             }
           };
-
-          line("  |                |           |  GPU-profiled breakdown: |");
 
           for (Phase ph : kGpuSubPhases)
             gpuSub(phaseLabel(ph), v.gpuProfile[static_cast<int>(ph)]);
@@ -413,12 +411,12 @@ namespace NN_CLI
       }
     }
 
-    line("  +----------------+-----------+--------+");
+    line("  +--------------------+-----------+--------+");
     std::ostringstream tot;
-    tot << "  | " << std::left << std::setw(14) << "TOTAL" << std::right << " | " << fmt(total, 9) << " | "
+    tot << "  | " << std::left << std::setw(18) << "TOTAL" << std::right << " | " << fmt(total, 9) << " | "
         << fmt(100.0, 5) << " %|";
     line(tot.str());
-    line("  +----------------+-----------+--------+");
+    line("  +--------------------+-----------+--------+");
 
     if (launchesPerGpu > 0)
       line("  gpu launches/batch per GPU: " + fmt(launchesPerGpu, 0, 0) + "  (one run() per sample, " +
@@ -591,7 +589,7 @@ namespace NN_CLI
     const ulong launchesPerGpu = v.runs / static_cast<ulong>(std::max(1, this->numGpus));
     const double msPerLaunch = launchesPerGpu > 0 ? v.computePerGpu / static_cast<double>(launchesPerGpu) : 0.0;
 
-    constexpr int phaseW = 16;
+    constexpr int phaseW = 20;
     constexpr int pctW = 7;
     constexpr int tableOverhead = phaseW + pctW + 10;
     constexpr int minMsW = 10;
@@ -681,19 +679,13 @@ namespace NN_CLI
               subStr << std::fixed << std::setprecision(1) << msVal;
               std::ostringstream subPctStr;
               subPctStr << std::fixed << std::setprecision(1) << msVal / total * 100.0 << "%";
-              std::string indent = std::string("  ") + label;
+              std::string indent = std::string("    ") + label;
               row(indent, subStr.str(), subPctStr.str());
             }
           };
 
           for (Phase ph : kGpuSubPhases)
             gpuSub(phaseLabel(ph), v.gpuProfile[static_cast<int>(ph)]);
-
-          if (v.gpuProfileKernelCalls > 0) {
-            std::ostringstream kcStr;
-            kcStr << " gpu kernel calls/batch: " << v.gpuProfileKernelCalls;
-            lines.push_back(kcStr.str());
-          }
         }
       }
     }
