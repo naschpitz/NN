@@ -262,6 +262,13 @@ int CNNRunner::train()
 
     dataLoader.setLoadingCallback([this, &tuiMutex, loadingBarGpus](ulong current, ulong total, ulong batchNum,
                                                                     ulong totalBatches) {
+      this->loadCurrent_ = current;
+      this->loadTotal_ = total;
+      this->loadBatchNum_ = batchNum;
+      this->loadTotalBatches_ = totalBatches;
+      this->loadBarGpus_ = loadingBarGpus;
+      this->loading_ = true;
+
       std::lock_guard<std::recursive_mutex> lock(tuiMutex);
       this->tui->handleResize();
       ProgressBar::renderLoadingBar(this->tui->loadingWindow(), current, total, batchNum, totalBatches, loadingBarGpus);
@@ -271,10 +278,12 @@ int CNNRunner::train()
   if (validationConfig.enabled) {
     auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
                                                        this->augConfig.augmentationProbability);
+    this->loading_ = false;
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
     auto sampleProvider =
       dataLoader.makeSampleProvider(this->augConfig.transforms, this->augConfig.augmentationProbability);
+    this->loading_ = false;
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
 
