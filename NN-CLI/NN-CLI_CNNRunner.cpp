@@ -61,7 +61,7 @@ int CNNRunner::train()
   if (this->logLevel > LogLevel::QUIET)
     this->tui->init();
 
-  this->tui->setResizeCallback([this]() {
+  this->trainingTui_.attach(this->tui, [this]() {
     this->profiler.resetRenderState();
     ulong cw = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
     this->regenerateConfigLines(cw);
@@ -245,45 +245,19 @@ int CNNRunner::train()
   }
 
   if (this->tui && this->tui->isInitialized()) {
-    auto& tuiMutex = this->tui->mutex();
-
-    // The loading bar must reserve the same per-GPU suffix width as the epoch bar so the two
-    // line up. The prefetch loader runs ahead of the first training update, so we resolve the
-    // GPU count up front (same logic the GPU core uses) rather than discovering it dynamically.
-    int loadingBarGpus = 1;
-
-    if (this->coreConfig.deviceType == CNN::DeviceType::GPU) {
-      OpenCLWrapper::Core::initialize(false);
-      int availableGpus = static_cast<int>(OpenCLWrapper::Core::getNumDevices());
-      loadingBarGpus =
-        (this->coreConfig.numGPUs > 0) ? std::min(availableGpus, this->coreConfig.numGPUs) : availableGpus;
-      loadingBarGpus = std::max(1, loadingBarGpus);
-    }
-
-    dataLoader.setLoadingCallback([this, &tuiMutex, loadingBarGpus](ulong current, ulong total, ulong batchNum,
-                                                                    ulong totalBatches) {
-      this->loadCurrent_ = current;
-      this->loadTotal_ = total;
-      this->loadBatchNum_ = batchNum;
-      this->loadTotalBatches_ = totalBatches;
-      this->loadBarGpus_ = loadingBarGpus;
-      this->loading_ = true;
-
-      std::lock_guard<std::recursive_mutex> lock(tuiMutex);
-      this->tui->handleResize();
-      ProgressBar::renderLoadingBar(this->tui->loadingWindow(), current, total, batchNum, totalBatches, loadingBarGpus);
-    });
+    this->trainingTui_.resolveBarGpus(this->coreConfig.deviceType == CNN::DeviceType::GPU, this->coreConfig.numGPUs);
+    dataLoader.setLoadingCallback(this->trainingTui_.loadingCallback());
   }
 
   if (validationConfig.enabled) {
     auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
                                                        this->augConfig.augmentationProbability);
-    this->loading_ = false;
+    this->trainingTui_.markLoadingFinished();
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
     auto sampleProvider =
       dataLoader.makeSampleProvider(this->augConfig.transforms, this->augConfig.augmentationProbability);
-    this->loading_ = false;
+    this->trainingTui_.markLoadingFinished();
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
 

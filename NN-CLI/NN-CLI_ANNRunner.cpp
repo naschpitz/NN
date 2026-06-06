@@ -17,7 +17,6 @@
 #include <json.hpp>
 
 #include <ANN_Utils.hpp>
-#include <OCLW_Core.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -57,6 +56,11 @@ int ANNRunner::train()
 
   if (this->logLevel > LogLevel::QUIET)
     this->tui->init();
+
+  this->trainingTui_.attach(this->tui, [this]() {
+    ulong cw = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
+    this->regenerateConfigLines(cw);
+  });
 
   if (this->tui->isInitialized())
     this->tui->refreshConfigPanel();
@@ -136,22 +140,19 @@ int ANNRunner::train()
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
   if (this->logLevel > LogLevel::QUIET) {
-    std::vector<std::string> configLines;
-
-    auto trainLines =
-      TrainingSummary::collectANN(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
-                                  numValidationSamples, validationRatio, validationAuto);
-    configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
-
-    ulong numOutputClasses =
+    this->cachedNumOrigTrainSamples_ = numOriginalTrainSamples;
+    this->cachedNumTrainSamples_ = numTrainSamples;
+    this->cachedNumValSamples_ = numValidationSamples;
+    this->cachedValRatio_ = validationRatio;
+    this->cachedValAuto_ = validationAuto;
+    this->cachedNumOutputClasses_ =
       this->coreConfig.layersConfig.empty() ? 0 : this->coreConfig.layersConfig.back().numNeurons;
+    this->configLinesLoaded_ = true;
 
-    if (numOutputClasses >= 2) {
-      auto lossLines = LossReferenceTable::collect(numOutputClasses);
-      configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
-    }
-
-    this->tui->setConfigLines(configLines);
+    // Fit the config tables to the left panel when the TUI is active; otherwise let them size to
+    // the full terminal (maxWidth 0).
+    ulong cw = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 0;
+    this->regenerateConfigLines(cw);
   }
 
   if (this->tui->isInitialized()) {
@@ -190,36 +191,19 @@ int ANNRunner::train()
                               validationConfig.enabled ? &split.validationIndices : nullptr);
 
   if (this->tui && this->tui->isInitialized()) {
-    auto loadingWin = this->tui->loadingWindow();
-    auto& tuiMutex = this->tui->mutex();
-
-    // Reserve the same per-GPU suffix width as the epoch bar so the two bars line up.
-    // The prefetch loader runs ahead of the first training update, so resolve the GPU
-    // count up front (same logic the GPU core uses) instead of discovering it dynamically.
-    int loadingBarGpus = 1;
-
-    if (this->coreConfig.deviceType == ANN::DeviceType::GPU) {
-      OpenCLWrapper::Core::initialize(false);
-      int availableGpus = static_cast<int>(OpenCLWrapper::Core::getNumDevices());
-      loadingBarGpus =
-        (this->coreConfig.numGPUs > 0) ? std::min(availableGpus, this->coreConfig.numGPUs) : availableGpus;
-      loadingBarGpus = std::max(1, loadingBarGpus);
-    }
-
-    dataLoader.setLoadingCallback(
-      [loadingWin, &tuiMutex, loadingBarGpus](ulong current, ulong total, ulong batchNum, ulong totalBatches) {
-        std::lock_guard<std::recursive_mutex> lock(tuiMutex);
-        ProgressBar::renderLoadingBar(loadingWin, current, total, batchNum, totalBatches, loadingBarGpus);
-      });
+    this->trainingTui_.resolveBarGpus(this->coreConfig.deviceType == ANN::DeviceType::GPU, this->coreConfig.numGPUs);
+    dataLoader.setLoadingCallback(this->trainingTui_.loadingCallback());
   }
 
   if (validationConfig.enabled) {
     auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
                                                        this->augConfig.augmentationProbability);
+    this->trainingTui_.markLoadingFinished();
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
     auto sampleProvider =
       dataLoader.makeSampleProvider(this->augConfig.transforms, this->augConfig.augmentationProbability);
+    this->trainingTui_.markLoadingFinished();
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
 
@@ -541,6 +525,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             validationCore->setProgressCallback([tui, validationTotal, validationGpus](ulong current, ulong) {
               float pct = static_cast<float>(current) / validationTotal * 100.0f;
               std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+              tui->handleResize();
               ProgressBar::renderValidationBar(tui->progressWindow(), pct, validationGpus);
             });
           }
@@ -614,6 +599,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
         if (tui && tui->isInitialized()) {
           std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+          tui->handleResize();
           progressBar.update(info, tui->progressWindow());
           tui->refresh();
         } else {
@@ -625,6 +611,28 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     if (progress.epochLoss > 0)
       lastEpochLoss = progress.epochLoss;
   });
+}
+
+//===================================================================================================================//
+
+void ANNRunner::regenerateConfigLines(ulong maxWidth)
+{
+  if (!this->configLinesLoaded_)
+    return;
+
+  std::vector<std::string> configLines;
+
+  auto trainLines = TrainingSummary::collectANN(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
+                                                this->cachedNumTrainSamples_, this->cachedNumValSamples_,
+                                                this->cachedValRatio_, this->cachedValAuto_, maxWidth);
+  configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
+
+  if (this->cachedNumOutputClasses_ >= 2) {
+    auto lossLines = LossReferenceTable::collect(this->cachedNumOutputClasses_, maxWidth);
+    configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
+  }
+
+  this->tui->setConfigLines(configLines);
 }
 
 //===================================================================================================================//
