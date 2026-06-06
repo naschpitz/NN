@@ -452,6 +452,9 @@ namespace NN_CLI
   void GpuAugmenterPool::augment(std::vector<float>& batch, ulong count, const AugmentationTransforms& transforms,
                                  float probability)
   {
+    if (this->timingCallback)
+      this->timingCallback(true);
+
     // Acquire a free augmenter (blocks until one is available).
     int idx;
     {
@@ -469,5 +472,8 @@ namespace NN_CLI
     }
 
     this->cv.notify_one();
+
+    if (this->timingCallback)
+      this->timingCallback(false);
   }
 }

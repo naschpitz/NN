@@ -10,7 +10,16 @@
 
 namespace
 {
-  constexpr int kLabelWidth = 28;
+  //-- Layout constants shared by every ncurses progress / loading / validation bar so they all
+  //-- line up vertically in the Training panel. --//
+  constexpr int kLabelWidth = 28; // labels are left-padded to this width
+  constexpr int kBracketWidth = 2; // the " [" written right after the label
+  constexpr int kRightPad = 20; // reserved on the right for the "] 100.000%" suffix (+ slack)
+  constexpr int kGpuInfoPerGpu = 9; // width of one " | N:XXX%" cell in the per-GPU suffix
+
+  //-- Color pairs (configured in TerminalUI::init). --//
+  constexpr int kBarColor = 1; // green filled bar segment
+  constexpr int kLossColor = 6; // green epoch-complete loss text
 
   std::string formatEta(double seconds)
   {
@@ -30,6 +39,78 @@ namespace
       out << std::setfill('0') << std::setw(2) << m << ":" << std::setw(2) << s;
 
     return out.str();
+  }
+
+  // Width reserved on the right for the per-GPU "(0:XX% | 1:XX%)" suffix (0 when single-GPU).
+  int gpuSuffixWidth(int gpus)
+  {
+    return gpus > 1 ? kGpuInfoPerGpu * gpus - 1 : 0;
+  }
+
+  // Usable bar width inside `win`, mirrored across all bars so their brackets line up.
+  int barWidthFor(WINDOW* win, int gpus)
+  {
+    int cols = ::getmaxx(win);
+    return std::max(10, cols - kLabelWidth - kBracketWidth - kRightPad - gpuSuffixWidth(gpus));
+  }
+
+  // Emit the label left-padded to kLabelWidth, then " [".
+  void emitLabel(WINDOW* win, const char* label)
+  {
+    int len = static_cast<int>(std::strlen(label));
+    ::waddstr(win, label);
+
+    for (int i = len; i < kLabelWidth; i++)
+      ::waddstr(win, " ");
+
+    ::waddstr(win, " [");
+  }
+
+  // Emit a single solid bar: `filled` green blocks, then light shading out to `barWidth`.
+  void emitSingleBar(WINDOW* win, float fraction, int barWidth)
+  {
+    int filled = std::clamp(static_cast<int>(fraction * barWidth), 0, barWidth);
+
+    ::wattron(win, COLOR_PAIR(kBarColor));
+
+    for (int i = 0; i < filled; i++)
+      ::waddstr(win, "█");
+
+    ::wattroff(win, COLOR_PAIR(kBarColor));
+
+    for (int i = filled; i < barWidth; i++)
+      ::waddstr(win, "░");
+  }
+
+  // Emit a segmented bar, one equal-width segment per GPU separated by "│".
+  void emitMultiBar(WINDOW* win, const std::vector<float>& gpuProg, int numGPUs, int barWidth)
+  {
+    int segmentWidth = barWidth / numGPUs;
+
+    for (int gpu = 0; gpu < numGPUs; gpu++) {
+      float pct = (gpu < static_cast<int>(gpuProg.size())) ? gpuProg[gpu] : 0.0f;
+      emitSingleBar(win, pct, segmentWidth);
+
+      if (gpu < numGPUs - 1)
+        ::waddstr(win, "│");
+    }
+  }
+
+  // Emit the trailing per-GPU suffix " (0:XX% | 1:XX%)".
+  void emitGpuSuffix(WINDOW* win, const std::vector<float>& gpuProg)
+  {
+    std::ostringstream gpuInfo;
+    gpuInfo << " (";
+
+    for (size_t g = 0; g < gpuProg.size(); g++) {
+      gpuInfo << g << ":" << std::setw(3) << static_cast<int>(gpuProg[g] * 100) << "%";
+
+      if (g + 1 < gpuProg.size())
+        gpuInfo << " | ";
+    }
+
+    gpuInfo << ")";
+    ::waddstr(win, gpuInfo.str().c_str());
   }
 } // namespace
 
@@ -73,60 +154,27 @@ namespace NN_CLI
         out << " - Loss: " << std::fixed << std::setprecision(6) << 0.0f << "   ";
         std::cout << out.str() << std::flush;
       } else {
-        // ncurses: render 0% bar into the window
+        // ncurses: render the 0% bar into the window immediately at epoch start (before throttling).
         ::werase(win);
 
-        {
-          char rawLabel[32];
-          int labelLen =
-            snprintf(rawLabel, sizeof(rawLabel), "Epoch %*lu/%lu", 4, static_cast<unsigned long>(progress.currentEpoch),
-                     static_cast<unsigned long>(progress.totalEpochs));
-          int labelPad = kLabelWidth - labelLen;
-
-          if (labelPad < 0)
-            labelPad = 0;
-
-          ::waddstr(win, rawLabel);
-
-          for (int i = 0; i < labelPad; i++)
-            ::waddstr(win, " ");
-
-          ::waddstr(win, " [");
-        }
+        char rawLabel[32];
+        snprintf(rawLabel, sizeof(rawLabel), "Epoch %*lu/%lu", 4, static_cast<unsigned long>(progress.currentEpoch),
+                 static_cast<unsigned long>(progress.totalEpochs));
+        emitLabel(win, rawLabel);
 
         int cols0 = ::getmaxx(win);
-        int labelLen = kLabelWidth + 2;
-        constexpr int rightPad = 20;
-        int gpuInfoLen = 0;
-
-        if (isMultiGPU) {
-          gpuInfoLen = 9 * progress.totalGPUs - 1;
-        }
-
-        int overhead = labelLen + rightPad + gpuInfoLen;
+        int overhead = kLabelWidth + kBracketWidth + kRightPad + gpuSuffixWidth(progress.totalGPUs);
         int bw = std::max(10, cols0 - overhead);
 
         if (isMultiGPU) {
           std::vector<float> zeroProg(progress.totalGPUs, 0.0f);
-          this->renderNcursesMultiBar(win, zeroProg, progress.totalGPUs, bw);
+          emitMultiBar(win, zeroProg, progress.totalGPUs, bw);
           ::waddstr(win, "]   0.000%");
 
-          if (gpuInfoLen > 0 && bw + overhead <= cols0) {
-            std::ostringstream gpuInfo;
-            gpuInfo << " (";
-
-            for (int g = 0; g < progress.totalGPUs; g++) {
-              gpuInfo << g << ":  0%";
-
-              if (g < progress.totalGPUs - 1)
-                gpuInfo << " | ";
-            }
-
-            gpuInfo << ")";
-            ::waddstr(win, gpuInfo.str().c_str());
-          }
+          if (gpuSuffixWidth(progress.totalGPUs) > 0 && bw + overhead <= cols0)
+            emitGpuSuffix(win, zeroProg);
         } else {
-          this->renderNcursesBar(win, 0.0f, bw);
+          emitSingleBar(win, 0.0f, bw);
           ::waddstr(win, "]   0.000%");
         }
 
@@ -189,54 +237,37 @@ namespace NN_CLI
 
       int cols = ::getmaxx(win);
 
-      int labelLen = kLabelWidth + 2;
-      constexpr int rightPad = 20;
-      int gpuInfoLen = 0;
-
       // Reserve the per-GPU suffix width whenever multi-GPU — including the epoch-complete
       // frame, even though it shows no suffix. Otherwise the completed bar would render
-      // full-width and its "]" would jut ~gpuInfoLen columns right of the loading bar's "]",
+      // full-width and its "]" would jut ~gpuSuffixWidth columns right of the loading bar's "]",
       // which keeps reserving this space. The reservation keeps both brackets aligned; the
       // suffix itself is still only rendered while the epoch is in progress (see below).
-      if (isMultiGPU) {
-        gpuInfoLen = 9 * progress.totalGPUs - 1;
-      }
-
-      int overhead = labelLen + rightPad + gpuInfoLen;
+      int overhead = kLabelWidth + kBracketWidth + kRightPad + gpuSuffixWidth(progress.totalGPUs);
       int effBarWidth = std::max(10, cols - overhead);
 
-      // Line 1: epoch + progress bar [+ per-GPU percentages inline]
-      {
-        char rawLabel[32];
-        int labelLen2 =
-          snprintf(rawLabel, sizeof(rawLabel), "Epoch %*lu/%lu", 4, static_cast<unsigned long>(progress.currentEpoch),
-                   static_cast<unsigned long>(progress.totalEpochs));
-        int labelPad = kLabelWidth - labelLen2;
+      // Snapshot per-GPU progress once so the bar, percentage and suffix stay consistent.
+      std::vector<float> gpuProg;
 
-        if (labelPad < 0)
-          labelPad = 0;
+      if (isMultiGPU)
+        gpuProg = this->getGpuProgress();
 
-        ::waddstr(win, rawLabel);
-
-        for (int i = 0; i < labelPad; i++)
-          ::waddstr(win, " ");
-
-        ::waddstr(win, " [");
-      }
+      // Line 0: epoch label + progress bar [+ per-GPU percentages inline]
+      char rawLabel[32];
+      snprintf(rawLabel, sizeof(rawLabel), "Epoch %*lu/%lu", 4, static_cast<unsigned long>(progress.currentEpoch),
+               static_cast<unsigned long>(progress.totalEpochs));
+      emitLabel(win, rawLabel);
 
       if (isMultiGPU && !isEpochComplete) {
-        std::vector<float> gpuProg = this->getGpuProgress();
-        this->renderNcursesMultiBar(win, gpuProg, progress.totalGPUs, effBarWidth);
+        emitMultiBar(win, gpuProg, progress.totalGPUs, effBarWidth);
       } else {
         float samplePercent =
           isEpochComplete ? 1.0f : static_cast<float>(progress.currentSample) / progress.totalSamples;
-        this->renderNcursesBar(win, samplePercent, effBarWidth);
+        emitSingleBar(win, samplePercent, effBarWidth);
       }
 
       float displayPct;
 
       if (isMultiGPU) {
-        std::vector<float> gpuProg = this->getGpuProgress();
         double sum = 0.0;
 
         for (float p : gpuProg)
@@ -252,30 +283,17 @@ namespace NN_CLI
       snprintf(pctBuf, sizeof(pctBuf), "] %6.3f%%", static_cast<double>(displayPct));
       ::waddstr(win, pctBuf);
 
-      if (isMultiGPU && !isEpochComplete && gpuInfoLen > 0 && effBarWidth + overhead <= cols) {
-        std::vector<float> gpuProg = this->getGpuProgress();
-        std::ostringstream gpuInfo;
-        gpuInfo << " (";
-
-        for (int g = 0; g < static_cast<int>(gpuProg.size()); g++) {
-          gpuInfo << g << ":" << std::setw(3) << static_cast<int>(gpuProg[g] * 100) << "%";
-
-          if (g < static_cast<int>(gpuProg.size()) - 1)
-            gpuInfo << " | ";
-        }
-
-        gpuInfo << ")";
-        ::waddstr(win, gpuInfo.str().c_str());
-      }
+      if (isMultiGPU && !isEpochComplete && gpuSuffixWidth(progress.totalGPUs) > 0 && effBarWidth + overhead <= cols)
+        emitGpuSuffix(win, gpuProg);
 
       // Line 1: loss, img/s, ETA
       if (isEpochComplete) {
         ::wmove(win, 1, 0);
-        ::wattron(win, COLOR_PAIR(6));
+        ::wattron(win, COLOR_PAIR(kLossColor));
         char lossBuf[64];
         snprintf(lossBuf, sizeof(lossBuf), "Loss: %.6f ", static_cast<double>(progress.epochLoss));
         ::waddstr(win, lossBuf);
-        ::wattroff(win, COLOR_PAIR(6));
+        ::wattroff(win, COLOR_PAIR(kLossColor));
       } else {
         ::wmove(win, 1, 0);
 
@@ -350,45 +368,11 @@ namespace NN_CLI
     if (!win)
       return;
 
-    int cols = ::getmaxx(win);
-    constexpr int rightPad = 20;
-
-    int gpus = std::max(1, numGpus);
-    int gpuInfoLen = (gpus > 1) ? 9 * gpus - 1 : 0;
-    int barWidth = std::max(10, cols - kLabelWidth - 2 - rightPad - gpuInfoLen);
-
-    const char* label = "Validating";
-    int labelLen = static_cast<int>(strlen(label));
-    int labelPad = kLabelWidth - labelLen;
-
-    if (labelPad < 0)
-      labelPad = 0;
+    int barWidth = barWidthFor(win, numGpus);
 
     ::werase(win);
-
-    ::waddstr(win, label);
-
-    for (int i = 0; i < labelPad; i++)
-      ::waddstr(win, " ");
-
-    ::waddstr(win, " [");
-
-    int filled = static_cast<int>(pct / 100.0f * barWidth);
-
-    if (filled > barWidth)
-      filled = barWidth;
-
-    if (filled < 0)
-      filled = 0;
-
-    ::wattron(win, COLOR_PAIR(1));
-
-    for (int i = 0; i < filled; i++)
-      ::waddstr(win, "█");
-    ::wattroff(win, COLOR_PAIR(1));
-
-    for (int i = filled; i < barWidth; i++)
-      ::waddstr(win, "░");
+    emitLabel(win, "Validating");
+    emitSingleBar(win, pct / 100.0f, barWidth);
 
     char pctBuf[16];
     snprintf(pctBuf, sizeof(pctBuf), "] %6.3f%%", static_cast<double>(pct));
@@ -411,50 +395,17 @@ namespace NN_CLI
     float pct = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
     char rawLabel[32];
-    int labelLen = snprintf(rawLabel, sizeof(rawLabel), "Loading samples (%lu/%lu)",
-                            static_cast<unsigned long>(batchNum), static_cast<unsigned long>(totalBatches));
-    int labelPad = kLabelWidth - labelLen;
+    snprintf(rawLabel, sizeof(rawLabel), "Loading samples (%lu/%lu)", static_cast<unsigned long>(batchNum),
+             static_cast<unsigned long>(totalBatches));
 
-    if (labelPad < 0)
-      labelPad = 0;
-
-    int cols = ::getmaxx(win);
-    constexpr int rightPad = 20;
-
-    // Mirror the epoch bar's geometry so the two bars line up vertically: the label is
-    // padded to kLabelWidth, followed by " [" (2 chars), and in multi-GPU mode the bar is
-    // shortened by the per-GPU suffix width the epoch bar reserves ("(0:  0% | 1:  0%)").
-    // numGpus is supplied by the caller (the prefetch loader runs ahead of the first
-    // training update, so it cannot be discovered dynamically here).
-    int gpus = std::max(1, numGpus);
-    int gpuInfoLen = (gpus > 1) ? 9 * gpus - 1 : 0;
-    int barWidth = std::max(10, cols - kLabelWidth - 2 - rightPad - gpuInfoLen);
+    // Mirror the epoch bar's geometry so the two bars line up vertically. numGpus is supplied by
+    // the caller (the prefetch loader runs ahead of the first training update, so it cannot be
+    // discovered dynamically here).
+    int barWidth = barWidthFor(win, numGpus);
 
     ::werase(win);
-
-    ::waddstr(win, rawLabel);
-
-    for (int i = 0; i < labelPad; i++)
-      ::waddstr(win, " ");
-
-    ::waddstr(win, " [");
-
-    int filled = static_cast<int>(pct * barWidth);
-
-    if (filled > barWidth)
-      filled = barWidth;
-
-    if (filled < 0)
-      filled = 0;
-
-    ::wattron(win, COLOR_PAIR(1));
-
-    for (int i = 0; i < filled; i++)
-      ::waddstr(win, "█");
-    ::wattroff(win, COLOR_PAIR(1));
-
-    for (int i = filled; i < barWidth; i++)
-      ::waddstr(win, "░");
+    emitLabel(win, rawLabel);
+    emitSingleBar(win, pct, barWidth);
 
     char buf[64];
     snprintf(buf, sizeof(buf), "] %lu/%lu  %5.1f%%", static_cast<unsigned long>(current),
@@ -529,48 +480,6 @@ namespace NN_CLI
       totalPercent /= numGPUs;
 
     out << "] " << std::fixed << std::setprecision(1) << std::setw(5) << (totalPercent * 100) << "% (";
-  }
-
-  //===================================================================================================================//
-  //-- ncurses Rendering --//
-  //===================================================================================================================//
-
-  void ProgressBar::renderNcursesBar(WINDOW* win, float percent, int barWidth)
-  {
-    int filledWidth = static_cast<int>(percent * barWidth);
-
-    ::wattron(win, COLOR_PAIR(1));
-
-    for (int i = 0; i < filledWidth; i++)
-      ::waddstr(win, "█");
-
-    ::wattroff(win, COLOR_PAIR(1));
-
-    for (int i = filledWidth; i < barWidth; i++)
-      ::waddstr(win, "░");
-  }
-
-  void ProgressBar::renderNcursesMultiBar(WINDOW* win, const std::vector<float>& gpuProg, int numGPUs, int barWidth)
-  {
-    int segmentWidth = barWidth / numGPUs;
-
-    for (int gpu = 0; gpu < numGPUs; gpu++) {
-      float gpuPercent = (gpu < static_cast<int>(gpuProg.size())) ? gpuProg[gpu] : 0.0f;
-      int filledWidth = static_cast<int>(gpuPercent * segmentWidth);
-
-      ::wattron(win, COLOR_PAIR(1));
-
-      for (int i = 0; i < filledWidth; i++)
-        ::waddstr(win, "█");
-
-      ::wattroff(win, COLOR_PAIR(1));
-
-      for (int i = filledWidth; i < segmentWidth; i++)
-        ::waddstr(win, "░");
-
-      if (gpu < numGPUs - 1)
-        ::waddstr(win, "│");
-    }
   }
 
 } // namespace NN_CLI

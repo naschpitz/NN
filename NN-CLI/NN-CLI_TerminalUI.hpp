@@ -1,6 +1,8 @@
 #ifndef NN_CLI_TERMINALUI_HPP
 #define NN_CLI_TERMINALUI_HPP
 
+#include <atomic>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -35,6 +37,16 @@ namespace NN_CLI
         return this->cols_;
       }
 
+      int timingWidth() const
+      {
+        return this->timingWidth_;
+      }
+
+      int leftWidth() const
+      {
+        return this->leftWidth_;
+      }
+
       void setConfigLines(const std::vector<std::string>& lines);
       void refreshConfigPanel();
 
@@ -50,9 +62,24 @@ namespace NN_CLI
 
       void setTimingLines(const std::vector<std::string>& lines);
       void addEpochLine(const std::string& line);
+      void requestResize();
+      bool handleResize();
       void redraw();
       void refresh();
       void pollInput();
+
+      void setResizeCallback(std::function<void()> callback)
+      {
+        this->resizeCallback_ = std::move(callback);
+      }
+
+      // Invoked after the panels are redrawn (panel frames pushed to stdscr) so the caller can
+      // repaint transient sub-window overlays — e.g. the loading bar, which lives in its own
+      // window that layout() erases on resize and that nothing else redraws between callback ticks.
+      void setOverlayCallback(std::function<void()> callback)
+      {
+        this->overlayCallback_ = std::move(callback);
+      }
 
       std::recursive_mutex& mutex()
       {
@@ -60,35 +87,60 @@ namespace NN_CLI
       }
 
     private:
+      // Scroll offset for one panel. `autoScroll` (Epochs only) keeps the view pinned to the
+      // newest line until the user scrolls manually.
+      struct ScrollState {
+          int offset = 0;
+          bool autoScroll = false;
+      };
+
       void layout();
       void drawPanelFrame(int y, int h, const char* title, int titleColor = 2);
+      void drawPanelFrame(int y, int h, int x, int w, const char* title, int titleColor);
       void drawAllPanels();
+
+      // Composite the screen: redraw panels into stdscr, then layer the sub-windows on top.
+      // runOverlay re-renders the loading-bar overlay (after layout() recreates the windows);
+      // touchSub forces a full re-copy of the sub-windows when their content is otherwise unchanged.
+      void present(bool runOverlay, bool touchSub);
+
+      // Draw a vertical scrollbar in column `col` over `contentH` rows starting at `yTop`,
+      // with the thumb positioned for `scroll` within [0, total - contentH]. No-op if it all fits.
+      void drawScrollbar(int col, int yTop, int contentH, int scroll, int total);
+
       bool handleScrollInput(int ch);
+
+      // Apply a scroll keypress to `s`; returns true if `ch` was a recognized scroll key.
+      bool applyScroll(ScrollState& s, int ch, int contentH, int total);
 
       WINDOW* progressWin_ = nullptr;
       WINDOW* loadingWin_ = nullptr;
+      WINDOW* timingWin_ = nullptr;
 
       int rows_ = 0;
       int cols_ = 0;
       bool initialized_ = false;
 
+      int leftWidth_ = 0;
+      int timingWidth_ = 0;
+
       int configY_ = 0;
       int configH_ = 0;
       int trainingY_ = 0;
       int trainingH_ = 0;
-      int timingY_ = 0;
-      int timingH_ = 0;
       int epochsY_ = 0;
       int epochsH_ = 0;
       int helpY_ = 0;
 
-      int configScroll_ = 0;
-
-      bool epochsActive_ = false;
-      int epochScroll_ = 0;
-      bool epochsAutoScroll_ = true;
+      int activePanel_ = 0; // 0=Config, 1=Epochs, 2=Timing
+      ScrollState config_;
+      ScrollState epochs_{0, true};
+      ScrollState timing_;
 
       std::recursive_mutex mutex_;
+      std::atomic<uint> resizeRequested_{0};
+      std::function<void()> resizeCallback_;
+      std::function<void()> overlayCallback_;
 
       std::vector<std::string> configLines_;
       std::vector<std::string> timingLines_;
