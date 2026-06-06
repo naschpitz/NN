@@ -50,13 +50,17 @@ namespace NN_CLI
       void setConfigLines(const std::vector<std::string>& lines);
       void refreshConfigPanel();
 
-      WINDOW* progressWindow() const
+      WINDOW* progressWindow()
       {
+        if (this->resizeRequested_.load(std::memory_order_relaxed))
+          this->layout();
         return this->progressWin_;
       }
 
-      WINDOW* loadingWindow() const
+      WINDOW* loadingWindow()
       {
+        if (this->resizeRequested_.load(std::memory_order_relaxed))
+          this->layout();
         return this->loadingWin_;
       }
 
@@ -80,8 +84,6 @@ namespace NN_CLI
 
     private:
       void layout();
-      void saveSubwindowContent();
-      void restoreSubwindowContent();
       void drawPanelFrame(int y, int h, const char* title, int titleColor = 2);
       void drawPanelFrame(int y, int h, int x, int w, const char* title, int titleColor);
       void drawAllPanels();
@@ -121,10 +123,6 @@ namespace NN_CLI
       std::vector<std::string> configLines_;
       std::vector<std::string> timingLines_;
       std::vector<std::string> epochLines_;
-
-      std::string savedLoadingText_;
-      std::string savedProgressLine0_;
-      std::string savedProgressLine1_;
   };
 
 } // namespace NN_CLI
