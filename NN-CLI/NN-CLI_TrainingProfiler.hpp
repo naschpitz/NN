@@ -54,14 +54,8 @@ namespace NN_CLI
           ulong runs = 0;
           ulong batchNumber = 0;
           bool valid = false;
-          // GPU-profiled sub-phase breakdown (accumulated per step)
-          double gpuProfileCnnFwd = 0.0;
-          double gpuProfileAnnFwd = 0.0;
-          double gpuProfileAnnBwd = 0.0;
-          double gpuProfileCnnBwd = 0.0;
-          double gpuProfileCnnAcc = 0.0;
-          double gpuProfileAnnAcc = 0.0;
-          double gpuProfileLoss = 0.0;
+          // GPU-profiled sub-phase breakdown (accumulated per step), keyed by TimingPhase.
+          std::array<double, kNumPhases> gpuProfile{};
           ulong gpuProfileKernelCalls = 0;
       };
 
@@ -76,15 +70,9 @@ namespace NN_CLI
       ulong stepRuns[kMaxRows];
       bool stepInProgress = false;
 
-      //-- GPU profile hot state (lock-free, per-row) --//
+      //-- GPU profile hot state (lock-free, per-row), keyed by TimingPhase --//
       struct GpuProfileRow {
-          double cnnFwd = 0.0;
-          double annFwd = 0.0;
-          double annBwd = 0.0;
-          double cnnBwd = 0.0;
-          double cnnAcc = 0.0;
-          double annAcc = 0.0;
-          double loss = 0.0;
+          std::array<double, kNumPhases> ms{};
           ulong kernelCalls = 0;
       };
 
@@ -99,22 +87,10 @@ namespace NN_CLI
       ulong totalStepCount = 0;
       ulong currentEpoch = 0;
 
-      //-- GPU profile aggregates --//
-      double epochGpuProfileCnnFwd = 0.0;
-      double epochGpuProfileAnnFwd = 0.0;
-      double epochGpuProfileAnnBwd = 0.0;
-      double epochGpuProfileCnnBwd = 0.0;
-      double epochGpuProfileCnnAcc = 0.0;
-      double epochGpuProfileAnnAcc = 0.0;
-      double epochGpuProfileLoss = 0.0;
+      //-- GPU profile aggregates (keyed by TimingPhase) --//
+      std::array<double, kNumPhases> epochGpuProfile{};
+      std::array<double, kNumPhases> totalGpuProfile{};
       ulong epochGpuProfileKernelCalls = 0;
-      double totalGpuProfileCnnFwd = 0.0;
-      double totalGpuProfileAnnFwd = 0.0;
-      double totalGpuProfileAnnBwd = 0.0;
-      double totalGpuProfileCnnBwd = 0.0;
-      double totalGpuProfileCnnAcc = 0.0;
-      double totalGpuProfileAnnAcc = 0.0;
-      double totalGpuProfileLoss = 0.0;
       ulong totalGpuProfileKernelCalls = 0;
 
       //-- Published snapshot for rendering --//
