@@ -129,8 +129,9 @@ namespace NN_CLI
 
   void TerminalUI::layout()
   {
-    resize_term(0, 0);
-    clearok(stdscr, TRUE);
+    endwin();
+    refresh();
+    clear();
 
     this->rows_ = getmaxy(stdscr);
     this->cols_ = getmaxx(stdscr);
