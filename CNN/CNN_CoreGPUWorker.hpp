@@ -33,8 +33,12 @@ namespace CNN
       PredictResult<T> predict(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
+      // timingCallback/gpuIndex are optional instrumentation: when set, the worker
+      // notifies phase boundaries (H2DUpload / GpuCompute) tagged with its GPU index.
+      // gpuProfileCallback receives GPU-profiled per-sub-phase kernel times.
       T trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                    const TrainingCallback<T>& callback);
+                    const TrainingCallback<T>& callback, const TimingCallback& timingCallback = nullptr,
+                    int gpuIndex = -1, const GpuProfileCallback& gpuProfileCallback = nullptr);
 
       //-- Testing --//
       std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);
@@ -80,6 +84,14 @@ namespace CNN
       //-- OpenCL state --//
       std::unique_ptr<OpenCLWrapper::Core> ownedCore; // Owned core (standalone mode)
       OpenCLWrapper::Core* core = nullptr; // Pointer to active core (owned or shared);
+
+      //-- GPU profiling helper --//
+      void collectGpuProfile(const GpuProfileCallback& callback, int gpuIndex);
+      bool profilingEnabled = false;
+
+      //-- Per-sample progress reporting (loss delta from the GPU accumulator) --//
+      void reportSampleProgress(const TrainingCallback<T>& callback, ulong currentSample, ulong totalSamples,
+                                ulong epoch, ulong totalEpochs, T& prevAccumLoss);
   };
 }
 
