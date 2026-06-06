@@ -384,12 +384,12 @@ namespace NN_CLI
 
       if (ph == Phase::GpuTrain) {
         std::ostringstream h2d;
-        h2d << "  | " << std::left << std::setw(18) << "+ h2d_upload" << std::right << " | " << fmt(v.h2dPerGpu, 9)
+        h2d << "  | " << std::left << std::setw(18) << "  h2d_upload" << std::right << " | " << fmt(v.h2dPerGpu, 9)
             << " |   (gpu)|";
         line(h2d.str());
 
         std::ostringstream comp;
-        comp << "  | " << std::left << std::setw(18) << "+ gpu_compute" << std::right << " | "
+        comp << "  | " << std::left << std::setw(18) << "  gpu_compute" << std::right << " | "
              << fmt(v.computePerGpu, 9) << " |   (gpu)|";
         line(comp.str());
 
@@ -505,9 +505,9 @@ namespace NN_CLI
       if (ph == Phase::GpuTrain) {
         const double h2d = tot[static_cast<int>(Phase::H2DUpload)] / 1000.0 / gpus;
         const double comp = tot[static_cast<int>(Phase::GpuCompute)] / 1000.0 / gpus;
-        out << "  | " << std::left << std::setw(14) << "+ h2d_upload" << std::right << " | " << fmt(h2d, 13, 2)
+        out << "  | " << std::left << std::setw(14) << "  h2d_upload" << std::right << " | " << fmt(h2d, 13, 2)
             << " |   (gpu)|\n";
-        out << "  | " << std::left << std::setw(14) << "+ gpu_compute" << std::right << " | " << fmt(comp, 13, 2)
+        out << "  | " << std::left << std::setw(14) << "  gpu_compute" << std::right << " | " << fmt(comp, 13, 2)
             << " |   (gpu)|\n";
       }
     }
@@ -662,13 +662,13 @@ namespace NN_CLI
         h2dStr << std::fixed << std::setprecision(1) << v.h2dPerGpu;
         std::ostringstream h2dPctStr;
         h2dPctStr << std::fixed << std::setprecision(1) << v.h2dPerGpu / total * 100.0 << "%";
-        row(" + h2d_upload", h2dStr.str(), h2dPctStr.str());
+        row("  h2d_upload", h2dStr.str(), h2dPctStr.str());
 
         std::ostringstream compStr;
         compStr << std::fixed << std::setprecision(1) << v.computePerGpu;
         std::ostringstream compPctStr;
         compPctStr << std::fixed << std::setprecision(1) << v.computePerGpu / total * 100.0 << "%";
-        row(" + gpu_compute", compStr.str(), compPctStr.str());
+        row("  gpu_compute", compStr.str(), compPctStr.str());
 
         const double gpuProfileTotal = gpuSubTotal(v.gpuProfile);
 
