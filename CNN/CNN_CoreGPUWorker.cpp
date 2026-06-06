@@ -138,6 +138,13 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
       timingCallback(phase, event, gpuIndex);
   };
 
+  // Enable GPU kernel profiling up front (once) when a profile consumer is attached, so the very
+  // first sample's kernel times are captured rather than dropped by a lazy post-run() enable.
+  if (gpuProfileCallback && !this->profilingEnabled) {
+    this->core->setProfiling(true);
+    this->profilingEnabled = true;
+  }
+
   // Detect whether any BN layers exist
   const auto& cnnLayers = this->workerConfig.layersConfig.cnnLayers;
   ulong numLayers = cnnLayers.size();
@@ -191,22 +198,7 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
       this->collectGpuProfile(gpuProfileCallback, gpuIndex);
       emit(TimingPhase::GpuCompute, TimingEvent::End);
 
-      if (callback) {
-        std::vector<T> accumLoss(1);
-        this->core->template readBuffer<T>("accum_loss", accumLoss, 0);
-        T currentAccumLoss = accumLoss[0];
-        T sampleLoss = currentAccumLoss - prevAccumLoss;
-        prevAccumLoss = currentAccumLoss;
-
-        TrainingProgress<T> progress;
-        progress.currentEpoch = epoch;
-        progress.totalEpochs = totalEpochs;
-        progress.currentSample = s + 1;
-        progress.totalSamples = totalSamples;
-        progress.sampleLoss = sampleLoss;
-        progress.epochLoss = static_cast<T>(0);
-        callback(progress);
-      }
+      this->reportSampleProgress(callback, s + 1, totalSamples, epoch, totalEpochs, prevAccumLoss);
     }
   } else {
     // ---- BATCH NORM PATH: segment-based processing with cross-sample statistics ----
@@ -312,22 +304,7 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
 
       this->core->run();
 
-      if (callback) {
-        std::vector<T> accumLoss(1);
-        this->core->template readBuffer<T>("accum_loss", accumLoss, 0);
-        T currentAccumLoss = accumLoss[0];
-        T sampleLoss = currentAccumLoss - prevAccumLoss;
-        prevAccumLoss = currentAccumLoss;
-
-        TrainingProgress<T> progress;
-        progress.currentEpoch = epoch;
-        progress.totalEpochs = totalEpochs;
-        progress.currentSample = n + 1;
-        progress.totalSamples = totalSamples;
-        progress.sampleLoss = sampleLoss;
-        progress.epochLoss = static_cast<T>(0);
-        callback(progress);
-      }
+      this->reportSampleProgress(callback, n + 1, totalSamples, epoch, totalEpochs, prevAccumLoss);
     }
 
     // ---- CNN BACKWARD PASS ----
@@ -412,11 +389,7 @@ void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int
   if (!callback)
     return;
 
-  if (!this->profilingEnabled) {
-    this->core->setProfiling(true);
-    this->profilingEnabled = true;
-  }
-
+  // Profiling is enabled up front in trainSubset(); here we only collect.
   std::vector<OpenCLWrapper::KernelTiming> timings = this->core->getKernelTimings();
 
   if (timings.empty())
@@ -438,6 +411,32 @@ void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int
   }
 
   callback(profiles, gpuIndex);
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::reportSampleProgress(const TrainingCallback<T>& callback, ulong currentSample,
+                                            ulong totalSamples, ulong epoch, ulong totalEpochs, T& prevAccumLoss)
+{
+  if (!callback)
+    return;
+
+  // Per-sample loss is the delta of the GPU's running accumulator since the previous sample.
+  std::vector<T> accumLoss(1);
+  this->core->template readBuffer<T>("accum_loss", accumLoss, 0);
+  T currentAccumLoss = accumLoss[0];
+  T sampleLoss = currentAccumLoss - prevAccumLoss;
+  prevAccumLoss = currentAccumLoss;
+
+  TrainingProgress<T> progress;
+  progress.currentEpoch = epoch;
+  progress.totalEpochs = totalEpochs;
+  progress.currentSample = currentSample;
+  progress.totalSamples = totalSamples;
+  progress.sampleLoss = sampleLoss;
+  progress.epochLoss = static_cast<T>(0);
+  callback(progress);
 }
 
 //===================================================================================================================//

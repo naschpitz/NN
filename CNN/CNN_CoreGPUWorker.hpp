@@ -88,6 +88,10 @@ namespace CNN
       //-- GPU profiling helper --//
       void collectGpuProfile(const GpuProfileCallback& callback, int gpuIndex);
       bool profilingEnabled = false;
+
+      //-- Per-sample progress reporting (loss delta from the GPU accumulator) --//
+      void reportSampleProgress(const TrainingCallback<T>& callback, ulong currentSample, ulong totalSamples,
+                                ulong epoch, ulong totalEpochs, T& prevAccumLoss);
   };
 }
 
