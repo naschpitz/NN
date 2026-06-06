@@ -693,9 +693,9 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         if (tui && tui->isInitialized()) {
           std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
 
-          progressBar.update(info, tui->progressWindow());
-
           tui->handleResize();
+
+          progressBar.update(info, tui->progressWindow());
 
           auto timingLines = this->profiler.getTimingLines(tui->timingWidth());
 
