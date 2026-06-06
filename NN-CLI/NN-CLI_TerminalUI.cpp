@@ -435,6 +435,19 @@ namespace NN_CLI
       return false;
 
     this->layout();
+    this->drawAllPanels();
+    wnoutrefresh(stdscr);
+
+    if (this->loadingWin_) {
+      touchwin(this->loadingWin_);
+      wnoutrefresh(this->loadingWin_);
+    }
+
+    if (this->progressWin_) {
+      touchwin(this->progressWin_);
+      wnoutrefresh(this->progressWin_);
+    }
+
     return true;
   }
 

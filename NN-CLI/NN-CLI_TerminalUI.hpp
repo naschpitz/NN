@@ -50,17 +50,13 @@ namespace NN_CLI
       void setConfigLines(const std::vector<std::string>& lines);
       void refreshConfigPanel();
 
-      WINDOW* progressWindow()
+      WINDOW* progressWindow() const
       {
-        if (this->resizeRequested_.load(std::memory_order_relaxed))
-          this->layout();
         return this->progressWin_;
       }
 
-      WINDOW* loadingWindow()
+      WINDOW* loadingWindow() const
       {
-        if (this->resizeRequested_.load(std::memory_order_relaxed))
-          this->layout();
         return this->loadingWin_;
       }
 
