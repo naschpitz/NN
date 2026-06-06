@@ -483,7 +483,10 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   lastCallbackEpoch = 0;
   lastEpochLoss = 0.0f;
 
-  static ProgressBar progressBar(this->ioConfig.progressReports);
+  // NOTE: static ProgressBar persists across training runs.
+  // Window size is fixed at first invocation; changing batchSize between runs has no effect.
+  ulong batchSize = this->coreConfig.trainingConfig.batchSize;
+  static ProgressBar progressBar(this->ioConfig.progressReports, 50, std::max(2UL, batchSize / 2));
 
   auto tui = this->tui;
 
