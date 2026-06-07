@@ -420,11 +420,25 @@ namespace NN_CLI
     // Rebuild the entire table with borders from scratch
     this->epochLines_.clear();
 
+    // Compute dynamic column widths to fill the available panel space
+    int maxW = std::max(40, static_cast<int>(this->leftWidth_ - 4));
+    int overhead = 16; // non-data chars: "| " + " | " + " | " + " | " + " | " + " |"
+    int dataW = std::max(25, maxW - overhead);
+
     int epochW = 5;
-    int lossW = 10;
-    int valLossW = 10;
     int bestW = 4;
-    int dateTimeW = 19; // "YYYY-MM-DD HH:MM:SS"
+    int remaining = dataW - epochW - bestW;
+
+    // Give datetime at most 19 chars, minimum 4, leaving at least 8+8 for loss columns
+    int dateTimeW = std::max(4, std::min(19, remaining - 16));
+
+    if (dateTimeW < 4)
+      dateTimeW = 4;
+
+    // Split the rest equally between loss and val loss
+    int lossValSpace = remaining - dateTimeW;
+    int lossW = std::max(4, lossValSpace / 2);
+    int valLossW = std::max(4, lossValSpace - lossW);
 
     // Separator line helper
     auto sep = [&]() -> std::string {
@@ -461,14 +475,25 @@ namespace NN_CLI
 
       snprintf(bestCell, sizeof(bestCell), "%s", rec.isBest ? "X" : "");
 
-      char dateStr[32];
+      char dateStr[32] = "";
       std::tm tm_buf{};
       std::tm* tm_info = localtime_r(&rec.completionTime, &tm_buf);
 
       if (tm_info) {
-        std::strftime(dateStr, sizeof(dateStr), "%Y-%m-%d %H:%M:%S", tm_info);
-      } else {
-        dateStr[0] = '\0';
+        const char* dateFmt = "%Y-%m-%d %H:%M:%S";
+
+        if (dateTimeW < 19)
+          dateFmt = "%m-%d %H:%M:%S";
+
+        if (dateTimeW < 14)
+          dateFmt = "%m-%d %H:%M";
+
+        if (dateTimeW < 11)
+          dateFmt = "%H:%M:%S";
+
+        if (dateTimeW < 8)
+          dateFmt = "%H:%M";
+        std::strftime(dateStr, sizeof(dateStr), dateFmt, tm_info);
       }
 
       char row[256];
