@@ -488,11 +488,6 @@ namespace NN_CLI
     if (this->epochs_.autoScroll)
       this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - std::max(0, this->epochsH_ - 2));
 
-    // Clear the loading bar so it doesn't appear stuck with stale data
-    // across epoch boundaries (loading callbacks may be suppressed during
-    // validation and never fire to update the bar).
-    if (this->loadingWin_)
-      werase(this->loadingWin_);
     this->present(false, false);
   }
 
