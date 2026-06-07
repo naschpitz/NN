@@ -137,7 +137,7 @@ namespace NN_CLI
     this->cols_ = getmaxx(stdscr);
 
     int minTimingW = 20;
-    int minLeftW = 40;
+    int minLeftW = 43;
 
     if (this->cols_ < minLeftW + minTimingW) {
       this->leftWidth_ = this->cols_;
@@ -286,20 +286,30 @@ namespace NN_CLI
 
     //-- Left column: Epochs panel --//
     this->drawPanelFrame(this->epochsY_, this->epochsH_, 0, this->leftWidth_, "Epochs", epColor);
-    contentH = this->epochsH_ - 2;
+    contentH = this->epochsH_ - 2; // usable content rows inside the panel border
     int totalLines = static_cast<int>(this->epochLines_.size());
-    int maxScroll = std::max(0, totalLines - contentH);
+    int headerLines = 1; // table header row
+    int scrollableRows = std::max(0, contentH - headerLines);
+    int maxScroll = std::max(0, totalLines - scrollableRows);
     int start = this->epochs_.autoScroll ? maxScroll : std::clamp(this->epochs_.offset, 0, maxScroll);
 
-    for (int i = 0; i < contentH && start + i < totalLines; i++) {
+    // Print table header row (sticky, always at top)
+    char header[64];
+    snprintf(header, sizeof(header), "%5s  %10s  %12s  %4s", "Epoch", "Loss", "Val Loss", "Best");
+    mvaddnstr(this->epochsY_ + 1, 2, header, maxW);
+
+    // Print scrollable epoch data + messages
+    for (int i = 0; i < scrollableRows && start + i < totalLines; i++) {
       const std::string& line = this->epochLines_[start + i];
       int printLen = std::min(static_cast<int>(line.size()), maxW);
 
       if (printLen > 0)
-        mvaddnstr(this->epochsY_ + 1 + i, 2, line.c_str(), printLen);
+        mvaddnstr(this->epochsY_ + 2 + i, 2, line.c_str(), printLen); // +2 for header row
     }
 
-    this->drawScrollbar(this->leftWidth_ - 2, this->epochsY_ + 1, contentH, start, totalLines);
+    // Draw scrollbar for the scrollable portion
+    int scrollbarTop = this->epochsY_ + 1 + headerLines;
+    this->drawScrollbar(this->leftWidth_ - 2, scrollbarTop, scrollableRows, start, totalLines);
 
     //-- Right column: Timing panel (full-height) --//
     if (this->timingWin_) {
@@ -401,7 +411,35 @@ namespace NN_CLI
     this->epochLines_.push_back(line);
 
     if (this->epochs_.autoScroll)
-      this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - (this->epochsH_ - 2));
+      this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - std::max(0, this->epochsH_ - 3));
+
+    this->present(false, false);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI::pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest)
+  {
+    std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+
+    // Store structured data
+    this->epochRecords_.push_back({epoch, loss, hasValLoss, valLoss, isBest});
+
+    // Format as a table row and store as display line
+    char line[256];
+
+    if (hasValLoss) {
+      snprintf(line, sizeof(line), "%5d  %10.6f  %12.6f  %4s", epoch, static_cast<double>(loss),
+               static_cast<double>(valLoss), isBest ? "V" : "");
+    } else {
+      snprintf(line, sizeof(line), "%5d  %10.6f  %12s  %4s", epoch, static_cast<double>(loss), "-", isBest ? "V" : "");
+    }
+
+    this->epochLines_.push_back(line);
+
+    if (this->epochs_.autoScroll)
+      this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) -
+                                           std::max(0, this->epochsH_ - 3)); // -3 for header + 2 border rows
 
     this->present(false, false);
   }
@@ -533,7 +571,8 @@ namespace NN_CLI
     case 0:
       return this->applyScroll(this->config_, ch, this->configH_ - 2, static_cast<int>(this->configLines_.size()));
     case 1:
-      return this->applyScroll(this->epochs_, ch, this->epochsH_ - 2, static_cast<int>(this->epochLines_.size()));
+      return this->applyScroll(this->epochs_, ch, std::max(0, this->epochsH_ - 3),
+                               static_cast<int>(this->epochLines_.size()));
     case 2:
       return this->applyScroll(this->timing_, ch, this->helpY_ - 2, static_cast<int>(this->timingLines_.size()));
     }
