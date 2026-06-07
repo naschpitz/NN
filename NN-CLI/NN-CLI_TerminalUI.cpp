@@ -417,6 +417,17 @@ namespace NN_CLI
     std::time_t now = std::time(nullptr);
     this->epochRecords_.push_back({epoch, loss, hasValLoss, valLoss, isBest, now});
 
+    this->rebuildEpochLines();
+    this->present(false, false);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI::rebuildEpochLines()
+  {
+    if (this->epochRecords_.empty())
+      return;
+
     // Rebuild the entire table with borders from scratch
     this->epochLines_.clear();
 
@@ -512,8 +523,6 @@ namespace NN_CLI
     // Auto-scroll offset - header is now part of the data, so use epochsH_ - 2
     if (this->epochs_.autoScroll)
       this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - std::max(0, this->epochsH_ - 2));
-
-    this->present(false, false);
   }
 
   void TerminalUI::refreshConfigPanel()
@@ -540,6 +549,10 @@ namespace NN_CLI
     // on top of the freshly drawn panels so it doesn't vanish until the next mini-batch tick.
     if (this->overlayCallback_)
       this->overlayCallback_();
+
+    // Reflow the epoch table to match the new panel width
+    if (!this->epochRecords_.empty())
+      this->rebuildEpochLines();
 
     return true;
   }
