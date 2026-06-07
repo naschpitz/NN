@@ -73,6 +73,9 @@ namespace NN_CLI
       void setTimingLines(const std::vector<std::string>& lines);
       void addEpochLine(const std::string& line);
       void pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest);
+      // Rebuild the epoch table lines from epochRecords_ using the current panel width.
+      // Called on new epochs and on terminal resize so the table always fills the panel.
+      void rebuildEpochLines();
       void requestResize();
       bool handleResize();
       void redraw();
