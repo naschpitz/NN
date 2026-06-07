@@ -1,6 +1,7 @@
 #include "NN-CLI_ANNRunner.hpp"
 
 #include "NN-CLI_ANNLoader.hpp"
+#include "NN-CLI_DataLoader.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
@@ -196,13 +197,14 @@ int ANNRunner::train()
   }
 
   if (validationConfig.enabled) {
-    auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
-                                                       this->augConfig.augmentationProbability);
+    auto trainProvider =
+      dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
+                                    this->augConfig.augmentationProbability, SampleLoadType::Training);
     this->trainingTui_.markLoadingFinished();
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
-    auto sampleProvider =
-      dataLoader.makeSampleProvider(this->augConfig.transforms, this->augConfig.augmentationProbability);
+    auto sampleProvider = dataLoader.makeSampleProvider(
+      this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Training);
     this->trainingTui_.markLoadingFinished();
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
@@ -493,7 +495,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr;
 
   if (validationDataLoader && validationIndices && !validationIndices->empty()) {
-    auto provider = validationDataLoader->makeSampleProvider(*validationIndices, {}, 0.0f);
+    auto provider = validationDataLoader->makeSampleProvider(*validationIndices, {}, 0.0f, SampleLoadType::Validation);
     validationProviderPtr = std::make_shared<ANN::SampleProvider<float>>(std::move(provider));
   }
 
@@ -536,14 +538,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           // Mute the loading bar while validation streams its own samples through the shared
           // loader, so the "Loading samples" bar isn't hijacked by validation's batch counts
           // (validation has its own "Validating" bar on the progress window).
-          validationDataLoader->setLoadingEnabled(false);
           auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
-          validationDataLoader->setLoadingEnabled(true);
-
-          // Loading callbacks may have been suppressed during validation,
-          // causing the training bar to freeze. Catch it up now.
-          if (this->logLevel > LogLevel::QUIET)
-            this->trainingTui_.markCurrentLoadComplete();
 
           this->validationState.lastValLoss = validationResult.averageLoss;
           valLoss = validationResult.averageLoss;
