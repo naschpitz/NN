@@ -169,7 +169,7 @@ int CNNRunner::train()
     auto trainRows =
       TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
                                       numValidationSamples, validationRatio, validationAuto);
-    sections.push_back({"Training Configuration", std::move(trainRows)});
+    sections.push_back({"Model Configuration", std::move(trainRows)});
 
     if (numOutputClasses >= 2) {
       auto lossRows = LossReferenceTable::collectRows(numOutputClasses);
@@ -537,7 +537,7 @@ void CNNRunner::regenerateConfigLines(ulong maxWidth)
   auto trainRows = TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
                                                    this->cachedNumTrainSamples_, this->cachedNumValSamples_,
                                                    this->cachedValRatio_, this->cachedValAuto_);
-  sections.push_back({"Training Configuration", std::move(trainRows)});
+  sections.push_back({"Model Configuration", std::move(trainRows)});
 
   if (this->cachedNumOutputClasses_ >= 2) {
     auto lossRows = LossReferenceTable::collectRows(this->cachedNumOutputClasses_);

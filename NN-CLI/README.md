@@ -146,7 +146,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 - `numNeurons`: Number of neurons in the layer
 - `actvFunc`: Activation function (`none`, `relu`, `sigmoid`, `tanh`)
 
-#### ANN Training Configuration
+#### ANN Model Configuration
 
 - `numEpochs`: Number of training epochs
 - `batchSize`: Mini-batch size (default: 64)
@@ -310,7 +310,7 @@ Each layer has a `type` field:
 - `numNeurons`: Number of neurons in the layer
 - `actvFunc`: Activation function (`relu`, `sigmoid`, `tanh`)
 
-#### CNN Training Configuration
+#### CNN Model Configuration
 
 - `numEpochs`: Number of training epochs
 - `batchSize`: Mini-batch size (default: 64)

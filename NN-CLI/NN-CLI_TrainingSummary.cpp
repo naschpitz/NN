@@ -97,7 +97,7 @@ namespace NN_CLI
   {
     auto rows = collectCNNRows(cnnConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
                                validationRatio, validationAuto);
-    return SummaryTable::collect("Training Configuration", rows, maxWidth);
+    return SummaryTable::collect("Model Configuration", rows, maxWidth);
   }
 
   //===================================================================================================================//
@@ -384,7 +384,7 @@ namespace NN_CLI
     rows.push_back({"Cost function", costStr});
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
-    return SummaryTable::collect("Training Configuration", rows, maxWidth);
+    return SummaryTable::collect("Model Configuration", rows, maxWidth);
   }
 
 } // namespace NN_CLI

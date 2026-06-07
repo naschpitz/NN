@@ -263,7 +263,7 @@ namespace NN_CLI
     int timColor = (this->activePanel_ == 2) ? 3 : 2;
 
     //-- Left column: Config panel --//
-    this->drawPanelFrame(this->configY_, this->configH_, 0, this->leftWidth_, "Config", cfgColor);
+    this->drawPanelFrame(this->configY_, this->configH_, 0, this->leftWidth_, "Configuration", cfgColor);
     contentH = this->configH_ - 2;
 
     for (int i = 0; i < contentH; i++) {
