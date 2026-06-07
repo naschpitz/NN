@@ -256,9 +256,10 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename SampleT>
-  std::vector<SampleT>
-  DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices, const AugmentationTransforms& transforms,
-                                 float augmentationProbability, ulong batchIndex, ulong totalBatches) const
+  std::vector<SampleT> DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices,
+                                                      const AugmentationTransforms& transforms,
+                                                      float augmentationProbability, ulong batchIndex,
+                                                      ulong totalBatches, SampleLoadType loadType) const
   {
     ulong count = entryIndices.size();
     std::vector<SampleT> batch(count);
@@ -270,12 +271,11 @@ namespace NN_CLI
 
     std::atomic<ulong> loaded{0};
     ulong reportInterval = std::max(static_cast<ulong>(1), count / 100);
-    auto onSample = [this, &loaded, count, batchIndex, totalBatches, reportInterval]() {
+    auto onSample = [this, &loaded, count, batchIndex, totalBatches, reportInterval, loadType]() {
       ulong n = loaded.fetch_add(1, std::memory_order_relaxed) + 1;
 
-      if (this->loadingCallback && this->loadingEnabled.load(std::memory_order_relaxed) &&
-          (n == count || n % reportInterval == 0))
-        this->loadingCallback(n, count, batchIndex, totalBatches);
+      if (this->loadingCallback && (n == count || n % reportInterval == 0))
+        this->loadingCallback(n, count, batchIndex, totalBatches, loadType);
     };
 
     QVector<QFuture<void>> futures;
@@ -340,7 +340,8 @@ namespace NN_CLI
 
   template <typename SampleT>
   typename DataLoader<SampleT>::ProviderT
-  DataLoader<SampleT>::makeSampleProvider(const AugmentationTransforms& transforms, float augmentationProbability) const
+  DataLoader<SampleT>::makeSampleProvider(const AugmentationTransforms& transforms, float augmentationProbability,
+                                          SampleLoadType loadType) const
   {
     // Dedicated single-thread pool for prefetch orchestration — independent of
     // both the global pool (used by training) and ioPool (used by loadBatch).
@@ -351,7 +352,7 @@ namespace NN_CLI
     auto prefetch = std::make_shared<QFuture<BatchPtr>>();
     auto hasPrefetch = std::make_shared<bool>(false);
 
-    return [this, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability](
+    return [this, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability, loadType](
              const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
       ulong numSamples = sampleIndices.size();
       ulong start = batchIndex * batchSize;
@@ -368,7 +369,7 @@ namespace NN_CLI
       } else {
         std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
         batchPtr = std::make_shared<std::vector<SampleT>>(
-          this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches));
+          this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches, loadType));
       }
 
       ulong nextStart = end;
@@ -377,13 +378,14 @@ namespace NN_CLI
         ulong nextEnd = std::min(nextStart + batchSize, numSamples);
         std::vector<ulong> nextIndices(sampleIndices.begin() + nextStart, sampleIndices.begin() + nextEnd);
 
-        *prefetch = QtConcurrent::run(prefetchPool.get(),
-                                      [this, indices = std::move(nextIndices), transforms, augmentationProbability,
-                                       batchNum, totalBatches]() -> BatchPtr {
-                                        ulong nextBatchNum = batchNum + 1;
-                                        return std::make_shared<std::vector<SampleT>>(this->loadBatch(
-                                          indices, transforms, augmentationProbability, nextBatchNum, totalBatches));
-                                      });
+        *prefetch =
+          QtConcurrent::run(prefetchPool.get(),
+                            [this, indices = std::move(nextIndices), transforms, augmentationProbability, batchNum,
+                             totalBatches, loadType]() -> BatchPtr {
+                              ulong nextBatchNum = batchNum + 1;
+                              return std::make_shared<std::vector<SampleT>>(this->loadBatch(
+                                indices, transforms, augmentationProbability, nextBatchNum, totalBatches, loadType));
+                            });
 
         *hasPrefetch = true;
       }
@@ -399,7 +401,8 @@ namespace NN_CLI
   template <typename SampleT>
   typename DataLoader<SampleT>::ProviderT
   DataLoader<SampleT>::makeSampleProvider(const std::vector<ulong>& subsetIndices,
-                                          const AugmentationTransforms& transforms, float augmentationProbability) const
+                                          const AugmentationTransforms& transforms, float augmentationProbability,
+                                          SampleLoadType loadType) const
   {
     // The subset provider remaps: the library sees indices 0..N-1, but we translate
     // them to the actual entry indices in subsetIndices.
@@ -412,7 +415,7 @@ namespace NN_CLI
     auto prefetch = std::make_shared<QFuture<BatchPtr>>();
     auto hasPrefetch = std::make_shared<bool>(false);
 
-    return [this, subsetPtr, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability](
+    return [this, subsetPtr, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability, loadType](
              const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
       ulong numSamples = sampleIndices.size();
       ulong start = batchIndex * batchSize;
@@ -441,7 +444,7 @@ namespace NN_CLI
       } else {
         std::vector<ulong> indices = remapBatch(sampleIndices, start, end);
         batchPtr = std::make_shared<std::vector<SampleT>>(
-          this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches));
+          this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches, loadType));
       }
 
       ulong nextStart = end;
@@ -449,13 +452,14 @@ namespace NN_CLI
       if (nextStart < numSamples) {
         ulong nextEnd = std::min(nextStart + batchSize, numSamples);
 
-        *prefetch = QtConcurrent::run(prefetchPool.get(),
-                                      [this, indices = remapBatch(sampleIndices, nextStart, nextEnd), transforms,
-                                       augmentationProbability, batchNum, totalBatches]() -> BatchPtr {
-                                        ulong nextBatchNum = batchNum + 1;
-                                        return std::make_shared<std::vector<SampleT>>(this->loadBatch(
-                                          indices, transforms, augmentationProbability, nextBatchNum, totalBatches));
-                                      });
+        *prefetch =
+          QtConcurrent::run(prefetchPool.get(),
+                            [this, indices = remapBatch(sampleIndices, nextStart, nextEnd), transforms,
+                             augmentationProbability, batchNum, totalBatches, loadType]() -> BatchPtr {
+                              ulong nextBatchNum = batchNum + 1;
+                              return std::make_shared<std::vector<SampleT>>(this->loadBatch(
+                                indices, transforms, augmentationProbability, nextBatchNum, totalBatches, loadType));
+                            });
 
         *hasPrefetch = true;
       }

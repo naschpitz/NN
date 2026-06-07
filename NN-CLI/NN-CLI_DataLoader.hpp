@@ -24,6 +24,8 @@ namespace NN_CLI
 
   using ulong = unsigned long;
 
+  enum class SampleLoadType { Training, Validation };
+
   class GpuAugmenterPool; // GPU augmentation (defined in NN-CLI_GpuAugmenter.hpp)
 
   // Lightweight manifest entry — stores paths/labels, NOT pixel data.
@@ -91,13 +93,13 @@ namespace NN_CLI
       // The provider receives the full shuffled index array, batch size, and current batch index.
       // It returns the current batch's samples and prefetches the next batch in the background
       // using a persistent worker thread.
-      ProviderT makeSampleProvider(const AugmentationTransforms& transforms = {},
-                                   float augmentationProbability = 0.5f) const;
+      ProviderT makeSampleProvider(const AugmentationTransforms& transforms = {}, float augmentationProbability = 0.5f,
+                                   SampleLoadType loadType = SampleLoadType::Training) const;
 
       // Build a SampleProvider that only serves samples from the given index subset.
       ProviderT makeSampleProvider(const std::vector<ulong>& subsetIndices,
-                                   const AugmentationTransforms& transforms = {},
-                                   float augmentationProbability = 0.5f) const;
+                                   const AugmentationTransforms& transforms = {}, float augmentationProbability = 0.5f,
+                                   SampleLoadType loadType = SampleLoadType::Training) const;
 
       // When set, image augmentation runs on the GPU (batch-level) instead of on the
       // CPU per sample. The pool is owned by the caller and must outlive this loader.
@@ -106,18 +108,9 @@ namespace NN_CLI
         this->gpuAugmenterPool = pool;
       }
 
-      void setLoadingCallback(std::function<void(ulong, ulong, ulong, ulong)> callback)
+      void setLoadingCallback(std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> callback)
       {
         this->loadingCallback = std::move(callback);
-      }
-
-      // Temporarily mute/unmute the loading callback. Used to stop the validation provider
-      // (which shares this loader) from driving the training "Loading samples" bar while
-      // validation streams its own samples at an epoch boundary. const + mutable: this is a
-      // transient display flag, not part of the loader's logical state.
-      void setLoadingEnabled(bool enabled) const
-      {
-        this->loadingEnabled.store(enabled, std::memory_order_relaxed);
       }
 
     private:
@@ -132,8 +125,7 @@ namespace NN_CLI
 
       GpuAugmenterPool* gpuAugmenterPool = nullptr;
 
-      std::function<void(ulong, ulong, ulong, ulong)> loadingCallback;
-      mutable std::atomic<bool> loadingEnabled{true};
+      std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> loadingCallback;
 
       // Dedicated thread pool for image loading — separate from the global pool
       // used by the training loop, so prefetch work doesn't compete with training.
@@ -142,7 +134,8 @@ namespace NN_CLI
       // Load a batch of samples by their entry indices.
       // batchIndex and totalBatches are passed through to the loading callback for progress display.
       std::vector<SampleT> loadBatch(const std::vector<ulong>& entryIndices, const AugmentationTransforms& transforms,
-                                     float augmentationProbability, ulong batchIndex = 1, ulong totalBatches = 1) const;
+                                     float augmentationProbability, ulong batchIndex = 1, ulong totalBatches = 1,
+                                     SampleLoadType loadType = SampleLoadType::Training) const;
 
       // Retrieve a single sample by entry index, optionally applying augmentation.
       SampleT loadSample(ulong entryIndex, std::mt19937& rng, const AugmentationTransforms& transforms,
