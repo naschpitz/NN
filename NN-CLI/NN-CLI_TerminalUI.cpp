@@ -4,6 +4,7 @@
 #include <clocale>
 #include <csignal>
 #include <cstring>
+#include <ctime>
 #include <curses.h>
 
 namespace NN_CLI
@@ -137,7 +138,7 @@ namespace NN_CLI
     this->cols_ = getmaxx(stdscr);
 
     int minTimingW = 20;
-    int minLeftW = 46;
+    int minLeftW = 68;
 
     if (this->cols_ < minLeftW + minTimingW) {
       this->leftWidth_ = this->cols_;
@@ -413,7 +414,8 @@ namespace NN_CLI
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
 
-    this->epochRecords_.push_back({epoch, loss, hasValLoss, valLoss, isBest});
+    std::time_t now = std::time(nullptr);
+    this->epochRecords_.push_back({epoch, loss, hasValLoss, valLoss, isBest, now});
 
     // Rebuild the entire table with borders from scratch
     this->epochLines_.clear();
@@ -422,11 +424,13 @@ namespace NN_CLI
     int lossW = 10;
     int valLossW = 10;
     int bestW = 4;
+    int dateTimeW = 19; // "YYYY-MM-DD HH:MM:SS"
 
     // Separator line helper
     auto sep = [&]() -> std::string {
       return "+" + std::string(epochW + 2, '-') + "+" + std::string(lossW + 2, '-') + "+" +
-             std::string(valLossW + 2, '-') + "+" + std::string(bestW + 2, '-') + "+";
+             std::string(valLossW + 2, '-') + "+" + std::string(bestW + 2, '-') + "+" +
+             std::string(dateTimeW + 2, '-') + "+";
     };
 
     // Top border
@@ -435,8 +439,8 @@ namespace NN_CLI
     // Header row
     {
       char hdr[128];
-      snprintf(hdr, sizeof(hdr), "| %-*s | %*s | %*s | %-*s |", epochW, "Epoch", lossW, "Loss", valLossW, "Val Loss",
-               bestW, "Best");
+      snprintf(hdr, sizeof(hdr), "| %-*s | %*s | %*s | %-*s | %-*s |", epochW, "Epoch", lossW, "Loss", valLossW,
+               "Val Loss", bestW, "Best", dateTimeW, "Completed At");
       this->epochLines_.push_back(hdr);
     }
 
@@ -457,9 +461,19 @@ namespace NN_CLI
 
       snprintf(bestCell, sizeof(bestCell), "%s", rec.isBest ? "X" : "");
 
+      char dateStr[32];
+      std::tm tm_buf{};
+      std::tm* tm_info = localtime_r(&rec.completionTime, &tm_buf);
+
+      if (tm_info) {
+        std::strftime(dateStr, sizeof(dateStr), "%Y-%m-%d %H:%M:%S", tm_info);
+      } else {
+        dateStr[0] = '\0';
+      }
+
       char row[256];
-      snprintf(row, sizeof(row), "| %*s | %*s | %*s | %-*s |", epochW, epochStr, lossW, lossStr, valLossW, valLossStr,
-               bestW, bestCell);
+      snprintf(row, sizeof(row), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, epochStr, lossW, lossStr, valLossW,
+               valLossStr, bestW, bestCell, dateTimeW, dateStr);
       this->epochLines_.push_back(row);
     }
 
