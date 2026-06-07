@@ -1,6 +1,7 @@
 #include "NN-CLI_ANNRunner.hpp"
 
 #include "NN-CLI_ANNLoader.hpp"
+#include "NN-CLI_DataLoader.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
@@ -196,13 +197,14 @@ int ANNRunner::train()
   }
 
   if (validationConfig.enabled) {
-    auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
-                                                       this->augConfig.augmentationProbability);
+    auto trainProvider =
+      dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
+                                    this->augConfig.augmentationProbability, SampleLoadType::Training);
     this->trainingTui_.markLoadingFinished();
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
-    auto sampleProvider =
-      dataLoader.makeSampleProvider(this->augConfig.transforms, this->augConfig.augmentationProbability);
+    auto sampleProvider = dataLoader.makeSampleProvider(
+      this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Training);
     this->trainingTui_.markLoadingFinished();
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
@@ -483,14 +485,17 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   lastCallbackEpoch = 0;
   lastEpochLoss = 0.0f;
 
-  static ProgressBar progressBar(this->ioConfig.progressReports);
+  // NOTE: static ProgressBar persists across training runs.
+  // Window size is fixed at first invocation; changing batchSize between runs has no effect.
+  ulong batchSize = this->coreConfig.trainingConfig.batchSize;
+  static ProgressBar progressBar(this->ioConfig.progressReports, 50, std::max(2UL, batchSize / 2));
 
   auto tui = this->tui;
 
   std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr;
 
   if (validationDataLoader && validationIndices && !validationIndices->empty()) {
-    auto provider = validationDataLoader->makeSampleProvider(*validationIndices, {}, 0.0f);
+    auto provider = validationDataLoader->makeSampleProvider(*validationIndices, {}, 0.0f, SampleLoadType::Validation);
     validationProviderPtr = std::make_shared<ANN::SampleProvider<float>>(std::move(provider));
   }
 
@@ -533,9 +538,8 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           // Mute the loading bar while validation streams its own samples through the shared
           // loader, so the "Loading samples" bar isn't hijacked by validation's batch counts
           // (validation has its own "Validating" bar on the progress window).
-          validationDataLoader->setLoadingEnabled(false);
           auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
-          validationDataLoader->setLoadingEnabled(true);
+
           this->validationState.lastValLoss = validationResult.averageLoss;
           valLoss = validationResult.averageLoss;
           hasValLoss = true;
@@ -559,21 +563,8 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         }
 
         if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && lastCallbackEpoch > 0) {
-          char histLine[256];
-          int written = snprintf(histLine, sizeof(histLine), "Epoch %lu - Loss: %.6f",
-                                 static_cast<unsigned long>(lastCallbackEpoch), static_cast<double>(lastEpochLoss));
-
-          if (hasValLoss)
-            snprintf(histLine + written, sizeof(histLine) - static_cast<size_t>(written), " | Validation Loss: %.6f",
-                     static_cast<double>(valLoss));
-
-          if (isBest || progress.isNewBest)
-            snprintf(histLine + strlen(histLine), sizeof(histLine) - strlen(histLine), " [best]");
-
-          if (!checkpointPath.empty())
-            snprintf(histLine + strlen(histLine), sizeof(histLine) - strlen(histLine), " (checkpoint)");
-
-          tui->addEpochLine(histLine);
+          bool isBestEpoch = (isBest || progress.isNewBest);
+          tui->pushEpochRecord(static_cast<int>(lastCallbackEpoch), lastEpochLoss, hasValLoss, valLoss, isBestEpoch);
         }
 
         if (monitorShouldStop) {

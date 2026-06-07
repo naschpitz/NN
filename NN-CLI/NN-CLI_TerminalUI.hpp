@@ -2,6 +2,7 @@
 #define NN_CLI_TERMINALUI_HPP
 
 #include <atomic>
+#include <ctime>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -16,6 +17,15 @@ namespace NN_CLI
   class TerminalUI
   {
     public:
+      struct EpochRecord {
+          int epoch;
+          float loss;
+          bool hasValLoss;
+          float valLoss;
+          bool isBest;
+          std::time_t completionTime; // when the epoch completed
+      };
+
       TerminalUI();
       ~TerminalUI();
 
@@ -62,6 +72,9 @@ namespace NN_CLI
 
       void setTimingLines(const std::vector<std::string>& lines);
       void addEpochLine(const std::string& line);
+      void pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest);
+      // Rebuild the epoch table lines from epochRecords_ using the current panel width.
+      // Called on new epochs and on terminal resize so the table always fills the panel.
       void requestResize();
       bool handleResize();
       void redraw();
@@ -103,6 +116,9 @@ namespace NN_CLI
       // runOverlay re-renders the loading-bar overlay (after layout() recreates the windows);
       // touchSub forces a full re-copy of the sub-windows when their content is otherwise unchanged.
       void present(bool runOverlay, bool touchSub);
+      // Rebuild the epoch table lines from epochRecords_ using the current panel width.
+      // Called on new epochs and on terminal resize so the table always fills the panel.
+      void rebuildEpochLines();
 
       // Draw a vertical scrollbar in column `col` over `contentH` rows starting at `yTop`,
       // with the thumb positioned for `scroll` within [0, total - contentH]. No-op if it all fits.
@@ -145,6 +161,8 @@ namespace NN_CLI
       std::vector<std::string> configLines_;
       std::vector<std::string> timingLines_;
       std::vector<std::string> epochLines_;
+      std::vector<EpochRecord> epochRecords_; // structured epoch data (for future use)
+      std::vector<std::string> epochMessages_; // monitor/status messages preserved across table rebuilds
   };
 
 } // namespace NN_CLI

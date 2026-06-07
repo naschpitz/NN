@@ -40,9 +40,12 @@ namespace NN_CLI
     this->barGpus_ = std::max(1, this->barGpus_);
   }
 
-  std::function<void(ulong, ulong, ulong, ulong)> TrainingTui::loadingCallback()
+  std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> TrainingTui::loadingCallback()
   {
-    return [this](ulong current, ulong total, ulong batchNum, ulong totalBatches) {
+    return [this](ulong current, ulong total, ulong batchNum, ulong totalBatches, SampleLoadType loadType) {
+      if (loadType != SampleLoadType::Training)
+        return; // only track training sample loading
+
       this->current_ = current;
       this->total_ = total;
       this->batchNum_ = batchNum;

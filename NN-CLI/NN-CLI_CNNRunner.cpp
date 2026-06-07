@@ -1,6 +1,7 @@
 #include "NN-CLI_CNNRunner.hpp"
 
 #include "NN-CLI_CNNLoader.hpp"
+#include "NN-CLI_DataLoader.hpp"
 #include "NN-CLI_GpuAugmenter.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
 #include <CNN_TrainingMonitor.hpp>
@@ -169,7 +170,7 @@ int CNNRunner::train()
     auto trainRows =
       TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
                                       numValidationSamples, validationRatio, validationAuto);
-    sections.push_back({"Training Configuration", std::move(trainRows)});
+    sections.push_back({"Model Configuration", std::move(trainRows)});
 
     if (numOutputClasses >= 2) {
       auto lossRows = LossReferenceTable::collectRows(numOutputClasses);
@@ -250,13 +251,14 @@ int CNNRunner::train()
   }
 
   if (validationConfig.enabled) {
-    auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
-                                                       this->augConfig.augmentationProbability);
+    auto trainProvider =
+      dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
+                                    this->augConfig.augmentationProbability, SampleLoadType::Training);
     this->trainingTui_.markLoadingFinished();
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
-    auto sampleProvider =
-      dataLoader.makeSampleProvider(this->augConfig.transforms, this->augConfig.augmentationProbability);
+    auto sampleProvider = dataLoader.makeSampleProvider(
+      this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Training);
     this->trainingTui_.markLoadingFinished();
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
@@ -537,7 +539,7 @@ void CNNRunner::regenerateConfigLines(ulong maxWidth)
   auto trainRows = TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
                                                    this->cachedNumTrainSamples_, this->cachedNumValSamples_,
                                                    this->cachedValRatio_, this->cachedValAuto_);
-  sections.push_back({"Training Configuration", std::move(trainRows)});
+  sections.push_back({"Model Configuration", std::move(trainRows)});
 
   if (this->cachedNumOutputClasses_ >= 2) {
     auto lossRows = LossReferenceTable::collectRows(this->cachedNumOutputClasses_);
@@ -561,7 +563,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   lastCallbackEpoch = 0;
   lastEpochLoss = 0.0f;
 
-  static ProgressBar progressBar(this->ioConfig.progressReports);
+  // NOTE: static ProgressBar persists across training runs.
+  // Window size is fixed at first invocation; changing batchSize between runs has no effect.
+  ulong batchSize = this->coreConfig.trainingConfig.batchSize;
+  static ProgressBar progressBar(this->ioConfig.progressReports, 50, std::max(2UL, batchSize / 2));
 
   progressBar.setHoldEpochLine(false);
 
@@ -583,7 +588,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr;
 
   if (validationDataLoader && validationIndices && !validationIndices->empty()) {
-    auto provider = validationDataLoader->makeSampleProvider(*validationIndices, {}, 0.0f);
+    auto provider = validationDataLoader->makeSampleProvider(*validationIndices, {}, 0.0f, SampleLoadType::Validation);
     validationProviderPtr = std::make_shared<CNN::SampleProvider<float>>(std::move(provider));
   }
 
@@ -636,12 +641,8 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             });
           }
 
-          // Mute the loading bar while validation streams its own samples through the shared
-          // loader, so the "Loading samples" bar isn't hijacked by validation's batch counts
-          // (validation has its own "Validating" bar on the progress window).
-          validationDataLoader->setLoadingEnabled(false);
           auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
-          validationDataLoader->setLoadingEnabled(true);
+
           this->validationState.lastValLoss = validationResult.averageLoss;
           valLoss = validationResult.averageLoss;
           hasValLoss = true;
@@ -667,21 +668,8 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
         // --- TUI history (skip epoch 0 line) ---
         if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && finishedEpoch > 0) {
-          char histLine[256];
-          int written = snprintf(histLine, sizeof(histLine), "Epoch %lu - Loss: %.6f",
-                                 static_cast<unsigned long>(finishedEpoch), static_cast<double>(lastEpochLoss));
-
-          if (hasValLoss)
-            snprintf(histLine + written, sizeof(histLine) - static_cast<size_t>(written), " | Validation Loss: %.6f",
-                     static_cast<double>(valLoss));
-
-          if (isBest || progress.isNewBest)
-            snprintf(histLine + strlen(histLine), sizeof(histLine) - strlen(histLine), " [best]");
-
-          if (!checkpointPath.empty())
-            snprintf(histLine + strlen(histLine), sizeof(histLine) - strlen(histLine), " (checkpoint)");
-
-          tui->addEpochLine(histLine);
+          bool isBestEpoch = (isBest || progress.isNewBest);
+          tui->pushEpochRecord(static_cast<int>(finishedEpoch), lastEpochLoss, hasValLoss, valLoss, isBestEpoch);
         }
 
         // --- Timing window reset ---
@@ -725,14 +713,6 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
             tui->setTimingLines(timingLines);
 
           tui->refresh();
-        } else {
-          if (progress.epochLoss > 0)
-            this->profiler.clearLiveTable(std::cout);
-
-          progressBar.update(info);
-
-          if (progress.epochLoss == 0)
-            this->profiler.renderLiveTable(std::cout);
         }
       }
     } // lock_guard released
@@ -754,7 +734,6 @@ int CNNRunner::finishTraining(const QString& inputFilePath)
 
   if (this->logLevel > LogLevel::QUIET) {
     std::cout << "\nTraining completed.\n";
-    this->profiler.renderFinalSummary(std::cout);
   }
 
   const auto& trainingConfig = this->core->getTrainingConfig();
