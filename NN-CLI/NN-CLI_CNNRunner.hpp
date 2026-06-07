@@ -9,6 +9,8 @@
 #include "NN-CLI_TerminalUI.hpp"
 #include "NN-CLI_TrainingProfiler.hpp"
 #include "NN-CLI_TrainingTui.hpp"
+#include "NN-CLI_ProgressBar.hpp"
+#include "NN-CLI_Utils.hpp"
 
 #include <CNN_Core.hpp>
 #include <CNN_TrainingMonitor.hpp>
@@ -17,6 +19,7 @@
 
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <string>
 
 //===================================================================================================================//
@@ -48,9 +51,6 @@ namespace NN_CLI
       ValidationMetadata buildValidationMetadata() const;
       void regenerateConfigLines(ulong maxWidth);
 
-      //-- Class weight computation --//
-      static std::vector<float> computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs);
-
       //-- References to shared state (owned by Runner) --//
       const QCommandLineParser& parser;
       LogLevel logLevel;
@@ -60,15 +60,6 @@ namespace NN_CLI
       CNN::CoreConfig<float>& coreConfig;
 
       //-- Validation state --//
-      struct ValidationState {
-          bool enabled = false;
-          ulong checkInterval = 1;
-          ulong numValSamples = 0;
-          float bestValLoss = std::numeric_limits<float>::max();
-          ulong bestValEpoch = 0;
-          float lastValLoss = 0.0f;
-      };
-
       ValidationState validationState;
 
       //-- Per-phase timing profiler (fed by CNN's timing callback) --//
@@ -88,6 +79,12 @@ namespace NN_CLI
       bool cachedValAuto_ = false;
       ulong cachedNumOutputClasses_ = 0;
       bool configLinesLoaded_ = false;
+
+      //-- Callback State --//
+      ulong lastCallbackEpoch_ = 0;
+      float lastEpochLoss_ = 0.0f;
+      std::mutex epochTransitionMutex_;
+      std::unique_ptr<ProgressBar> progressBar_;
   };
 
 } // namespace NN_CLI

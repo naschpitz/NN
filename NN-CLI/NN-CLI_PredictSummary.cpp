@@ -31,15 +31,7 @@ namespace NN_CLI
     ulong totalParams = TrainingSummary::countCNNParameters(cnnConfig);
     ulong outputNeurons = layers.denseLayers.empty() ? 0 : layers.denseLayers.back().numNeurons;
 
-    std::string deviceStr;
-
-    if (cnnConfig.deviceType == CNN::DeviceType::GPU) {
-      int gpus = cnnConfig.numGPUs;
-      deviceStr = "GPU" + std::string(gpus > 0 ? " (" + std::to_string(gpus) + "x)" : "");
-    } else {
-      int threads = cnnConfig.numThreads;
-      deviceStr = "CPU" + std::string(threads > 0 ? " (" + std::to_string(threads) + " threads)" : "");
-    }
+    std::string deviceStr = SummaryTable::deviceString(cnnConfig.deviceType, cnnConfig.numGPUs, cnnConfig.numThreads);
 
     std::string inputShapeStr =
       std::to_string(inputShape.c) + " x " + std::to_string(inputShape.h) + " x " + std::to_string(inputShape.w);
@@ -70,15 +62,7 @@ namespace NN_CLI
     ulong denseCount = annConfig.layersConfig.size();
     ulong outputNeurons = annConfig.layersConfig.empty() ? 0 : annConfig.layersConfig.back().numNeurons;
 
-    std::string deviceStr;
-
-    if (annConfig.deviceType == ANN::DeviceType::GPU) {
-      int gpus = annConfig.numGPUs;
-      deviceStr = "GPU" + std::string(gpus > 0 ? " (" + std::to_string(gpus) + "x)" : "");
-    } else {
-      int threads = annConfig.numThreads;
-      deviceStr = "CPU" + std::string(threads > 0 ? " (" + std::to_string(threads) + " threads)" : "");
-    }
+    std::string deviceStr = SummaryTable::deviceString(annConfig.deviceType, annConfig.numGPUs, annConfig.numThreads);
 
     std::vector<SummaryRow> rows;
     rows.push_back({"Device", deviceStr});

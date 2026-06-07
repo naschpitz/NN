@@ -1,5 +1,6 @@
 #include "NN-CLI_ANNLoader.hpp"
 #include "NN-CLI_ImageLoader.hpp"
+#include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 
 #include <QFile>
@@ -16,15 +17,14 @@ namespace NN_CLI
   ANN::CoreConfig<float> ANNLoader::loadConfig(const std::string& configFilePath, std::optional<ANN::ModeType> modeType,
                                                std::optional<ANN::DeviceType> deviceType)
   {
-    QFile file(QString::fromStdString(configFilePath));
+    return loadConfig(Loader::parseConfigFile(configFilePath), modeType, deviceType);
+  }
 
-    if (!file.open(QIODevice::ReadOnly)) {
-      throw std::runtime_error("Failed to open config file: " + configFilePath);
-    }
+  //===================================================================================================================//
 
-    QByteArray fileData = file.readAll();
-    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
-
+  ANN::CoreConfig<float> ANNLoader::loadConfig(const nlohmann::json& json, std::optional<ANN::ModeType> modeType,
+                                               std::optional<ANN::DeviceType> deviceType)
+  {
     ANN::CoreConfig<float> coreConfig;
 
     if (json.contains("device")) {
@@ -52,7 +52,7 @@ namespace NN_CLI
       coreConfig.deviceType = deviceType.value();
 
     if (!json.contains("layers")) {
-      throw std::runtime_error("Config file missing 'layersConfig': " + configFilePath);
+      throw std::runtime_error("Config missing 'layers'");
     }
 
     for (const auto& layerJson : json.at("layers")) {
@@ -163,7 +163,7 @@ namespace NN_CLI
       (coreConfig.modeType == ANN::ModeType::PREDICT || coreConfig.modeType == ANN::ModeType::TEST);
 
     if (isPredictOrTest && !json.contains("parameters")) {
-      throw std::runtime_error("Config file missing 'parameters' required for predict/test modes: " + configFilePath);
+      throw std::runtime_error("Config missing 'parameters' required for predict/test modes");
     }
 
     return coreConfig;

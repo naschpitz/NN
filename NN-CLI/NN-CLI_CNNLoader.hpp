@@ -11,6 +11,8 @@
 #include <CNN_SlidingStrategy.hpp>
 #include <CNN_PoolType.hpp>
 
+#include <json.hpp>
+
 #include <optional>
 #include <string>
 
@@ -20,8 +22,13 @@ namespace NN_CLI
   class CNNLoader
   {
     public:
-      // Load CNN configuration with optional CLI overrides
+      // Load CNN configuration with optional CLI overrides (file-path convenience wrapper).
       static CNN::CoreConfig<float> loadConfig(const std::string& configFilePath,
+                                               std::optional<std::string> modeOverride = std::nullopt,
+                                               std::optional<std::string> deviceOverride = std::nullopt);
+
+      // Load CNN configuration from pre-parsed JSON.
+      static CNN::CoreConfig<float> loadConfig(const nlohmann::json& json,
                                                std::optional<std::string> modeOverride = std::nullopt,
                                                std::optional<std::string> deviceOverride = std::nullopt);
 

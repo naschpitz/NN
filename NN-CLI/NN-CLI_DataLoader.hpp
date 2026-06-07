@@ -3,6 +3,7 @@
 
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
+#include "NN-CLI_Types.hpp"
 
 #include <ANN_Sample.hpp>
 #include <ANN_SampleProvider.hpp>
@@ -21,8 +22,6 @@
 
 namespace NN_CLI
 {
-
-  using ulong = unsigned long;
 
   enum class SampleLoadType { Training, Validation };
 

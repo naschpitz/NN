@@ -36,27 +36,17 @@ endif()
 
 add_executable(NN-CLI
   main.cpp
-  NN-CLI_ANNLoader.cpp
   NN-CLI_ANNRunner.cpp
   NN-CLI_CalibrateRunner.cpp
   NN-CLI_CNNLoader.cpp
   NN-CLI_CNNRunner.cpp
-  NN-CLI_DataLoader.cpp
-  NN-CLI_GpuAugmenter.cpp
-  NN-CLI_DataSplitter.cpp
-  NN-CLI_DataType.cpp
-  NN-CLI_ImageLoader.cpp
-  NN-CLI_Loader.cpp
   NN-CLI_LossReferenceTable.cpp
   NN-CLI_ModelSerializer.cpp
   NN-CLI_PredictSummary.cpp
-  NN-CLI_ProgressBar.cpp
   NN-CLI_Runner.cpp
-  NN-CLI_SummaryTable.cpp
   NN-CLI_TerminalUI.cpp
   NN-CLI_TestSummary.cpp
   NN-CLI_TrainingProfiler.cpp
-  NN-CLI_TrainingSummary.cpp
   NN-CLI_TrainingTui.cpp
   NN-CLI_Utils.cpp
 )
@@ -73,6 +63,33 @@ if(NOT CURSES_LIBRARY MATCHES "ncursesw")
   endif()
 endif()
 
+# Object library for shared sources — compiled once and linked into both NN-CLI and test_nncli.
+# Without this, 10 .cpp files are compiled twice (once per target), wasting build time.
+add_library(nncli_common OBJECT
+    NN-CLI_ANNLoader.cpp
+    NN-CLI_DataLoader.cpp
+    NN-CLI_GpuAugmenter.cpp
+    NN-CLI_DataSplitter.cpp
+    NN-CLI_DataType.cpp
+    NN-CLI_ImageLoader.cpp
+    NN-CLI_Loader.cpp
+    NN-CLI_ProgressBar.cpp
+    NN-CLI_SummaryTable.cpp
+    NN-CLI_TrainingSummary.cpp
+)
+target_include_directories(nncli_common PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
+    ${CURSES_INCLUDE_DIR}
+)
+target_link_libraries(nncli_common PRIVATE
+    CNN
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Concurrent
+    ${CURSES_LIBRARIES}
+)
+
 # nlohmann JSON library (header-only, used directly by NN-CLI for config serialisation)
 # stb image library (header-only, used for image loading/saving)
 target_include_directories(NN-CLI PRIVATE
@@ -83,6 +100,7 @@ target_include_directories(NN-CLI PRIVATE
 
 # Link to CNN — ANN, OpenCLWrapper, Qt::Core, OpenCL are propagated automatically via PUBLIC
 target_link_libraries(NN-CLI
+    PRIVATE nncli_common
     PRIVATE CNN
     PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent
     PRIVATE ${CURSES_LIBRARIES}
@@ -145,16 +163,6 @@ add_executable(test_nncli
   tests/test_validation.cpp
   tests/test_monitoring.cpp
   tests/test_gpu_augment.cpp
-  NN-CLI_ANNLoader.cpp
-  NN-CLI_DataLoader.cpp
-  NN-CLI_GpuAugmenter.cpp
-  NN-CLI_DataSplitter.cpp
-  NN-CLI_DataType.cpp
-  NN-CLI_ImageLoader.cpp
-  NN-CLI_Loader.cpp
-  NN-CLI_ProgressBar.cpp
-  NN-CLI_SummaryTable.cpp
-  NN-CLI_TrainingSummary.cpp
 )
 target_include_directories(test_nncli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -163,6 +171,7 @@ target_include_directories(test_nncli PRIVATE
     ${CURSES_INCLUDE_DIR}
 )
 target_link_libraries(test_nncli PRIVATE
+    nncli_common
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Concurrent
     CNN

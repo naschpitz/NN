@@ -9,6 +9,8 @@
 #include <ANN_ActvFunc.hpp>
 #include <ANN_LayersConfig.hpp>
 
+#include <json.hpp>
+
 #include <optional>
 #include <string>
 
@@ -18,8 +20,13 @@ namespace NN_CLI
   class ANNLoader
   {
     public:
-      // Load ANN configuration with optional CLI overrides
+      // Load ANN configuration with optional CLI overrides (file-path convenience wrapper).
       static ANN::CoreConfig<float> loadConfig(const std::string& configFilePath,
+                                               std::optional<ANN::ModeType> modeType = std::nullopt,
+                                               std::optional<ANN::DeviceType> deviceType = std::nullopt);
+
+      // Load ANN configuration from pre-parsed JSON.
+      static ANN::CoreConfig<float> loadConfig(const nlohmann::json& json,
                                                std::optional<ANN::ModeType> modeType = std::nullopt,
                                                std::optional<ANN::DeviceType> deviceType = std::nullopt);
 

@@ -90,7 +90,7 @@ namespace NN_CLI
       //-- Published snapshot for rendering --//
       mutable std::mutex mutex;
       StepView lastStep;
-      ulong lastRenderedBatchNumber = static_cast<ulong>(-1);
+      mutable ulong lastRenderedBatchNumber = static_cast<ulong>(-1);
 
       //-- Helpers --//
       static const char* phaseLabel(CNN::TimingPhase phase);

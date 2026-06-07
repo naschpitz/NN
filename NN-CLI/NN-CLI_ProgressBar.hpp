@@ -1,13 +1,13 @@
 #ifndef NN_CLI_PROGRESSBAR_HPP
 #define NN_CLI_PROGRESSBAR_HPP
 
+#include "NN-CLI_Types.hpp"
+
 #include <chrono>
 #include <deque>
 #include <mutex>
 #include <ostream>
 #include <vector>
-
-#include <sys/types.h>
 
 // Forward-declare ncurses WINDOW to avoid pulling in <curses.h> (which defines
 // a `timeout` macro that conflicts with Qt's QTimer::timeout).

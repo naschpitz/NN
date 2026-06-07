@@ -7,6 +7,7 @@
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 #include "NN-CLI_PredictSummary.hpp"
+#include "NN-CLI_RunnerUtils.hpp"
 #include "NN-CLI_TestSummary.hpp"
 #include "NN-CLI_TrainingSummary.hpp"
 #include "NN-CLI_Utils.hpp"
@@ -48,10 +49,8 @@ ANNRunner::ANNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConf
 
 int ANNRunner::train()
 {
-  if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
-    std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
+  if (checkSamplesIdxDataConflict(this->parser))
     return 1;
-  }
 
   this->tui = std::make_shared<TerminalUI>();
 
@@ -184,7 +183,7 @@ int ANNRunner::train()
     std::vector<float> validationWeights = computeClassWeightsFromOutputs(validationOutputs);
     validationCoreConfig.costFunctionConfig.weights = validationWeights;
 
-    validationCore = std::shared_ptr<ANN::Core<float>>(ANN::Core<float>::makeCore(validationCoreConfig).release());
+    validationCore = ANN::Core<float>::makeCore(validationCoreConfig);
   }
 
   this->setupTrainingCallback(inputFilePath, validationCore, trainingMonitor,
@@ -216,10 +215,8 @@ int ANNRunner::train()
 
 int ANNRunner::test()
 {
-  if (this->parser.isSet("samples") && this->parser.isSet("idx-data")) {
-    std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
+  if (checkSamplesIdxDataConflict(this->parser))
     return 1;
-  }
 
   QString inputFilePath;
   DataLoader<ANN::Sample<float>> dataLoader;
@@ -246,13 +243,8 @@ int ANNRunner::test()
   if (this->logLevel > LogLevel::QUIET)
     TestSummary::printANN(this->coreConfig, dataLoader.numSamples());
 
-  if (this->logLevel > LogLevel::QUIET) {
-    ulong progressReports = this->ioConfig.progressReports;
-    ProgressBar::printLoadingProgress("Testing", 0, dataLoader.numSamples(), progressReports);
-    this->core->setProgressCallback([progressReports](ulong current, ulong total) {
-      ProgressBar::printLoadingProgress("Testing", current, total, progressReports);
-    });
-  }
+  setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Testing",
+                            dataLoader.numSamples());
 
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
   ANN::TestResult<float> result = this->core->test(dataLoader.numSamples(), sampleProvider);
@@ -280,24 +272,7 @@ int ANNRunner::predict()
   }
 
   QString inputPath = this->parser.value("input");
-  QString outputPath;
-
-  if (this->parser.isSet("output")) {
-    outputPath = this->parser.value("output");
-  } else {
-    QFileInfo inputInfo(inputPath);
-    QDir inputDir = inputInfo.absoluteDir();
-    QDir outputDir(inputDir.filePath("output"));
-
-    if (!outputDir.exists())
-      inputDir.mkdir("output");
-
-    if (this->ioConfig.outputType == DataType::IMAGE) {
-      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName());
-    } else {
-      outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
-    }
-  }
+  QString outputPath = resolvePredictOutputPath(this->parser, this->ioConfig);
 
   ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
   std::vector<ANN::Input<float>> inputs =
@@ -309,13 +284,7 @@ int ANNRunner::predict()
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = ANN::Utils<float>::formatISO8601();
 
-  if (this->logLevel > LogLevel::QUIET) {
-    ulong progressReports = this->ioConfig.progressReports;
-    ProgressBar::printLoadingProgress("Predicting", 0, inputs.size(), progressReports);
-    this->core->setProgressCallback([progressReports](ulong current, ulong total) {
-      ProgressBar::printLoadingProgress("Predicting", current, total, progressReports);
-    });
-  }
+  setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Predicting", inputs.size());
 
   // The streaming predict API takes a provider that yields one batch at a
   // time. The batch JSON is already loaded into `inputs`, so we just slice it.
@@ -336,75 +305,8 @@ int ANNRunner::predict()
   double batchDurationSeconds = batchElapsed.count();
   std::string batchDurationFormatted = ANN::Utils<float>::formatDuration(batchDurationSeconds);
 
-  // When outputType is IMAGE, save images to a folder
-  if (this->ioConfig.outputType == DataType::IMAGE) {
-    if (!this->ioConfig.hasOutputShape()) {
-      std::cerr << "Error: outputType is 'image' but no outputShape provided in config.\n";
-      return 1;
-    }
-
-    QDir outDir(outputPath);
-
-    if (!outDir.exists())
-      QDir().mkpath(outputPath);
-
-    for (size_t i = 0; i < results.size(); ++i) {
-      QString imgName = QString::number(i) + ".png";
-      std::string imgPath = outDir.filePath(imgName).toStdString();
-      ImageLoader::saveImage(imgPath, results[i].output, static_cast<int>(this->ioConfig.outputC),
-                             static_cast<int>(this->ioConfig.outputH), static_cast<int>(this->ioConfig.outputW));
-    }
-
-    if (this->logLevel > LogLevel::QUIET) {
-      std::cout << "Predict images saved to: " << outputPath.toStdString() << "\n";
-      std::cout << "  Images: " << results.size() << "\n";
-      std::cout << "  Shape: " << this->ioConfig.outputC << "x" << this->ioConfig.outputH << "x"
-                << this->ioConfig.outputW << "\n";
-      std::cout << "  Duration: " << batchDurationFormatted << "\n";
-    }
-
-    return 0;
-  }
-
-  // Standard vector output: save as JSON.
-  // For each input we emit both the post-activation `output` and the pre-activation
-  // `logits` of the last layer so callers can compute calibration / OOD scores
-  // (max-logit, logit-norm, free-energy) that softmax discards.
-  std::vector<ANN::Output<float>> outputs;
-  std::vector<ANN::Logits<float>> logits;
-  outputs.reserve(results.size());
-  logits.reserve(results.size());
-
-  for (const auto& r : results) {
-    outputs.push_back(r.output);
-    logits.push_back(r.logits);
-  }
-
-  nlohmann::ordered_json resultJson;
-  nlohmann::ordered_json predictMetadataJson;
-  predictMetadataJson["startTime"] = startTimeStr;
-  predictMetadataJson["endTime"] = endTimeStr;
-  predictMetadataJson["durationSeconds"] = batchDurationSeconds;
-  predictMetadataJson["durationFormatted"] = batchDurationFormatted;
-  predictMetadataJson["numInputs"] = inputs.size();
-  resultJson["predictMetadata"] = predictMetadataJson;
-  resultJson["outputs"] = outputs;
-  resultJson["logits"] = logits;
-
-  QFile outputFile(outputPath);
-
-  if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-    std::cerr << "Error: Failed to open output file: " << outputPath.toStdString() << "\n";
-    return 1;
-  }
-
-  std::string jsonStr = resultJson.dump(2);
-  outputFile.write(jsonStr.c_str(), jsonStr.size());
-  outputFile.close();
-
-  if (this->logLevel > LogLevel::QUIET)
-    std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
-  return 0;
+  return writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
+                            batchDurationSeconds, batchDurationFormatted, inputs.size());
 }
 
 //===================================================================================================================//
@@ -414,52 +316,15 @@ int ANNRunner::predict()
 std::pair<ANN::Samples<float>, bool> ANNRunner::loadSamplesFromOptions(const std::string& modeName,
                                                                        QString& inputFilePath)
 {
-  ANN::Samples<float> samples;
+  return loadSamplesFromOptionsCommon<ANN::Samples<float>>(
+    this->parser, this->logLevel, this->ioConfig, modeName, inputFilePath,
+    [this](const std::string& path, ulong progressReports) {
+      return ANNLoader::loadSamples(path, this->ioConfig, progressReports);
+    },
 
-  bool hasJsonSamples = this->parser.isSet("samples");
-  bool hasIdxData = this->parser.isSet("idx-data");
-  bool hasIdxLabels = this->parser.isSet("idx-labels");
-
-  if (hasJsonSamples && hasIdxData) {
-    std::cerr << "Error: Cannot use both --samples and --idx-data. Choose one format.\n";
-    return {samples, false};
-  }
-
-  ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
-
-  if (hasJsonSamples) {
-    QString samplesPath = this->parser.value("samples");
-    inputFilePath = samplesPath;
-
-    if (this->logLevel >= LogLevel::INFO)
-      std::cout << "Loading " << modeName << " samples from JSON: " << samplesPath.toStdString() << "\n";
-    samples = ANNLoader::loadSamples(samplesPath.toStdString(), this->ioConfig, displayProgressReports);
-  } else if (hasIdxData) {
-    if (!hasIdxLabels) {
-      std::cerr << "Error: --idx-labels is required when using --idx-data.\n";
-      return {samples, false};
-    }
-
-    QString idxDataPath = this->parser.value("idx-data");
-    QString idxLabelsPath = this->parser.value("idx-labels");
-    inputFilePath = idxDataPath;
-
-    if (this->logLevel >= LogLevel::INFO) {
-      std::cout << "Loading " << modeName << " samples from IDX:\n";
-      std::cout << "  Data:   " << idxDataPath.toStdString() << "\n";
-      std::cout << "  Labels: " << idxLabelsPath.toStdString() << "\n";
-    }
-
-    samples = Utils<float>::loadANNIDX(idxDataPath.toStdString(), idxLabelsPath.toStdString(), displayProgressReports);
-  } else {
-    std::cerr << "Error: " << modeName << " requires either --samples (JSON) or --idx-data and --idx-labels (IDX).\n";
-    return {samples, false};
-  }
-
-  if (this->logLevel >= LogLevel::INFO)
-    std::cout << "Loaded " << samples.size() << " " << modeName << " samples.\n";
-
-  return {samples, true};
+    [](const std::string& dataPath, const std::string& labelsPath, ulong progressReports) {
+      return Utils<float>::loadANNIDX(dataPath, labelsPath, progressReports);
+    });
 }
 
 //===================================================================================================================//
@@ -479,16 +344,11 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
                                       const DataLoader<ANN::Sample<float>>* validationDataLoader,
                                       const std::vector<ulong>* validationIndices)
 {
-  static ulong lastCallbackEpoch = 0;
-  static float lastEpochLoss = 0.0f;
-  static std::mutex epochTransitionMutex;
-  lastCallbackEpoch = 0;
-  lastEpochLoss = 0.0f;
+  this->lastCallbackEpoch_ = 0;
+  this->lastEpochLoss_ = 0.0f;
 
-  // NOTE: static ProgressBar persists across training runs.
-  // Window size is fixed at first invocation; changing batchSize between runs has no effect.
   ulong batchSize = this->coreConfig.trainingConfig.batchSize;
-  static ProgressBar progressBar(this->ioConfig.progressReports, 50, std::max(2UL, batchSize / 2));
+  this->progressBar_ = std::make_unique<ProgressBar>(this->ioConfig.progressReports, 50, std::max(2UL, batchSize / 2));
 
   auto tui = this->tui;
 
@@ -503,13 +363,14 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
                                    validationIndices, validationDataLoader,
                                    tui](const ANN::TrainingProgress<float>& progress) {
     {
-      std::lock_guard<std::mutex> lock(epochTransitionMutex);
+      std::lock_guard<std::mutex> lock(this->epochTransitionMutex_);
 
-      if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > lastCallbackEpoch) {
+      if (this->ioConfig.saveModelInterval > 0 && progress.currentEpoch > this->lastCallbackEpoch_) {
         std::string checkpointPath;
 
-        if (lastCallbackEpoch > 0 && lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
-          checkpointPath = ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch, lastEpochLoss);
+        if (this->lastCallbackEpoch_ > 0 && this->lastCallbackEpoch_ % this->ioConfig.saveModelInterval == 0) {
+          checkpointPath =
+            ModelSerializer::generateCheckpointPath(inputFilePath, this->lastCallbackEpoch_, this->lastEpochLoss_);
           ModelSerializer::saveANNModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                         this->buildValidationMetadata());
         }
@@ -519,21 +380,13 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         float valLoss = 0.0f;
         bool hasValLoss = false;
 
-        if (lastCallbackEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
-            validationIndices && lastCallbackEpoch % this->validationState.checkInterval == 0) {
+        if (this->lastCallbackEpoch_ > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
+            validationIndices && this->lastCallbackEpoch_ % this->validationState.checkInterval == 0) {
           ulong validationTotal = validationIndices->size();
 
           validationCore->setParameters(this->core->getParameters());
 
-          if (tui && tui->isInitialized()) {
-            int validationGpus = std::max(1, progress.totalGPUs);
-            validationCore->setProgressCallback([tui, validationTotal, validationGpus](ulong current, ulong) {
-              float pct = static_cast<float>(current) / validationTotal * 100.0f;
-              std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
-              tui->handleResize();
-              ProgressBar::renderValidationBar(tui->progressWindow(), pct, validationGpus);
-            });
-          }
+          setupValidationProgressCallback(*validationCore, tui, validationTotal, progress.totalGPUs);
 
           // Mute the loading bar while validation streams its own samples through the shared
           // loader, so the "Loading samples" bar isn't hijacked by validation's batch counts
@@ -546,11 +399,11 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
           if (validationResult.averageLoss < this->validationState.bestValLoss) {
             this->validationState.bestValLoss = validationResult.averageLoss;
-            this->validationState.bestValEpoch = lastCallbackEpoch;
+            this->validationState.bestValEpoch = this->lastCallbackEpoch_;
           }
 
           if (trainingMonitor) {
-            monitorShouldStop = trainingMonitor->checkEpoch(lastCallbackEpoch, lastEpochLoss,
+            monitorShouldStop = trainingMonitor->checkEpoch(this->lastCallbackEpoch_, this->lastEpochLoss_,
                                                             std::optional<float>(validationResult.averageLoss));
             isBest = trainingMonitor->isNewBest();
           }
@@ -562,9 +415,10 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
                                         this->buildValidationMetadata());
         }
 
-        if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && lastCallbackEpoch > 0) {
+        if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && this->lastCallbackEpoch_ > 0) {
           bool isBestEpoch = (isBest || progress.isNewBest);
-          tui->pushEpochRecord(static_cast<int>(lastCallbackEpoch), lastEpochLoss, hasValLoss, valLoss, isBestEpoch);
+          tui->pushEpochRecord(static_cast<int>(this->lastCallbackEpoch_), this->lastEpochLoss_, hasValLoss, valLoss,
+                               isBestEpoch);
         }
 
         if (monitorShouldStop) {
@@ -581,7 +435,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           this->core->requestStop();
         }
 
-        lastCallbackEpoch = progress.currentEpoch;
+        this->lastCallbackEpoch_ = progress.currentEpoch;
       }
 
       if (this->logLevel > LogLevel::QUIET) {
@@ -591,16 +445,16 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         if (tui && tui->isInitialized()) {
           std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
           tui->handleResize();
-          progressBar.update(info, tui->progressWindow());
+          this->progressBar_->update(info, tui->progressWindow());
           tui->refresh();
         } else {
-          progressBar.update(info);
+          this->progressBar_->update(info);
         }
       }
-    } // lock_guard released
 
-    if (progress.epochLoss > 0)
-      lastEpochLoss = progress.epochLoss;
+      if (progress.epochLoss > 0)
+        this->lastEpochLoss_ = progress.epochLoss;
+    } // lock_guard released
   });
 }
 
@@ -630,63 +484,13 @@ void ANNRunner::regenerateConfigLines(ulong maxWidth)
 
 int ANNRunner::finishTraining(const QString& inputFilePath)
 {
-  if (this->tui) {
-    this->tui->shutdown();
-    this->tui.reset();
-  }
-
-  if (this->logLevel > LogLevel::QUIET)
-    std::cout << "\nTraining completed.\n";
-
-  const auto& trainingConfig = this->core->getTrainingConfig();
-  const auto& trainingMetadata = this->core->getTrainingMetadata();
-  ulong actualEpochs = trainingMetadata.lastEpoch > 0 ? trainingMetadata.lastEpoch : trainingConfig.numEpochs;
-
-  std::string outputPathStr;
-
-  if (this->parser.isSet("output")) {
-    outputPathStr = this->parser.value("output").toStdString();
-  } else {
-    outputPathStr = ModelSerializer::generateDefaultOutputPath(inputFilePath, actualEpochs, trainingMetadata.numSamples,
-                                                               trainingMetadata.finalLoss);
-  }
-
-  ModelSerializer::saveANNModel(outputPathStr, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                this->buildValidationMetadata());
-
-  if (this->logLevel > LogLevel::QUIET)
-    std::cout << "Model saved to: " << outputPathStr << "\n";
-  return 0;
+  return finishTrainingCommon(this->tui, this->logLevel, this->parser, inputFilePath, *this->core,
+                              [this](const std::string& path) {
+                                ModelSerializer::saveANNModel(path, *this->core, this->coreConfig, this->ioConfig,
+                                                              this->augConfig, this->buildValidationMetadata());
+                              });
 }
 
 //===================================================================================================================//
-//  Class weight computation
+//  Class weight computation — delegates to shared computeClassWeightsFromOutputs() in NN-CLI_Utils.hpp
 //===================================================================================================================//
-
-std::vector<float> ANNRunner::computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs)
-{
-  if (outputs.empty())
-    return {};
-
-  ulong numClasses = outputs[0].size();
-  std::vector<ulong> classCounts(numClasses, 0);
-
-  for (const auto& output : outputs) {
-    ulong cls = static_cast<ulong>(std::distance(output.begin(), std::max_element(output.begin(), output.end())));
-
-    if (cls < numClasses)
-      classCounts[cls]++;
-  }
-
-  ulong totalSamples = outputs.size();
-  std::vector<float> weights(numClasses, 1.0f);
-
-  for (ulong c = 0; c < numClasses; c++) {
-    if (classCounts[c] > 0) {
-      weights[c] =
-        static_cast<float>(totalSamples) / (static_cast<float>(numClasses) * static_cast<float>(classCounts[c]));
-    }
-  }
-
-  return weights;
-}

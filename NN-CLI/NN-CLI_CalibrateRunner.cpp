@@ -8,6 +8,7 @@
 #include <json.hpp>
 
 #include <QFile>
+#include <QProcess>
 #include <QThreadPool>
 #include <QVector>
 #include <QtConcurrent>
@@ -17,7 +18,6 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -91,15 +91,31 @@ namespace
     return false;
   }
 
-  // Run a shell command, throwing with a clear message on non-zero exit.
+  // Run a command via QProcess (no shell injection risk).
   // We shell out to `curl` / `tar` because pulling in libcurl/libarchive
   // for a one-time calibration setup isn't worth the link-time cost.
-  void shellRun(const std::string& cmd, const std::string& description)
+  void shellRun(const QString& program, const QStringList& arguments, const std::string& description)
   {
-    int rc = std::system(cmd.c_str());
+    QProcess process;
+    process.start(program, arguments);
 
-    if (rc != 0) {
-      throw std::runtime_error(description + " failed (exit " + std::to_string(rc) + "): " + cmd);
+    if (!process.waitForFinished(600000)) { // 10-minute timeout
+      process.kill();
+
+      if (process.error() == QProcess::FailedToStart) {
+        throw std::runtime_error(description + " failed to start: " + program.toStdString());
+      }
+
+      QString cmd = program + " " + arguments.join(" ");
+      throw std::runtime_error(description + " timed out: " + cmd.toStdString());
+    }
+
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+      QString cmd = program + " " + arguments.join(" ");
+      QString err = QString::fromUtf8(process.readAllStandardError());
+
+      throw std::runtime_error(description + " failed (exit " + std::to_string(process.exitCode()) +
+                               "): " + cmd.toStdString() + "\n" + err.toStdString());
     }
   }
 
@@ -108,6 +124,84 @@ namespace
   {
     double m = std::pow(10.0, places);
     return std::round(v * m) / m;
+  }
+
+  //===================================================================================================================//
+  //-- Template helpers (file-local) --//
+  //===================================================================================================================//
+
+  // Unified streaming predict for ANN/CNN – the only difference is how
+  // a decoded flat pixel vector is wrapped into the library's input type.
+  // InputsT:       CNN::Inputs<float> or ANN::Inputs<float>
+  // CoreT:         CNN::Core<float>   or ANN::Core<float>
+  // WrapFn:        callable (std::vector<float>&&) → element of InputsT
+  template <typename InputsT, typename CoreT, typename WrapFn>
+  std::vector<std::vector<float>>
+  runPredictImpl(CoreT& core, const std::vector<std::string>& imagePaths, const std::string& progressLabel, int targetC,
+                 int targetH, int targetW, ulong progressReports, LogLevel logLevel, WrapFn wrapInput)
+  {
+    std::vector<std::vector<float>> result;
+    ulong total = imagePaths.size();
+    std::atomic<ulong> loadedCount{0};
+
+    auto provider = [&](ulong batchSize, ulong batchIndex) -> InputsT {
+      ulong start = batchIndex * batchSize;
+      ulong end = std::min(start + batchSize, total);
+
+      if (start >= end)
+        return {};
+
+      ulong batchN = end - start;
+      std::vector<std::vector<float>> flats(batchN);
+      std::vector<char> ok(batchN, 0);
+
+      QVector<int> indices(static_cast<int>(batchN));
+
+      for (int k = 0; k < static_cast<int>(batchN); k++)
+        indices[k] = k;
+
+      QtConcurrent::blockingMap(indices, [&](int k) {
+        try {
+          flats[k] = ImageLoader::loadImage(imagePaths[start + k], targetC, targetH, targetW);
+          ok[k] = 1;
+        } catch (const std::exception& e) {
+          if (logLevel >= LogLevel::WARNING)
+            std::cerr << "\n[warn] Skipping " << imagePaths[start + k] << ": " << e.what() << "\n";
+        }
+
+        ulong done = ++loadedCount;
+
+        if (logLevel > LogLevel::QUIET)
+          ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
+      });
+
+      InputsT inputs;
+      inputs.reserve(batchN);
+
+      for (ulong k = 0; k < batchN; k++) {
+        if (!ok[k])
+          continue;
+
+        inputs.push_back(wrapInput(std::move(flats[k])));
+      }
+
+      return inputs;
+    };
+
+    if (logLevel > LogLevel::QUIET) {
+      ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
+      core.setProgressCallback([progressReports, &progressLabel](ulong current, ulong totalCb) {
+        ProgressBar::printLoadingProgress(progressLabel, current, totalCb, progressReports);
+      });
+    }
+
+    auto predicts = core.predict(total, provider);
+    result.reserve(predicts.size());
+
+    for (auto& p : predicts)
+      result.push_back(std::move(p.logits));
+
+    return result;
   }
 } // namespace
 
@@ -150,11 +244,39 @@ int CalibrateRunner::run()
   std::string oodDir = this->parser.isSet("ood-dir") ? this->parser.value("ood-dir").toStdString()
                                                      : (fs::current_path() / "extern-datasets" / "ood").string();
 
-  std::size_t idCount =
-    this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong() : 500;
-  std::size_t oodCount =
-    this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong() : 1500;
-  double idPercentile = this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0;
+  std::size_t idCount = 500;
+
+  if (this->parser.isSet("id-sample-count")) {
+    bool ok = false;
+    idCount = this->parser.value("id-sample-count").toULongLong(&ok);
+
+    if (!ok)
+      throw std::runtime_error("Error: --id-sample-count must be a positive integer");
+  }
+
+  std::size_t oodCount = 1500;
+
+  if (this->parser.isSet("ood-sample-count")) {
+    bool ok = false;
+    oodCount = this->parser.value("ood-sample-count").toULongLong(&ok);
+
+    if (!ok)
+      throw std::runtime_error("Error: --ood-sample-count must be a positive integer");
+  }
+
+  double idPercentile = 95.0;
+
+  if (this->parser.isSet("id-percentile")) {
+    bool ok = false;
+    idPercentile = this->parser.value("id-percentile").toDouble(&ok);
+
+    if (!ok)
+      throw std::runtime_error("Error: --id-percentile must be a number");
+
+    if (idPercentile < 0.0 || idPercentile > 100.0)
+      throw std::runtime_error("Error: --id-percentile must be between 0 and 100");
+  }
+
   bool fetchIfMissing = !this->parser.isSet("no-fetch");
 
   // Default output: threshold.json next to --config.
@@ -283,10 +405,14 @@ void CalibrateRunner::fetchDTD(const std::string& destDir)
   if (this->logLevel > LogLevel::QUIET)
     std::cout << "[fetch] DTD (~600 MB) → " << destDir << "\n";
 
-  shellRun("curl -L --fail -o '" + tgz.string() +
-             "' https://www.robots.ox.ac.uk/~vgg/data/dtd/download/dtd-r1.0.1.tar.gz",
+  shellRun("curl",
+           {"-L", "--fail", "-o", QString::fromStdString(tgz.string()),
+            "https://www.robots.ox.ac.uk/~vgg/data/dtd/download/dtd-r1.0.1.tar.gz"},
            "DTD download");
-  shellRun("tar -xzf '" + tgz.string() + "' -C '" + destDir + "' --strip-components=1", "DTD extraction");
+  shellRun(
+    "tar",
+    {"-xzf", QString::fromStdString(tgz.string()), "-C", QString::fromStdString(destDir), "--strip-components=1"},
+    "DTD extraction");
   fs::remove(tgz);
 }
 
@@ -302,9 +428,12 @@ void CalibrateRunner::fetchPlaces365Val(const std::string& destDir)
   if (this->logLevel > LogLevel::QUIET)
     std::cout << "[fetch] Places365 val_256 (~500 MB) → " << destDir << "\n";
 
-  shellRun("curl -L --fail -o '" + tarPath.string() + "' http://data.csail.mit.edu/places/places365/val_256.tar",
+  shellRun("curl",
+           {"-L", "--fail", "-o", QString::fromStdString(tarPath.string()),
+            "http://data.csail.mit.edu/places/places365/val_256.tar"},
            "Places365 download");
-  shellRun("tar -xf '" + tarPath.string() + "' -C '" + destDir + "'", "Places365 extraction");
+  shellRun("tar", {"-xf", QString::fromStdString(tarPath.string()), "-C", QString::fromStdString(destDir)},
+           "Places365 extraction");
   fs::remove(tarPath);
 }
 
@@ -473,7 +602,6 @@ std::vector<std::string> CalibrateRunner::sampleImages(const std::vector<std::st
 std::vector<std::vector<float>> CalibrateRunner::runPredict(const std::vector<std::string>& imagePaths,
                                                             const std::string& progressLabel)
 {
-  std::vector<std::vector<float>> result;
   ulong total = imagePaths.size();
   ulong progressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
 
@@ -485,128 +613,26 @@ std::vector<std::vector<float>> CalibrateRunner::runPredict(const std::vector<st
   int targetW = (this->networkType == NetworkType::CNN) ? static_cast<int>(this->cnnCoreConfig.inputShape.w)
                                                         : static_cast<int>(this->ioConfig.inputW);
 
-  // Stream batches into the Core's streaming predict. Each batch is decoded
-  // in parallel by the provider lambda below and dropped right after the GPU
-  // consumes it, so peak host memory is O(batchSize × image bytes) instead
-  // of the whole dataset (~120 GB at full ISIC + OOD inventory).
-  std::atomic<ulong> loadedCount{0};
+  std::vector<std::vector<float>> result;
 
   if (this->networkType == NetworkType::CNN) {
-    auto provider = [&](ulong batchSize, ulong batchIndex) -> CNN::Inputs<float> {
-      ulong start = batchIndex * batchSize;
-      ulong end = std::min(start + batchSize, total);
+    auto shape = this->cnnCoreConfig.inputShape;
 
-      if (start >= end)
-        return {};
-
-      ulong batchN = end - start;
-      std::vector<std::vector<float>> flats(batchN);
-      std::vector<char> ok(batchN, 0);
-
-      QVector<int> indices(static_cast<int>(batchN));
-
-      for (int k = 0; k < static_cast<int>(batchN); k++)
-        indices[k] = k;
-
-      QtConcurrent::blockingMap(indices, [&](int k) {
-        try {
-          flats[k] = ImageLoader::loadImage(imagePaths[start + k], targetC, targetH, targetW);
-          ok[k] = 1;
-        } catch (const std::exception& e) {
-          if (this->logLevel >= LogLevel::WARNING)
-            std::cerr << "\n[warn] Skipping " << imagePaths[start + k] << ": " << e.what() << "\n";
-        }
-
-        ulong done = ++loadedCount;
-
-        if (this->logLevel > LogLevel::QUIET)
-          ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
-      });
-
-      CNN::Inputs<float> inputs;
-      inputs.reserve(batchN);
-
-      for (ulong k = 0; k < batchN; k++) {
-        if (!ok[k])
-          continue;
-
-        CNN::Input<float> input(this->cnnCoreConfig.inputShape);
-        input.data = std::move(flats[k]);
-        inputs.push_back(std::move(input));
-      }
-
-      return inputs;
+    auto wrapInput = [shape](std::vector<float>&& flat) {
+      CNN::Input<float> input(shape);
+      input.data = std::move(flat);
+      return input;
     };
 
-    if (this->logLevel > LogLevel::QUIET) {
-      ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
-      this->cnnCore->setProgressCallback([progressReports, &progressLabel](ulong current, ulong totalCb) {
-        ProgressBar::printLoadingProgress(progressLabel, current, totalCb, progressReports);
-      });
-    }
-
-    CNN::PredictResults<float> predicts = this->cnnCore->predict(total, provider);
-    result.reserve(predicts.size());
-
-    for (auto& p : predicts)
-      result.push_back(std::move(p.logits));
+    result = runPredictImpl<CNN::Inputs<float>>(*this->cnnCore, imagePaths, progressLabel, targetC, targetH, targetW,
+                                                progressReports, this->logLevel, wrapInput);
   } else {
-    auto provider = [&](ulong batchSize, ulong batchIndex) -> ANN::Inputs<float> {
-      ulong start = batchIndex * batchSize;
-      ulong end = std::min(start + batchSize, total);
-
-      if (start >= end)
-        return {};
-
-      ulong batchN = end - start;
-      std::vector<std::vector<float>> flats(batchN);
-      std::vector<char> ok(batchN, 0);
-
-      QVector<int> indices(static_cast<int>(batchN));
-
-      for (int k = 0; k < static_cast<int>(batchN); k++)
-        indices[k] = k;
-
-      QtConcurrent::blockingMap(indices, [&](int k) {
-        try {
-          flats[k] = ImageLoader::loadImage(imagePaths[start + k], targetC, targetH, targetW);
-          ok[k] = 1;
-        } catch (const std::exception& e) {
-          if (this->logLevel >= LogLevel::WARNING)
-            std::cerr << "\n[warn] Skipping " << imagePaths[start + k] << ": " << e.what() << "\n";
-        }
-
-        ulong done = ++loadedCount;
-
-        if (this->logLevel > LogLevel::QUIET)
-          ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
-      });
-
-      ANN::Inputs<float> inputs;
-      inputs.reserve(batchN);
-
-      for (ulong k = 0; k < batchN; k++) {
-        if (!ok[k])
-          continue;
-
-        inputs.push_back(std::move(flats[k]));
-      }
-
-      return inputs;
+    auto wrapInput = [](std::vector<float>&& flat) {
+      return std::move(flat);
     };
 
-    if (this->logLevel > LogLevel::QUIET) {
-      ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
-      this->annCore->setProgressCallback([progressReports, &progressLabel](ulong current, ulong totalCb) {
-        ProgressBar::printLoadingProgress(progressLabel, current, totalCb, progressReports);
-      });
-    }
-
-    ANN::PredictResults<float> predicts = this->annCore->predict(total, provider);
-    result.reserve(predicts.size());
-
-    for (auto& p : predicts)
-      result.push_back(std::move(p.logits));
+    result = runPredictImpl<ANN::Inputs<float>>(*this->annCore, imagePaths, progressLabel, targetC, targetH, targetW,
+                                                progressReports, this->logLevel, wrapInput);
   }
 
   if (this->logLevel > LogLevel::QUIET)

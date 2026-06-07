@@ -140,8 +140,8 @@ namespace NN_CLI
 
         if (eTrans) {
           this->applyTrans[i] = coin(rng) ? 1 : 0;
-          int maxDx = (int)(t.translation * (float)W);
-          int maxDy = (int)(t.translation * (float)H);
+          int maxDx = static_cast<int>(t.translation * static_cast<float>(W));
+          int maxDy = static_cast<int>(t.translation * static_cast<float>(H));
           this->dxs[i] =
             (this->applyTrans[i] && maxDx > 0) ? std::uniform_int_distribution<int>(-maxDx, maxDx)(rng) : 0;
           this->dys[i] =
@@ -172,13 +172,19 @@ namespace NN_CLI
           if (this->applyErase[i]) {
             float areaFrac = std::uniform_real_distribution<float>(0.02f, t.randomErasing)(rng);
             float aspect = std::uniform_real_distribution<float>(0.3f, 3.3f)(rng);
-            float area = areaFrac * (float)H * (float)W;
-            long eh = std::min((long)std::round(std::sqrt(area * aspect)), (long)H);
-            long ew = std::min((long)std::round(std::sqrt(area / aspect)), (long)W);
-            this->eraseH[i] = (int)eh;
-            this->eraseW[i] = (int)ew;
-            this->eraseY0[i] = ((long)H > eh) ? std::uniform_int_distribution<int>(0, (int)((long)H - eh))(rng) : 0;
-            this->eraseX0[i] = ((long)W > ew) ? std::uniform_int_distribution<int>(0, (int)((long)W - ew))(rng) : 0;
+            float area = areaFrac * static_cast<float>(H) * static_cast<float>(W);
+            long eh = std::min(static_cast<long>(std::round(std::sqrt(area * aspect))), static_cast<long>(H));
+            long ew = std::min(static_cast<long>(std::round(std::sqrt(area / aspect))), static_cast<long>(W));
+            this->eraseH[i] = static_cast<int>(eh);
+            this->eraseW[i] = static_cast<int>(ew);
+            this->eraseY0[i] =
+              (static_cast<long>(H) > eh)
+                ? std::uniform_int_distribution<int>(0, static_cast<int>(static_cast<long>(H) - eh))(rng)
+                : 0;
+            this->eraseX0[i] =
+              (static_cast<long>(W) > ew)
+                ? std::uniform_int_distribution<int>(0, static_cast<int>(static_cast<long>(W) - ew))(rng)
+                : 0;
           } else {
             this->eraseH[i] = this->eraseW[i] = this->eraseX0[i] = this->eraseY0[i] = 0;
           }
@@ -202,12 +208,12 @@ namespace NN_CLI
 
         // Build the 1D Gaussian kernel on the host (cheap, small) and upload it.
         float sigma = t.elasticDeformation.sigma;
-        elasticRadius = std::min(128, std::max(1, (int)std::ceil(sigma * 3.0f)));
+        elasticRadius = std::min(128, std::max(1, static_cast<int>(std::ceil(sigma * 3.0f))));
         std::vector<float> gauss(2 * elasticRadius + 1);
         float gsum = 0.0f;
 
         for (int k = -elasticRadius; k <= elasticRadius; k++) {
-          float v = std::exp(-0.5f * (float)(k * k) / (sigma * sigma));
+          float v = std::exp(-0.5f * static_cast<float>(k * k) / (sigma * sigma));
           gauss[k + elasticRadius] = v;
           gsum += v;
         }
@@ -415,7 +421,7 @@ namespace NN_CLI
       }
 
       if (eNoise) {
-        unsigned int seed = (unsigned int)rng();
+        unsigned int seed = static_cast<unsigned int>(rng());
         this->core.addKernel("k_noise", "aug_gaussian_noise", total, 0);
         this->core.addArgument<float>("k_noise", cur);
         this->core.addArgument<int>("k_noise", "aug_applyNoise");
@@ -445,7 +451,7 @@ namespace NN_CLI
     for (size_t i = 0; i < deviceIndices.size(); i++) {
       this->augmenters.push_back(std::make_unique<GpuAugmenter>(deviceIndices[i], c, h, w, logLevel));
       this->rngs.push_back(std::make_unique<std::mt19937>(0xA06 + deviceIndices[i]));
-      this->freeList.push_back((int)i);
+      this->freeList.push_back(static_cast<int>(i));
     }
   }
 

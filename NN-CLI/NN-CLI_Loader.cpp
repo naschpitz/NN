@@ -9,10 +9,10 @@ namespace NN_CLI
 {
 
   //===================================================================================================================//
-  // Network type detection
+  // parseConfigFile
   //===================================================================================================================//
 
-  NetworkType Loader::detectNetworkType(const std::string& configFilePath)
+  nlohmann::json Loader::parseConfigFile(const std::string& configFilePath)
   {
     QFile file(QString::fromStdString(configFilePath));
 
@@ -21,8 +21,20 @@ namespace NN_CLI
     }
 
     QByteArray fileData = file.readAll();
-    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+    return nlohmann::json::parse(fileData.toStdString());
+  }
 
+  //===================================================================================================================//
+  // Network type detection
+  //===================================================================================================================//
+
+  NetworkType Loader::detectNetworkType(const std::string& configFilePath)
+  {
+    return detectNetworkType(parseConfigFile(configFilePath));
+  }
+
+  NetworkType Loader::detectNetworkType(const nlohmann::json& json)
+  {
     // ANN configs use "layers" for their dense layers.
     // CNN configs use "convolutionalLayers" and/or "denseLayers".
     // "inputShape" is NOT used for detection — both types can have it (e.g. ANN image input).
@@ -40,15 +52,12 @@ namespace NN_CLI
   IOConfig Loader::loadIOConfig(const std::string& configFilePath, std::optional<std::string> inputTypeOverride,
                                 std::optional<std::string> outputTypeOverride)
   {
-    QFile file(QString::fromStdString(configFilePath));
+    return loadIOConfig(parseConfigFile(configFilePath), inputTypeOverride, outputTypeOverride);
+  }
 
-    if (!file.open(QIODevice::ReadOnly)) {
-      throw std::runtime_error("Failed to open config file: " + configFilePath);
-    }
-
-    QByteArray fileData = file.readAll();
-    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
-
+  IOConfig Loader::loadIOConfig(const nlohmann::json& json, std::optional<std::string> inputTypeOverride,
+                                std::optional<std::string> outputTypeOverride)
+  {
     IOConfig ioConfig;
 
     // Read inputType / outputType (default to "vector")
@@ -94,15 +103,11 @@ namespace NN_CLI
 
   ulong Loader::loadProgressReports(const std::string& configFilePath)
   {
-    QFile file(QString::fromStdString(configFilePath));
+    return loadProgressReports(parseConfigFile(configFilePath));
+  }
 
-    if (!file.open(QIODevice::ReadOnly)) {
-      throw std::runtime_error("Failed to open config file: " + configFilePath);
-    }
-
-    QByteArray fileData = file.readAll();
-    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
-
+  ulong Loader::loadProgressReports(const nlohmann::json& json)
+  {
     if (json.contains("progressReports")) {
       return json.at("progressReports").get<ulong>();
     }
@@ -116,15 +121,11 @@ namespace NN_CLI
 
   ulong Loader::loadSaveModelInterval(const std::string& configFilePath)
   {
-    QFile file(QString::fromStdString(configFilePath));
+    return loadSaveModelInterval(parseConfigFile(configFilePath));
+  }
 
-    if (!file.open(QIODevice::ReadOnly)) {
-      throw std::runtime_error("Failed to open config file: " + configFilePath);
-    }
-
-    QByteArray fileData = file.readAll();
-    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
-
+  ulong Loader::loadSaveModelInterval(const nlohmann::json& json)
+  {
     if (json.contains("saveModelInterval")) {
       return json.at("saveModelInterval").get<ulong>();
     }
@@ -138,15 +139,11 @@ namespace NN_CLI
 
   AugmentationConfig Loader::loadAugmentationConfig(const std::string& configFilePath)
   {
-    QFile file(QString::fromStdString(configFilePath));
+    return loadAugmentationConfig(parseConfigFile(configFilePath));
+  }
 
-    if (!file.open(QIODevice::ReadOnly)) {
-      throw std::runtime_error("Failed to open config file: " + configFilePath);
-    }
-
-    QByteArray fileData = file.readAll();
-    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
-
+  AugmentationConfig Loader::loadAugmentationConfig(const nlohmann::json& json)
+  {
     AugmentationConfig config;
 
     if (json.contains("training")) {

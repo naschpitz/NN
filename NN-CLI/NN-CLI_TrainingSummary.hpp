@@ -3,6 +3,7 @@
 
 #include "NN-CLI_AugmentationConfig.hpp"
 #include "NN-CLI_SummaryTable.hpp"
+#include "NN-CLI_Types.hpp"
 
 #include <ANN_CoreConfig.hpp>
 #include <CNN_CoreConfig.hpp>
@@ -12,8 +13,6 @@
 
 namespace NN_CLI
 {
-
-  using ulong = unsigned long;
 
   class TrainingSummary
   {

@@ -2,14 +2,11 @@
 #define NN_CLI_AUGMENTATIONCONFIG_HPP
 
 #include "NN-CLI_AugmentationTransforms.hpp"
+#include "NN-CLI_Types.hpp"
 #include "NN-CLI_ValidationDatasetConfig.hpp"
-
-#include <sys/types.h>
 
 namespace NN_CLI
 {
-
-  using ulong = unsigned long;
 
   struct AugmentationConfig {
       ulong augmentationFactor = 0; // 0 = disabled; N = N× total samples per class

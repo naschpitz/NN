@@ -19,8 +19,11 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
 {
   QString configPath = this->parser.value("config");
 
-  // Detect network type from config file
-  this->networkType = Loader::detectNetworkType(configPath.toStdString());
+  // Parse config file once — all subsequent loaders use the pre-parsed JSON
+  auto json = Loader::parseConfigFile(configPath.toStdString());
+
+  // Detect network type from config
+  this->networkType = Loader::detectNetworkType(json);
 
   // Build optional mode/device overrides as strings
   std::optional<std::string> modeOverride;
@@ -57,7 +60,7 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
     outputTypeOverride = this->parser.value("output-type").toLower().toStdString();
   }
 
-  this->ioConfig = Loader::loadIOConfig(configPath.toStdString(), inputTypeOverride, outputTypeOverride);
+  this->ioConfig = Loader::loadIOConfig(json, inputTypeOverride, outputTypeOverride);
 
   // Display info (verbose level >= 1)
   std::string networkTypeStr = (this->networkType == NetworkType::CNN) ? "CNN" : "ANN";
@@ -73,11 +76,11 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
   }
 
   // Load NN-CLI-level settings from config root
-  this->ioConfig.progressReports = Loader::loadProgressReports(configPath.toStdString());
-  this->ioConfig.saveModelInterval = Loader::loadSaveModelInterval(configPath.toStdString());
+  this->ioConfig.progressReports = Loader::loadProgressReports(json);
+  this->ioConfig.saveModelInterval = Loader::loadSaveModelInterval(json);
 
   // Load data augmentation config
-  this->augConfig = Loader::loadAugmentationConfig(configPath.toStdString());
+  this->augConfig = Loader::loadAugmentationConfig(json);
 
   if (this->logLevel >= LogLevel::INFO && this->ioConfig.saveModelInterval > 0) {
     std::cout << "Save model interval: every " << this->ioConfig.saveModelInterval << " epoch(s)\n";
@@ -95,12 +98,12 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
     if (deviceOverride.has_value())
       annDeviceOverride = ANN::Device::nameToType(deviceOverride.value());
 
-    this->annCoreConfig = ANNLoader::loadConfig(configPath.toStdString(), annModeOverride, annDeviceOverride);
+    this->annCoreConfig = ANNLoader::loadConfig(json, annModeOverride, annDeviceOverride);
     this->annCoreConfig.logLevel = static_cast<ANN::LogLevel>(this->logLevel);
     this->mode = ANN::Mode::typeToName(this->annCoreConfig.modeType);
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
-    this->cnnCoreConfig = CNNLoader::loadConfig(configPath.toStdString(), modeOverride, deviceOverride);
+    this->cnnCoreConfig = CNNLoader::loadConfig(json, modeOverride, deviceOverride);
     this->cnnCoreConfig.logLevel = static_cast<CNN::LogLevel>(this->logLevel);
     this->mode = CNN::Mode::typeToName(this->cnnCoreConfig.modeType);
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
