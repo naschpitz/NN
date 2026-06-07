@@ -1,4 +1,4 @@
-#include "ANN_Device.hpp"
+#include "Common/Common_Device.hpp"
 
 #include <stdexcept>
 
