@@ -645,6 +645,12 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           validationDataLoader->setLoadingEnabled(false);
           auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
           validationDataLoader->setLoadingEnabled(true);
+
+          // Loading callbacks may have been suppressed during validation,
+          // causing the training bar to freeze. Catch it up now.
+          if (this->logLevel > LogLevel::QUIET)
+            this->trainingTui_.markCurrentLoadComplete();
+
           this->validationState.lastValLoss = validationResult.averageLoss;
           valLoss = validationResult.averageLoss;
           hasValLoss = true;

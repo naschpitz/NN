@@ -37,6 +37,11 @@ namespace NN_CLI
         this->loading_ = false;
       }
 
+      // Force the loading bar to show the current batch as fully loaded.
+      // Used after validation to catch up loading callbacks that were
+      // suppressed while setLoadingEnabled(false) was active.
+      void markCurrentLoadComplete();
+
     private:
       // Repaint the loading bar from the remembered state (no-op while not loading).
       void renderBar();
