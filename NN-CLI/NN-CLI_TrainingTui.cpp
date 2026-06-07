@@ -64,4 +64,20 @@ namespace NN_CLI
                                   this->totalBatches_, this->barGpus_);
   }
 
+  //===================================================================================================================//
+
+  void TrainingTui::markCurrentLoadComplete()
+  {
+    if (!this->tui_ || !this->loading_)
+      return;
+
+    if (this->current_ >= this->total_)
+      return; // already fully loaded, nothing to catch up
+
+    this->current_ = this->total_; // mark as 100% loaded
+    std::lock_guard<std::recursive_mutex> lock(this->tui_->mutex());
+    this->tui_->handleResize();
+    this->renderBar();
+  }
+
 } // namespace NN_CLI
