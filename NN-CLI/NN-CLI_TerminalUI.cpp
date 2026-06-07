@@ -176,10 +176,10 @@ namespace NN_CLI
       this->timingWin_ = nullptr;
     }
 
-    int loadW = std::max(1, this->leftWidth_ - 2);
+    int loadW = std::max(1, this->leftWidth_ - 4);
 
-    this->loadingWin_ = newwin(1, loadW, this->trainingY_ + 1, 1);
-    this->progressWin_ = newwin(2, loadW, this->trainingY_ + 2, 1);
+    this->loadingWin_ = newwin(1, loadW, this->trainingY_ + 1, 2);
+    this->progressWin_ = newwin(2, loadW, this->trainingY_ + 2, 2);
     this->timingWin_ = (this->timingWidth_ > 0) ? newwin(screenRows, this->timingWidth_, 0, this->leftWidth_) : nullptr;
 
     if (this->loadingWin_) {
