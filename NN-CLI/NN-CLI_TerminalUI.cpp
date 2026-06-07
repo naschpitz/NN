@@ -4,6 +4,7 @@
 #include <clocale>
 #include <csignal>
 #include <cstring>
+#include <ctime>
 #include <curses.h>
 
 namespace NN_CLI
@@ -137,7 +138,7 @@ namespace NN_CLI
     this->cols_ = getmaxx(stdscr);
 
     int minTimingW = 20;
-    int minLeftW = 40;
+    int minLeftW = 68;
 
     if (this->cols_ < minLeftW + minTimingW) {
       this->leftWidth_ = this->cols_;
@@ -154,12 +155,12 @@ namespace NN_CLI
     this->trainingH_ = 5;
     int remaining = std::max(8, screenRows - this->trainingH_);
 
-    this->configH_ = std::max(3, std::min(remaining - 5, remaining * 35 / 100));
+    this->configH_ = std::max(3, std::min(remaining - 5, remaining * 55 / 100));
     this->epochsH_ = std::max(3, remaining - this->configH_);
 
-    this->configY_ = 0;
-    this->trainingY_ = this->configH_;
+    this->trainingY_ = 0;
     this->epochsY_ = this->trainingY_ + this->trainingH_;
+    this->configY_ = this->epochsY_ + this->epochsH_;
 
     if (this->progressWin_) {
       delwin(this->progressWin_);
@@ -176,10 +177,10 @@ namespace NN_CLI
       this->timingWin_ = nullptr;
     }
 
-    int loadW = std::max(1, this->leftWidth_ - 2);
+    int loadW = std::max(1, this->leftWidth_ - 4);
 
-    this->loadingWin_ = newwin(1, loadW, this->trainingY_ + 1, 1);
-    this->progressWin_ = newwin(2, loadW, this->trainingY_ + 2, 1);
+    this->loadingWin_ = newwin(1, loadW, this->trainingY_ + 1, 2);
+    this->progressWin_ = newwin(2, loadW, this->trainingY_ + 2, 2);
     this->timingWin_ = (this->timingWidth_ > 0) ? newwin(screenRows, this->timingWidth_, 0, this->leftWidth_) : nullptr;
 
     if (this->loadingWin_) {
@@ -263,7 +264,7 @@ namespace NN_CLI
     int timColor = (this->activePanel_ == 2) ? 3 : 2;
 
     //-- Left column: Config panel --//
-    this->drawPanelFrame(this->configY_, this->configH_, 0, this->leftWidth_, "Config", cfgColor);
+    this->drawPanelFrame(this->configY_, this->configH_, 0, this->leftWidth_, "Configuration", cfgColor);
     contentH = this->configH_ - 2;
 
     for (int i = 0; i < contentH; i++) {
@@ -398,12 +399,130 @@ namespace NN_CLI
   void TerminalUI::addEpochLine(const std::string& line)
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+    this->epochMessages_.push_back(line);
     this->epochLines_.push_back(line);
 
     if (this->epochs_.autoScroll)
-      this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - (this->epochsH_ - 2));
+      this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - std::max(0, this->epochsH_ - 2));
 
     this->present(false, false);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI::pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest)
+  {
+    std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+
+    std::time_t now = std::time(nullptr);
+    this->epochRecords_.push_back({epoch, loss, hasValLoss, valLoss, isBest, now});
+
+    this->rebuildEpochLines();
+    this->present(false, false);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI::rebuildEpochLines()
+  {
+    if (this->epochRecords_.empty())
+      return;
+
+    // Rebuild the entire table with borders from scratch
+    this->epochLines_.clear();
+
+    // Compute dynamic column widths to fill the available panel space
+    int maxW = std::max(40, static_cast<int>(this->leftWidth_ - 4));
+    int overhead = 16; // non-data chars: "| " + " | " + " | " + " | " + " | " + " |"
+    int dataW = std::max(25, maxW - overhead);
+
+    int epochW = 5;
+    int bestW = 4;
+    int remaining = dataW - epochW - bestW;
+
+    // Give datetime at most 19 chars, minimum 4, leaving at least 8+8 for loss columns
+    int dateTimeW = std::max(4, std::min(19, remaining - 16));
+
+    if (dateTimeW < 4)
+      dateTimeW = 4;
+
+    // Split the rest equally between loss and val loss
+    int lossValSpace = remaining - dateTimeW;
+    int lossW = std::max(4, lossValSpace / 2);
+    int valLossW = std::max(4, lossValSpace - lossW);
+
+    // Separator line helper
+    auto sep = [&]() -> std::string {
+      return "+" + std::string(epochW + 2, '-') + "+" + std::string(lossW + 2, '-') + "+" +
+             std::string(valLossW + 2, '-') + "+" + std::string(bestW + 2, '-') + "+" +
+             std::string(dateTimeW + 2, '-') + "+";
+    };
+
+    // Top border
+    this->epochLines_.push_back(sep());
+
+    // Header row
+    {
+      char hdr[128];
+      snprintf(hdr, sizeof(hdr), "| %-*s | %*s | %*s | %-*s | %-*s |", epochW, "Epoch", lossW, "Loss", valLossW,
+               "Val Loss", bestW, "Best", dateTimeW, "Completed At");
+      this->epochLines_.push_back(hdr);
+    }
+
+    // Header/data separator
+    this->epochLines_.push_back(sep());
+
+    // Data rows
+    for (const auto& rec : this->epochRecords_) {
+      char epochStr[16], lossStr[32], valLossStr[32], bestCell[8];
+      snprintf(epochStr, sizeof(epochStr), "%d", rec.epoch);
+      snprintf(lossStr, sizeof(lossStr), "%.6f", static_cast<double>(rec.loss));
+
+      if (rec.hasValLoss) {
+        snprintf(valLossStr, sizeof(valLossStr), "%.6f", static_cast<double>(rec.valLoss));
+      } else {
+        snprintf(valLossStr, sizeof(valLossStr), "-");
+      }
+
+      snprintf(bestCell, sizeof(bestCell), "%s", rec.isBest ? "X" : "");
+
+      char dateStr[32] = "";
+      std::tm tm_buf{};
+      std::tm* tm_info = localtime_r(&rec.completionTime, &tm_buf);
+
+      if (tm_info) {
+        const char* dateFmt = "%Y-%m-%d %H:%M:%S";
+
+        if (dateTimeW < 19)
+          dateFmt = "%m-%d %H:%M:%S";
+
+        if (dateTimeW < 14)
+          dateFmt = "%m-%d %H:%M";
+
+        if (dateTimeW < 11)
+          dateFmt = "%H:%M:%S";
+
+        if (dateTimeW < 8)
+          dateFmt = "%H:%M";
+        std::strftime(dateStr, sizeof(dateStr), dateFmt, tm_info);
+      }
+
+      char row[256];
+      snprintf(row, sizeof(row), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, epochStr, lossW, lossStr, valLossW,
+               valLossStr, bestW, bestCell, dateTimeW, dateStr);
+      this->epochLines_.push_back(row);
+    }
+
+    // Bottom border
+    this->epochLines_.push_back(sep());
+
+    // Append stored monitor/status messages below the table
+    for (const auto& msg : this->epochMessages_)
+      this->epochLines_.push_back(msg);
+
+    // Auto-scroll offset - header is now part of the data, so use epochsH_ - 2
+    if (this->epochs_.autoScroll)
+      this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - std::max(0, this->epochsH_ - 2));
   }
 
   void TerminalUI::refreshConfigPanel()
@@ -423,11 +542,17 @@ namespace NN_CLI
       return false;
 
     this->layout();
+
+    // layout() erased the loading/progress sub-windows; reflow the epoch table to match
+    // the new panel width before redrawing panels.
+    if (!this->epochRecords_.empty())
+      this->rebuildEpochLines();
+
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
-    // layout() erased the loading/progress sub-windows; let the caller repaint the loading bar
-    // on top of the freshly drawn panels so it doesn't vanish until the next mini-batch tick.
+    // Let the caller repaint the loading bar on top of the freshly drawn panels so it
+    // doesn't vanish until the next mini-batch tick.
     if (this->overlayCallback_)
       this->overlayCallback_();
 

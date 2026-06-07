@@ -2,6 +2,7 @@
 #define NN_CLI_PROGRESSBAR_HPP
 
 #include <chrono>
+#include <deque>
 #include <mutex>
 #include <ostream>
 #include <vector>
@@ -31,7 +32,7 @@ namespace NN_CLI
   class ProgressBar
   {
     public:
-      ProgressBar(ulong progressReports = 1000, int barWidth = 50);
+      ProgressBar(ulong progressReports = 1000, int barWidth = 50, ulong windowSize = 0);
 
       // Update and display progress (call from training callback).
       // If `win` is non-null, renders into the ncurses window.
@@ -70,6 +71,15 @@ namespace NN_CLI
       //-- Per-epoch throughput timer (images/second + ETA) --//
       ulong timerEpoch = 0;
       std::chrono::steady_clock::time_point epochStartTime;
+
+      //-- Sliding-window throughput measurement (images/second) --//
+      struct RateSample {
+          double samplesProcessed;
+          std::chrono::steady_clock::time_point timestamp;
+      };
+
+      ulong windowSize = 0; // 0 = full-epoch fallback
+      std::deque<RateSample> rateWindow; // sliding window of samples
 
       //-- Running loss accumulator (smoothed per-epoch average) --//
       double runningLossSum = 0.0;

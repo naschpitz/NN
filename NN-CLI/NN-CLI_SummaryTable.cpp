@@ -25,6 +25,73 @@ namespace NN_CLI
 
       return 120;
     }
+
+    // Approximate display width accounting for UTF-8 multi-byte sequences.
+    // Each UTF-8 continuation byte (10xxxxxx) is 0 display columns,
+    // so display width = string bytes - continuation bytes.
+    ulong displayWidth(const std::string& s)
+    {
+      ulong w = 0;
+
+      for (unsigned char c : s) {
+        if ((c & 0xC0) != 0x80) // Not a UTF-8 continuation byte
+          ++w;
+      }
+
+      return w;
+    }
+
+    // Split text into lines that each fit within maxWidth, breaking at word boundaries.
+    // Words longer than maxWidth are force-broken at maxWidth.
+    std::vector<std::string> wordWrap(const std::string& text, ulong maxWidth)
+    {
+      std::vector<std::string> lines;
+
+      if (text.empty()) {
+        lines.emplace_back();
+        return lines;
+      }
+
+      if (maxWidth == 0) {
+        lines.push_back(text);
+        return lines;
+      }
+
+      std::istringstream stream(text);
+      std::string word;
+      std::string currentLine;
+
+      while (stream >> word) {
+        // If the word itself is longer than maxWidth, force-break it
+        if (displayWidth(word) > maxWidth) {
+          if (!currentLine.empty()) {
+            lines.push_back(currentLine);
+            currentLine.clear();
+          }
+
+          for (ulong i = 0; i < word.size(); i += maxWidth)
+            lines.push_back(word.substr(i, maxWidth));
+          continue;
+        }
+
+        if (currentLine.empty()) {
+          currentLine = word;
+        } else if (displayWidth(currentLine) + 1 + displayWidth(word) <= maxWidth) {
+          currentLine += " " + word;
+        } else {
+          lines.push_back(currentLine);
+          currentLine = word;
+        }
+      }
+
+      if (!currentLine.empty())
+        lines.push_back(currentLine);
+
+      if (lines.empty())
+        lines.emplace_back();
+
+      return lines;
+    }
   }
 
   //===================================================================================================================//
@@ -58,25 +125,21 @@ namespace NN_CLI
                                                  ulong maxWidth)
   {
     ulong keyW = 0;
-    ulong contentValueW = 0;
 
     for (const auto& r : rows) {
       if (!r.key.empty())
         keyW = std::max(keyW, r.key.size());
-
-      if (!r.value.empty())
-        contentValueW = std::max(contentValueW, r.value.size());
     }
 
     keyW = std::max(keyW, title.size());
     keyW = std::max(keyW, 6UL);
-    contentValueW = std::max(contentValueW, 6UL);
 
     ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
-    ulong containerWidth = termWidth > 5 ? termWidth - 5 : termWidth;
+    ulong containerWidth =
+      (maxWidth > 0) ? (termWidth > 1 ? termWidth - 1 : termWidth) : (termWidth > 5 ? termWidth - 5 : termWidth);
     ulong tableOverhead = keyW + 7;
-    ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : contentValueW;
-    valueW = std::max(valueW, contentValueW);
+    ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : 6UL;
+    valueW = std::max(valueW, 6UL);
 
     return collect(title, rows, maxWidth, keyW, valueW);
   }
@@ -88,10 +151,11 @@ namespace NN_CLI
   {
     std::vector<std::string> lines;
     ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
-    ulong containerWidth = termWidth > 5 ? termWidth - 5 : termWidth;
+    ulong containerWidth =
+      (maxWidth > 0) ? (termWidth > 1 ? termWidth - 1 : termWidth) : (termWidth > 5 ? termWidth - 5 : termWidth);
     ulong tableOverhead = keyW + 7;
-    ulong maxValueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : valueW;
-    valueW = std::max(valueW, maxValueW > valueW ? valueW : std::min(valueW, maxValueW));
+    ulong maxValueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : 6UL;
+    valueW = std::min(valueW, maxValueW);
     valueW = std::max(valueW, 6UL);
     keyW = std::max(keyW, title.size());
     keyW = std::max(keyW, 6UL);
@@ -120,15 +184,28 @@ namespace NN_CLI
         continue;
       }
 
-      std::string truncatedValue = r.value;
+      // Word-wrap the value into chunks so long values don't force an overly wide table
+      auto wrappedLines = wordWrap(r.value, valueW);
 
-      if (truncatedValue.size() > valueW)
-        truncatedValue = truncatedValue.substr(0, valueW);
+      for (ulong wi = 0; wi < wrappedLines.size(); wi++) {
+        const auto& val = wrappedLines[wi];
+        ulong valDW = displayWidth(val);
+        ulong pad = (valDW < valueW) ? valueW - valDW : 0;
 
-      std::ostringstream oss;
-      oss << "| " << std::left << std::setw(static_cast<int>(keyW)) << r.key << " | " << std::left
-          << std::setw(static_cast<int>(valueW)) << truncatedValue << " |";
-      lines.push_back(oss.str());
+        std::ostringstream oss;
+
+        if (wi == 0) {
+          // First line: show the key
+          oss << "| " << std::left << std::setw(static_cast<int>(keyW)) << r.key << " | " << val
+              << std::string(pad, ' ') << " |";
+        } else {
+          // Continuation lines: blank key column, just the wrapped value
+          oss << "| " << std::left << std::setw(static_cast<int>(keyW)) << ""
+              << " | " << val << std::string(pad, ' ') << " |";
+        }
+
+        lines.push_back(oss.str());
+      }
     }
 
     lines.push_back(sep);
@@ -141,7 +218,6 @@ namespace NN_CLI
   std::vector<std::string> SummaryTable::collectSections(const std::vector<Section>& sections, ulong maxWidth)
   {
     ulong keyW = 0;
-    ulong contentValueW = 0;
 
     for (const auto& sec : sections) {
       keyW = std::max(keyW, sec.title.size());
@@ -149,20 +225,17 @@ namespace NN_CLI
       for (const auto& r : sec.rows) {
         if (!r.key.empty())
           keyW = std::max(keyW, r.key.size());
-
-        if (!r.value.empty())
-          contentValueW = std::max(contentValueW, r.value.size());
       }
     }
 
     keyW = std::max(keyW, 6UL);
-    contentValueW = std::max(contentValueW, 6UL);
 
     ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
-    ulong containerWidth = termWidth > 5 ? termWidth - 5 : termWidth;
+    ulong containerWidth =
+      (maxWidth > 0) ? (termWidth > 1 ? termWidth - 1 : termWidth) : (termWidth > 5 ? termWidth - 5 : termWidth);
     ulong tableOverhead = keyW + 7;
-    ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : contentValueW;
-    valueW = std::max(valueW, contentValueW);
+    ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : 6UL;
+    valueW = std::max(valueW, 6UL);
 
     std::vector<std::string> allLines;
 

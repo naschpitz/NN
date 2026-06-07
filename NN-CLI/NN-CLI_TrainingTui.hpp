@@ -1,6 +1,8 @@
 #ifndef NN_CLI_TRAININGTUI_HPP
 #define NN_CLI_TRAININGTUI_HPP
 
+#include "NN-CLI_DataLoader.hpp"
+
 #include <functional>
 #include <memory>
 
@@ -29,7 +31,7 @@ namespace NN_CLI
       void resolveBarGpus(bool deviceIsGpu, int numGpusConfig);
 
       // DataLoader loading callback: remembers progress, services a pending resize, repaints the bar.
-      std::function<void(ulong, ulong, ulong, ulong)> loadingCallback();
+      std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> loadingCallback();
 
       // Loading is over once the training stream starts consuming (call before core->train()).
       void markLoadingFinished()
