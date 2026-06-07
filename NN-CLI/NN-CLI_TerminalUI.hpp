@@ -16,6 +16,14 @@ namespace NN_CLI
   class TerminalUI
   {
     public:
+      struct EpochRecord {
+          int epoch;
+          float loss;
+          bool hasValLoss;
+          float valLoss;
+          bool isBest;
+      };
+
       TerminalUI();
       ~TerminalUI();
 
@@ -62,6 +70,7 @@ namespace NN_CLI
 
       void setTimingLines(const std::vector<std::string>& lines);
       void addEpochLine(const std::string& line);
+      void pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest);
       void requestResize();
       bool handleResize();
       void redraw();
@@ -145,6 +154,7 @@ namespace NN_CLI
       std::vector<std::string> configLines_;
       std::vector<std::string> timingLines_;
       std::vector<std::string> epochLines_;
+      std::vector<EpochRecord> epochRecords_; // structured epoch data (for future use)
   };
 
 } // namespace NN_CLI
