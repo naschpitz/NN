@@ -75,7 +75,6 @@ namespace NN_CLI
       void pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest);
       // Rebuild the epoch table lines from epochRecords_ using the current panel width.
       // Called on new epochs and on terminal resize so the table always fills the panel.
-      void rebuildEpochLines();
       void requestResize();
       bool handleResize();
       void redraw();
@@ -117,6 +116,9 @@ namespace NN_CLI
       // runOverlay re-renders the loading-bar overlay (after layout() recreates the windows);
       // touchSub forces a full re-copy of the sub-windows when their content is otherwise unchanged.
       void present(bool runOverlay, bool touchSub);
+      // Rebuild the epoch table lines from epochRecords_ using the current panel width.
+      // Called on new epochs and on terminal resize so the table always fills the panel.
+      void rebuildEpochLines();
 
       // Draw a vertical scrollbar in column `col` over `contentH` rows starting at `yTop`,
       // with the thumb positioned for `scroll` within [0, total - contentH]. No-op if it all fits.

@@ -542,17 +542,19 @@ namespace NN_CLI
       return false;
 
     this->layout();
+
+    // layout() erased the loading/progress sub-windows; reflow the epoch table to match
+    // the new panel width before redrawing panels.
+    if (!this->epochRecords_.empty())
+      this->rebuildEpochLines();
+
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
-    // layout() erased the loading/progress sub-windows; let the caller repaint the loading bar
-    // on top of the freshly drawn panels so it doesn't vanish until the next mini-batch tick.
+    // Let the caller repaint the loading bar on top of the freshly drawn panels so it
+    // doesn't vanish until the next mini-batch tick.
     if (this->overlayCallback_)
       this->overlayCallback_();
-
-    // Reflow the epoch table to match the new panel width
-    if (!this->epochRecords_.empty())
-      this->rebuildEpochLines();
 
     return true;
   }
