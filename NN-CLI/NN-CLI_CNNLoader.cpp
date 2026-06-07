@@ -1,5 +1,6 @@
 #include "NN-CLI_CNNLoader.hpp"
 #include "NN-CLI_ImageLoader.hpp"
+#include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 
 #include <QFile>
@@ -19,15 +20,14 @@ namespace NN_CLI
                                                std::optional<std::string> modeOverride,
                                                std::optional<std::string> deviceOverride)
   {
-    QFile file(QString::fromStdString(configFilePath));
+    return loadConfig(Loader::parseConfigFile(configFilePath), modeOverride, deviceOverride);
+  }
 
-    if (!file.open(QIODevice::ReadOnly)) {
-      throw std::runtime_error("Failed to open config file: " + configFilePath);
-    }
+  //===================================================================================================================//
 
-    QByteArray fileData = file.readAll();
-    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
-
+  CNN::CoreConfig<float> CNNLoader::loadConfig(const nlohmann::json& json, std::optional<std::string> modeOverride,
+                                               std::optional<std::string> deviceOverride)
+  {
     CNN::CoreConfig<float> coreConfig;
 
     // Device
@@ -56,7 +56,7 @@ namespace NN_CLI
 
     // Input shape (required for CNN)
     if (!json.contains("inputShape")) {
-      throw std::runtime_error("CNN config file missing 'inputShape': " + configFilePath);
+      throw std::runtime_error("CNN config missing 'inputShape'");
     }
 
     const auto& shapeJson = json.at("inputShape");
@@ -291,8 +291,7 @@ namespace NN_CLI
       (coreConfig.modeType == CNN::ModeType::PREDICT || coreConfig.modeType == CNN::ModeType::TEST);
 
     if (isPredictOrTest && !json.contains("parameters")) {
-      throw std::runtime_error("CNN config file missing 'parameters' required for predict/test modes: " +
-                               configFilePath);
+      throw std::runtime_error("CNN config missing 'parameters' required for predict/test modes");
     }
 
     return coreConfig;

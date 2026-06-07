@@ -292,7 +292,7 @@ namespace NN_CLI
       v = this->lastStep;
     }
 
-    const_cast<TrainingProfiler*>(this)->lastRenderedBatchNumber = v.batchNumber;
+    this->lastRenderedBatchNumber = v.batchNumber;
 
     std::vector<std::string> lines;
     const double total = v.orchTotal > 0.0 ? v.orchTotal : 1.0;

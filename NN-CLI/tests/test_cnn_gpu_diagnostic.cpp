@@ -1,4 +1,5 @@
 #include "test_helpers.hpp"
+#include "NN-CLI_Types.hpp"
 
 #include <QDir>
 #include <QFile>
@@ -16,6 +17,8 @@
 #include <CNN_GPUBufferManager.hpp>
 #include <CNN_Sample.hpp>
 #include <ANN_CoreGPUWorker.hpp>
+
+using NN_CLI::ulong;
 
 //===================================================================================================================//
 // Deep diagnostic test: compare ALL internal state between CPU and GPU predict

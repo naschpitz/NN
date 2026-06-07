@@ -2,16 +2,13 @@
 #define NN_CLI_LOSSREFERENCETABLE_HPP
 
 #include "NN-CLI_SummaryTable.hpp"
+#include "NN-CLI_Types.hpp"
 
 #include <string>
 #include <vector>
 
-#include <sys/types.h>
-
 namespace NN_CLI
 {
-
-  using ulong = unsigned long;
 
   class LossReferenceTable
   {

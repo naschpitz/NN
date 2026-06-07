@@ -1,13 +1,13 @@
 #ifndef NN_CLI_TESTSUMMARY_HPP
 #define NN_CLI_TESTSUMMARY_HPP
 
+#include "NN-CLI_Types.hpp"
+
 #include <ANN_CoreConfig.hpp>
 #include <CNN_CoreConfig.hpp>
 
 namespace NN_CLI
 {
-
-  using ulong = unsigned long;
 
   class TestSummary
   {

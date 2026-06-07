@@ -1,12 +1,10 @@
 #ifndef NN_CLI_VALIDATIONDATASETCONFIG_HPP
 #define NN_CLI_VALIDATIONDATASETCONFIG_HPP
 
-#include <sys/types.h>
+#include "NN-CLI_Types.hpp"
 
 namespace NN_CLI
 {
-
-  using ulong = unsigned long;
 
   struct ValidationDatasetConfig {
       bool enabled = true; // Enable validation split

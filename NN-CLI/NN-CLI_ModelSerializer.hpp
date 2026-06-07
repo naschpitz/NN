@@ -3,6 +3,7 @@
 
 #include "NN-CLI_AugmentationConfig.hpp"
 #include "NN-CLI_IOConfig.hpp"
+#include "NN-CLI_Types.hpp"
 
 #include <ANN_Core.hpp>
 #include <CNN_Core.hpp>
@@ -13,8 +14,6 @@
 
 namespace NN_CLI
 {
-
-  using ulong = unsigned long;
 
   // Validation state passed to the serializer for inclusion in training metadata.
   struct ValidationMetadata {

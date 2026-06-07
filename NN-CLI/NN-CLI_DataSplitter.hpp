@@ -1,14 +1,12 @@
 #ifndef NN_CLI_DATASPLITTER_HPP
 #define NN_CLI_DATASPLITTER_HPP
 
-#include <sys/types.h>
+#include "NN-CLI_Types.hpp"
 
 #include <vector>
 
 namespace NN_CLI
 {
-
-  using ulong = unsigned long;
 
   struct DataSplit {
       std::vector<ulong> trainIndices;

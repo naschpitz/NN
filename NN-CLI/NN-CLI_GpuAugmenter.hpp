@@ -3,6 +3,7 @@
 
 #include "NN-CLI_AugmentationTransforms.hpp"
 #include "NN-CLI_LogLevel.hpp"
+#include "NN-CLI_Types.hpp"
 
 #include <OCLW_Core.hpp>
 
@@ -14,8 +15,6 @@
 
 namespace NN_CLI
 {
-  using ulong = unsigned long;
-
   // Runs image augmentation on a single GPU via OpenCL. Operates on a contiguous
   // batch of NCHW float images in [0, 1] (count * C * H * W), modifying it in place.
   // Per-sample random parameters are drawn on the host (matching the CPU transforms'

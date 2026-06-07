@@ -1,6 +1,7 @@
 #include "NN-CLI_ModelSerializer.hpp"
 
 #include "NN-CLI_DataType.hpp"
+#include "NN-CLI_Utils.hpp"
 
 #include <QDir>
 #include <QFile>
@@ -107,6 +108,65 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+  //-- Helper: serialize training config --//
+  //===================================================================================================================//
+
+  template <typename TrainingConfigT>
+  static void serializeTrainingConfig(nlohmann::ordered_json& tcJson, const TrainingConfigT& tc)
+  {
+    tcJson["numEpochs"] = tc.numEpochs;
+    tcJson["learningRate"] = tc.learningRate;
+    tcJson["batchSize"] = tc.batchSize;
+    tcJson["shuffleSamples"] = tc.shuffleSamples;
+
+    tcJson["dropoutRate"] = tc.dropoutRate;
+
+    nlohmann::ordered_json optJson;
+    using OptimizerT = std::decay_t<decltype(tc.optimizer)>;
+    optJson["type"] = OptimizerT::typeToName(tc.optimizer.type);
+    optJson["beta1"] = tc.optimizer.beta1;
+    optJson["beta2"] = tc.optimizer.beta2;
+    optJson["epsilon"] = tc.optimizer.epsilon;
+    tcJson["optimizer"] = optJson;
+  }
+
+  //===================================================================================================================//
+  //-- Helper: serialize test config --//
+  //===================================================================================================================//
+
+  template <typename TestConfigT>
+  static void serializeTestConfig(nlohmann::ordered_json& testJson, const TestConfigT& testConfig)
+  {
+    testJson["batchSize"] = testConfig.batchSize;
+  }
+
+  //===================================================================================================================//
+  //-- Helper: serialize training metadata --//
+  //===================================================================================================================//
+
+  template <typename MetadataT>
+  static void serializeTrainingMetadata(nlohmann::ordered_json& mdJson, const MetadataT& md)
+  {
+    mdJson["startTime"] = md.startTime;
+    mdJson["endTime"] = md.endTime;
+    mdJson["durationSeconds"] = md.durationSeconds;
+    mdJson["durationFormatted"] = md.durationFormatted;
+    mdJson["numSamples"] = md.numSamples;
+    mdJson["finalLoss"] = md.finalLoss;
+
+    if (md.lastEpoch > 0)
+      mdJson["lastEpoch"] = md.lastEpoch;
+
+    if (!md.stopReason.empty())
+      mdJson["stopReason"] = md.stopReason;
+
+    if (md.bestEpoch > 0) {
+      mdJson["bestEpoch"] = md.bestEpoch;
+      mdJson["bestLoss"] = md.bestLoss;
+    }
+  }
+
+  //===================================================================================================================//
   //-- Helper: write JSON to file --//
   //===================================================================================================================//
 
@@ -186,20 +246,7 @@ namespace NN_CLI
 
     // Training config
     nlohmann::ordered_json tcJson;
-    tcJson["numEpochs"] = core.getTrainingConfig().numEpochs;
-    tcJson["learningRate"] = core.getTrainingConfig().learningRate;
-    tcJson["batchSize"] = core.getTrainingConfig().batchSize;
-    tcJson["shuffleSamples"] = core.getTrainingConfig().shuffleSamples;
-
-    tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
-
-    nlohmann::ordered_json optJson;
-    optJson["type"] = ANN::Optimizer<float>::typeToName(core.getTrainingConfig().optimizer.type);
-    optJson["beta1"] = core.getTrainingConfig().optimizer.beta1;
-    optJson["beta2"] = core.getTrainingConfig().optimizer.beta2;
-    optJson["epsilon"] = core.getTrainingConfig().optimizer.epsilon;
-    tcJson["optimizer"] = optJson;
-
+    serializeTrainingConfig(tcJson, core.getTrainingConfig());
     serializeAugConfig(tcJson, augConfig);
     serializeValidationConfig(tcJson, augConfig);
     serializeMonitoringConfig(tcJson, core);
@@ -207,30 +254,13 @@ namespace NN_CLI
 
     // Test config
     nlohmann::ordered_json testJson;
-    testJson["batchSize"] = coreConfig.testConfig.batchSize;
+    serializeTestConfig(testJson, coreConfig.testConfig);
     json["test"] = testJson;
 
     // Training metadata
     const auto& md = core.getTrainingMetadata();
     nlohmann::ordered_json mdJson;
-    mdJson["startTime"] = md.startTime;
-    mdJson["endTime"] = md.endTime;
-    mdJson["durationSeconds"] = md.durationSeconds;
-    mdJson["durationFormatted"] = md.durationFormatted;
-    mdJson["numSamples"] = md.numSamples;
-    mdJson["finalLoss"] = md.finalLoss;
-
-    if (md.lastEpoch > 0)
-      mdJson["lastEpoch"] = md.lastEpoch;
-
-    if (!md.stopReason.empty())
-      mdJson["stopReason"] = md.stopReason;
-
-    if (md.bestEpoch > 0) {
-      mdJson["bestEpoch"] = md.bestEpoch;
-      mdJson["bestLoss"] = md.bestLoss;
-    }
-
+    serializeTrainingMetadata(mdJson, md);
     serializeValidationMeta(mdJson, validationMeta);
     json["trainingMetadata"] = mdJson;
 
@@ -347,6 +377,12 @@ namespace NN_CLI
       case CNN::LayerType::RESIDUAL_END:
         layerJson["type"] = "residual_end";
         break;
+
+      default: {
+        std::ostringstream oss;
+        oss << "Unknown CNN layer type in serializer: " << static_cast<int>(layer.type);
+        throw std::runtime_error(oss.str());
+      }
       }
 
       cnnLayersArr.push_back(layerJson);
@@ -378,19 +414,7 @@ namespace NN_CLI
 
     // Training config
     nlohmann::ordered_json tcJson;
-    tcJson["numEpochs"] = core.getTrainingConfig().numEpochs;
-    tcJson["learningRate"] = core.getTrainingConfig().learningRate;
-    tcJson["batchSize"] = core.getTrainingConfig().batchSize;
-    tcJson["shuffleSamples"] = core.getTrainingConfig().shuffleSamples;
-    tcJson["dropoutRate"] = core.getTrainingConfig().dropoutRate;
-
-    nlohmann::ordered_json optJson;
-    optJson["type"] = CNN::Optimizer<float>::typeToName(core.getTrainingConfig().optimizer.type);
-    optJson["beta1"] = core.getTrainingConfig().optimizer.beta1;
-    optJson["beta2"] = core.getTrainingConfig().optimizer.beta2;
-    optJson["epsilon"] = core.getTrainingConfig().optimizer.epsilon;
-    tcJson["optimizer"] = optJson;
-
+    serializeTrainingConfig(tcJson, core.getTrainingConfig());
     serializeAugConfig(tcJson, augConfig);
     serializeValidationConfig(tcJson, augConfig);
     serializeMonitoringConfig(tcJson, core);
@@ -398,30 +422,13 @@ namespace NN_CLI
 
     // Test config
     nlohmann::ordered_json testJson;
-    testJson["batchSize"] = coreConfig.testConfig.batchSize;
+    serializeTestConfig(testJson, coreConfig.testConfig);
     json["test"] = testJson;
 
     // Training metadata
     const auto& md = core.getTrainingMetadata();
     nlohmann::ordered_json mdJson;
-    mdJson["startTime"] = md.startTime;
-    mdJson["endTime"] = md.endTime;
-    mdJson["durationSeconds"] = md.durationSeconds;
-    mdJson["durationFormatted"] = md.durationFormatted;
-    mdJson["numSamples"] = md.numSamples;
-    mdJson["finalLoss"] = md.finalLoss;
-
-    if (md.lastEpoch > 0)
-      mdJson["lastEpoch"] = md.lastEpoch;
-
-    if (!md.stopReason.empty())
-      mdJson["stopReason"] = md.stopReason;
-
-    if (md.bestEpoch > 0) {
-      mdJson["bestEpoch"] = md.bestEpoch;
-      mdJson["bestLoss"] = md.bestLoss;
-    }
-
+    serializeTrainingMetadata(mdJson, md);
     serializeValidationMeta(mdJson, validationMeta);
     json["trainingMetadata"] = mdJson;
 
@@ -508,9 +515,7 @@ namespace NN_CLI
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
 
-    if (!outputDir.exists()) {
-      inputDir.mkdir("output");
-    }
+    NN_CLI::ensureOutputDir(inputDir.filePath("output"));
 
     QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainingFilename(epochs, samples, loss)));
     return outputPath.toStdString();
@@ -524,9 +529,7 @@ namespace NN_CLI
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
 
-    if (!outputDir.exists()) {
-      inputDir.mkdir("output");
-    }
+    NN_CLI::ensureOutputDir(inputDir.filePath("output"));
 
     std::ostringstream oss;
     oss << "checkpoint_E-" << epoch << "_L-" << std::fixed << std::setprecision(6) << loss << ".json";
@@ -543,9 +546,7 @@ namespace NN_CLI
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
 
-    if (!outputDir.exists()) {
-      inputDir.mkdir("output");
-    }
+    NN_CLI::ensureOutputDir(inputDir.filePath("output"));
 
     QString outputPath = outputDir.filePath("best_model.json");
     return outputPath.toStdString();

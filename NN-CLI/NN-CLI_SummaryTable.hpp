@@ -1,13 +1,13 @@
 #ifndef NN_CLI_SUMMARYTABLE_HPP
 #define NN_CLI_SUMMARYTABLE_HPP
 
+#include "NN-CLI_Types.hpp"
+
 #include <string>
 #include <vector>
 
 namespace NN_CLI
 {
-
-  using ulong = unsigned long;
 
   // Shared table rendering for all summary types (train, test, predict).
   struct SummaryRow {
@@ -40,6 +40,16 @@ namespace NN_CLI
       static std::vector<std::string> collectSections(const std::vector<Section>& sections, ulong maxWidth);
 
       static std::string formatWithCommas(ulong value);
+
+      template <typename DeviceTypeEnum>
+      static std::string deviceString(DeviceTypeEnum deviceType, int numDevices, int numThreads)
+      {
+        if (deviceType == DeviceTypeEnum::GPU) {
+          return "GPU" + std::string(numDevices > 0 ? " (" + std::to_string(numDevices) + "x)" : "");
+        } else {
+          return "CPU" + std::string(numThreads > 0 ? " (" + std::to_string(numThreads) + " threads)" : "");
+        }
+      }
   };
 
 } // namespace NN_CLI
