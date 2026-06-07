@@ -2,6 +2,7 @@
 #define NN_CLI_TERMINALUI_HPP
 
 #include <atomic>
+#include <ctime>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -22,6 +23,7 @@ namespace NN_CLI
           bool hasValLoss;
           float valLoss;
           bool isBest;
+          std::time_t completionTime; // when the epoch completed
       };
 
       TerminalUI();
