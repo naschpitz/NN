@@ -154,7 +154,7 @@ namespace NN_CLI
     this->trainingH_ = 5;
     int remaining = std::max(8, screenRows - this->trainingH_);
 
-    this->configH_ = std::max(3, std::min(remaining - 5, remaining * 46 / 100));
+    this->configH_ = std::max(3, std::min(remaining - 5, remaining * 55 / 100));
     this->epochsH_ = std::max(3, remaining - this->configH_);
 
     this->trainingY_ = 0;
