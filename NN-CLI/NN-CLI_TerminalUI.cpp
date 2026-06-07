@@ -295,7 +295,7 @@ namespace NN_CLI
 
     // Print table header row (sticky, always at top)
     char header[64];
-    snprintf(header, sizeof(header), "%5s  %10s  %12s  %4s", "Epoch", "Loss", "Val Loss", "Best");
+    snprintf(header, sizeof(header), "%5s  %11s  %11s  %4s", "Epoch", "Loss", "Val Loss", "Best");
     mvaddnstr(this->epochsY_ + 1, 2, header, maxW);
 
     // Print scrollable epoch data + messages
@@ -427,12 +427,13 @@ namespace NN_CLI
 
     // Format as a table row and store as display line
     char line[256];
+    const char* bestStr = isBest ? "  X " : "    ";
 
     if (hasValLoss) {
-      snprintf(line, sizeof(line), "%5d  %10.6f  %12.6f  %4s", epoch, static_cast<double>(loss),
-               static_cast<double>(valLoss), isBest ? "V" : "");
+      snprintf(line, sizeof(line), "%5d  %11.6f  %11.6f  %s", epoch, static_cast<double>(loss),
+               static_cast<double>(valLoss), bestStr);
     } else {
-      snprintf(line, sizeof(line), "%5d  %10.6f  %12s  %4s", epoch, static_cast<double>(loss), "-", isBest ? "V" : "");
+      snprintf(line, sizeof(line), "%5d  %11.6f  %11s  %s", epoch, static_cast<double>(loss), "-", bestStr);
     }
 
     this->epochLines_.push_back(line);
