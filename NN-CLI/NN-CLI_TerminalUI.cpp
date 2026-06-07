@@ -157,9 +157,9 @@ namespace NN_CLI
     this->configH_ = std::max(3, std::min(remaining - 5, remaining * 35 / 100));
     this->epochsH_ = std::max(3, remaining - this->configH_);
 
-    this->configY_ = 0;
-    this->trainingY_ = this->configH_;
+    this->trainingY_ = 0;
     this->epochsY_ = this->trainingY_ + this->trainingH_;
+    this->configY_ = this->epochsY_ + this->epochsH_;
 
     if (this->progressWin_) {
       delwin(this->progressWin_);
