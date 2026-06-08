@@ -230,18 +230,76 @@ h2[id]::before, h3[id]::before { content: ""; display: block; height: calc(var(-
       </a>
     </div>
 
-    <h2 id="build">Building</h2>
-    <p>
-      From the repo root, configure with CMake and build:
-    </p>
-    <pre><code><span class="comment"># Full build</span>
-cmake -B build && cmake --build build -j$(nproc)
+    <h2 id="prerequisites">Prerequisites</h2>
+    <table>
+      <tr><th>Requirement</th><th>Version / Notes</th></tr>
+      <tr><td>C++17 compiler</td><td>GCC &ge; 9 or Clang &ge; 10</td></tr>
+      <tr><td>CMake</td><td>&ge; 3.14</td></tr>
+      <tr><td>Qt6</td><td>Core, Concurrent; NN-Server also needs Network</td></tr>
+      <tr><td>OpenCL</td><td>ICD + headers + GPU driver/runtime (for GPU paths)</td></tr>
+      <tr><td>ncurses (wide)</td><td>For the NN-CLI training UI</td></tr>
+    </table>
 
-<span class="comment"># Selective build (toggles)</span>
-cmake -B build -DBUILD_NN_SERVER=OFF -DBUILD_NN_CLI=ON && cmake --build build -j$(nproc)</code></pre>
+    <p>Install on common systems:</p>
+    <table>
+      <tr><th>OS</th><th>Command</th></tr>
+      <tr><td>Debian/Ubuntu</td><td><code>sudo apt install build-essential cmake qt6-base-dev ocl-icd-opencl-dev libncurses-dev libgoogle-perftools-dev</code></td></tr>
+      <tr><td>Fedora</td><td><code>sudo dnf install gcc-c++ cmake qt6-qtbase-devel ocl-icd-devel ncurses-devel gperftools-devel</code></td></tr>
+      <tr><td>Arch</td><td><code>sudo pacman -S base-devel cmake qt6-base ocl-icd ncurses gperftools</code></td></tr>
+      <tr><td>macOS</td><td><code>brew install cmake qt6 ncurses gperftools</code></td></tr>
+    </table>
+
+    <div class="info-box">
+      A distro/Homebrew Qt6 installs onto CMake's default search paths, so the build
+      needs no extra configuration. If your Qt6 lives somewhere non-standard, see
+      the build instructions below.
+    </div>
+
+    <h2 id="clone">Clone &amp; Setup</h2>
+    <pre><code>git clone https://github.com/naschpitz/NN.git &amp;&amp; cd NN
+    <span class="comment"># Initialize OpenCLWrapper submodules</span>
+    git submodule update --init --recursive</code></pre>
+
+    <h2 id="build">Build</h2>
+
+    <p>Each component builds into <strong>its own <code>build/</code> directory</strong>.
+    A component is built standalone — it pulls its dependencies via <code>add_subdirectory</code>
+    (CNN &rarr; ANN &rarr; <code>extern/OpenCLWrapper</code>), so building NN-CLI or NN-Server
+    transitively builds the libraries they need.</p>
+
+    <h3>Build everything — <code>build.sh</code></h3>
+    <pre><code><span class="comment"># Static Qt6 (default)</span>
+    ./build.sh
+
+    <span class="comment"># Shared Qt6</span>
+    ./build.sh shared</code></pre>
     <p>
-      Each component also has a standalone <code>build.sh</code> in its own directory.
-      Build directories matching <code>build*/</code> are gitignored.
+      <code>build.sh</code> builds ANN, CNN, NN-CLI and NN-Server, each into its own <code>build/</code>.
+      It reads the Qt6 kit paths from the repo-root <code>CMakeUserPresets.json</code> (git-ignored,
+      machine-specific) and copies that master into each component before building.
+    </p>
+
+    <h3>Build a single component</h3>
+    <p>If Qt6 is on the default paths (distro/Homebrew):</p>
+    <pre><code><span class="comment"># Build just the CLI</span>
+    cd NN-CLI &amp;&amp; cmake -B build &amp;&amp; cmake --build build -j"$(nproc)"
+
+    <span class="comment"># Build just the server</span>
+    cd NN-Server &amp;&amp; cmake -B build &amp;&amp; cmake --build build -j"$(nproc)"</code></pre>
+    <p>
+      For a custom Qt6 path, pass <code>-DCMAKE_PREFIX_PATH=/path/to/Qt6</code> or
+      use <code>cmake --preset static</code> after running <code>build.sh</code> once.
+    </p>
+
+    <h3>Unified build from repo root</h3>
+    <pre><code>cmake -B build &amp;&amp; cmake --build build -j$(nproc)
+
+    <span class="comment"># Toggle individual components</span>
+    cmake -B build -DBUILD_NN_SERVER=OFF -DBUILD_NN_CLI=ON &amp;&amp; cmake --build build -j$(nproc)</code></pre>
+    <p>
+      The root <code>CMakeLists.txt</code> provides <code>BUILD_ANN</code>, <code>BUILD_CNN</code>,
+      <code>BUILD_NN_CLI</code>, and <code>BUILD_NN_SERVER</code> toggles. Dependencies are
+      validated — CNN requires ANN, NN-CLI requires both, etc.
     </p>
 
     <h2 id="deps">Dependency Order</h2>
@@ -259,13 +317,15 @@ cmake -B build -DBUILD_NN_SERVER=OFF -DBUILD_NN_CLI=ON && cmake --build build -j
     </p>
 
     <h2 id="tests">Tests</h2>
+    <p>Each component builds a standalone test executable (no CTest wiring):</p>
     <table>
       <tr><th>Component</th><th>Test Binary</th><th>Notes</th></tr>
-      <tr><td>ANN</td><td><code>test_ann</code></td><td></td></tr>
-      <tr><td>CNN</td><td><code>test_cnn</code></td><td></td></tr>
-      <tr><td>NN-CLI</td><td><code>test_nncli</code></td><td>Spawns the built binary; pass <code>--full</code> for MNIST</td></tr>
-      <tr><td>NN-Server</td><td><code>test_endpoints</code>, <code>test_logger</code></td><td></td></tr>
+      <tr><td>ANN</td><td><code>ANN/build/test_ann</code></td><td></td></tr>
+      <tr><td>CNN</td><td><code>CNN/build/test_cnn</code></td><td></td></tr>
+      <tr><td>NN-CLI</td><td><code>NN-CLI/build/test_nncli</code></td><td>Pass <code>--full</code> for the long MNIST train/test cases</td></tr>
+      <tr><td>NN-Server</td><td><code>NN-Server/build/test_endpoints</code>, <code>NN-Server/build/test_logger</code></td><td></td></tr>
     </table>
+    <p>Run a test binary directly, e.g. <code>./NN-CLI/build/test_nncli</code>.</p>
 
     <h2 id="license">License</h2>
     <p>This project is distributed under the terms specified in each component's <code>LICENSE.md</code>.</p>
