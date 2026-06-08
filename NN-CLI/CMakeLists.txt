@@ -9,8 +9,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Core Concurrent)
 
 # Add CNN as subdirectory — it brings ANN and OpenCLWrapper transitively via PUBLIC
 if(NOT TARGET CNN)
@@ -68,8 +67,8 @@ target_include_directories(nncli_common PRIVATE
 )
 target_link_libraries(nncli_common PRIVATE
     CNN
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Concurrent
+    Qt6::Core
+    Qt6::Concurrent
     ${CURSES_LIBRARIES}
 )
 
@@ -85,7 +84,7 @@ target_include_directories(NN-CLI PRIVATE
 target_link_libraries(NN-CLI
     PRIVATE nncli_common
     PRIVATE CNN
-    PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent
+    PRIVATE Qt6::Concurrent
     PRIVATE ${CURSES_LIBRARIES}
 )
 
@@ -157,8 +156,8 @@ target_include_directories(test_nncli PRIVATE
 target_compile_definitions(test_nncli PRIVATE NN_CLI_PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(test_nncli PRIVATE
     nncli_common
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Concurrent
+    Qt6::Core
+    Qt6::Concurrent
     CNN
     ${CURSES_LIBRARIES}
 )

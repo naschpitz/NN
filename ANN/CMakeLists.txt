@@ -5,8 +5,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Core Concurrent)
 # Include OpenCLWrapper submodule as a subdirectory if not already included
 # This allows ANN to be built standalone or as part of a larger project
 if(NOT TARGET OpenCLWrapper)
@@ -51,7 +50,7 @@ endif()
 # PRIVATE: Qt Concurrent is only used internally
 target_link_libraries(ANN
   PUBLIC OpenCLWrapper
-  PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent
+  PRIVATE Qt6::Concurrent
 )
 target_compile_definitions(ANN PRIVATE ANN_LIBRARY)
 # --- Test executable ---
@@ -72,4 +71,4 @@ add_executable(test_ann
   tests/test_gpu_multigpu.cpp
   tests/test_gpu_exact.cpp
 )
-target_link_libraries(test_ann PRIVATE ANN Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Concurrent)
+target_link_libraries(test_ann PRIVATE ANN Qt6::Core Qt6::Concurrent)

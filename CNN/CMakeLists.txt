@@ -8,8 +8,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Core Concurrent)
 
 # Include OpenCLWrapper submodule as a subdirectory if not already included
 if(NOT TARGET OpenCLWrapper)
@@ -77,7 +76,7 @@ endif()
 target_link_libraries(CNN
   PUBLIC ANN
   PUBLIC OpenCLWrapper
-  PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent
+  PRIVATE Qt6::Concurrent
 )
 
 target_compile_definitions(CNN PRIVATE CNN_LIBRARY)

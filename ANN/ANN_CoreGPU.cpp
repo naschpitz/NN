@@ -88,7 +88,7 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
 
     std::vector<PredictResults<T>> gpuResults(this->numGPUs);
 
-    Common::blockingMapOnPool(&this->workerPool_, workItems,
+    QtConcurrent::blockingMap(&this->workerPool_, workItems,
                               [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
                                 ProgressCallback callback;
 
@@ -194,7 +194,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       std::vector<T> gpuLosses(this->numGPUs, 0);
 
       // Use QtConcurrent to process each GPU's work in parallel
-      Common::blockingMapOnPool(
+      QtConcurrent::blockingMap(
         &this->workerPool_, workItems,
         [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples, &gpuCumulativeSamples](const GPUWorkItem& item) {
           // Build the per-GPU sub-batch

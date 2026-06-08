@@ -97,21 +97,16 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& config) : Core<T>(config)
 template <typename T>
 void CoreCPU<T>::runWorkers(int numThreads, const std::function<void(int)>& body)
 {
-  // Size the dedicated pool to the requested worker count. Using this core's own pool
-  // (rather than QThreadPool::globalInstance()) is what makes a validation test() called
-  // from inside train()'s training callback safe: it runs on a different core's pool, so
-  // the nested map never starves on worker threads held by the enclosing train().
+  // Dispatch numThreads worker chunks across this core's own pool (not the global one),
+  // so a validation test() called from inside train()'s callback runs on a separate core's
+  // pool and never starves on worker threads held by the enclosing train().
   if (this->workerPool_.maxThreadCount() < numThreads)
     this->workerPool_.setMaxThreadCount(numThreads);
 
-  QVector<QFuture<void>> futures;
-  futures.reserve(numThreads);
+  QVector<int> workerIndices(numThreads);
+  std::iota(workerIndices.begin(), workerIndices.end(), 0);
 
-  for (int workerIdx = 0; workerIdx < numThreads; workerIdx++)
-    futures.append(QtConcurrent::run(&this->workerPool_, [&body, workerIdx]() { body(workerIdx); }));
-
-  for (auto& f : futures)
-    f.waitForFinished();
+  QtConcurrent::blockingMap(&this->workerPool_, workerIndices, [&body](int workerIdx) { body(workerIdx); });
 }
 
 //===================================================================================================================//

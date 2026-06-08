@@ -9,8 +9,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Network Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Core Network Concurrent)
 
 # Add CNN as subdirectory — it brings ANN and OpenCLWrapper transitively via PUBLIC
 if(NOT TARGET CNN)
@@ -36,8 +35,8 @@ target_include_directories(NN-Server PRIVATE
 # Link to CNN — ANN, OpenCLWrapper, Qt::Core, OpenCL are propagated automatically via PUBLIC
 target_link_libraries(NN-Server
     PRIVATE CNN
-    PRIVATE Qt${QT_VERSION_MAJOR}::Network
-    PRIVATE Qt${QT_VERSION_MAJOR}::Concurrent
+    PRIVATE Qt6::Network
+    PRIVATE Qt6::Concurrent
 )
 
 include(GNUInstallDirs)
@@ -56,8 +55,8 @@ target_include_directories(test_endpoints PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
 )
 target_link_libraries(test_endpoints PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Network
+    Qt6::Core
+    Qt6::Network
 )
 
 # Logger unit tests — tests Logger directly without starting the server
@@ -71,7 +70,7 @@ target_include_directories(test_logger PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/tests
 )
 target_link_libraries(test_logger PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Network
+    Qt6::Core
+    Qt6::Network
 )
 
