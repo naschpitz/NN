@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Conv2D Layer — CNN Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')});});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>CNN</h1><span class="subtitle">Convolutional Neural Network Library</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <a href="examples.html">Code Examples</a>
+  <div class="section-title">Reference</div>
+  <a href="api.html">API Reference</a>
+  <div class="section-title">Architecture</div>
+  <a href="architecture.html">Overview</a>
+  <a href="architecture-classes.html">Class Hierarchy</a>
+  <a href="architecture-patterns.html">Design Patterns</a>
+  <a href="architecture-pipeline.html">CNN + ANN Pipeline</a>
+  <a href="architecture-training.html">Training Pipeline</a>
+  <a href="architecture-memory.html">Memory Layout</a>
+  <div class="section-title">Layers</div>
+  <a href="layers.html">Overview</a>
+  <a href="layers-conv2d.html" class="active">Conv2D</a>
+  <a href="layers-relu.html">ReLU</a>
+  <a href="layers-pool.html">Pool</a>
+  <a href="layers-normalization.html">Normalization</a>
+  <a href="layers-flatten.html">Flatten</a>
+  <a href="layers-globalavgpool.html">GlobalAvgPool</a>
+  <a href="layers-globaldualpool.html">GlobalDualPool</a>
+  <a href="layers-residual.html">Residual</a>
+  <a href="layers-pipeline.html">Pipeline Example</a>
+  <div class="section-title">Math Foundations</div>
+  <a href="math.html">Overview</a>
+  <a href="math-convolution.html">Convolution</a>
+  <a href="math-pooling.html">Pooling</a>
+  <a href="math-activations.html">Activations</a>
+  <a href="math-normalization.html">Normalization</a>
+  <a href="math-initialization.html">Weight Initialization</a>
+  <a href="math-optimizers.html">Optimizers</a>
+  <a href="math-gradient-flow.html">Gradient Flow</a>
+  <div class="section-title">GPU Implementation</div>
+  <a href="gpu.html">Overview</a>
+  <a href="gpu-architecture.html">Architecture &amp; Kernels</a>
+  <a href="gpu-buffers.html">Buffer Layout</a>
+  <a href="gpu-kernels.html">Kernel Reference</a>
+  <a href="gpu-multi-gpu.html">Multi-GPU &amp; Compilation</a>
+</nav></aside>
+<main class="main">
+
+<h1>Conv2D Layer</h1>
+<p>The 2D convolutional layer is the fundamental building block of Convolutional Neural Networks. It learns a set of small filters (also called kernels) that slide across the input image, detecting local patterns like edges, textures, and shapes. Each filter produces a <strong>feature map</strong> — a spatial map showing where in the image the filter's pattern was detected. By stacking many filters, the network builds up increasingly complex and abstract representations of the input.</p>
+
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#purpose">Purpose &amp; Intuition</a></li>
+    <li><a href="#how-filters-work">How Filters Detect Patterns</a></li>
+    <li><a href="#multichannel">Multi-Channel Convolution</a></li>
+    <li><a href="#propagation">Propagation Formula</a></li>
+    <li><a href="#output-shape">Output Shape Formula</a></li>
+    <li><a href="#padding">Padding Strategies</a></li>
+    <li><a href="#why-filters-learn">Why Filters Learn</a></li>
+    <li><a href="#backpropagation">Backpropagation</a></li>
+    <li><a href="#initialization">Weight Initialization</a></li>
+    <li><a href="#parameters">Parameters</a></li>
+  </ol>
+</div>
+
+<h2 id="purpose">Purpose &amp; Intuition</h2>
+<p>Imagine holding a small magnifying glass (the filter) and moving it across a photograph. At each position, you check whether the small region under the glass matches a specific pattern — say, a vertical edge. If it matches well, you record a high value at that position; if not, a low value. The result is a heat map showing where vertical edges appear in the image.</p>
+
+<p>That's exactly what Conv2D does, except:</p>
+<ul>
+  <li>The patterns aren't predefined — they're <strong>learned automatically</strong> from training data</li>
+  <li>Multiple filters run simultaneously, each detecting a different pattern</li>
+  <li>Filters look at <strong>all input channels</strong> (e.g., R, G, and B simultaneously), not just one</li>
+</ul>
+
+<p>The layer is parameterized by:</p>
+<ul>
+  <li><strong>Number of filters</strong> — how many different patterns to detect (and therefore how many output feature maps to produce). More filters = richer representation but more computation.</li>
+  <li><strong>Filter size</strong> — the spatial extent of each filter, typically 3×3 or 5×5 pixels. Smaller filters detect finer-grained patterns; larger filters see more context.</li>
+  <li><strong>Stride</strong> — how many pixels the filter moves between positions. Stride 1 examines every position; stride 2 skips every other position, halving the output spatial dimensions.</li>
+  <li><strong>Padding</strong> — how to handle the image boundaries where the filter would extend beyond the edge (VALID, SAME, or FULL).</li>
+</ul>
+
+<h2 id="how-filters-work">How Filters Detect Patterns</h2>
+<p>A filter is a small grid of numbers (weights) — typically 3×3. To apply it, the filter is placed over a region of the input image, and at each position we perform an <strong>element-wise multiply-and-sum</strong>: multiply each filter weight by the corresponding input pixel, then sum all the products. This produces a single output number that indicates how well the input region matches the pattern encoded in the filter.</p>
+
+<p>Let's see this concretely. Consider a 5×5 grayscale input image with a vertical edge (bright on the left, dark on the right):</p>
+
+<table>
+  <tr><th colspan="5">Input Image (5×5)</th></tr>
+  <tr><td>200</td><td>200</td><td>200</td><td>50</td><td>50</td></tr>
+  <tr><td>200</td><td>200</td><td>200</td><td>50</td><td>50</td></tr>
+  <tr><td>200</td><td>200</td><td>200</td><td>50</td><td>50</td></tr>
+  <tr><td>200</td><td>200</td><td>200</td><td>50</td><td>50</td></tr>
+  <tr><td>200</td><td>200</td><td>200</td><td>50</td><td>50</td></tr>
+</table>
+
+<p>Now consider a 3×3 <strong>vertical edge detector</strong> filter:</p>
+
+<table>
+  <tr><th colspan="3">Filter (3×3)</th></tr>
+  <tr><td>-1</td><td>0</td><td>1</td></tr>
+  <tr><td>-1</td><td>0</td><td>1</td></tr>
+  <tr><td>-1</td><td>0</td><td>1</td></tr>
+</table>
+
+<p>This filter has negative weights on the left and positive weights on the right. When placed over a region where values <em>increase</em> from left to right (a dark-to-bright edge), the positive right side multiplied by bright values and the negative left side multiplied by dark values produce a large positive sum. When placed over a uniform region, the positive and negative sides cancel out to approximately zero.</p>
+
+<h3>Step-by-step computation</h3>
+<p><strong>Position (0,0):</strong> The filter covers the top-left 3×3 region of the input:</p>
+<pre><code>(-1×200) + (0×200) + (1×200) +
+(-1×200) + (0×200) + (1×200) +
+(-1×200) + (0×200) + (1×200)
+= (-200 + 0 + 200) + (-200 + 0 + 200) + (-200 + 0 + 200)
+= 0 + 0 + 0 = <strong>0</strong>     ← uniform region, no edge detected</code></pre>
+
+<p><strong>Position (0,1):</strong> The filter shifts right by one pixel, covering columns 1–3:</p>
+<pre><code>(-1×200) + (0×200) + (1×50) +
+(-1×200) + (0×200) + (1×50) +
+(-1×200) + (0×200) + (1×50)
+= (-200 + 0 + 50) + (-200 + 0 + 50) + (-200 + 0 + 50)
+= -150 + -150 + -150 = <strong>-450</strong>     ← bright-to-dark transition detected</code></pre>
+
+<p><strong>Position (0,2):</strong> The filter covers columns 2–4:</p>
+<pre><code>(-1×200) + (0×50) + (1×50) +
+(-1×200) + (0×50) + (1×50) +
+(-1×200) + (0×50) + (1×50)
+= (-200 + 0 + 50) + (-200 + 0 + 50) + (-200 + 0 + 50)
+= -150 + -150 + -150 = <strong>-450</strong>     ← still at the edge</code></pre>
+
+<p>The full 3×3 output feature map is:</p>
+<table>
+  <tr><th colspan="3">Output Feature Map (3×3)</th></tr>
+  <tr><td>0</td><td><strong>-450</strong></td><td>0</td></tr>
+  <tr><td>0</td><td><strong>-450</strong></td><td>0</td></tr>
+  <tr><td>0</td><td><strong>-450</strong></td><td>0</td></tr>
+</table>
+
+<p>The large negative values in the middle column clearly highlight the vertical edge location. The sign tells us the direction (bright→dark produces negative; dark→bright would produce positive). The zero values indicate uniform regions where no edge was found.</p>
+
+<div class="info-box">
+  <strong>Key insight:</strong> The filter's weight pattern determines <em>what</em> it detects. A horizontal edge filter would have negative weights on top and positive on the bottom. A corner detector would have a more complex weight pattern. In a trained CNN, the network <strong>discovers these patterns automatically</strong> — the filter weights are adjusted by gradient descent to detect whatever patterns are most useful for the task.
+</div>
+
+<h2 id="multichannel">Multi-Channel Convolution</h2>
+<p>The example above used a single-channel (grayscale) input. Real images have multiple channels (e.g., RGB with 3 channels), and deeper layers in the network have dozens or hundreds of channels. Multi-channel convolution works the same way, but the filter has a separate 2D kernel for <em>each input channel</em>:</p>
+
+<ul>
+  <li>A filter applied to a 3-channel RGB input is actually <strong>three</strong> 3×3 grids (one per channel), totaling 27 weights.</li>
+  <li>At each position, the filter computes the multiply-and-sum separately for each channel, then <strong>sums across channels</strong> to produce a single output value.</li>
+  <li>This means one filter can learn patterns that combine information from all channels — for example, detecting a "red-to-blue transition" by having positive weights in the red channel kernel and negative weights in the blue channel kernel.</li>
+</ul>
+
+<p>When there are multiple filters (say 32), each filter produces its own feature map. The output tensor has 32 channels — one per filter. Each filter has independently learned to detect a different pattern.</p>
+
+<div class="diagram">
+  <svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr-mc" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+        <polygon points="0 0, 10 3, 0 6" fill="#666"/>
+      </marker>
+    </defs>
+
+    <!-- 3-channel input -->
+    <rect x="20" y="30" width="70" height="70" fill="#fce8e6" stroke="#c5221f" stroke-width="2" rx="3"/>
+    <rect x="30" y="40" width="70" height="70" fill="#e6f4ea" stroke="#34a853" stroke-width="2" rx="3"/>
+    <rect x="40" y="50" width="70" height="70" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" rx="3"/>
+    <text x="60" y="15" text-anchor="middle" font-size="12" font-weight="bold">Input</text>
+    <text x="60" y="145" text-anchor="middle" font-size="10" fill="#666">(3ch, H, W)</text>
+
+    <!-- Filter 0: 3 kernels -->
+    <text x="240" y="15" text-anchor="middle" font-size="12" font-weight="bold">Filter 0</text>
+    <rect x="190" y="30" width="40" height="40" fill="#fce8e6" stroke="#c5221f" stroke-width="1.5" rx="2"/>
+    <rect x="200" y="40" width="40" height="40" fill="#e6f4ea" stroke="#34a853" stroke-width="1.5" rx="2"/>
+    <rect x="210" y="50" width="40" height="40" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5" rx="2"/>
+    <text x="220" y="115" text-anchor="middle" font-size="9" fill="#666">(3ch, 3×3)</text>
+
+    <!-- Arrow to sum -->
+    <path d="M 260 60 L 310 60" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arr-mc)"/>
+    <text x="285" y="50" text-anchor="middle" font-size="9" fill="#666">×, Σ</text>
+
+    <!-- Output ch 0 -->
+    <rect x="320" y="40" width="50" height="50" fill="#fef7e0" stroke="#f9ab00" stroke-width="2" rx="3"/>
+    <text x="345" y="70" text-anchor="middle" font-size="10">ch 0</text>
+
+    <!-- Filter 1 -->
+    <text x="470" y="15" text-anchor="middle" font-size="12" font-weight="bold">Filter 1</text>
+    <rect x="420" y="30" width="40" height="40" fill="#fce8e6" stroke="#c5221f" stroke-width="1.5" rx="2"/>
+    <rect x="430" y="40" width="40" height="40" fill="#e6f4ea" stroke="#34a853" stroke-width="1.5" rx="2"/>
+    <rect x="440" y="50" width="40" height="40" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5" rx="2"/>
+    <text x="450" y="115" text-anchor="middle" font-size="9" fill="#666">(3ch, 3×3)</text>
+
+    <!-- Arrow to sum -->
+    <path d="M 490 60 L 540 60" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arr-mc)"/>
+    <text x="515" y="50" text-anchor="middle" font-size="9" fill="#666">×, Σ</text>
+
+    <!-- Output ch 1 -->
+    <rect x="550" y="40" width="50" height="50" fill="#fef7e0" stroke="#f9ab00" stroke-width="2" rx="3"/>
+    <text x="575" y="70" text-anchor="middle" font-size="10">ch 1</text>
+
+    <!-- Dots -->
+    <text x="650" y="70" font-size="20" fill="#666">...</text>
+
+    <!-- Combined output -->
+    <rect x="700" y="25" width="60" height="80" fill="#fef7e0" stroke="#f9ab00" stroke-width="2" rx="3"/>
+    <text x="730" y="55" text-anchor="middle" font-size="10">ch 0</text>
+    <text x="730" y="70" text-anchor="middle" font-size="10">ch 1</text>
+    <text x="730" y="85" text-anchor="middle" font-size="10">...</text>
+    <text x="730" y="130" text-anchor="middle" font-size="10" fill="#666">(F ch, H', W')</text>
+    <text x="730" y="15" text-anchor="middle" font-size="12" font-weight="bold">Output</text>
+  </svg>
+  <figcaption>Each filter has one kernel per input channel. Each filter produces one output channel. F filters → F output channels.</figcaption>
+</div>
+
+<h2 id="propagation">Propagation Formula</h2>
+<p>The full convolution formula puts the multiply-and-sum from the example above into mathematical notation. For each filter \(f\), at each output position \((h, w)\):</p>
+<div class="math-block">
+\[ \text{output}[f, h, w] = \text{bias}[f] + \sum_{c=0}^{C-1} \sum_{kh=0}^{K_h-1} \sum_{kw=0}^{K_w-1} \text{input}[c, h \cdot s_y + kh - p_y, w \cdot s_x + kw - p_x] \times \text{filter}[f, c, kh, kw] \]
+</div>
+
+<p>Where \(f\) is the filter index, \((h, w)\) is the output position, \(s_y, s_x\) are strides, and \(p_y, p_x\) are padding offsets.</p>
+
+<div class="diagram">
+  <svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg">
+    <!-- Input feature map -->
+    <g id="input">
+      <text x="20" y="20" font-size="14" font-weight="bold" fill="#202124">Input (5×5)</text>
+      <rect x="20" y="30" width="120" height="120" fill="none" stroke="#1a73e8" stroke-width="2"/>
+      <g stroke="#dadce0" stroke-width="1" fill="none">
+        <line x1="44" y1="30" x2="44" y2="150"/><line x1="68" y1="30" x2="68" y2="150"/><line x1="92" y1="30" x2="92" y2="150"/><line x1="116" y1="30" x2="116" y2="150"/>
+        <line x1="20" y1="54" x2="140" y2="54"/><line x1="20" y1="78" x2="140" y2="78"/><line x1="20" y1="102" x2="140" y2="102"/><line x1="20" y1="126" x2="140" y2="126"/>
+      </g>
+      <!-- Highlight 3x3 window -->
+      <rect x="44" y="54" width="72" height="72" fill="none" stroke="#f9ab00" stroke-width="3" stroke-dasharray="5,5"/>
+    </g>
+
+    <!-- Filter -->
+    <g id="filter">
+      <text x="200" y="20" font-size="14" font-weight="bold" fill="#202124">Filter (3×3)</text>
+      <rect x="200" y="30" width="90" height="90" fill="none" stroke="#34a853" stroke-width="2"/>
+      <g stroke="#dadce0" stroke-width="1" fill="none">
+        <line x1="230" y1="30" x2="230" y2="120"/><line x1="260" y1="30" x2="260" y2="120"/>
+        <line x1="200" y1="60" x2="290" y2="60"/><line x1="200" y1="90" x2="290" y2="90"/>
+      </g>
+      <text x="215" y="75" font-size="12" fill="#202124" text-anchor="middle">w₀₀</text>
+      <text x="245" y="75" font-size="12" fill="#202124" text-anchor="middle">w₀₁</text>
+      <text x="275" y="75" font-size="12" fill="#202124" text-anchor="middle">w₀₂</text>
+    </g>
+
+    <!-- Multiply-accumulate -->
+    <g id="mac">
+      <text x="340" y="20" font-size="14" font-weight="bold" fill="#202124">Multiply &amp; Sum</text>
+      <rect x="340" y="30" width="120" height="90" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1" rx="4"/>
+      <text x="400" y="60" font-size="12" fill="#202124" text-anchor="middle">input × filter</text>
+      <text x="400" y="80" font-size="12" fill="#202124" text-anchor="middle">+ bias</text>
+      <text x="400" y="100" font-size="12" fill="#202124" text-anchor="middle">= output</text>
+    </g>
+
+    <!-- Output -->
+    <g id="output">
+      <text x="500" y="20" font-size="14" font-weight="bold" fill="#202124">Output (3×3)</text>
+      <rect x="500" y="30" width="90" height="90" fill="none" stroke="#c5221f" stroke-width="2"/>
+      <g stroke="#dadce0" stroke-width="1" fill="none">
+        <line x1="530" y1="30" x2="530" y2="120"/><line x1="560" y1="30" x2="560" y2="120"/>
+        <line x1="500" y1="60" x2="590" y2="60"/><line x1="500" y1="90" x2="590" y2="90"/>
+      </g>
+      <circle cx="515" cy="45" r="3" fill="#c5221f"/>
+      <text x="515" y="75" font-size="12" fill="#202124" text-anchor="middle">y₀₀</text>
+    </g>
+
+    <!-- Arrows -->
+    <path d="M 140 90 L 200 75" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+    <path d="M 290 75 L 340 75" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+    <path d="M 460 75 L 500 75" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+    <defs>
+      <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+        <polygon points="0 0, 10 3, 0 6" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Conv2D propagation: filter slides over input, computing dot products at each position</figcaption>
+</div>
+
+<h2 id="output-shape">Output Shape Formula</h2>
+<p>The output spatial dimensions are computed as:</p>
+<div class="math-block">
+\[ \text{outH} = \left\lfloor \frac{\text{inputH} + 2 \cdot p_y - k_h}{s_y} \right\rfloor + 1 \]
+\[ \text{outW} = \left\lfloor \frac{\text{inputW} + 2 \cdot p_x - k_w}{s_x} \right\rfloor + 1 \]
+</div>
+
+<p>The output has \(\text{numFilters}\) channels.</p>
+
+<h2 id="padding">Padding Strategies</h2>
+<p>The library supports three padding modes:</p>
+<table>
+  <tr><th>Mode</th><th>Padding</th><th>Use Case</th><th>Output Size</th></tr>
+  <tr><td><strong>VALID</strong></td><td>\(p = 0\)</td><td>Reduce spatial dimensions</td><td>\(\lfloor (H - k) / s \rfloor + 1\)</td></tr>
+  <tr><td><strong>SAME</strong></td><td>\(p = \lfloor k / 2 \rfloor\)</td><td>Preserve spatial size (stride=1)</td><td>\(H\) (if stride=1)</td></tr>
+  <tr><td><strong>FULL</strong></td><td>\(p = k - 1\)</td><td>Expand output (transposed conv)</td><td>\(H + k - 1\)</td></tr>
+</table>
+
+<div class="diagram">
+  <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- VALID padding -->
+    <g id="valid">
+      <text x="20" y="20" font-size="13" font-weight="bold" fill="#202124">VALID (p=0)</text>
+      <rect x="20" y="30" width="100" height="100" fill="none" stroke="#1a73e8" stroke-width="2"/>
+      <g stroke="#dadce0" stroke-width="1" fill="none">
+        <line x1="45" y1="30" x2="45" y2="130"/><line x1="70" y1="30" x2="70" y2="130"/><line x1="95" y1="30" x2="95" y2="130"/>
+        <line x1="20" y1="55" x2="120" y2="55"/><line x1="20" y1="80" x2="120" y2="80"/><line x1="20" y1="105" x2="120" y2="105"/>
+      </g>
+      <text x="70" y="155" font-size="11" fill="#202124" text-anchor="middle">4×4 input</text>
+    </g>
+
+    <!-- SAME padding -->
+    <g id="same">
+      <text x="200" y="20" font-size="13" font-weight="bold" fill="#202124">SAME (p=1)</text>
+      <rect x="200" y="30" width="120" height="120" fill="none" stroke="#dadce0" stroke-width="1" stroke-dasharray="3,3"/>
+      <rect x="210" y="40" width="100" height="100" fill="none" stroke="#34a853" stroke-width="2"/>
+      <g stroke="#dadce0" stroke-width="1" fill="none">
+        <line x1="235" y1="40" x2="235" y2="140"/><line x1="260" y1="40" x2="260" y2="140"/><line x1="285" y1="40" x2="285" y2="140"/>
+        <line x1="210" y1="65" x2="310" y2="65"/><line x1="210" y1="90" x2="310" y2="90"/><line x1="210" y1="115" x2="310" y2="115"/>
+      </g>
+      <text x="260" y="175" font-size="11" fill="#202124" text-anchor="middle">4×4 padded</text>
+    </g>
+
+    <!-- FULL padding -->
+    <g id="full">
+      <text x="420" y="20" font-size="13" font-weight="bold" fill="#202124">FULL (p=2)</text>
+      <rect x="420" y="30" width="140" height="140" fill="none" stroke="#dadce0" stroke-width="1" stroke-dasharray="3,3"/>
+      <rect x="435" y="45" width="100" height="100" fill="none" stroke="#c5221f" stroke-width="2"/>
+      <g stroke="#dadce0" stroke-width="1" fill="none">
+        <line x1="460" y1="45" x2="460" y2="145"/><line x1="485" y1="45" x2="485" y2="145"/><line x1="510" y1="45" x2="510" y2="145"/>
+        <line x1="435" y1="70" x2="535" y2="70"/><line x1="435" y1="95" x2="535" y2="95"/><line x1="435" y1="120" x2="535" y2="120"/>
+      </g>
+      <text x="490" y="195" font-size="11" fill="#202124" text-anchor="middle">6×6 padded</text>
+    </g>
+  </svg>
+  <figcaption>Padding strategies: VALID (no padding), SAME (preserve size), FULL (expand)</figcaption>
+</div>
+
+<h2 id="why-filters-learn">Why Filters Learn</h2>
+<p>The vertical edge filter in the example above was hand-designed — we chose the weights [-1, 0, 1] because we <em>knew</em> what pattern we wanted to detect. But in a real CNN, the filter weights start as random numbers. How do they end up detecting useful patterns?</p>
+
+<p>The answer is <strong>gradient descent</strong>, and the logic works like this:</p>
+
+<ol>
+  <li><strong>The network makes a prediction</strong> — the input image flows through all the layers and produces an output (e.g., "90% cat, 10% dog").</li>
+  <li><strong>We measure the error</strong> — the loss function compares the prediction to the correct answer. If the image was actually a dog, the loss is high because the network was confidently wrong.</li>
+  <li><strong>We ask: "which filter weights contributed to this error?"</strong> — this is what backpropagation computes. For every single filter weight in every layer, it calculates a <em>gradient</em>: a number telling us how much that weight contributed to the loss, and in which direction.</li>
+  <li><strong>We adjust the weights to reduce the error</strong> — each weight is nudged slightly in the direction that would have reduced the loss. Weights that made the prediction worse are adjusted; weights that didn't contribute much stay roughly the same.</li>
+</ol>
+
+<p>Over thousands of training images, this process converges: filter weights that detect genuinely useful patterns (edges, textures, shapes that help distinguish cats from dogs) are reinforced, while useless weights fade toward values that don't interfere.</p>
+
+<div class="card">
+  <h3>Concrete example: how a filter weight gets updated</h3>
+  <p>Suppose filter weight \(w_{0,0}\) (top-left corner of filter 0) currently has value 0.3. During training on one image:</p>
+  <ol>
+    <li>The gradient computation reveals \(\frac{\partial L}{\partial w_{0,0}} = +0.05\) — meaning this weight made the loss slightly <em>higher</em> (positive gradient = increasing loss).</li>
+    <li>With learning rate 0.01, the weight update is: \(w_{0,0} \leftarrow 0.3 - 0.01 \times 0.05 = 0.2995\)</li>
+    <li>The weight decreased slightly. If this happens consistently across many images, the weight will keep decreasing, moving toward whatever value minimizes the loss.</li>
+  </ol>
+  <p>Now multiply this by thousands of weights across dozens of filters and thousands of training images. Each weight is independently nudged toward its optimal value. The emergent result is that filters self-organize into meaningful pattern detectors.</p>
+</div>
+
+<div class="info-box">
+  <strong>What patterns emerge?</strong> Research consistently shows that early-layer filters learn simple patterns: horizontal edges, vertical edges, diagonal edges, color blobs, gradients. Deeper layers combine these into textures, then object parts, then whole objects. The network discovers its own feature hierarchy — no one tells it to look for edges first.
+</div>
+
+<h2 id="backpropagation">Backpropagation</h2>
+<p>During training, backpropagation through Conv2D computes <strong>three separate gradients</strong> that are needed for different purposes:</p>
+
+<h3>1. Filter weight gradient (dFilters)</h3>
+<p>How should each filter weight change to reduce the loss? This is computed by correlating the input with the output gradient:</p>
+<div class="math-block">
+\[ \frac{\partial L}{\partial w_{f,c,kh,kw}} = \sum_{h,w} \frac{\partial L}{\partial y_{f,h,w}} \cdot x_{c, h \cdot s_y + kh, w \cdot s_x + kw} \]
+</div>
+<p>Intuitively, a filter weight should increase if the input and the output gradient have the same sign at the corresponding positions — meaning that increasing this weight would have reduced the loss.</p>
+
+<h3>2. Bias gradient (dBiases)</h3>
+<p>The bias gradient is simply the sum of the output gradient over all spatial positions:</p>
+<div class="math-block">
+\[ \frac{\partial L}{\partial b_f} = \sum_{h,w} \frac{\partial L}{\partial y_{f,h,w}} \]
+</div>
+
+<h3>3. Input gradient (dInput)</h3>
+<p>This gradient is passed backward to the previous layer. It answers: "how would changing the input affect the loss?" It is computed using a <strong>transposed (full) convolution</strong> of the output gradient with the filters:</p>
+<div class="math-block">
+\[ \frac{\partial L}{\partial x_{c,h,w}} = \sum_{f} \sum_{kh,kw} \frac{\partial L}{\partial y_{f, h', w'}} \cdot w_{f,c,kh,kw} \]
+</div>
+<p>where \((h', w')\) are the output positions that used input position \((h, w)\) during the forward pass.</p>
+
+<div class="info-box">
+  <strong>Implementation detail:</strong> The input gradient computation is equivalent to convolving the output gradient with the <em>flipped</em> filters using FULL padding. This elegant relationship between forward convolution and backward gradient computation is one of the mathematical foundations of CNN training.
+</div>
+
+<h2 id="initialization">Weight Initialization</h2>
+<p>Good weight initialization is critical for training convergence. The library uses <strong>He initialization</strong> (also called Kaiming initialization), which is designed specifically for layers followed by ReLU:</p>
+<div class="math-block">
+\[ w \sim \mathcal{N}\left(0, \sqrt{\frac{2}{C_{in} \times K_h \times K_w}}\right) \]
+</div>
+
+<p>The variance is scaled by the number of inputs to each neuron (<em>fan-in</em>). This ensures that the output variance is approximately 1.0 after ReLU activation, preventing signals from exploding or vanishing as they propagate through many layers.</p>
+
+<p>Biases are initialized to zero.</p>
+
+<h2 id="parameters">Parameters</h2>
+<p>A Conv2D layer with \(F\) filters, \(C\) input channels, and \(K_h \times K_w\) kernel size has:</p>
+<div class="math-block">
+\[ \text{Total parameters} = F \times C \times K_h \times K_w + F \]
+</div>
+<p>The first term is filter weights (each filter has \(C \times K_h \times K_w\) weights), the second term is biases (one per filter).</p>
+
+<p>For example, a layer with 64 filters, 32 input channels, and 3×3 kernels has \(64 \times 32 \times 3 \times 3 + 64 = 18{,}496\) parameters.</p>
+
+<h3>JSON Configuration</h3>
+<pre><code><span class="comment">// Minimal: 16 filters, 3×3, stride 1, VALID padding</span>
+{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">16</span>, <span class="string">"filterSize"</span>: <span class="number">3</span> }
+
+<span class="comment">// Full specification: SAME padding, stride 2</span>
+{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">64</span>, <span class="string">"filterSize"</span>: <span class="number">3</span>, <span class="string">"stride"</span>: <span class="number">1</span>, <span class="string">"padding"</span>: <span class="string">"same"</span> }</code></pre>
+
+</main>
+</div>
+<footer class="site-footer">CNN Library Documentation</footer>
+</body></html>

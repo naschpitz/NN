@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>API Reference — ANN Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>ANN</h1><span class="subtitle">Artificial Neural Network Library</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <a href="examples.html">Code Examples</a>
+  <div class="section-title">Reference</div>
+  <a href="api.html" class="active">API Reference</a>
+  <a href="architecture.html">Architecture</a>
+  <div class="section-title">Math Foundations</div>
+  <a href="math.html">Overview</a>
+  <a href="math-neuron.html">Neuron Model</a>
+  <a href="math-activations.html">Activations</a>
+  <a href="math-propagation.html">Propagation</a>
+  <a href="math-cost.html">Cost Functions</a>
+  <a href="math-backprop.html">Backpropagation</a>
+  <a href="math-optimizers.html">Optimizers</a>
+  <a href="math-initialization.html">Weight Initialization</a>
+  <div class="section-title">Deep Dive</div>
+  <a href="gpu.html">GPU Implementation</a>
+</nav></aside>
+<main class="main">
+
+<h1>API Reference</h1>
+<p>Complete reference for every public class, struct, enum, and function in the ANN library. All types live in the <code>ANN</code> namespace.</p>
+
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#types">Type Aliases</a></li>
+    <li><a href="#enums">Enumerations</a></li>
+    <li><a href="#structs">Structs &amp; Configs</a></li>
+    <li><a href="#core">Core&lt;T&gt; (Abstract Base)</a></li>
+    <li><a href="#corecpu">CoreCPU&lt;T&gt;</a></li>
+    <li><a href="#coregpu">CoreGPU&lt;T&gt; &amp; CoreGPUWorker&lt;T&gt;</a></li>
+    <li><a href="#actvfunc">ActvFunc</a></li>
+    <li><a href="#utils">Utils&lt;T&gt; (Helpers)</a></li>
+  </ol>
+</div>
+
+<!-- ========== TYPES ========== -->
+<h2 id="types">1. Type Aliases <span class="badge badge-blue">ANN_Types.hpp</span></h2>
+<table>
+  <tr><th>Alias</th><th>Definition</th><th>Description</th></tr>
+  <tr><td><code>Input&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Single input vector</td></tr>
+  <tr><td><code>Inputs&lt;T&gt;</code></td><td><code>std::vector&lt;Input&lt;T&gt;&gt;</code></td><td>Batch of inputs</td></tr>
+  <tr><td><code>InputProvider&lt;T&gt;</code></td><td><code>std::function&lt;Inputs&lt;T&gt;(ulong batchSize, ulong batchIndex)&gt;</code></td><td>Lazy supplier for streaming <code>predict()</code> — given a batch size and 0-based batch index, returns the corresponding chunk of inputs. Last batch may be shorter than <code>batchSize</code>. Mirrors <code>SampleProvider</code> used by train / test.</td></tr>
+  <tr><td><code>Output&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Single output vector (post-activation)</td></tr>
+  <tr><td><code>Logits&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Pre-activation values (z) of the last layer — input to the final activation function</td></tr>
+  <tr><td><code>PredictResults&lt;T&gt;</code></td><td><code>std::vector&lt;PredictResult&lt;T&gt;&gt;</code></td><td>Batch of predict results</td></tr>
+  <tr><td><code>Tensor1D&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>1-D tensor</td></tr>
+  <tr><td><code>Tensor2D&lt;T&gt;</code></td><td><code>std::vector&lt;std::vector&lt;T&gt;&gt;</code></td><td>2-D tensor (matrix)</td></tr>
+  <tr><td><code>Tensor3D&lt;T&gt;</code></td><td><code>std::vector&lt;std::vector&lt;std::vector&lt;T&gt;&gt;&gt;</code></td><td>3-D tensor</td></tr>
+</table>
+
+<h3>Sample&lt;T&gt; <span class="badge badge-blue">ANN_Sample.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>input</code></td><td><code>Input&lt;T&gt;</code></td><td>Feature vector</td></tr>
+  <tr><td><code>output</code></td><td><code>Output&lt;T&gt;</code></td><td>Expected label vector</td></tr>
+</table>
+<p><code>Samples&lt;T&gt;</code> is <code>std::vector&lt;Sample&lt;T&gt;&gt;</code>.</p>
+
+<h3>SampleProvider&lt;T&gt; <span class="badge badge-blue">ANN_SampleProvider.hpp</span></h3>
+<p>Lazy supplier used by <code>train()</code> and <code>test()</code>. Given the full shuffled index array, a batch size, and a 0-based batch index, returns the batch of samples. Lets callers stream data on demand instead of holding the full <code>Samples&lt;T&gt;</code> in memory.</p>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">using</span> SampleProvider =
+  std::function&lt;Samples&lt;T&gt;(<span class="keyword">const</span> std::vector&lt;<span class="type">ulong</span>&gt;&amp; sampleIndices,
+                          <span class="type">ulong</span> batchSize,
+                          <span class="type">ulong</span> batchIndex)&gt;;
+</code></pre>
+<p>Helper: <code>makeSampleProvider(samples)</code> wraps an in-memory <code>Samples&lt;T&gt;</code> so no prefetching is needed.</p>
+
+<h3>InputProvider&lt;T&gt; <span class="badge badge-blue">ANN_InputProvider.hpp</span></h3>
+<p>Lazy supplier used by the streaming <code>predict()</code>. Mirrors <code>SampleProvider</code> but without the expected-output side, since predict has no labels. The last batch may be shorter than <code>batchSize</code>.</p>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">using</span> InputProvider =
+  std::function&lt;Inputs&lt;T&gt;(<span class="type">ulong</span> batchSize, <span class="type">ulong</span> batchIndex)&gt;;
+</code></pre>
+
+<!-- ========== ENUMS ========== -->
+<h2 id="enums">2. Enumerations</h2>
+
+<h3>DeviceType <span class="badge badge-blue">ANN_Device.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>String</th><th>Meaning</th></tr>
+  <tr><td><code>CPU</code></td><td><code>"cpu"</code></td><td>Multi-threaded CPU execution</td></tr>
+  <tr><td><code>GPU</code></td><td><code>"gpu"</code></td><td>OpenCL GPU execution</td></tr>
+  <tr><td><code>UNKNOWN</code></td><td>—</td><td>Invalid / unset</td></tr>
+</table>
+<p>Helpers: <code>Device::nameToType(str)</code>, <code>Device::typeToName(type)</code></p>
+
+<h3>ModeType <span class="badge badge-blue">ANN_Mode.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>String</th><th>Meaning</th></tr>
+  <tr><td><code>TRAIN</code></td><td><code>"train"</code></td><td>Training mode — runs propagation + backpropagation</td></tr>
+  <tr><td><code>PREDICT</code></td><td><code>"predict"</code></td><td>Inference only — runs propagation</td></tr>
+  <tr><td><code>TEST</code></td><td><code>"test"</code></td><td>Evaluation — propagation + loss calculation</td></tr>
+  <tr><td><code>UNKNOWN</code></td><td>—</td><td>Invalid / unset</td></tr>
+</table>
+<p>Helpers: <code>Mode::nameToType(str)</code>, <code>Mode::typeToName(type)</code></p>
+
+<h3>ActvFuncType <span class="badge badge-blue">ANN_ActvFunc.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>String</th><th>Function</th><th>Derivative</th></tr>
+  <tr><td><code>RELU</code></td><td><code>"relu"</code></td><td>max(0, x)</td><td>1 if x &gt; 0, else 0</td></tr>
+  <tr><td><code>SIGMOID</code></td><td><code>"sigmoid"</code></td><td>1 / (1 + e⁻ˣ)</td><td>σ(x) · (1 − σ(x))</td></tr>
+  <tr><td><code>TANH</code></td><td><code>"tanh"</code></td><td>tanh(x)</td><td>1 − tanh²(x)</td></tr>
+  <tr><td><code>SOFTMAX</code></td><td><code>"softmax"</code></td><td>eˣⁱ / Σeˣʲ</td><td>δᵢⱼ · σᵢ − σᵢ · σⱼ</td></tr>
+</table>
+
+<h3>CostFunctionType <span class="badge badge-blue">ANN_CostFunctionConfig.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>String</th><th>Description</th></tr>
+  <tr><td><code>SQUARED_DIFFERENCE</code></td><td><code>"squaredDifference"</code></td><td>Standard squared error: Σ(predicted − expected)²</td></tr>
+  <tr><td><code>WEIGHTED_SQUARED_DIFFERENCE</code></td><td><code>"weightedSquaredDifference"</code></td><td>Weighted squared error: Σ wᵢ·(predicted − expected)²</td></tr>
+  <tr><td><code>CROSS_ENTROPY</code></td><td><code>"crossEntropy"</code></td><td>Cross-entropy cost: −Σ yᵢ·log(ŷᵢ)</td></tr>
+</table>
+<p>Helpers: <code>CostFunction::nameToType(str)</code>, <code>CostFunction::typeToName(type)</code></p>
+
+<h3>OptimizerType <span class="badge badge-blue">ANN_Optimizer.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>Int</th><th>Description</th></tr>
+  <tr><td><code>SGD</code></td><td>0</td><td>Stochastic Gradient Descent (default)</td></tr>
+  <tr><td><code>ADAM</code></td><td>1</td><td>Adaptive Moment Estimation</td></tr>
+</table>
+<p>Helpers: <code>Optimizer::nameToType(str)</code>, <code>Optimizer::typeToName(type)</code></p>
+
+<h3>LogLevel <span class="badge badge-blue">ANN_LogLevel.hpp</span></h3>
+<table>
+  <tr><th>Value</th><th>Int</th><th>Description</th></tr>
+  <tr><td><code>QUIET</code></td><td>0</td><td>No output</td></tr>
+  <tr><td><code>ERROR</code></td><td>1</td><td>Errors only (default)</td></tr>
+  <tr><td><code>WARNING</code></td><td>2</td><td>Errors + warnings</td></tr>
+  <tr><td><code>INFO</code></td><td>3</td><td>Errors + warnings + informational messages</td></tr>
+  <tr><td><code>DEBUG</code></td><td>4</td><td>All messages including debug output</td></tr>
+</table>
+
+<!-- ========== STRUCTS ========== -->
+<h2 id="structs">3. Structs &amp; Configurations</h2>
+
+<h3>CoreConfig&lt;T&gt; <span class="badge badge-blue">ANN_CoreConfig.hpp</span></h3>
+<p>Top-level configuration struct. Contains all settings needed to create and run a network.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>modeType</code></td><td><code>ModeType</code></td><td>TRAIN, PREDICT, or TEST</td></tr>
+  <tr><td><code>deviceType</code></td><td><code>DeviceType</code></td><td>CPU or GPU</td></tr>
+  <tr><td><code>numThreads</code></td><td><code>int</code></td><td>CPU threads (0 = all cores)</td></tr>
+  <tr><td><code>numGPUs</code></td><td><code>int</code></td><td>GPUs to use (0 = all available)</td></tr>
+  <tr><td><code>layersConfig</code></td><td><code>LayersConfig</code></td><td>Network architecture (layers and activation functions)</td></tr>
+  <tr><td><code>costFunctionConfig</code></td><td><code>CostFunctionConfig&lt;T&gt;</code></td><td>Cost function type and optional weights</td></tr>
+  <tr><td><code>trainingConfig</code></td><td><code>TrainingConfig&lt;T&gt;</code></td><td>Training hyperparameters (epochs, learning rate, batch size)</td></tr>
+  <tr><td><code>testConfig</code></td><td><code>TestConfig</code></td><td>Test evaluation settings (batch size)</td></tr>
+  <tr><td><code>parameters</code></td><td><code>Parameters&lt;T&gt;</code></td><td>Pre-trained weights and biases (optional)</td></tr>
+  <tr><td><code>progressReports</code></td><td><code>ulong</code></td><td>Progress callback frequency for all modes (default 1000)</td></tr>
+  <tr><td><code>logLevel</code></td><td><code>LogLevel</code></td><td>Log verbosity level (default ERROR)</td></tr>
+</table>
+
+<h3>TrainingConfig&lt;T&gt; <span class="badge badge-blue">ANN_TrainingConfig.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>numEpochs</code></td><td><code>ulong</code></td><td>Total training epochs (default 0)</td></tr>
+  <tr><td><code>learningRate</code></td><td><code>float</code></td><td>Learning rate (default 0.01). Used as the base learning rate α for both SGD and Adam.</td></tr>
+  <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size (default 64)</td></tr>
+  <tr><td><code>shuffleSamples</code></td><td><code>bool</code></td><td>Shuffle sample order each epoch (default true)</td></tr>
+  <tr><td><code>shuffleSeed</code></td><td><code>uint32_t</code></td><td>RNG seed for the per-epoch shuffle. Default <code>0</code> means seed from <code>std::random_device</code> — non-deterministic, what production wants. Set to a non-zero value (e.g. tests use <code>42</code>) and the whole training run reproduces bit-for-bit, including the shuffle order. Only meaningful when <code>shuffleSamples</code> is true.</td></tr>
+  <tr><td><code>dropoutRate</code></td><td><code>float</code></td><td>Dropout probability for hidden layers during training (default 0.0 = disabled). Uses inverted dropout: activations are scaled by 1/(1−p) during training so no adjustment is needed at inference.</td></tr>
+  <tr><td><code>optimizer</code></td><td><code>Optimizer&lt;T&gt;</code></td><td>Optimizer configuration (default: SGD)</td></tr>
+</table>
+
+<h3>TestConfig <span class="badge badge-blue">ANN_TestConfig.hpp</span></h3>
+<p>Configuration for test evaluation. Separate from <code>TrainingConfig</code> to allow independent batch sizing.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size for test evaluation (default 64). Controls how many samples are loaded into memory at once during testing.</td></tr>
+</table>
+
+<h3>Optimizer&lt;T&gt; <span class="badge badge-blue">ANN_Optimizer.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>type</code></td><td><code>OptimizerType</code></td><td>Optimizer algorithm: <code>SGD</code> (default) or <code>ADAM</code></td></tr>
+  <tr><td><code>beta1</code></td><td><code>T</code></td><td>Exponential decay rate for first moment estimate (default 0.9). Only used by Adam.</td></tr>
+  <tr><td><code>beta2</code></td><td><code>T</code></td><td>Exponential decay rate for second moment estimate (default 0.999). Only used by Adam.</td></tr>
+  <tr><td><code>epsilon</code></td><td><code>T</code></td><td>Small constant for numerical stability (default 10⁻⁸). Only used by Adam.</td></tr>
+</table>
+
+<h3>CostFunctionConfig&lt;T&gt; <span class="badge badge-blue">ANN_CostFunctionConfig.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>type</code></td><td><code>CostFunctionType</code></td><td>Cost function type (default SQUARED_DIFFERENCE)</td></tr>
+  <tr><td><code>weights</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Per-output-neuron weights (only used for WEIGHTED_SQUARED_DIFFERENCE)</td></tr>
+</table>
+
+<h3>LayersConfig <span class="badge badge-blue">ANN_LayersConfig.hpp</span></h3>
+<p>Inherits <code>std::vector&lt;Layer&gt;</code>. Represents the full network architecture as an ordered list of layers.</p>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>getTotalNumNeurons()</code></td><td><code>ulong</code></td><td>Sum of all layers' neuron counts</td></tr>
+</table>
+
+<h3>Layer <span class="badge badge-blue">ANN_LayersConfig.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>numNeurons</code></td><td><code>ulong</code></td><td>Number of neurons in this layer</td></tr>
+  <tr><td><code>actvFuncType</code></td><td><code>ActvFuncType</code></td><td>Activation function (RELU, SIGMOID, TANH, or SOFTMAX)</td></tr>
+</table>
+
+<h3>Parameters&lt;T&gt; <span class="badge badge-blue">ANN_Parameters.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>weights</code></td><td><code>Tensor3D&lt;T&gt;</code></td><td>Connection weights — indexed as weights[layer][neuron][input]</td></tr>
+  <tr><td><code>biases</code></td><td><code>Tensor2D&lt;T&gt;</code></td><td>Neuron biases — indexed as biases[layer][neuron]</td></tr>
+</table>
+
+<h3>TrainingProgress&lt;T&gt; <span class="badge badge-blue">ANN_TrainingProgress.hpp</span></h3>
+<p>Passed to the training callback at every progress report interval.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>currentEpoch</code></td><td><code>ulong</code></td><td>Current epoch number</td></tr>
+  <tr><td><code>totalEpochs</code></td><td><code>ulong</code></td><td>Total number of epochs</td></tr>
+  <tr><td><code>currentSample</code></td><td><code>ulong</code></td><td>Current sample number within the epoch</td></tr>
+  <tr><td><code>totalSamples</code></td><td><code>ulong</code></td><td>Total number of samples per epoch</td></tr>
+  <tr><td><code>epochLoss</code></td><td><code>T</code></td><td>Running average loss for the current epoch</td></tr>
+  <tr><td><code>sampleLoss</code></td><td><code>T</code></td><td>Loss of the current sample</td></tr>
+  <tr><td><code>gpuIndex</code></td><td><code>int</code></td><td>GPU index (−1 = CPU or combined, ≥0 = specific GPU)</td></tr>
+  <tr><td><code>totalGPUs</code></td><td><code>int</code></td><td>Total number of GPUs in use (default 1)</td></tr>
+</table>
+<p>Callback type alias: <code>TrainingCallback&lt;T&gt; = std::function&lt;void(const TrainingProgress&lt;T&gt;&amp;)&gt;</code></p>
+
+<h3>TrainingMetadata&lt;T&gt; <span class="badge badge-blue">ANN_TrainingMetadata.hpp</span></h3>
+<p>Returned by <code>getTrainingMetadata()</code> after training completes.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>startTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when training started</td></tr>
+  <tr><td><code>endTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when training ended</td></tr>
+  <tr><td><code>durationSeconds</code></td><td><code>double</code></td><td>Total training duration in seconds</td></tr>
+  <tr><td><code>durationFormatted</code></td><td><code>std::string</code></td><td>Human-readable duration (e.g. "1h 23m 45s")</td></tr>
+  <tr><td><code>numSamples</code></td><td><code>ulong</code></td><td>Number of samples trained on</td></tr>
+  <tr><td><code>finalLoss</code></td><td><code>T</code></td><td>Loss at the end of training</td></tr>
+</table>
+
+<h3>PredictMetadata&lt;T&gt; <span class="badge badge-blue">ANN_PredictMetadata.hpp</span></h3>
+<p>Returned by <code>getPredictMetadata()</code> after prediction completes.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>startTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when prediction started</td></tr>
+  <tr><td><code>endTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when prediction ended</td></tr>
+  <tr><td><code>durationSeconds</code></td><td><code>double</code></td><td>Total prediction duration in seconds</td></tr>
+  <tr><td><code>durationFormatted</code></td><td><code>std::string</code></td><td>Human-readable duration</td></tr>
+</table>
+
+<h3>PredictResult&lt;T&gt; <span class="badge badge-blue">ANN_PredictResult.hpp</span></h3>
+<p>Returned by <code>predict()</code>. Carries both the post-activation output and the pre-activation (z) values of the last layer. Logits enable calibration / out-of-distribution detection scores (max-logit, logit-norm, free-energy <code>−log Σ exp(zᵢ)</code>) that softmax discards because softmax is shift-invariant: <code>softmax(z) = softmax(z + c)</code>.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>output</code></td><td><code>Output&lt;T&gt;</code></td><td>Post-activation values of the last layer (e.g. softmax probabilities)</td></tr>
+  <tr><td><code>logits</code></td><td><code>Logits&lt;T&gt;</code></td><td>Pre-activation values (z) of the last layer — input to the final activation function</td></tr>
+</table>
+
+<h3>TestResult&lt;T&gt; <span class="badge badge-blue">ANN_TestResult.hpp</span></h3>
+<p>Returned by <code>test()</code> after evaluation completes.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>numSamples</code></td><td><code>ulong</code></td><td>Number of test samples evaluated</td></tr>
+  <tr><td><code>totalLoss</code></td><td><code>T</code></td><td>Sum of losses across all samples</td></tr>
+  <tr><td><code>averageLoss</code></td><td><code>T</code></td><td>Mean loss per sample</td></tr>
+</table>
+
+<!-- ========== CORE ========== -->
+<h2 id="core">4. Core&lt;T&gt; — Abstract Base Class <span class="badge badge-green">ANN_Core.hpp</span></h2>
+<p>The abstract base class for all ANN backends. Use the factory method to create instances:</p>
+<pre><code><span class="keyword">static</span> std::unique_ptr&lt;Core&lt;T&gt;&gt; <span class="func">makeCore</span>(<span class="keyword">const</span> CoreConfig&lt;T&gt;&amp; config);
+</code></pre>
+
+<h3>Public Methods</h3>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>predict(ulong numSamples, const InputProvider&lt;T&gt;&amp;)</code></td><td><code>PredictResults&lt;T&gt;</code></td><td><strong>Virtual:</strong> streaming batch propagation. Pulls inputs in chunks from <code>provider</code>, runs forward propagation on each batch, and bounds peak host memory to one batch regardless of total dataset size. Mirrors the <code>SampleProvider</code> pattern used by <code>train()</code> / <code>test()</code>. Each result carries <code>output</code> (post-activation) and <code>logits</code> (pre-activation z of the last layer). Distributes work across threads/GPUs per batch.</td></tr>
+  <tr><td><code>predict(const Input&lt;T&gt;&amp;)</code></td><td><code>PredictResult&lt;T&gt;</code></td><td><strong>Virtual:</strong> single-input convenience. CoreCPU overrides this to skip the thread pool on a single sample (avoids deadlocks when called from within another thread pool, e.g. CNN training). The base implementation delegates to the streaming overload with a one-shot provider.</td></tr>
+  <tr><td><code>train(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>void</code></td><td>Full training loop over all epochs</td></tr>
+  <tr><td><code>test(ulong, const SampleProvider&lt;T&gt;&amp;)</code></td><td><code>TestResult&lt;T&gt;</code></td><td>Evaluate loss on a test set using on-demand sample loading</td></tr>
+  <tr><td><code>backpropagate(const Output&lt;T&gt;&amp;)</code></td><td><code>Tensor1D&lt;T&gt;</code></td><td>Compute gradients; returns input-layer gradient</td></tr>
+  <tr><td><code>accumulate()</code></td><td><code>void</code></td><td>Add current gradients to running accumulators</td></tr>
+  <tr><td><code>resetAccumulators()</code></td><td><code>void</code></td><td>Zero out gradient accumulators</td></tr>
+  <tr><td><code>update(ulong numSamples)</code></td><td><code>void</code></td><td>SGD step: <code>params -= lr · (accum / n)</code></td></tr>
+</table>
+
+<h3>Accessors</h3>
+<table>
+  <tr><th>Method</th><th>Returns</th></tr>
+  <tr><td><code>getDeviceType()</code></td><td><code>DeviceType</code></td></tr>
+  <tr><td><code>getModeType()</code></td><td><code>ModeType</code></td></tr>
+  <tr><td><code>getNumThreads()</code></td><td><code>int</code></td></tr>
+  <tr><td><code>getNumGPUs()</code></td><td><code>int</code></td></tr>
+  <tr><td><code>getLayersConfig()</code></td><td><code>const LayersConfig&amp;</code></td></tr>
+  <tr><td><code>getTrainingConfig()</code></td><td><code>const TrainingConfig&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getTrainingMetadata()</code></td><td><code>const TrainingMetadata&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getPredictMetadata()</code></td><td><code>const PredictMetadata&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getParameters()</code></td><td><code>const Parameters&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>setTrainingCallback(TrainingCallback&lt;T&gt;)</code></td><td><code>void</code></td></tr>
+</table>
+
+<!-- ========== CORECPU ========== -->
+<h2 id="corecpu">5. CoreCPU&lt;T&gt; <span class="badge badge-green">ANN_CoreCPU.hpp</span></h2>
+<p>Multi-threaded CPU implementation. See <a href="architecture.html">Architecture</a> for the internal worker structure.</p>
+<div class="info-box">
+  <strong>Thread model:</strong> Each thread has its own <code>SampleWorker&lt;T&gt;</code> struct containing private copies of activations, gradients, and accumulators. After processing its sample subset, the main thread merges worker accumulators into the global accumulators.
+</div>
+
+<h3>Key Internal Functions (called from <code>train</code>)</h3>
+<table>
+  <tr><th>Function</th><th>Purpose</th></tr>
+  <tr><td><code>propagate(input, actvs, zs)</code></td><td>Propagation: compute z and activation for every layer</td></tr>
+  <tr><td><code>backpropagate(output, actvs, zs, dActvs, dWeights, dBiases)</code></td><td>Compute all gradients via chain rule</td></tr>
+  <tr><td><code>calc_dCost_dActv(j, output, actvs)</code></td><td>Output-layer activation gradient: 2·(a − y)</td></tr>
+  <tr><td><code>calc_dCost_dActv(l, k, zs, dActvs)</code></td><td>Hidden-layer activation gradient via chain rule</td></tr>
+  <tr><td><code>calc_dCost_dWeight(l, j, k, actvs, zs, dActvs)</code></td><td>Weight gradient: a[l-1][k] · f'(z[l][j]) · δ[l][j]</td></tr>
+  <tr><td><code>calc_dCost_dBias(l, j, zs, dActvs)</code></td><td>Bias gradient: f'(z[l][j]) · δ[l][j]</td></tr>
+</table>
+
+<!-- ========== COREGPU ========== -->
+<h2 id="coregpu">6. CoreGPU&lt;T&gt; &amp; CoreGPUWorker&lt;T&gt; <span class="badge badge-green">ANN_CoreGPU.hpp</span></h2>
+<p><code>CoreGPU</code> orchestrates multiple <code>CoreGPUWorker</code> instances (one per physical GPU). See <a href="gpu.html">GPU Deep Dive</a> for full details.</p>
+
+<h3>CoreGPU Coordination Methods</h3>
+<table>
+  <tr><th>Method</th><th>Description</th></tr>
+  <tr><td><code>initializeWorkers()</code></td><td>Create one CoreGPUWorker per GPU</td></tr>
+  <tr><td><code>mergeGradients()</code></td><td>Sum accumulated gradients from all GPUs</td></tr>
+</table>
+
+<h3>CoreGPUWorker Methods</h3>
+<table>
+  <tr><th>Method</th><th>Description</th></tr>
+  <tr><td><code>predict(input)</code></td><td>Single-sample inference on GPU. Returns <code>PredictResult&lt;T&gt;</code>.</td></tr>
+  <tr><td><code>predictSubset(inputs, start, end)</code></td><td>Batch inference on a range of inputs (called by CoreGPU). Returns <code>PredictResults&lt;T&gt;</code>.</td></tr>
+  <tr><td><code>testSubset(samples, start, end)</code></td><td>Evaluate a range of samples</td></tr>
+</table>
+
+<h3>CoreGPUWorker Buffer Layout</h3>
+<table>
+  <tr><th>Buffer</th><th>Shape</th><th>Description</th></tr>
+  <tr><td><code>actvs</code></td><td>flat [total neurons]</td><td>Activations for all layers</td></tr>
+  <tr><td><code>zs</code></td><td>flat [total neurons]</td><td>Pre-activation values</td></tr>
+  <tr><td><code>weights</code></td><td>flat [total weights]</td><td>All connection weights</td></tr>
+  <tr><td><code>biases</code></td><td>flat [total neurons]</td><td>All biases</td></tr>
+  <tr><td><code>dCost_dActvs</code></td><td>flat [total neurons]</td><td>Activation gradients</td></tr>
+  <tr><td><code>dCost_dWeights</code></td><td>flat [total weights]</td><td>Weight gradients</td></tr>
+  <tr><td><code>dCost_dBiases</code></td><td>flat [total neurons]</td><td>Bias gradients</td></tr>
+  <tr><td><code>accum_*</code></td><td>same as above</td><td>Running gradient accumulators</td></tr>
+</table>
+
+<!-- ========== ACTVFUNC ========== -->
+<h2 id="actvfunc">7. ActvFunc <span class="badge badge-green">ANN_ActvFunc.hpp</span></h2>
+<pre><code><span class="keyword">class</span> <span class="type">ActvFunc</span> {
+<span class="keyword">public</span>:
+    <span class="keyword">static</span> <span class="type">float</span> <span class="func">calculate</span>(<span class="type">float</span> x, ActvFuncType type, <span class="type">bool</span> derivative = <span class="keyword">false</span>);
+    <span class="keyword">static</span> ActvFuncType <span class="func">nameToType</span>(<span class="keyword">const</span> std::string&amp; name);
+    <span class="keyword">static</span> std::string  <span class="func">typeToName</span>(<span class="keyword">const</span> ActvFuncType&amp; type);
+};
+</code></pre>
+<p>When <code>derivative = true</code>, returns the derivative evaluated at <code>x</code> (the pre-activation value <em>z</em>). See <a href="math-activations.html">Math → Activations</a>.</p>
+
+<!-- ========== UTILS ========== -->
+<h2 id="utils">8. Utils&lt;T&gt; (Helpers) <span class="badge badge-green">ANN_Utils.hpp</span></h2>
+<p>Pure helper utilities — no file I/O. Serialisation is handled by the calling application (e.g. <a href="../../NN-CLI/docs/index.html">NN-CLI</a>).</p>
+<table>
+  <tr><th>Method</th><th>Description</th></tr>
+  <tr><td><code>static string formatISO8601()</code></td><td>Current time as ISO 8601 string</td></tr>
+  <tr><td><code>static string formatDuration(double seconds)</code></td><td>Human-readable duration (e.g. "2h 15m 3s")</td></tr>
+  <tr><td><code>static ulong count(const V&amp; nested)</code></td><td>Count total elements in nested vector</td></tr>
+  <tr><td><code>static Tensor1D&lt;T&gt; flatten(const V&amp; nested)</code></td><td>Flatten nested vector to 1D</td></tr>
+  <tr><td><code>static void unflatten(const Tensor1D&lt;T&gt;&amp;, Tensor2D&lt;T&gt;&amp;)</code></td><td>Reshape 1D → 2D</td></tr>
+  <tr><td><code>static void unflatten(const Tensor1D&lt;T&gt;&amp;, Tensor3D&lt;T&gt;&amp;)</code></td><td>Reshape 1D → 3D</td></tr>
+</table>
+
+</main>
+</div>
+<footer class="site-footer">ANN Library Documentation</footer>
+</body></html>
+
