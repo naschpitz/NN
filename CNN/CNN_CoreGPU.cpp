@@ -1,5 +1,6 @@
 #include "CNN_CoreGPU.hpp"
 #include "CNN_CoreGPUWorkerConfig.hpp"
+#include "Common/Common_GPUWorkDistributor.hpp"
 #include "Common/Common_TrainingMonitor.hpp"
 #include "CNN_Worker.hpp"
 
@@ -84,20 +85,20 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
 
     std::vector<PredictResults<T>> gpuResults(this->numGPUs);
 
-    QtConcurrent::blockingMap(
-      workItems, [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
-        ProgressCallback callback;
+    Common::blockingMapOnPool(&this->workerPool_, workItems,
+                              [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
+                                ProgressCallback callback;
 
-        if (this->progressCallback) {
-          callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
-            ulong completed = ++completedInputs;
-            this->progressCallback(completed, numSamples);
-          };
-        }
+                                if (this->progressCallback) {
+                                  callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
+                                    ulong completed = ++completedInputs;
+                                    this->progressCallback(completed, numSamples);
+                                  };
+                                }
 
-        gpuResults[item.gpuIdx] =
-          this->gpuWorkers[item.gpuIdx]->predictSubset(batch, item.startIdx, item.endIdx, callback);
-      });
+                                gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->predictSubset(
+                                  batch, item.startIdx, item.endIdx, callback);
+                              });
 
     // Append per-GPU results in input order.
     for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
@@ -194,31 +195,32 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       std::vector<T> gpuLosses(this->numGPUs, 0);
 
       this->emitTiming(TimingPhase::GpuTrain, TimingEvent::Begin);
-      QtConcurrent::blockingMap(workItems, [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples,
-                                            &gpuCumulativeSamples](const GPUWorkItem& item) {
-        // Build the per-GPU sub-batch
-        Samples<T> gpuSamples(batchSamples.begin() + item.startIdx, batchSamples.begin() + item.endIdx);
+      Common::blockingMapOnPool(
+        &this->workerPool_, workItems,
+        [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples, &gpuCumulativeSamples](const GPUWorkItem& item) {
+          // Build the per-GPU sub-batch
+          Samples<T> gpuSamples(batchSamples.begin() + item.startIdx, batchSamples.begin() + item.endIdx);
 
-        // Create per-batch callback that translates indices to cumulative per-GPU counts
-        TrainingCallback<T> callback;
+          // Create per-batch callback that translates indices to cumulative per-GPU counts
+          TrainingCallback<T> callback;
 
-        if (this->trainingCallback) {
-          ulong offset = gpuCumulativeSamples[item.gpuIdx];
-          size_t gpuIdx = item.gpuIdx;
-          callback = [this, offset, gpuIdx, numSamples](const TrainingProgress<T>& progress) {
-            TrainingProgress<T> gpuProgress = progress;
-            gpuProgress.currentSample = offset + progress.currentSample;
-            gpuProgress.totalSamples = numSamples;
-            gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
-            gpuProgress.totalGPUs = static_cast<int>(this->numGPUs);
-            this->trainingCallback(gpuProgress);
-          };
-        }
+          if (this->trainingCallback) {
+            ulong offset = gpuCumulativeSamples[item.gpuIdx];
+            size_t gpuIdx = item.gpuIdx;
+            callback = [this, offset, gpuIdx, numSamples](const TrainingProgress<T>& progress) {
+              TrainingProgress<T> gpuProgress = progress;
+              gpuProgress.currentSample = offset + progress.currentSample;
+              gpuProgress.totalSamples = numSamples;
+              gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
+              gpuProgress.totalGPUs = static_cast<int>(this->numGPUs);
+              this->trainingCallback(gpuProgress);
+            };
+          }
 
-        gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->trainSubset(
-          gpuSamples, numSamples, e + 1, numEpochs, callback, this->timingCallback, static_cast<int>(item.gpuIdx),
-          this->gpuProfileCallback);
-      });
+          gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->trainSubset(
+            gpuSamples, numSamples, e + 1, numEpochs, callback, this->timingCallback, static_cast<int>(item.gpuIdx),
+            this->gpuProfileCallback);
+        });
 
       this->emitTiming(TimingPhase::GpuTrain, TimingEvent::End);
 
@@ -253,8 +255,9 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
         for (size_t i = 0; i < this->numGPUs; i++)
           gpuIndices.append(i);
-        QtConcurrent::blockingMap(
-          gpuIndices, [this, currentBatchSize](size_t gpuIdx) { this->gpuWorkers[gpuIdx]->update(currentBatchSize); });
+        Common::blockingMapOnPool(&this->workerPool_, gpuIndices, [this, currentBatchSize](size_t gpuIdx) {
+          this->gpuWorkers[gpuIdx]->update(currentBatchSize);
+        });
         this->emitTiming(TimingPhase::WeightUpdate, TimingEvent::End);
       }
 
@@ -265,7 +268,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
         for (size_t i = 0; i < this->numGPUs; i++)
           gpuIndices.append(i);
-        QtConcurrent::blockingMap(gpuIndices, [this, &savedKernels](size_t gpuIdx) {
+        Common::blockingMapOnPool(&this->workerPool_, gpuIndices, [this, &savedKernels](size_t gpuIdx) {
           this->gpuWorkers[gpuIdx]->restoreKernels(savedKernels[gpuIdx]);
           this->gpuWorkers[gpuIdx]->setTrainingKernelsReady(true);
         });
@@ -374,7 +377,7 @@ TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
 
     std::vector<std::pair<T, ulong>> gpuResults(this->numGPUs, {0, 0});
 
-    QtConcurrent::blockingMap(workItems, [this, &batch, &gpuResults](const GPUWorkItem& item) {
+    Common::blockingMapOnPool(&this->workerPool_, workItems, [this, &batch, &gpuResults](const GPUWorkItem& item) {
       gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->testSubset(batch, item.startIdx, item.endIdx);
     });
 
@@ -472,10 +475,11 @@ void CoreGPU<T>::mergeCNNGradients()
   for (size_t i = 0; i < this->numGPUs; i++)
     gpuIndices.append(i);
 
-  QtConcurrent::blockingMap(gpuIndices, [this, &allFilters, &allBiases, &allBNGamma, &allBNBeta](size_t gpuIdx) {
-    this->gpuWorkers[gpuIdx]->bufferManager->readAccumulatedGradients(allFilters[gpuIdx], allBiases[gpuIdx]);
-    this->gpuWorkers[gpuIdx]->bufferManager->readBNAccumulatedGradients(allBNGamma[gpuIdx], allBNBeta[gpuIdx]);
-  });
+  Common::blockingMapOnPool(
+    &this->workerPool_, gpuIndices, [this, &allFilters, &allBiases, &allBNGamma, &allBNBeta](size_t gpuIdx) {
+      this->gpuWorkers[gpuIdx]->bufferManager->readAccumulatedGradients(allFilters[gpuIdx], allBiases[gpuIdx]);
+      this->gpuWorkers[gpuIdx]->bufferManager->readBNAccumulatedGradients(allBNGamma[gpuIdx], allBNBeta[gpuIdx]);
+    });
 
   // Sum on CPU
   std::vector<T>& totalFilters = allFilters[0];
@@ -498,7 +502,7 @@ void CoreGPU<T>::mergeCNNGradients()
   }
 
   // Write merged gradients back to all workers in parallel
-  QtConcurrent::blockingMap(gpuIndices,
+  Common::blockingMapOnPool(&this->workerPool_, gpuIndices,
                             [this, &totalFilters, &totalBiases, &totalBNGamma, &totalBNBeta](size_t gpuIdx) {
                               this->gpuWorkers[gpuIdx]->bufferManager->setAccumulators(totalFilters, totalBiases);
                               this->gpuWorkers[gpuIdx]->bufferManager->setBNAccumulators(totalBNGamma, totalBNBeta);
@@ -524,7 +528,7 @@ void CoreGPU<T>::mergeGradients()
   for (size_t i = 0; i < this->numGPUs; i++)
     gpuIndices.append(i);
 
-  QtConcurrent::blockingMap(gpuIndices, [this, &allWeights, &allBiases](size_t gpuIdx) {
+  Common::blockingMapOnPool(&this->workerPool_, gpuIndices, [this, &allWeights, &allBiases](size_t gpuIdx) {
     this->gpuWorkers[gpuIdx]->bufferManager->readAnnAccumulatedGradients(allWeights[gpuIdx], allBiases[gpuIdx]);
   });
 
@@ -541,7 +545,7 @@ void CoreGPU<T>::mergeGradients()
   }
 
   // Write merged gradients back to all workers in parallel
-  QtConcurrent::blockingMap(gpuIndices, [this, &totalWeights, &totalBiases](size_t gpuIdx) {
+  Common::blockingMapOnPool(&this->workerPool_, gpuIndices, [this, &totalWeights, &totalBiases](size_t gpuIdx) {
     this->gpuWorkers[gpuIdx]->bufferManager->setAnnAccumulators(totalWeights, totalBiases);
   });
 }

@@ -1,9 +1,10 @@
 #ifndef COMMON_GPUWORKDISTRIBUTOR_HPP
 #define COMMON_GPUWORKDISTRIBUTOR_HPP
 
-#include "Common_TestResult.hpp"
 #include "Common_ProgressCallback.hpp"
+#include "Common_TestResult.hpp"
 
+#include <QThreadPool>
 #include <QVector>
 #include <QtConcurrent>
 
@@ -13,109 +14,140 @@
 
 //===================================================================================================================//
 
-namespace Common
-{
-  //===================================================================================================================//
-  //-- GPU work distribution --//
-  //===================================================================================================================//
+namespace Common {
+//===================================================================================================================//
+//-- GPU work distribution --//
+//===================================================================================================================//
 
-  // Describes a slice of work assigned to a single GPU.
-  struct GPUWorkItem {
-      size_t gpuIdx;
-      ulong startIdx;
-      ulong endIdx;
-  };
+// Describes a slice of work assigned to a single GPU.
+struct GPUWorkItem {
+  size_t gpuIdx;
+  ulong startIdx;
+  ulong endIdx;
+};
 
-  //===================================================================================================================//
+//===================================================================================================================//
 
-  // Split batchLen items across numGPUs, returning one GPUWorkItem per active
-  // GPU. GPUs that would receive zero items are omitted.
-  inline QVector<GPUWorkItem> distributeBatchAcrossGPUs(ulong batchLen, size_t numGPUs)
-  {
-    ulong perGPU = batchLen / numGPUs;
-    ulong remainder = batchLen % numGPUs;
+// Split batchLen items across numGPUs, returning one GPUWorkItem per active
+// GPU. GPUs that would receive zero items are omitted.
+inline QVector<GPUWorkItem> distributeBatchAcrossGPUs(ulong batchLen,
+                                                      size_t numGPUs) {
+  ulong perGPU = batchLen / numGPUs;
+  ulong remainder = batchLen % numGPUs;
 
-    QVector<GPUWorkItem> workItems;
+  QVector<GPUWorkItem> workItems;
 
-    for (size_t gpuIdx = 0; gpuIdx < numGPUs; gpuIdx++) {
-      ulong startIdx = gpuIdx * perGPU + std::min(gpuIdx, remainder);
-      ulong endIdx = startIdx + perGPU + (gpuIdx < remainder ? 1 : 0);
+  for (size_t gpuIdx = 0; gpuIdx < numGPUs; gpuIdx++) {
+    ulong startIdx = gpuIdx * perGPU + std::min(gpuIdx, remainder);
+    ulong endIdx = startIdx + perGPU + (gpuIdx < remainder ? 1 : 0);
 
-      if (startIdx < endIdx)
-        workItems.append({gpuIdx, startIdx, endIdx});
-    }
-
-    return workItems;
+    if (startIdx < endIdx)
+      workItems.append({gpuIdx, startIdx, endIdx});
   }
 
-  //===================================================================================================================//
+  return workItems;
+}
 
-  // Execute test() across multiple GPUs with batch-wise data loading.
-  //
-  // Template parameters:
-  //   T                - numeric type (float, double, int)
-  //   SampleProviderFn - callable: (sampleIndices, batchSize, batchIndex) -> BatchT
-  //   TestSubsetFn     - callable: (gpuIdx, batch, startIdx, endIdx) -> std::pair<T, ulong>
-  //                      Returns {loss, numCorrect} for the given slice.
-  //
-  // The function handles:
-  //   - Sequential sample index creation (no shuffling for test)
-  //   - Batch iteration with bounded memory
-  //   - GPU work distribution via distributeBatchAcrossGPUs()
-  //   - Parallel dispatch via QtConcurrent::blockingMap
-  //   - Loss and accuracy aggregation
-  //   - Progress reporting
-  template <typename T, typename SampleProviderFn, typename TestSubsetFn>
-  TestResult<T> distributeTestAcrossGPUs(ulong numSamples, SampleProviderFn sampleProvider, size_t numGPUs,
-                                         ulong batchSize, const ProgressCallback& progressCallback,
-                                         TestSubsetFn&& testSubsetFn)
-  {
-    // Sequential index array (no shuffling for test)
-    std::vector<ulong> sampleIndices(numSamples);
+//===================================================================================================================//
 
-    for (ulong i = 0; i < numSamples; i++) {
-      sampleIndices[i] = i;
-    }
+// Run `fn(item)` for every item in `items` on the given pool, blocking until
+// all finish. A portable stand-in for QtConcurrent::blockingMap that lets the
+// caller choose the pool: on Qt5 blockingMap always uses the global
+// QThreadPool, which deadlocks when one core's parallel pass (e.g. a validation
+// test()) nests inside another's (train()) on that shared pool.
+// QtConcurrent::run(pool, ...) is available on both Qt5 and Qt6.
+template <typename Container, typename Fn>
+inline void blockingMapOnPool(QThreadPool *pool, const Container &items,
+                              Fn fn) {
+  QVector<QFuture<void>> futures;
+  futures.reserve(static_cast<int>(items.size()));
 
-    ulong numBatches = (numSamples + batchSize - 1) / batchSize;
-
-    T totalLoss = static_cast<T>(0);
-    ulong totalCorrect = 0;
-
-    for (ulong b = 0; b < numBatches; b++) {
-      auto batch = sampleProvider(sampleIndices, batchSize, b);
-
-      // Distribute batch across GPUs
-      ulong batchLen = batch.size();
-      QVector<GPUWorkItem> workItems = distributeBatchAcrossGPUs(batchLen, numGPUs);
-
-      std::vector<std::pair<T, ulong>> gpuResults(numGPUs, {0, 0});
-
-      QtConcurrent::blockingMap(workItems, [&batch, &gpuResults, &testSubsetFn](const GPUWorkItem& item) {
-        gpuResults[item.gpuIdx] = testSubsetFn(item.gpuIdx, batch, item.startIdx, item.endIdx);
-      });
-
-      for (size_t i = 0; i < numGPUs; i++) {
-        totalLoss += gpuResults[i].first;
-        totalCorrect += gpuResults[i].second;
-      }
-
-      if (progressCallback) {
-        ulong samplesProcessed = std::min((b + 1) * batchSize, numSamples);
-        progressCallback(samplesProcessed, numSamples);
-      }
-    }
-
-    TestResult<T> result;
-    result.numSamples = numSamples;
-    result.totalLoss = totalLoss;
-    result.numCorrect = totalCorrect;
-    result.averageLoss = (numSamples > 0) ? totalLoss / static_cast<T>(numSamples) : static_cast<T>(0);
-    result.accuracy = (numSamples > 0) ? static_cast<T>(totalCorrect) / static_cast<T>(numSamples) * static_cast<T>(100)
-                                       : static_cast<T>(0);
-
-    return result;
+  for (const auto &item : items) {
+    const auto *itemPtr = &item;
+    futures.append(QtConcurrent::run(pool, [fn, itemPtr]() { fn(*itemPtr); }));
   }
+
+  for (auto &f : futures)
+    f.waitForFinished();
+}
+
+//===================================================================================================================//
+
+// Execute test() across multiple GPUs with batch-wise data loading.
+//
+// Template parameters:
+//   T                - numeric type (float, double, int)
+//   SampleProviderFn - callable: (sampleIndices, batchSize, batchIndex) ->
+//   BatchT TestSubsetFn     - callable: (gpuIdx, batch, startIdx, endIdx) ->
+//   std::pair<T, ulong>
+//                      Returns {loss, numCorrect} for the given slice.
+//
+// The function handles:
+//   - Sequential sample index creation (no shuffling for test)
+//   - Batch iteration with bounded memory
+//   - GPU work distribution via distributeBatchAcrossGPUs()
+//   - Parallel dispatch via QtConcurrent::blockingMap
+//   - Loss and accuracy aggregation
+//   - Progress reporting
+template <typename T, typename SampleProviderFn, typename TestSubsetFn>
+TestResult<T> distributeTestAcrossGPUs(QThreadPool *pool, ulong numSamples,
+                                       SampleProviderFn sampleProvider,
+                                       size_t numGPUs, ulong batchSize,
+                                       const ProgressCallback &progressCallback,
+                                       TestSubsetFn &&testSubsetFn) {
+  // Sequential index array (no shuffling for test)
+  std::vector<ulong> sampleIndices(numSamples);
+
+  for (ulong i = 0; i < numSamples; i++) {
+    sampleIndices[i] = i;
+  }
+
+  ulong numBatches = (numSamples + batchSize - 1) / batchSize;
+
+  T totalLoss = static_cast<T>(0);
+  ulong totalCorrect = 0;
+
+  for (ulong b = 0; b < numBatches; b++) {
+    auto batch = sampleProvider(sampleIndices, batchSize, b);
+
+    // Distribute batch across GPUs
+    ulong batchLen = batch.size();
+    QVector<GPUWorkItem> workItems =
+        distributeBatchAcrossGPUs(batchLen, numGPUs);
+
+    std::vector<std::pair<T, ulong>> gpuResults(numGPUs, {0, 0});
+
+    blockingMapOnPool(
+        pool, workItems,
+        [&batch, &gpuResults, &testSubsetFn](const GPUWorkItem &item) {
+          gpuResults[item.gpuIdx] =
+              testSubsetFn(item.gpuIdx, batch, item.startIdx, item.endIdx);
+        });
+
+    for (size_t i = 0; i < numGPUs; i++) {
+      totalLoss += gpuResults[i].first;
+      totalCorrect += gpuResults[i].second;
+    }
+
+    if (progressCallback) {
+      ulong samplesProcessed = std::min((b + 1) * batchSize, numSamples);
+      progressCallback(samplesProcessed, numSamples);
+    }
+  }
+
+  TestResult<T> result;
+  result.numSamples = numSamples;
+  result.totalLoss = totalLoss;
+  result.numCorrect = totalCorrect;
+  result.averageLoss = (numSamples > 0) ? totalLoss / static_cast<T>(numSamples)
+                                        : static_cast<T>(0);
+  result.accuracy = (numSamples > 0)
+                        ? static_cast<T>(totalCorrect) /
+                              static_cast<T>(numSamples) * static_cast<T>(100)
+                        : static_cast<T>(0);
+
+  return result;
+}
 
 } // namespace Common
 

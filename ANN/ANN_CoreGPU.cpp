@@ -88,20 +88,20 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
 
     std::vector<PredictResults<T>> gpuResults(this->numGPUs);
 
-    QtConcurrent::blockingMap(
-      workItems, [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
-        ProgressCallback callback;
+    Common::blockingMapOnPool(&this->workerPool_, workItems,
+                              [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
+                                ProgressCallback callback;
 
-        if (this->progressCallback) {
-          callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
-            ulong completed = ++completedInputs;
-            this->progressCallback(completed, numSamples);
-          };
-        }
+                                if (this->progressCallback) {
+                                  callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
+                                    ulong completed = ++completedInputs;
+                                    this->progressCallback(completed, numSamples);
+                                  };
+                                }
 
-        gpuResults[item.gpuIdx] =
-          this->gpuWorkers[item.gpuIdx]->predictSubset(batch, item.startIdx, item.endIdx, callback);
-      });
+                                gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->predictSubset(
+                                  batch, item.startIdx, item.endIdx, callback);
+                              });
 
     // Append per-GPU results in input order.
     for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
@@ -194,30 +194,31 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       std::vector<T> gpuLosses(this->numGPUs, 0);
 
       // Use QtConcurrent to process each GPU's work in parallel
-      QtConcurrent::blockingMap(workItems, [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples,
-                                            &gpuCumulativeSamples](const GPUWorkItem& item) {
-        // Build the per-GPU sub-batch
-        Samples<T> gpuSamples(batchSamples.begin() + item.localStart, batchSamples.begin() + item.localEnd);
+      Common::blockingMapOnPool(
+        &this->workerPool_, workItems,
+        [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples, &gpuCumulativeSamples](const GPUWorkItem& item) {
+          // Build the per-GPU sub-batch
+          Samples<T> gpuSamples(batchSamples.begin() + item.localStart, batchSamples.begin() + item.localEnd);
 
-        // Create per-batch callback that translates local indices to cumulative per-GPU counts
-        TrainingCallback<T> callback;
+          // Create per-batch callback that translates local indices to cumulative per-GPU counts
+          TrainingCallback<T> callback;
 
-        if (this->trainingCallback) {
-          ulong offset = gpuCumulativeSamples[item.gpuIdx];
-          size_t gpuIdx = item.gpuIdx;
-          callback = [this, offset, gpuIdx, numSamples](const TrainingProgress<T>& progress) {
-            TrainingProgress<T> gpuProgress = progress;
-            gpuProgress.currentSample = offset + progress.currentSample;
-            gpuProgress.totalSamples = numSamples;
-            gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
-            gpuProgress.totalGPUs = static_cast<int>(this->numGPUs);
-            this->trainingCallback(gpuProgress);
-          };
-        }
+          if (this->trainingCallback) {
+            ulong offset = gpuCumulativeSamples[item.gpuIdx];
+            size_t gpuIdx = item.gpuIdx;
+            callback = [this, offset, gpuIdx, numSamples](const TrainingProgress<T>& progress) {
+              TrainingProgress<T> gpuProgress = progress;
+              gpuProgress.currentSample = offset + progress.currentSample;
+              gpuProgress.totalSamples = numSamples;
+              gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
+              gpuProgress.totalGPUs = static_cast<int>(this->numGPUs);
+              this->trainingCallback(gpuProgress);
+            };
+          }
 
-        gpuLosses[item.gpuIdx] =
-          this->gpuWorkers[item.gpuIdx]->trainSubset(gpuSamples, numSamples, e + 1, numEpochs, callback);
-      });
+          gpuLosses[item.gpuIdx] =
+            this->gpuWorkers[item.gpuIdx]->trainSubset(gpuSamples, numSamples, e + 1, numEpochs, callback);
+        });
 
       // Update cumulative counters after batch completes
       for (const auto& item : workItems) {
@@ -308,7 +309,7 @@ template <typename T>
 TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   return ::distributeTestAcrossGPUs<T>(
-    numSamples, sampleProvider, this->numGPUs, this->testConfig.batchSize, this->progressCallback,
+    &this->workerPool_, numSamples, sampleProvider, this->numGPUs, this->testConfig.batchSize, this->progressCallback,
     [this](size_t gpuIdx, const Samples<T>& batch, ulong startIdx, ulong endIdx) -> std::pair<T, ulong> {
       return this->gpuWorkers[gpuIdx]->testSubset(batch, startIdx, endIdx);
     });
