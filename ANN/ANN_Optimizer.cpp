@@ -2,7 +2,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
 
   template <typename T>
@@ -40,4 +40,4 @@ namespace ANN
   template struct Optimizer<float>;
   template struct Optimizer<double>;
 
-} // namespace ANN
+} // namespace Common

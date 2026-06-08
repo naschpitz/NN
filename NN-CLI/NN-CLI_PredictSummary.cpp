@@ -56,7 +56,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void PredictSummary::printANN(const ANN::CoreConfig<float>& annConfig, ulong numInputs, const std::string& inputPath,
+  void PredictSummary::print(const ANN::CoreConfig<float>& annConfig, ulong numInputs, const std::string& inputPath,
                                 const std::string& outputPath)
   {
     ulong denseCount = annConfig.layersConfig.size();
@@ -66,7 +66,7 @@ namespace NN_CLI
 
     std::vector<SummaryRow> rows;
     rows.push_back({"Device", deviceStr});
-    rows.push_back({"Network type", "ANN"});
+    rows.push_back({"Network type", ""});
     rows.push_back({"", ""});
     rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"Output neurons", std::to_string(outputNeurons)});

@@ -1,6 +1,7 @@
 #include "CNN_GlobalAvgPool.hpp"
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 

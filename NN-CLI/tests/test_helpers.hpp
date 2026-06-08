@@ -15,8 +15,8 @@ extern int testsPassed;
 extern int testsFailed;
 extern bool runFullTests;
 
-// Trained ANN model path shared between test_ann.cpp and test_errors.cpp
-extern QString trainedANNModelPath;
+// Trained  model path shared between test_ann.cpp and test_errors.cpp
+extern QString trainedModelPath;
 
 // clang-format off
 #define CHECK(cond, msg) do { \
@@ -84,7 +84,7 @@ inline void cleanupTemp()
     fixtureOutput.removeRecursively();
 }
 
-// Check if GPU is available by running a tiny ANN training on GPU
+// Check if GPU is available by running a tiny  training on GPU
 inline bool checkGPUAvailable()
 {
   static int cached = -1; // -1 = not checked, 0 = no, 1 = yes

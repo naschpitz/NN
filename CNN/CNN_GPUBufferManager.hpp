@@ -4,9 +4,9 @@
 #include "CNN_Types.hpp"
 #include "CNN_CoreGPUWorkerConfig.hpp"
 #include "CNN_Parameters.hpp"
-#include "CNN_LogLevel.hpp"
+#include "Common/Common_LogLevel.hpp"
 
-#include <ANN_CoreGPUWorker.hpp>
+#include <_CoreGPUWorker.hpp>
 #include <OCLW_Core.hpp>
 
 #include <memory>
@@ -17,8 +17,9 @@
 
 namespace CNN
 {
+  using namespace Common;
   // Manages CNN GPU buffer allocation, layer offset computation, source loading,
-  // ANN worker construction, and data I/O. Extracted from CoreGPUWorker.
+  //  worker construction, and data I/O. Extracted from CoreGPUWorker.
   template <typename T>
   class GPUBufferManager
   {
@@ -30,7 +31,7 @@ namespace CNN
       void computeLayerOffsets();
       void loadSources(bool skipDefines);
       void allocateBuffers(ulong batchSize = 1);
-      void buildANNWorker();
+      void buildWorker();
 
       //-- Parameter synchronization --//
       void syncParametersFromGPU(); // GPU → CPU (after training)
@@ -46,8 +47,8 @@ namespace CNN
       void setAccumulators(const std::vector<T>& accumFilters, const std::vector<T>& accumBiases);
       void readBNAccumulatedGradients(std::vector<T>& accumGamma, std::vector<T>& accumBeta);
       void setBNAccumulators(const std::vector<T>& accumGamma, const std::vector<T>& accumBeta);
-      void readANNAccumulatedGradients(ANN::Tensor1D<T>& accumWeights, ANN::Tensor1D<T>& accumBiases);
-      void setANNAccumulators(const ANN::Tensor1D<T>& accumWeights, const ANN::Tensor1D<T>& accumBiases);
+      void readAccumulatedGradients(ANN::Tensor1D<T>& accumWeights, ANN::Tensor1D<T>& accumBiases);
+      void setAccumulators(const ANN::Tensor1D<T>& accumWeights, const ANN::Tensor1D<T>& accumBiases);
 
       //-- Per-layer buffer offset/size info --//
       struct LayerInfo {
@@ -112,8 +113,8 @@ namespace CNN
       //-- Batch size --//
       ulong batchSize = 1;
 
-      //-- ANN GPU worker (dense layers on shared core) --//
-      std::unique_ptr<ANN::CoreGPUWorker<T>> annGPUWorker;
+      //--  GPU worker (dense layers on shared core) --//
+      std::unique_ptr<::CoreGPUWorker<T>> annGPUWorker;
 
     private:
       OpenCLWrapper::Core* core;

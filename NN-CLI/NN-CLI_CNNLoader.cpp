@@ -32,11 +32,11 @@ namespace NN_CLI
 
     // Device
     if (deviceOverride.has_value()) {
-      coreConfig.deviceType = CNN::Device::nameToType(deviceOverride.value());
+      coreConfig.deviceType = Common::Device::nameToType(deviceOverride.value());
     } else if (json.contains("device")) {
-      coreConfig.deviceType = CNN::Device::nameToType(json.at("device").get<std::string>());
+      coreConfig.deviceType = Common::Device::nameToType(json.at("device").get<std::string>());
     } else {
-      coreConfig.deviceType = CNN::DeviceType::CPU;
+      coreConfig.deviceType = Common::DeviceType::CPU;
     }
 
     if (json.contains("numThreads"))
@@ -47,11 +47,11 @@ namespace NN_CLI
 
     // Mode
     if (modeOverride.has_value()) {
-      coreConfig.modeType = CNN::Mode::nameToType(modeOverride.value());
+      coreConfig.modeType = Common::Mode::nameToType(modeOverride.value());
     } else if (json.contains("mode")) {
-      coreConfig.modeType = CNN::Mode::nameToType(json.at("mode").get<std::string>());
+      coreConfig.modeType = Common::Mode::nameToType(json.at("mode").get<std::string>());
     } else {
-      coreConfig.modeType = CNN::ModeType::PREDICT;
+      coreConfig.modeType = Common::ModeType::PREDICT;
     }
 
     // Input shape (required for CNN)
@@ -143,7 +143,7 @@ namespace NN_CLI
         CNN::DenseLayerConfig dense;
         dense.numNeurons = layerJson.at("numNeurons").get<ulong>();
 
-        dense.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
+        dense.actvFuncType = ::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
 
         coreConfig.layersConfig.denseLayers.push_back(dense);
       }
@@ -152,7 +152,7 @@ namespace NN_CLI
     // Cost function config
     if (json.contains("costFunction")) {
       const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = CNN::CostFunction::nameToType(cfc.at("type").get<std::string>());
+      coreConfig.costFunctionConfig.type = ::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
         coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
@@ -182,7 +182,7 @@ namespace NN_CLI
 
         if (opt.contains("type"))
           coreConfig.trainingConfig.optimizer.type =
-            CNN::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
+            ::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
 
         if (opt.contains("beta1"))
           coreConfig.trainingConfig.optimizer.beta1 = opt.at("beta1").get<float>();
@@ -282,13 +282,13 @@ namespace NN_CLI
 
       if (paramsJson.contains("dense")) {
         const auto& denseJson = paramsJson.at("dense");
-        coreConfig.parameters.denseParams.weights = denseJson.at("weights").get<ANN::Tensor3D<float>>();
-        coreConfig.parameters.denseParams.biases = denseJson.at("biases").get<ANN::Tensor2D<float>>();
+        coreConfig.parameters.denseParams.weights = denseJson.at("weights").get<::Tensor3D<float>>();
+        coreConfig.parameters.denseParams.biases = denseJson.at("biases").get<::Tensor2D<float>>();
       }
     }
 
     bool isPredictOrTest =
-      (coreConfig.modeType == CNN::ModeType::PREDICT || coreConfig.modeType == CNN::ModeType::TEST);
+      (coreConfig.modeType == Common::ModeType::PREDICT || coreConfig.modeType == Common::ModeType::TEST);
 
     if (isPredictOrTest && !json.contains("parameters")) {
       throw std::runtime_error("CNN config missing 'parameters' required for predict/test modes");

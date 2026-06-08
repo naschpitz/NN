@@ -2,6 +2,7 @@
 #include "CNN_SlidingStrategy.hpp"
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 

@@ -7,7 +7,7 @@
 #include "CNN_GPUBufferManager.hpp"
 #include "CNN_GPUKernelBuilder.hpp"
 
-#include <ANN_CoreGPUWorker.hpp>
+#include <_CoreGPUWorker.hpp>
 #include <OCLW_Core.hpp>
 
 #include <memory>
@@ -17,6 +17,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   template <typename T>
   class CoreGPUWorker : public Worker<T>
   {
@@ -30,7 +31,7 @@ namespace CNN
       CoreGPUWorker(const CoreGPUWorkerConfig<T>& workerConfig, OpenCLWrapper::Core& sharedCore);
 
       //-- Predict (returns post-activation output and dense-head logits) --//
-      PredictResult<T> predict(const Input<T>& input);
+      Common::PredictResult<T> predict(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
       // timingCallback/gpuIndex are optional instrumentation: when set, the worker
@@ -44,7 +45,7 @@ namespace CNN
       std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
-      PredictResults<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
+      Common::PredictResults<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
                                       const ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training methods (for external orchestration) --//

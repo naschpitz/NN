@@ -12,7 +12,7 @@
 #include "CNN_SlidingStrategy.hpp"
 #include "CNN_LayersConfig.hpp"
 
-#include <ANN_ActvFunc.hpp>
+#include <_ActvFunc.hpp>
 
 #include <cassert>
 #include <cmath>
@@ -45,7 +45,7 @@ extern int testsFailed;
 
 // Helper: create gradient-filled tensor (values from lo to hi across spatial dims)
 // This produces diverse CNN features, avoiding the uniform-input problem where
-// all ANN inputs are identical and random weight initialization can stall learning.
+// all  inputs are identical and random weight initialization can stall learning.
 template <typename T>
 CNN::Tensor3D<T> makeGradientInput(CNN::Shape3D shape, T lo = T(0.5), T hi = T(1.0))
 {

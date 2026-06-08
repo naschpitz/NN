@@ -6,13 +6,13 @@
 
 // Helper: build a GPU Conv→BatchNorm→ReLU→Flatten→Dense config with true BATCHNORM
 static CNN::CoreConfig<float> makeGPUTrueBNTestConfig(ulong denseNeurons, ANN::ActvFuncType actvFunc,
-                                                      CNN::DeviceType deviceType = CNN::DeviceType::GPU)
+                                                      Common::DeviceType deviceType = Common::DeviceType::GPU)
 {
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
+  config.modeType = Common::ModeType::TRAIN;
   config.deviceType = deviceType;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
   config.numGPUs = 1;
 
@@ -70,10 +70,10 @@ static void testGPUTrueBNConvergence()
   std::cout << "--- testGPUTrueBNConvergence ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -99,9 +99,9 @@ static void testGPUTrueBNConvergence()
   config.trainingConfig.learningRate = 0.01f;
   config.trainingConfig.shuffleSamples = false;
   config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
-  config.trainingConfig.optimizer.type = CNN::OptimizerType::ADAM;
+  config.trainingConfig.optimizer.type = Common::OptimizerType::ADAM;
   config.progressReports = 0;
-  config.costFunctionConfig.type = CNN::CostFunctionType::SQUARED_DIFFERENCE;
+  config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
 
   // 4 samples: bright (1) vs dark (0)
   CNN::Samples<float> samples(4);
@@ -132,12 +132,12 @@ static void testGPUTrueBNExactMultiSample()
   std::cout << "--- testGPUTrueBNExactMultiSample ---" << std::endl;
 
   // Same architecture as single-sample BN test but with 2 samples
-  auto gpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, CNN::DeviceType::GPU);
-  gpuConfig.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  auto gpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::GPU);
+  gpuConfig.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   gpuConfig.trainingConfig.batchSize = 2;
 
-  auto cpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, CNN::DeviceType::CPU);
-  cpuConfig.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  auto cpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::CPU);
+  cpuConfig.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   cpuConfig.trainingConfig.batchSize = 2;
 
   ANN::Parameters<float> denseParams;

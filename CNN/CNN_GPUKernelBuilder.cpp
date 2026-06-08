@@ -6,6 +6,7 @@
 #include <string>
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 
@@ -47,17 +48,17 @@ void GPUKernelBuilder<T>::setupTrainingKernels()
 
   ulong numLayers = this->workerConfig.layersConfig.cnnLayers.size();
 
-  // Propagate pipeline: CNN propagate → copy → ANN propagate
+  // Propagate pipeline: CNN propagate → copy →  propagate
   this->addPropagateKernels(0, 0, numLayers, true);
   this->addCopyBridgeKernels(0);
   this->bufferManager.annGPUWorker->kernelBuilder->addPropagateKernels();
 
-  // Backpropagate pipeline: ANN backpropagate (with input gradients) → reverse bridge → CNN backpropagate
+  // Backpropagate pipeline:  backpropagate (with input gradients) → reverse bridge → CNN backpropagate
   this->bufferManager.annGPUWorker->kernelBuilder->addBackpropagateKernels(true);
   this->addReverseBridgeKernels(0);
   this->addBackpropagateKernels(0, 0, numLayers);
 
-  // Accumulate: CNN + ANN
+  // Accumulate: CNN + 
   this->addCNNAccumulateKernels(0, 0, numLayers);
   this->bufferManager.annGPUWorker->kernelBuilder->addAccumulateKernels();
 
@@ -1045,7 +1046,7 @@ void GPUKernelBuilder<T>::addCNNAccumulateKernels(ulong sampleIdx, ulong layerSt
 template <typename T>
 void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunningStats)
 {
-  if (this->workerConfig.trainingConfig.optimizer.type == OptimizerType::ADAM) {
+  if (this->workerConfig.trainingConfig.optimizer.type == Common::OptimizerType::ADAM) {
     const auto& opt = this->workerConfig.trainingConfig.optimizer;
     this->adam_t++;
 

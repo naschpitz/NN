@@ -5,7 +5,7 @@
 #include "CNN_PoolType.hpp"
 #include "CNN_Types.hpp"
 
-#include <ANN_ActvFunc.hpp>
+#include <_ActvFunc.hpp>
 
 #include <string>
 #include <variant>
@@ -15,6 +15,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   // Convolution layer configuration
   struct ConvLayerConfig {
       ulong numFilters;
@@ -84,7 +85,7 @@ namespace CNN
         config;
   };
 
-  // Dense layer configuration (delegates to ANN)
+  // Dense layer configuration (delegates to )
   struct DenseLayerConfig {
       ulong numNeurons;
       ANN::ActvFuncType actvFuncType;

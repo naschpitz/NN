@@ -1,9 +1,10 @@
-#include "ANN_ActvFunc.hpp"
+#include "_ActvFunc.hpp"
 
 #include <cmath>
 #include <stdexcept>
 
 using namespace ANN;
+using namespace Common;
 
 //===================================================================================================================//
 

@@ -35,13 +35,13 @@ namespace NN_CLI
     stbir_pixel_layout layout;
 
     if (targetC == 1)
-      layout = STBIR_1CHANNEL;
+      layout = STBIR_1CHEL;
     else if (targetC == 3)
       layout = STBIR_RGB;
     else if (targetC == 4)
       layout = STBIR_RGBA;
     else
-      layout = STBIR_1CHANNEL; // fallback
+      layout = STBIR_1CHEL; // fallback
 
     // Letterbox: scale to fit within target dimensions preserving aspect ratio, then centre on black canvas.
     float scaleH = static_cast<float>(targetH) / static_cast<float>(origH);

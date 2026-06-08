@@ -8,11 +8,11 @@ int testsPassed = 0;
 int testsFailed = 0;
 bool runFullTests = false;
 
-// ANN tests
-void runANNCPUBasicTests();
-void runANNCPUMNISTTests();
-void runANNCPUFeatureTests();
-void runANNGPUMNISTTests();
+//  tests
+void runCPUBasicTests();
+void runCPUMNISTTests();
+void runCPUFeatureTests();
+void runGPUMNISTTests();
 
 // CNN tests
 void runCNNCPUBasicTests();
@@ -53,14 +53,14 @@ int main(int argc, char* argv[])
 
   std::cout << std::endl;
 
-  std::cout << "=== ANN CPU Tests ===" << std::endl;
-  runANNCPUBasicTests();
-  runANNCPUMNISTTests();
-  runANNCPUFeatureTests();
+  std::cout << "===  CPU Tests ===" << std::endl;
+  runCPUBasicTests();
+  runCPUMNISTTests();
+  runCPUFeatureTests();
 
   std::cout << std::endl;
-  std::cout << "=== ANN GPU Tests ===" << std::endl;
-  runANNGPUMNISTTests();
+  std::cout << "===  GPU Tests ===" << std::endl;
+  runGPUMNISTTests();
 
   std::cout << std::endl;
   std::cout << "=== CNN CPU Tests ===" << std::endl;

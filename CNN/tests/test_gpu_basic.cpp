@@ -9,10 +9,10 @@ static void testGPUEndToEnd()
   // Same architecture as CPU test:
   // 1x5x5 → Conv(1 filter 3x3 valid) → 1x3x3 → ReLU → Flatten(9) → Dense(1, sigmoid)
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -65,7 +65,7 @@ static void testGPUEndToEnd()
   CHECK(pred1[0] < 0.3f, "GPU pred(dark) < 0.3");
 
   // Test method
-  CNN::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
   CHECK(result.numSamples == 2, "GPU test numSamples");
   CHECK(result.averageLoss >= 0.0f, "GPU test avgLoss non-negative");
   CHECK(result.averageLoss < 0.1f, "GPU test avgLoss reasonably small");
@@ -80,10 +80,10 @@ static void testGPUPredictOnly()
 
   // Train on CPU, then verify GPU predict gives same results
   CNN::CoreConfig<float> cpuConfig;
-  cpuConfig.modeType = CNN::ModeType::TRAIN;
-  cpuConfig.deviceType = CNN::DeviceType::CPU;
+  cpuConfig.modeType = Common::ModeType::TRAIN;
+  cpuConfig.deviceType = Common::DeviceType::CPU;
   cpuConfig.inputShape = {1, 5, 5};
-  cpuConfig.logLevel = CNN::LogLevel::ERROR;
+  cpuConfig.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -128,10 +128,10 @@ static void testGPUPredictOnly()
 
   // Create a GPU core in PREDICT mode with the trained parameters
   CNN::CoreConfig<float> gpuConfig;
-  gpuConfig.modeType = CNN::ModeType::PREDICT;
-  gpuConfig.deviceType = CNN::DeviceType::GPU;
+  gpuConfig.modeType = Common::ModeType::PREDICT;
+  gpuConfig.deviceType = Common::DeviceType::GPU;
   gpuConfig.inputShape = {1, 5, 5};
-  gpuConfig.logLevel = CNN::LogLevel::ERROR;
+  gpuConfig.logLevel = Common::LogLevel::ERROR;
   gpuConfig.layersConfig = cpuConfig.layersConfig;
   gpuConfig.parameters = trainedParams;
 
@@ -158,10 +158,10 @@ static void testGPUWithPoolLayer()
 
   // Same architecture as testConvPoolConv but on GPU
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 10, 10};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;

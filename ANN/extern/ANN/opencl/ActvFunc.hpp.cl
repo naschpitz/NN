@@ -1,1 +1,0 @@
-../../../opencl/ActvFunc.hpp.cl

@@ -8,10 +8,11 @@
 #include "CNN_Normalization.hpp"
 #include "CNN_Residual.hpp"
 
-#include <ANN_Core.hpp>
+#include <_Core.hpp>
 #include <stack>
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 
@@ -27,8 +28,8 @@ CoreCPUWorker<T>::CoreCPUWorker(const CoreConfig<T>& config, const LayersConfig&
   this->cnnOutputShape = this->layersConfig.validateShapes(config.inputShape);
   this->flattenSize = this->cnnOutputShape.size();
 
-  // Build and create ANN sub-core
-  ANN::CoreConfig<T> annConfig = buildANNConfig(config, this->flattenSize);
+  // Build and create  sub-core
+  ANN::CoreConfig<T> annConfig = buildConfig(config, this->flattenSize);
   this->annCore = ANN::Core<T>::makeCore(annConfig);
 
   // Allocate CNN gradient accumulators if training
@@ -68,31 +69,31 @@ CoreCPUWorker<T>::CoreCPUWorker(const CoreConfig<T>& config, const LayersConfig&
 //===================================================================================================================//
 
 template <typename T>
-ANN::CoreConfig<T> CoreCPUWorker<T>::buildANNConfig(const CoreConfig<T>& cnnConfig, ulong flattenSize)
+ANN::CoreConfig<T> CoreCPUWorker<T>::buildConfig(const CoreConfig<T>& cnnConfig, ulong flattenSize)
 {
   ANN::CoreConfig<T> annConfig;
 
-  // Map CNN mode to ANN mode
+  // Map CNN mode to  mode
   switch (cnnConfig.modeType) {
-  case ModeType::TRAIN:
-    annConfig.modeType = ANN::ModeType::TRAIN;
+  case Common::ModeType::TRAIN:
+    annConfig.modeType = Common::ModeType::TRAIN;
     break;
-  case ModeType::TEST:
-    annConfig.modeType = ANN::ModeType::TEST;
+  case Common::ModeType::TEST:
+    annConfig.modeType = Common::ModeType::TEST;
     break;
   default:
-    annConfig.modeType = ANN::ModeType::PREDICT;
+    annConfig.modeType = Common::ModeType::PREDICT;
     break;
   }
 
-  annConfig.deviceType = ANN::DeviceType::CPU;
+  annConfig.deviceType = Common::DeviceType::CPU;
 
-  // Build ANN layers config: first layer = flatten size (input), rest from denseLayersConfig
+  // Build  layers config: first layer = flatten size (input), rest from denseLayersConfig
   ANN::LayersConfig annLayers;
 
   ANN::Layer inputLayer;
   inputLayer.numNeurons = flattenSize;
-  inputLayer.actvFuncType = ANN::ActvFuncType::RELU; // Placeholder (ANN input layer activation unused)
+  inputLayer.actvFuncType = ANN::ActvFuncType::RELU; // Placeholder ( input layer activation unused)
   annLayers.push_back(inputLayer);
 
   for (const auto& denseConfig : cnnConfig.layersConfig.denseLayers) {
@@ -107,18 +108,18 @@ ANN::CoreConfig<T> CoreCPUWorker<T>::buildANNConfig(const CoreConfig<T>& cnnConf
   annConfig.trainingConfig.numEpochs = cnnConfig.trainingConfig.numEpochs;
   annConfig.trainingConfig.learningRate = cnnConfig.trainingConfig.learningRate;
   annConfig.trainingConfig.dropoutRate = cnnConfig.trainingConfig.dropoutRate;
-  annConfig.trainingConfig.optimizer.type = static_cast<ANN::OptimizerType>(cnnConfig.trainingConfig.optimizer.type);
+  annConfig.trainingConfig.optimizer.type = cnnConfig.trainingConfig.optimizer.type;
   annConfig.trainingConfig.optimizer.beta1 = cnnConfig.trainingConfig.optimizer.beta1;
   annConfig.trainingConfig.optimizer.beta2 = cnnConfig.trainingConfig.optimizer.beta2;
   annConfig.trainingConfig.optimizer.epsilon = cnnConfig.trainingConfig.optimizer.epsilon;
   annConfig.numThreads = 1; // CNN manages its own threading
 
-  annConfig.costFunctionConfig.type = static_cast<ANN::CostFunctionType>(cnnConfig.costFunctionConfig.type);
+  annConfig.costFunctionConfig.type = cnnConfig.costFunctionConfig.type;
   annConfig.costFunctionConfig.weights = cnnConfig.costFunctionConfig.weights;
 
   annConfig.parameters = cnnConfig.parameters.denseParams;
 
-  annConfig.logLevel = static_cast<ANN::LogLevel>(cnnConfig.logLevel);
+  annConfig.logLevel = cnnConfig.logLevel;
   annConfig.progressReports = 0;
 
   return annConfig;
@@ -133,7 +134,7 @@ PredictResult<T> CoreCPUWorker<T>::predict(const Input<T>& input)
   Tensor1D<T> flatInput = Flatten<T>::propagate(cnnOut);
 
   ANN::Input<T> annInput(flatInput.begin(), flatInput.end());
-  ANN::PredictResult<T> annResult = this->annCore->predict(annInput);
+  Common::PredictResult<T> annResult = this->annCore->predict(annInput);
 
   PredictResult<T> result;
   result.output = Output<T>(annResult.output.begin(), annResult.output.end());
@@ -152,7 +153,7 @@ T CoreCPUWorker<T>::processSample(const Input<T>& input, const Output<T>& expect
   Tensor3D<T> cnnOut = this->propagateCNN(input, true, &intermediates, &poolMaxIndices);
   Tensor1D<T> flatInput = Flatten<T>::propagate(cnnOut);
 
-  // ANN propagate (training path: only the activations are needed for loss)
+  //  propagate (training path: only the activations are needed for loss)
   ANN::Input<T> annInput(flatInput.begin(), flatInput.end());
   ANN::Output<T> annOutput = this->annCore->predict(annInput).output;
   Output<T> predicted(annOutput.begin(), annOutput.end());
@@ -160,7 +161,7 @@ T CoreCPUWorker<T>::processSample(const Input<T>& input, const Output<T>& expect
   // Loss
   T sampleLoss = this->calculateLoss(predicted, expected);
 
-  // ANN backpropagate + accumulate
+  //  backpropagate + accumulate
   ANN::Output<T> annExpected(expected.begin(), expected.end());
   ANN::Tensor1D<T> dFlatInput = this->annCore->backpropagate(annExpected);
   this->annCore->accumulate();

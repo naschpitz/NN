@@ -1,8 +1,8 @@
 #include "test_helpers.hpp"
-#include "CNN_Device.hpp"
-#include "CNN_Mode.hpp"
+#include "Common/Common_Device.hpp"
+#include "Common/Common_Mode.hpp"
 #include "CNN_PoolType.hpp"
-#include "CNN_CostFunctionConfig.hpp"
+#include "Common/Common_CostFunctionConfig.hpp"
 #include "CNN_Normalization.hpp"
 
 static void testInstanceNormOutputShape()
@@ -35,7 +35,7 @@ static void testInstanceNormValidateShapes()
 {
   std::cout << "--- testInstanceNormValidateShapes ---" << std::endl;
 
-  CNN::LayersConfig lc;
+  ANN::LayersConfig lc;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -210,7 +210,7 @@ static void testBatchNormValidateShapes()
 {
   std::cout << "--- testBatchNormValidateShapes ---" << std::endl;
 
-  CNN::LayersConfig lc;
+  ANN::LayersConfig lc;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -263,14 +263,14 @@ static void testDeviceNameToType()
 {
   std::cout << "--- testDeviceNameToType ---" << std::endl;
 
-  CHECK(CNN::Device::nameToType("cpu") == CNN::DeviceType::CPU, "cpu → CPU");
-  CHECK(CNN::Device::nameToType("gpu") == CNN::DeviceType::GPU, "gpu → GPU");
+  CHECK(Common::Device::nameToType("cpu") == Common::DeviceType::CPU, "cpu → CPU");
+  CHECK(Common::Device::nameToType("gpu") == Common::DeviceType::GPU, "gpu → GPU");
 
-  CHECK_THROWS(CNN::Device::nameToType("nonexistent"), "nonexistent throws");
-  CHECK_THROWS(CNN::Device::nameToType(""), "empty throws");
+  CHECK_THROWS(Common::Device::nameToType("nonexistent"), "nonexistent throws");
+  CHECK_THROWS(Common::Device::nameToType(""), "empty throws");
 
-  CHECK(CNN::Device::typeToName(CNN::DeviceType::CPU) == "cpu", "CPU → cpu");
-  CHECK(CNN::Device::typeToName(CNN::DeviceType::GPU) == "gpu", "GPU → gpu");
+  CHECK(Common::Device::typeToName(Common::DeviceType::CPU) == "cpu", "CPU → cpu");
+  CHECK(Common::Device::typeToName(Common::DeviceType::GPU) == "gpu", "GPU → gpu");
 }
 
 //===================================================================================================================//
@@ -279,16 +279,16 @@ static void testModeNameToType()
 {
   std::cout << "--- testModeNameToType ---" << std::endl;
 
-  CHECK(CNN::Mode::nameToType("train") == CNN::ModeType::TRAIN, "train → TRAIN");
-  CHECK(CNN::Mode::nameToType("predict") == CNN::ModeType::PREDICT, "predict → PREDICT");
-  CHECK(CNN::Mode::nameToType("test") == CNN::ModeType::TEST, "test → TEST");
+  CHECK(Common::Mode::nameToType("train") == Common::ModeType::TRAIN, "train → TRAIN");
+  CHECK(Common::Mode::nameToType("predict") == Common::ModeType::PREDICT, "predict → PREDICT");
+  CHECK(Common::Mode::nameToType("test") == Common::ModeType::TEST, "test → TEST");
 
-  CHECK_THROWS(CNN::Mode::nameToType("nonexistent"), "nonexistent throws");
-  CHECK_THROWS(CNN::Mode::nameToType(""), "empty throws");
+  CHECK_THROWS(Common::Mode::nameToType("nonexistent"), "nonexistent throws");
+  CHECK_THROWS(Common::Mode::nameToType(""), "empty throws");
 
-  CHECK(CNN::Mode::typeToName(CNN::ModeType::TRAIN) == "train", "TRAIN → train");
-  CHECK(CNN::Mode::typeToName(CNN::ModeType::PREDICT) == "predict", "PREDICT → predict");
-  CHECK(CNN::Mode::typeToName(CNN::ModeType::TEST) == "test", "TEST → test");
+  CHECK(Common::Mode::typeToName(Common::ModeType::TRAIN) == "train", "TRAIN → train");
+  CHECK(Common::Mode::typeToName(Common::ModeType::PREDICT) == "predict", "PREDICT → predict");
+  CHECK(Common::Mode::typeToName(Common::ModeType::TEST) == "test", "TEST → test");
 }
 
 //===================================================================================================================//
@@ -313,25 +313,25 @@ static void testCostFunctionNameToType()
 {
   std::cout << "--- testCostFunctionNameToType ---" << std::endl;
 
-  CHECK(CNN::CostFunction::nameToType("squaredDifference") == CNN::CostFunctionType::SQUARED_DIFFERENCE,
+  CHECK(Common::CostFunction::nameToType("squaredDifference") == Common::CostFunctionType::SQUARED_DIFFERENCE,
         "squaredDifference → SQUARED_DIFFERENCE");
-  CHECK(CNN::CostFunction::nameToType("weightedSquaredDifference") ==
-          CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE,
+  CHECK(Common::CostFunction::nameToType("weightedSquaredDifference") ==
+          Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE,
         "weightedSquaredDifference → WEIGHTED_SQUARED_DIFFERENCE");
 
-  CHECK_THROWS(CNN::CostFunction::nameToType("nonexistent"), "nonexistent throws");
-  CHECK_THROWS(CNN::CostFunction::nameToType(""), "empty throws");
+  CHECK_THROWS(Common::CostFunction::nameToType("nonexistent"), "nonexistent throws");
+  CHECK_THROWS(Common::CostFunction::nameToType(""), "empty throws");
 
-  CHECK(CNN::CostFunction::typeToName(CNN::CostFunctionType::SQUARED_DIFFERENCE) == "squaredDifference",
+  CHECK(Common::CostFunction::typeToName(Common::CostFunctionType::SQUARED_DIFFERENCE) == "squaredDifference",
         "SQUARED_DIFFERENCE → squaredDifference");
-  CHECK(CNN::CostFunction::typeToName(CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE) ==
+  CHECK(Common::CostFunction::typeToName(Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE) ==
           "weightedSquaredDifference",
         "WEIGHTED_SQUARED_DIFFERENCE → weightedSquaredDifference");
 
   // Cross-entropy
-  CHECK(CNN::CostFunction::nameToType("crossEntropy") == CNN::CostFunctionType::CROSS_ENTROPY,
+  CHECK(Common::CostFunction::nameToType("crossEntropy") == Common::CostFunctionType::CROSS_ENTROPY,
         "crossEntropy → CROSS_ENTROPY");
-  CHECK(CNN::CostFunction::typeToName(CNN::CostFunctionType::CROSS_ENTROPY) == "crossEntropy",
+  CHECK(Common::CostFunction::typeToName(Common::CostFunctionType::CROSS_ENTROPY) == "crossEntropy",
         "CROSS_ENTROPY → crossEntropy");
 }
 
@@ -341,7 +341,7 @@ static void testValidateShapes()
 {
   std::cout << "--- testValidateShapes ---" << std::endl;
 
-  CNN::LayersConfig lc;
+  ANN::LayersConfig lc;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -366,7 +366,7 @@ static void testValidateShapes()
   CHECK(outShape.c == 4 && outShape.h == 3 && outShape.w == 3, "validateShapes output");
 
   // Test with invalid config (filter bigger than input)
-  CNN::LayersConfig lc2;
+  ANN::LayersConfig lc2;
   CNN::CNNLayerConfig badConv;
   badConv.type = CNN::LayerType::CONV;
   badConv.config = CNN::ConvLayerConfig{1, 10, 10, 1, 1, CNN::SlidingStrategyType::VALID};

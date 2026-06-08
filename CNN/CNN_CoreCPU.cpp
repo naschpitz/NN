@@ -7,9 +7,9 @@
 #include "CNN_GlobalDualPool.hpp"
 #include "CNN_Normalization.hpp"
 #include "CNN_Residual.hpp"
-#include "CNN_TrainingMonitor.hpp"
+#include "Common/Common_TrainingMonitor.hpp"
 
-#include <ANN_Core.hpp>
+#include <_Core.hpp>
 
 #include <stack>
 
@@ -28,6 +28,7 @@
 #include <stdexcept>
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 
@@ -52,7 +53,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& config) : Core<T>(config)
   }
 
   // Create the step worker (used for predict and single-threaded paths)
-  bool allocateTraining = (this->modeType == ModeType::TRAIN);
+  bool allocateTraining = (this->modeType == Common::ModeType::TRAIN);
   this->stepWorker = std::make_unique<CoreCPUWorker<T>>(config, this->layersConfig, this->parameters, allocateTraining);
 
   // Initialize global CNN gradient accumulators if training
@@ -85,7 +86,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& config) : Core<T>(config)
       this->accumDResidualBiases[i].resize(this->parameters.residualParams[i].biases.size(), static_cast<T>(0));
     }
 
-    if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
+    if (this->trainingConfig.optimizer.type == Common::OptimizerType::ADAM) {
       this->allocateAdamState();
     }
   }
@@ -332,7 +333,7 @@ void CoreCPU<T>::updateCNNParameters(ulong numSamples)
   T lr = static_cast<T>(this->trainingConfig.learningRate);
   T n = static_cast<T>(numSamples);
 
-  if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
+  if (this->trainingConfig.optimizer.type == Common::OptimizerType::ADAM) {
     const auto& opt = this->trainingConfig.optimizer;
     T beta1 = opt.beta1;
     T beta2 = opt.beta2;
@@ -464,11 +465,11 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   ulong batchSize = this->trainingConfig.batchSize;
   this->trainingStart(numSamples);
 
-  if (this->logLevel >= CNN::LogLevel::INFO)
+  if (this->logLevel >= Common::LogLevel::INFO)
     qDebug() << "CNN Training:" << numEpochs << "epochs," << numSamples << "samples," << numThreads
              << "threads, batch size" << batchSize;
 
-  // Create per-thread CoreCPUWorkers (each owns its own ANN core)
+  // Create per-thread CoreCPUWorkers (each owns its own  core)
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
 
   for (int i = 0; i < numThreads; i++) {
@@ -514,11 +515,11 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         workerSampleCounts[i] = currentBatchSize / static_cast<ulong>(numThreads) +
                                 (static_cast<ulong>(i) < currentBatchSize % static_cast<ulong>(numThreads) ? 1 : 0);
 
-      // Sync worker ANN cores with main parameters and reset all accumulators
-      ANN::Parameters<T> mainANNParams = this->stepWorker->getANNCore()->getParameters();
+      // Sync worker  cores with main parameters and reset all accumulators
+      ANN::Parameters<T> mainParams = this->stepWorker->getCore()->getParameters();
 
       for (int i = 0; i < numThreads; i++) {
-        workers[i]->getANNCore()->setParameters(mainANNParams);
+        workers[i]->getCore()->setParameters(mainParams);
         workers[i]->resetAccumulators();
         workers[i]->resetAccumLoss();
       }
@@ -558,14 +559,14 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         }
       });
 
-      // Merge: update each worker's ANN, then weighted-average their parameters
+      // Merge: update each worker's , then weighted-average their parameters
       for (int i = 0; i < numThreads; i++)
 
         if (workerSampleCounts[i] > 0)
-          workers[i]->getANNCore()->update(workerSampleCounts[i]);
+          workers[i]->getCore()->update(workerSampleCounts[i]);
 
       ANN::Parameters<T> mergedParams;
-      const ANN::Parameters<T>& ref = workers[0]->getANNCore()->getParameters();
+      const ANN::Parameters<T>& ref = workers[0]->getCore()->getParameters();
       mergedParams.weights.resize(ref.weights.size());
 
       for (ulong l = 0; l < ref.weights.size(); l++) {
@@ -584,7 +585,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         if (workerSampleCounts[i] == 0)
           continue;
         T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
-        const ANN::Parameters<T>& wp = workers[i]->getANNCore()->getParameters();
+        const ANN::Parameters<T>& wp = workers[i]->getCore()->getParameters();
 
         for (ulong l = 0; l < wp.weights.size(); l++)
 
@@ -599,7 +600,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
             mergedParams.biases[l][j] += wp.biases[l][j] * w;
       }
 
-      this->stepWorker->getANNCore()->setParameters(mergedParams);
+      this->stepWorker->getCore()->setParameters(mergedParams);
 
       // Merge worker CNN accumulators and update CNN parameters
       this->resetGlobalCNNAccumulators();
@@ -613,13 +614,13 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       this->updateNormRunningStats(currentBatchSize);
     }
 
-    // Sync ANN parameters for checkpoint saves
-    this->parameters.denseParams = this->stepWorker->getANNCore()->getParameters();
+    // Sync  parameters for checkpoint saves
+    this->parameters.denseParams = this->stepWorker->getCore()->getParameters();
 
     T avgLoss = epochLoss / static_cast<T>(numSamples);
     this->trainingMetadata.finalLoss = avgLoss;
 
-    if (this->logLevel >= CNN::LogLevel::INFO)
+    if (this->logLevel >= Common::LogLevel::INFO)
       qDebug() << "Epoch " << (e + 1) << "/" << numEpochs << " - Loss: " << avgLoss;
 
     // Check training monitor
@@ -678,7 +679,7 @@ TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
   if (numThreads <= 0)
     numThreads = QThreadPool::globalInstance()->maxThreadCount();
 
-  if (this->logLevel >= CNN::LogLevel::INFO)
+  if (this->logLevel >= Common::LogLevel::INFO)
     qDebug() << "CNN Test:" << numSamples << "samples," << numThreads << "threads";
 
   // Create per-thread workers (predict-only, no training buffers)
@@ -785,11 +786,11 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
 
   this->trainingStart(numSamples);
 
-  if (this->logLevel >= CNN::LogLevel::INFO)
+  if (this->logLevel >= Common::LogLevel::INFO)
     qDebug() << "CNN Training (BatchNorm):" << numEpochs << "epochs," << numSamples << "samples," << numThreads
              << "threads, batch size" << batchSize;
 
-  // Create per-thread ANN workers (each owns its own ANN core for thread safety)
+  // Create per-thread  workers (each owns its own  core for thread safety)
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
 
   for (int i = 0; i < numThreads; i++) {
@@ -968,21 +969,21 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
         }
       }
 
-      // ---- ANN FORWARD + LOSS (parallel per sample) ----
-      // Sync worker ANN cores with main parameters
-      ANN::Parameters<T> mainANNParams = this->stepWorker->getANNCore()->getParameters();
+      // ----  FORWARD + LOSS (parallel per sample) ----
+      // Sync worker  cores with main parameters
+      ANN::Parameters<T> mainParams = this->stepWorker->getCore()->getParameters();
 
       for (int i = 0; i < numThreads; i++) {
-        workers[i]->getANNCore()->setParameters(mainANNParams);
-        workers[i]->getANNCore()->resetAccumulators();
+        workers[i]->getCore()->setParameters(mainParams);
+        workers[i]->getCore()->resetAccumulators();
       }
 
-      // Per-sample ANN outputs and losses
+      // Per-sample  outputs and losses
       std::vector<Output<T>> predictions(N);
       std::vector<T> sampleLosses(N);
       std::vector<Tensor1D<T>> dFlatInputs(N);
 
-      // Distribute samples across workers for ANN forward + backward
+      // Distribute samples across workers for  forward + backward
       std::vector<ulong> workerSampleCounts(numThreads);
 
       for (int i = 0; i < numThreads; i++)
@@ -1007,20 +1008,20 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
           // Flatten CNN output
           Tensor1D<T> flatInput = Flatten<T>::propagate(currentActvs[s]);
 
-          // ANN forward
+          //  forward
           ANN::Input<T> annInput(flatInput.begin(), flatInput.end());
-          ANN::Output<T> annOutput = worker.getANNCore()->predict(annInput).output;
+          ANN::Output<T> annOutput = worker.getCore()->predict(annInput).output;
           predictions[s] = Output<T>(annOutput.begin(), annOutput.end());
 
           // Loss
           sampleLosses[s] = worker.calculateLoss(predictions[s], batchSamples[s].output);
 
-          // ANN backward + accumulate
+          //  backward + accumulate
           ANN::Output<T> annExpected(batchSamples[s].output.begin(), batchSamples[s].output.end());
-          ANN::Tensor1D<T> dFlatANN = worker.getANNCore()->backpropagate(annExpected);
-          worker.getANNCore()->accumulate();
+          ANN::Tensor1D<T> dFlat = worker.getCore()->backpropagate(annExpected);
+          worker.getCore()->accumulate();
 
-          dFlatInputs[s] = Tensor1D<T>(dFlatANN.begin(), dFlatANN.end());
+          dFlatInputs[s] = Tensor1D<T>(dFlat.begin(), dFlat.end());
 
           ulong completed = ++completedSamples;
 
@@ -1048,7 +1049,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
       epochLoss += batchLoss;
 
       // ---- CNN BACKWARD PASS (layer by layer, reverse) ----
-      // Unflatten ANN input gradients to CNN output gradients
+      // Unflatten  input gradients to CNN output gradients
       std::vector<Tensor3D<T>> dCurrents(N);
 
       for (ulong n = 0; n < N; n++) {
@@ -1239,14 +1240,14 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
       }
 
       // ---- MERGE + UPDATE ----
-      // Merge ANN parameters across workers (weighted average)
+      // Merge  parameters across workers (weighted average)
       for (int i = 0; i < numThreads; i++) {
         if (workerSampleCounts[i] > 0)
-          workers[i]->getANNCore()->update(workerSampleCounts[i]);
+          workers[i]->getCore()->update(workerSampleCounts[i]);
       }
 
       ANN::Parameters<T> mergedParams;
-      const ANN::Parameters<T>& ref = workers[0]->getANNCore()->getParameters();
+      const ANN::Parameters<T>& ref = workers[0]->getCore()->getParameters();
       mergedParams.weights.resize(ref.weights.size());
 
       for (ulong l = 0; l < ref.weights.size(); l++) {
@@ -1265,7 +1266,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
         if (workerSampleCounts[i] == 0)
           continue;
         T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
-        const ANN::Parameters<T>& wp = workers[i]->getANNCore()->getParameters();
+        const ANN::Parameters<T>& wp = workers[i]->getCore()->getParameters();
 
         for (ulong l = 0; l < wp.weights.size(); l++)
 
@@ -1280,7 +1281,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
             mergedParams.biases[l][j] += wp.biases[l][j] * w;
       }
 
-      this->stepWorker->getANNCore()->setParameters(mergedParams);
+      this->stepWorker->getCore()->setParameters(mergedParams);
 
       // Update CNN parameters using accumulated gradients
       this->resetGlobalCNNAccumulators();
@@ -1313,13 +1314,13 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
       // Note: BatchNorm running stats are updated during propagate() directly
     }
 
-    // Sync ANN parameters for checkpoint saves
-    this->parameters.denseParams = this->stepWorker->getANNCore()->getParameters();
+    // Sync  parameters for checkpoint saves
+    this->parameters.denseParams = this->stepWorker->getCore()->getParameters();
 
     T avgLoss = epochLoss / static_cast<T>(numSamples);
     this->trainingMetadata.finalLoss = avgLoss;
 
-    if (this->logLevel >= CNN::LogLevel::INFO)
+    if (this->logLevel >= Common::LogLevel::INFO)
       qDebug() << "Epoch " << (e + 1) << "/" << numEpochs << " - Loss: " << avgLoss;
 
     // Check training monitor

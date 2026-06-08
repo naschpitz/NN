@@ -5,7 +5,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   struct LossStagnationConfig {
       bool enabled = true;

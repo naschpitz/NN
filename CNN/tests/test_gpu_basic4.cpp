@@ -5,10 +5,10 @@ static void testGPUMultipleOutputNeurons()
   std::cout << "--- testGPUMultipleOutputNeurons ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 8, 8};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -63,10 +63,10 @@ static void testGPUCostFunctionConfigGetter()
   std::cout << "--- testGPUCostFunctionConfigGetter ---" << std::endl;
 
   CNN::CoreConfig<float> configDefault;
-  configDefault.modeType = CNN::ModeType::PREDICT;
-  configDefault.deviceType = CNN::DeviceType::GPU;
+  configDefault.modeType = Common::ModeType::PREDICT;
+  configDefault.deviceType = Common::DeviceType::GPU;
   configDefault.inputShape = {1, 5, 5};
-  configDefault.logLevel = CNN::LogLevel::ERROR;
+  configDefault.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -83,17 +83,17 @@ static void testGPUCostFunctionConfigGetter()
 
   auto coreDefault = CNN::Core<float>::makeCore(configDefault);
   const auto& cfcDefault = coreDefault->getCostFunctionConfig();
-  CHECK(cfcDefault.type == CNN::CostFunctionType::SQUARED_DIFFERENCE, "GPU default type is squaredDifference");
+  CHECK(cfcDefault.type == Common::CostFunctionType::SQUARED_DIFFERENCE, "GPU default type is squaredDifference");
   CHECK(cfcDefault.weights.empty(), "GPU default weights is empty");
 
   // Weighted config
   CNN::CoreConfig<float> configWeighted = configDefault;
-  configWeighted.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  configWeighted.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
   configWeighted.costFunctionConfig.weights = {5.0f, 0.2f};
 
   auto coreWeighted = CNN::Core<float>::makeCore(configWeighted);
   const auto& cfcWeighted = coreWeighted->getCostFunctionConfig();
-  CHECK(cfcWeighted.type == CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "GPU weighted type");
+  CHECK(cfcWeighted.type == Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "GPU weighted type");
   CHECK(cfcWeighted.weights.size() == 2, "GPU weighted weights size = 2");
   CHECK_NEAR(cfcWeighted.weights[0], 5.0f, 1e-5f, "GPU weight[0] = 5.0");
   CHECK_NEAR(cfcWeighted.weights[1], 0.2f, 1e-5f, "GPU weight[1] = 0.2");
@@ -106,10 +106,10 @@ static void testGPUWeightedLossTraining()
   std::cout << "--- testGPUWeightedLossTraining ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -134,7 +134,7 @@ static void testGPUWeightedLossTraining()
   initConv.biases.assign(1, 0.0f);
   config.parameters.convParams = {initConv};
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  config.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
   config.costFunctionConfig.weights = {5.0f, 1.0f};
   config.trainingConfig.numEpochs = 100;
   config.trainingConfig.learningRate = 0.5f;
@@ -149,13 +149,13 @@ static void testGPUWeightedLossTraining()
   auto core = CNN::Core<float>::makeCore(config);
   core->train(samples.size(), CNN::makeSampleProvider(samples));
 
-  CNN::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
   CHECK(result.numSamples == 2, "GPU weighted CNN: tested 2 samples");
   CHECK(result.averageLoss >= 0.0f, "GPU weighted CNN: loss non-negative");
   CHECK(std::isfinite(result.averageLoss), "GPU weighted CNN: loss is finite");
 
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "GPU weighted CNN: type preserved");
+  CHECK(cfc.type == Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "GPU weighted CNN: type preserved");
   CHECK(cfc.weights.size() == 2, "GPU weighted CNN: weights preserved");
 
   std::cout << "  GPU weighted avgLoss=" << result.averageLoss << std::endl;

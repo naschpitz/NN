@@ -5,7 +5,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   // Predict metadata (captured at runtime when running predict)
   template <typename T>

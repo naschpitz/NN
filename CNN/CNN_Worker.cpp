@@ -8,6 +8,7 @@
 #include <variant>
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 
@@ -270,7 +271,7 @@ T Worker<T>::calculateLoss(const Output<T>& predicted, const Output<T>& expected
   T loss = static_cast<T>(0);
 
   switch (this->costFunctionConfig.type) {
-  case CostFunctionType::CROSS_ENTROPY: {
+  case Common::CostFunctionType::CROSS_ENTROPY: {
     // Cross-entropy: L = -sum(w_i * y_i * log(a_i))
     const T epsilon = static_cast<T>(1e-7);
 
@@ -283,8 +284,8 @@ T Worker<T>::calculateLoss(const Output<T>& predicted, const Output<T>& expected
     break;
   }
 
-  case CostFunctionType::SQUARED_DIFFERENCE:
-  case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+  case Common::CostFunctionType::SQUARED_DIFFERENCE:
+  case Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
   default: {
     // Squared difference: L = sum(w_i * (a_i - y_i)^2) / N
     for (ulong i = 0; i < expected.size(); i++) {

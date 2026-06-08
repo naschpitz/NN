@@ -1,12 +1,13 @@
 #ifndef LAYERSCONFIG_HPP
 #define LAYERSCONFIG_HPP
 
-#include "ANN_ActvFunc.hpp"
+#include "_ActvFunc.hpp"
 
 #include <vector>
 
 namespace ANN
 {
+  using namespace Common;
   struct Layer {
       ulong numNeurons;
       ActvFuncType actvFuncType;

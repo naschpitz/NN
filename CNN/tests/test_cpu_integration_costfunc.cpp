@@ -72,10 +72,10 @@ static void testCrossEntropyLossDecreases()
   std::cout << "--- testCrossEntropyLossDecreases (CNN) ---" << std::endl;
 
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   // 2 filters with varied init to break symmetry
   CNN::CNNLayerConfig convLayer;
@@ -106,7 +106,7 @@ static void testCrossEntropyLossDecreases()
   initConv.biases.assign(2, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 50;
   config.trainingConfig.learningRate = 0.1f;
   config.progressReports = 0;
@@ -121,14 +121,14 @@ static void testCrossEntropyLossDecreases()
   // Train 50 epochs, measure loss
   auto core = CNN::Core<double>::makeCore(config);
   core->train(samples.size(), CNN::makeSampleProvider(samples));
-  CNN::TestResult<double> result1 = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<double> result1 = core->test(samples.size(), CNN::makeSampleProvider(samples));
 
   // Train 200 more epochs from same params
   config.trainingConfig.numEpochs = 200;
   config.parameters = core->getParameters();
   auto core2 = CNN::Core<double>::makeCore(config);
   core2->train(samples.size(), CNN::makeSampleProvider(samples));
-  CNN::TestResult<double> result2 = core2->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<double> result2 = core2->test(samples.size(), CNN::makeSampleProvider(samples));
 
   std::cout << "  loss after 50=" << result1.averageLoss << "  after 250=" << result2.averageLoss << std::endl;
   CHECK(result2.averageLoss < result1.averageLoss, "CNN CE loss decreases with more training");
@@ -142,10 +142,10 @@ static void testCrossEntropyTraining()
   std::cout << "--- testCrossEntropyTraining (CNN) ---" << std::endl;
 
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   // Use 4 filters with varied init so flatten features are diverse enough for 3-class softmax
   CNN::CNNLayerConfig convLayer;
@@ -179,7 +179,7 @@ static void testCrossEntropyTraining()
   initConv.biases.assign(4, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 300;
   config.trainingConfig.learningRate = 0.003f;
   config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
@@ -202,9 +202,9 @@ static void testCrossEntropyTraining()
   // down from initial. Asserting an absolute threshold is fragile because it
   // depends on architecture/init/optimizer details that don't affect
   // correctness. Strict decrease is the real correctness signal.
-  CNN::TestResult<double> beforeResult = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<double> beforeResult = core->test(samples.size(), CNN::makeSampleProvider(samples));
   core->train(samples.size(), CNN::makeSampleProvider(samples));
-  CNN::TestResult<double> afterResult = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<double> afterResult = core->test(samples.size(), CNN::makeSampleProvider(samples));
 
   auto out0 = core->predict(samples[0].input).output;
   double sum0 = out0[0] + out0[1] + out0[2];
@@ -217,7 +217,7 @@ static void testCrossEntropyTraining()
   CHECK(afterResult.averageLoss < beforeResult.averageLoss, "CNN CE: training reduced loss");
   CHECK(std::fabs(sum0 - 1.0) < 1e-5, "CNN CE: softmax outputs sum to 1");
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == CNN::CostFunctionType::CROSS_ENTROPY, "CNN CE: type preserved");
+  CHECK(cfc.type == Common::CostFunctionType::CROSS_ENTROPY, "CNN CE: type preserved");
 }
 
 //===================================================================================================================//
@@ -228,10 +228,10 @@ static void testWeightedCrossEntropyTraining()
 
   // Cross-entropy with per-class weights
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -257,7 +257,7 @@ static void testWeightedCrossEntropyTraining()
   initConv.biases.assign(1, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {5.0, 1.0};
   config.trainingConfig.numEpochs = 100;
   config.trainingConfig.learningRate = 0.5f;
@@ -272,13 +272,13 @@ static void testWeightedCrossEntropyTraining()
   auto core = CNN::Core<double>::makeCore(config);
   core->train(samples.size(), CNN::makeSampleProvider(samples));
 
-  CNN::TestResult<double> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<double> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
 
   CHECK(result.averageLoss >= 0.0, "CNN weighted CE: loss non-negative");
   CHECK(std::isfinite(result.averageLoss), "CNN weighted CE: loss is finite");
 
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == CNN::CostFunctionType::CROSS_ENTROPY, "CNN weighted CE: type preserved");
+  CHECK(cfc.type == Common::CostFunctionType::CROSS_ENTROPY, "CNN weighted CE: type preserved");
   CHECK(cfc.weights.size() == 2, "CNN weighted CE: weights preserved");
   CHECK_NEAR(cfc.weights[0], 5.0, 1e-10, "CNN weighted CE: weight[0] = 5.0");
 

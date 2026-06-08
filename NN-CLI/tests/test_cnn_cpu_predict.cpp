@@ -8,14 +8,14 @@
 
 #include <json.hpp>
 
-// CNN/ANN library headers for direct instantiation tests
+// CNN/ library headers for direct instantiation tests
 #include <CNN_Core.hpp>
 #include <CNN_CoreConfig.hpp>
 #include <CNN_CoreGPU.hpp>
 #include <CNN_CoreGPUWorker.hpp>
 #include <CNN_GPUBufferManager.hpp>
 #include <CNN_Sample.hpp>
-#include <ANN_CoreGPUWorker.hpp>
+#include <_CoreGPUWorker.hpp>
 
 static void testCNNMultiInputPredictDiversity()
 {

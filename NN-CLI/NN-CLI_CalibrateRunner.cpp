@@ -3,7 +3,7 @@
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 
-#include <ANN_Utils.hpp>
+#include <_Utils.hpp>
 
 #include <json.hpp>
 
@@ -130,7 +130,7 @@ namespace
   //-- Template helpers (file-local) --//
   //===================================================================================================================//
 
-  // Unified streaming predict for ANN/CNN – the only difference is how
+  // Unified streaming predict for /CNN – the only difference is how
   // a decoded flat pixel vector is wrapped into the library's input type.
   // InputsT:       CNN::Inputs<float> or ANN::Inputs<float>
   // CoreT:         CNN::Core<float>   or ANN::Core<float>
@@ -358,7 +358,7 @@ int CalibrateRunner::run()
 
   if (this->logLevel > LogLevel::QUIET) {
     std::chrono::duration<double> elapsed = t1 - t0;
-    std::cout << "\nCalibration done in " << ANN::Utils<float>::formatDuration(elapsed.count()) << "\n";
+    std::cout << "\nCalibration done in " << ::Utils<float>::formatDuration(elapsed.count()) << "\n";
     std::cout << "Threshold written to: " << outputPath << "\n";
   }
 
@@ -605,7 +605,7 @@ std::vector<std::vector<float>> CalibrateRunner::runPredict(const std::vector<st
   ulong total = imagePaths.size();
   ulong progressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
 
-  // Pick target dimensions (CNN uses 3D inputShape; ANN's image path uses ioConfig).
+  // Pick target dimensions (CNN uses 3D inputShape; 's image path uses ioConfig).
   int targetC = (this->networkType == NetworkType::CNN) ? static_cast<int>(this->cnnCoreConfig.inputShape.c)
                                                         : static_cast<int>(this->ioConfig.inputC);
   int targetH = (this->networkType == NetworkType::CNN) ? static_cast<int>(this->cnnCoreConfig.inputShape.h)

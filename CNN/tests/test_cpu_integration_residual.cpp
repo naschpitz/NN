@@ -8,10 +8,10 @@ static void testResidualIdentityEndToEnd()
 
   // residual_start → Conv(4, same) → ReLU → Conv(4, same) → ReLU → residual_end → GAP → Flatten → Dense(1)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig resStart;
   resStart.type = CNN::LayerType::RESIDUAL_START;
@@ -83,10 +83,10 @@ static void testResidualParametersEndToEnd()
   // residual_start (1ch) → Conv(4, valid) → ReLU → residual_end (4ch, projection from 1→4)
   // → GAP → Flatten → Dense(1)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 8, 8};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig resStart;
   resStart.type = CNN::LayerType::RESIDUAL_START;
@@ -149,10 +149,10 @@ static void testResidualMixedIdentityProjectionEndToEnd()
 
   // stem(4,stride2) → res_identity(4→4) → pool → res_projection(4→8) → GAP → Flatten → Dense(1)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 16, 16};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig stem;
   stem.type = CNN::LayerType::CONV;

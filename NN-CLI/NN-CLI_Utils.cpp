@@ -6,15 +6,15 @@
 using namespace NN_CLI;
 
 //===================================================================================================================//
-// ANN and CNN use fundamentally different input representations:
-//   - ANN expects a flat std::vector<T> per sample (e.g. 784 values for a 28×28 image).
+//  and CNN use fundamentally different input representations:
+//   -  expects a flat std::vector<T> per sample (e.g. 784 values for a 28×28 image).
 //   - CNN expects a Tensor3D<T> per sample with explicit (C, H, W) shape (e.g. 1×28×28).
 // IDX files store raw flat byte arrays, so we need two loaders: one that keeps the data flat
-// for ANN, and one that reshapes it into the 3D tensor layout that CNN requires.
+// for , and one that reshapes it into the 3D tensor layout that CNN requires.
 //===================================================================================================================//
 
 template <typename T>
-ANN::Samples<T> Utils<T>::loadANNIDX(const std::string& dataPath, const std::string& labelsPath, ulong progressReports)
+ANN::Samples<T> Utils<T>::loadIDX(const std::string& dataPath, const std::string& labelsPath, ulong progressReports)
 {
   std::vector<std::vector<unsigned char>> data = loadIDXData(dataPath);
   std::vector<unsigned char> labels = loadIDXLabels(labelsPath);

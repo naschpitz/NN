@@ -1,7 +1,7 @@
 #ifndef CNN_WORKER_HPP
 #define CNN_WORKER_HPP
 
-#include "CNN_CostFunctionConfig.hpp"
+#include "Common/Common_CostFunctionConfig.hpp"
 #include "CNN_LayersConfig.hpp"
 #include "CNN_Parameters.hpp"
 #include "CNN_Types.hpp"
@@ -10,6 +10,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   template <typename T>
   class Worker
   {
@@ -28,7 +29,7 @@ namespace CNN
       T calculateLoss(const Output<T>& predicted, const Output<T>& expected) const;
 
     protected:
-      CostFunctionConfig<T> costFunctionConfig;
+      Common::CostFunctionConfig<T> costFunctionConfig;
   };
 }
 

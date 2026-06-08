@@ -8,10 +8,10 @@ static void testEndToEnd()
 
   // 1x5x5 → Conv(1 filter 3x3 valid) → 1x3x3 → ReLU → Flatten(9) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -62,7 +62,7 @@ static void testEndToEnd()
   CHECK(pred0[0] > pred1[0], "bright > dark after training");
 
   // Test method
-  CNN::TestResult<double> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<double> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
   CHECK(result.numSamples == 2, "test numSamples");
   CHECK(result.averageLoss >= 0.0, "test avgLoss non-negative");
   CHECK(result.numCorrect <= result.numSamples, "numCorrect <= numSamples");
@@ -78,10 +78,10 @@ static void testMultiConvStack()
 
   // 1x8x8 → Conv(2,3x3) → 2x6x6 → ReLU → Conv(1,3x3) → 1x4x4 → ReLU → Flatten(16) → Dense(1,sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 8, 8};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -150,10 +150,10 @@ static void testConvPoolConv()
 
   // 1x10x10 → Conv(2,3x3) → 2x8x8 → ReLU → MaxPool(2x2,s2) → 2x4x4 → Conv(1,3x3) → 1x2x2 → ReLU → Flatten(4) → Dense(1,sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 10, 10};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -227,10 +227,10 @@ static void testMultiChannelInput()
 
   // 3x6x6 → Conv(2,3x3) → 2x4x4 → ReLU → Flatten(32) → Dense(1,sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {3, 6, 6};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -286,10 +286,10 @@ static void testBatchPredict()
 
   // 1x5x5 → Conv(1 filter 3x3 valid) → ReLU → Flatten(9) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -341,7 +341,7 @@ static void testBatchPredict()
     return CNN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
   };
 
-  CNN::PredictResults<double> batchResults = core->predict(inputs.size(), sliceProvider);
+  Common::PredictResults<double> batchResults = core->predict(inputs.size(), sliceProvider);
 
   CHECK(batchResults.size() == 2, "batch predict returns 2 outputs");
   CHECK(batchResults[0].output.size() == 1, "output[0] size = 1");

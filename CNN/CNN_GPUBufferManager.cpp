@@ -9,6 +9,7 @@
 #include <iostream>
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 
@@ -200,7 +201,7 @@ void GPUBufferManager<T>::computeLayerOffsets()
 template <typename T>
 void GPUBufferManager<T>::loadSources(bool skipDefines)
 {
-  if (this->workerConfig.logLevel >= CNN::LogLevel::INFO)
+  if (this->workerConfig.logLevel >= Common::LogLevel::INFO)
     std::cout << "Loading CNN OpenCL kernels...\n";
 
   // Resolve .cl file paths relative to the source file's directory (via __FILE__)
@@ -222,7 +223,7 @@ void GPUBufferManager<T>::loadSources(bool skipDefines)
   this->core->addSourceFile(srcDir + "opencl/CNN_GlobalDualPool.cpp.cl");
   this->core->addSourceFile(srcDir + "opencl/CNN_Residual.cpp.cl");
 
-  if (this->workerConfig.logLevel >= CNN::LogLevel::INFO)
+  if (this->workerConfig.logLevel >= Common::LogLevel::INFO)
     std::cout << "CNN OpenCL kernels loaded.\n";
 }
 
@@ -410,7 +411,7 @@ void GPUBufferManager<T>::allocateBuffers(ulong batchSize)
   }
 
   // Adam optimizer buffers
-  if (this->workerConfig.trainingConfig.optimizer.type == OptimizerType::ADAM) {
+  if (this->workerConfig.trainingConfig.optimizer.type == Common::OptimizerType::ADAM) {
     T zero = static_cast<T>(0);
 
     if (this->totalFilterSize > 0) {
@@ -465,16 +466,16 @@ void GPUBufferManager<T>::allocateBuffers(ulong batchSize)
     }
   }
 
-  if (this->workerConfig.logLevel >= CNN::LogLevel::INFO)
+  if (this->workerConfig.logLevel >= Common::LogLevel::INFO)
     std::cout << "CNN GPU buffers allocated (batchSize=" << batchSize << ").\n";
 }
 
 //===================================================================================================================//
-//-- Build ANN GPU worker --//
+//-- Build  GPU worker --//
 //===================================================================================================================//
 
 template <typename T>
-void GPUBufferManager<T>::buildANNWorker()
+void GPUBufferManager<T>::buildWorker()
 {
   // Compute flatten size from cnn output shape
   const auto& cnnLayers = this->workerConfig.layersConfig.cnnLayers;
@@ -522,7 +523,7 @@ void GPUBufferManager<T>::buildANNWorker()
   this->cnnOutputShape = currentShape;
   this->flattenSize = currentShape.size();
 
-  // Build ANN layers: first layer = flatten size (input), rest from denseLayers
+  // Build  layers: first layer = flatten size (input), rest from denseLayers
   ANN::LayersConfig annLayers;
 
   ANN::Layer inputLayer;
@@ -538,29 +539,20 @@ void GPUBufferManager<T>::buildANNWorker()
   }
 
   // Training config
-  ANN::TrainingConfig<T> annTrainingConfig;
-  annTrainingConfig.numEpochs = this->workerConfig.trainingConfig.numEpochs;
-  annTrainingConfig.learningRate = this->workerConfig.trainingConfig.learningRate;
-  annTrainingConfig.dropoutRate = this->workerConfig.trainingConfig.dropoutRate;
-  annTrainingConfig.optimizer.type = static_cast<ANN::OptimizerType>(this->workerConfig.trainingConfig.optimizer.type);
-  annTrainingConfig.optimizer.beta1 = this->workerConfig.trainingConfig.optimizer.beta1;
-  annTrainingConfig.optimizer.beta2 = this->workerConfig.trainingConfig.optimizer.beta2;
-  annTrainingConfig.optimizer.epsilon = this->workerConfig.trainingConfig.optimizer.epsilon;
+  const auto& annTrainingConfig = this->workerConfig.trainingConfig;
 
   // Cost function config
-  ANN::CostFunctionConfig<T> annCostFunctionConfig;
-  annCostFunctionConfig.type = static_cast<ANN::CostFunctionType>(this->workerConfig.costFunctionConfig.type);
-  annCostFunctionConfig.weights = this->workerConfig.costFunctionConfig.weights;
+  const auto& annCostFunctionConfig = this->workerConfig.costFunctionConfig;
 
-  // Create ANN GPU worker on the shared core
-  this->annGPUWorker = std::make_unique<ANN::CoreGPUWorker<T>>(
+  // Create  GPU worker on the shared core
+  this->annGPUWorker = std::make_unique<::CoreGPUWorker<T>>(
     annLayers, annTrainingConfig, this->workerConfig.parameters.denseParams, annCostFunctionConfig, *this->core,
-    this->workerConfig.progressReports, static_cast<ANN::LogLevel>(this->workerConfig.logLevel));
+    this->workerConfig.progressReports, this->workerConfig.logLevel);
 
-  // Load ANN sources (skip defines — CNN_Defines.hpp.cl already defined TYPE, ActvFuncType, Layer)
+  // Load  sources (skip defines — CNN_Defines.hpp.cl already defined TYPE, ActvFuncType, Layer)
   this->annGPUWorker->bufferManager->loadSources(true);
 
-  // Allocate ANN GPU buffers
+  // Allocate  GPU buffers
   this->annGPUWorker->bufferManager->allocateBuffers();
 
   // Buffer for accumulating loss on GPU (avoids per-sample GPU→CPU readback)
@@ -672,7 +664,7 @@ void GPUBufferManager<T>::syncParametersToGPU()
     }
   }
 
-  // Sync ANN dense parameters to GPU
+  // Sync  dense parameters to GPU
   if (this->annGPUWorker) {
     this->annGPUWorker->bufferManager->syncParametersToGPU();
   }
@@ -735,7 +727,7 @@ void GPUBufferManager<T>::syncParametersFromGPU()
     }
   }
 
-  // Sync ANN dense layer parameters from GPU
+  // Sync  dense layer parameters from GPU
   this->annGPUWorker->bufferManager->syncParametersFromGPU();
   this->parameters.denseParams = this->annGPUWorker->getParameters();
 }
@@ -826,7 +818,7 @@ void GPUBufferManager<T>::setBNAccumulators(const std::vector<T>& accumGamma, co
 //===================================================================================================================//
 
 template <typename T>
-void GPUBufferManager<T>::readANNAccumulatedGradients(ANN::Tensor1D<T>& accumWeights, ANN::Tensor1D<T>& accumBiases)
+void GPUBufferManager<T>::readAccumulatedGradients(ANN::Tensor1D<T>& accumWeights, ANN::Tensor1D<T>& accumBiases)
 {
   this->annGPUWorker->bufferManager->readAccumulatedGradients(accumWeights, accumBiases);
 }
@@ -834,7 +826,7 @@ void GPUBufferManager<T>::readANNAccumulatedGradients(ANN::Tensor1D<T>& accumWei
 //===================================================================================================================//
 
 template <typename T>
-void GPUBufferManager<T>::setANNAccumulators(const ANN::Tensor1D<T>& accumWeights, const ANN::Tensor1D<T>& accumBiases)
+void GPUBufferManager<T>::setAccumulators(const ANN::Tensor1D<T>& accumWeights, const ANN::Tensor1D<T>& accumBiases)
 {
   this->annGPUWorker->bufferManager->setAccumulators(accumWeights, accumBiases);
 }

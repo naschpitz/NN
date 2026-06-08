@@ -5,10 +5,10 @@ static void testMultiGPUCrossEntropyTraining()
   std::cout << "--- testMultiGPUCrossEntropyTraining ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 2;
 
   CNN::CNNLayerConfig convLayer;
@@ -33,7 +33,7 @@ static void testMultiGPUCrossEntropyTraining()
   initConv.biases.assign(1, 0.0f);
   config.parameters.convParams = {initConv};
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 200;
   config.trainingConfig.learningRate = 0.5f;
   config.progressReports = 0;
@@ -49,7 +49,7 @@ static void testMultiGPUCrossEntropyTraining()
   auto core = CNN::Core<float>::makeCore(config);
   core->train(samples.size(), CNN::makeSampleProvider(samples));
 
-  CNN::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
 
   CHECK(result.averageLoss >= 0.0f, "multi-GPU CNN CE: loss non-negative");
   CHECK(std::isfinite(result.averageLoss), "multi-GPU CNN CE: loss is finite");
@@ -68,10 +68,10 @@ static void testMultiGPUParameterRoundTrip()
   std::cout << "--- testMultiGPUParameterRoundTrip ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 2;
 
   CNN::CNNLayerConfig convLayer;
@@ -116,10 +116,10 @@ static void testMultiGPUParameterRoundTrip()
 
   // Create predict core with trained params
   CNN::CoreConfig<float> predictConfig;
-  predictConfig.modeType = CNN::ModeType::PREDICT;
-  predictConfig.deviceType = CNN::DeviceType::GPU;
+  predictConfig.modeType = Common::ModeType::PREDICT;
+  predictConfig.deviceType = Common::DeviceType::GPU;
   predictConfig.inputShape = {1, 5, 5};
-  predictConfig.logLevel = CNN::LogLevel::ERROR;
+  predictConfig.logLevel = Common::LogLevel::ERROR;
   predictConfig.layersConfig = config.layersConfig;
   predictConfig.parameters = params;
 
@@ -137,10 +137,10 @@ static void testMultiGPUWithPoolLayer()
   std::cout << "--- testMultiGPUWithPoolLayer ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 8, 8};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 2;
 
   CNN::CNNLayerConfig conv1;
@@ -215,9 +215,9 @@ static void testMultiGPUWithPoolLayer()
   // from a fixed init, but a working multi-GPU training pipeline must at
   // least make the loss go down — that's what we assert.
   auto core = CNN::Core<float>::makeCore(config);
-  CNN::TestResult<float> beforeResult = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<float> beforeResult = core->test(samples.size(), CNN::makeSampleProvider(samples));
   core->train(samples.size(), CNN::makeSampleProvider(samples));
-  CNN::TestResult<float> afterResult = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<float> afterResult = core->test(samples.size(), CNN::makeSampleProvider(samples));
 
   CNN::Output<float> pred0 = core->predict(samples[0].input).output;
   CNN::Output<float> pred1 = core->predict(samples[1].input).output;

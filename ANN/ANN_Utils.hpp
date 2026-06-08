@@ -1,7 +1,7 @@
-#ifndef ANN_UTILS_HPP
-#define ANN_UTILS_HPP
+#ifndef _UTILS_HPP
+#define _UTILS_HPP
 
-#include "ANN_Types.hpp"
+#include "_Types.hpp"
 
 #include <string>
 #include <sys/types.h>
@@ -12,6 +12,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   class Utils
   {
@@ -104,4 +105,4 @@ namespace ANN
   };
 }
 
-#endif // ANN_UTILS_HPP
+#endif // _UTILS_HPP

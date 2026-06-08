@@ -34,11 +34,12 @@
 
 namespace CNN
 {
+  using namespace Common;
   enum class TimingPhase : int {
     // Orchestrator phases (gpuIndex = -1)
     DataFetch = 0,    // sampleProvider() — CPU, batch fetch / prefetch wait
     GpuTrain,         // fan-out of trainSubset across GPUs (wall clock, parallel)
-    GradMerge,        // multi-GPU gradient merge on CPU (CNN + ANN)
+    GradMerge,        // multi-GPU gradient merge on CPU (CNN + )
     WeightUpdate,     // per-GPU weight update kernels
     KernelRestore,    // per-GPU training-kernel restore after update
     // Worker phases (gpuIndex >= 0)
@@ -47,11 +48,11 @@ namespace CNN
     // Sub-phase breakdown (populated from GPU profiling, not host-side events)
     Augmentation,     // GPU image augmentation (inside DataFetch, host-side)
     CnnForward,       // CNN propagate kernels (GPU-profiled)
-    AnnForward,       // ANN propagate kernels (GPU-profiled)
-    AnnBackward,      // ANN backprop kernels (GPU-profiled)
+    AnnForward,       //  propagate kernels (GPU-profiled)
+    AnnBackward,      //  backprop kernels (GPU-profiled)
     CnnBackward,      // CNN backprop kernels (GPU-profiled)
     CNNAccumulate,    // CNN gradient accumulation (GPU-profiled)
-    ANNAccumulate,    // ANN gradient accumulation (GPU-profiled)
+    Accumulate,    //  gradient accumulation (GPU-profiled)
     LossCompute,      // loss kernel (GPU-profiled)
     Count
   };
@@ -179,20 +180,20 @@ namespace CNN
           startsWith(k, "bn_accum_"))
         return TimingPhase::CNNAccumulate;
 
-      // ANN forward: calculate_zs_layer, calculate_actvs_layer, apply_dropout_layer
+      //  forward: calculate_zs_layer, calculate_actvs_layer, apply_dropout_layer
       if (startsWith(k, "calculate_zs_layer") || startsWith(k, "calculate_actvs_layer") ||
           (startsWith(k, "apply_dropout_layer") && !contains(k, "backward")))
         return TimingPhase::AnnForward;
 
-      // ANN backward: calculate_dCost_dActv_*, calculate_dCost_dBias_*, calculate_dCost_dWeight_*,
+      //  backward: calculate_dCost_dActv_*, calculate_dCost_dBias_*, calculate_dCost_dWeight_*,
       //               apply_dropout_backward_layer*
       if (startsWith(k, "calculate_dCost_dActv") || startsWith(k, "calculate_dCost_dBias") ||
           startsWith(k, "calculate_dCost_dWeight") || startsWith(k, "apply_dropout_backward"))
         return TimingPhase::AnnBackward;
 
-      // ANN accumulate: accumulate_dCost_dBiases, accumulate_dCost_dWeights
+      //  accumulate: accumulate_dCost_dBiases, accumulate_dCost_dWeights
       if (startsWith(k, "accumulate_dCost_dBiases") || startsWith(k, "accumulate_dCost_dWeights"))
-        return TimingPhase::ANNAccumulate;
+        return TimingPhase::Accumulate;
 
       // Loss
       if (startsWith(k, "calculate_sample_loss"))

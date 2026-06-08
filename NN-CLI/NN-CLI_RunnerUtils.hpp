@@ -30,12 +30,12 @@ namespace NN_CLI
   //  finishTrainingCommon
   //-------------------------------------------------------------------------------------------------------------------//
 
-  /// Common finish-training logic shared by ANN and CNN runners.
+  /// Common finish-training logic shared by  and CNN runners.
   /// @param tui           Terminal UI shared pointer (shut down and reset inside).
   /// @param logLevel      Current log level.
   /// @param parser        CLI parser (for --output).
   /// @param inputFilePath Path to the input samples file (used for default output path).
-  /// @param core          The trained core (ANN or CNN) — must support getTrainingConfig() and getTrainingMetadata().
+  /// @param core          The trained core ( or CNN) — must support getTrainingConfig() and getTrainingMetadata().
   /// @param saveFn        Callable that takes (const std::string& outputPath) and persists the model.
   template <typename CoreT, typename SaveFn>
   int finishTrainingCommon(std::shared_ptr<TerminalUI>& tui, LogLevel logLevel, const QCommandLineParser& parser,
@@ -192,7 +192,7 @@ namespace NN_CLI
   //  loadSamplesFromOptionsCommon
   //-------------------------------------------------------------------------------------------------------------------//
 
-  /// Common sample loading logic for ANN and CNN runners.
+  /// Common sample loading logic for  and CNN runners.
   /// @param parser             CLI parser (for --samples, --idx-data, --idx-labels).
   /// @param logLevel           Current log level.
   /// @param ioConfig           I/O configuration.

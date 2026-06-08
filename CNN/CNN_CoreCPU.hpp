@@ -11,6 +11,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   template <typename T>
   class CoreCPU : public Core<T>
   {
@@ -20,9 +21,9 @@ namespace CNN
 
       //-- Core interface --//
       using Core<T>::predict; // Bring in the eager Inputs<T> + single-input wrappers
-      PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
+      Common::PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
       void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
-      TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
+      Common::TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
 
     private:
       //-- Step-by-step worker (for predict / single-threaded path) --//

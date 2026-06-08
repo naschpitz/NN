@@ -10,7 +10,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   template <typename T>
   struct TrainingConfig {
@@ -22,7 +22,7 @@ namespace ANN
       // std::random_device — non-deterministic, what production wants. Tests
       // set a non-zero value so the whole training run reproduces.
       uint32_t shuffleSeed = 0;
-      float dropoutRate = 0.0f; // Dropout probability for hidden layers (0.0 = disabled)
+      float dropoutRate = 0.0f; // Dropout probability for dense hidden layers (0.0 = disabled)
       Optimizer<T> optimizer; // Optimizer (default: SGD)
       ValidationConfig validationDataset; // Validation split config (default: enabled, auto-size)
       MonitoringConfig monitoringConfig; // Training health monitoring (default: disabled)

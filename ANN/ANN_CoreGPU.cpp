@@ -1,6 +1,6 @@
-#include "ANN_CoreGPU.hpp"
-#include "ANN_TrainingMonitor.hpp"
-#include "ANN_Utils.hpp"
+#include "_CoreGPU.hpp"
+#include "Common/Common_TrainingMonitor.hpp"
+#include "_Utils.hpp"
 #include "Common/Common_GPUWorkDistributor.hpp"
 
 #include <algorithm>
@@ -14,6 +14,7 @@
 #include <QtConcurrent>
 
 using namespace ANN;
+using namespace Common;
 
 //===================================================================================================================//
 //-- Constructor --//
@@ -306,7 +307,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 template <typename T>
 TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
-  return ANN::distributeTestAcrossGPUs<T>(
+  return ::distributeTestAcrossGPUs<T>(
     numSamples, sampleProvider, this->numGPUs, this->testConfig.batchSize, this->progressCallback,
     [this](size_t gpuIdx, const Samples<T>& batch, ulong startIdx, ulong endIdx) -> std::pair<T, ulong> {
       return this->gpuWorkers[gpuIdx]->testSubset(batch, startIdx, endIdx);

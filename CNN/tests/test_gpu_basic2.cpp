@@ -5,10 +5,10 @@ static void testGPUMultiConvStack()
   std::cout << "--- testGPUMultiConvStack (Conv→ReLU→Conv→ReLU→Flatten→Dense) ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 8, 8};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -80,10 +80,10 @@ static void testGPUShuffleSamples()
   // Verify GPU training works with both shuffle=true and shuffle=false
   auto makeConfig = [](bool shuffle) {
     CNN::CoreConfig<float> config;
-    config.modeType = CNN::ModeType::TRAIN;
-    config.deviceType = CNN::DeviceType::GPU;
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = Common::DeviceType::GPU;
     config.inputShape = {1, 5, 5};
-    config.logLevel = CNN::LogLevel::ERROR;
+    config.logLevel = Common::LogLevel::ERROR;
     config.numGPUs = 1;
 
     CNN::CNNLayerConfig convLayer;
@@ -166,10 +166,10 @@ static void testGPUCrossEntropyTraining()
 
   // 1x5x5 → Conv → ReLU → Flatten → Dense(3, softmax) with cross-entropy on GPU
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -196,7 +196,7 @@ static void testGPUCrossEntropyTraining()
   initConv.biases.assign(1, 0.0f);
   config.parameters.convParams = {initConv};
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 200;
   config.trainingConfig.learningRate = 0.5f;
   config.progressReports = 0;
@@ -212,7 +212,7 @@ static void testGPUCrossEntropyTraining()
   auto core = CNN::Core<float>::makeCore(config);
   core->train(samples.size(), CNN::makeSampleProvider(samples));
 
-  CNN::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
 
   CHECK(result.averageLoss >= 0.0f, "GPU CNN CE: loss non-negative");
   CHECK(std::isfinite(result.averageLoss), "GPU CNN CE: loss is finite");
@@ -224,7 +224,7 @@ static void testGPUCrossEntropyTraining()
   CHECK_NEAR(sum0, 1.0f, 0.01f, "GPU CNN CE: softmax sums to 1");
 
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == CNN::CostFunctionType::CROSS_ENTROPY, "GPU CNN CE: type preserved");
+  CHECK(cfc.type == Common::CostFunctionType::CROSS_ENTROPY, "GPU CNN CE: type preserved");
 
   std::cout << "  GPU CNN CE avgLoss=" << result.averageLoss << " accuracy=" << result.accuracy << "%" << std::endl;
 }

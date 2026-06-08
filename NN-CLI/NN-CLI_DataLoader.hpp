@@ -5,8 +5,8 @@
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_Types.hpp"
 
-#include <ANN_Sample.hpp>
-#include <ANN_SampleProvider.hpp>
+#include <_Sample.hpp>
+#include <_SampleProvider.hpp>
 #include <CNN_Sample.hpp>
 #include <CNN_SampleProvider.hpp>
 

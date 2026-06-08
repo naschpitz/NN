@@ -7,14 +7,14 @@ static void testMakeCoreCPU()
   std::cout << "--- testMakeCoreCPU ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::PREDICT;
-  config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.modeType = ::ModeType::PREDICT;
+  config.deviceType = ::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
 
   auto core = ANN::Core<double>::makeCore(config);
   CHECK(core != nullptr, "makeCore returns non-null");
-  CHECK(core->getDeviceType() == ANN::DeviceType::CPU, "device is CPU");
-  CHECK(core->getModeType() == ANN::ModeType::PREDICT, "mode is PREDICT");
+  CHECK(core->getDeviceType() == ::DeviceType::CPU, "device is CPU");
+  CHECK(core->getModeType() == ::ModeType::PREDICT, "mode is PREDICT");
   CHECK(core->getLayersConfig().size() == 2, "2 layers");
   CHECK(core->getLayersConfig().getTotalNumNeurons() == 3, "total neurons = 3");
 }
@@ -27,9 +27,9 @@ static void testPredictSimple()
 
   // 2 inputs → 1 output with known weights
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::PREDICT;
-  config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.modeType = ::ModeType::PREDICT;
+  config.deviceType = ::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
 
   // Set known weights: w = [0.5, 0.5], bias = 0.0
   config.parameters.weights.resize(2);
@@ -55,21 +55,21 @@ static void testTrainXOR()
   ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{0.0, 1.0}, {1.0}}, {{1.0, 0.0}, {1.0}}, {{1.0, 1.0}, {0.0}}};
 
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   // Bigger hidden layer (8 RELUs) + Adam — combination known to converge XOR
   // robustly. SGD on a 4-unit hidden layer with deterministic init was prone
   // to saddles; the test was concealing it with a 5-attempt retry loop.
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {8, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {8, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 3000;
   config.trainingConfig.learningRate = 0.05;
-  config.trainingConfig.optimizer.type = ANN::OptimizerType::ADAM;
+  config.trainingConfig.optimizer.type = ::OptimizerType::ADAM;
   config.trainingConfig.shuffleSeed = 42; // Fully deterministic.
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
-  config.logLevel = ANN::LogLevel::ERROR;
+  config.logLevel = ::LogLevel::ERROR;
 
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
@@ -95,10 +95,10 @@ static void testTestMethod()
 
   // Train a simple network first, then test
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5;
@@ -126,9 +126,9 @@ static void testTrainingMetadata()
   std::cout << "--- testTrainingMetadata ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 10;
   config.trainingConfig.learningRate = 0.1;
   config.progressReports = 0;
@@ -152,9 +152,9 @@ static void testPredictMetadata()
   std::cout << "--- testPredictMetadata ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::PREDICT;
-  config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.modeType = ::ModeType::PREDICT;
+  config.deviceType = ::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
 
   auto core = ANN::Core<double>::makeCore(config);
   core->predict({1.0, 0.0});
@@ -172,9 +172,9 @@ static void testTrainingCallback()
   std::cout << "--- testTrainingCallback ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 5;
   config.trainingConfig.learningRate = 0.1;
   config.progressReports = 1;
@@ -183,7 +183,7 @@ static void testTrainingCallback()
 
   int callbackCount = 0;
   auto core = ANN::Core<double>::makeCore(config);
-  core->setTrainingCallback([&callbackCount](const ANN::TrainingProgress<double>& progress) { callbackCount++; });
+  core->setTrainingCallback([&callbackCount](const Common::TrainingProgress<double>& progress) { callbackCount++; });
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -200,10 +200,10 @@ static void testParameterRoundTrip()
 
   // Train a network, get parameters, create new predict-mode core with those params
   ANN::CoreConfig<double> trainConfig;
-  trainConfig.modeType = ANN::ModeType::TRAIN;
-  trainConfig.deviceType = ANN::DeviceType::CPU;
+  trainConfig.modeType = ::ModeType::TRAIN;
+  trainConfig.deviceType = ::DeviceType::CPU;
   trainConfig.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
 
   trainConfig.trainingConfig.numEpochs = 200;
   trainConfig.trainingConfig.learningRate = 0.5;
@@ -223,8 +223,8 @@ static void testParameterRoundTrip()
 
   // Create predict-only core with same params
   ANN::CoreConfig<double> predConfig;
-  predConfig.modeType = ANN::ModeType::PREDICT;
-  predConfig.deviceType = ANN::DeviceType::CPU;
+  predConfig.modeType = ::ModeType::PREDICT;
+  predConfig.deviceType = ::DeviceType::CPU;
   predConfig.layersConfig = trainConfig.layersConfig;
   predConfig.parameters = params;
 
@@ -244,10 +244,10 @@ static void testParametersDuringTraining()
   // Train a network and verify that getParameters() returns non-empty data
   // during training (in the epoch-completion callback), not just after training ends.
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 10;
   config.trainingConfig.learningRate = 0.5;
@@ -261,7 +261,7 @@ static void testParametersDuringTraining()
   bool weightsNonEmpty = false;
   bool biasesNonEmpty = false;
 
-  core->setTrainingCallback([&](const ANN::TrainingProgress<double>& progress) {
+  core->setTrainingCallback([&](const Common::TrainingProgress<double>& progress) {
     // Detect epoch-completion callback: epochLoss > 0 and sampleLoss == 0
     if (progress.epochLoss > 0 && progress.sampleLoss == 0 && !paramsChecked) {
       const ANN::Parameters<double>& params = core->getParameters();
@@ -288,9 +288,9 @@ static void testBatchPredict()
 
   // 2 inputs → 1 output with known weights
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::PREDICT;
-  config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.modeType = ::ModeType::PREDICT;
+  config.deviceType = ::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
 
   config.parameters.weights.resize(2);
   config.parameters.weights[1] = {{0.5, 0.5}};
@@ -353,19 +353,19 @@ static void testBatchPredictAfterTraining()
   ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{0.0, 1.0}, {1.0}}, {{1.0, 0.0}, {1.0}}, {{1.0, 1.0}, {0.0}}};
 
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   // Same robust config as testTrainXOR: 8-unit hidden + Adam + fixed shuffle.
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {8, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {8, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 3000;
   config.trainingConfig.learningRate = 0.05;
-  config.trainingConfig.optimizer.type = ANN::OptimizerType::ADAM;
+  config.trainingConfig.optimizer.type = ::OptimizerType::ADAM;
   config.trainingConfig.shuffleSeed = 42;
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
-  config.logLevel = ANN::LogLevel::ERROR;
+  config.logLevel = ::LogLevel::ERROR;
 
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));

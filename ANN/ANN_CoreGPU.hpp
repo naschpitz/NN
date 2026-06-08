@@ -1,8 +1,8 @@
-#ifndef ANN_COREGPU_H
-#define ANN_COREGPU_H
+#ifndef _COREGPU_H
+#define _COREGPU_H
 
-#include "ANN_Core.hpp"
-#include "ANN_CoreGPUWorker.hpp"
+#include "_Core.hpp"
+#include "_CoreGPUWorker.hpp"
 
 #include <memory>
 #include <vector>
@@ -11,6 +11,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   class CoreGPU : public Core<T>
   {
@@ -41,4 +42,4 @@ namespace ANN
   };
 }
 
-#endif // ANN_COREGPU_H
+#endif // _COREGPU_H

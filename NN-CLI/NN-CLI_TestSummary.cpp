@@ -35,13 +35,13 @@ namespace NN_CLI
     std::string costStr;
 
     switch (costConfig.type) {
-    case CNN::CostFunctionType::CROSS_ENTROPY:
+    case Common::CostFunctionType::CROSS_ENTROPY:
       costStr = "Cross-entropy";
       break;
-    case CNN::CostFunctionType::SQUARED_DIFFERENCE:
+    case Common::CostFunctionType::SQUARED_DIFFERENCE:
       costStr = "Squared difference";
       break;
-    case CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+    case Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
       costStr = "Weighted squared difference";
       break;
     }
@@ -68,7 +68,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TestSummary::printANN(const ANN::CoreConfig<float>& annConfig, ulong testSamples)
+  void TestSummary::print(const ANN::CoreConfig<float>& annConfig, ulong testSamples)
   {
     ulong denseCount = annConfig.layersConfig.size();
 
@@ -77,20 +77,20 @@ namespace NN_CLI
     std::string costStr;
 
     switch (annConfig.costFunctionConfig.type) {
-    case ANN::CostFunctionType::CROSS_ENTROPY:
+    case Common::CostFunctionType::CROSS_ENTROPY:
       costStr = "Cross-entropy";
       break;
-    case ANN::CostFunctionType::SQUARED_DIFFERENCE:
+    case Common::CostFunctionType::SQUARED_DIFFERENCE:
       costStr = "Squared difference";
       break;
-    case ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+    case Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
       costStr = "Weighted squared difference";
       break;
     }
 
     std::vector<SummaryRow> rows;
     rows.push_back({"Device", deviceStr});
-    rows.push_back({"Network type", "ANN"});
+    rows.push_back({"Network type", ""});
     rows.push_back({"", ""});
     rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"", ""});

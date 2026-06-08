@@ -1,12 +1,12 @@
-#ifndef ANN_CORECPUWORKER_H
-#define ANN_CORECPUWORKER_H
+#ifndef _CORECPUWORKER_H
+#define _CORECPUWORKER_H
 
-#include "ANN_Worker.hpp"
-#include "ANN_ActvFunc.hpp"
-#include "ANN_Types.hpp"
-#include "ANN_LayersConfig.hpp"
-#include "ANN_TrainingConfig.hpp"
-#include "ANN_Parameters.hpp"
+#include "_Worker.hpp"
+#include "_ActvFunc.hpp"
+#include "_Types.hpp"
+#include "_LayersConfig.hpp"
+#include "Common/Common_TrainingConfig.hpp"
+#include "_Parameters.hpp"
 
 #include <random>
 
@@ -14,6 +14,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   class CoreCPUWorker : public Worker<T>
   {
@@ -109,4 +110,4 @@ namespace ANN
   };
 }
 
-#endif // ANN_CORECPUWORKER_H
+#endif // _CORECPUWORKER_H

@@ -7,7 +7,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   // Result of a single prediction.
   // - output: post-activation values of the last layer (e.g. softmax probabilities).

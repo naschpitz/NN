@@ -4,9 +4,9 @@ static void testCrossEntropyStringConversion()
 {
   std::cout << "--- testCrossEntropyStringConversion ---" << std::endl;
 
-  CHECK(ANN::CostFunction::nameToType("crossEntropy") == ANN::CostFunctionType::CROSS_ENTROPY,
+  CHECK(::CostFunction::nameToType("crossEntropy") == ::CostFunctionType::CROSS_ENTROPY,
         "nameToType crossEntropy");
-  CHECK(ANN::CostFunction::typeToName(ANN::CostFunctionType::CROSS_ENTROPY) == "crossEntropy",
+  CHECK(::CostFunction::typeToName(::CostFunctionType::CROSS_ENTROPY) == "crossEntropy",
         "typeToName crossEntropy");
 }
 
@@ -45,12 +45,12 @@ static void testExactForwardBackwardSquaredDifference()
   // Architecture: layer 0 = input (2), layer 1 = hidden ReLU (2), layer 2 = output sigmoid (1)
   // Layer 0 copies input (no weights). Layers 1 and 2 have weights.
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
   config.trainingConfig.learningRate = 1.0;
-  config.logLevel = ANN::LogLevel::ERROR;
+  config.logLevel = ::LogLevel::ERROR;
 
   // weights[layer][neuron][input]: layer 0 = empty (input), layer 1 = hidden, layer 2 = output
   config.parameters.weights = {{}, {{0.1, 0.2}, {0.3, 0.4}}, {{0.5, -0.3}}};
@@ -65,7 +65,7 @@ static void testExactForwardBackwardSquaredDifference()
   CHECK_NEAR(out[0], 0.50749945640563965, 1e-12, "SD forward: output exact");
 
   // --- Verify backward pass via train (1 epoch, 1 sample, SGD lr=1.0, no shuffle) ---
-  // Must use train() because the step-by-step API only works for CNN-embedded ANN.
+  // Must use train() because the step-by-step API only works for CNN-embedded .
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.shuffleSamples = false;
   config.progressReports = 0;
@@ -115,13 +115,13 @@ static void testExactForwardBackwardCrossEntropy()
 
   // Architecture: layer 0 = input (2), layer 1 = hidden ReLU (2), layer 2 = output softmax (2)
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
-  config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
+  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.learningRate = 1.0;
-  config.logLevel = ANN::LogLevel::ERROR;
+  config.logLevel = ::LogLevel::ERROR;
 
   config.parameters.weights = {{}, {{0.1, 0.2}, {0.3, 0.4}}, {{0.5, -0.3}, {-0.2, 0.6}}};
   config.parameters.biases = {{}, {0.1, -0.1}, {0.0, 0.0}};
@@ -177,14 +177,14 @@ static void testExactForwardBackwardWeightedCrossEntropy()
   // dL/dz2[1] = a2[1]*(0 + 3) = 3*a2[1]
 
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
-  config.costFunctionConfig.type = ANN::CostFunctionType::CROSS_ENTROPY;
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
+  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0, 0.5};
   config.trainingConfig.learningRate = 1.0;
-  config.logLevel = ANN::LogLevel::ERROR;
+  config.logLevel = ::LogLevel::ERROR;
 
   config.parameters.weights = {{}, {{0.1, 0.2}, {0.3, 0.4}}, {{0.5, -0.3}, {-0.2, 0.6}}};
   config.parameters.biases = {{}, {0.1, -0.1}, {0.0, 0.0}};

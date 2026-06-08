@@ -114,7 +114,7 @@ namespace NN_CLI
   //-- planAugmentation --//
   //===================================================================================================================//
 
-  // Helper to get the output vector from a sample (works for both ANN and CNN).
+  // Helper to get the output vector from a sample (works for both  and CNN).
   static const std::vector<float>& sampleOutput(const ANN::Sample<float>& s)
   {
     return s.output;
@@ -340,7 +340,7 @@ namespace NN_CLI
 
   template <typename SampleT>
   typename DataLoader<SampleT>::ProviderT
-  DataLoader<SampleT>::makeSampleProvider(const AugmentationTransforms& transforms, float augmentationProbability,
+  DataLoader<SampleT>ANN::makeSampleProvider(const AugmentationTransforms& transforms, float augmentationProbability,
                                           SampleLoadType loadType) const
   {
     // Dedicated single-thread pool for prefetch orchestration — independent of
@@ -400,7 +400,7 @@ namespace NN_CLI
 
   template <typename SampleT>
   typename DataLoader<SampleT>::ProviderT
-  DataLoader<SampleT>::makeSampleProvider(const std::vector<ulong>& subsetIndices,
+  DataLoader<SampleT>ANN::makeSampleProvider(const std::vector<ulong>& subsetIndices,
                                           const AugmentationTransforms& transforms, float augmentationProbability,
                                           SampleLoadType loadType) const
   {

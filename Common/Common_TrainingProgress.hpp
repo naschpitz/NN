@@ -6,7 +6,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   // Training progress information passed to callbacks
   template <typename T>
@@ -24,7 +24,7 @@ namespace ANN
 
       // Multi-GPU progress tracking
       int gpuIndex = -1; // -1 = not GPU-specific (epoch completion, CPU mode), >= 0 = specific GPU
-      int totalGPUs = 1; // Total number of GPUs being used
+      int totalGPUs = 0; // Total number of GPUs being used
   };
 
   // Callback type for training progress

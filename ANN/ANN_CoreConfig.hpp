@@ -1,19 +1,20 @@
-#ifndef ANN_CORECONFIG_HPP
-#define ANN_CORECONFIG_HPP
+#ifndef _CORECONFIG_HPP
+#define _CORECONFIG_HPP
 
-#include "ANN_Mode.hpp"
-#include "ANN_Device.hpp"
-#include "ANN_LogLevel.hpp"
-#include "ANN_LayersConfig.hpp"
-#include "ANN_CostFunctionConfig.hpp"
-#include "ANN_TrainingConfig.hpp"
-#include "ANN_TestConfig.hpp"
-#include "ANN_Parameters.hpp"
+#include "Common/Common_Mode.hpp"
+#include "Common/Common_Device.hpp"
+#include "Common/Common_LogLevel.hpp"
+#include "_LayersConfig.hpp"
+#include "Common/Common_CostFunctionConfig.hpp"
+#include "Common/Common_TrainingConfig.hpp"
+#include "Common/Common_TestConfig.hpp"
+#include "_Parameters.hpp"
 
 //===================================================================================================================//
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   struct CoreConfig {
       ModeType modeType;
@@ -32,4 +33,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // ANN_CORECONFIG_HPP
+#endif // _CORECONFIG_HPP

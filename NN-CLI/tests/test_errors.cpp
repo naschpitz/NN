@@ -34,15 +34,15 @@ static void testInvalidDevice()
   std::cout << std::endl;
 }
 
-static void testMissingSamplesANN()
+static void testMissingSamples()
 {
-  std::cout << "  testMissingSamplesANN... ";
+  std::cout << "  testMissingSamples... ";
 
   auto result = runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu"});
 
-  CHECK(result.exitCode == 1, "Missing samples ANN: exit code 1");
+  CHECK(result.exitCode == 1, "Missing samples : exit code 1");
   CHECK(result.stdErr.contains("requires either --samples (JSON) or --idx-data and --idx-labels (IDX)"),
-        "Missing samples ANN: error message");
+        "Missing samples : error message");
   std::cout << std::endl;
 }
 
@@ -62,14 +62,14 @@ static void testPredictWithoutInput()
 {
   std::cout << "  testPredictWithoutInput... ";
 
-  if (trainedANNModelPath.isEmpty() || !QFile::exists(trainedANNModelPath)) {
-    CHECK(false, "Predict without input: skipped — no trained model available (testANNTrainXOR must run first)");
+  if (trainedModelPath.isEmpty() || !QFile::exists(trainedModelPath)) {
+    CHECK(false, "Predict without input: skipped — no trained model available (testTrainXOR must run first)");
     std::cout << std::endl;
     return;
   }
 
   // Must use a config with trained parameters so predict path is reached
-  auto result = runNNCLI({"--config", trainedANNModelPath, "--mode", "predict", "--device", "cpu"});
+  auto result = runNNCLI({"--config", trainedModelPath, "--mode", "predict", "--device", "cpu"});
 
   CHECK(result.exitCode == 1, "Predict without input: exit code 1");
   CHECK(result.stdErr.contains("--input option is required for predict mode"), "Predict without input: error message");
@@ -102,16 +102,16 @@ static void testBothSamplesAndIdx()
   std::cout << std::endl;
 }
 
-static void testInvalidActvFuncANN()
+static void testInvalidActvFunc()
 {
-  std::cout << "  testInvalidActvFuncANN... ";
+  std::cout << "  testInvalidActvFunc... ";
 
   auto result = runNNCLI({"--config", fixturePath("ann_invalid_actvfunc_config.json"), "--mode", "train", "--device",
                           "cpu", "--samples", fixturePath("ann_train_samples.json")});
 
-  CHECK(result.exitCode == 1, "Invalid actvFunc ANN: exit code 1");
+  CHECK(result.exitCode == 1, "Invalid actvFunc : exit code 1");
   CHECK(result.stdErr.contains("Unknown activation function"),
-        "Invalid actvFunc ANN: error message contains 'Unknown activation function'");
+        "Invalid actvFunc : error message contains 'Unknown activation function'");
   std::cout << std::endl;
 }
 
@@ -128,16 +128,16 @@ static void testInvalidActvFuncCNN()
   std::cout << std::endl;
 }
 
-static void testInvalidCostFuncANN()
+static void testInvalidCostFunc()
 {
-  std::cout << "  testInvalidCostFuncANN... ";
+  std::cout << "  testInvalidCostFunc... ";
 
   auto result = runNNCLI({"--config", fixturePath("ann_invalid_costfunc_config.json"), "--mode", "train", "--device",
                           "cpu", "--samples", fixturePath("ann_train_samples.json")});
 
-  CHECK(result.exitCode == 1, "Invalid costFunc ANN: exit code 1");
+  CHECK(result.exitCode == 1, "Invalid costFunc : exit code 1");
   CHECK(result.stdErr.contains("Unknown cost function"),
-        "Invalid costFunc ANN: error message contains 'Unknown cost function'");
+        "Invalid costFunc : error message contains 'Unknown cost function'");
   std::cout << std::endl;
 }
 
@@ -146,12 +146,12 @@ void runErrorTests()
   testMissingConfig();
   testInvalidMode();
   testInvalidDevice();
-  testMissingSamplesANN();
+  testMissingSamples();
   testMissingSamplesCNN();
   testPredictWithoutInput();
   testIdxWithoutLabels();
   testBothSamplesAndIdx();
-  testInvalidActvFuncANN();
+  testInvalidActvFunc();
   testInvalidActvFuncCNN();
-  testInvalidCostFuncANN();
+  testInvalidCostFunc();
 }

@@ -9,12 +9,12 @@ namespace NN_CLI
 {
 
   // I/O configuration: how input and output data should be interpreted.
-  // This is an NN-CLI concept only — the underlying libraries (ANN, CNN) never see it.
+  // This is an NN-CLI concept only — the underlying libraries (, CNN) never see it.
   struct IOConfig {
       DataType inputType = DataType::VECTOR;
       DataType outputType = DataType::VECTOR;
 
-      // Shape of input images (for ANN with image input; CNN uses CoreConfig.inputShape)
+      // Shape of input images (for  with image input; CNN uses CoreConfig.inputShape)
       ulong inputC = 0, inputH = 0, inputW = 0;
 
       // Shape of output images (required when outputType == IMAGE)

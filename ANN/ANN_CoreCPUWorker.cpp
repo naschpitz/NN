@@ -1,9 +1,10 @@
-#include "ANN_CoreCPUWorker.hpp"
+#include "_CoreCPUWorker.hpp"
 
 #include <algorithm>
 #include <cmath>
 
 using namespace ANN;
+using namespace Common;
 
 //===================================================================================================================//
 //-- Constructor --//

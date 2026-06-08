@@ -23,11 +23,11 @@ namespace NN_Server
     QByteArray fileData = file.readAll();
     nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
 
-    // ANN configs use "layers" for their dense layers.
+    //  configs use "layers" for their dense layers.
     // CNN configs use "convolutionalLayers" and/or "denseLayers".
-    // "inputShape" is NOT used for detection — both types can have it (e.g. ANN image input).
+    // "inputShape" is NOT used for detection — both types can have it (e.g.  image input).
     if (json.contains("layers")) {
-      return NetworkType::ANN;
+      return NetworkType::;
     }
 
     return NetworkType::CNN;
@@ -59,7 +59,7 @@ namespace NN_Server
       config.isImage = true;
     }
 
-    // Input shape (for ANN image input — CNN uses CoreConfig.inputShape)
+    // Input shape (for  image input — CNN uses CoreConfig.inputShape)
     if (json.contains("inputShape")) {
       const auto& shape = json["inputShape"];
       config.c = shape.at("c").get<ulong>();
@@ -106,10 +106,10 @@ namespace NN_Server
   }
 
   //===================================================================================================================//
-  // ANN config loading (predict-only)
+  //  config loading (predict-only)
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath)
+  ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath)
   {
     QFile file(QString::fromStdString(configFilePath));
 
@@ -123,12 +123,12 @@ namespace NN_Server
     ANN::CoreConfig<float> coreConfig;
 
     // Always predict mode for the server
-    coreConfig.modeType = ANN::ModeType::PREDICT;
+    coreConfig.modeType = Common::ModeType::PREDICT;
 
     if (json.contains("device")) {
-      coreConfig.deviceType = ANN::Device::nameToType(json.at("device").get<std::string>());
+      coreConfig.deviceType = ::Device::nameToType(json.at("device").get<std::string>());
     } else {
-      coreConfig.deviceType = ANN::DeviceType::CPU;
+      coreConfig.deviceType = Common::DeviceType::CPU;
     }
 
     if (json.contains("numThreads"))
@@ -150,7 +150,7 @@ namespace NN_Server
 
     if (json.contains("costFunction")) {
       const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = ANN::CostFunction::nameToType(cfc.at("type").get<std::string>());
+      coreConfig.costFunctionConfig.type = ::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
         coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
@@ -162,8 +162,8 @@ namespace NN_Server
     }
 
     const auto& p = json.at("parameters");
-    coreConfig.parameters.weights = p.at("weights").get<ANN::Tensor3D<float>>();
-    coreConfig.parameters.biases = p.at("biases").get<ANN::Tensor2D<float>>();
+    coreConfig.parameters.weights = p.at("weights").get<::Tensor3D<float>>();
+    coreConfig.parameters.biases = p.at("biases").get<::Tensor2D<float>>();
 
     return coreConfig;
   }
@@ -186,12 +186,12 @@ namespace NN_Server
     CNN::CoreConfig<float> coreConfig;
 
     // Always predict mode for the server
-    coreConfig.modeType = CNN::ModeType::PREDICT;
+    coreConfig.modeType = Common::ModeType::PREDICT;
 
     if (json.contains("device")) {
-      coreConfig.deviceType = CNN::Device::nameToType(json.at("device").get<std::string>());
+      coreConfig.deviceType = ::Device::nameToType(json.at("device").get<std::string>());
     } else {
-      coreConfig.deviceType = CNN::DeviceType::CPU;
+      coreConfig.deviceType = Common::DeviceType::CPU;
     }
 
     if (json.contains("numThreads"))
@@ -294,7 +294,7 @@ namespace NN_Server
     // Cost function config
     if (json.contains("costFunction")) {
       const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = CNN::CostFunction::nameToType(cfc.at("type").get<std::string>());
+      coreConfig.costFunctionConfig.type = ::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
         coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
@@ -346,8 +346,8 @@ namespace NN_Server
 
     if (paramsJson.contains("dense")) {
       const auto& denseJson = paramsJson.at("dense");
-      coreConfig.parameters.denseParams.weights = denseJson.at("weights").get<ANN::Tensor3D<float>>();
-      coreConfig.parameters.denseParams.biases = denseJson.at("biases").get<ANN::Tensor2D<float>>();
+      coreConfig.parameters.denseParams.weights = denseJson.at("weights").get<::Tensor3D<float>>();
+      coreConfig.parameters.denseParams.biases = denseJson.at("biases").get<::Tensor2D<float>>();
     }
 
     return coreConfig;

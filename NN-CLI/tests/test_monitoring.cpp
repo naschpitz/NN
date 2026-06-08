@@ -1,7 +1,7 @@
 #include "test_helpers.hpp"
-#include "../NN-CLI_ANNLoader.hpp"
+#include "../NN-CLI_Loader.hpp"
 
-#include <ANN_TrainingMonitor.hpp>
+#include "Common/Common_TrainingMonitor.hpp"
 
 #include <optional>
 
@@ -36,7 +36,7 @@ static void testMonitoringConfigParsing()
 
   file.close();
 
-  auto config = ANNLoader::loadConfig(configPath.toStdString());
+  auto config = Loader::loadConfig(configPath.toStdString());
 
   CHECK(config.trainingConfig.monitoringConfig.enabled == true, "monitoring enabled");
   CHECK(config.trainingConfig.monitoringConfig.checkInterval == 10, "checkInterval");
@@ -69,7 +69,7 @@ static void testMonitoringConfigDefaults()
 
   file.close();
 
-  auto config = ANNLoader::loadConfig(configPath.toStdString());
+  auto config = Loader::loadConfig(configPath.toStdString());
 
   CHECK(config.trainingConfig.monitoringConfig.enabled == false, "default disabled");
   CHECK(config.trainingConfig.monitoringConfig.checkInterval == 5, "default checkInterval");
@@ -84,7 +84,7 @@ static void testTrainingMonitorStagnation()
 {
   std::cout << "  testTrainingMonitorStagnation... ";
 
-  ANN::MonitoringConfig config;
+  ::MonitoringConfig config;
   config.enabled = true;
   config.checkInterval = 1;
   config.patience = 3;
@@ -92,7 +92,7 @@ static void testTrainingMonitorStagnation()
   config.metrics.lossStagnation.minDelta = 0.01f;
   config.metrics.lossExplosion.enabled = false;
 
-  ANN::TrainingMonitor<float> monitor(config);
+  Common::TrainingMonitor<float> monitor(config);
 
   // Epoch 1: loss = 1.0 — new best
   CHECK(monitor.checkEpoch(1, 1.0f) == false, "epoch 1 no stop");
@@ -123,7 +123,7 @@ static void testTrainingMonitorExplosion()
 {
   std::cout << "  testTrainingMonitorExplosion... ";
 
-  ANN::MonitoringConfig config;
+  ::MonitoringConfig config;
   config.enabled = true;
   config.checkInterval = 1;
   config.patience = 100;
@@ -131,7 +131,7 @@ static void testTrainingMonitorExplosion()
   config.metrics.lossExplosion.enabled = true;
   config.metrics.lossExplosion.threshold = 5.0f;
 
-  ANN::TrainingMonitor<float> monitor(config);
+  Common::TrainingMonitor<float> monitor(config);
 
   // Epoch 1: loss = 1.0
   CHECK(monitor.checkEpoch(1, 1.0f) == false, "epoch 1 no stop");
@@ -154,7 +154,7 @@ static void testTrainingMonitorWithValidationLoss()
 {
   std::cout << "  testTrainingMonitorWithValidationLoss... ";
 
-  ANN::MonitoringConfig config;
+  ::MonitoringConfig config;
   config.enabled = true;
   config.checkInterval = 1;
   config.patience = 2;
@@ -162,7 +162,7 @@ static void testTrainingMonitorWithValidationLoss()
   config.metrics.lossStagnation.minDelta = 0.01f;
   config.metrics.lossExplosion.enabled = false;
 
-  ANN::TrainingMonitor<float> monitor(config);
+  Common::TrainingMonitor<float> monitor(config);
 
   // Training loss drops but validation loss is what matters
   CHECK(monitor.checkEpoch(1, 2.0f, std::optional<float>(1.0f)) == false, "epoch 1");

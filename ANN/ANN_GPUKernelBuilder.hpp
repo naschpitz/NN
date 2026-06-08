@@ -1,13 +1,13 @@
-#ifndef ANN_GPUKERNELBUILDER_HPP
-#define ANN_GPUKERNELBUILDER_HPP
+#ifndef _GPUKERNELBUILDER_HPP
+#define _GPUKERNELBUILDER_HPP
 
-#include "ANN_Types.hpp"
-#include "ANN_LayersConfig.hpp"
-#include "ANN_TrainingConfig.hpp"
-#include "ANN_Parameters.hpp"
-#include "ANN_CostFunctionConfig.hpp"
-#include "ANN_GPUBufferManager.hpp"
-#include "ANN_LogLevel.hpp"
+#include "_Types.hpp"
+#include "_LayersConfig.hpp"
+#include "Common/Common_TrainingConfig.hpp"
+#include "_Parameters.hpp"
+#include "Common/Common_CostFunctionConfig.hpp"
+#include "_GPUBufferManager.hpp"
+#include "Common/Common_LogLevel.hpp"
 
 #include <OCLW_Core.hpp>
 
@@ -15,6 +15,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   // Manages OpenCL kernel creation, argument binding, and setup orchestration.
   // Extracted from CoreGPUWorker to reduce class size.
   template <typename T>
@@ -63,4 +64,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // ANN_GPUKERNELBUILDER_HPP
+#endif // _GPUKERNELBUILDER_HPP

@@ -6,13 +6,13 @@
 
 // Helper: build a GPU Conv→BatchNorm→ReLU→Flatten→Dense config with true BATCHNORM
 static CNN::CoreConfig<float> makeGPUTrueBNTestConfig(ulong denseNeurons, ANN::ActvFuncType actvFunc,
-                                                      CNN::DeviceType deviceType = CNN::DeviceType::GPU)
+                                                      Common::DeviceType deviceType = Common::DeviceType::GPU)
 {
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
+  config.modeType = Common::ModeType::TRAIN;
   config.deviceType = deviceType;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
   config.numGPUs = 1;
 
@@ -69,12 +69,12 @@ static void testGPUTrueBNvsCPUParity()
   std::cout << "--- testGPUTrueBNvsCPUParity ---" << std::endl;
 
   // Create identical configs for CPU and GPU
-  auto gpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, CNN::DeviceType::GPU);
-  gpuConfig.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  auto gpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::GPU);
+  gpuConfig.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   gpuConfig.trainingConfig.batchSize = 3;
 
-  auto cpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, CNN::DeviceType::CPU);
-  cpuConfig.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  auto cpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::CPU);
+  cpuConfig.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   cpuConfig.trainingConfig.batchSize = 3;
 
   // Use same dense params for both
@@ -171,12 +171,12 @@ static void testGPUTrueBNNoRelu()
   std::cout << "--- testGPUTrueBNNoRelu (N=3, no RELU) ---" << std::endl;
 
   // Build config WITHOUT RELU: Conv → BN → Flatten
-  auto makeNoReluConfig = [](CNN::DeviceType device) {
+  auto makeNoReluConfig = [](Common::DeviceType device) {
     CNN::CoreConfig<float> config;
-    config.modeType = CNN::ModeType::TRAIN;
+    config.modeType = Common::ModeType::TRAIN;
     config.deviceType = device;
     config.inputShape = {1, 3, 3};
-    config.logLevel = CNN::LogLevel::ERROR;
+    config.logLevel = Common::LogLevel::ERROR;
     config.numThreads = 1;
     config.numGPUs = 1;
 
@@ -217,7 +217,7 @@ static void testGPUTrueBNNoRelu()
     config.trainingConfig.shuffleSamples = false;
     config.trainingConfig.batchSize = 3;
     config.progressReports = 0;
-    config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+    config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
 
     ANN::Parameters<float> denseParams;
     denseParams.weights.resize(2);
@@ -231,8 +231,8 @@ static void testGPUTrueBNNoRelu()
     return config;
   };
 
-  auto gpuConfig = makeNoReluConfig(CNN::DeviceType::GPU);
-  auto cpuConfig = makeNoReluConfig(CNN::DeviceType::CPU);
+  auto gpuConfig = makeNoReluConfig(Common::DeviceType::GPU);
+  auto cpuConfig = makeNoReluConfig(Common::DeviceType::CPU);
 
   CNN::Samples<float> samples(3);
   samples[0].input = CNN::Tensor3D<float>({1, 3, 3});
@@ -279,8 +279,8 @@ static void testGPUTrueBNBatchVsInstanceStats()
   std::cout << "--- testGPUTrueBNBatchVsInstanceStats ---" << std::endl;
 
   // Train with BATCHNORM (cross-sample stats) using 3 diverse samples
-  auto bnConfig = makeGPUTrueBNTestConfig(1, ANN::ActvFuncType::SIGMOID, CNN::DeviceType::GPU);
-  bnConfig.costFunctionConfig.type = CNN::CostFunctionType::SQUARED_DIFFERENCE;
+  auto bnConfig = makeGPUTrueBNTestConfig(1, ANN::ActvFuncType::SIGMOID, Common::DeviceType::GPU);
+  bnConfig.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
   bnConfig.trainingConfig.batchSize = 3;
 
   ANN::Parameters<float> denseParams;

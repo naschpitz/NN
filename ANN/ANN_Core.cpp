@@ -1,9 +1,10 @@
-#include "ANN_Core.hpp"
-#include "ANN_CoreCPU.hpp"
-#include "ANN_CoreGPU.hpp"
-#include "ANN_Utils.hpp"
+#include "_Core.hpp"
+#include "_CoreCPU.hpp"
+#include "_CoreGPU.hpp"
+#include "_Utils.hpp"
 
 using namespace ANN;
+using namespace Common;
 
 //===================================================================================================================//
 

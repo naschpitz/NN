@@ -35,11 +35,11 @@ namespace NN_CLI
 
   NetworkType Loader::detectNetworkType(const nlohmann::json& json)
   {
-    // ANN configs use "layers" for their dense layers.
+    //  configs use "layers" for their dense layers.
     // CNN configs use "convolutionalLayers" and/or "denseLayers".
-    // "inputShape" is NOT used for detection — both types can have it (e.g. ANN image input).
+    // "inputShape" is NOT used for detection — both types can have it (e.g.  image input).
     if (json.contains("layers")) {
-      return NetworkType::ANN;
+      return NetworkType::;
     }
 
     return NetworkType::CNN;
@@ -78,7 +78,7 @@ namespace NN_CLI
       ioConfig.outputType = dataTypeFromString(outputTypeOverride.value());
     }
 
-    // Input shape (for ANN image input — CNN uses CoreConfig.inputShape)
+    // Input shape (for  image input — CNN uses CoreConfig.inputShape)
     if (json.contains("inputShape")) {
       const auto& s = json.at("inputShape");
       ioConfig.inputC = s.at("c").get<ulong>();

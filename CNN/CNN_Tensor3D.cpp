@@ -3,6 +3,7 @@
 #include <algorithm>
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 //-- Constructors --//

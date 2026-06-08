@@ -6,10 +6,10 @@
 static CNN::CoreConfig<double> makeBNTestConfig(ulong denseNeurons, ANN::ActvFuncType actvFunc)
 {
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -65,7 +65,7 @@ static void testExactBNForwardBackwardCrossEntropy()
   std::cout << "--- testExactBNForwardBackwardCrossEntropy ---" << std::endl;
 
   auto config = makeBNTestConfig(2, ANN::ActvFuncType::SOFTMAX);
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
 
   // Dense: 4 inputs → 2 softmax outputs
   ANN::Parameters<double> denseParams;
@@ -120,7 +120,7 @@ static void testExactBNForwardBackwardSquaredDifference()
   std::cout << "--- testExactBNForwardBackwardSquaredDifference ---" << std::endl;
 
   auto config = makeBNTestConfig(1, ANN::ActvFuncType::SIGMOID);
-  config.costFunctionConfig.type = CNN::CostFunctionType::SQUARED_DIFFERENCE;
+  config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
 
   ANN::Parameters<double> denseParams;
   denseParams.weights.resize(2);
@@ -169,7 +169,7 @@ static void testExactBNForwardBackwardWeightedCrossEntropy()
   std::cout << "--- testExactBNForwardBackwardWeightedCrossEntropy ---" << std::endl;
 
   auto config = makeBNTestConfig(2, ANN::ActvFuncType::SOFTMAX);
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0, 0.5};
 
   ANN::Parameters<double> denseParams;

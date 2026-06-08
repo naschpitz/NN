@@ -4,7 +4,7 @@
 #include "CNN_Types.hpp"
 #include "CNN_CoreGPUWorkerConfig.hpp"
 #include "CNN_GPUBufferManager.hpp"
-#include "CNN_LogLevel.hpp"
+#include "Common/Common_LogLevel.hpp"
 
 #include <OCLW_Core.hpp>
 
@@ -12,6 +12,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   // Manages OpenCL kernel creation, argument binding, and setup orchestration for CNN.
   // Extracted from CoreGPUWorker to reduce class size.
   template <typename T>

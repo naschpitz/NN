@@ -11,10 +11,10 @@ static void testExactForwardBackwardCrossEntropy()
   // Every single parameter is preset and verified against hand-computed values.
 
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -42,7 +42,7 @@ static void testExactForwardBackwardCrossEntropy()
   initConv.biases = {0.0};
   config.parameters.convParams = {initConv};
 
-  // Preset ANN dense parameters: layer 0 (input, 4 neurons), layer 1 (softmax, 2 neurons)
+  // Preset  dense parameters: layer 0 (input, 4 neurons), layer 1 (softmax, 2 neurons)
   ANN::Parameters<double> denseParams;
   denseParams.weights.resize(2);
   denseParams.biases.resize(2);
@@ -52,7 +52,7 @@ static void testExactForwardBackwardCrossEntropy()
   denseParams.biases[1] = {0.0, 0.0};
   config.parameters.denseParams = denseParams;
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
 
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.learningRate = 1.0f;
@@ -77,7 +77,7 @@ static void testExactForwardBackwardCrossEntropy()
   CHECK_NEAR(p.convParams[0].filters[3], -0.11000499999958332, 1e-14, "exact conv filt[3]");
   CHECK_NEAR(p.convParams[0].biases[0], -0.050024999997916653, 1e-14, "exact conv bias");
 
-  // Dense weights (ANN layer 1) - values from C++ output
+  // Dense weights ( layer 1) - values from C++ output
   CHECK_NEAR(p.denseParams.weights[1][0][0], 0.12000999999916667, 1e-14, "exact dw[0][0]");
   CHECK_NEAR(p.denseParams.weights[1][0][1], -0.17498750000104168, 1e-14, "exact dw[0][1]");
   CHECK_NEAR(p.denseParams.weights[1][0][2], 0.33501749999854163, 1e-14, "exact dw[0][2]");
@@ -100,10 +100,10 @@ static void testExactForwardBackwardSquaredDifference()
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(1, sigmoid)
   // Squared-difference cost, SGD lr=1.0, 1 epoch, 1 sample, no shuffle, 1 thread
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -131,7 +131,7 @@ static void testExactForwardBackwardSquaredDifference()
   initConv.biases = {0.0};
   config.parameters.convParams = {initConv};
 
-  // Preset ANN dense parameters: layer 0 (input, 4 neurons), layer 1 (sigmoid, 1 neuron)
+  // Preset  dense parameters: layer 0 (input, 4 neurons), layer 1 (sigmoid, 1 neuron)
   ANN::Parameters<double> denseParams;
   denseParams.weights.resize(2);
   denseParams.biases.resize(2);
@@ -141,7 +141,7 @@ static void testExactForwardBackwardSquaredDifference()
   denseParams.biases[1] = {0.0};
   config.parameters.denseParams = denseParams;
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::SQUARED_DIFFERENCE;
+  config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
 
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.learningRate = 1.0f;
@@ -166,7 +166,7 @@ static void testExactForwardBackwardSquaredDifference()
   CHECK_NEAR(p.convParams[0].filters[3], -0.080070244406465471, 1e-14, "SD conv filt[3]");
   CHECK_NEAR(p.convParams[0].biases[0], 0.024912194491918171, 1e-14, "SD conv bias");
 
-  // Dense weights (ANN layer 1) - every value verified
+  // Dense weights ( layer 1) - every value verified
   CHECK_NEAR(p.denseParams.weights[1][0][0], 0.10996487779676728, 1e-14, "SD dw[0][0]");
   CHECK_NEAR(p.denseParams.weights[1][0][1], -0.18754390275404093, 1e-14, "SD dw[0][1]");
   CHECK_NEAR(p.denseParams.weights[1][0][2], 0.3174385361443427, 1e-14, "SD dw[0][2]");
@@ -183,10 +183,10 @@ static void testExactForwardBackwardWeightedCrossEntropy()
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(2, softmax)
   // Weighted cross-entropy cost [3.0, 0.5], SGD lr=1.0, 1 epoch, 1 sample
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -222,7 +222,7 @@ static void testExactForwardBackwardWeightedCrossEntropy()
   denseParams.biases[1] = {0.0, 0.0};
   config.parameters.denseParams = denseParams;
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0, 0.5};
 
   config.trainingConfig.numEpochs = 1;
@@ -247,7 +247,7 @@ static void testExactForwardBackwardWeightedCrossEntropy()
   CHECK_NEAR(p.convParams[0].filters[3], -0.13001499999875007, 1e-14, "WCE conv filt[3]");
   CHECK_NEAR(p.convParams[0].biases[0], -0.15007499999375007, 1e-14, "WCE conv bias");
 
-  // Dense weights (ANN layer 1) - every value verified
+  // Dense weights ( layer 1) - every value verified
   CHECK_NEAR(p.denseParams.weights[1][0][0], 0.16002999999750001, 1e-14, "WCE dw[0][0]");
   CHECK_NEAR(p.denseParams.weights[1][0][1], -0.12496250000312502, 1e-14, "WCE dw[0][1]");
   CHECK_NEAR(p.denseParams.weights[1][0][2], 0.40505249999562493, 1e-14, "WCE dw[0][2]");

@@ -3,7 +3,7 @@
 
 #include "NN-CLI_Types.hpp"
 
-#include <ANN_CoreConfig.hpp>
+#include <_CoreConfig.hpp>
 #include <CNN_CoreConfig.hpp>
 
 namespace NN_CLI
@@ -13,7 +13,7 @@ namespace NN_CLI
   {
     public:
       static void printCNN(const CNN::CoreConfig<float>& cnnConfig, ulong testSamples);
-      static void printANN(const ANN::CoreConfig<float>& annConfig, ulong testSamples);
+      static void print(const ANN::CoreConfig<float>& annConfig, ulong testSamples);
   };
 
 } // namespace NN_CLI

@@ -6,7 +6,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   // Training metadata (captured at runtime, saved with the model)
   template <typename T>

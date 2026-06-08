@@ -134,19 +134,19 @@ namespace NN_CLI
     std::string costStr;
 
     switch (costConfig.type) {
-    case CNN::CostFunctionType::CROSS_ENTROPY:
+    case Common::CostFunctionType::CROSS_ENTROPY:
       costStr = "Cross-entropy";
       break;
-    case CNN::CostFunctionType::SQUARED_DIFFERENCE:
+    case Common::CostFunctionType::SQUARED_DIFFERENCE:
       costStr = "Squared difference";
       break;
-    case CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+    case Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
       costStr = "Weighted squared difference";
       break;
     }
 
     // Optimizer string
-    std::string optStr = CNN::Optimizer<float>::typeToName(tc.optimizer.type);
+    std::string optStr = ::Optimizer<float>::typeToName(tc.optimizer.type);
     optStr[0] = toupper(optStr[0]);
 
     // Augmentation string
@@ -290,7 +290,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<std::string> TrainingSummary::collectANN(const ANN::CoreConfig<float>& annConfig,
+  std::vector<std::string> TrainingSummary::collect(const ANN::CoreConfig<float>& annConfig,
                                                        const AugmentationConfig& augConfig,
                                                        ulong numOriginalTrainSamples, ulong numTrainSamples,
                                                        ulong numValidationSamples, float validationRatio,
@@ -308,19 +308,19 @@ namespace NN_CLI
     std::string costStr;
 
     switch (costConfig.type) {
-    case ANN::CostFunctionType::CROSS_ENTROPY:
+    case Common::CostFunctionType::CROSS_ENTROPY:
       costStr = "Cross-entropy";
       break;
-    case ANN::CostFunctionType::SQUARED_DIFFERENCE:
+    case Common::CostFunctionType::SQUARED_DIFFERENCE:
       costStr = "Squared difference";
       break;
-    case ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+    case Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
       costStr = "Weighted squared difference";
       break;
     }
 
     // Optimizer string
-    std::string optStr = ANN::Optimizer<float>::typeToName(tc.optimizer.type);
+    std::string optStr = ::Optimizer<float>::typeToName(tc.optimizer.type);
     optStr[0] = toupper(optStr[0]);
 
     // Validation string
@@ -340,7 +340,7 @@ namespace NN_CLI
 
     std::vector<SummaryRow> rows;
     rows.push_back({"Device", deviceStr});
-    rows.push_back({"Network type", "ANN"});
+    rows.push_back({"Network type", ""});
     rows.push_back({"", ""}); // separator
     rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"", ""}); // separator

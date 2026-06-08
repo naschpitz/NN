@@ -9,14 +9,14 @@
 
 #include <json.hpp>
 
-// CNN/ANN library headers for direct instantiation tests
+// CNN/ library headers for direct instantiation tests
 #include <CNN_Core.hpp>
 #include <CNN_CoreConfig.hpp>
 #include <CNN_CoreGPU.hpp>
 #include <CNN_CoreGPUWorker.hpp>
 #include <CNN_GPUBufferManager.hpp>
 #include <CNN_Sample.hpp>
-#include <ANN_CoreGPUWorker.hpp>
+#include <_CoreGPUWorker.hpp>
 
 using NN_CLI::ulong;
 
@@ -73,11 +73,11 @@ static void testCNNGPUPredictDeepDiagnostic()
   //                                → Flatten → Dense(4,relu) → Dense(2,sigmoid)
   // Input: 1x8x8
   CNN::CoreConfig<float> trainConfig;
-  trainConfig.modeType = CNN::ModeType::TRAIN;
-  trainConfig.deviceType = CNN::DeviceType::CPU;
+  trainConfig.modeType = Common::ModeType::TRAIN;
+  trainConfig.deviceType = Common::DeviceType::CPU;
   trainConfig.inputShape = {1, 8, 8};
   trainConfig.progressReports = 0;
-  trainConfig.logLevel = CNN::LogLevel::ERROR;
+  trainConfig.logLevel = Common::LogLevel::ERROR;
 
   // CNN layers
   CNN::CNNLayerConfig conv1;
@@ -117,7 +117,7 @@ static void testCNNGPUPredictDeepDiagnostic()
   flatten.config = CNN::FlattenLayerConfig{};
 
   trainConfig.layersConfig.cnnLayers = {conv1, bn1, relu1, maxpool1, conv2, bn2, relu2, avgpool1, flatten};
-  trainConfig.layersConfig.denseLayers = {{4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SIGMOID}};
+  trainConfig.layersConfig.denseLayers = {{4, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SIGMOID}};
 
   trainConfig.trainingConfig.numEpochs = 50;
   trainConfig.trainingConfig.learningRate = 0.01f;
@@ -150,19 +150,19 @@ static void testCNNGPUPredictDeepDiagnostic()
 
   // Step 2: Create CPU predict core with trained parameters
   CNN::CoreConfig<float> cpuPredConfig;
-  cpuPredConfig.modeType = CNN::ModeType::PREDICT;
-  cpuPredConfig.deviceType = CNN::DeviceType::CPU;
+  cpuPredConfig.modeType = Common::ModeType::PREDICT;
+  cpuPredConfig.deviceType = Common::DeviceType::CPU;
   cpuPredConfig.inputShape = trainConfig.inputShape;
   cpuPredConfig.layersConfig = trainConfig.layersConfig;
   cpuPredConfig.parameters = trainedParams;
   cpuPredConfig.progressReports = 0;
-  cpuPredConfig.logLevel = CNN::LogLevel::ERROR;
+  cpuPredConfig.logLevel = Common::LogLevel::ERROR;
 
   auto cpuCore = CNN::Core<float>::makeCore(cpuPredConfig);
 
   // Step 3: Create GPU predict core with same trained parameters
   CNN::CoreConfig<float> gpuPredConfig = cpuPredConfig;
-  gpuPredConfig.deviceType = CNN::DeviceType::GPU;
+  gpuPredConfig.deviceType = Common::DeviceType::GPU;
 
   auto gpuCoreBase = CNN::Core<float>::makeCore(gpuPredConfig);
   auto* gpuCore = dynamic_cast<CNN::CoreGPU<float>*>(gpuCoreBase.get());
@@ -217,7 +217,7 @@ static void testCNNGPUPredictDeepDiagnostic()
       paramsOk = false;
   }
 
-  // ANN weights and biases
+  //  weights and biases
   for (size_t li = 0; li < cpuParams.denseParams.weights.size(); li++) {
     for (size_t ni = 0; ni < cpuParams.denseParams.weights[li].size(); ni++) {
       if (!compareVectors("ann.weights[" + std::to_string(li) + "][" + std::to_string(ni) + "]",
@@ -355,27 +355,27 @@ static void testCNNGPUPredictDeepDiagnostic()
 
   CHECK(!anyLayerAllZero, "Deep diag: no intermediate layer is all zeros on GPU");
 
-  // Step 7: Read ANN GPU buffers and compare with CPU ANN output
+  // Step 7: Read  GPU buffers and compare with CPU  output
   auto* annGPUWorker = bm.annGPUWorker.get();
 
   if (annGPUWorker) {
     auto& annBM = *annGPUWorker->bufferManager;
 
-    // Read ANN activations from GPU
-    ulong totalANNNeurons = 0;
+    // Read  activations from GPU
+    ulong totalNeurons = 0;
 
     for (size_t li = 0; li < cpuParams.denseParams.weights.size(); li++)
-      totalANNNeurons += cpuParams.denseParams.weights[li].size();
+      totalNeurons += cpuParams.denseParams.weights[li].size();
 
     // Add input layer neurons (= flattenSize)
-    totalANNNeurons += bm.flattenSize;
+    totalNeurons += bm.flattenSize;
 
-    if (totalANNNeurons > 0) {
-      std::vector<float> gpuANNActvs(totalANNNeurons);
-      annGPUWorker->readGPUBuffer<float>("actvs", gpuANNActvs, 0);
+    if (totalNeurons > 0) {
+      std::vector<float> gpuActvs(totalNeurons);
+      annGPUWorker->readGPUBuffer<float>("actvs", gpuActvs, 0);
 
-      // Check ANN input layer (should be the flattened CNN output)
-      std::vector<float> gpuANNInput(gpuANNActvs.begin(), gpuANNActvs.begin() + static_cast<long>(bm.flattenSize));
+      // Check  input layer (should be the flattened CNN output)
+      std::vector<float> gpuInput(gpuActvs.begin(), gpuActvs.begin() + static_cast<long>(bm.flattenSize));
 
       // The CNN output on GPU should be at the last CNN layer's activation
       ulong lastCNNLayerIdx = bm.layerInfos.size() - 1;
@@ -384,50 +384,50 @@ static void testCNNGPUPredictDeepDiagnostic()
       std::vector<float> gpuCNNOutput(gpuAllActvs.begin() + static_cast<long>(lastOffset),
                                       gpuAllActvs.begin() + static_cast<long>(lastOffset + lastSize));
 
-      bool cnnToAnnBridgeOk = compareVectors("cnn_to_ann_bridge", gpuCNNOutput, gpuANNInput, 1e-6f);
-      CHECK(cnnToAnnBridgeOk, "Deep diag: CNN→ANN bridge (flatten output == ANN input)");
+      bool cnnToAnnBridgeOk = compareVectors("cnn_to_ann_bridge", gpuCNNOutput, gpuInput, 1e-6f);
+      CHECK(cnnToAnnBridgeOk, "Deep diag: CNN→ bridge (flatten output ==  input)");
 
-      // Read ANN weights from GPU
-      ulong totalANNWeights = 0;
+      // Read  weights from GPU
+      ulong totalWeights = 0;
 
       for (size_t li = 0; li < cpuParams.denseParams.weights.size(); li++)
 
         for (size_t ni = 0; ni < cpuParams.denseParams.weights[li].size(); ni++)
-          totalANNWeights += cpuParams.denseParams.weights[li][ni].size();
+          totalWeights += cpuParams.denseParams.weights[li][ni].size();
 
-      if (totalANNWeights > 0) {
-        std::vector<float> gpuANNWeights(totalANNWeights);
-        annGPUWorker->readGPUBuffer<float>("weights", gpuANNWeights, 0);
+      if (totalWeights > 0) {
+        std::vector<float> gpuWeights(totalWeights);
+        annGPUWorker->readGPUBuffer<float>("weights", gpuWeights, 0);
 
-        std::vector<float> cpuFlatANNWeights;
+        std::vector<float> cpuFlatWeights;
 
         for (size_t li = 0; li < cpuParams.denseParams.weights.size(); li++)
 
           for (size_t ni = 0; ni < cpuParams.denseParams.weights[li].size(); ni++)
-            cpuFlatANNWeights.insert(cpuFlatANNWeights.end(), cpuParams.denseParams.weights[li][ni].begin(),
+            cpuFlatWeights.insert(cpuFlatWeights.end(), cpuParams.denseParams.weights[li][ni].begin(),
                                      cpuParams.denseParams.weights[li][ni].end());
 
-        CHECK(compareVectors("ann_gpu_weights", cpuFlatANNWeights, gpuANNWeights),
-              "Deep diag: ANN GPU weights match CPU");
+        CHECK(compareVectors("ann_gpu_weights", cpuFlatWeights, gpuWeights),
+              "Deep diag:  GPU weights match CPU");
       }
 
-      // Read ANN biases from GPU
-      ulong totalANNBiases = 0;
+      // Read  biases from GPU
+      ulong totalBiases = 0;
 
       for (size_t li = 0; li < cpuParams.denseParams.biases.size(); li++)
-        totalANNBiases += cpuParams.denseParams.biases[li].size();
+        totalBiases += cpuParams.denseParams.biases[li].size();
 
-      if (totalANNBiases > 0) {
-        std::vector<float> gpuANNBiases(totalANNBiases);
-        annGPUWorker->readGPUBuffer<float>("biases", gpuANNBiases, 0);
+      if (totalBiases > 0) {
+        std::vector<float> gpuBiases(totalBiases);
+        annGPUWorker->readGPUBuffer<float>("biases", gpuBiases, 0);
 
-        std::vector<float> cpuFlatANNBiases;
+        std::vector<float> cpuFlatBiases;
 
         for (size_t li = 0; li < cpuParams.denseParams.biases.size(); li++)
-          cpuFlatANNBiases.insert(cpuFlatANNBiases.end(), cpuParams.denseParams.biases[li].begin(),
+          cpuFlatBiases.insert(cpuFlatBiases.end(), cpuParams.denseParams.biases[li].begin(),
                                   cpuParams.denseParams.biases[li].end());
 
-        CHECK(compareVectors("ann_gpu_biases", cpuFlatANNBiases, gpuANNBiases), "Deep diag: ANN GPU biases match CPU");
+        CHECK(compareVectors("ann_gpu_biases", cpuFlatBiases, gpuBiases), "Deep diag:  GPU biases match CPU");
       }
     }
   }

@@ -6,10 +6,10 @@ static void testCostFunctionConfigGetter()
 
   // Default config
   CNN::CoreConfig<double> configDefault;
-  configDefault.modeType = CNN::ModeType::PREDICT;
-  configDefault.deviceType = CNN::DeviceType::CPU;
+  configDefault.modeType = Common::ModeType::PREDICT;
+  configDefault.deviceType = Common::DeviceType::CPU;
   configDefault.inputShape = {1, 5, 5};
-  configDefault.logLevel = CNN::LogLevel::ERROR;
+  configDefault.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -26,17 +26,17 @@ static void testCostFunctionConfigGetter()
 
   auto coreDefault = CNN::Core<double>::makeCore(configDefault);
   const auto& cfcDefault = coreDefault->getCostFunctionConfig();
-  CHECK(cfcDefault.type == CNN::CostFunctionType::SQUARED_DIFFERENCE, "CNN default type is squaredDifference");
+  CHECK(cfcDefault.type == Common::CostFunctionType::SQUARED_DIFFERENCE, "CNN default type is squaredDifference");
   CHECK(cfcDefault.weights.empty(), "CNN default weights is empty");
 
   // Weighted config
   CNN::CoreConfig<double> configWeighted = configDefault;
-  configWeighted.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  configWeighted.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
   configWeighted.costFunctionConfig.weights = {5.0, 0.2};
 
   auto coreWeighted = CNN::Core<double>::makeCore(configWeighted);
   const auto& cfcWeighted = coreWeighted->getCostFunctionConfig();
-  CHECK(cfcWeighted.type == CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "CNN weighted type");
+  CHECK(cfcWeighted.type == Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "CNN weighted type");
   CHECK(cfcWeighted.weights.size() == 2, "CNN weighted weights size = 2");
   CHECK_NEAR(cfcWeighted.weights[0], 5.0, 1e-10, "CNN weight[0] = 5.0");
   CHECK_NEAR(cfcWeighted.weights[1], 0.2, 1e-10, "CNN weight[1] = 0.2");
@@ -50,10 +50,10 @@ static void testWeightedLossTraining()
 
   // 1x5x5 → Conv(1,3x3) → ReLU → Flatten(9) → Dense(2, sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -82,7 +82,7 @@ static void testWeightedLossTraining()
   config.progressReports = 0;
 
   // Apply weighted loss
-  config.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  config.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
   config.costFunctionConfig.weights = {5.0, 1.0};
 
   CNN::Samples<double> samples(2);
@@ -95,7 +95,7 @@ static void testWeightedLossTraining()
   core->train(samples.size(), CNN::makeSampleProvider(samples));
 
   // Verify training completed and test produces valid results
-  CNN::TestResult<double> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<double> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
   CHECK(result.numSamples == 2, "weighted CNN: tested 2 samples");
   CHECK(result.averageLoss >= 0.0, "weighted CNN: loss non-negative");
   CHECK(std::isfinite(result.averageLoss), "weighted CNN: loss is finite");
@@ -103,7 +103,7 @@ static void testWeightedLossTraining()
 
   // Verify getter returns correct config after training
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "weighted CNN: type preserved");
+  CHECK(cfc.type == Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "weighted CNN: type preserved");
   CHECK(cfc.weights.size() == 2, "weighted CNN: weights preserved");
 
   std::cout << "  weighted avgLoss=" << result.averageLoss << std::endl;
@@ -115,7 +115,7 @@ static void testShuffleSamplesDefault()
 {
   std::cout << "--- testShuffleSamplesDefault ---" << std::endl;
 
-  CNN::TrainingConfig<double> tc;
+  Common::TrainingConfig<double> tc;
   CHECK(tc.shuffleSamples == true, "CNN shuffleSamples default is true");
 }
 
@@ -128,10 +128,10 @@ static void testShuffleSamplesTraining()
   // Train with shuffle=true and shuffle=false, both should converge
   auto makeConfig = [](bool shuffle) {
     CNN::CoreConfig<double> config;
-    config.modeType = CNN::ModeType::TRAIN;
-    config.deviceType = CNN::DeviceType::CPU;
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = Common::DeviceType::CPU;
     config.inputShape = {1, 5, 5};
-    config.logLevel = CNN::LogLevel::ERROR;
+    config.logLevel = Common::LogLevel::ERROR;
 
     CNN::CNNLayerConfig convLayer;
     convLayer.type = CNN::LayerType::CONV;

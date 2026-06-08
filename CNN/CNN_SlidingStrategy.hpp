@@ -8,6 +8,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   enum class SlidingStrategyType {
     VALID, // No padding
     FULL, // Filter allowed outside input (pad = kernel - 1)
