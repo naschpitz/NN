@@ -268,8 +268,8 @@ h2[id]::before, h3[id]::before { content: ""; display: block; height: calc(var(-
     transitively builds the libraries they need.</p>
 
     <h3>Build everything — <code>build.sh</code></h3>
-    <pre><code><span class="comment"># Static Qt6 (default)</span>
-    ./build.sh
+    <pre><code><span class="comment"># Static Qt6</span>
+    ./build.sh static
 
     <span class="comment"># Shared Qt6</span>
     ./build.sh shared</code></pre>
@@ -296,7 +296,7 @@ h2[id]::before, h3[id]::before { content: ""; display: block; height: calc(var(-
     }</code></pre>
     <div class="tip-box">
       This file is gitignored and machine-specific — keep it local. After creating it,
-      run <code>./build.sh</code> or <code>./build.sh shared</code> to build all components.
+      run <code>./build.sh static</code> or <code>./build.sh shared</code> to build all components.
       For single-component builds with a custom Qt6, pass
       <code>-DCMAKE_PREFIX_PATH=/path/to/Qt6</code> directly to cmake.
     </div>
