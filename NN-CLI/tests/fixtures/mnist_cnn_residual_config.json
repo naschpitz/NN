@@ -1,0 +1,49 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "progressReports": 0,
+  "saveModelInterval": 0,
+  "inputShape": { "c": 1, "h": 28, "w": 28 },
+  "convolutionalLayers": [
+    { "type": "conv", "numFilters": 16, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
+    { "type": "instancenorm" },
+    { "type": "relu" },
+
+    { "type": "residual_start" },
+    { "type": "conv", "numFilters": 16, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
+    { "type": "instancenorm" },
+    { "type": "relu" },
+    { "type": "conv", "numFilters": 16, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
+    { "type": "instancenorm" },
+    { "type": "relu" },
+    { "type": "residual_end" },
+
+    { "type": "pool", "poolType": "max", "poolH": 2, "poolW": 2, "strideY": 2, "strideX": 2 },
+
+    { "type": "residual_start" },
+    { "type": "conv", "numFilters": 32, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
+    { "type": "instancenorm" },
+    { "type": "relu" },
+    { "type": "conv", "numFilters": 32, "filterH": 3, "filterW": 3, "strideY": 1, "strideX": 1, "slidingStrategy": "same" },
+    { "type": "instancenorm" },
+    { "type": "relu" },
+    { "type": "residual_end" },
+
+    { "type": "globalavgpool" },
+    { "type": "flatten" }
+  ],
+  "denseLayers": [
+    { "numNeurons": 10, "actvFunc": "softmax" }
+  ],
+  "costFunction": {
+    "type": "crossEntropy"
+  },
+  "training": {
+    "numEpochs": 10,
+    "batchSize": 64,
+    "learningRate": 0.001,
+    "shuffleSeed": 42,
+    "optimizer": { "type": "adam" }
+  }
+}
+

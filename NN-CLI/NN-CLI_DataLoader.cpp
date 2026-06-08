@@ -1,0 +1,574 @@
+#include "NN-CLI_DataLoader.hpp"
+
+#include "NN-CLI_GpuAugmenter.hpp"
+
+#include <QFile>
+#include <QFileInfo>
+
+#include <json.hpp>
+
+#include <QThreadPool>
+#include <QtConcurrent>
+
+#include <algorithm>
+#include <atomic>
+#include <iostream>
+#include <stdexcept>
+
+namespace NN_CLI
+{
+
+  //===================================================================================================================//
+  //-- loadManifest --//
+  //===================================================================================================================//
+
+  template <typename SampleT>
+  void DataLoader<SampleT>::loadManifest(const std::string& samplesFilePath, const IOConfig& ioConfig, int inputC,
+                                         int inputH, int inputW, int outputC, int outputH, int outputW)
+  {
+    this->ioConfig = ioConfig;
+
+    // Image dimensions are stored for deferred (on-demand) sample loading:
+    // - Input dimensions (C, H, W): used by ImageLoader to resize images to the network's expected
+    //   input size, and by augmentation transforms (rotation, flipping, etc.) that need the spatial layout.
+    // - Output dimensions (C, H, W): used when outputType is IMAGE (e.g., segmentation or autoencoders)
+    //   to load and resize output images to the expected target size.
+    this->inputC = inputC;
+    this->inputH = inputH;
+    this->inputW = inputW;
+    this->outputC = outputC;
+    this->outputH = outputH;
+    this->outputW = outputW;
+    this->baseDir = QFileInfo(QString::fromStdString(samplesFilePath)).absolutePath().toStdString();
+
+    QFile file(QString::fromStdString(samplesFilePath));
+
+    if (!file.open(QIODevice::ReadOnly))
+      throw std::runtime_error("Failed to open samples file: " + samplesFilePath);
+
+    QByteArray fileData = file.readAll();
+    nlohmann::json json = nlohmann::json::parse(fileData.toStdString());
+    const nlohmann::json& samplesArray = json.at("samples");
+
+    this->manifest.clear();
+    this->manifest.reserve(samplesArray.size());
+
+    for (const auto& sampleJson : samplesArray) {
+      SampleManifest entry;
+
+      // Store input reference (path or raw data — but do NOT load images)
+      if (ioConfig.inputType == DataType::IMAGE) {
+        entry.inputPath = sampleJson.at("input").get<std::string>();
+        entry.inputIsImage = true;
+      } else {
+        entry.inputData = sampleJson.at("input").get<std::vector<float>>();
+        entry.inputIsImage = false;
+      }
+
+      // Store output reference
+      if (ioConfig.outputType == DataType::IMAGE) {
+        entry.outputPath = sampleJson.at("output").get<std::string>();
+        entry.outputIsImage = true;
+      } else {
+        entry.output = sampleJson.at("output").get<std::vector<float>>();
+        entry.outputIsImage = false;
+      }
+
+      this->manifest.push_back(std::move(entry));
+    }
+
+    // Initialize entries as 1:1 mapping to manifest (no augmentation yet)
+    this->fromMemory = false;
+    this->memorySamples.clear();
+    this->entries.clear();
+    this->entries.reserve(this->manifest.size());
+
+    for (ulong i = 0; i < this->manifest.size(); i++) {
+      this->entries.push_back({i, false});
+    }
+  }
+
+  //===================================================================================================================//
+  //-- loadFromMemory --//
+  //===================================================================================================================//
+
+  template <typename SampleT>
+  void DataLoader<SampleT>::loadFromMemory(std::vector<SampleT>&& samples, int inputC, int inputH, int inputW)
+  {
+    this->inputC = inputC;
+    this->inputH = inputH;
+    this->inputW = inputW;
+    this->fromMemory = true;
+    this->manifest.clear();
+    this->memorySamples = std::move(samples);
+
+    this->entries.clear();
+    this->entries.reserve(this->memorySamples.size());
+
+    for (ulong i = 0; i < this->memorySamples.size(); i++) {
+      this->entries.push_back({i, false});
+    }
+  }
+
+  //===================================================================================================================//
+  //-- planAugmentation --//
+  //===================================================================================================================//
+
+  // Helper to get the output vector from a sample (works for both ANN and CNN).
+  static const std::vector<float>& sampleOutput(const ANN::Sample<float>& s)
+  {
+    return s.output;
+  }
+
+  static const std::vector<float>& sampleOutput(const CNN::Sample<float>& s)
+  {
+    return s.output;
+  }
+
+  // Helper to get a mutable reference to a sample's input data (for GPU augmentation).
+  static std::vector<float>& sampleInputData(ANN::Sample<float>& s)
+  {
+    return s.input;
+  }
+
+  static std::vector<float>& sampleInputData(CNN::Sample<float>& s)
+  {
+    return s.input.data;
+  }
+
+  template <typename SampleT>
+  std::vector<ulong> DataLoader<SampleT>::planAugmentation(ulong augmentationFactor, bool balanceAugmentation,
+                                                           bool fullAugmentation,
+                                                           const std::vector<ulong>& subsetIndices)
+  {
+    bool useSubset = !subsetIndices.empty();
+
+    if (augmentationFactor == 0 && !balanceAugmentation && !fullAugmentation)
+      return useSubset ? subsetIndices : std::vector<ulong>{};
+
+    auto getClassIndex = [](const std::vector<float>& output) -> ulong {
+      return static_cast<ulong>(std::distance(output.begin(), std::max_element(output.begin(), output.end())));
+    };
+
+    // Group entries by class — either from subset or from all original entries
+    std::map<ulong, std::vector<ulong>> classEntries;
+
+    if (useSubset) {
+      for (ulong entryIdx : subsetIndices) {
+        const AugmentedEntry& entry = this->entries[entryIdx];
+        const std::vector<float>& output = this->fromMemory ? sampleOutput(this->memorySamples[entry.sourceIndex])
+                                                            : this->manifest[entry.sourceIndex].output;
+        ulong cls = getClassIndex(output);
+        classEntries[cls].push_back(entryIdx);
+      }
+    } else {
+      ulong originalCount = this->fromMemory ? this->memorySamples.size() : this->manifest.size();
+
+      if (originalCount == 0)
+        return {};
+
+      for (ulong i = 0; i < originalCount; i++) {
+        const std::vector<float>& output =
+          this->fromMemory ? sampleOutput(this->memorySamples[i]) : this->manifest[i].output;
+        ulong cls = getClassIndex(output);
+        classEntries[cls].push_back(i);
+      }
+    }
+
+    ulong maxClassCount = 0;
+
+    for (const auto& [cls, indices] : classEntries)
+      maxClassCount = std::max(maxClassCount, static_cast<ulong>(indices.size()));
+
+    std::mt19937 rng(42);
+    std::vector<ulong> result = useSubset ? subsetIndices : std::vector<ulong>{};
+
+    for (const auto& [cls, indices] : classEntries) {
+      ulong currentCount = indices.size();
+      ulong targetCount = currentCount;
+
+      if (augmentationFactor > 0)
+        targetCount = currentCount * augmentationFactor;
+
+      if (balanceAugmentation) {
+        ulong balancedTarget = maxClassCount;
+
+        if (augmentationFactor > 0)
+          balancedTarget = maxClassCount * augmentationFactor;
+
+        targetCount = std::max(targetCount, balancedTarget);
+      }
+
+      ulong toGenerate = (targetCount > currentCount) ? (targetCount - currentCount) : 0;
+
+      for (ulong i = 0; i < toGenerate; i++) {
+        std::uniform_int_distribution<ulong> dist(0, currentCount - 1);
+        ulong srcEntryIdx = indices[dist(rng)];
+        ulong srcSourceIdx = useSubset ? this->entries[srcEntryIdx].sourceIndex : srcEntryIdx;
+        this->entries.push_back({srcSourceIdx, true});
+
+        if (useSubset)
+          result.push_back(this->entries.size() - 1);
+      }
+    }
+
+    // fullAugmentation: also mark the original training entries as augmented (the
+    // oversampled copies above are already marked). Only the training subset (or the
+    // whole original set when no validation split) is touched — validation entries
+    // are never augmented.
+    if (fullAugmentation) {
+      if (useSubset) {
+        for (ulong idx : subsetIndices)
+          this->entries[idx].augmented = true;
+      } else {
+        ulong originalCount = this->fromMemory ? this->memorySamples.size() : this->manifest.size();
+
+        for (ulong i = 0; i < originalCount; i++)
+          this->entries[i].augmented = true;
+      }
+    }
+
+    return result;
+  }
+
+  //===================================================================================================================//
+  //-- getAllOutputs --//
+  //===================================================================================================================//
+
+  template <typename SampleT>
+  std::vector<std::vector<float>> DataLoader<SampleT>::getAllOutputs() const
+  {
+    std::vector<std::vector<float>> outputs;
+    outputs.reserve(this->entries.size());
+
+    for (const auto& entry : this->entries) {
+      if (this->fromMemory)
+        outputs.push_back(sampleOutput(this->memorySamples[entry.sourceIndex]));
+      else
+        outputs.push_back(this->manifest[entry.sourceIndex].output);
+    }
+
+    return outputs;
+  }
+
+  //===================================================================================================================//
+  //-- makeSampleProvider --//
+  //===================================================================================================================//
+
+  template <typename SampleT>
+  std::vector<SampleT> DataLoader<SampleT>::loadBatch(const std::vector<ulong>& entryIndices,
+                                                      const AugmentationTransforms& transforms,
+                                                      float augmentationProbability, ulong batchIndex,
+                                                      ulong totalBatches, SampleLoadType loadType) const
+  {
+    ulong count = entryIndices.size();
+    std::vector<SampleT> batch(count);
+
+    int numThreads = std::min(this->ioPool->maxThreadCount(), static_cast<int>(count));
+
+    ulong chunkSize = count / numThreads;
+    ulong remainder = count % numThreads;
+
+    std::atomic<ulong> loaded{0};
+    ulong reportInterval = std::max(static_cast<ulong>(1), count / 100);
+    auto onSample = [this, &loaded, count, batchIndex, totalBatches, reportInterval, loadType]() {
+      ulong n = loaded.fetch_add(1, std::memory_order_relaxed) + 1;
+
+      if (this->loadingCallback && (n == count || n % reportInterval == 0))
+        this->loadingCallback(n, count, batchIndex, totalBatches, loadType);
+    };
+
+    QVector<QFuture<void>> futures;
+    futures.reserve(numThreads);
+
+    ulong offset = 0;
+
+    for (int t = 0; t < numThreads; t++) {
+      ulong thisChunk = chunkSize + (static_cast<ulong>(t) < remainder ? 1 : 0);
+      ulong chunkStart = offset;
+      ulong chunkEnd = offset + thisChunk;
+      offset = chunkEnd;
+
+      futures.append(
+        QtConcurrent::run(this->ioPool.get(), [this, &entryIndices, &batch, &transforms, augmentationProbability,
+                                               chunkStart, chunkEnd, &onSample]() {
+          std::mt19937 rng(std::random_device{}());
+
+          for (ulong i = chunkStart; i < chunkEnd; i++) {
+            batch[i] = this->loadSample(entryIndices[i], rng, transforms, augmentationProbability);
+            onSample();
+          }
+        }));
+    }
+
+    for (auto& f : futures)
+      f.waitForFinished();
+
+    // GPU augmentation: samples were decoded above without augmentation. Gather the
+    // augmented entries' image data, augment the whole group on a GPU, scatter back.
+    if (this->gpuAugmenterPool != nullptr && !this->gpuAugmenterPool->empty()) {
+      ulong elems = static_cast<ulong>(this->inputC) * this->inputH * this->inputW;
+
+      if (elems > 0) {
+        std::vector<ulong> augPos;
+
+        for (ulong i = 0; i < count; i++) {
+          if (this->entries[entryIndices[i]].augmented)
+            augPos.push_back(i);
+        }
+
+        if (!augPos.empty()) {
+          std::vector<float> buf(augPos.size() * elems);
+
+          for (ulong j = 0; j < augPos.size(); j++) {
+            const std::vector<float>& in = sampleInputData(batch[augPos[j]]);
+            std::copy(in.begin(), in.end(), buf.begin() + j * elems);
+          }
+
+          this->gpuAugmenterPool->augment(buf, augPos.size(), transforms, augmentationProbability);
+
+          for (ulong j = 0; j < augPos.size(); j++) {
+            std::vector<float>& in = sampleInputData(batch[augPos[j]]);
+            std::copy(buf.begin() + j * elems, buf.begin() + (j + 1) * elems, in.begin());
+          }
+        }
+      }
+    }
+
+    return batch;
+  }
+
+  template <typename SampleT>
+  typename DataLoader<SampleT>::ProviderT
+  DataLoader<SampleT>::makeSampleProvider(const AugmentationTransforms& transforms, float augmentationProbability,
+                                          SampleLoadType loadType) const
+  {
+    // Dedicated single-thread pool for prefetch orchestration — independent of
+    // both the global pool (used by training) and ioPool (used by loadBatch).
+    auto prefetchPool = std::make_shared<QThreadPool>();
+    prefetchPool->setMaxThreadCount(1);
+
+    using BatchPtr = std::shared_ptr<std::vector<SampleT>>;
+    auto prefetch = std::make_shared<QFuture<BatchPtr>>();
+    auto hasPrefetch = std::make_shared<bool>(false);
+
+    return [this, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability, loadType](
+             const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
+      ulong numSamples = sampleIndices.size();
+      ulong start = batchIndex * batchSize;
+      ulong end = std::min(start + batchSize, numSamples);
+      ulong totalBatches = (numSamples + batchSize - 1) / batchSize;
+      ulong batchNum = batchIndex + 1;
+
+      BatchPtr batchPtr;
+
+      if (*hasPrefetch) {
+        prefetch->waitForFinished();
+        batchPtr = prefetch->result();
+        *hasPrefetch = false;
+      } else {
+        std::vector<ulong> indices(sampleIndices.begin() + start, sampleIndices.begin() + end);
+        batchPtr = std::make_shared<std::vector<SampleT>>(
+          this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches, loadType));
+      }
+
+      ulong nextStart = end;
+
+      if (nextStart < numSamples) {
+        ulong nextEnd = std::min(nextStart + batchSize, numSamples);
+        std::vector<ulong> nextIndices(sampleIndices.begin() + nextStart, sampleIndices.begin() + nextEnd);
+
+        *prefetch =
+          QtConcurrent::run(prefetchPool.get(),
+                            [this, indices = std::move(nextIndices), transforms, augmentationProbability, batchNum,
+                             totalBatches, loadType]() -> BatchPtr {
+                              ulong nextBatchNum = batchNum + 1;
+                              return std::make_shared<std::vector<SampleT>>(this->loadBatch(
+                                indices, transforms, augmentationProbability, nextBatchNum, totalBatches, loadType));
+                            });
+
+        *hasPrefetch = true;
+      }
+
+      return std::move(*batchPtr);
+    };
+  }
+
+  //===================================================================================================================//
+  //-- makeSampleProvider (subset) --//
+  //===================================================================================================================//
+
+  template <typename SampleT>
+  typename DataLoader<SampleT>::ProviderT
+  DataLoader<SampleT>::makeSampleProvider(const std::vector<ulong>& subsetIndices,
+                                          const AugmentationTransforms& transforms, float augmentationProbability,
+                                          SampleLoadType loadType) const
+  {
+    // The subset provider remaps: the library sees indices 0..N-1, but we translate
+    // them to the actual entry indices in subsetIndices.
+    auto subsetPtr = std::make_shared<std::vector<ulong>>(subsetIndices);
+
+    auto prefetchPool = std::make_shared<QThreadPool>();
+    prefetchPool->setMaxThreadCount(1);
+
+    using BatchPtr = std::shared_ptr<std::vector<SampleT>>;
+    auto prefetch = std::make_shared<QFuture<BatchPtr>>();
+    auto hasPrefetch = std::make_shared<bool>(false);
+
+    return [this, subsetPtr, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability, loadType](
+             const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
+      ulong numSamples = sampleIndices.size();
+      ulong start = batchIndex * batchSize;
+      ulong end = std::min(start + batchSize, numSamples);
+      ulong totalBatches = (numSamples + batchSize - 1) / batchSize;
+      ulong batchNum = batchIndex + 1;
+
+      // Remap: sampleIndices contains shuffled indices 0..N-1 into the subset,
+      // and subsetPtr maps those to actual entry indices.
+      auto remapBatch = [&subsetPtr](const std::vector<ulong>& sampleIndices, ulong from, ulong to) {
+        std::vector<ulong> mapped;
+        mapped.reserve(to - from);
+
+        for (ulong i = from; i < to; i++)
+          mapped.push_back((*subsetPtr)[sampleIndices[i]]);
+
+        return mapped;
+      };
+
+      BatchPtr batchPtr;
+
+      if (*hasPrefetch) {
+        prefetch->waitForFinished();
+        batchPtr = prefetch->result();
+        *hasPrefetch = false;
+      } else {
+        std::vector<ulong> indices = remapBatch(sampleIndices, start, end);
+        batchPtr = std::make_shared<std::vector<SampleT>>(
+          this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches, loadType));
+      }
+
+      ulong nextStart = end;
+
+      if (nextStart < numSamples) {
+        ulong nextEnd = std::min(nextStart + batchSize, numSamples);
+
+        *prefetch =
+          QtConcurrent::run(prefetchPool.get(),
+                            [this, indices = remapBatch(sampleIndices, nextStart, nextEnd), transforms,
+                             augmentationProbability, batchNum, totalBatches, loadType]() -> BatchPtr {
+                              ulong nextBatchNum = batchNum + 1;
+                              return std::make_shared<std::vector<SampleT>>(this->loadBatch(
+                                indices, transforms, augmentationProbability, nextBatchNum, totalBatches, loadType));
+                            });
+
+        *hasPrefetch = true;
+      }
+
+      return std::move(*batchPtr);
+    };
+  }
+
+  //===================================================================================================================//
+  //-- loadSample specializations --//
+  //===================================================================================================================//
+
+  template <>
+  ANN::Sample<float> DataLoader<ANN::Sample<float>>::loadSample(ulong entryIndex, std::mt19937& rng,
+                                                                const AugmentationTransforms& transforms,
+                                                                float augmentationProbability) const
+  {
+    const AugmentedEntry& entry = this->entries[entryIndex];
+
+    ANN::Sample<float> sample;
+
+    if (this->fromMemory) {
+      sample = this->memorySamples[entry.sourceIndex]; // copy
+    } else {
+      const SampleManifest& m = this->manifest[entry.sourceIndex];
+
+      if (m.inputIsImage) {
+        std::string fullPath = ImageLoader::resolvePath(m.inputPath, this->baseDir);
+        sample.input = ImageLoader::loadImage(fullPath, this->inputC, this->inputH, this->inputW);
+      } else {
+        sample.input = m.inputData;
+      }
+
+      if (m.outputIsImage) {
+        std::string fullPath = ImageLoader::resolvePath(m.outputPath, this->baseDir);
+        sample.output = ImageLoader::loadImage(fullPath, this->outputC, this->outputH, this->outputW);
+      } else {
+        sample.output = m.output;
+      }
+    }
+
+    // Apply augmentation if this is an augmented entry
+    // CPU augmentation; skipped when a GPU augmenter pool will augment the batch instead.
+    if (entry.augmented && this->gpuAugmenterPool == nullptr) {
+      bool hasImageShape = (this->inputC > 0 && this->inputH > 0 && this->inputW > 0);
+
+      if (hasImageShape) {
+        ImageLoader::applyRandomTransforms(sample.input, this->inputC, this->inputH, this->inputW, rng, transforms,
+                                           augmentationProbability);
+      } else if (transforms.gaussianNoise > 0.0f) {
+        ImageLoader::addGaussianNoise(sample.input, transforms.gaussianNoise, rng);
+      }
+    }
+
+    return sample;
+  }
+
+  //===================================================================================================================//
+
+  template <>
+  CNN::Sample<float> DataLoader<CNN::Sample<float>>::loadSample(ulong entryIndex, std::mt19937& rng,
+                                                                const AugmentationTransforms& transforms,
+                                                                float augmentationProbability) const
+  {
+    const AugmentedEntry& entry = this->entries[entryIndex];
+
+    CNN::Sample<float> sample;
+
+    if (this->fromMemory) {
+      sample = this->memorySamples[entry.sourceIndex]; // copy
+    } else {
+      const SampleManifest& m = this->manifest[entry.sourceIndex];
+
+      if (m.inputIsImage) {
+        std::string fullPath = ImageLoader::resolvePath(m.inputPath, this->baseDir);
+        std::vector<float> flatInput = ImageLoader::loadImage(fullPath, this->inputC, this->inputH, this->inputW);
+        CNN::Shape3D shape{static_cast<ulong>(this->inputC), static_cast<ulong>(this->inputH),
+                           static_cast<ulong>(this->inputW)};
+        sample.input = CNN::Input<float>(shape);
+        sample.input.data = std::move(flatInput);
+      } else {
+        CNN::Shape3D shape{static_cast<ulong>(this->inputC), static_cast<ulong>(this->inputH),
+                           static_cast<ulong>(this->inputW)};
+        sample.input = CNN::Input<float>(shape);
+        sample.input.data = m.inputData;
+      }
+
+      if (m.outputIsImage) {
+        std::string fullPath = ImageLoader::resolvePath(m.outputPath, this->baseDir);
+        sample.output = ImageLoader::loadImage(fullPath, this->outputC, this->outputH, this->outputW);
+      } else {
+        sample.output = m.output;
+      }
+    }
+
+    // CPU augmentation; skipped when a GPU augmenter pool will augment the batch instead.
+    if (entry.augmented && this->gpuAugmenterPool == nullptr) {
+      ImageLoader::applyRandomTransforms(sample.input.data, this->inputC, this->inputH, this->inputW, rng, transforms,
+                                         augmentationProbability);
+    }
+
+    return sample;
+  }
+
+  //===================================================================================================================//
+  //-- Explicit template instantiations --//
+  //===================================================================================================================//
+
+  template class DataLoader<ANN::Sample<float>>;
+  template class DataLoader<CNN::Sample<float>>;
+
+} // namespace NN_CLI

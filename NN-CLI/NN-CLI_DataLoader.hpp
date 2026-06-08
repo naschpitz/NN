@@ -1,0 +1,146 @@
+#ifndef NN_CLI_DATALOADER_HPP
+#define NN_CLI_DATALOADER_HPP
+
+#include "NN-CLI_ImageLoader.hpp"
+#include "NN-CLI_Loader.hpp"
+#include "NN-CLI_Types.hpp"
+
+#include <ANN_Sample.hpp>
+#include <ANN_SampleProvider.hpp>
+#include <CNN_Sample.hpp>
+#include <CNN_SampleProvider.hpp>
+
+#include <QThreadPool>
+
+#include <atomic>
+#include <functional>
+#include <map>
+#include <memory>
+#include <random>
+#include <string>
+#include <vector>
+
+namespace NN_CLI
+{
+
+  enum class SampleLoadType { Training, Validation };
+
+  class GpuAugmenterPool; // GPU augmentation (defined in NN-CLI_GpuAugmenter.hpp)
+
+  // Lightweight manifest entry — stores paths/labels, NOT pixel data.
+  struct SampleManifest {
+      std::string inputPath; // File path for image inputs
+      std::vector<float> inputData; // Raw numeric input (non-image)
+      std::string outputPath; // File path for image outputs
+      std::vector<float> output; // Expected output vector
+      bool inputIsImage = true; // Whether input is an image path
+      bool outputIsImage = false; // Whether output is an image path
+  };
+
+  // Entry in the expanded (augmented) sample list.
+  // For original samples: sourceIndex == own index in the original list, augmented == false.
+  // For augmented samples: sourceIndex == original sample index, augmented == true.
+  struct AugmentedEntry {
+      ulong sourceIndex; // Index into the original sample list (manifest or memorySamples)
+      bool augmented; // Whether to apply random transforms when loading
+  };
+
+  // Trait to map Sample type to the corresponding SampleProvider type.
+  template <typename SampleT>
+  struct SampleProviderFor;
+  template <>
+  struct SampleProviderFor<ANN::Sample<float>> {
+      using type = ANN::SampleProvider<float>;
+  };
+
+  template <>
+  struct SampleProviderFor<CNN::Sample<float>> {
+      using type = CNN::SampleProvider<float>;
+  };
+
+  template <typename SampleT>
+  class DataLoader
+  {
+    public:
+      using ProviderT = typename SampleProviderFor<SampleT>::type;
+
+      // Parse samples JSON and store lightweight manifest (no pixel data loaded).
+      void loadManifest(const std::string& samplesFilePath, const IOConfig& ioConfig, int inputC, int inputH,
+                        int inputW, int outputC = 0, int outputH = 0, int outputW = 0);
+
+      // Load from pre-loaded samples (e.g. IDX format). Stores samples in memory.
+      void loadFromMemory(std::vector<SampleT>&& samples, int inputC, int inputH, int inputW);
+
+      // Compute augmentation plan (expand entries without loading data).
+      // When subsetIndices is provided, only augments those entries and returns the augmented indices.
+      // When empty (default), augments all entries in place.
+      // fullAugmentation: when true, mark every training entry (originals included) as augmented,
+      // so random transforms are applied to all samples each epoch — not just the oversampled copies.
+      std::vector<ulong> planAugmentation(ulong augmentationFactor, bool balanceAugmentation, bool fullAugmentation,
+                                          const std::vector<ulong>& subsetIndices = {});
+
+      // Total number of samples (original + augmented).
+      ulong numSamples() const
+      {
+        return this->entries.size();
+      }
+
+      // Get all output vectors (for class weight computation without loading images).
+      std::vector<std::vector<float>> getAllOutputs() const;
+
+      // Build a SampleProvider with async prefetching for use with train().
+      // The provider receives the full shuffled index array, batch size, and current batch index.
+      // It returns the current batch's samples and prefetches the next batch in the background
+      // using a persistent worker thread.
+      ProviderT makeSampleProvider(const AugmentationTransforms& transforms = {}, float augmentationProbability = 0.5f,
+                                   SampleLoadType loadType = SampleLoadType::Training) const;
+
+      // Build a SampleProvider that only serves samples from the given index subset.
+      ProviderT makeSampleProvider(const std::vector<ulong>& subsetIndices,
+                                   const AugmentationTransforms& transforms = {}, float augmentationProbability = 0.5f,
+                                   SampleLoadType loadType = SampleLoadType::Training) const;
+
+      // When set, image augmentation runs on the GPU (batch-level) instead of on the
+      // CPU per sample. The pool is owned by the caller and must outlive this loader.
+      void setGpuAugmenterPool(GpuAugmenterPool* pool)
+      {
+        this->gpuAugmenterPool = pool;
+      }
+
+      void setLoadingCallback(std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> callback)
+      {
+        this->loadingCallback = std::move(callback);
+      }
+
+    private:
+      std::vector<SampleManifest> manifest; // Original samples — paths + labels (JSON path)
+      std::vector<SampleT> memorySamples; // Original samples — fully loaded (memory path)
+      bool fromMemory = false; // Which source to use
+      std::vector<AugmentedEntry> entries; // Expanded list (original + augmented)
+      std::string baseDir; // Base directory for resolving relative paths
+      int inputC = 0, inputH = 0, inputW = 0;
+      int outputC = 0, outputH = 0, outputW = 0;
+      IOConfig ioConfig;
+
+      GpuAugmenterPool* gpuAugmenterPool = nullptr;
+
+      std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> loadingCallback;
+
+      // Dedicated thread pool for image loading — separate from the global pool
+      // used by the training loop, so prefetch work doesn't compete with training.
+      std::shared_ptr<QThreadPool> ioPool = std::make_shared<QThreadPool>();
+
+      // Load a batch of samples by their entry indices.
+      // batchIndex and totalBatches are passed through to the loading callback for progress display.
+      std::vector<SampleT> loadBatch(const std::vector<ulong>& entryIndices, const AugmentationTransforms& transforms,
+                                     float augmentationProbability, ulong batchIndex = 1, ulong totalBatches = 1,
+                                     SampleLoadType loadType = SampleLoadType::Training) const;
+
+      // Retrieve a single sample by entry index, optionally applying augmentation.
+      SampleT loadSample(ulong entryIndex, std::mt19937& rng, const AugmentationTransforms& transforms,
+                         float augmentationProbability) const;
+  };
+
+} // namespace NN_CLI
+
+#endif // NN_CLI_DATALOADER_HPP
