@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Quick Start &amp; Build — CNN Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>CNN</h1><span class="subtitle">Convolutional Neural Network Library</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html" class="active">Quick Start &amp; Build</a>
+  <a href="examples.html">Code Examples</a>
+  <div class="section-title">Reference</div>
+  <a href="api.html">API Reference</a>
+  <div class="section-title">Architecture</div>
+  <a href="architecture.html">Overview</a>
+  <a href="architecture-classes.html">Class Hierarchy</a>
+  <a href="architecture-patterns.html">Design Patterns</a>
+  <a href="architecture-pipeline.html">CNN + ANN Pipeline</a>
+  <a href="architecture-training.html">Training Pipeline</a>
+  <a href="architecture-memory.html">Memory Layout</a>
+  <div class="section-title">Layers</div>
+  <a href="layers.html">Overview</a>
+  <a href="layers-conv2d.html">Conv2D</a>
+  <a href="layers-relu.html">ReLU</a>
+  <a href="layers-pool.html">Pool</a>
+  <a href="layers-normalization.html">Normalization</a>
+  <a href="layers-flatten.html">Flatten</a>
+  <a href="layers-globalavgpool.html">GlobalAvgPool</a>
+  <a href="layers-globaldualpool.html">GlobalDualPool</a>
+  <a href="layers-residual.html">Residual</a>
+  <a href="layers-pipeline.html">Pipeline Example</a>
+  <div class="section-title">Math Foundations</div>
+  <a href="math.html">Overview</a>
+  <a href="math-convolution.html">Convolution</a>
+  <a href="math-pooling.html">Pooling</a>
+  <a href="math-activations.html">Activations</a>
+  <a href="math-normalization.html">Normalization</a>
+  <a href="math-initialization.html">Weight Initialization</a>
+  <a href="math-optimizers.html">Optimizers</a>
+  <a href="math-gradient-flow.html">Gradient Flow</a>
+  <div class="section-title">GPU Implementation</div>
+  <a href="gpu.html">Overview</a>
+  <a href="gpu-architecture.html">Architecture &amp; Kernels</a>
+  <a href="gpu-buffers.html">Buffer Layout</a>
+  <a href="gpu-kernels.html">Kernel Reference</a>
+  <a href="gpu-multi-gpu.html">Multi-GPU &amp; Compilation</a>
+</nav></aside>
+<main class="main">
+
+<h1>Quick Start &amp; Build</h1>
+
+<h2>Prerequisites</h2>
+<table>
+  <tr><th>Requirement</th><th>Minimum</th><th>Notes</th></tr>
+  <tr><td>C++ Compiler</td><td>C++17</td><td>GCC 7+, Clang 5+, MSVC 2017+</td></tr>
+  <tr><td>CMake</td><td>3.14</td><td></td></tr>
+  <tr><td>Qt</td><td>5 or 6</td><td>Core + Concurrent modules</td></tr>
+  <tr><td>OpenCL</td><td>1.2</td><td>Optional — required only for GPU mode</td></tr>
+</table>
+
+<h2>Clone &amp; Build</h2>
+<pre><code><span class="comment"># Clone with submodules (ANN + OpenCLWrapper)</span>
+git clone --recursive https://github.com/naschpitz/CNN.git
+<span class="keyword">cd</span> CNN
+
+<span class="comment"># Build</span>
+mkdir build &amp;&amp; <span class="keyword">cd</span> build
+cmake ..
+make -j$(nproc)
+
+<span class="comment"># Run tests</span>
+./test_cnn
+</code></pre>
+
+<div class="info-box">
+  The CNN repository includes <strong>ANN</strong> and <strong>OpenCLWrapper</strong> as git submodules under <code>extern/</code>. The <code>--recursive</code> flag ensures they are cloned automatically.
+</div>
+
+<h2>Use as a CMake Submodule</h2>
+<p>To use CNN in your own project:</p>
+<pre><code><span class="comment"># 1. Add CNN as a submodule</span>
+git submodule add https://github.com/naschpitz/CNN.git extern/CNN
+git submodule update --init --recursive
+
+<span class="comment"># 2. In your CMakeLists.txt:</span>
+add_subdirectory(extern/CNN)
+target_link_libraries(your_app <span class="keyword">PRIVATE</span> CNN)
+</code></pre>
+
+<p>Linking to <code>CNN</code> automatically brings in <code>ANN</code> and <code>OpenCLWrapper</code> as transitive (PUBLIC) dependencies.</p>
+
+<h2>Minimal Example</h2>
+<pre><code><span class="keyword">#include</span> <span class="string">"CNN_Core.hpp"</span>
+
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="comment">// Configure a simple CNN</span>
+    CNN::LayersConfig layers;
+    layers.cnnLayers = {
+        {CNN::LayerType::CONV, CNN::ConvLayerConfig{<span class="number">8</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">1</span>, <span class="number">1</span>, CNN::SlidingStrategyType::VALID}},
+        {CNN::LayerType::RELU, CNN::ReLULayerConfig{}},
+        {CNN::LayerType::POOL, CNN::PoolLayerConfig{CNN::PoolTypeEnum::MAX, <span class="number">2</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">2</span>}},
+        {CNN::LayerType::FLATTEN, CNN::FlattenLayerConfig{}}
+    };
+    layers.denseLayers = {
+        {<span class="number">64</span>, ANN::ActvFuncType::RELU},
+        {<span class="number">10</span>, ANN::ActvFuncType::SIGMOID}
+    };
+
+    CNN::CoreConfig&lt;<span class="type">float</span>&gt; config;
+    config.deviceType = CNN::DeviceType::CPU;
+    config.modeType   = CNN::ModeType::TRAIN;
+    config.inputShape = {<span class="number">1</span>, <span class="number">28</span>, <span class="number">28</span>};  <span class="comment">// 1-channel 28×28 image</span>
+    config.layersConfig    = layers;
+    config.trainingConfig.numEpochs    = <span class="number">10</span>;
+    config.trainingConfig.batchSize    = <span class="number">64</span>;
+    config.trainingConfig.learningRate = <span class="number">0.01f</span>;
+
+    <span class="keyword">auto</span> core = CNN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
+
+    <span class="comment">// Train, predict, test...</span>
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+</code></pre>
+
+<div class="tip-box">
+  CNN is a pure computational library — it has no built-in file I/O. The calling application
+  (e.g. <a href="../../NN-CLI/docs/index.html">NN-CLI</a>) is responsible for loading configuration
+  and saving trained models.
+</div>
+
+</main>
+</div>
+<footer class="site-footer">CNN Library Documentation</footer>
+</body></html>
+

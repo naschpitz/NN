@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Mathematical Foundations — ANN Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')});});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>ANN</h1><span class="subtitle">Artificial Neural Network Library</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <a href="examples.html">Code Examples</a>
+  <div class="section-title">Reference</div>
+  <a href="api.html">API Reference</a>
+  <a href="architecture.html">Architecture</a>
+  <div class="section-title">Math Foundations</div>
+  <a href="math.html" class="active">Overview</a>
+  <a href="math-neuron.html">Neuron Model</a>
+  <a href="math-activations.html">Activations</a>
+  <a href="math-propagation.html">Propagation</a>
+  <a href="math-cost.html">Cost Functions</a>
+  <a href="math-backprop.html">Backpropagation</a>
+  <a href="math-optimizers.html">Optimizers</a>
+  <a href="math-initialization.html">Weight Initialization</a>
+  <div class="section-title">Deep Dive</div>
+  <a href="gpu.html">GPU Implementation</a>
+</nav></aside>
+<main class="main">
+
+<h1>Mathematical Foundations</h1>
+<p>This section connects every mathematical formula to the exact C++ function that implements it. Understanding these derivations is essential for anyone extending or debugging the library.</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+  <a href="math-neuron.html" class="card" style="text-decoration:none;color:inherit;">
+    <h3 style="color:var(--primary);">🧠 Neuron Model</h3>
+    <p style="font-size:.9rem;">Weighted sum, bias, and activation function.</p>
+  </a>
+  <a href="math-activations.html" class="card" style="text-decoration:none;color:inherit;">
+    <h3 style="color:var(--primary);">⚡ Activations</h3>
+    <p style="font-size:.9rem;">ReLU, Sigmoid, and Tanh functions and derivatives.</p>
+  </a>
+  <a href="math-propagation.html" class="card" style="text-decoration:none;color:inherit;">
+    <h3 style="color:var(--primary);">➡️ Propagation</h3>
+    <p style="font-size:.9rem;">Forward pass through the network.</p>
+  </a>
+  <a href="math-cost.html" class="card" style="text-decoration:none;color:inherit;">
+    <h3 style="color:var(--primary);">📉 Cost Functions</h3>
+    <p style="font-size:.9rem;">Squared Difference (MSE) and Cross-Entropy cost functions.</p>
+  </a>
+  <a href="math-backprop.html" class="card" style="text-decoration:none;color:inherit;">
+    <h3 style="color:var(--primary);">🔄 Backpropagation</h3>
+    <p style="font-size:.9rem;">Chain rule and gradient derivations.</p>
+  </a>
+  <a href="math-optimizers.html" class="card" style="text-decoration:none;color:inherit;">
+    <h3 style="color:var(--primary);">⚙️ Optimizers</h3>
+    <p style="font-size:.9rem;">SGD and Adam update rules.</p>
+  </a>
+  <a href="math-initialization.html" class="card" style="text-decoration:none;color:inherit;">
+    <h3 style="color:var(--primary);">🎯 Weight Initialization</h3>
+    <p style="font-size:.9rem;">He and Xavier initialization.</p>
+  </a>
+</div>
+
+</main>
+</div>
+<footer class="site-footer">ANN Library Documentation</footer>
+</body></html>
