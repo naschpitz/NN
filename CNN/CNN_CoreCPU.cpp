@@ -95,6 +95,28 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& config) : Core<T>(config)
 //===================================================================================================================//
 
 template <typename T>
+void CoreCPU<T>::runWorkers(int numThreads, const std::function<void(int)>& body)
+{
+  // Size the dedicated pool to the requested worker count. Using this core's own pool
+  // (rather than QThreadPool::globalInstance()) is what makes a validation test() called
+  // from inside train()'s training callback safe: it runs on a different core's pool, so
+  // the nested map never starves on worker threads held by the enclosing train().
+  if (this->workerPool_.maxThreadCount() < numThreads)
+    this->workerPool_.setMaxThreadCount(numThreads);
+
+  QVector<QFuture<void>> futures;
+  futures.reserve(numThreads);
+
+  for (int workerIdx = 0; workerIdx < numThreads; workerIdx++)
+    futures.append(QtConcurrent::run(&this->workerPool_, [&body, workerIdx]() { body(workerIdx); }));
+
+  for (auto& f : futures)
+    f.waitForFinished();
+}
+
+//===================================================================================================================//
+
+template <typename T>
 PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
 {
   int numThreads = this->numThreads;
@@ -140,12 +162,7 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
       workerInputCounts[i] = batchN / static_cast<ulong>(numThreads) +
                              (static_cast<ulong>(i) < batchN % static_cast<ulong>(numThreads) ? 1 : 0);
 
-    QVector<int> workerIndices(numThreads);
-
-    for (int i = 0; i < numThreads; i++)
-      workerIndices[i] = i;
-
-    QtConcurrent::blockingMap(workerIndices, [&](int workerIdx) {
+    this->runWorkers(numThreads, [&](int workerIdx) {
       CoreCPUWorker<T>& worker = *workers[workerIdx];
 
       ulong workerLocalStart = 0;
@@ -525,12 +542,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       }
 
       // Each worker processes its chunk of the batch end-to-end (fully parallel)
-      QVector<int> workerIndices(numThreads);
-
-      for (int i = 0; i < numThreads; i++)
-        workerIndices[i] = i;
-
-      QtConcurrent::blockingMap(workerIndices, [&](int workerIdx) {
+      this->runWorkers(numThreads, [&](int workerIdx) {
         CoreCPUWorker<T>& worker = *workers[workerIdx];
 
         ulong workerLocalStart = 0;
@@ -716,12 +728,7 @@ TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
     std::vector<ulong> workerCorrect(numThreads, 0);
 
     // Each worker predicts its chunk in parallel
-    QVector<int> workerIndices(numThreads);
-
-    for (int i = 0; i < numThreads; i++)
-      workerIndices[i] = i;
-
-    QtConcurrent::blockingMap(workerIndices, [&](int workerIdx) {
+    this->runWorkers(numThreads, [&](int workerIdx) {
       CoreCPUWorker<T>& worker = *workers[workerIdx];
 
       ulong workerLocalStart = 0;
@@ -990,12 +997,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
         workerSampleCounts[i] =
           N / static_cast<ulong>(numThreads) + (static_cast<ulong>(i) < N % static_cast<ulong>(numThreads) ? 1 : 0);
 
-      QVector<int> workerIndices(numThreads);
-
-      for (int i = 0; i < numThreads; i++)
-        workerIndices[i] = i;
-
-      QtConcurrent::blockingMap(workerIndices, [&](int workerIdx) {
+      this->runWorkers(numThreads, [&](int workerIdx) {
         CoreCPUWorker<T>& worker = *workers[workerIdx];
 
         ulong workerLocalStart = 0;

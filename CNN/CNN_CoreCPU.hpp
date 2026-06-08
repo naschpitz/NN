@@ -4,6 +4,9 @@
 #include "CNN_Core.hpp"
 #include "CNN_CoreCPUWorker.hpp"
 
+#include <QThreadPool>
+
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -28,6 +31,14 @@ namespace CNN
     private:
       //-- Step-by-step worker (for predict / single-threaded path) --//
       std::unique_ptr<CoreCPUWorker<T>> stepWorker;
+
+      //-- Dedicated thread pool for this core's parallel worker dispatch.            --//
+      //   Each Core instance owns its own pool instead of sharing the global one, so   //
+      //   a validation test() running on a separate core from inside train()'s         //
+      //   training callback never contends with train()'s own parallel region. Sharing //
+      //   the global pool deadlocks: the nested test() can never acquire a worker       //
+      //   thread because they are all occupied by the enclosing train().                //
+      QThreadPool workerPool_;
 
       //-- BatchNorm flag (set by scanning layersConfig for BATCHNORM layers) --//
       bool hasBatchNorm = false;
@@ -56,6 +67,11 @@ namespace CNN
       std::vector<std::vector<T>> adam_m_residual_biases;
       std::vector<std::vector<T>> adam_v_residual_biases;
       ulong adam_t = 0;
+
+      //-- Run `body(workerIdx)` for workerIdx in [0, numThreads) on this core's        --//
+      //   dedicated pool, blocking until all workers finish. Replaces                    //
+      //   QtConcurrent::blockingMap, which always uses the (shared) global pool.          //
+      void runWorkers(int numThreads, const std::function<void(int)>& body);
 
       //-- Training helpers --//
       void resetGlobalCNNAccumulators();
