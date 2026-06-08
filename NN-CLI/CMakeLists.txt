@@ -153,6 +153,8 @@ target_include_directories(test_nncli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
     ${CURSES_INCLUDE_DIR}
 )
+# Resolve test fixtures/examples from the source tree, not the (possibly nested) build dir.
+target_compile_definitions(test_nncli PRIVATE NN_CLI_PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(test_nncli PRIVATE
     nncli_common
     Qt${QT_VERSION_MAJOR}::Core

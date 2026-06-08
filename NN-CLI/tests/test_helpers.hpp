@@ -37,10 +37,17 @@ struct ProcessResult {
     QString stdErr;
 };
 
-// Project root: parent of the build/ directory where binaries live
+// Project root: the NN-CLI source directory. Injected at compile time (NN_CLI_PROJECT_DIR)
+// so fixtures and examples resolve no matter where the binary is built — e.g. a nested
+// monorepo build dir like NN/build/NN-CLI/, where the old applicationDirPath()/.. heuristic
+// pointed at NN/build/ instead of the source tree. Falls back to the heuristic if unset.
 inline QString projectRoot()
 {
+#ifdef NN_CLI_PROJECT_DIR
+  return QStringLiteral(NN_CLI_PROJECT_DIR);
+#else
   return QCoreApplication::applicationDirPath() + "/..";
+#endif
 }
 
 // Path to the NN-CLI binary (same build/ directory as test binary)
