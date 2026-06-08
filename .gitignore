@@ -13,3 +13,11 @@ AGENTS.md
 
 # Local CMake presets (machine-specific Qt6 kit paths)
 CMakeUserPresets.json
+
+# Per-user token cost tracker (should not be shared)
+graphify-out/cost.json
+
+# Optional: keep the cache out to keep the repo smaller.
+# Uncomment if the team wants it committed for faster graphify queries.
+#graphify-out/cache/
+
