@@ -4,6 +4,8 @@
 #include "CNN_Core.hpp"
 #include "CNN_CoreGPUWorker.hpp"
 
+#include <QThreadPool>
+
 #include <memory>
 #include <vector>
 
@@ -34,6 +36,11 @@ namespace CNN
       //-- GPU workers (one per GPU) --//
       std::vector<std::unique_ptr<CoreGPUWorker<T>>> gpuWorkers;
       size_t numGPUs = 1;
+
+      //-- Dedicated pool for cross-GPU dispatch. Each core owns its own pool (not the global
+      //   one) so a validation test() run from inside train()'s callback never starves on
+      //   worker threads held by the enclosing train(). See Common::blockingMapOnPool.
+      QThreadPool workerPool_;
 
       //-- Initialization --//
       void initializeWorkers();
