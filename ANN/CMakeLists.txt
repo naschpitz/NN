@@ -9,7 +9,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Concurrent)
 # Include OpenCLWrapper submodule as a subdirectory if not already included
 # This allows ANN to be built standalone or as part of a larger project
 if(NOT TARGET OpenCLWrapper)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../OpenCLWrapper ${CMAKE_CURRENT_BINARY_DIR}/OpenCLWrapper)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/OpenCLWrapper ${CMAKE_CURRENT_BINARY_DIR}/OpenCLWrapper)
 endif()
 add_library(ANN STATIC
   ANN_Core.hpp ANN_Core.cpp
