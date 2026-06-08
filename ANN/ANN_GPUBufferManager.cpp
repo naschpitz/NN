@@ -97,15 +97,15 @@ void GPUBufferManager<T>::loadSources(bool skipDefines)
   // Load source files in order - they will be concatenated by OpenCL.
   // When used with a shared core (e.g. CNN), skipDefines avoids redefining TYPE, ActvFuncType, Layer.
   if (!skipDefines) {
-    this->core->addSourceFile(srcDir + "opencl/_Defines.hpp.cl");
+    this->core->addSourceFile(srcDir + "opencl/ANN_Defines.hpp.cl");
   }
 
-  this->core->addSourceFile(srcDir + "opencl/_IdxHelper.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/_ActvFunc.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/_Propagate.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/_Backpropagate.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/_Update.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/_Loss.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_IdxHelper.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_ActvFunc.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_Propagate.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_Backpropagate.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_Update.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/ANN_Loss.cpp.cl");
 
   if (this->logLevel >= LogLevel::INFO)
     std::cout << "OpenCL kernels loaded.\n";
