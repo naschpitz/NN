@@ -6,7 +6,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   // Generic progress callback for test and predict modes.
   // Parameters: (currentSample, totalSamples)

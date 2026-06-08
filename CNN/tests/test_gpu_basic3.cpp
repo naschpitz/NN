@@ -5,10 +5,10 @@ static void testGPUWeightedCrossEntropyTraining()
   std::cout << "--- testGPUWeightedCrossEntropyTraining (CNN) ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -35,7 +35,7 @@ static void testGPUWeightedCrossEntropyTraining()
   initConv.biases.assign(1, 0.0f);
   config.parameters.convParams = {initConv};
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {5.0f, 1.0f};
   config.trainingConfig.numEpochs = 100;
   config.trainingConfig.learningRate = 0.5f;
@@ -50,13 +50,13 @@ static void testGPUWeightedCrossEntropyTraining()
   auto core = CNN::Core<float>::makeCore(config);
   core->train(samples.size(), CNN::makeSampleProvider(samples));
 
-  CNN::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
 
   CHECK(result.averageLoss >= 0.0f, "GPU CNN weighted CE: loss non-negative");
   CHECK(std::isfinite(result.averageLoss), "GPU CNN weighted CE: loss is finite");
 
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == CNN::CostFunctionType::CROSS_ENTROPY, "GPU CNN weighted CE: type preserved");
+  CHECK(cfc.type == Common::CostFunctionType::CROSS_ENTROPY, "GPU CNN weighted CE: type preserved");
   CHECK(cfc.weights.size() == 2, "GPU CNN weighted CE: weights preserved");
   CHECK_NEAR(cfc.weights[0], 5.0f, 1e-5f, "GPU CNN weighted CE: weight[0] = 5.0");
 
@@ -71,10 +71,10 @@ static void testGPUMultiChannelInput()
 
   // 3x6x6 → Conv(2,3x3) → ReLU → Flatten(32) → Dense(1,sigmoid)
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {3, 6, 6};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 1;
 
   CNN::CNNLayerConfig conv1;
@@ -137,10 +137,10 @@ static void testGPUParameterRoundTrip()
   std::cout << "--- testGPUParameterRoundTrip ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -199,10 +199,10 @@ static void testGPUParameterRoundTrip()
 
   // Create predict core with trained params
   CNN::CoreConfig<float> predictConfig;
-  predictConfig.modeType = CNN::ModeType::PREDICT;
-  predictConfig.deviceType = CNN::DeviceType::GPU;
+  predictConfig.modeType = Common::ModeType::PREDICT;
+  predictConfig.deviceType = Common::DeviceType::GPU;
   predictConfig.inputShape = {1, 5, 5};
-  predictConfig.logLevel = CNN::LogLevel::ERROR;
+  predictConfig.logLevel = Common::LogLevel::ERROR;
   predictConfig.layersConfig = config.layersConfig;
   predictConfig.parameters = params;
 
@@ -220,10 +220,10 @@ static void testGPUParametersDuringTraining()
   std::cout << "--- testGPUParametersDuringTraining ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 1;
 
   CNN::CNNLayerConfig convLayer;
@@ -268,7 +268,7 @@ static void testGPUParametersDuringTraining()
   bool denseBiasesNonEmpty = false;
   ulong lastEpoch = 0;
 
-  core->setTrainingCallback([&](const CNN::TrainingProgress<float>& progress) {
+  core->setTrainingCallback([&](const Common::TrainingProgress<float>& progress) {
     if (progress.currentEpoch > lastEpoch && lastEpoch > 0 && !paramsChecked) {
       const CNN::Parameters<float>& params = core->getParameters();
       convFiltersNonEmpty = !params.convParams.empty() && !params.convParams[0].filters.empty();

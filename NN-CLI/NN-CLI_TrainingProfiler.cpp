@@ -20,7 +20,7 @@ namespace NN_CLI
 
     // GPU-profiled sub-phases, in display order. Stored/aggregated in arrays keyed by TimingPhase.
     constexpr Phase kGpuSubPhases[] = {Phase::CnnForward,  Phase::AnnForward,    Phase::AnnBackward,
-                                       Phase::CnnBackward, Phase::CNNAccumulate, Phase::ANNAccumulate,
+                                       Phase::CnnBackward, Phase::CNNAccumulate, Phase::Accumulate,
                                        Phase::LossCompute};
 
     template <std::size_t N>
@@ -264,7 +264,7 @@ namespace NN_CLI
       return "cnn_backward";
     case Phase::CNNAccumulate:
       return "cnn_accumulate";
-    case Phase::ANNAccumulate:
+    case Phase::Accumulate:
       return "ann_accumulate";
     case Phase::LossCompute:
       return "loss";

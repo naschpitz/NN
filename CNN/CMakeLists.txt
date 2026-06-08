@@ -2,23 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 
 project(CNN LANGUAGES CXX)
 
-# Auto-update submodules recursively at configure time
-# Disable with: cmake .. -DAUTO_UPDATE_SUBMODULES=OFF (persists in CMake cache)
-option(AUTO_UPDATE_SUBMODULES "Automatically update submodules at configure time" ON)
-if(AUTO_UPDATE_SUBMODULES)
-  find_package(Git QUIET)
-  if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-    execute_process(
-      COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
-      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-      RESULT_VARIABLE GIT_SUBMOD_RESULT
-    )
-    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-      message(WARNING "git submodule update --init --recursive failed: ${GIT_SUBMOD_RESULT}")
-    endif()
-  endif()
-endif()
-
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -30,12 +13,12 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Concurrent)
 
 # Include OpenCLWrapper submodule as a subdirectory if not already included
 if(NOT TARGET OpenCLWrapper)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/OpenCLWrapper ${CMAKE_CURRENT_BINARY_DIR}/OpenCLWrapper)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../OpenCLWrapper ${CMAKE_CURRENT_BINARY_DIR}/OpenCLWrapper)
 endif()
 
 # Include ANN submodule as a subdirectory if not already included
 if(NOT TARGET ANN)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/ANN ${CMAKE_CURRENT_BINARY_DIR}/ANN)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../ANN ${CMAKE_CURRENT_BINARY_DIR}/ANN)
 endif()
 
 add_library(CNN STATIC
@@ -60,28 +43,16 @@ add_library(CNN STATIC
   CNN_Types.hpp
   CNN_Shape3D.hpp CNN_Shape3D.cpp
   CNN_Tensor3D.hpp CNN_Tensor3D.cpp
-  CNN_Device.hpp CNN_Device.cpp
-  CNN_Mode.hpp CNN_Mode.cpp
   CNN_SlidingStrategy.hpp CNN_SlidingStrategy.cpp
   CNN_PoolType.hpp CNN_PoolType.cpp
   CNN_LayersConfig.hpp CNN_LayersConfig.cpp
   CNN_CoreConfig.hpp
-  CNN_Optimizer.hpp CNN_Optimizer.cpp
-  CNN_TrainingConfig.hpp
-  CNN_MonitoringConfig.hpp
-  CNN_TrainingMonitor.hpp CNN_TrainingMonitor.cpp
   CNN_Parameters.hpp
   CNN_Conv2DParameters.hpp
   CNN_NormParameters.hpp
   CNN_InputProvider.hpp
   CNN_Sample.hpp
   CNN_SampleProvider.hpp
-  CNN_ProgressCallback.hpp
-  CNN_TrainingProgress.hpp
-  CNN_TrainingMetadata.hpp
-  CNN_PredictMetadata.hpp
-  CNN_PredictResult.hpp
-  CNN_TestResult.hpp
   CNN_Conv2D.hpp CNN_Conv2D.cpp
   CNN_ReLU.hpp CNN_ReLU.cpp
   CNN_Pool.hpp CNN_Pool.cpp
@@ -94,6 +65,12 @@ add_library(CNN STATIC
 
 # PUBLIC: Consumers of CNN need access to CNN headers
 target_include_directories(CNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# When building standalone (not from monorepo root), add parent dir so
+# #include "Common/..." resolves to ../Common/
+if(NOT TARGET NN_Common AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../Common)
+  target_include_directories(CNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+endif()
 
 # PUBLIC: Consumers of CNN will also need ANN and OpenCLWrapper
 # PRIVATE: Qt Concurrent is only used internally

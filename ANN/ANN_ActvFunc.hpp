@@ -1,5 +1,5 @@
-#ifndef ANN_ACTVFUNC_H
-#define ANN_ACTVFUNC_H
+#ifndef _ACTVFUNC_H
+#define _ACTVFUNC_H
 
 #include <cmath>
 #include <string>
@@ -7,6 +7,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   enum class ActvFuncType { RELU, SIGMOID, TANH, SOFTMAX };
 
   const std::unordered_map<std::string, ActvFuncType> actvMap = {{"relu", ActvFuncType::RELU},
@@ -100,4 +101,4 @@ namespace ANN
   }
 }
 
-#endif // ANN_ACTVFUNC_H
+#endif // _ACTVFUNC_H

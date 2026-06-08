@@ -4,7 +4,7 @@
 #include "NN-CLI_DataLoader.hpp"
 #include "NN-CLI_GpuAugmenter.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
-#include <CNN_TrainingMonitor.hpp>
+#include "Common/Common_TrainingMonitor.hpp"
 #include <OCLW_Core.hpp>
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
@@ -21,7 +21,7 @@
 
 #include <json.hpp>
 
-#include <ANN_Utils.hpp>
+#include <_Utils.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -137,8 +137,8 @@ int CNNRunner::train()
 
     std::vector<float> weights = computeClassWeightsFromOutputs(trainingOutputs);
 
-    if (this->coreConfig.costFunctionConfig.type == CNN::CostFunctionType::SQUARED_DIFFERENCE)
-      this->coreConfig.costFunctionConfig.type = CNN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+    if (this->coreConfig.costFunctionConfig.type == Common::CostFunctionType::SQUARED_DIFFERENCE)
+      this->coreConfig.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
 
     this->coreConfig.costFunctionConfig.weights = weights;
     this->core = CNN::Core<float>::makeCore(this->coreConfig);
@@ -186,10 +186,10 @@ int CNNRunner::train()
   }
 
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
-  std::shared_ptr<CNN::TrainingMonitor<float>> trainingMonitor;
+  std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
 
   if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
-    trainingMonitor = std::make_shared<CNN::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
+    trainingMonitor = std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
     this->coreConfig.trainingConfig.monitoringConfig.enabled = false;
     this->core = CNN::Core<float>::makeCore(this->coreConfig);
   }
@@ -198,7 +198,7 @@ int CNNRunner::train()
 
   if (validationConfig.enabled) {
     CNN::CoreConfig<float> validationCoreConfig = this->coreConfig;
-    validationCoreConfig.modeType = CNN::ModeType::TEST;
+    validationCoreConfig.modeType = Common::ModeType::TEST;
 
     auto allOutputs = dataLoader.getAllOutputs();
     std::vector<std::vector<float>> validationOutputs;
@@ -215,7 +215,7 @@ int CNNRunner::train()
 
   std::unique_ptr<GpuAugmenterPool> gpuAugPool;
 
-  if (this->coreConfig.deviceType == CNN::DeviceType::GPU && this->ioConfig.inputType == DataType::IMAGE) {
+  if (this->coreConfig.deviceType == Common::DeviceType::GPU && this->ioConfig.inputType == DataType::IMAGE) {
     OpenCLWrapper::Core::initialize(false);
     int totalGpus = static_cast<int>(OpenCLWrapper::Core::getNumDevices());
     int numAugGpus = (this->coreConfig.numGPUs > 0) ? std::min(totalGpus, this->coreConfig.numGPUs) : totalGpus;
@@ -245,7 +245,7 @@ int CNNRunner::train()
   }
 
   if (this->tui && this->tui->isInitialized()) {
-    this->trainingTui_.resolveBarGpus(this->coreConfig.deviceType == CNN::DeviceType::GPU, this->coreConfig.numGPUs);
+    this->trainingTui_.resolveBarGpus(this->coreConfig.deviceType == Common::DeviceType::GPU, this->coreConfig.numGPUs);
     dataLoader.setLoadingCallback(this->trainingTui_.loadingCallback());
   }
 
@@ -299,7 +299,7 @@ int CNNRunner::test()
                             dataLoader.numSamples());
 
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
-  CNN::TestResult<float> result = this->core->test(dataLoader.numSamples(), sampleProvider);
+  Common::TestResult<float> result = this->core->test(dataLoader.numSamples(), sampleProvider);
 
   if (this->logLevel > LogLevel::QUIET) {
     std::cout << "\nTest Results:\n";
@@ -334,7 +334,7 @@ int CNNRunner::predict()
     PredictSummary::printCNN(this->coreConfig, inputs.size(), inputPath.toStdString(), outputPath.toStdString());
 
   auto batchStart = std::chrono::system_clock::now();
-  std::string startTimeStr = ANN::Utils<float>::formatISO8601();
+  std::string startTimeStr = ::Utils<float>::formatISO8601();
 
   setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Predicting", inputs.size());
 
@@ -349,13 +349,13 @@ int CNNRunner::predict()
     return CNN::Inputs<float>(inputs.begin() + start, inputs.begin() + end);
   };
 
-  CNN::PredictResults<float> results = this->core->predict(inputs.size(), sliceProvider);
+  Common::PredictResults<float> results = this->core->predict(inputs.size(), sliceProvider);
 
   auto batchEnd = std::chrono::system_clock::now();
-  std::string endTimeStr = ANN::Utils<float>::formatISO8601();
+  std::string endTimeStr = ::Utils<float>::formatISO8601();
   std::chrono::duration<double> batchElapsed = batchEnd - batchStart;
   double batchDurationSeconds = batchElapsed.count();
-  std::string batchDurationFormatted = ANN::Utils<float>::formatDuration(batchDurationSeconds);
+  std::string batchDurationFormatted = ::Utils<float>::formatDuration(batchDurationSeconds);
 
   return writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
                             batchDurationSeconds, batchDurationFormatted, inputs.size());
@@ -417,7 +417,7 @@ void CNNRunner::regenerateConfigLines(ulong maxWidth)
 //===================================================================================================================//
 
 void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<CNN::Core<float>> validationCore,
-                                      std::shared_ptr<CNN::TrainingMonitor<float>> trainingMonitor,
+                                      std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor,
                                       const DataLoader<CNN::Sample<float>>* validationDataLoader,
                                       const std::vector<ulong>* validationIndices)
 {
@@ -453,7 +453,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
   this->core->setTrainingCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
                                    validationIndices, validationDataLoader,
-                                   tui](const CNN::TrainingProgress<float>& progress) {
+                                   tui](const Common::TrainingProgress<float>& progress) {
     {
       std::lock_guard<std::mutex> lock(this->epochTransitionMutex_);
 

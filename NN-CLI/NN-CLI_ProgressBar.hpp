@@ -17,7 +17,7 @@ typedef struct _win_st WINDOW;
 namespace NN_CLI
 {
 
-  // Common progress info struct used by both ANN and CNN training callbacks
+  // Common progress info struct used by both  and CNN training callbacks
   struct ProgressInfo {
       ulong currentEpoch;
       ulong totalEpochs;

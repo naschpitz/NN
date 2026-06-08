@@ -5,7 +5,7 @@
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_Types.hpp"
 
-#include <ANN_Core.hpp>
+#include <_Core.hpp>
 #include <CNN_Core.hpp>
 
 #include <QString>
@@ -28,7 +28,7 @@ namespace NN_CLI
   {
     public:
       //-- Model saving --//
-      static void saveANNModel(const std::string& filePath, const ANN::Core<float>& core,
+      static void saveModel(const std::string& filePath, const ANN::Core<float>& core,
                                const ANN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
                                const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
 

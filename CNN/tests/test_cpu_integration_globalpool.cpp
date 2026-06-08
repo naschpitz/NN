@@ -8,10 +8,10 @@ static void testGlobalAvgPoolEndToEnd()
 
   // 1x5x5 → Conv(2 filters 3x3 valid) → 2x3x3 → ReLU → GlobalAvgPool → 2x1x1 → Flatten(2) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -82,10 +82,10 @@ static void testGlobalAvgPoolWithNorm()
 
   // Conv → InstanceNorm → ReLU → GlobalAvgPool → Flatten → Dense
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 6, 6};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -155,10 +155,10 @@ static void testGlobalAvgPoolAfterPool()
   // Conv → ReLU → Pool(2x2) → GlobalAvgPool → Flatten → Dense
   // This tests GAP receiving already-reduced spatial dims
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 8, 8};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -229,10 +229,10 @@ static void testBatchPredict()
 
   // 1x5x5 → Conv(1 filter 3x3 valid) → ReLU → Flatten(9) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -271,7 +271,7 @@ static void testBatchPredict()
 
   std::unique_ptr<CNN::Core<double>> core;
   bool converged = false;
-  CNN::PredictResults<double> batchResults;
+  Common::PredictResults<double> batchResults;
 
   for (int attempt = 0; attempt < 5 && !converged; ++attempt) {
     if (attempt > 0)
@@ -317,10 +317,10 @@ static void testGlobalDualPoolEndToEnd()
 
   // 1x5x5 → Conv(2 filters 3x3 valid) → 2x3x3 → ReLU → GlobalDualPool → 4x1x1 → Flatten(4) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;

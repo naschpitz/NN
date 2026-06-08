@@ -2,11 +2,12 @@
 #include "CNN_CoreCPU.hpp"
 #include "CNN_CoreGPU.hpp"
 
-#include <ANN_Utils.hpp>
+#include <_Utils.hpp>
 
 #include <stdexcept>
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 
@@ -14,9 +15,9 @@ template <typename T>
 std::unique_ptr<Core<T>> Core<T>::makeCore(const CoreConfig<T>& config)
 {
   switch (config.deviceType) {
-  case DeviceType::CPU:
+  case Common::DeviceType::CPU:
     return std::make_unique<CoreCPU<T>>(config);
-  case DeviceType::GPU:
+  case Common::DeviceType::GPU:
     return std::make_unique<CoreGPU<T>>(config);
   default:
     throw std::runtime_error("Unknown device type");
@@ -62,7 +63,7 @@ void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig)
   }
 
   // Validate training config if in training mode
-  if (coreConfig.modeType == ModeType::TRAIN) {
+  if (coreConfig.modeType == Common::ModeType::TRAIN) {
     if (coreConfig.trainingConfig.numEpochs == 0) {
       throw std::runtime_error("Number of epochs must be > 0 for training mode");
     }

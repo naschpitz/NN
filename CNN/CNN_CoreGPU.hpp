@@ -11,6 +11,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   template <typename T>
   class CoreGPU : public Core<T>
   {
@@ -18,9 +19,9 @@ namespace CNN
       CoreGPU(const CoreConfig<T>& config);
 
       using Core<T>::predict; // Bring in eager Inputs<T> + single-input convenience wrappers
-      PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
+      Common::PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
       void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
-      TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
+      Common::TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
       void syncParametersToGPU() override;
 
       //-- Worker access (for diagnostics/testing) --//
@@ -39,7 +40,7 @@ namespace CNN
 
       //-- Training coordination --//
       void mergeCNNGradients();
-      void mergeANNGradients();
+      void mergeGradients();
   };
 }
 

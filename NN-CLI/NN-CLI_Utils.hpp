@@ -5,7 +5,7 @@
 #include "NN-CLI_ProgressBar.hpp"
 #include "NN-CLI_TerminalUI.hpp"
 
-#include <ANN_Core.hpp>
+#include <_Core.hpp>
 #include <CNN_Types.hpp>
 #include <CNN_Sample.hpp>
 
@@ -29,7 +29,7 @@ namespace NN_CLI
 {
 
   //-------------------------------------------------------------------------------------------------------------------//
-  //  ValidationState — shared between ANN and CNN runners
+  //  ValidationState — shared between  and CNN runners
   //-------------------------------------------------------------------------------------------------------------------//
 
   struct ValidationState {
@@ -76,7 +76,7 @@ namespace NN_CLI
   //-------------------------------------------------------------------------------------------------------------------//
 
   /// Compute inverse-frequency class weights from one-hot output vectors.
-  /// Shared by both ANN and CNN runners.
+  /// Shared by both  and CNN runners.
   inline std::vector<float> computeClassWeightsFromOutputs(const std::vector<std::vector<float>>& outputs)
   {
     if (outputs.empty())
@@ -144,8 +144,8 @@ namespace NN_CLI
   class Utils
   {
     public:
-      /// Load IDX dataset as ANN samples (flat input vectors)
-      static ANN::Samples<T> loadANNIDX(const std::string& dataPath, const std::string& labelsPath,
+      /// Load IDX dataset as  samples (flat input vectors)
+      static ANN::Samples<T> loadIDX(const std::string& dataPath, const std::string& labelsPath,
                                         ulong progressReports = 1000);
 
       /// Load IDX dataset as CNN samples (3D tensor inputs with given shape)

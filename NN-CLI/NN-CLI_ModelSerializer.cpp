@@ -184,17 +184,17 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- saveANNModel --//
+  //-- saveModel --//
   //===================================================================================================================//
 
-  void ModelSerializer::saveANNModel(const std::string& filePath, const ANN::Core<float>& core,
+  void ModelSerializer::saveModel(const std::string& filePath, const ANN::Core<float>& core,
                                      const ANN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
                                      const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta)
   {
     nlohmann::ordered_json json;
 
-    json["mode"] = ANN::Mode::typeToName(core.getModeType());
-    json["device"] = ANN::Device::typeToName(core.getDeviceType());
+    json["mode"] = Common::Mode::typeToName(core.getModeType());
+    json["device"] = ::Device::typeToName(core.getDeviceType());
     json["numThreads"] = core.getNumThreads();
     json["numGPUs"] = core.getNumGPUs();
 
@@ -236,7 +236,7 @@ namespace NN_CLI
 
     // Cost function config
     nlohmann::ordered_json cfcJson;
-    cfcJson["type"] = ANN::CostFunction::typeToName(core.getCostFunctionConfig().type);
+    cfcJson["type"] = Common::CostFunction::typeToName(core.getCostFunctionConfig().type);
 
     if (!core.getCostFunctionConfig().weights.empty()) {
       cfcJson["weights"] = core.getCostFunctionConfig().weights;
@@ -283,8 +283,8 @@ namespace NN_CLI
   {
     nlohmann::ordered_json json;
 
-    json["mode"] = CNN::Mode::typeToName(core.getModeType());
-    json["device"] = CNN::Device::typeToName(core.getDeviceType());
+    json["mode"] = Common::Mode::typeToName(core.getModeType());
+    json["device"] = ::Device::typeToName(core.getDeviceType());
     json["numThreads"] = core.getNumThreads();
     json["numGPUs"] = core.getNumGPUs();
 
@@ -404,7 +404,7 @@ namespace NN_CLI
 
     // Cost function config
     nlohmann::ordered_json cfcJson;
-    cfcJson["type"] = CNN::CostFunction::typeToName(core.getCostFunctionConfig().type);
+    cfcJson["type"] = Common::CostFunction::typeToName(core.getCostFunctionConfig().type);
 
     if (!core.getCostFunctionConfig().weights.empty()) {
       cfcJson["weights"] = core.getCostFunctionConfig().weights;

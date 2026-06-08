@@ -5,7 +5,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   struct ValidationConfig {
       bool enabled = true;

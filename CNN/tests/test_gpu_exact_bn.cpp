@@ -3,10 +3,10 @@
 static CNN::CoreConfig<float> makeGPUBNTestConfig(ulong denseNeurons, ANN::ActvFuncType actvFunc)
 {
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
   config.numGPUs = 1;
 
@@ -59,7 +59,7 @@ static void testGPUExactBNForwardBackwardCrossEntropy()
   std::cout << "--- testGPUExactBNForwardBackwardCrossEntropy ---" << std::endl;
 
   auto config = makeGPUBNTestConfig(2, ANN::ActvFuncType::SOFTMAX);
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
 
   ANN::Parameters<float> denseParams;
   denseParams.weights.resize(2);
@@ -113,7 +113,7 @@ static void testGPUExactBNForwardBackwardSquaredDifference()
   std::cout << "--- testGPUExactBNForwardBackwardSquaredDifference ---" << std::endl;
 
   auto config = makeGPUBNTestConfig(1, ANN::ActvFuncType::SIGMOID);
-  config.costFunctionConfig.type = CNN::CostFunctionType::SQUARED_DIFFERENCE;
+  config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
 
   ANN::Parameters<float> denseParams;
   denseParams.weights.resize(2);
@@ -162,7 +162,7 @@ static void testGPUExactBNForwardBackwardWeightedCrossEntropy()
   std::cout << "--- testGPUExactBNForwardBackwardWeightedCrossEntropy ---" << std::endl;
 
   auto config = makeGPUBNTestConfig(2, ANN::ActvFuncType::SOFTMAX);
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0f, 0.5f};
 
   ANN::Parameters<float> denseParams;

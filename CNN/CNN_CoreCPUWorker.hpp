@@ -4,7 +4,7 @@
 #include "CNN_Worker.hpp"
 #include "CNN_Core.hpp"
 
-#include <ANN_Core.hpp>
+#include <_Core.hpp>
 
 #include <memory>
 #include <vector>
@@ -13,6 +13,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   template <typename T>
   class CoreCPUWorker : public Worker<T>
   {
@@ -22,7 +23,7 @@ namespace CNN
 
       //-- Predict (inference only — no intermediates saved) --//
       // Returns post-activation output and pre-activation logits of the dense head.
-      PredictResult<T> predict(const Input<T>& input);
+      Common::PredictResult<T> predict(const Input<T>& input);
 
       //-- Full propagate+backpropagate+accumulate for one training sample --//
       T processSample(const Input<T>& input, const Output<T>& expected);
@@ -92,13 +93,13 @@ namespace CNN
         return bnSampleCount;
       }
 
-      //-- ANN sub-core access (for parameter sync/merge by CoreCPU) --//
-      ANN::Core<T>* getANNCore()
+      //--  sub-core access (for parameter sync/merge by CoreCPU) --//
+      ANN::Core<T>* getCore()
       {
         return annCore.get();
       }
 
-      const ANN::Core<T>* getANNCore() const
+      const ANN::Core<T>* getCore() const
       {
         return annCore.get();
       }
@@ -112,7 +113,7 @@ namespace CNN
       Shape3D cnnOutputShape;
       ulong flattenSize;
 
-      //-- ANN sub-core (each worker owns its own for thread safety) --//
+      //--  sub-core (each worker owns its own for thread safety) --//
       std::unique_ptr<ANN::Core<T>> annCore;
 
       //-- Per-worker CNN gradient accumulators --//
@@ -148,7 +149,7 @@ namespace CNN
                             std::vector<std::vector<T>>& dBNGamma, std::vector<std::vector<T>>& dBNBeta);
 
       //-- Initialization --//
-      static ANN::CoreConfig<T> buildANNConfig(const CoreConfig<T>& cnnConfig, ulong flattenSize);
+      static ANN::CoreConfig<T> buildConfig(const CoreConfig<T>& cnnConfig, ulong flattenSize);
   };
 }
 

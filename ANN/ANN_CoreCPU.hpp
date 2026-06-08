@@ -1,8 +1,8 @@
-#ifndef ANN_CORECPU_H
-#define ANN_CORECPU_H
+#ifndef _CORECPU_H
+#define _CORECPU_H
 
-#include "ANN_Core.hpp"
-#include "ANN_CoreCPUWorker.hpp"
+#include "_Core.hpp"
+#include "_CoreCPUWorker.hpp"
 
 #include <QMutex>
 
@@ -13,6 +13,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   class CoreCPU : public Core<T>
   {
@@ -61,4 +62,4 @@ namespace ANN
   };
 }
 
-#endif // ANN_CORECPU_H
+#endif // _CORECPU_H

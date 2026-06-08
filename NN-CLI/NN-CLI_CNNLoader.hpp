@@ -5,8 +5,8 @@
 
 #include <CNN_Core.hpp>
 #include <CNN_CoreConfig.hpp>
-#include <CNN_Mode.hpp>
-#include <CNN_Device.hpp>
+#include "Common/Common_Mode.hpp"
+#include "Common/Common_Device.hpp"
 #include <CNN_LayersConfig.hpp>
 #include <CNN_SlidingStrategy.hpp>
 #include <CNN_PoolType.hpp>

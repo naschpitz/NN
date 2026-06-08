@@ -1,17 +1,17 @@
-#ifndef ANN_CORE_H
-#define ANN_CORE_H
+#ifndef _CORE_H
+#define _CORE_H
 
-#include "ANN_Types.hpp"
-#include "ANN_CoreConfig.hpp"
-#include "ANN_InputProvider.hpp"
-#include "ANN_Sample.hpp"
-#include "ANN_SampleProvider.hpp"
-#include "ANN_TrainingProgress.hpp"
-#include "ANN_TrainingMetadata.hpp"
-#include "ANN_PredictMetadata.hpp"
-#include "ANN_PredictResult.hpp"
-#include "ANN_ProgressCallback.hpp"
-#include "ANN_TestResult.hpp"
+#include "_Types.hpp"
+#include "_CoreConfig.hpp"
+#include "_InputProvider.hpp"
+#include "_Sample.hpp"
+#include "_SampleProvider.hpp"
+#include "Common/Common_TrainingProgress.hpp"
+#include "Common/Common_TrainingMetadata.hpp"
+#include "Common/Common_PredictMetadata.hpp"
+#include "Common/Common_PredictResult.hpp"
+#include "Common/Common_ProgressCallback.hpp"
+#include "Common/Common_TestResult.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -21,6 +21,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   class Core
   {
@@ -43,7 +44,7 @@ namespace ANN
       virtual TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
 
       //-- Step-by-step training (for external orchestration) --//
-      // Used by external orchestrators that embed ANN as a sub-network (e.g., a dense
+      // Used by external orchestrators that embed  as a sub-network (e.g., a dense
       // head after convolutional layers) and need the input-layer gradients to continue
       // backpropagation through their own preceding layers.
       // Usage: predict(input) → backpropagate(expected) → accumulate() → update(numSamples)
@@ -180,4 +181,4 @@ namespace ANN
   };
 }
 
-#endif // ANN_CORE_H
+#endif // _CORE_H

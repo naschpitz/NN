@@ -5,7 +5,7 @@
 #include "NN-CLI_SummaryTable.hpp"
 #include "NN-CLI_Types.hpp"
 
-#include <ANN_CoreConfig.hpp>
+#include <_CoreConfig.hpp>
 #include <CNN_CoreConfig.hpp>
 
 #include <string>
@@ -28,7 +28,7 @@ namespace NN_CLI
                                                     ulong numTrainSamples, ulong numValidationSamples,
                                                     float validationRatio, bool validationAuto);
 
-      static std::vector<std::string> collectANN(const ANN::CoreConfig<float>& annConfig,
+      static std::vector<std::string> collect(const ANN::CoreConfig<float>& annConfig,
                                                  const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
                                                  ulong numTrainSamples, ulong numValidationSamples,
                                                  float validationRatio, bool validationAuto, ulong maxWidth = 0);

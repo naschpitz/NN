@@ -19,10 +19,10 @@ namespace NN_CLI
       // Parse a config file once and return the JSON object for reuse across multiple loader calls.
       static nlohmann::json parseConfigFile(const std::string& configFilePath);
 
-      // Detect whether a config file defines an ANN or CNN network (file-path convenience wrapper).
+      // Detect whether a config file defines an  or CNN network (file-path convenience wrapper).
       static NetworkType detectNetworkType(const std::string& configFilePath);
 
-      // Detect whether a config file defines an ANN or CNN network from pre-parsed JSON.
+      // Detect whether a config file defines an  or CNN network from pre-parsed JSON.
       static NetworkType detectNetworkType(const nlohmann::json& json);
 
       // Load I/O configuration (inputType, outputType, shapes) with optional CLI overrides (file-path wrapper).

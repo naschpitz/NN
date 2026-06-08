@@ -5,7 +5,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   // Test result information
   template <typename T>

@@ -5,27 +5,27 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
-QString trainedANNModelPath;
+QString trainedModelPath;
 
 //===================================================================================================================//
 
-static void testANNTrainXOR()
+static void testTrainXOR()
 {
-  std::cout << "  testANNTrainXOR... ";
+  std::cout << "  testTrainXOR... ";
 
-  trainedANNModelPath = tempDir() + "/ann_xor_model.json";
+  trainedModelPath = tempDir() + "/ann_xor_model.json";
 
   auto result = runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
-                          "--samples", fixturePath("ann_train_samples.json"), "--output", trainedANNModelPath});
+                          "--samples", fixturePath("ann_train_samples.json"), "--output", trainedModelPath});
 
-  CHECK(result.exitCode == 0, "ANN train XOR: exit code 0");
-  CHECK(result.stdOut.contains("Training completed."), "ANN train XOR: 'Training completed.'");
-  CHECK(result.stdOut.contains("Model saved to:"), "ANN train XOR: 'Model saved to:'");
-  CHECK(QFile::exists(trainedANNModelPath), "ANN train XOR: model file exists");
+  CHECK(result.exitCode == 0, " train XOR: exit code 0");
+  CHECK(result.stdOut.contains("Training completed."), " train XOR: 'Training completed.'");
+  CHECK(result.stdOut.contains("Model saved to:"), " train XOR: 'Model saved to:'");
+  CHECK(QFile::exists(trainedModelPath), " train XOR: model file exists");
 
   // Clear the path if training failed so downstream tests skip gracefully
-  if (result.exitCode != 0 || !QFile::exists(trainedANNModelPath)) {
-    trainedANNModelPath.clear();
+  if (result.exitCode != 0 || !QFile::exists(trainedModelPath)) {
+    trainedModelPath.clear();
   }
 
   std::cout << std::endl;
@@ -33,12 +33,12 @@ static void testANNTrainXOR()
 
 //===================================================================================================================//
 
-static void testANNNetworkDetection()
+static void testNetworkDetection()
 {
-  std::cout << "  testANNNetworkDetection... ";
+  std::cout << "  testNetworkDetection... ";
 
-  if (trainedANNModelPath.isEmpty() || !QFile::exists(trainedANNModelPath)) {
-    CHECK(false, "ANN detection: skipped — no trained model available (testANNTrainXOR must run first)");
+  if (trainedModelPath.isEmpty() || !QFile::exists(trainedModelPath)) {
+    CHECK(false, " detection: skipped — no trained model available (testTrainXOR must run first)");
     std::cout << std::endl;
     return;
   }
@@ -52,22 +52,22 @@ static void testANNNetworkDetection()
     inputFile.close();
   }
 
-  auto result = runNNCLI({"--config", trainedANNModelPath, "--mode", "predict", "--device", "cpu", "--input",
+  auto result = runNNCLI({"--config", trainedModelPath, "--mode", "predict", "--device", "cpu", "--input",
                           predictInputPath, "--output", tempDir() + "/ann_detect_output.json", "--log-level", "info"});
 
-  CHECK(result.exitCode == 0, "ANN detection: exit code 0");
-  CHECK(result.stdOut.contains("Network type: ANN"), "ANN detection: stdout contains 'Network type: ANN'");
+  CHECK(result.exitCode == 0, " detection: exit code 0");
+  CHECK(result.stdOut.contains("Network type: "), " detection: stdout contains 'Network type: '");
   std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
-static void testANNModeOverride()
+static void testModeOverride()
 {
-  std::cout << "  testANNModeOverride... ";
+  std::cout << "  testModeOverride... ";
 
-  if (trainedANNModelPath.isEmpty() || !QFile::exists(trainedANNModelPath)) {
-    CHECK(false, "ANN mode override: skipped — no trained model available (testANNTrainXOR must run first)");
+  if (trainedModelPath.isEmpty() || !QFile::exists(trainedModelPath)) {
+    CHECK(false, " mode override: skipped — no trained model available (testTrainXOR must run first)");
     std::cout << std::endl;
     return;
   }
@@ -84,29 +84,29 @@ static void testANNModeOverride()
   QString outputPath = tempDir() + "/ann_override_output.json";
 
   // Trained model has mode=train; override to predict via CLI
-  auto result = runNNCLI({"--config", trainedANNModelPath, "--mode", "predict", "--device", "cpu", "--input",
+  auto result = runNNCLI({"--config", trainedModelPath, "--mode", "predict", "--device", "cpu", "--input",
                           predictInputPath, "--output", outputPath, "--log-level", "info"});
 
-  CHECK(result.exitCode == 0, "ANN mode override: exit code 0");
-  CHECK(result.stdOut.contains("Mode: predict (CLI)"), "ANN mode override: 'Mode: predict (CLI)'");
+  CHECK(result.exitCode == 0, " mode override: exit code 0");
+  CHECK(result.stdOut.contains("Mode: predict (CLI)"), " mode override: 'Mode: predict (CLI)'");
   std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
-static void testANNTrainWithWeightedLoss()
+static void testTrainWithWeightedLoss()
 {
-  std::cout << "  testANNTrainWithWeightedLoss... ";
+  std::cout << "  testTrainWithWeightedLoss... ";
 
   QString modelPath = tempDir() + "/ann_weighted_model.json";
 
   auto result = runNNCLI({"--config", fixturePath("ann_train_weighted_config.json"), "--mode", "train", "--device",
                           "cpu", "--samples", fixturePath("ann_train_samples.json"), "--output", modelPath});
 
-  CHECK(result.exitCode == 0, "ANN weighted train: exit code 0");
-  CHECK(result.stdOut.contains("Training completed."), "ANN weighted train: 'Training completed.'");
-  CHECK(result.stdOut.contains("Model saved to:"), "ANN weighted train: 'Model saved to:'");
-  CHECK(QFile::exists(modelPath), "ANN weighted train: model file exists");
+  CHECK(result.exitCode == 0, " weighted train: exit code 0");
+  CHECK(result.stdOut.contains("Training completed."), " weighted train: 'Training completed.'");
+  CHECK(result.stdOut.contains("Model saved to:"), " weighted train: 'Model saved to:'");
+  CHECK(QFile::exists(modelPath), " weighted train: model file exists");
 
   // Verify saved model JSON contains costFunctionConfig
   QFile file(modelPath);
@@ -115,36 +115,36 @@ static void testANNTrainWithWeightedLoss()
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject root = doc.object();
 
-    CHECK(root.contains("costFunction"), "ANN weighted train: saved model has 'costFunctionConfig'");
+    CHECK(root.contains("costFunction"), " weighted train: saved model has 'costFunctionConfig'");
 
     QJsonObject cfc = root["costFunction"].toObject();
     CHECK(cfc["type"].toString() == "weightedSquaredDifference",
-          "ANN weighted train: type is 'weightedSquaredDifference'");
-    CHECK(cfc.contains("weights"), "ANN weighted train: has 'weights'");
+          " weighted train: type is 'weightedSquaredDifference'");
+    CHECK(cfc.contains("weights"), " weighted train: has 'weights'");
 
     QJsonArray weights = cfc["weights"].toArray();
-    CHECK(weights.size() == 2, "ANN weighted train: weights has 2 elements");
-    CHECK_NEAR(weights[0].toDouble(), 3.0, 1e-6, "ANN weighted train: weight[0] = 3.0");
-    CHECK_NEAR(weights[1].toDouble(), 1.0, 1e-6, "ANN weighted train: weight[1] = 1.0");
+    CHECK(weights.size() == 2, " weighted train: weights has 2 elements");
+    CHECK_NEAR(weights[0].toDouble(), 3.0, 1e-6, " weighted train: weight[0] = 3.0");
+    CHECK_NEAR(weights[1].toDouble(), 1.0, 1e-6, " weighted train: weight[1] = 1.0");
 
     file.close();
   } else {
-    CHECK(false, "ANN weighted train: failed to open saved model file");
+    CHECK(false, " weighted train: failed to open saved model file");
   }
 
   std::cout << std::endl;
 }
 
-// Regression guard for the validation deadlock (ANN side). With validation enabled, the
+// Regression guard for the validation deadlock ( side). With validation enabled, the
 // per-epoch validation pass (CoreCPU::test) runs from inside train()'s per-sample callback.
 // When train() and test() shared the global QThreadPool, that nested map deadlocked — every
 // worker thread parked in a futex at 0% CPU. The fix gives each core its own pool.
-// ANNRunner only runs validation when saveModelInterval > 0, so the fixture sets it; the
+// Runner only runs validation when saveModelInterval > 0, so the fixture sets it; the
 // net trains for 3 epochs (validation fires from epoch 2 on) under a short timeout, so a
 // regression surfaces as a fast failure instead of an indefinite hang. Not --full gated.
-static void testANNTrainValidationNoDeadlock()
+static void testTrainValidationNoDeadlock()
 {
-  std::cout << "  testANNTrainValidationNoDeadlock... ";
+  std::cout << "  testTrainValidationNoDeadlock... ";
 
   QString modelPath = tempDir() + "/ann_validation_nodeadlock.json";
 
@@ -153,19 +153,19 @@ static void testANNTrainValidationNoDeadlock()
               fixturePath("ann_validation_samples.json"), "--output", modelPath, "--log-level", "quiet"},
              60000); // 60s deadlock guard — real train takes <1s; a hang trips the timeout
 
-  CHECK(result.exitCode == 0, "ANN validation no-deadlock: training exit code 0 (timeout/-2 = deadlock)");
-  CHECK(QFile::exists(modelPath), "ANN validation no-deadlock: trained model file exists");
+  CHECK(result.exitCode == 0, " validation no-deadlock: training exit code 0 (timeout/-2 = deadlock)");
+  CHECK(QFile::exists(modelPath), " validation no-deadlock: trained model file exists");
 
   std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
-void runANNCPUBasicTests()
+void runCPUBasicTests()
 {
-  testANNTrainXOR();
-  testANNNetworkDetection();
-  testANNModeOverride();
-  testANNTrainWithWeightedLoss();
-  testANNTrainValidationNoDeadlock();
+  testTrainXOR();
+  testNetworkDetection();
+  testModeOverride();
+  testTrainWithWeightedLoss();
+  testTrainValidationNoDeadlock();
 }

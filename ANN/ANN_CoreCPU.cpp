@@ -1,6 +1,6 @@
-#include "ANN_CoreCPU.hpp"
-#include "ANN_TrainingMonitor.hpp"
-#include "ANN_Utils.hpp"
+#include "_CoreCPU.hpp"
+#include "Common/Common_TrainingMonitor.hpp"
+#include "_Utils.hpp"
 
 #include <QThreadPool>
 #include <QtConcurrent>
@@ -12,6 +12,7 @@
 #include <cmath>
 
 using namespace ANN;
+using namespace Common;
 
 //===================================================================================================================//
 

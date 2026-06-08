@@ -21,7 +21,7 @@ void runGPUExactTests();
 int main()
 {
   std::cout << "========================================" << std::endl;
-  std::cout << "       ANN Unit Tests" << std::endl;
+  std::cout << "        Unit Tests" << std::endl;
   std::cout << "========================================" << std::endl;
 
   std::cout << "\n=== Activation Function Tests ===" << std::endl;

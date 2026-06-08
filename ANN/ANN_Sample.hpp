@@ -1,12 +1,13 @@
-#ifndef ANN_SAMPLE_HPP
-#define ANN_SAMPLE_HPP
+#ifndef _SAMPLE_HPP
+#define _SAMPLE_HPP
 
-#include "ANN_Types.hpp"
+#include "_Types.hpp"
 
 //===================================================================================================================//
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   struct Sample {
       Input<T> input;
@@ -19,4 +20,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // ANN_SAMPLE_HPP
+#endif // _SAMPLE_HPP

@@ -1,9 +1,10 @@
-#include "ANN_Worker.hpp"
+#include "_Worker.hpp"
 
 #include <algorithm>
 #include <cmath>
 
 using namespace ANN;
+using namespace Common;
 
 //===================================================================================================================//
 

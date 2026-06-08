@@ -12,18 +12,18 @@ static void testDifferentActivations()
   params.weights = {{}, {{0.3, 0.3}}};
   params.biases = {{}, {0.1}};
 
-  auto makeCore = [&](ANN::ActvFuncType actv) {
+  auto makeCore = [&](::ActvFuncType actv) {
     ANN::CoreConfig<double> config;
-    config.modeType = ANN::ModeType::PREDICT;
-    config.deviceType = ANN::DeviceType::CPU;
-    config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, actv}});
+    config.modeType = ::ModeType::PREDICT;
+    config.deviceType = ::DeviceType::CPU;
+    config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, actv}});
     config.parameters = params;
     return ANN::Core<double>::makeCore(config);
   };
 
-  double reluOut = makeCore(ANN::ActvFuncType::RELU)->predict(input).output[0];
-  double sigOut = makeCore(ANN::ActvFuncType::SIGMOID)->predict(input).output[0];
-  double tanhOut = makeCore(ANN::ActvFuncType::TANH)->predict(input).output[0];
+  double reluOut = makeCore(::ActvFuncType::RELU)->predict(input).output[0];
+  double sigOut = makeCore(::ActvFuncType::SIGMOID)->predict(input).output[0];
+  double tanhOut = makeCore(::ActvFuncType::TANH)->predict(input).output[0];
 
   std::cout << "  relu=" << reluOut << " sigmoid=" << sigOut << " tanh=" << tanhOut << std::endl;
 
@@ -42,16 +42,16 @@ static void testMultiLayerNetwork()
   // 2 → 8 → 8 → 1 network with Adam — robust convergence on the trivial
   // {(1,1)→1, (0,0)→0} task. Was 4-RELU + SGD with a 5-attempt retry loop.
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU},
-                                          {8, ANN::ActvFuncType::RELU},
-                                          {8, ANN::ActvFuncType::RELU},
-                                          {1, ANN::ActvFuncType::SIGMOID}});
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU},
+                                          {8, ::ActvFuncType::RELU},
+                                          {8, ::ActvFuncType::RELU},
+                                          {1, ::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 1000;
   config.trainingConfig.learningRate = 0.05;
-  config.trainingConfig.optimizer.type = ANN::OptimizerType::ADAM;
+  config.trainingConfig.optimizer.type = ::OptimizerType::ADAM;
   config.trainingConfig.shuffleSeed = 42;
   config.numThreads = 1;
   config.progressReports = 0;
@@ -76,10 +76,10 @@ static void testMultiOutput()
 
   // 2 inputs → 3 outputs
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {3, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {3, ::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5;
@@ -108,10 +108,10 @@ static void testStepByStepAPI()
 
   // Test the trainStep API: trainStep(input, expected) → update(numSamples)
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.learningRate = 0.5;
@@ -150,10 +150,10 @@ static void testTrainWithTanh()
   std::cout << "--- testTrainWithTanh ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::TANH}, {1, ANN::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::TANH}, {1, ::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 500;
   config.numThreads = 1;
@@ -180,29 +180,29 @@ static void testGettersAfterConstruction()
   std::cout << "--- testGettersAfterConstruction ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ANN::ModeType::TRAIN;
-  config.deviceType = ANN::DeviceType::CPU;
+  config.modeType = ::ModeType::TRAIN;
+  config.deviceType = ::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{3, ANN::ActvFuncType::RELU}, {5, ANN::ActvFuncType::SIGMOID}, {2, ANN::ActvFuncType::TANH}});
+    makeLayersConfig({{3, ::ActvFuncType::RELU}, {5, ::ActvFuncType::SIGMOID}, {2, ::ActvFuncType::TANH}});
 
   config.trainingConfig.numEpochs = 100;
   config.trainingConfig.learningRate = 0.05;
-  config.logLevel = ANN::LogLevel::INFO;
+  config.logLevel = ::LogLevel::INFO;
 
   auto core = ANN::Core<double>::makeCore(config);
 
-  CHECK(core->getModeType() == ANN::ModeType::TRAIN, "mode = TRAIN");
-  CHECK(core->getDeviceType() == ANN::DeviceType::CPU, "device = CPU");
+  CHECK(core->getModeType() == ::ModeType::TRAIN, "mode = TRAIN");
+  CHECK(core->getDeviceType() == ::DeviceType::CPU, "device = CPU");
   CHECK(core->getLayersConfig().size() == 3, "3 layers");
   CHECK(core->getLayersConfig()[0].numNeurons == 3, "layer 0: 3 neurons");
   CHECK(core->getLayersConfig()[1].numNeurons == 5, "layer 1: 5 neurons");
   CHECK(core->getLayersConfig()[2].numNeurons == 2, "layer 2: 2 neurons");
   CHECK(core->getTrainingConfig().numEpochs == 100, "numEpochs = 100");
   CHECK_NEAR(core->getTrainingConfig().learningRate, 0.05f, 1e-6f, "learningRate = 0.05");
-  CHECK(core->getLogLevel() == ANN::LogLevel::INFO, "logLevel = INFO");
+  CHECK(core->getLogLevel() == ::LogLevel::INFO, "logLevel = INFO");
 
-  core->setLogLevel(ANN::LogLevel::ERROR);
-  CHECK(core->getLogLevel() == ANN::LogLevel::ERROR, "logLevel = ERROR after setLogLevel");
+  core->setLogLevel(::LogLevel::ERROR);
+  CHECK(core->getLogLevel() == ::LogLevel::ERROR, "logLevel = ERROR after setLogLevel");
 }
 
 void runCoreBasicTests2()

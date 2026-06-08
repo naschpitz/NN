@@ -1,6 +1,6 @@
 #include "CNN_CoreGPU.hpp"
 #include "CNN_CoreGPUWorkerConfig.hpp"
-#include "CNN_TrainingMonitor.hpp"
+#include "Common/Common_TrainingMonitor.hpp"
 #include "CNN_Worker.hpp"
 
 #include <OCLW_Core.hpp>
@@ -13,6 +13,7 @@
 #include <random>
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 //-- Constructor --//
@@ -22,7 +23,7 @@ template <typename T>
 CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 {
   // Initialize OpenCL before querying device information
-  OpenCLWrapper::Core::initialize(this->logLevel >= CNN::LogLevel::DEBUG);
+  OpenCLWrapper::Core::initialize(this->logLevel >= Common::LogLevel::DEBUG);
 
   // Determine number of GPUs to use
   int requestedGPUs = coreConfig.numGPUs;
@@ -123,7 +124,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   ulong batchSize = this->trainingConfig.batchSize;
   batchSize = std::max(this->numGPUs, (batchSize / this->numGPUs) * this->numGPUs);
 
-  if (this->logLevel >= CNN::LogLevel::INFO) {
+  if (this->logLevel >= Common::LogLevel::INFO) {
     std::cout << "Starting GPU training: " << numSamples << " samples, " << numEpochs << " epochs, " << this->numGPUs
               << " GPU" << (this->numGPUs > 1 ? "s" : "") << "\n";
   }
@@ -239,10 +240,10 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         epochLoss += gpuLosses[i];
       }
 
-      // Merge CNN and ANN gradients across workers, then unified update
+      // Merge CNN and  gradients across workers, then unified update
       this->emitTiming(TimingPhase::GradMerge, TimingEvent::Begin);
       this->mergeCNNGradients();
-      this->mergeANNGradients();
+      this->mergeGradients();
       this->emitTiming(TimingPhase::GradMerge, TimingEvent::End);
 
       // Update weights after each mini-batch (parallel across GPUs)
@@ -505,11 +506,11 @@ void CoreGPU<T>::mergeCNNGradients()
 }
 
 //===================================================================================================================//
-//-- Multi-GPU gradient merging: ANN --//
+//-- Multi-GPU gradient merging:  --//
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPU<T>::mergeANNGradients()
+void CoreGPU<T>::mergeGradients()
 {
   if (this->numGPUs <= 1)
     return;
@@ -524,7 +525,7 @@ void CoreGPU<T>::mergeANNGradients()
     gpuIndices.append(i);
 
   QtConcurrent::blockingMap(gpuIndices, [this, &allWeights, &allBiases](size_t gpuIdx) {
-    this->gpuWorkers[gpuIdx]->bufferManager->readANNAccumulatedGradients(allWeights[gpuIdx], allBiases[gpuIdx]);
+    this->gpuWorkers[gpuIdx]->bufferManager->readAccumulatedGradients(allWeights[gpuIdx], allBiases[gpuIdx]);
   });
 
   // Sum on CPU
@@ -541,7 +542,7 @@ void CoreGPU<T>::mergeANNGradients()
 
   // Write merged gradients back to all workers in parallel
   QtConcurrent::blockingMap(gpuIndices, [this, &totalWeights, &totalBiases](size_t gpuIdx) {
-    this->gpuWorkers[gpuIdx]->bufferManager->setANNAccumulators(totalWeights, totalBiases);
+    this->gpuWorkers[gpuIdx]->bufferManager->setAccumulators(totalWeights, totalBiases);
   });
 }
 

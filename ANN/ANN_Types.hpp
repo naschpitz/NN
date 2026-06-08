@@ -1,5 +1,5 @@
-#ifndef ANN_TYPES_HPP
-#define ANN_TYPES_HPP
+#ifndef _TYPES_HPP
+#define _TYPES_HPP
 
 #include <sys/types.h>
 #include <vector>
@@ -8,6 +8,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   using Input = std::vector<T>;
 
@@ -35,4 +36,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // ANN_TYPES_HPP
+#endif // _TYPES_HPP

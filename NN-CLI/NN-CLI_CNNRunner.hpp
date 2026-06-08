@@ -13,7 +13,7 @@
 #include "NN-CLI_Utils.hpp"
 
 #include <CNN_Core.hpp>
-#include <CNN_TrainingMonitor.hpp>
+#include "Common/Common_TrainingMonitor.hpp"
 
 #include <QCommandLineParser>
 
@@ -44,7 +44,7 @@ namespace NN_CLI
       //-- Training helpers --//
       void setupTrainingCallback(const QString& inputFilePath,
                                  std::shared_ptr<CNN::Core<float>> validationCore = nullptr,
-                                 std::shared_ptr<CNN::TrainingMonitor<float>> trainingMonitor = nullptr,
+                                 std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor = nullptr,
                                  const DataLoader<CNN::Sample<float>>* validationDataLoader = nullptr,
                                  const std::vector<ulong>* validationIndices = nullptr);
       int finishTraining(const QString& inputFilePath);
@@ -68,7 +68,7 @@ namespace NN_CLI
       //-- ncurses terminal UI (only active during training) --//
       std::shared_ptr<TerminalUI> tui;
 
-      //-- Loading-bar wiring shared with the ANN runner --//
+      //-- Loading-bar wiring shared with the  runner --//
       TrainingTui trainingTui_;
 
       //-- Cached config for on-resize regeneration --//

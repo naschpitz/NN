@@ -5,7 +5,7 @@
 #include "CNN_Pool.hpp"
 #include "CNN_Flatten.hpp"
 
-#include <ANN_CoreGPUWorker.hpp>
+#include <_CoreGPUWorker.hpp>
 #include <OCLW_Core.hpp>
 
 #include <cmath>
@@ -16,6 +16,7 @@
 #include <random>
 
 using namespace CNN;
+using namespace Common;
 
 //===================================================================================================================//
 //-- Constructors --//
@@ -30,7 +31,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const CoreGPUWorkerConfig<T>& workerConfig)
 
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
   this->core = this->ownedCore.get();
-  this->core->setVerbose(this->workerConfig.logLevel >= CNN::LogLevel::DEBUG);
+  this->core->setVerbose(this->workerConfig.logLevel >= Common::LogLevel::DEBUG);
 
   // Initialize conv parameters (He initialization if not loaded)
   Worker<T>::initializeConvParams(workerConfig.layersConfig, workerConfig.inputShape, this->parameters);
@@ -50,8 +51,8 @@ CoreGPUWorker<T>::CoreGPUWorker(const CoreGPUWorkerConfig<T>& workerConfig)
   // Load OpenCL sources (defines first, then kernels)
   this->bufferManager->loadSources(false);
 
-  // Build ANN GPU worker on the shared core (loads ANN sources + allocates ANN buffers)
-  this->bufferManager->buildANNWorker();
+  // Build  GPU worker on the shared core (loads  sources + allocates  buffers)
+  this->bufferManager->buildWorker();
 
   // Allocate CNN GPU buffers — batchSize is already set by the caller (CoreGPU)
   this->bufferManager->allocateBuffers(this->workerConfig.batchSize);
@@ -88,7 +89,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const CoreGPUWorkerConfig<T>& config, OpenCLWrap
   // Create kernel builder
   this->kernelBuilder = std::make_unique<GPUKernelBuilder<T>>(this->core, this->workerConfig, *this->bufferManager);
 
-  // Caller must call loadSources(), buildANNWorker(), allocateBuffers() manually
+  // Caller must call loadSources(), buildWorker(), allocateBuffers() manually
 }
 
 //===================================================================================================================//
@@ -98,7 +99,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const CoreGPUWorkerConfig<T>& config, OpenCLWrap
 template <typename T>
 PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 {
-  // Set up predict kernels if needed (CNN propagate → bridge → ANN propagate)
+  // Set up predict kernels if needed (CNN propagate → bridge →  propagate)
   if (!this->kernelBuilder->predictKernelsSetup) {
     this->kernelBuilder->setupPredictKernels();
   }
@@ -107,10 +108,10 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
   std::vector<T> inputVec(input.data.begin(), input.data.end());
   this->core->template writeBuffer<T>("cnn_actvs", inputVec, 0);
 
-  // Single run: CNN propagate → copy_cnn_to_ann → ANN propagate
+  // Single run: CNN propagate → copy_cnn_to_ann →  propagate
   this->core->run();
 
-  // Read ANN output (post-activation) and logits (pre-activation z) of the dense head
+  // Read  output (post-activation) and logits (pre-activation z) of the dense head
   ANN::Output<T> annOutput = this->bufferManager->annGPUWorker->bufferManager->readOutput();
   ANN::Logits<T> annLogits = this->bufferManager->annGPUWorker->bufferManager->readOutputLogits();
 
@@ -269,7 +270,7 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
       this->core->run();
     }
 
-    // ---- ANN FORWARD + BACKWARD (per sample) ----
+    // ----  FORWARD + BACKWARD (per sample) ----
     T prevAccumLoss = zeroVal;
 
     for (ulong n = 0; n < N; n++) {
@@ -473,7 +474,7 @@ template <typename T>
 PredictResults<T> CoreGPUWorker<T>::predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
                                                   const ProgressCallback& callback)
 {
-  // Set up predict kernels if needed (CNN propagate → bridge → ANN propagate)
+  // Set up predict kernels if needed (CNN propagate → bridge →  propagate)
   if (!this->kernelBuilder->predictKernelsSetup) {
     this->kernelBuilder->setupPredictKernels();
   }
@@ -508,11 +509,11 @@ void CoreGPUWorker<T>::backpropagateSample(const Input<T>& input, const Output<T
   std::vector<T> inputVec(input.data.begin(), input.data.end());
   this->core->template writeBuffer<T>("cnn_actvs", inputVec, 0);
 
-  // Write ANN expected output to GPU
+  // Write  expected output to GPU
   std::vector<T> expectedVec(expected.begin(), expected.end());
   this->core->template writeBuffer<T>("outputs", expectedVec, 0);
 
-  // Generate and upload dropout mask for ANN dense layers (different mask per sample)
+  // Generate and upload dropout mask for  dense layers (different mask per sample)
   if (this->bufferManager->annGPUWorker->bufferManager->hasDropout)
     this->bufferManager->annGPUWorker->bufferManager->generateAndUploadDropoutMask();
 

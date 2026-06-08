@@ -7,7 +7,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   enum class CostFunctionType : int { SQUARED_DIFFERENCE = 0, WEIGHTED_SQUARED_DIFFERENCE = 1, CROSS_ENTROPY = 2 };
 

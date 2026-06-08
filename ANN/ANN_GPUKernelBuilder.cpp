@@ -1,10 +1,11 @@
-#include "ANN_GPUKernelBuilder.hpp"
-#include "ANN_Utils.hpp"
+#include "_GPUKernelBuilder.hpp"
+#include "_Utils.hpp"
 
 #include <cmath>
 #include <string>
 
 using namespace ANN;
+using namespace Common;
 
 //===================================================================================================================//
 

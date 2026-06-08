@@ -4,7 +4,7 @@
 #include <limits>
 #include <sstream>
 
-using namespace ANN;
+using namespace Common;
 
 //===================================================================================================================//
 
@@ -148,6 +148,6 @@ bool TrainingMonitor<T>::checkLossExplosion(T loss)
 //===================================================================================================================//
 
 // Explicit template instantiations
-template class ANN::TrainingMonitor<int>;
-template class ANN::TrainingMonitor<double>;
-template class ANN::TrainingMonitor<float>;
+template class Common::TrainingMonitor<int>;
+template class Common::TrainingMonitor<double>;
+template class Common::TrainingMonitor<float>;

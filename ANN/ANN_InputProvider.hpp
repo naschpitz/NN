@@ -1,7 +1,7 @@
-#ifndef ANN_INPUTPROVIDER_HPP
-#define ANN_INPUTPROVIDER_HPP
+#ifndef _INPUTPROVIDER_HPP
+#define _INPUTPROVIDER_HPP
 
-#include "ANN_Types.hpp"
+#include "_Types.hpp"
 
 #include <functional>
 #include <sys/types.h>
@@ -10,6 +10,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   // Lazy supplier used by the streaming predict(): given a batch size and a
   // 0-based batch index, returns the corresponding chunk of inputs. The last
   // batch may be shorter than batchSize. Mirrors SampleProvider but without
@@ -20,4 +21,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // ANN_INPUTPROVIDER_HPP
+#endif // _INPUTPROVIDER_HPP

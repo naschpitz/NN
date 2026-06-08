@@ -1,10 +1,10 @@
-#ifndef ANN_COREGPUWORKER_H
-#define ANN_COREGPUWORKER_H
+#ifndef _COREGPUWORKER_H
+#define _COREGPUWORKER_H
 
-#include "ANN_Worker.hpp"
-#include "ANN_Core.hpp"
-#include "ANN_GPUBufferManager.hpp"
-#include "ANN_GPUKernelBuilder.hpp"
+#include "_Worker.hpp"
+#include "_Core.hpp"
+#include "_GPUBufferManager.hpp"
+#include "_GPUKernelBuilder.hpp"
 
 #include <OCLW_Core.hpp>
 
@@ -15,6 +15,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   class CoreGPUWorker : public Worker<T>
   {
@@ -85,4 +86,4 @@ namespace ANN
   };
 }
 
-#endif // ANN_COREGPUWORKER_H
+#endif // _COREGPUWORKER_H

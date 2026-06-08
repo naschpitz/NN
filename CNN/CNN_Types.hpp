@@ -11,6 +11,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   // 1D tensor (used for flattened output)
   template <typename T>
   using Tensor1D = std::vector<T>;
@@ -26,7 +27,7 @@ namespace CNN
   template <typename T>
   using Output = std::vector<T>;
 
-  // Pre-activation values (z) of the ANN dense head's last layer.
+  // Pre-activation values (z) of the  dense head's last layer.
   // Useful for OOD-detection scores (max-logit, logit-norm, free-energy)
   // that softmax discards.
   template <typename T>

@@ -6,11 +6,11 @@ static void testDeviceNameToType()
 {
   std::cout << "--- testDeviceNameToType ---" << std::endl;
 
-  CHECK(ANN::Device::nameToType("cpu") == ANN::DeviceType::CPU, "cpu → CPU");
-  CHECK(ANN::Device::nameToType("gpu") == ANN::DeviceType::GPU, "gpu → GPU");
+  CHECK(::Device::nameToType("cpu") == ::DeviceType::CPU, "cpu → CPU");
+  CHECK(::Device::nameToType("gpu") == ::DeviceType::GPU, "gpu → GPU");
 
-  CHECK_THROWS(ANN::Device::nameToType("nonexistent"), "nonexistent throws");
-  CHECK_THROWS(ANN::Device::nameToType(""), "empty throws");
+  CHECK_THROWS(::Device::nameToType("nonexistent"), "nonexistent throws");
+  CHECK_THROWS(::Device::nameToType(""), "empty throws");
 }
 
 //===================================================================================================================//
@@ -19,8 +19,8 @@ static void testDeviceTypeToName()
 {
   std::cout << "--- testDeviceTypeToName ---" << std::endl;
 
-  CHECK(ANN::Device::typeToName(ANN::DeviceType::CPU) == "cpu", "CPU → cpu");
-  CHECK(ANN::Device::typeToName(ANN::DeviceType::GPU) == "gpu", "GPU → gpu");
+  CHECK(::Device::typeToName(::DeviceType::CPU) == "cpu", "CPU → cpu");
+  CHECK(::Device::typeToName(::DeviceType::GPU) == "gpu", "GPU → gpu");
 }
 
 //===================================================================================================================//
@@ -29,11 +29,11 @@ static void testModeNameToType()
 {
   std::cout << "--- testModeNameToType ---" << std::endl;
 
-  CHECK(ANN::Mode::nameToType("train") == ANN::ModeType::TRAIN, "train → TRAIN");
-  CHECK(ANN::Mode::nameToType("predict") == ANN::ModeType::PREDICT, "predict → PREDICT");
-  CHECK(ANN::Mode::nameToType("test") == ANN::ModeType::TEST, "test → TEST");
+  CHECK(::Mode::nameToType("train") == ::ModeType::TRAIN, "train → TRAIN");
+  CHECK(::Mode::nameToType("predict") == ::ModeType::PREDICT, "predict → PREDICT");
+  CHECK(::Mode::nameToType("test") == ::ModeType::TEST, "test → TEST");
 
-  CHECK_THROWS(ANN::Mode::nameToType("nonexistent"), "nonexistent throws");
+  CHECK_THROWS(::Mode::nameToType("nonexistent"), "nonexistent throws");
 }
 
 //===================================================================================================================//
@@ -42,9 +42,9 @@ static void testModeTypeToName()
 {
   std::cout << "--- testModeTypeToName ---" << std::endl;
 
-  CHECK(ANN::Mode::typeToName(ANN::ModeType::TRAIN) == "train", "TRAIN → train");
-  CHECK(ANN::Mode::typeToName(ANN::ModeType::PREDICT) == "predict", "PREDICT → predict");
-  CHECK(ANN::Mode::typeToName(ANN::ModeType::TEST) == "test", "TEST → test");
+  CHECK(::Mode::typeToName(::ModeType::TRAIN) == "train", "TRAIN → train");
+  CHECK(::Mode::typeToName(::ModeType::PREDICT) == "predict", "PREDICT → predict");
+  CHECK(::Mode::typeToName(::ModeType::TEST) == "test", "TEST → test");
 }
 
 //===================================================================================================================//
@@ -53,14 +53,14 @@ static void testLayersConfigGetTotalNumNeurons()
 {
   std::cout << "--- testLayersConfigGetTotalNumNeurons ---" << std::endl;
 
-  ANN::LayersConfig config;
-  config.push_back({3, ANN::ActvFuncType::RELU});
-  config.push_back({5, ANN::ActvFuncType::RELU});
-  config.push_back({2, ANN::ActvFuncType::SIGMOID});
+  ::LayersConfig config;
+  config.push_back({3, ::ActvFuncType::RELU});
+  config.push_back({5, ::ActvFuncType::RELU});
+  config.push_back({2, ::ActvFuncType::SIGMOID});
 
   CHECK(config.getTotalNumNeurons() == 10, "getTotalNumNeurons = 3+5+2 = 10");
 
-  ANN::LayersConfig empty;
+  ::LayersConfig empty;
   CHECK(empty.getTotalNumNeurons() == 0, "empty config getTotalNumNeurons = 0");
 }
 
@@ -85,7 +85,7 @@ static void testFlattenUnflattenTensor2D()
 {
   std::cout << "--- testFlattenUnflattenTensor2D ---" << std::endl;
 
-  ANN::Tensor2D<double> original = {{1.0, 2.0, 3.0}, {4.0, 5.0}};
+  ::Tensor2D<double> original = {{1.0, 2.0, 3.0}, {4.0, 5.0}};
   ANN::Tensor1D<double> flat = ANN::Utils<double>::flatten(original);
 
   CHECK(flat.size() == 5, "flatten 2D size = 5");
@@ -93,7 +93,7 @@ static void testFlattenUnflattenTensor2D()
   CHECK_NEAR(flat[4], 5.0, 1e-10, "flat[4] = 5.0");
 
   // Unflatten back
-  ANN::Tensor2D<double> restored = {{0.0, 0.0, 0.0}, {0.0, 0.0}};
+  ::Tensor2D<double> restored = {{0.0, 0.0, 0.0}, {0.0, 0.0}};
   ANN::Utils<double>::unflatten(flat, restored);
 
   CHECK_NEAR(restored[0][0], 1.0, 1e-10, "restored[0][0] = 1.0");
@@ -108,7 +108,7 @@ static void testFlattenUnflattenTensor3D()
 {
   std::cout << "--- testFlattenUnflattenTensor3D ---" << std::endl;
 
-  ANN::Tensor3D<double> original = {{{1.0, 2.0}, {3.0, 4.0}}, {{5.0, 6.0}, {7.0, 8.0}}};
+  ::Tensor3D<double> original = {{{1.0, 2.0}, {3.0, 4.0}}, {{5.0, 6.0}, {7.0, 8.0}}};
   ANN::Tensor1D<double> flat = ANN::Utils<double>::flatten(original);
 
   CHECK(flat.size() == 8, "flatten 3D size = 8");
@@ -116,7 +116,7 @@ static void testFlattenUnflattenTensor3D()
   CHECK_NEAR(flat[7], 8.0, 1e-10, "flat[7] = 8.0");
 
   // Unflatten back
-  ANN::Tensor3D<double> restored = {{{0.0, 0.0}, {0.0, 0.0}}, {{0.0, 0.0}, {0.0, 0.0}}};
+  ::Tensor3D<double> restored = {{{0.0, 0.0}, {0.0, 0.0}}, {{0.0, 0.0}, {0.0, 0.0}}};
   ANN::Utils<double>::unflatten(flat, restored);
 
   CHECK_NEAR(restored[0][0][0], 1.0, 1e-10, "restored[0][0][0] = 1.0");
@@ -129,10 +129,10 @@ static void testCount()
 {
   std::cout << "--- testCount ---" << std::endl;
 
-  ANN::Tensor2D<double> t2d = {{1.0, 2.0}, {3.0, 4.0, 5.0}};
+  ::Tensor2D<double> t2d = {{1.0, 2.0}, {3.0, 4.0, 5.0}};
   CHECK(ANN::Utils<double>::count(t2d) == 5, "count 2D = 5");
 
-  ANN::Tensor3D<double> t3d = {{{1.0, 2.0}, {3.0}}, {{4.0, 5.0, 6.0}}};
+  ::Tensor3D<double> t3d = {{{1.0, 2.0}, {3.0}}, {{4.0, 5.0, 6.0}}};
   CHECK(ANN::Utils<double>::count(t3d) == 6, "count 3D = 6");
 }
 

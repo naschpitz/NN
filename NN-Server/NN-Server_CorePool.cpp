@@ -25,7 +25,7 @@ namespace NN_Server
       std::cout << "  Loading core " << (i + 1) << "/" << poolSize << "..." << std::flush;
 
       if (this->netType == NetworkType::ANN) {
-        ANN::CoreConfig<float> config = Loader::loadANNConfig(configFilePath);
+        ANN::CoreConfig<float> config = Loader::loadConfig(configFilePath);
         this->entries[static_cast<size_t>(i)].annCore = ANN::Core<float>::makeCore(config);
       } else {
         CNN::CoreConfig<float> config = Loader::loadCNNConfig(configFilePath);

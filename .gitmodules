@@ -1,0 +1,3 @@
+[submodule "OpenCLWrapper"]
+	path = OpenCLWrapper
+	url = https://github.com/naschpitz/openCLWrapper.git

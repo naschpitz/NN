@@ -1,7 +1,7 @@
-#ifndef ANN_SAMPLEPROVIDER_HPP
-#define ANN_SAMPLEPROVIDER_HPP
+#ifndef _SAMPLEPROVIDER_HPP
+#define _SAMPLEPROVIDER_HPP
 
-#include "ANN_Sample.hpp"
+#include "_Sample.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -11,6 +11,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   // Lazy supplier used by train() and test(): given the full shuffled index
   // array, a batch size, and a 0-based batch index, returns the corresponding
   // batch of samples. Lets callers stream samples on demand (e.g. decode
@@ -43,4 +44,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // ANN_SAMPLEPROVIDER_HPP
+#endif // _SAMPLEPROVIDER_HPP

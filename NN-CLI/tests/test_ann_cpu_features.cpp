@@ -6,9 +6,9 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
-static void testANNCheckpointParameters()
+static void testCheckpointParameters()
 {
-  std::cout << "  testANNCheckpointParameters... ";
+  std::cout << "  testCheckpointParameters... ";
 
   // Copy config and samples to tempDir so checkpoints go to tempDir/output/
   // (generateCheckpointPath uses the samples file directory, not the config directory)
@@ -30,13 +30,13 @@ static void testANNCheckpointParameters()
   auto result = runNNCLI(
     {"--config", configDst, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
 
-  CHECK(result.exitCode == 0, "ANN checkpoint params: exit code 0");
-  CHECK(result.stdOut.contains("Training completed."), "ANN checkpoint params: 'Training completed.'");
+  CHECK(result.exitCode == 0, " checkpoint params: exit code 0");
+  CHECK(result.stdOut.contains("Training completed."), " checkpoint params: 'Training completed.'");
 
   // Find checkpoint files in tempDir/output/
   QDir outputDir(tempDir() + "/output");
   QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.json"}, QDir::Files);
-  CHECK(!checkpoints.isEmpty(), "ANN checkpoint params: checkpoint files exist");
+  CHECK(!checkpoints.isEmpty(), " checkpoint params: checkpoint files exist");
 
   if (!checkpoints.isEmpty()) {
     // Parse the first checkpoint and verify parameters are non-empty
@@ -46,14 +46,14 @@ static void testANNCheckpointParameters()
     if (file.open(QIODevice::ReadOnly)) {
       QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
       QJsonObject root = doc.object();
-      CHECK(root.contains("parameters"), "ANN checkpoint params: has 'parameters'");
+      CHECK(root.contains("parameters"), " checkpoint params: has 'parameters'");
 
       QJsonObject params = root["parameters"].toObject();
       QJsonArray weights = params["weights"].toArray();
       QJsonArray biases = params["biases"].toArray();
 
-      CHECK(!weights.isEmpty(), "ANN checkpoint params: weights non-empty");
-      CHECK(!biases.isEmpty(), "ANN checkpoint params: biases non-empty");
+      CHECK(!weights.isEmpty(), " checkpoint params: weights non-empty");
+      CHECK(!biases.isEmpty(), " checkpoint params: biases non-empty");
 
       // Verify at least one layer has actual weight data
       if (!weights.isEmpty()) {
@@ -66,12 +66,12 @@ static void testANNCheckpointParameters()
           }
         }
 
-        CHECK(hasData, "ANN checkpoint params: weights contain actual data");
+        CHECK(hasData, " checkpoint params: weights contain actual data");
       }
 
       file.close();
     } else {
-      CHECK(false, "ANN checkpoint params: failed to open checkpoint file");
+      CHECK(false, " checkpoint params: failed to open checkpoint file");
     }
   }
 
@@ -83,9 +83,9 @@ static void testANNCheckpointParameters()
 
 //===================================================================================================================//
 
-static void testANNTrainWithDropout()
+static void testTrainWithDropout()
 {
-  std::cout << "  testANNTrainWithDropout... ";
+  std::cout << "  testTrainWithDropout... ";
 
   QString configPath = fixturePath("ann_train_dropout_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
@@ -93,8 +93,8 @@ static void testANNTrainWithDropout()
 
   auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
-  CHECK(result.exitCode == 0, "ANN dropout training exits 0");
-  CHECK(QFile::exists(outputPath), "ANN dropout model file created");
+  CHECK(result.exitCode == 0, " dropout training exits 0");
+  CHECK(QFile::exists(outputPath), " dropout model file created");
 
   // Verify the model JSON contains dropoutRate in trainingConfig
   QFile file(outputPath);
@@ -111,9 +111,9 @@ static void testANNTrainWithDropout()
 
 //===================================================================================================================//
 
-static void testANNTrainWithAugmentation()
+static void testTrainWithAugmentation()
 {
-  std::cout << "  testANNTrainWithAugmentation... ";
+  std::cout << "  testTrainWithAugmentation... ";
 
   QString configPath = fixturePath("ann_train_augment_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
@@ -121,8 +121,8 @@ static void testANNTrainWithAugmentation()
 
   auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
-  CHECK(result.exitCode == 0, "ANN augmentation training exits 0");
-  CHECK(QFile::exists(outputPath), "ANN augmented model file created");
+  CHECK(result.exitCode == 0, " augmentation training exits 0");
+  CHECK(QFile::exists(outputPath), " augmented model file created");
 
   // Verify auto class weights were applied
   QFile file(outputPath);
@@ -140,9 +140,9 @@ static void testANNTrainWithAugmentation()
 
 //===================================================================================================================//
 
-static void testANNDropoutRateParsing()
+static void testDropoutRateParsing()
 {
-  std::cout << "  testANNDropoutRateParsing... ";
+  std::cout << "  testDropoutRateParsing... ";
 
   // Verify that dropoutRate=0 (default) is not saved in model JSON
   QString configPath = fixturePath("ann_train_config.json");
@@ -151,7 +151,7 @@ static void testANNDropoutRateParsing()
 
   auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
-  CHECK(result.exitCode == 0, "ANN no-dropout training exits 0");
+  CHECK(result.exitCode == 0, " no-dropout training exits 0");
 
   QFile file(outputPath);
   file.open(QIODevice::ReadOnly);
@@ -166,36 +166,36 @@ static void testANNDropoutRateParsing()
 
 //===================================================================================================================//
 
-static void testANNImageNetworkDetection()
+static void testImageNetworkDetection()
 {
-  std::cout << "  testANNImageNetworkDetection... ";
+  std::cout << "  testImageNetworkDetection... ";
 
-  // An ANN config with inputType "image" and inputShape must still be detected as ANN, not CNN.
+  // An  config with inputType "image" and inputShape must still be detected as , not CNN.
   // Train with the ann_image_train_config fixture (which has layersConfig + inputShape + inputType "image")
-  // using image samples, and verify the log says "Network type: ANN".
+  // using image samples, and verify the log says "Network type: ".
   QString modelPath = tempDir() + "/ann_image_detect_model.json";
 
   auto result =
     runNNCLI({"--config", fixturePath("ann_image_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",
               fixturePath("ann_image_train_samples.json"), "--output", modelPath, "--log-level", "info"});
 
-  CHECK(result.exitCode == 0, "ANN image detection: exit code 0");
-  CHECK(result.stdOut.contains("Network type: ANN"), "ANN image detection: detected as ANN (not CNN)");
-  CHECK(!result.stdOut.contains("Network type: CNN"), "ANN image detection: NOT detected as CNN");
-  CHECK(result.stdOut.contains("Input type: image"), "ANN image detection: input type is image");
-  CHECK(result.stdOut.contains("Training completed."), "ANN image train: training completed");
-  CHECK(QFile::exists(modelPath), "ANN image train: model file exists");
+  CHECK(result.exitCode == 0, " image detection: exit code 0");
+  CHECK(result.stdOut.contains("Network type: "), " image detection: detected as  (not CNN)");
+  CHECK(!result.stdOut.contains("Network type: CNN"), " image detection: NOT detected as CNN");
+  CHECK(result.stdOut.contains("Input type: image"), " image detection: input type is image");
+  CHECK(result.stdOut.contains("Training completed."), " image train: training completed");
+  CHECK(QFile::exists(modelPath), " image train: model file exists");
 
   std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
-void runANNCPUFeatureTests()
+void runCPUFeatureTests()
 {
-  testANNCheckpointParameters();
-  testANNTrainWithDropout();
-  testANNTrainWithAugmentation();
-  testANNDropoutRateParsing();
-  testANNImageNetworkDetection();
+  testCheckpointParameters();
+  testTrainWithDropout();
+  testTrainWithAugmentation();
+  testDropoutRateParsing();
+  testImageNetworkDetection();
 }

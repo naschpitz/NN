@@ -1,12 +1,12 @@
-#ifndef ANN_GPUBUFFERMANAGER_HPP
-#define ANN_GPUBUFFERMANAGER_HPP
+#ifndef _GPUBUFFERMANAGER_HPP
+#define _GPUBUFFERMANAGER_HPP
 
-#include "ANN_Types.hpp"
-#include "ANN_LayersConfig.hpp"
-#include "ANN_TrainingConfig.hpp"
-#include "ANN_Parameters.hpp"
-#include "ANN_CostFunctionConfig.hpp"
-#include "ANN_LogLevel.hpp"
+#include "_Types.hpp"
+#include "_LayersConfig.hpp"
+#include "Common/Common_TrainingConfig.hpp"
+#include "_Parameters.hpp"
+#include "Common/Common_CostFunctionConfig.hpp"
+#include "Common/Common_LogLevel.hpp"
 
 #include <OCLW_Core.hpp>
 
@@ -16,6 +16,7 @@
 
 namespace ANN
 {
+  using namespace Common;
   // Manages GPU buffer allocation, source loading, parameter initialization/synchronization,
   // data I/O (read output, read gradients), offset computation, and dropout mask generation.
   // Extracted from CoreGPUWorker to reduce class size.
@@ -73,4 +74,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // ANN_GPUBUFFERMANAGER_HPP
+#endif // _GPUBUFFERMANAGER_HPP

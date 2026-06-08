@@ -5,10 +5,10 @@ static void testParameterRoundTrip()
   std::cout << "--- testParameterRoundTrip ---" << std::endl;
 
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -68,10 +68,10 @@ static void testParameterRoundTrip()
 
   // Create a new core in PREDICT mode with trained parameters
   CNN::CoreConfig<double> predictConfig;
-  predictConfig.modeType = CNN::ModeType::PREDICT;
-  predictConfig.deviceType = CNN::DeviceType::CPU;
+  predictConfig.modeType = Common::ModeType::PREDICT;
+  predictConfig.deviceType = Common::DeviceType::CPU;
   predictConfig.inputShape = {1, 5, 5};
-  predictConfig.logLevel = CNN::LogLevel::ERROR;
+  predictConfig.logLevel = Common::LogLevel::ERROR;
   predictConfig.layersConfig = config.layersConfig;
   predictConfig.parameters = params;
 
@@ -93,10 +93,10 @@ static void testParametersDuringTraining()
   // during training (in the callback), not just after training ends.
   // This test would FAIL without the dense params sync fix in CNN_CoreCPU.cpp.
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;
@@ -140,7 +140,7 @@ static void testParametersDuringTraining()
   bool denseBiasesNonEmpty = false;
   ulong lastEpoch = 0;
 
-  core->setTrainingCallback([&](const CNN::TrainingProgress<double>& progress) {
+  core->setTrainingCallback([&](const Common::TrainingProgress<double>& progress) {
     // Detect epoch transition (first callback of a new epoch)
     if (progress.currentEpoch > lastEpoch && lastEpoch > 0 && !paramsChecked) {
       const CNN::Parameters<double>& params = core->getParameters();
@@ -169,10 +169,10 @@ static void testMultipleOutputNeurons()
 
   // 1x8x8 → Conv(2,3x3) → ReLU → Flatten(72) → Dense(3, sigmoid)
   CNN::CoreConfig<double> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.inputShape = {1, 8, 8};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   CNN::CNNLayerConfig convLayer;
   convLayer.type = CNN::LayerType::CONV;

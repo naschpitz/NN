@@ -50,7 +50,7 @@
 
       PERFORMANCE
          This library was written with an emphasis on performance. When testing
-         stb_image_resize with RGBA, the fastest mode is STBIR_4CHANNEL with
+         stb_image_resize with RGBA, the fastest mode is STBIR_4CHEL with
          STBIR_TYPE_UINT8 pixels and CLAMPed edges (which is what many other resize
          libs do by default). Also, make sure SIMD is turned on of course (default
          for 64-bit targets). Avoid WRAP edge mode if you want the fastest speed.
@@ -90,7 +90,7 @@
          off AVX or AVX2 specifically with STBIR_NO_AVX or STBIR_NO_AVX2. AVX is 10%
          to 40% faster, and AVX2 is generally another 12%.
 
-      ALPHA CHANNEL
+      ALPHA CHEL
          Most of the resizing functions provide the ability to control how the alpha
          channel of an image is processed.
 
@@ -153,7 +153,7 @@
          fast as the non-premultiplied case, so it's the right option if your data is
          already setup correctly.
 
-         When you use the pixel layout STBIR_4CHANNEL or STBIR_2CHANNEL, you are
+         When you use the pixel layout STBIR_4CHEL or STBIR_2CHEL, you are
          telling us that there is no channel that represents transparency; it may be
          RGB and some unrelated fourth channel that has been stored in the alpha
          channel, but it is actually not alpha. No special processing will be
@@ -430,11 +430,11 @@ typedef uint64_t stbir_uint64;
 // for back compatibility, you can cast the old channel count to an stbir_pixel_layout
 typedef enum
 {
-  STBIR_1CHANNEL = 1,
-  STBIR_2CHANNEL = 2,
+  STBIR_1CHEL = 1,
+  STBIR_2CHEL = 2,
   STBIR_RGB      = 3,               // 3-chan, with order specified (for channel flipping)
   STBIR_BGR      = 0,               // 3-chan, with order specified (for channel flipping)
-  STBIR_4CHANNEL = 5,
+  STBIR_4CHEL = 5,
 
   STBIR_RGBA = 4,                   // alpha formats, where alpha is NOT premultiplied into color channels
   STBIR_BGRA = 6,
@@ -856,11 +856,11 @@ STBIRDEF void stbir_resize_split_profile_info( STBIR_PROFILE_INFO * out_info, ST
 //   the public pixel layout is ordered in a way that if you cast num_channels (1-4) to the enum, you get something sensible
 typedef enum
 {
-  STBIRI_1CHANNEL = 0,
-  STBIRI_2CHANNEL = 1,
+  STBIRI_1CHEL = 0,
+  STBIRI_2CHEL = 1,
   STBIRI_RGB      = 2,
   STBIRI_BGR      = 3,
-  STBIRI_4CHANNEL = 4,
+  STBIRI_4CHEL = 4,
 
   STBIRI_RGBA = 5,
   STBIRI_BGRA = 6,
@@ -879,11 +879,11 @@ typedef enum
 
 // define the public pixel layouts to not compile inside the implementation (to avoid accidental use)
 #define STBIR_BGR bad_dont_use_in_implementation
-#define STBIR_1CHANNEL STBIR_BGR
-#define STBIR_2CHANNEL STBIR_BGR
+#define STBIR_1CHEL STBIR_BGR
+#define STBIR_2CHEL STBIR_BGR
 #define STBIR_RGB STBIR_BGR
 #define STBIR_RGBA STBIR_BGR
-#define STBIR_4CHANNEL STBIR_BGR
+#define STBIR_4CHEL STBIR_BGR
 #define STBIR_BGRA STBIR_BGR
 #define STBIR_ARGB STBIR_BGR
 #define STBIR_ABGR STBIR_BGR
@@ -7012,8 +7012,8 @@ static unsigned char stbir__pixel_channels[] = {
 // the internal pixel layout enums are in a different order, so we can easily do range comparisons of types
 //   the public pixel layout is ordered in a way that if you cast num_channels (1-4) to the enum, you get something sensible
 static stbir_internal_pixel_layout stbir__pixel_layout_convert_public_to_internal[] = {
-  STBIRI_BGR, STBIRI_1CHANNEL, STBIRI_2CHANNEL, STBIRI_RGB, STBIRI_RGBA,
-  STBIRI_4CHANNEL, STBIRI_BGRA, STBIRI_ARGB, STBIRI_ABGR, STBIRI_RA, STBIRI_AR,
+  STBIRI_BGR, STBIRI_1CHEL, STBIRI_2CHEL, STBIRI_RGB, STBIRI_RGBA,
+  STBIRI_4CHEL, STBIRI_BGRA, STBIRI_ARGB, STBIRI_ABGR, STBIRI_RA, STBIRI_AR,
   STBIRI_RGBA_PM, STBIRI_BGRA_PM, STBIRI_ARGB_PM, STBIRI_ABGR_PM, STBIRI_RA_PM, STBIRI_AR_PM,
 };
 
@@ -7472,14 +7472,14 @@ static void stbir__update_info_from_resize( stbir__info * info, STBIR_RESIZE * r
       if ( ( ( input_type == STBIR_TYPE_UINT8 ) && ( output_type == STBIR_TYPE_UINT8 ) ) || ( ( input_type == STBIR_TYPE_UINT16 ) && ( output_type == STBIR_TYPE_UINT16 ) ) )
         non_scaled = 1;
 
-    if ( info->input_pixel_layout_internal <= STBIRI_4CHANNEL )
+    if ( info->input_pixel_layout_internal <= STBIRI_4CHEL )
       decode_pixels = decode_simple_scaled_or_not[ input_type == STBIR_TYPE_UINT16 ][ non_scaled ];
     else
       decode_pixels = decode_alphas_scaled_or_not[ ( info->input_pixel_layout_internal - STBIRI_RGBA ) % ( STBIRI_AR-STBIRI_RGBA+1 ) ][ input_type == STBIR_TYPE_UINT16 ][ non_scaled ];
   }
   else
   {
-    if ( info->input_pixel_layout_internal <= STBIRI_4CHANNEL )
+    if ( info->input_pixel_layout_internal <= STBIRI_4CHEL )
       decode_pixels = decode_simple[ input_type - STBIR_TYPE_UINT8_SRGB ];
     else
       decode_pixels = decode_alphas[ ( info->input_pixel_layout_internal - STBIRI_RGBA ) % ( STBIRI_AR-STBIRI_RGBA+1 ) ][ input_type - STBIR_TYPE_UINT8_SRGB ];
@@ -7495,14 +7495,14 @@ static void stbir__update_info_from_resize( stbir__info * info, STBIR_RESIZE * r
       if ( ( ( input_type == STBIR_TYPE_UINT8 ) && ( output_type == STBIR_TYPE_UINT8 ) ) || ( ( input_type == STBIR_TYPE_UINT16 ) && ( output_type == STBIR_TYPE_UINT16 ) ) )
         non_scaled = 1;
 
-    if ( info->output_pixel_layout_internal <= STBIRI_4CHANNEL )
+    if ( info->output_pixel_layout_internal <= STBIRI_4CHEL )
       encode_pixels = encode_simple_scaled_or_not[ output_type == STBIR_TYPE_UINT16 ][ non_scaled ];
     else
       encode_pixels = encode_alphas_scaled_or_not[ ( info->output_pixel_layout_internal - STBIRI_RGBA ) % ( STBIRI_AR-STBIRI_RGBA+1 ) ][ output_type == STBIR_TYPE_UINT16 ][ non_scaled ];
   }
   else
   {
-    if ( info->output_pixel_layout_internal <= STBIRI_4CHANNEL )
+    if ( info->output_pixel_layout_internal <= STBIRI_4CHEL )
       encode_pixels = encode_simple[ output_type - STBIR_TYPE_UINT8_SRGB ];
     else
       encode_pixels = encode_alphas[ ( info->output_pixel_layout_internal - STBIRI_RGBA ) % ( STBIRI_AR-STBIRI_RGBA+1 ) ][ output_type - STBIR_TYPE_UINT8_SRGB ];
@@ -8196,11 +8196,11 @@ STBIRDEF void stbir_resize_extended_profile_info( STBIR_PROFILE_INFO * info, STB
 #endif // STBIR_PROFILE
 
 #undef STBIR_BGR
-#undef STBIR_1CHANNEL
-#undef STBIR_2CHANNEL
+#undef STBIR_1CHEL
+#undef STBIR_2CHEL
 #undef STBIR_RGB
 #undef STBIR_RGBA
-#undef STBIR_4CHANNEL
+#undef STBIR_4CHEL
 #undef STBIR_BGRA
 #undef STBIR_ARGB
 #undef STBIR_ABGR

@@ -1,4 +1,4 @@
-#include "NN-CLI_ANNLoader.hpp"
+#include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
@@ -14,23 +14,23 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> ANNLoader::loadConfig(const std::string& configFilePath, std::optional<ANN::ModeType> modeType,
-                                               std::optional<ANN::DeviceType> deviceType)
+  ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath, std::optional<Common::ModeType> modeType,
+                                               std::optional<Common::DeviceType> deviceType)
   {
     return loadConfig(Loader::parseConfigFile(configFilePath), modeType, deviceType);
   }
 
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> ANNLoader::loadConfig(const nlohmann::json& json, std::optional<ANN::ModeType> modeType,
-                                               std::optional<ANN::DeviceType> deviceType)
+  ANN::CoreConfig<float> Loader::loadConfig(const nlohmann::json& json, std::optional<Common::ModeType> modeType,
+                                               std::optional<Common::DeviceType> deviceType)
   {
     ANN::CoreConfig<float> coreConfig;
 
     if (json.contains("device")) {
-      coreConfig.deviceType = ANN::Device::nameToType(json.at("device").get<std::string>());
+      coreConfig.deviceType = ::Device::nameToType(json.at("device").get<std::string>());
     } else {
-      coreConfig.deviceType = ANN::DeviceType::CPU;
+      coreConfig.deviceType = Common::DeviceType::CPU;
     }
 
     if (json.contains("numThreads"))
@@ -40,9 +40,9 @@ namespace NN_CLI
       coreConfig.numGPUs = json.at("numGPUs").get<int>();
 
     if (json.contains("mode")) {
-      coreConfig.modeType = ANN::Mode::nameToType(json.at("mode").get<std::string>());
+      coreConfig.modeType = ::Mode::nameToType(json.at("mode").get<std::string>());
     } else {
-      coreConfig.modeType = ANN::ModeType::PREDICT;
+      coreConfig.modeType = Common::ModeType::PREDICT;
     }
 
     if (modeType.has_value())
@@ -59,14 +59,14 @@ namespace NN_CLI
       ANN::Layer layer;
       layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
 
-      layer.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
+      layer.actvFuncType = ::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
 
       coreConfig.layersConfig.push_back(layer);
     }
 
     if (json.contains("costFunction")) {
       const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = ANN::CostFunction::nameToType(cfc.at("type").get<std::string>());
+      coreConfig.costFunctionConfig.type = ::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
         coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
@@ -95,7 +95,7 @@ namespace NN_CLI
 
         if (opt.contains("type"))
           coreConfig.trainingConfig.optimizer.type =
-            ANN::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
+            ::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
 
         if (opt.contains("beta1"))
           coreConfig.trainingConfig.optimizer.beta1 = opt.at("beta1").get<float>();
@@ -155,12 +155,12 @@ namespace NN_CLI
 
     if (json.contains("parameters")) {
       const auto& p = json.at("parameters");
-      coreConfig.parameters.weights = p.at("weights").get<ANN::Tensor3D<float>>();
-      coreConfig.parameters.biases = p.at("biases").get<ANN::Tensor2D<float>>();
+      coreConfig.parameters.weights = p.at("weights").get<::Tensor3D<float>>();
+      coreConfig.parameters.biases = p.at("biases").get<::Tensor2D<float>>();
     }
 
     bool isPredictOrTest =
-      (coreConfig.modeType == ANN::ModeType::PREDICT || coreConfig.modeType == ANN::ModeType::TEST);
+      (coreConfig.modeType == Common::ModeType::PREDICT || coreConfig.modeType == Common::ModeType::TEST);
 
     if (isPredictOrTest && !json.contains("parameters")) {
       throw std::runtime_error("Config missing 'parameters' required for predict/test modes");
@@ -171,7 +171,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ANN::Samples<float> ANNLoader::loadSamples(const std::string& samplesFilePath, const IOConfig& ioConfig,
+  ANN::Samples<float> Loader::loadSamples(const std::string& samplesFilePath, const IOConfig& ioConfig,
                                              ulong progressReports)
   {
     QFile file(QString::fromStdString(samplesFilePath));
@@ -231,7 +231,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<ANN::Input<float>> ANNLoader::loadInputs(const std::string& inputFilePath, const IOConfig& ioConfig,
+  std::vector<ANN::Input<float>> Loader::loadInputs(const std::string& inputFilePath, const IOConfig& ioConfig,
                                                        ulong progressReports)
   {
     QFile file(QString::fromStdString(inputFilePath));

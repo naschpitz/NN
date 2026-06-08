@@ -1,7 +1,7 @@
 #include "NN-CLI_Runner.hpp"
 
-#include "NN-CLI_ANNLoader.hpp"
-#include "NN-CLI_ANNRunner.hpp"
+#include "NN-CLI_Loader.hpp"
+#include "NN-CLI_Runner.hpp"
 #include "NN-CLI_CalibrateRunner.hpp"
 #include "NN-CLI_CNNLoader.hpp"
 #include "NN-CLI_CNNRunner.hpp"
@@ -87,25 +87,25 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
   }
 
   if (this->networkType == NetworkType::ANN) {
-    // Convert string overrides to ANN enum overrides
-    std::optional<ANN::ModeType> annModeOverride;
+    // Convert string overrides to  enum overrides
+    std::optional<Common::ModeType> annModeOverride;
 
     if (modeOverride.has_value())
-      annModeOverride = ANN::Mode::nameToType(modeOverride.value());
+      annModeOverride = ::Mode::nameToType(modeOverride.value());
 
-    std::optional<ANN::DeviceType> annDeviceOverride;
+    std::optional<Common::DeviceType> annDeviceOverride;
 
     if (deviceOverride.has_value())
-      annDeviceOverride = ANN::Device::nameToType(deviceOverride.value());
+      annDeviceOverride = ::Device::nameToType(deviceOverride.value());
 
-    this->annCoreConfig = ANNLoader::loadConfig(json, annModeOverride, annDeviceOverride);
-    this->annCoreConfig.logLevel = static_cast<ANN::LogLevel>(this->logLevel);
-    this->mode = ANN::Mode::typeToName(this->annCoreConfig.modeType);
+    this->annCoreConfig = Loader::loadConfig(json, annModeOverride, annDeviceOverride);
+    this->annCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
+    this->mode = ::Mode::typeToName(this->annCoreConfig.modeType);
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
     this->cnnCoreConfig = CNNLoader::loadConfig(json, modeOverride, deviceOverride);
-    this->cnnCoreConfig.logLevel = static_cast<CNN::LogLevel>(this->logLevel);
-    this->mode = CNN::Mode::typeToName(this->cnnCoreConfig.modeType);
+    this->cnnCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
+    this->mode = ::Mode::typeToName(this->cnnCoreConfig.modeType);
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
   }
 }
@@ -121,7 +121,7 @@ int Runner::run()
   }
 
   if (this->networkType == NetworkType::ANN) {
-    ANNRunner annRunner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->annCore,
+    Runner annRunner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->annCore,
                         this->annCoreConfig);
 
     if (this->mode == "train")

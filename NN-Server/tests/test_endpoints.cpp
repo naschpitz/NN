@@ -472,10 +472,10 @@ static void testQueueLimitReject()
 }
 
 // ---------------------------------------------------------------------------
-// ANN image input tests
+//  image input tests
 // ---------------------------------------------------------------------------
 
-constexpr int ANN_IMG_NUM_OUTPUT = 2; // ann_image_model.json has 2 output classes
+constexpr int _IMG_NUM_OUTPUT = 2; // ann_image_model.json has 2 output classes
 
 static nlohmann::json annImageConfig()
 {
@@ -486,9 +486,9 @@ static nlohmann::json annImageConfig()
   return config;
 }
 
-static void testANNImagePredict()
+static void testImagePredict()
 {
-  std::cout << "  testANNImagePredict... " << std::flush;
+  std::cout << "  testImagePredict... " << std::flush;
 
   QByteArray imgData = readImageFile(imagePath("bright_1.png"));
   CHECK(!imgData.isEmpty(), "ann_image: loaded test image");
@@ -512,8 +512,8 @@ static void testANNImagePredict()
   CHECK(body.contains("output") && body["output"].is_array(), "ann_image: has output array");
 
   auto output = body["output"].get<std::vector<float>>();
-  CHECK(static_cast<int>(output.size()) == ANN_IMG_NUM_OUTPUT,
-        "ann_image: output length == " + std::to_string(ANN_IMG_NUM_OUTPUT));
+  CHECK(static_cast<int>(output.size()) == _IMG_NUM_OUTPUT,
+        "ann_image: output length == " + std::to_string(_IMG_NUM_OUTPUT));
 
   float total = 0.0f;
 
@@ -524,9 +524,9 @@ static void testANNImagePredict()
   std::cout << std::endl;
 }
 
-static void testANNImagePredictDark()
+static void testImagePredictDark()
 {
-  std::cout << "  testANNImagePredictDark... " << std::flush;
+  std::cout << "  testImagePredictDark... " << std::flush;
 
   // Use a different test image — it will be resized to 4x4
   QByteArray imgData = readImageFile(imagePath("dark_1.png"));
@@ -549,8 +549,8 @@ static void testANNImagePredictDark()
 
   nlohmann::json body = nlohmann::json::parse(resp.body.toStdString());
   auto output = body["output"].get<std::vector<float>>();
-  CHECK(static_cast<int>(output.size()) == ANN_IMG_NUM_OUTPUT,
-        "ann_image_dark: output length == " + std::to_string(ANN_IMG_NUM_OUTPUT));
+  CHECK(static_cast<int>(output.size()) == _IMG_NUM_OUTPUT,
+        "ann_image_dark: output length == " + std::to_string(_IMG_NUM_OUTPUT));
 
   // Sigmoid outputs are in [0, 1] independently
   for (float v : output) {
@@ -560,9 +560,9 @@ static void testANNImagePredictDark()
   std::cout << std::endl;
 }
 
-static void testANNImagePredictJson()
+static void testImagePredictJson()
 {
-  std::cout << "  testANNImagePredictJson... " << std::flush;
+  std::cout << "  testImagePredictJson... " << std::flush;
 
   // JSON input should also work: 16 values for 1x4x4
   std::vector<float> input(16, 0.5f);
@@ -581,8 +581,8 @@ static void testANNImagePredictJson()
 
   nlohmann::json body = nlohmann::json::parse(resp.body.toStdString());
   auto output = body["output"].get<std::vector<float>>();
-  CHECK(static_cast<int>(output.size()) == ANN_IMG_NUM_OUTPUT,
-        "ann_json: output length == " + std::to_string(ANN_IMG_NUM_OUTPUT));
+  CHECK(static_cast<int>(output.size()) == _IMG_NUM_OUTPUT,
+        "ann_json: output length == " + std::to_string(_IMG_NUM_OUTPUT));
 
   float total = 0.0f;
 
@@ -593,9 +593,9 @@ static void testANNImagePredictJson()
   std::cout << std::endl;
 }
 
-static void testANNImageDeterministic()
+static void testImageDeterministic()
 {
-  std::cout << "  testANNImageDeterministic... " << std::flush;
+  std::cout << "  testImageDeterministic... " << std::flush;
 
   QByteArray imgData = readImageFile(imagePath("bright_2.png"));
 
@@ -643,21 +643,21 @@ void runEndpointTests()
   testPredictImageRepeatedConcurrent();
   testQueueLimitReject();
 
-  // --- ANN image input tests (requires different model) ---
+  // ---  image input tests (requires different model) ---
   std::cout << std::endl;
-  std::cout << "Restarting NN-Server (ANN image model)..." << std::endl;
+  std::cout << "Restarting NN-Server ( image model)..." << std::endl;
   stopServer();
 
   if (!startServer(annImageConfig())) {
-    std::cerr << "FATAL: Could not start NN-Server with ANN image model. Skipping ANN image tests." << std::endl;
+    std::cerr << "FATAL: Could not start NN-Server with  image model. Skipping  image tests." << std::endl;
     testsFailed++;
     return;
   }
 
-  testANNImagePredict();
-  testANNImagePredictDark();
-  testANNImagePredictJson();
-  testANNImageDeterministic();
+  testImagePredict();
+  testImagePredictDark();
+  testImagePredictJson();
+  testImageDeterministic();
 
   stopServer();
 }

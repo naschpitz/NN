@@ -6,7 +6,7 @@
 #include "NN-Server_Loader.hpp"
 #include "NN-Server_NetworkType.hpp"
 
-#include <ANN_Core.hpp>
+#include <_Core.hpp>
 #include <CNN_Core.hpp>
 
 #include <QMutex>

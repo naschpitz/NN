@@ -1,5 +1,5 @@
-#include "ANN_GPUBufferManager.hpp"
-#include "ANN_Utils.hpp"
+#include "_GPUBufferManager.hpp"
+#include "_Utils.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -7,6 +7,7 @@
 #include <random>
 
 using namespace ANN;
+using namespace Common;
 
 //===================================================================================================================//
 
@@ -96,15 +97,15 @@ void GPUBufferManager<T>::loadSources(bool skipDefines)
   // Load source files in order - they will be concatenated by OpenCL.
   // When used with a shared core (e.g. CNN), skipDefines avoids redefining TYPE, ActvFuncType, Layer.
   if (!skipDefines) {
-    this->core->addSourceFile(srcDir + "opencl/ANN_Defines.hpp.cl");
+    this->core->addSourceFile(srcDir + "opencl/_Defines.hpp.cl");
   }
 
-  this->core->addSourceFile(srcDir + "opencl/ANN_IdxHelper.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/ANN_ActvFunc.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/ANN_Propagate.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/ANN_Backpropagate.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/ANN_Update.cpp.cl");
-  this->core->addSourceFile(srcDir + "opencl/ANN_Loss.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/_IdxHelper.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/_ActvFunc.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/_Propagate.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/_Backpropagate.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/_Update.cpp.cl");
+  this->core->addSourceFile(srcDir + "opencl/_Loss.cpp.cl");
 
   if (this->logLevel >= LogLevel::INFO)
     std::cout << "OpenCL kernels loaded.\n";
@@ -126,7 +127,7 @@ void GPUBufferManager<T>::allocateBuffers()
 
   // Common buffers
   if (this->logLevel >= LogLevel::INFO)
-    std::cout << "Allocating ANN buffers...";
+    std::cout << "Allocating  buffers...";
   this->core->template allocateBuffer<T>("actvs", totalNumNeurons);
   this->core->template allocateBuffer<T>("weights", totalNumWeights);
   this->core->template allocateBuffer<T>("biases", totalNumBiases);
@@ -183,7 +184,7 @@ void GPUBufferManager<T>::allocateBuffers()
   }
 
   if (this->logLevel >= LogLevel::INFO)
-    std::cout << "ANN buffers allocation done.\n";
+    std::cout << " buffers allocation done.\n";
 
   // Write initialized weights and biases to GPU buffers
   std::vector<T> flatWeights = Utils<T>::flatten(this->parameters.weights);

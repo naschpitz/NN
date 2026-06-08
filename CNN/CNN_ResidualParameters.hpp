@@ -7,6 +7,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   // 1×1 convolution projection for residual skip connections with channel mismatch
   template <typename T>
   struct ResidualParameters {

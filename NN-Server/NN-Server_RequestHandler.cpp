@@ -297,7 +297,7 @@ namespace NN_Server
       PredictionResult result;
 
       if (this->corePool->networkType() == NetworkType::ANN) {
-        ANN::PredictResult<float> annResult = handle.annCore->predict(flatInput);
+        Common::PredictResult<float> annResult = handle.annCore->predict(flatInput);
         result.output = std::move(annResult.output);
         result.logits = std::move(annResult.logits);
       } else {
@@ -312,7 +312,7 @@ namespace NN_Server
 
         CNN::Input<float> input(shape);
         input.data = flatInput;
-        CNN::PredictResult<float> cnnResult = handle.cnnCore->predict(input);
+        Common::PredictResult<float> cnnResult = handle.cnnCore->predict(input);
         result.output = std::move(cnnResult.output);
         result.logits = std::move(cnnResult.logits);
       }

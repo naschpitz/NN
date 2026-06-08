@@ -10,9 +10,9 @@
 
 //===================================================================================================================//
 
-static void testANNTrainAndTestMNISTGPU()
+static void testTrainAndTestMNISTGPU()
 {
-  std::cout << "  testANNTrainAndTestMNISTGPU... " << std::flush;
+  std::cout << "  testTrainAndTestMNISTGPU... " << std::flush;
 
   if (!runFullTests) {
     std::cout << "(skipped — use --full to enable)" << std::endl;
@@ -33,8 +33,8 @@ static void testANNTrainAndTestMNISTGPU()
               examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
              1800000); // 30 min timeout
 
-  CHECK(trainResult.exitCode == 0, "ANN MNIST GPU train+test: training exit code 0");
-  CHECK(QFile::exists(modelPath), "ANN MNIST GPU train+test: trained model file exists");
+  CHECK(trainResult.exitCode == 0, " MNIST GPU train+test: training exit code 0");
+  CHECK(QFile::exists(modelPath), " MNIST GPU train+test: trained model file exists");
 
   if (trainResult.exitCode != 0 || !QFile::exists(modelPath)) {
     std::cout << "(training failed, skipping test step)" << std::endl;
@@ -47,9 +47,9 @@ static void testANNTrainAndTestMNISTGPU()
                               examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
                              600000); // 10 min timeout
 
-  CHECK(testResult.exitCode == 0, "ANN MNIST GPU train+test: test exit code 0");
-  CHECK(testResult.stdOut.contains("Test Results:"), "ANN MNIST GPU train+test: 'Test Results:'");
-  CHECK(testResult.stdOut.contains("Samples evaluated: 10000"), "ANN MNIST GPU train+test: 'Samples evaluated: 10000'");
+  CHECK(testResult.exitCode == 0, " MNIST GPU train+test: test exit code 0");
+  CHECK(testResult.stdOut.contains("Test Results:"), " MNIST GPU train+test: 'Test Results:'");
+  CHECK(testResult.stdOut.contains("Samples evaluated: 10000"), " MNIST GPU train+test: 'Samples evaluated: 10000'");
 
   // Extract and verify average loss is reasonable
   double avgLoss = -1;
@@ -61,7 +61,7 @@ static void testANNTrainAndTestMNISTGPU()
     avgLoss = lossStr.toDouble();
   }
 
-  CHECK(avgLoss > 0 && avgLoss < 2.0, "ANN MNIST GPU train+test: average loss < 2.0");
+  CHECK(avgLoss > 0 && avgLoss < 2.0, " MNIST GPU train+test: average loss < 2.0");
 
   // Extract and verify accuracy is reasonable (> 30% for 30 epochs with mini-batch SGD)
   double accuracy = -1;
@@ -73,14 +73,14 @@ static void testANNTrainAndTestMNISTGPU()
     accuracy = accStr.toDouble();
   }
 
-  CHECK(accuracy > 30.0, "ANN MNIST GPU train+test: accuracy > 30%");
+  CHECK(accuracy > 30.0, " MNIST GPU train+test: accuracy > 30%");
 
   std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
 }
 
 //===================================================================================================================//
 
-void runANNGPUMNISTTests()
+void runGPUMNISTTests()
 {
-  testANNTrainAndTestMNISTGPU();
+  testTrainAndTestMNISTGPU();
 }

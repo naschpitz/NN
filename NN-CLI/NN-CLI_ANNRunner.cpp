@@ -1,6 +1,6 @@
-#include "NN-CLI_ANNRunner.hpp"
+#include "NN-CLI_Runner.hpp"
 
-#include "NN-CLI_ANNLoader.hpp"
+#include "NN-CLI_Loader.hpp"
 #include "NN-CLI_DataLoader.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
 #include "NN-CLI_DataSplitter.hpp"
@@ -18,7 +18,7 @@
 
 #include <json.hpp>
 
-#include <ANN_Utils.hpp>
+#include <_Utils.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -47,7 +47,7 @@ ANNRunner::ANNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConf
 //  Mode methods
 //===================================================================================================================//
 
-int ANNRunner::train()
+int Runner::train()
 {
   if (checkSamplesIdxDataConflict(this->parser))
     return 1;
@@ -130,7 +130,7 @@ int ANNRunner::train()
     }
 
     std::vector<float> weights = computeClassWeightsFromOutputs(trainingOutputs);
-    this->coreConfig.costFunctionConfig.type = ANN::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+    this->coreConfig.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
     this->coreConfig.costFunctionConfig.weights = weights;
     this->core = ANN::Core<float>::makeCore(this->coreConfig);
   }
@@ -159,10 +159,10 @@ int ANNRunner::train()
     this->tui->refreshConfigPanel();
   }
 
-  std::shared_ptr<ANN::TrainingMonitor<float>> trainingMonitor;
+  std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
 
   if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
-    trainingMonitor = std::make_shared<ANN::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
+    trainingMonitor = std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
     this->coreConfig.trainingConfig.monitoringConfig.enabled = false;
     this->core = ANN::Core<float>::makeCore(this->coreConfig);
   }
@@ -171,7 +171,7 @@ int ANNRunner::train()
 
   if (validationConfig.enabled) {
     ANN::CoreConfig<float> validationCoreConfig = this->coreConfig;
-    validationCoreConfig.modeType = ANN::ModeType::TEST;
+    validationCoreConfig.modeType = Common::ModeType::TEST;
 
     auto allOutputs = dataLoader.getAllOutputs();
     std::vector<std::vector<float>> validationOutputs;
@@ -191,7 +191,7 @@ int ANNRunner::train()
                               validationConfig.enabled ? &split.validationIndices : nullptr);
 
   if (this->tui && this->tui->isInitialized()) {
-    this->trainingTui_.resolveBarGpus(this->coreConfig.deviceType == ANN::DeviceType::GPU, this->coreConfig.numGPUs);
+    this->trainingTui_.resolveBarGpus(this->coreConfig.deviceType == Common::DeviceType::GPU, this->coreConfig.numGPUs);
     dataLoader.setLoadingCallback(this->trainingTui_.loadingCallback());
   }
 
@@ -213,7 +213,7 @@ int ANNRunner::train()
 
 //===================================================================================================================//
 
-int ANNRunner::test()
+int Runner::test()
 {
   if (checkSamplesIdxDataConflict(this->parser))
     return 1;
@@ -241,13 +241,13 @@ int ANNRunner::test()
   }
 
   if (this->logLevel > LogLevel::QUIET)
-    TestSummary::printANN(this->coreConfig, dataLoader.numSamples());
+    TestSummary::print(this->coreConfig, dataLoader.numSamples());
 
   setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Testing",
                             dataLoader.numSamples());
 
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
-  ANN::TestResult<float> result = this->core->test(dataLoader.numSamples(), sampleProvider);
+  Common::TestResult<float> result = this->core->test(dataLoader.numSamples(), sampleProvider);
 
   if (this->logLevel > LogLevel::QUIET) {
     std::cout << "\nTest Results:\n";
@@ -264,7 +264,7 @@ int ANNRunner::test()
 
 //===================================================================================================================//
 
-int ANNRunner::predict()
+int Runner::predict()
 {
   if (!this->parser.isSet("input")) {
     std::cerr << "Error: --input option is required for predict mode.\n";
@@ -276,13 +276,13 @@ int ANNRunner::predict()
 
   ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
   std::vector<ANN::Input<float>> inputs =
-    ANNLoader::loadInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
+    Loader::loadInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
 
   if (this->logLevel > LogLevel::QUIET)
-    PredictSummary::printANN(this->coreConfig, inputs.size(), inputPath.toStdString(), outputPath.toStdString());
+    PredictSummary::print(this->coreConfig, inputs.size(), inputPath.toStdString(), outputPath.toStdString());
 
   auto batchStart = std::chrono::system_clock::now();
-  std::string startTimeStr = ANN::Utils<float>::formatISO8601();
+  std::string startTimeStr = ::Utils<float>::formatISO8601();
 
   setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Predicting", inputs.size());
 
@@ -297,13 +297,13 @@ int ANNRunner::predict()
     return ANN::Inputs<float>(inputs.begin() + start, inputs.begin() + end);
   };
 
-  ANN::PredictResults<float> results = this->core->predict(inputs.size(), sliceProvider);
+  Common::PredictResults<float> results = this->core->predict(inputs.size(), sliceProvider);
 
   auto batchEnd = std::chrono::system_clock::now();
-  std::string endTimeStr = ANN::Utils<float>::formatISO8601();
+  std::string endTimeStr = ::Utils<float>::formatISO8601();
   std::chrono::duration<double> batchElapsed = batchEnd - batchStart;
   double batchDurationSeconds = batchElapsed.count();
-  std::string batchDurationFormatted = ANN::Utils<float>::formatDuration(batchDurationSeconds);
+  std::string batchDurationFormatted = ::Utils<float>::formatDuration(batchDurationSeconds);
 
   return writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
                             batchDurationSeconds, batchDurationFormatted, inputs.size());
@@ -313,17 +313,17 @@ int ANNRunner::predict()
 //  Sample loading
 //===================================================================================================================//
 
-std::pair<ANN::Samples<float>, bool> ANNRunner::loadSamplesFromOptions(const std::string& modeName,
+std::pair<ANN::Samples<float>, bool> Runner::loadSamplesFromOptions(const std::string& modeName,
                                                                        QString& inputFilePath)
 {
   return loadSamplesFromOptionsCommon<ANN::Samples<float>>(
     this->parser, this->logLevel, this->ioConfig, modeName, inputFilePath,
     [this](const std::string& path, ulong progressReports) {
-      return ANNLoader::loadSamples(path, this->ioConfig, progressReports);
+      return Loader::loadSamples(path, this->ioConfig, progressReports);
     },
 
     [](const std::string& dataPath, const std::string& labelsPath, ulong progressReports) {
-      return Utils<float>::loadANNIDX(dataPath, labelsPath, progressReports);
+      return Utils<float>::loadIDX(dataPath, labelsPath, progressReports);
     });
 }
 
@@ -331,7 +331,7 @@ std::pair<ANN::Samples<float>, bool> ANNRunner::loadSamplesFromOptions(const std
 //  Training helpers
 //===================================================================================================================//
 
-ValidationMetadata ANNRunner::buildValidationMetadata() const
+ValidationMetadata Runner::buildValidationMetadata() const
 {
   return {this->validationState.enabled, this->validationState.numValSamples, this->validationState.lastValLoss,
           this->validationState.bestValLoss, this->validationState.bestValEpoch};
@@ -339,8 +339,8 @@ ValidationMetadata ANNRunner::buildValidationMetadata() const
 
 //===================================================================================================================//
 
-void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> validationCore,
-                                      std::shared_ptr<ANN::TrainingMonitor<float>> trainingMonitor,
+void Runner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> validationCore,
+                                      std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor,
                                       const DataLoader<ANN::Sample<float>>* validationDataLoader,
                                       const std::vector<ulong>* validationIndices)
 {
@@ -361,7 +361,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
   this->core->setTrainingCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
                                    validationIndices, validationDataLoader,
-                                   tui](const ANN::TrainingProgress<float>& progress) {
+                                   tui](const Common::TrainingProgress<float>& progress) {
     {
       std::lock_guard<std::mutex> lock(this->epochTransitionMutex_);
 
@@ -371,7 +371,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         if (this->lastCallbackEpoch_ > 0 && this->lastCallbackEpoch_ % this->ioConfig.saveModelInterval == 0) {
           checkpointPath =
             ModelSerializer::generateCheckpointPath(inputFilePath, this->lastCallbackEpoch_, this->lastEpochLoss_);
-          ModelSerializer::saveANNModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+          ModelSerializer::saveModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                         this->buildValidationMetadata());
         }
 
@@ -411,7 +411,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
         if (isBest || progress.isNewBest) {
           std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-          ModelSerializer::saveANNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+          ModelSerializer::saveModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                         this->buildValidationMetadata());
         }
 
@@ -460,14 +460,14 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
 //===================================================================================================================//
 
-void ANNRunner::regenerateConfigLines(ulong maxWidth)
+void Runner::regenerateConfigLines(ulong maxWidth)
 {
   if (!this->configLinesLoaded_)
     return;
 
   std::vector<std::string> configLines;
 
-  auto trainLines = TrainingSummary::collectANN(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
+  auto trainLines = TrainingSummary::collect(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
                                                 this->cachedNumTrainSamples_, this->cachedNumValSamples_,
                                                 this->cachedValRatio_, this->cachedValAuto_, maxWidth);
   configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
@@ -482,11 +482,11 @@ void ANNRunner::regenerateConfigLines(ulong maxWidth)
 
 //===================================================================================================================//
 
-int ANNRunner::finishTraining(const QString& inputFilePath)
+int Runner::finishTraining(const QString& inputFilePath)
 {
   return finishTrainingCommon(this->tui, this->logLevel, this->parser, inputFilePath, *this->core,
                               [this](const std::string& path) {
-                                ModelSerializer::saveANNModel(path, *this->core, this->coreConfig, this->ioConfig,
+                                ModelSerializer::saveModel(path, *this->core, this->coreConfig, this->ioConfig,
                                                               this->augConfig, this->buildValidationMetadata());
                               });
 }

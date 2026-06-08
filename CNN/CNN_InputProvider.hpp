@@ -10,6 +10,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   // Lazy supplier used by the streaming predict(): given a batch size and a
   // 0-based batch index, returns the corresponding chunk of inputs. The last
   // batch may be shorter than batchSize. Mirrors SampleProvider but without

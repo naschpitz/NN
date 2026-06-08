@@ -216,7 +216,7 @@ static void testResidualShapeValidation()
 
   // 1. Unmatched residual_end (no start)
   {
-    CNN::LayersConfig lc;
+    ANN::LayersConfig lc;
     CNN::CNNLayerConfig resEnd;
     resEnd.type = CNN::LayerType::RESIDUAL_END;
     resEnd.config = CNN::ResidualEndConfig{};
@@ -237,7 +237,7 @@ static void testResidualShapeValidation()
 
   // 2. Unmatched residual_start (no end)
   {
-    CNN::LayersConfig lc;
+    ANN::LayersConfig lc;
     CNN::CNNLayerConfig resStart;
     resStart.type = CNN::LayerType::RESIDUAL_START;
     resStart.config = CNN::ResidualStartConfig{};
@@ -258,7 +258,7 @@ static void testResidualShapeValidation()
 
   // 3. Spatial dimension mismatch (pool inside residual block)
   {
-    CNN::LayersConfig lc;
+    ANN::LayersConfig lc;
     CNN::CNNLayerConfig resStart;
     resStart.type = CNN::LayerType::RESIDUAL_START;
     resStart.config = CNN::ResidualStartConfig{};
@@ -288,7 +288,7 @@ static void testResidualShapeValidation()
 
   // 4. Empty residual block (start immediately followed by end) — should NOT throw
   {
-    CNN::LayersConfig lc;
+    ANN::LayersConfig lc;
     CNN::CNNLayerConfig resStart;
     resStart.type = CNN::LayerType::RESIDUAL_START;
     resStart.config = CNN::ResidualStartConfig{};
@@ -312,7 +312,7 @@ static void testResidualShapeValidation()
 
   // 5. Channel mismatch with same spatial — should NOT throw (projection auto-created)
   {
-    CNN::LayersConfig lc;
+    ANN::LayersConfig lc;
     CNN::CNNLayerConfig resStart;
     resStart.type = CNN::LayerType::RESIDUAL_START;
     resStart.config = CNN::ResidualStartConfig{};

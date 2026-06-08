@@ -1,13 +1,14 @@
-#ifndef ANN_WORKER_H
-#define ANN_WORKER_H
+#ifndef _WORKER_H
+#define _WORKER_H
 
-#include "ANN_Types.hpp"
-#include "ANN_CostFunctionConfig.hpp"
+#include "_Types.hpp"
+#include "Common/Common_CostFunctionConfig.hpp"
 
 //===================================================================================================================//
 
 namespace ANN
 {
+  using namespace Common;
   template <typename T>
   class Worker
   {
@@ -22,4 +23,4 @@ namespace ANN
   };
 }
 
-#endif // ANN_WORKER_H
+#endif // _WORKER_H

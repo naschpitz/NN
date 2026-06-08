@@ -7,12 +7,12 @@ static void testGPUGlobalAvgPoolCPUGPUParity()
   std::cout << "--- testGPUGlobalAvgPoolCPUGPUParity ---" << std::endl;
 
   // Train the exact same GAP network on CPU and GPU and verify predictions match.
-  auto makeConfig = [](CNN::DeviceType device) {
+  auto makeConfig = [](Common::DeviceType device) {
     CNN::CoreConfig<float> config;
-    config.modeType = CNN::ModeType::TRAIN;
+    config.modeType = Common::ModeType::TRAIN;
     config.deviceType = device;
     config.inputShape = {1, 5, 5};
-    config.logLevel = CNN::LogLevel::ERROR;
+    config.logLevel = Common::LogLevel::ERROR;
     config.numThreads = 1;
     config.numGPUs = 1;
 
@@ -46,7 +46,7 @@ static void testGPUGlobalAvgPoolCPUGPUParity()
     config.parameters.convParams = {initConv};
 
     // Preset dense weights to remove randomness
-    // ANN layers: [input=2, output=1], so weights[0]=empty, weights[1]=[[w1,w2]]
+    //  layers: [input=2, output=1], so weights[0]=empty, weights[1]=[[w1,w2]]
     config.parameters.denseParams.weights.resize(2);
     config.parameters.denseParams.weights[1] = {{0.1f, -0.2f}};
     config.parameters.denseParams.biases.resize(2);
@@ -65,13 +65,13 @@ static void testGPUGlobalAvgPoolCPUGPUParity()
   samples[1].input = CNN::Tensor3D<float>({1, 5, 5}, 0.0f);
   samples[1].output = {0.0f};
 
-  auto cpuConfig = makeConfig(CNN::DeviceType::CPU);
+  auto cpuConfig = makeConfig(Common::DeviceType::CPU);
   auto cpuCore = CNN::Core<float>::makeCore(cpuConfig);
   cpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
   auto cpuPred0 = cpuCore->predict(samples[0].input).output;
   auto cpuPred1 = cpuCore->predict(samples[1].input).output;
 
-  auto gpuConfig = makeConfig(CNN::DeviceType::GPU);
+  auto gpuConfig = makeConfig(Common::DeviceType::GPU);
   auto gpuCore = CNN::Core<float>::makeCore(gpuConfig);
   gpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
   auto gpuPred0 = gpuCore->predict(samples[0].input).output;
@@ -91,12 +91,12 @@ static void testGPUGlobalDualPoolCPUGPUParity()
 {
   std::cout << "--- testGPUGlobalDualPoolCPUGPUParity ---" << std::endl;
 
-  auto makeConfig = [](CNN::DeviceType device) {
+  auto makeConfig = [](Common::DeviceType device) {
     CNN::CoreConfig<float> config;
-    config.modeType = CNN::ModeType::TRAIN;
+    config.modeType = Common::ModeType::TRAIN;
     config.deviceType = device;
     config.inputShape = {1, 5, 5};
-    config.logLevel = CNN::LogLevel::ERROR;
+    config.logLevel = Common::LogLevel::ERROR;
     config.numThreads = 1;
     config.numGPUs = 1;
 
@@ -149,13 +149,13 @@ static void testGPUGlobalDualPoolCPUGPUParity()
   samples[1].input = CNN::Tensor3D<float>({1, 5, 5}, 0.0f);
   samples[1].output = {0.0f};
 
-  auto cpuConfig = makeConfig(CNN::DeviceType::CPU);
+  auto cpuConfig = makeConfig(Common::DeviceType::CPU);
   auto cpuCore = CNN::Core<float>::makeCore(cpuConfig);
   cpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
   auto cpuPred0 = cpuCore->predict(samples[0].input).output;
   auto cpuPred1 = cpuCore->predict(samples[1].input).output;
 
-  auto gpuConfig = makeConfig(CNN::DeviceType::GPU);
+  auto gpuConfig = makeConfig(Common::DeviceType::GPU);
   auto gpuCore = CNN::Core<float>::makeCore(gpuConfig);
   gpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
   auto gpuPred0 = gpuCore->predict(samples[0].input).output;

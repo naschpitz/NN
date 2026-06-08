@@ -6,12 +6,12 @@
 #include "CNN_InputProvider.hpp"
 #include "CNN_Sample.hpp"
 #include "CNN_SampleProvider.hpp"
-#include "CNN_TrainingProgress.hpp"
-#include "CNN_TrainingMetadata.hpp"
-#include "CNN_PredictMetadata.hpp"
-#include "CNN_PredictResult.hpp"
-#include "CNN_ProgressCallback.hpp"
-#include "CNN_TestResult.hpp"
+#include "Common/Common_TrainingProgress.hpp"
+#include "Common/Common_TrainingMetadata.hpp"
+#include "Common/Common_PredictMetadata.hpp"
+#include "Common/Common_PredictResult.hpp"
+#include "Common/Common_ProgressCallback.hpp"
+#include "Common/Common_TestResult.hpp"
 #include "CNN_TimingCallback.hpp"
 
 #include <atomic>
@@ -22,6 +22,7 @@
 
 namespace CNN
 {
+  using namespace Common;
   template <typename T>
   class Core
   {
@@ -33,26 +34,26 @@ namespace CNN
       // Streaming predict: pulls inputs in batches from `provider`. Lets
       // callers score arbitrarily large datasets without holding the full
       // Inputs<T> in memory. Eager overloads below wrap this one.
-      virtual PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) = 0;
+      virtual Common::PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) = 0;
       // Eager overloads (concrete wrappers around the streaming version).
       // Each result carries .output (post-activation, e.g. softmax probs)
       // and .logits (pre-activation z of the dense head's last layer, used
       // for calibration / OOD scores that softmax discards).
-      PredictResults<T> predict(const Inputs<T>& inputs);
-      PredictResult<T> predict(const Input<T>& input);
+      Common::PredictResults<T> predict(const Inputs<T>& inputs);
+      Common::PredictResult<T> predict(const Input<T>& input);
       virtual void train(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
-      virtual TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
+      virtual Common::TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
 
       //-- Destructor --//
       virtual ~Core() = default;
 
       //-- Getters --//
-      ModeType getModeType() const
+      Common::ModeType getModeType() const
       {
         return modeType;
       }
 
-      DeviceType getDeviceType() const
+      Common::DeviceType getDeviceType() const
       {
         return deviceType;
       }
@@ -77,17 +78,17 @@ namespace CNN
         return layersConfig;
       }
 
-      const TrainingConfig<T>& getTrainingConfig() const
+      const Common::TrainingConfig<T>& getTrainingConfig() const
       {
         return trainingConfig;
       }
 
-      const PredictMetadata<T>& getPredictMetadata() const
+      const Common::PredictMetadata<T>& getPredictMetadata() const
       {
         return predictMetadata;
       }
 
-      const TrainingMetadata<T>& getTrainingMetadata() const
+      const Common::TrainingMetadata<T>& getTrainingMetadata() const
       {
         return trainingMetadata;
       }
@@ -97,7 +98,7 @@ namespace CNN
         return parameters;
       }
 
-      const CostFunctionConfig<T>& getCostFunctionConfig() const
+      const Common::CostFunctionConfig<T>& getCostFunctionConfig() const
       {
         return coreConfig.costFunctionConfig;
       }
@@ -111,12 +112,12 @@ namespace CNN
       // Upload current host-side parameters to GPU buffers (no-op for CPU cores).
       virtual void syncParametersToGPU() {}
 
-      void setTrainingCallback(TrainingCallback<T> callback)
+      void setTrainingCallback(Common::TrainingCallback<T> callback)
       {
         trainingCallback = callback;
       }
 
-      void setProgressCallback(ProgressCallback callback)
+      void setProgressCallback(::ProgressCallback callback)
       {
         progressCallback = callback;
       }
@@ -146,12 +147,12 @@ namespace CNN
       }
 
       //-- Log level --//
-      void setLogLevel(LogLevel level)
+      void setLogLevel(Common::LogLevel level)
       {
         logLevel = level;
       }
 
-      LogLevel getLogLevel() const
+      Common::LogLevel getLogLevel() const
       {
         return logLevel;
       }
@@ -163,27 +164,27 @@ namespace CNN
 
       //-- Training timing --//
       void trainingStart(ulong numSamples);
-      TrainingMetadata<T> trainingEnd();
+      Common::TrainingMetadata<T> trainingEnd();
 
       //-- Predict timing --//
       void predictStart();
-      PredictMetadata<T> predictEnd();
+      Common::PredictMetadata<T> predictEnd();
 
       //-- Configuration members --//
       CoreConfig<T> coreConfig;
-      DeviceType deviceType;
-      ModeType modeType;
+      Common::DeviceType deviceType;
+      Common::ModeType modeType;
       int numThreads = 0;
       int numGPUs = 0;
       Shape3D inputShape;
       LayersConfig layersConfig;
-      TrainingConfig<T> trainingConfig;
-      TestConfig testConfig;
-      TrainingMetadata<T> trainingMetadata;
-      PredictMetadata<T> predictMetadata;
+      Common::TrainingConfig<T> trainingConfig;
+      Common::TestConfig testConfig;
+      Common::TrainingMetadata<T> trainingMetadata;
+      Common::PredictMetadata<T> predictMetadata;
       Parameters<T> parameters;
       ulong progressReports = 1000;
-      LogLevel logLevel = LogLevel::ERROR;
+      Common::LogLevel logLevel = Common::LogLevel::ERROR;
 
       //-- Internal state --//
       TrainingCallback<T> trainingCallback;

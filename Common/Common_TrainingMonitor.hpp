@@ -9,7 +9,7 @@
 
 //===================================================================================================================//
 
-namespace ANN
+namespace Common
 {
   template <typename T>
   class TrainingMonitor

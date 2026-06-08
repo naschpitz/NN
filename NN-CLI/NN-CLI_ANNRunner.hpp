@@ -11,8 +11,8 @@
 #include "NN-CLI_TrainingTui.hpp"
 #include "NN-CLI_Utils.hpp"
 
-#include <ANN_Core.hpp>
-#include <ANN_TrainingMonitor.hpp>
+#include <_Core.hpp>
+#include "Common/Common_TrainingMonitor.hpp"
 
 #include <QCommandLineParser>
 
@@ -43,7 +43,7 @@ namespace NN_CLI
       //-- Training helpers --//
       void setupTrainingCallback(const QString& inputFilePath,
                                  std::shared_ptr<ANN::Core<float>> validationCore = nullptr,
-                                 std::shared_ptr<ANN::TrainingMonitor<float>> trainingMonitor = nullptr,
+                                 std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor = nullptr,
                                  const DataLoader<ANN::Sample<float>>* validationDataLoader = nullptr,
                                  const std::vector<ulong>* validationIndices = nullptr);
       int finishTraining(const QString& inputFilePath);
@@ -85,4 +85,4 @@ namespace NN_CLI
 
 } // namespace NN_CLI
 
-#endif // NN_CLI_ANNRUNNER_HPP
+#endif // NN_CLI_RUNNER_HPP

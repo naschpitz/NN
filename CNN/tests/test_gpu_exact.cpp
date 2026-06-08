@@ -10,10 +10,10 @@ static void testGPUExactForwardBackwardCrossEntropy()
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(2, softmax)
   // Cross-entropy cost, SGD lr=1.0, 1 epoch, 1 sample
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
   config.numGPUs = 1;
 
@@ -42,7 +42,7 @@ static void testGPUExactForwardBackwardCrossEntropy()
   initConv.biases = {0.0f};
   config.parameters.convParams = {initConv};
 
-  // Preset ANN dense parameters
+  // Preset  dense parameters
   ANN::Parameters<float> denseParams;
   denseParams.weights.resize(2);
   denseParams.biases.resize(2);
@@ -52,7 +52,7 @@ static void testGPUExactForwardBackwardCrossEntropy()
   denseParams.biases[1] = {0.0f, 0.0f};
   config.parameters.denseParams = denseParams;
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.learningRate = 1.0f;
   config.trainingConfig.shuffleSamples = false;
@@ -76,7 +76,7 @@ static void testGPUExactForwardBackwardCrossEntropy()
   CHECK_NEAR(p.convParams[0].filters[3], -0.11000499999958332f, 1e-4, "GPU exact conv filt[3]");
   CHECK_NEAR(p.convParams[0].biases[0], -0.050024999997916653f, 1e-4, "GPU exact conv bias");
 
-  // Dense weights (ANN layer 1)
+  // Dense weights ( layer 1)
   CHECK_NEAR(p.denseParams.weights[1][0][0], 0.12000999999916667f, 1e-4, "GPU exact dw[0][0]");
   CHECK_NEAR(p.denseParams.weights[1][0][1], -0.17498750000104168f, 1e-4, "GPU exact dw[0][1]");
   CHECK_NEAR(p.denseParams.weights[1][0][2], 0.33501749999854163f, 1e-4, "GPU exact dw[0][2]");
@@ -99,10 +99,10 @@ static void testGPUExactForwardBackwardSquaredDifference()
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(1, sigmoid)
   // Squared-difference cost, SGD lr=1.0, 1 epoch, 1 sample
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
   config.numGPUs = 1;
 
@@ -139,7 +139,7 @@ static void testGPUExactForwardBackwardSquaredDifference()
   denseParams.biases[1] = {0.0f};
   config.parameters.denseParams = denseParams;
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::SQUARED_DIFFERENCE;
+  config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.learningRate = 1.0f;
   config.trainingConfig.shuffleSamples = false;
@@ -179,10 +179,10 @@ static void testGPUExactForwardBackwardWeightedCrossEntropy()
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(2, softmax)
   // Weighted cross-entropy cost [3.0, 0.5], SGD lr=1.0, 1 epoch, 1 sample
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 3, 3};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numThreads = 1;
   config.numGPUs = 1;
 
@@ -219,7 +219,7 @@ static void testGPUExactForwardBackwardWeightedCrossEntropy()
   denseParams.biases[1] = {0.0f, 0.0f};
   config.parameters.denseParams = denseParams;
 
-  config.costFunctionConfig.type = CNN::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0f, 0.5f};
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.learningRate = 1.0f;

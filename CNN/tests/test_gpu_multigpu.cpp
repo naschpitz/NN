@@ -10,10 +10,10 @@ static void testMultiGPUEndToEnd()
   std::cout << "--- testMultiGPUEndToEnd ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 2;
 
   CNN::CNNLayerConfig convLayer;
@@ -67,10 +67,10 @@ static void testMultiGPUTestMethod()
   std::cout << "--- testMultiGPUTestMethod ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {1, 5, 5};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 2;
 
   CNN::CNNLayerConfig convLayer;
@@ -108,7 +108,7 @@ static void testMultiGPUTestMethod()
   auto core = CNN::Core<float>::makeCore(config);
   core->train(samples.size(), CNN::makeSampleProvider(samples));
 
-  CNN::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
+  Common::TestResult<float> result = core->test(samples.size(), CNN::makeSampleProvider(samples));
   CHECK(result.numSamples == 2, "multi-GPU CNN test: numSamples = 2");
   CHECK(result.averageLoss >= 0.0f, "multi-GPU CNN test: loss >= 0");
   CHECK(std::isfinite(result.averageLoss), "multi-GPU CNN test: loss finite");
@@ -122,10 +122,10 @@ static void testMultiGPUMultiChannelInput()
   std::cout << "--- testMultiGPUMultiChannelInput ---" << std::endl;
 
   CNN::CoreConfig<float> config;
-  config.modeType = CNN::ModeType::TRAIN;
-  config.deviceType = CNN::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.inputShape = {3, 6, 6};
-  config.logLevel = CNN::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
   config.numGPUs = 2;
 
   CNN::CNNLayerConfig conv1;

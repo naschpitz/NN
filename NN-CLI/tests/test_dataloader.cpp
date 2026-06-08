@@ -1,7 +1,7 @@
 #include "test_helpers.hpp"
 #include "../NN-CLI_DataLoader.hpp"
 
-#include <ANN_Sample.hpp>
+#include <_Sample.hpp>
 #include <CNN_Sample.hpp>
 
 #include <algorithm>
@@ -15,8 +15,8 @@ using namespace NN_CLI;
 
 //===================================================================================================================//
 
-// Create N ANN samples with input = {idx} and output = one-hot class assignment.
-static ANN::Samples<float> makeANNSamples(ulong count, ulong numClasses = 3)
+// Create N  samples with input = {idx} and output = one-hot class assignment.
+static ANN::Samples<float> makeSamples(ulong count, ulong numClasses = 3)
 {
   ANN::Samples<float> samples(count);
 
@@ -35,7 +35,7 @@ static void testProviderReturnsCorrectBatches()
 {
   std::cout << "  testProviderReturnsCorrectBatches... ";
 
-  auto samples = makeANNSamples(10);
+  auto samples = makeSamples(10);
   DataLoader<ANN::Sample<float>> loader;
   loader.loadFromMemory(std::move(samples), 1, 1, 1);
 
@@ -77,7 +77,7 @@ static void testProviderRespectsShuffledIndices()
 {
   std::cout << "  testProviderRespectsShuffledIndices... ";
 
-  auto samples = makeANNSamples(6);
+  auto samples = makeSamples(6);
   DataLoader<ANN::Sample<float>> loader;
   loader.loadFromMemory(std::move(samples), 1, 1, 1);
 
@@ -113,7 +113,7 @@ static void testPrefetchOverlapsWithProcessing()
   // error out and returns correct data when called sequentially with a sleep
   // between calls (simulating training work).
 
-  auto samples = makeANNSamples(20);
+  auto samples = makeSamples(20);
   DataLoader<ANN::Sample<float>> loader;
   loader.loadFromMemory(std::move(samples), 1, 1, 1);
 
@@ -143,7 +143,7 @@ static void testNewEpochResetsPrefetch()
 {
   std::cout << "  testNewEpochResetsPrefetch... ";
 
-  auto samples = makeANNSamples(6);
+  auto samples = makeSamples(6);
   DataLoader<ANN::Sample<float>> loader;
   loader.loadFromMemory(std::move(samples), 1, 1, 1);
 
