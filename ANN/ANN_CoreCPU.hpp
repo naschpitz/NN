@@ -5,7 +5,9 @@
 #include "ANN_CoreCPUWorker.hpp"
 
 #include <QMutex>
+#include <QThreadPool>
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -37,6 +39,15 @@ namespace ANN
       //-- Persistent worker (for predict and step-by-step training) --//
       std::unique_ptr<CoreCPUWorker<T>> stepWorker;
 
+      //-- Dedicated thread pool for this core's parallel worker dispatch.            --//
+      //   Each Core instance owns its own pool instead of sharing the global one, so   //
+      //   a validation test() running on a separate core from inside train()'s         //
+      //   training callback never contends with train()'s own parallel region. Sharing //
+      //   the global pool deadlocks: the nested test() can never acquire a worker       //
+      //   thread because they are all occupied by the enclosing train(). Mirrors        //
+      //   CNN::CoreCPU.                                                                  //
+      QThreadPool workerPool_;
+
       //-- Global accumulators (for merging worker results) --//
       Tensor3D<T> accum_dCost_dWeights;
       Tensor2D<T> accum_dCost_dBiases;
@@ -53,6 +64,13 @@ namespace ANN
       void initializeParameters();
       void allocateGlobalAccumulators();
       void allocateAdamState();
+
+      //-- Run `body(workerIdx)` for workerIdx in [0, numThreads) on this core's        --//
+      //   dedicated pool, blocking until all workers finish. Replaces                    //
+      //   QtConcurrent::blockingMap, which always uses the (shared) global pool.          //
+      //   With numThreads==1 a single worker processes its whole chunk in order, so the   //
+      //   bit-deterministic serial behaviour the tests rely on is preserved.              //
+      void runWorkers(int numThreads, const std::function<void(int)>& body);
 
       //-- Training helpers --//
       void resetGlobalAccumulators();
