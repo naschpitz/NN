@@ -279,6 +279,28 @@ h2[id]::before, h3[id]::before { content: ""; display: block; height: calc(var(-
       machine-specific) and copies that master into each component before building.
     </p>
 
+    <p>Create <code>CMakeUserPresets.json</code> at the repo root with your Qt6 kit paths:</p>
+    <pre><code>{
+      <span class="string">"version"</span>: 3,
+      <span class="string">"cmakeMinimumRequired"</span>: { <span class="string">"major"</span>: 3, <span class="string">"minor"</span>: 21 },
+      <span class="string">"configurePresets"</span>: [
+        { <span class="string">"name"</span>: <span class="string">"static"</span>, <span class="string">"binaryDir"</span>: <span class="string">"${sourceDir}/build"</span>,
+          <span class="string">"cacheVariables"</span>: { <span class="string">"CMAKE_PREFIX_PATH"</span>: <span class="string">"/path/to/Qt6-static"</span>, <span class="string">"CMAKE_BUILD_TYPE"</span>: <span class="string">"Release"</span> } },
+        { <span class="string">"name"</span>: <span class="string">"shared"</span>, <span class="string">"binaryDir"</span>: <span class="string">"${sourceDir}/build"</span>,
+          <span class="string">"cacheVariables"</span>: { <span class="string">"CMAKE_PREFIX_PATH"</span>: <span class="string">"/path/to/Qt6-shared"</span>, <span class="string">"CMAKE_BUILD_TYPE"</span>: <span class="string">"Release"</span> } }
+      ],
+      <span class="string">"buildPresets"</span>: [
+        { <span class="string">"name"</span>: <span class="string">"static"</span>, <span class="string">"configurePreset"</span>: <span class="string">"static"</span> },
+        { <span class="string">"name"</span>: <span class="string">"shared"</span>, <span class="string">"configurePreset"</span>: <span class="string">"shared"</span> }
+      ]
+    }</code></pre>
+    <div class="tip-box">
+      This file is gitignored and machine-specific — keep it local. After creating it,
+      run <code>./build.sh</code> or <code>./build.sh shared</code> to build all components.
+      For single-component builds with a custom Qt6, pass
+      <code>-DCMAKE_PREFIX_PATH=/path/to/Qt6</code> directly to cmake.
+    </div>
+
     <h3>Build a single component</h3>
     <p>If Qt6 is on the default paths (distro/Homebrew):</p>
     <pre><code><span class="comment"># Build just the CLI</span>
