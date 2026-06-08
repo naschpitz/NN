@@ -1,7 +1,7 @@
 #include "test_helpers.hpp"
 #include "../NN-CLI_DataLoader.hpp"
 
-#include <_Sample.hpp>
+#include <ANN_Sample.hpp>
 #include <CNN_Sample.hpp>
 
 #include <algorithm>

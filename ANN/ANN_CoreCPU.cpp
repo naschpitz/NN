@@ -1,6 +1,6 @@
-#include "_CoreCPU.hpp"
+#include "ANN_CoreCPU.hpp"
 #include "Common/Common_TrainingMonitor.hpp"
-#include "_Utils.hpp"
+#include "ANN_Utils.hpp"
 
 #include <QThreadPool>
 #include <QtConcurrent>

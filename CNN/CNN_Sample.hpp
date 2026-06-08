@@ -2,6 +2,7 @@
 #define CNN_SAMPLE_HPP
 
 #include "CNN_Types.hpp"
+#include "Common/Common_Device.hpp"
 
 //===================================================================================================================//
 

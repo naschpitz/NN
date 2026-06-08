@@ -27,7 +27,7 @@ namespace NN_Server
     // CNN configs use "convolutionalLayers" and/or "denseLayers".
     // "inputShape" is NOT used for detection — both types can have it (e.g.  image input).
     if (json.contains("layers")) {
-      return NetworkType::;
+return NetworkType::ANN;
     }
 
     return NetworkType::CNN;
@@ -126,7 +126,7 @@ namespace NN_Server
     coreConfig.modeType = Common::ModeType::PREDICT;
 
     if (json.contains("device")) {
-      coreConfig.deviceType = ::Device::nameToType(json.at("device").get<std::string>());
+      coreConfig.deviceType = Common::Device::nameToType(json.at("device").get<std::string>());
     } else {
       coreConfig.deviceType = Common::DeviceType::CPU;
     }
@@ -150,7 +150,7 @@ namespace NN_Server
 
     if (json.contains("costFunction")) {
       const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = ::CostFunction::nameToType(cfc.at("type").get<std::string>());
+      coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
         coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
@@ -162,8 +162,8 @@ namespace NN_Server
     }
 
     const auto& p = json.at("parameters");
-    coreConfig.parameters.weights = p.at("weights").get<::Tensor3D<float>>();
-    coreConfig.parameters.biases = p.at("biases").get<::Tensor2D<float>>();
+    coreConfig.parameters.weights = p.at("weights").get<ANN::Tensor3D<float>>();
+    coreConfig.parameters.biases = p.at("biases").get<ANN::Tensor2D<float>>();
 
     return coreConfig;
   }
@@ -189,7 +189,7 @@ namespace NN_Server
     coreConfig.modeType = Common::ModeType::PREDICT;
 
     if (json.contains("device")) {
-      coreConfig.deviceType = ::Device::nameToType(json.at("device").get<std::string>());
+      coreConfig.deviceType = Common::Device::nameToType(json.at("device").get<std::string>());
     } else {
       coreConfig.deviceType = Common::DeviceType::CPU;
     }
@@ -294,7 +294,7 @@ namespace NN_Server
     // Cost function config
     if (json.contains("costFunction")) {
       const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = ::CostFunction::nameToType(cfc.at("type").get<std::string>());
+      coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
         coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
@@ -346,8 +346,8 @@ namespace NN_Server
 
     if (paramsJson.contains("dense")) {
       const auto& denseJson = paramsJson.at("dense");
-      coreConfig.parameters.denseParams.weights = denseJson.at("weights").get<::Tensor3D<float>>();
-      coreConfig.parameters.denseParams.biases = denseJson.at("biases").get<::Tensor2D<float>>();
+      coreConfig.parameters.denseParams.weights = denseJson.at("weights").get<ANN::Tensor3D<float>>();
+      coreConfig.parameters.denseParams.biases = denseJson.at("biases").get<ANN::Tensor2D<float>>();
     }
 
     return coreConfig;

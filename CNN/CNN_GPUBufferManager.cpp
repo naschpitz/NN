@@ -545,11 +545,11 @@ void GPUBufferManager<T>::buildWorker()
   const auto& annCostFunctionConfig = this->workerConfig.costFunctionConfig;
 
   // Create  GPU worker on the shared core
-  this->annGPUWorker = std::make_unique<::CoreGPUWorker<T>>(
+  this->annGPUWorker = std::make_unique<ANN::CoreGPUWorker<T>>(
     annLayers, annTrainingConfig, this->workerConfig.parameters.denseParams, annCostFunctionConfig, *this->core,
     this->workerConfig.progressReports, this->workerConfig.logLevel);
 
-  // Load  sources (skip defines — CNN_Defines.hpp.cl already defined TYPE, ActvFuncType, Layer)
+  // Load ANN sources (skip defines — CNN_Defines.hpp.cl already defined TYPE, ActvFuncType, Layer)
   this->annGPUWorker->bufferManager->loadSources(true);
 
   // Allocate  GPU buffers
@@ -818,7 +818,7 @@ void GPUBufferManager<T>::setBNAccumulators(const std::vector<T>& accumGamma, co
 //===================================================================================================================//
 
 template <typename T>
-void GPUBufferManager<T>::readAccumulatedGradients(ANN::Tensor1D<T>& accumWeights, ANN::Tensor1D<T>& accumBiases)
+void GPUBufferManager<T>::readAnnAccumulatedGradients(ANN::Tensor1D<T>& accumWeights, ANN::Tensor1D<T>& accumBiases)
 {
   this->annGPUWorker->bufferManager->readAccumulatedGradients(accumWeights, accumBiases);
 }
@@ -826,7 +826,7 @@ void GPUBufferManager<T>::readAccumulatedGradients(ANN::Tensor1D<T>& accumWeight
 //===================================================================================================================//
 
 template <typename T>
-void GPUBufferManager<T>::setAccumulators(const ANN::Tensor1D<T>& accumWeights, const ANN::Tensor1D<T>& accumBiases)
+void GPUBufferManager<T>::setAnnAccumulators(const ANN::Tensor1D<T>& accumWeights, const ANN::Tensor1D<T>& accumBiases)
 {
   this->annGPUWorker->bufferManager->setAccumulators(accumWeights, accumBiases);
 }

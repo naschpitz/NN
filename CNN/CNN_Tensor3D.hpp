@@ -9,7 +9,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   // 3D tensor stored as flat vector in NCHW order: data[c * H * W + h * W + w]
   template <typename T>
   class Tensor3D

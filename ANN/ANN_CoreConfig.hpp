@@ -1,14 +1,14 @@
-#ifndef _CORECONFIG_HPP
-#define _CORECONFIG_HPP
+#ifndef ANN_CORECONFIG_HPP
+#define ANN_CORECONFIG_HPP
 
 #include "Common/Common_Mode.hpp"
 #include "Common/Common_Device.hpp"
 #include "Common/Common_LogLevel.hpp"
-#include "_LayersConfig.hpp"
+#include "ANN_LayersConfig.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
 #include "Common/Common_TrainingConfig.hpp"
 #include "Common/Common_TestConfig.hpp"
-#include "_Parameters.hpp"
+#include "ANN_Parameters.hpp"
 
 //===================================================================================================================//
 
@@ -33,4 +33,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // _CORECONFIG_HPP
+#endif // ANN_CORECONFIG_HPP

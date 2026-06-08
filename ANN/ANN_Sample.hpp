@@ -1,7 +1,8 @@
-#ifndef _SAMPLE_HPP
-#define _SAMPLE_HPP
+#ifndef ANN_SAMPLE_HPP
+#define ANN_SAMPLE_HPP
 
-#include "_Types.hpp"
+#include "ANN_Types.hpp"
+#include "Common/Common_Device.hpp"
 
 //===================================================================================================================//
 
@@ -20,4 +21,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // _SAMPLE_HPP
+#endif // ANN_SAMPLE_HPP

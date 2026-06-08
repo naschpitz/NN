@@ -1,20 +1,20 @@
 #pragma once
 
-#include "_Core.hpp"
-#include "_CoreConfig.hpp"
-#include "_ActvFunc.hpp"
+#include "ANN_Core.hpp"
+#include "ANN_CoreConfig.hpp"
+#include "ANN_ActvFunc.hpp"
 #include "Common/Common_Device.hpp"
 #include "Common/Common_Mode.hpp"
-#include "_LayersConfig.hpp"
-#include "_Types.hpp"
-#include "_Parameters.hpp"
-#include "_Sample.hpp"
+#include "ANN_LayersConfig.hpp"
+#include "ANN_Types.hpp"
+#include "ANN_Parameters.hpp"
+#include "ANN_Sample.hpp"
 #include "Common/Common_TrainingConfig.hpp"
 #include "Common/Common_TrainingProgress.hpp"
 #include "Common/Common_TrainingMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
 #include "Common/Common_TestResult.hpp"
-#include "_Utils.hpp"
+#include "ANN_Utils.hpp"
 
 #include <cassert>
 #include <cmath>

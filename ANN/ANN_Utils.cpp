@@ -1,4 +1,4 @@
-#include "_Utils.hpp"
+#include "ANN_Utils.hpp"
 
 #include <chrono>
 #include <ctime>
@@ -6,7 +6,6 @@
 #include <sstream>
 
 using namespace ANN;
-using namespace Common;
 
 //===================================================================================================================//
 

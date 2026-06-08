@@ -4,7 +4,7 @@
 #include "CNN_Worker.hpp"
 #include "CNN_Core.hpp"
 
-#include <_Core.hpp>
+#include <ANN_Core.hpp>
 
 #include <memory>
 #include <vector>
@@ -93,7 +93,7 @@ namespace CNN
         return bnSampleCount;
       }
 
-      //--  sub-core access (for parameter sync/merge by CoreCPU) --//
+      //-- ANN sub-core access (for parameter sync/merge by CoreCPU) --//
       ANN::Core<T>* getCore()
       {
         return annCore.get();
@@ -113,7 +113,7 @@ namespace CNN
       Shape3D cnnOutputShape;
       ulong flattenSize;
 
-      //--  sub-core (each worker owns its own for thread safety) --//
+      //-- ANN sub-core (each worker owns its own for thread safety) --//
       std::unique_ptr<ANN::Core<T>> annCore;
 
       //-- Per-worker CNN gradient accumulators --//

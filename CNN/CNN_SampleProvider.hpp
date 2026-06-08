@@ -2,6 +2,7 @@
 #define CNN_SAMPLEPROVIDER_HPP
 
 #include "CNN_Sample.hpp"
+#include "Common/Common_Device.hpp"
 
 #include <algorithm>
 #include <functional>

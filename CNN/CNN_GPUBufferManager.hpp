@@ -6,7 +6,7 @@
 #include "CNN_Parameters.hpp"
 #include "Common/Common_LogLevel.hpp"
 
-#include <_CoreGPUWorker.hpp>
+#include <ANN_CoreGPUWorker.hpp>
 #include <OCLW_Core.hpp>
 
 #include <memory>
@@ -47,8 +47,8 @@ namespace CNN
       void setAccumulators(const std::vector<T>& accumFilters, const std::vector<T>& accumBiases);
       void readBNAccumulatedGradients(std::vector<T>& accumGamma, std::vector<T>& accumBeta);
       void setBNAccumulators(const std::vector<T>& accumGamma, const std::vector<T>& accumBeta);
-      void readAccumulatedGradients(ANN::Tensor1D<T>& accumWeights, ANN::Tensor1D<T>& accumBiases);
-      void setAccumulators(const ANN::Tensor1D<T>& accumWeights, const ANN::Tensor1D<T>& accumBiases);
+      void readAnnAccumulatedGradients(ANN::Tensor1D<T>& accumWeights, ANN::Tensor1D<T>& accumBiases);
+      void setAnnAccumulators(const ANN::Tensor1D<T>& accumWeights, const ANN::Tensor1D<T>& accumBiases);
 
       //-- Per-layer buffer offset/size info --//
       struct LayerInfo {
@@ -114,7 +114,7 @@ namespace CNN
       ulong batchSize = 1;
 
       //--  GPU worker (dense layers on shared core) --//
-      std::unique_ptr<::CoreGPUWorker<T>> annGPUWorker;
+      std::unique_ptr<ANN::CoreGPUWorker<T>> annGPUWorker;
 
     private:
       OpenCLWrapper::Core* core;

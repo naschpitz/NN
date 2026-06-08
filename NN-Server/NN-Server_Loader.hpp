@@ -4,11 +4,11 @@
 #include "NN-Server_IOConfig.hpp"
 #include "NN-Server_NetworkType.hpp"
 
-#include <_Core.hpp>
+#include <ANN_Core.hpp>
 #include "Common/Common_Mode.hpp"
 #include "Common/Common_Device.hpp"
-#include <_ActvFunc.hpp>
-#include <_LayersConfig.hpp>
+#include <ANN_ActvFunc.hpp>
+#include <ANN_LayersConfig.hpp>
 
 #include <CNN_Core.hpp>
 #include <CNN_CoreConfig.hpp>
@@ -35,7 +35,7 @@ namespace NN_Server
       // Load output configuration from the model file (outputType + outputShape).
       static OutputConfig loadOutputConfig(const std::string& configFilePath);
 
-      // Load  configuration (always in PREDICT mode).
+      // Load ANN configuration (always in PREDICT mode).
       static ANN::CoreConfig<float> loadConfig(const std::string& configFilePath);
 
       // Load CNN configuration (always in PREDICT mode).

@@ -7,14 +7,14 @@ static void testCostFunctionConfigDefault()
   std::cout << "--- testCostFunctionConfigDefault ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::PREDICT;
-  config.deviceType = ::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
   auto core = ANN::Core<double>::makeCore(config);
 
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == ::CostFunctionType::SQUARED_DIFFERENCE, "default type is squaredDifference");
+  CHECK(cfc.type == Common::CostFunctionType::SQUARED_DIFFERENCE, "default type is squaredDifference");
   CHECK(cfc.weights.empty(), "default weights is empty");
 }
 
@@ -25,16 +25,16 @@ static void testCostFunctionConfigGetter()
   std::cout << "--- testCostFunctionConfigGetter ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::PREDICT;
-  config.deviceType = ::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SIGMOID}});
-  config.costFunctionConfig.type = ::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SIGMOID}});
+  config.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
   config.costFunctionConfig.weights = {3.0, 0.5};
 
   auto core = ANN::Core<double>::makeCore(config);
 
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == ::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "type is weightedSquaredDifference");
+  CHECK(cfc.type == Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE, "type is weightedSquaredDifference");
   CHECK(cfc.weights.size() == 2, "weights size = 2");
   CHECK_NEAR(cfc.weights[0], 3.0, 1e-10, "weight[0] = 3.0");
   CHECK_NEAR(cfc.weights[1], 0.5, 1e-10, "weight[1] = 0.5");
@@ -46,21 +46,21 @@ static void testCostFunctionStringConversion()
 {
   std::cout << "--- testCostFunctionStringConversion ---" << std::endl;
 
-  CHECK(::CostFunction::nameToType("squaredDifference") == ::CostFunctionType::SQUARED_DIFFERENCE,
+  CHECK(Common::CostFunction::nameToType("squaredDifference") == Common::CostFunctionType::SQUARED_DIFFERENCE,
         "nameToType squaredDifference");
-  CHECK(::CostFunction::nameToType("weightedSquaredDifference") ==
-          ::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE,
+  CHECK(Common::CostFunction::nameToType("weightedSquaredDifference") ==
+          Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE,
         "nameToType weightedSquaredDifference");
-  CHECK(::CostFunction::typeToName(::CostFunctionType::SQUARED_DIFFERENCE) == "squaredDifference",
+  CHECK(Common::CostFunction::typeToName(Common::CostFunctionType::SQUARED_DIFFERENCE) == "squaredDifference",
         "typeToName squaredDifference");
-  CHECK(::CostFunction::typeToName(::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE) ==
+  CHECK(Common::CostFunction::typeToName(Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE) ==
           "weightedSquaredDifference",
         "typeToName weightedSquaredDifference");
 
   bool threwException = false;
 
   try {
-    ::CostFunction::nameToType("invalidName");
+    Common::CostFunction::nameToType("invalidName");
   } catch (const std::runtime_error&) {
     threwException = true;
   }
@@ -81,10 +81,10 @@ static void testWeightedLossAffectsTraining()
 
   // Train with default loss (equal weighting)
   ANN::CoreConfig<double> configDefault;
-  configDefault.modeType = ::ModeType::TRAIN;
-  configDefault.deviceType = ::DeviceType::CPU;
+  configDefault.modeType = Common::ModeType::TRAIN;
+  configDefault.deviceType = Common::DeviceType::CPU;
   configDefault.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {2, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {2, ANN::ActvFuncType::SIGMOID}});
 
   configDefault.trainingConfig.numEpochs = 200;
   configDefault.trainingConfig.learningRate = 0.5;
@@ -92,7 +92,7 @@ static void testWeightedLossAffectsTraining()
 
   // Train with weighted loss: output 0 weighted 10x more than output 1
   ANN::CoreConfig<double> configWeighted = configDefault;
-  configWeighted.costFunctionConfig.type = ::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
+  configWeighted.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
   configWeighted.costFunctionConfig.weights = {10.0, 1.0};
 
   // Use test() to compare loss on each — the weighted network should report different total loss
@@ -144,10 +144,10 @@ static void testShuffleSamplesTraining()
 
   auto makeConfig = [](bool shuffle) {
     ANN::CoreConfig<double> config;
-    config.modeType = ::ModeType::TRAIN;
-    config.deviceType = ::DeviceType::CPU;
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = Common::DeviceType::CPU;
     config.layersConfig = makeLayersConfig(
-      {{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
+      {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
     config.trainingConfig.numEpochs = 500;
     config.trainingConfig.learningRate = 0.5;
@@ -155,7 +155,7 @@ static void testShuffleSamplesTraining()
     config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
     config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
     config.progressReports = 0;
-    config.logLevel = ::LogLevel::ERROR;
+    config.logLevel = Common::LogLevel::ERROR;
     return config;
   };
 
@@ -191,16 +191,16 @@ static void testShuffleSamplesNoShuffle()
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
 
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 50;
   config.trainingConfig.learningRate = 0.1;
   config.trainingConfig.shuffleSamples = false;
   config.progressReports = 0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   // First run
   auto core1 = ANN::Core<double>::makeCore(config);

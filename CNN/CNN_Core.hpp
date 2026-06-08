@@ -117,7 +117,7 @@ namespace CNN
         trainingCallback = callback;
       }
 
-      void setProgressCallback(::ProgressCallback callback)
+      void setProgressCallback(Common::ProgressCallback callback)
       {
         progressCallback = callback;
       }

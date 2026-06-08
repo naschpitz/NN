@@ -1,6 +1,8 @@
 #ifndef CNN_TIMINGCALLBACK_HPP
 #define CNN_TIMINGCALLBACK_HPP
 
+#include "Common/Common_Device.hpp"
+
 #include <functional>
 #include <string>
 #include <vector>

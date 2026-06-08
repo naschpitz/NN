@@ -11,7 +11,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   // 1D tensor (used for flattened output)
   template <typename T>
   using Tensor1D = std::vector<T>;

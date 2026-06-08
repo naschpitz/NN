@@ -39,7 +39,7 @@ namespace NN_CLI
     // CNN configs use "convolutionalLayers" and/or "denseLayers".
     // "inputShape" is NOT used for detection — both types can have it (e.g.  image input).
     if (json.contains("layers")) {
-      return NetworkType::;
+      return NetworkType::ANN;
     }
 
     return NetworkType::CNN;

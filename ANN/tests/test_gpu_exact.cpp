@@ -9,16 +9,16 @@ static void testGPUExactForwardBackwardSquaredDifference()
   // Same hand-computed network as CPU test, but on GPU with float.
   // 2 inputs → 2 hidden (ReLU) → 1 output (sigmoid), squared-difference, SGD lr=1.0
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.numGPUs = 1;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.learningRate = 1.0f;
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.shuffleSamples = false;
   config.progressReports = 0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   config.parameters.weights = {{}, {{0.1f, 0.2f}, {0.3f, 0.4f}}, {{0.5f, -0.3f}}};
   config.parameters.biases = {{}, {0.1f, -0.1f}, {0.0f}};
@@ -51,17 +51,17 @@ static void testGPUExactForwardBackwardCrossEntropy()
   // Same hand-computed network as CPU test, but on GPU with float.
   // 2 inputs → 2 hidden (ReLU) → 2 output (softmax), cross-entropy, SGD lr=1.0
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.numGPUs = 1;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.learningRate = 1.0f;
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.shuffleSamples = false;
   config.progressReports = 0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   config.parameters.weights = {{}, {{0.1f, 0.2f}, {0.3f, 0.4f}}, {{0.5f, -0.3f}, {-0.2f, 0.6f}}};
   config.parameters.biases = {{}, {0.1f, -0.1f}, {0.0f, 0.0f}};
@@ -97,18 +97,18 @@ static void testGPUExactForwardBackwardWeightedCrossEntropy()
 
   // Same as CE test but with per-class weights [3.0, 0.5]
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.numGPUs = 1;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0f, 0.5f};
   config.trainingConfig.learningRate = 1.0f;
   config.trainingConfig.numEpochs = 1;
   config.trainingConfig.shuffleSamples = false;
   config.progressReports = 0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   config.parameters.weights = {{}, {{0.1f, 0.2f}, {0.3f, 0.4f}}, {{0.5f, -0.3f}, {-0.2f, 0.6f}}};
   config.parameters.biases = {{}, {0.1f, -0.1f}, {0.0f, 0.0f}};

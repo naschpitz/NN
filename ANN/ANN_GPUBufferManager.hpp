@@ -1,10 +1,10 @@
-#ifndef _GPUBUFFERMANAGER_HPP
-#define _GPUBUFFERMANAGER_HPP
+#ifndef ANN_GPUBUFFERMANAGER_HPP
+#define ANN_GPUBUFFERMANAGER_HPP
 
-#include "_Types.hpp"
-#include "_LayersConfig.hpp"
+#include "ANN_Types.hpp"
+#include "ANN_LayersConfig.hpp"
 #include "Common/Common_TrainingConfig.hpp"
-#include "_Parameters.hpp"
+#include "ANN_Parameters.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
 #include "Common/Common_LogLevel.hpp"
 
@@ -74,4 +74,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // _GPUBUFFERMANAGER_HPP
+#endif // ANN_GPUBUFFERMANAGER_HPP

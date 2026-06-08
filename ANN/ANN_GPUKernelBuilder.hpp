@@ -1,12 +1,12 @@
-#ifndef _GPUKERNELBUILDER_HPP
-#define _GPUKERNELBUILDER_HPP
+#ifndef ANN_GPUKERNELBUILDER_HPP
+#define ANN_GPUKERNELBUILDER_HPP
 
-#include "_Types.hpp"
-#include "_LayersConfig.hpp"
+#include "ANN_Types.hpp"
+#include "ANN_LayersConfig.hpp"
 #include "Common/Common_TrainingConfig.hpp"
-#include "_Parameters.hpp"
+#include "ANN_Parameters.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
-#include "_GPUBufferManager.hpp"
+#include "ANN_GPUBufferManager.hpp"
 #include "Common/Common_LogLevel.hpp"
 
 #include <OCLW_Core.hpp>
@@ -64,4 +64,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // _GPUKERNELBUILDER_HPP
+#endif // ANN_GPUKERNELBUILDER_HPP

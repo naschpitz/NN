@@ -8,7 +8,7 @@
 #include "CNN_Normalization.hpp"
 #include "CNN_Residual.hpp"
 
-#include <_Core.hpp>
+#include <ANN_Core.hpp>
 #include <stack>
 
 using namespace CNN;
@@ -28,7 +28,7 @@ CoreCPUWorker<T>::CoreCPUWorker(const CoreConfig<T>& config, const LayersConfig&
   this->cnnOutputShape = this->layersConfig.validateShapes(config.inputShape);
   this->flattenSize = this->cnnOutputShape.size();
 
-  // Build and create  sub-core
+  // Build and create ANN sub-core
   ANN::CoreConfig<T> annConfig = buildConfig(config, this->flattenSize);
   this->annCore = ANN::Core<T>::makeCore(annConfig);
 
@@ -93,7 +93,7 @@ ANN::CoreConfig<T> CoreCPUWorker<T>::buildConfig(const CoreConfig<T>& cnnConfig,
 
   ANN::Layer inputLayer;
   inputLayer.numNeurons = flattenSize;
-  inputLayer.actvFuncType = ANN::ActvFuncType::RELU; // Placeholder ( input layer activation unused)
+  inputLayer.actvFuncType = ANN::ActvFuncType::RELU; // Placeholder (ANN input layer activation unused)
   annLayers.push_back(inputLayer);
 
   for (const auto& denseConfig : cnnConfig.layersConfig.denseLayers) {

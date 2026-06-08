@@ -11,7 +11,7 @@
 #include "NN-CLI_TrainingTui.hpp"
 #include "NN-CLI_Utils.hpp"
 
-#include <_Core.hpp>
+#include <ANN_Core.hpp>
 #include "Common/Common_TrainingMonitor.hpp"
 
 #include <QCommandLineParser>

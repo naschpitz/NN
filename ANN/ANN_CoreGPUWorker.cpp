@@ -1,5 +1,5 @@
-#include "_CoreGPUWorker.hpp"
-#include "_Utils.hpp"
+#include "ANN_CoreGPUWorker.hpp"
+#include "ANN_Utils.hpp"
 
 #include <algorithm>
 #include <cmath>

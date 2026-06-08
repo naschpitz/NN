@@ -1,4 +1,5 @@
-#include "NN-CLI_Runner.hpp"
+#include "NN-CLI_ANNRunner.hpp"
+#include "NN-CLI_ANNLoader.hpp"
 
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_DataLoader.hpp"
@@ -18,7 +19,7 @@
 
 #include <json.hpp>
 
-#include <_Utils.hpp>
+#include <ANN_Utils.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -47,7 +48,7 @@ ANNRunner::ANNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConf
 //  Mode methods
 //===================================================================================================================//
 
-int Runner::train()
+int ANNRunner::train()
 {
   if (checkSamplesIdxDataConflict(this->parser))
     return 1;
@@ -213,7 +214,7 @@ int Runner::train()
 
 //===================================================================================================================//
 
-int Runner::test()
+int ANNRunner::test()
 {
   if (checkSamplesIdxDataConflict(this->parser))
     return 1;
@@ -264,7 +265,7 @@ int Runner::test()
 
 //===================================================================================================================//
 
-int Runner::predict()
+int ANNRunner::predict()
 {
   if (!this->parser.isSet("input")) {
     std::cerr << "Error: --input option is required for predict mode.\n";
@@ -276,13 +277,13 @@ int Runner::predict()
 
   ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
   std::vector<ANN::Input<float>> inputs =
-    Loader::loadInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
+    ANNLoader::loadInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
 
   if (this->logLevel > LogLevel::QUIET)
     PredictSummary::print(this->coreConfig, inputs.size(), inputPath.toStdString(), outputPath.toStdString());
 
   auto batchStart = std::chrono::system_clock::now();
-  std::string startTimeStr = ::Utils<float>::formatISO8601();
+  std::string startTimeStr = ANN::Utils<float>::formatISO8601();
 
   setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Predicting", inputs.size());
 
@@ -300,10 +301,10 @@ int Runner::predict()
   Common::PredictResults<float> results = this->core->predict(inputs.size(), sliceProvider);
 
   auto batchEnd = std::chrono::system_clock::now();
-  std::string endTimeStr = ::Utils<float>::formatISO8601();
+  std::string endTimeStr = ANN::Utils<float>::formatISO8601();
   std::chrono::duration<double> batchElapsed = batchEnd - batchStart;
   double batchDurationSeconds = batchElapsed.count();
-  std::string batchDurationFormatted = ::Utils<float>::formatDuration(batchDurationSeconds);
+  std::string batchDurationFormatted = ANN::Utils<float>::formatDuration(batchDurationSeconds);
 
   return writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
                             batchDurationSeconds, batchDurationFormatted, inputs.size());
@@ -313,13 +314,13 @@ int Runner::predict()
 //  Sample loading
 //===================================================================================================================//
 
-std::pair<ANN::Samples<float>, bool> Runner::loadSamplesFromOptions(const std::string& modeName,
+std::pair<ANN::Samples<float>, bool> ANNRunner::loadSamplesFromOptions(const std::string& modeName,
                                                                        QString& inputFilePath)
 {
   return loadSamplesFromOptionsCommon<ANN::Samples<float>>(
     this->parser, this->logLevel, this->ioConfig, modeName, inputFilePath,
     [this](const std::string& path, ulong progressReports) {
-      return Loader::loadSamples(path, this->ioConfig, progressReports);
+      return ANNLoader::loadSamples(path, this->ioConfig, progressReports);
     },
 
     [](const std::string& dataPath, const std::string& labelsPath, ulong progressReports) {
@@ -331,7 +332,7 @@ std::pair<ANN::Samples<float>, bool> Runner::loadSamplesFromOptions(const std::s
 //  Training helpers
 //===================================================================================================================//
 
-ValidationMetadata Runner::buildValidationMetadata() const
+ValidationMetadata ANNRunner::buildValidationMetadata() const
 {
   return {this->validationState.enabled, this->validationState.numValSamples, this->validationState.lastValLoss,
           this->validationState.bestValLoss, this->validationState.bestValEpoch};
@@ -339,7 +340,7 @@ ValidationMetadata Runner::buildValidationMetadata() const
 
 //===================================================================================================================//
 
-void Runner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> validationCore,
+void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> validationCore,
                                       std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor,
                                       const DataLoader<ANN::Sample<float>>* validationDataLoader,
                                       const std::vector<ulong>* validationIndices)
@@ -460,7 +461,7 @@ void Runner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr
 
 //===================================================================================================================//
 
-void Runner::regenerateConfigLines(ulong maxWidth)
+void ANNRunner::regenerateConfigLines(ulong maxWidth)
 {
   if (!this->configLinesLoaded_)
     return;
@@ -482,7 +483,7 @@ void Runner::regenerateConfigLines(ulong maxWidth)
 
 //===================================================================================================================//
 
-int Runner::finishTraining(const QString& inputFilePath)
+int ANNRunner::finishTraining(const QString& inputFilePath)
 {
   return finishTrainingCommon(this->tui, this->logLevel, this->parser, inputFilePath, *this->core,
                               [this](const std::string& path) {

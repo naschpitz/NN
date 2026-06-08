@@ -1,7 +1,7 @@
-#ifndef _INPUTPROVIDER_HPP
-#define _INPUTPROVIDER_HPP
+#ifndef ANN_INPUTPROVIDER_HPP
+#define ANN_INPUTPROVIDER_HPP
 
-#include "_Types.hpp"
+#include "ANN_Types.hpp"
 
 #include <functional>
 #include <sys/types.h>
@@ -21,4 +21,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // _INPUTPROVIDER_HPP
+#endif // ANN_INPUTPROVIDER_HPP

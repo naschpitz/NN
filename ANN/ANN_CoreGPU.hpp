@@ -1,8 +1,8 @@
-#ifndef _COREGPU_H
-#define _COREGPU_H
+#ifndef ANN_COREGPU_H
+#define ANN_COREGPU_H
 
-#include "_Core.hpp"
-#include "_CoreGPUWorker.hpp"
+#include "ANN_Core.hpp"
+#include "ANN_CoreGPUWorker.hpp"
 
 #include <memory>
 #include <vector>
@@ -42,4 +42,4 @@ namespace ANN
   };
 }
 
-#endif // _COREGPU_H
+#endif // ANN_COREGPU_H

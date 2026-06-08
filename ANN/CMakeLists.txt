@@ -24,6 +24,7 @@ add_library(ANN STATIC
   ANN_GPUBufferManager.hpp ANN_GPUBufferManager.cpp
   ANN_GPUKernelBuilder.hpp ANN_GPUKernelBuilder.cpp
   ANN_LayersConfig.hpp ANN_LayersConfig.cpp
+  ANN_Optimizer.cpp
   ANN_Types.hpp
   ANN_Parameters.hpp
   ANN_InputProvider.hpp

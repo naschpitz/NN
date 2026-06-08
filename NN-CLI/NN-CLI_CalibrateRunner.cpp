@@ -3,7 +3,7 @@
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 
-#include <_Utils.hpp>
+#include <ANN_Utils.hpp>
 
 #include <json.hpp>
 
@@ -358,7 +358,7 @@ int CalibrateRunner::run()
 
   if (this->logLevel > LogLevel::QUIET) {
     std::chrono::duration<double> elapsed = t1 - t0;
-    std::cout << "\nCalibration done in " << ::Utils<float>::formatDuration(elapsed.count()) << "\n";
+    std::cout << "\nCalibration done in " << ANN::Utils<float>::formatDuration(elapsed.count()) << "\n";
     std::cout << "Threshold written to: " << outputPath << "\n";
   }
 

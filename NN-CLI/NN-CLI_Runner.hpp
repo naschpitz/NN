@@ -6,7 +6,7 @@
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_NetworkType.hpp"
 
-#include <_Core.hpp>
+#include <ANN_Core.hpp>
 #include <CNN_Core.hpp>
 
 #include <QCommandLineParser>

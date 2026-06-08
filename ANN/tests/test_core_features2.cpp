@@ -6,9 +6,9 @@ static void testSoftmaxPredict()
 
   // 2 inputs → 3 outputs with softmax
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::PREDICT;
-  config.deviceType = ::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SOFTMAX}});
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
 
   config.parameters.weights.resize(2);
   config.parameters.weights[1] = {{0.5, 0.3}, {0.2, 0.4}, {0.1, 0.6}};
@@ -36,10 +36,10 @@ static void testSoftmaxTrain()
 
   // Classification: 2 inputs → 3 classes with softmax output
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SOFTMAX}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
 
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
@@ -81,10 +81,10 @@ static void testSoftmaxHiddenLayer()
 
   // Softmax in a hidden layer (unusual but should work)
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SOFTMAX}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SOFTMAX}, {1, ANN::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
@@ -111,17 +111,17 @@ static void testDropoutTraining()
 
   // Train XOR with dropout — should still converge (dropout is regularization, not destructive)
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {16, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {16, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 10000;
   config.trainingConfig.learningRate = 0.1;
   config.trainingConfig.dropoutRate = 0.2f;
 
   auto core = ANN::Core<double>::makeCore(config);
 
-  std::vector<::Sample<double>> samples = {{{0, 0}, {0}}, {{0, 1}, {1}}, {{1, 0}, {1}}, {{1, 1}, {0}}};
+  std::vector<ANN::Sample<double>> samples = {{{0, 0}, {0}}, {{0, 1}, {1}}, {{1, 0}, {1}}, {{1, 1}, {0}}};
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -144,9 +144,9 @@ static void testDropoutDisabledByDefault()
   std::cout << "--- testDropoutDisabledByDefault ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
   CHECK(config.trainingConfig.dropoutRate == 0.0f, "dropoutRate defaults to 0.0");
 }

@@ -340,7 +340,7 @@ namespace NN_CLI
 
   template <typename SampleT>
   typename DataLoader<SampleT>::ProviderT
-  DataLoader<SampleT>ANN::makeSampleProvider(const AugmentationTransforms& transforms, float augmentationProbability,
+  DataLoader<SampleT>::makeSampleProvider(const AugmentationTransforms& transforms, float augmentationProbability,
                                           SampleLoadType loadType) const
   {
     // Dedicated single-thread pool for prefetch orchestration — independent of
@@ -400,7 +400,7 @@ namespace NN_CLI
 
   template <typename SampleT>
   typename DataLoader<SampleT>::ProviderT
-  DataLoader<SampleT>ANN::makeSampleProvider(const std::vector<ulong>& subsetIndices,
+  DataLoader<SampleT>::makeSampleProvider(const std::vector<ulong>& subsetIndices,
                                           const AugmentationTransforms& transforms, float augmentationProbability,
                                           SampleLoadType loadType) const
   {

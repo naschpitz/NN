@@ -1,13 +1,12 @@
-#ifndef _PARAMETERS_HPP
-#define _PARAMETERS_HPP
+#ifndef ANN_PARAMETERS_HPP
+#define ANN_PARAMETERS_HPP
 
-#include "_Types.hpp"
+#include "ANN_Types.hpp"
 
 //===================================================================================================================//
 
 namespace ANN
 {
-  using namespace Common;
   template <typename T>
   struct Parameters {
       Tensor3D<T> weights;
@@ -17,4 +16,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // _PARAMETERS_HPP
+#endif // ANN_PARAMETERS_HPP

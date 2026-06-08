@@ -10,17 +10,17 @@ static void testGPUTrainSimple()
   ANN::Samples<float> samples = {{{1.0f, 1.0f}, {1.0f}}, {{0.0f, 0.0f}, {0.0f}}};
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5f;
   config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
@@ -41,15 +41,15 @@ static void testGPUPredict()
 
   // Create a predict-only GPU core with known weights
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::PREDICT;
-  config.deviceType = ::DeviceType::GPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
   config.parameters.weights.resize(2);
   config.parameters.weights[1] = {{0.5f, 0.5f}};
   config.parameters.biases.resize(2);
   config.parameters.biases[1] = {0.0f};
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
   ANN::Output<float> out = core->predict({1.0f, 1.0f}).output;
@@ -69,15 +69,15 @@ static void testGPUvsCPUParity()
 
   // Train on CPU, then create both CPU and GPU predict cores with same params
   ANN::CoreConfig<float> trainConfig;
-  trainConfig.modeType = ::ModeType::TRAIN;
-  trainConfig.deviceType = ::DeviceType::CPU;
+  trainConfig.modeType = Common::ModeType::TRAIN;
+  trainConfig.deviceType = Common::DeviceType::CPU;
   trainConfig.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
   trainConfig.trainingConfig.numEpochs = 200;
   trainConfig.trainingConfig.learningRate = 0.5f;
   trainConfig.progressReports = 0;
-  trainConfig.logLevel = ::LogLevel::ERROR;
+  trainConfig.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 1.0f}, {1.0f}}, {{0.0f, 0.0f}, {0.0f}}};
 
@@ -88,11 +88,11 @@ static void testGPUvsCPUParity()
 
   // CPU predict
   ANN::CoreConfig<float> cpuConfig;
-  cpuConfig.modeType = ::ModeType::PREDICT;
-  cpuConfig.deviceType = ::DeviceType::CPU;
+  cpuConfig.modeType = Common::ModeType::PREDICT;
+  cpuConfig.deviceType = Common::DeviceType::CPU;
   cpuConfig.layersConfig = trainConfig.layersConfig;
   cpuConfig.parameters = params;
-  cpuConfig.logLevel = ::LogLevel::ERROR;
+  cpuConfig.logLevel = Common::LogLevel::ERROR;
 
   auto cpuCore = ANN::Core<float>::makeCore(cpuConfig);
   ANN::Output<float> cpuPred1 = cpuCore->predict({1.0f, 1.0f}).output;
@@ -100,11 +100,11 @@ static void testGPUvsCPUParity()
 
   // GPU predict
   ANN::CoreConfig<float> gpuConfig;
-  gpuConfig.modeType = ::ModeType::PREDICT;
-  gpuConfig.deviceType = ::DeviceType::GPU;
+  gpuConfig.modeType = Common::ModeType::PREDICT;
+  gpuConfig.deviceType = Common::DeviceType::GPU;
   gpuConfig.layersConfig = trainConfig.layersConfig;
   gpuConfig.parameters = params;
-  gpuConfig.logLevel = ::LogLevel::ERROR;
+  gpuConfig.logLevel = Common::LogLevel::ERROR;
 
   auto gpuCore = ANN::Core<float>::makeCore(gpuConfig);
   ANN::Output<float> gpuPred1 = gpuCore->predict({1.0f, 1.0f}).output;
@@ -129,10 +129,10 @@ static void testGPUShuffleSamples()
 
   auto makeConfig = [](bool shuffle) {
     ANN::CoreConfig<float> config;
-    config.modeType = ::ModeType::TRAIN;
-    config.deviceType = ::DeviceType::GPU;
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = Common::DeviceType::GPU;
     config.layersConfig = makeLayersConfig(
-      {{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
+      {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
     config.trainingConfig.numEpochs = 500;
     config.trainingConfig.learningRate = 0.5f;
@@ -140,7 +140,7 @@ static void testGPUShuffleSamples()
     config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
     config.progressReports = 0;
     config.numGPUs = 1;
-    config.logLevel = ::LogLevel::ERROR;
+    config.logLevel = Common::LogLevel::ERROR;
     return config;
   };
 

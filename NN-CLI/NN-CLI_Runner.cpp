@@ -1,7 +1,7 @@
 #include "NN-CLI_Runner.hpp"
 
-#include "NN-CLI_Loader.hpp"
-#include "NN-CLI_Runner.hpp"
+#include "NN-CLI_ANNLoader.hpp"
+#include "NN-CLI_ANNRunner.hpp"
 #include "NN-CLI_CalibrateRunner.hpp"
 #include "NN-CLI_CNNLoader.hpp"
 #include "NN-CLI_CNNRunner.hpp"
@@ -91,21 +91,21 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
     std::optional<Common::ModeType> annModeOverride;
 
     if (modeOverride.has_value())
-      annModeOverride = ::Mode::nameToType(modeOverride.value());
+      annModeOverride = Common::Mode::nameToType(modeOverride.value());
 
     std::optional<Common::DeviceType> annDeviceOverride;
 
     if (deviceOverride.has_value())
-      annDeviceOverride = ::Device::nameToType(deviceOverride.value());
+      annDeviceOverride = Common::Device::nameToType(deviceOverride.value());
 
-    this->annCoreConfig = Loader::loadConfig(json, annModeOverride, annDeviceOverride);
+    this->annCoreConfig = ANNLoader::loadConfig(json, annModeOverride, annDeviceOverride);
     this->annCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
-    this->mode = ::Mode::typeToName(this->annCoreConfig.modeType);
+    this->mode = Common::Mode::typeToName(this->annCoreConfig.modeType);
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
     this->cnnCoreConfig = CNNLoader::loadConfig(json, modeOverride, deviceOverride);
     this->cnnCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
-    this->mode = ::Mode::typeToName(this->cnnCoreConfig.modeType);
+    this->mode = Common::Mode::typeToName(this->cnnCoreConfig.modeType);
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
   }
 }
@@ -121,7 +121,7 @@ int Runner::run()
   }
 
   if (this->networkType == NetworkType::ANN) {
-    Runner annRunner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->annCore,
+    ANNRunner annRunner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->annCore,
                         this->annCoreConfig);
 
     if (this->mode == "train")

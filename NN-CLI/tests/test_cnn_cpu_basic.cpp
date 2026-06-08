@@ -15,7 +15,7 @@
 #include <CNN_CoreGPUWorker.hpp>
 #include <CNN_GPUBufferManager.hpp>
 #include <CNN_Sample.hpp>
-#include <_CoreGPUWorker.hpp>
+#include <ANN_CoreGPUWorker.hpp>
 
 // Trained model path shared between CNN tests (train → predict/test)
 static QString trainedCNNModelPath;

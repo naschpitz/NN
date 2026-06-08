@@ -9,7 +9,7 @@
 #include "CNN_Residual.hpp"
 #include "Common/Common_TrainingMonitor.hpp"
 
-#include <_Core.hpp>
+#include <ANN_Core.hpp>
 
 #include <stack>
 

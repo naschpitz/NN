@@ -7,14 +7,14 @@ static void testGPUTrainingCallback()
   std::cout << "--- testGPUTrainingCallback ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 5;
   config.trainingConfig.learningRate = 0.1f;
   config.progressReports = 1;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f}}, {{0.0f, 1.0f}, {0.0f}}};
 
@@ -36,14 +36,14 @@ static void testGPUParametersDuringTraining()
   std::cout << "--- testGPUParametersDuringTraining ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 50;
   config.trainingConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f}}, {{0.0f, 1.0f}, {0.0f}}};
 
@@ -57,11 +57,11 @@ static void testGPUParametersDuringTraining()
 
   // Verify we can use the trained parameters to create a predict core
   ANN::CoreConfig<float> predictConfig;
-  predictConfig.modeType = ::ModeType::PREDICT;
-  predictConfig.deviceType = ::DeviceType::GPU;
+  predictConfig.modeType = Common::ModeType::PREDICT;
+  predictConfig.deviceType = Common::DeviceType::GPU;
   predictConfig.layersConfig = config.layersConfig;
   predictConfig.parameters = paramsAfter;
-  predictConfig.logLevel = ::LogLevel::ERROR;
+  predictConfig.logLevel = Common::LogLevel::ERROR;
 
   auto predictCore = ANN::Core<float>::makeCore(predictConfig);
   auto out = predictCore->predict({1.0f, 0.0f}).output;
@@ -74,22 +74,22 @@ static void testGPUDifferentActivations()
 {
   std::cout << "--- testGPUDifferentActivations ---" << std::endl;
 
-  std::vector<::ActvFuncType> activations = {::ActvFuncType::SIGMOID, ::ActvFuncType::RELU,
-                                                ::ActvFuncType::TANH};
+  std::vector<ANN::ActvFuncType> activations = {ANN::ActvFuncType::SIGMOID, ANN::ActvFuncType::RELU,
+                                                ANN::ActvFuncType::TANH};
 
   for (auto actvType : activations) {
-    std::string name = ::ActvFunc::typeToName(actvType);
+    std::string name = ANN::ActvFunc::typeToName(actvType);
     std::cout << "  testing " << name << std::endl;
 
     ANN::CoreConfig<float> config;
-    config.modeType = ::ModeType::TRAIN;
-    config.deviceType = ::DeviceType::GPU;
-    config.layersConfig = makeLayersConfig({{2, actvType}, {1, ::ActvFuncType::SIGMOID}});
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = Common::DeviceType::GPU;
+    config.layersConfig = makeLayersConfig({{2, actvType}, {1, ANN::ActvFuncType::SIGMOID}});
     config.trainingConfig.numEpochs = 100;
     config.trainingConfig.learningRate = 0.1f;
     config.progressReports = 0;
     config.numGPUs = 1;
-    config.logLevel = ::LogLevel::ERROR;
+    config.logLevel = Common::LogLevel::ERROR;
 
     ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f}}, {{0.0f, 1.0f}, {0.0f}}};
 
@@ -108,17 +108,17 @@ static void testGPUMultiLayerNetwork()
   std::cout << "--- testGPUMultiLayerNetwork ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
-  config.layersConfig = makeLayersConfig({{3, ::ActvFuncType::RELU},
-                                          {8, ::ActvFuncType::RELU},
-                                          {4, ::ActvFuncType::RELU},
-                                          {1, ::ActvFuncType::SIGMOID}});
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{3, ANN::ActvFuncType::RELU},
+                                          {8, ANN::ActvFuncType::RELU},
+                                          {4, ANN::ActvFuncType::RELU},
+                                          {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 200;
   config.trainingConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {
     {{1.0f, 0.0f, 0.0f}, {1.0f}}, {{0.0f, 1.0f, 0.0f}, {0.0f}}, {{0.0f, 0.0f, 1.0f}, {1.0f}}};
@@ -138,15 +138,15 @@ static void testGPUMultiOutput()
   std::cout << "--- testGPUMultiOutput ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 200;
   config.trainingConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f, 0.0f, 0.5f}}, {{0.0f, 1.0f}, {0.0f, 1.0f, 0.5f}}};
 
@@ -168,16 +168,16 @@ static void testGPUWeightedLossAffectsTraining()
 
   auto makeConfig = [](std::vector<float> weights) {
     ANN::CoreConfig<float> config;
-    config.modeType = ::ModeType::TRAIN;
-    config.deviceType = ::DeviceType::GPU;
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = Common::DeviceType::GPU;
     config.layersConfig = makeLayersConfig(
-      {{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {2, ::ActvFuncType::SIGMOID}});
+      {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {2, ANN::ActvFuncType::SIGMOID}});
     config.costFunctionConfig.weights = weights;
     config.trainingConfig.numEpochs = 200;
     config.trainingConfig.learningRate = 0.1f;
     config.progressReports = 0;
     config.numGPUs = 1;
-    config.logLevel = ::LogLevel::ERROR;
+    config.logLevel = Common::LogLevel::ERROR;
     return config;
   };
 
@@ -204,15 +204,15 @@ static void testGPUShuffleSamplesNoShuffle()
   std::cout << "--- testGPUShuffleSamplesNoShuffle ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 50;
   config.trainingConfig.learningRate = 0.1f;
   config.trainingConfig.shuffleSamples = false;
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f}}, {{0.0f, 1.0f}, {0.0f}}};
 
@@ -230,10 +230,10 @@ static void testGPUSoftmaxPredict()
   std::cout << "--- testGPUSoftmaxPredict ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::PREDICT;
-  config.deviceType = ::DeviceType::GPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SOFTMAX}});
-  config.logLevel = ::LogLevel::ERROR;
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
+  config.logLevel = Common::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
   auto out = core->predict({1.0f, 0.5f}).output;
@@ -257,16 +257,16 @@ static void testGPUSoftmaxTrain()
     {{1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}}};
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SOFTMAX}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1f;
   config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
@@ -287,11 +287,11 @@ static void testGPUSoftmaxHiddenLayer()
   std::cout << "--- testGPUSoftmaxHiddenLayer ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::PREDICT;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::SOFTMAX}, {4, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
-  config.logLevel = ::LogLevel::ERROR;
+    makeLayersConfig({{2, ANN::ActvFuncType::SOFTMAX}, {4, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.logLevel = Common::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
   auto out = core->predict({1.0f, 0.5f}).output;
@@ -307,16 +307,16 @@ static void testGPUDropoutTraining()
   std::cout << "--- testGPUDropoutTraining ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {8, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {8, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 200;
   config.trainingConfig.learningRate = 0.1f;
   config.trainingConfig.dropoutRate = 0.3f;
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f}}, {{0.0f, 1.0f}, {0.0f}}};
 
@@ -335,16 +335,16 @@ static void testGPUCrossEntropyLossDecreases()
   std::cout << "--- testGPUCrossEntropyLossDecreases ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 50;
   config.trainingConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f}}};
 

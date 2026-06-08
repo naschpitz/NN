@@ -16,7 +16,7 @@
 #include <CNN_CoreGPUWorker.hpp>
 #include <CNN_GPUBufferManager.hpp>
 #include <CNN_Sample.hpp>
-#include <_CoreGPUWorker.hpp>
+#include <ANN_CoreGPUWorker.hpp>
 
 using NN_CLI::ulong;
 
@@ -117,7 +117,7 @@ static void testCNNGPUPredictDeepDiagnostic()
   flatten.config = CNN::FlattenLayerConfig{};
 
   trainConfig.layersConfig.cnnLayers = {conv1, bn1, relu1, maxpool1, conv2, bn2, relu2, avgpool1, flatten};
-  trainConfig.layersConfig.denseLayers = {{4, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SIGMOID}};
+  trainConfig.layersConfig.denseLayers = {{4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SIGMOID}};
 
   trainConfig.trainingConfig.numEpochs = 50;
   trainConfig.trainingConfig.learningRate = 0.01f;
@@ -374,7 +374,7 @@ static void testCNNGPUPredictDeepDiagnostic()
       std::vector<float> gpuActvs(totalNeurons);
       annGPUWorker->readGPUBuffer<float>("actvs", gpuActvs, 0);
 
-      // Check  input layer (should be the flattened CNN output)
+      // Check ANN input layer (should be the flattened CNN output)
       std::vector<float> gpuInput(gpuActvs.begin(), gpuActvs.begin() + static_cast<long>(bm.flattenSize));
 
       // The CNN output on GPU should be at the last CNN layer's activation

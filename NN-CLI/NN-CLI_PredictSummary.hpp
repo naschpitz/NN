@@ -3,7 +3,7 @@
 
 #include "NN-CLI_Types.hpp"
 
-#include <_CoreConfig.hpp>
+#include <ANN_CoreConfig.hpp>
 #include <CNN_CoreConfig.hpp>
 
 #include <string>

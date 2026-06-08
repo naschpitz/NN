@@ -5,7 +5,7 @@
 #include "CNN_Pool.hpp"
 #include "CNN_Flatten.hpp"
 
-#include <_CoreGPUWorker.hpp>
+#include <ANN_CoreGPUWorker.hpp>
 #include <OCLW_Core.hpp>
 
 #include <cmath>

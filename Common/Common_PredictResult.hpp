@@ -18,8 +18,8 @@ namespace Common
   // softmax(z) == softmax(z + c).
   template <typename T>
   struct PredictResult {
-      Output<T> output;
-      Logits<T> logits;
+      ANN::Output<T> output;
+      ANN::Logits<T> logits;
   };
 
   template <typename T>

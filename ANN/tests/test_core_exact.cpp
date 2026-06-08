@@ -4,9 +4,9 @@ static void testCrossEntropyStringConversion()
 {
   std::cout << "--- testCrossEntropyStringConversion ---" << std::endl;
 
-  CHECK(::CostFunction::nameToType("crossEntropy") == ::CostFunctionType::CROSS_ENTROPY,
+  CHECK(Common::CostFunction::nameToType("crossEntropy") == Common::CostFunctionType::CROSS_ENTROPY,
         "nameToType crossEntropy");
-  CHECK(::CostFunction::typeToName(::CostFunctionType::CROSS_ENTROPY) == "crossEntropy",
+  CHECK(Common::CostFunction::typeToName(Common::CostFunctionType::CROSS_ENTROPY) == "crossEntropy",
         "typeToName crossEntropy");
 }
 
@@ -45,12 +45,12 @@ static void testExactForwardBackwardSquaredDifference()
   // Architecture: layer 0 = input (2), layer 1 = hidden ReLU (2), layer 2 = output sigmoid (1)
   // Layer 0 copies input (no weights). Layers 1 and 2 have weights.
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.learningRate = 1.0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   // weights[layer][neuron][input]: layer 0 = empty (input), layer 1 = hidden, layer 2 = output
   config.parameters.weights = {{}, {{0.1, 0.2}, {0.3, 0.4}}, {{0.5, -0.3}}};
@@ -115,13 +115,13 @@ static void testExactForwardBackwardCrossEntropy()
 
   // Architecture: layer 0 = input (2), layer 1 = hidden ReLU (2), layer 2 = output softmax (2)
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.learningRate = 1.0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   config.parameters.weights = {{}, {{0.1, 0.2}, {0.3, 0.4}}, {{0.5, -0.3}, {-0.2, 0.6}}};
   config.parameters.biases = {{}, {0.1, -0.1}, {0.0, 0.0}};
@@ -177,14 +177,14 @@ static void testExactForwardBackwardWeightedCrossEntropy()
   // dL/dz2[1] = a2[1]*(0 + 3) = 3*a2[1]
 
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0, 0.5};
   config.trainingConfig.learningRate = 1.0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   config.parameters.weights = {{}, {{0.1, 0.2}, {0.3, 0.4}}, {{0.5, -0.3}, {-0.2, 0.6}}};
   config.parameters.biases = {{}, {0.1, -0.1}, {0.0, 0.0}};
