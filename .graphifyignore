@@ -1,2 +1,3 @@
-# .graphifyignore
-libs/
+# Large training datasets - too many images
+NN-CLI/examples/
+
