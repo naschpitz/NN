@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>API &amp; Configuration — NN-Server Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>NN-Server</h1><span class="subtitle">Neural Network Inference Server</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="endpoints.html">Endpoints</a>
+  <a href="usage.html" class="active">API &amp; Configuration</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html">End-to-End Examples</a>
+</nav></aside>
+<main class="main">
+
+<h1>API &amp; Configuration</h1>
+
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#config-file">Configuration File</a></li>
+    <li><a href="#endpoints">HTTP Endpoints</a></li>
+    <li><a href="#predict-json">Predict with JSON Input</a></li>
+    <li><a href="#predict-image">Predict with Image Input</a></li>
+    <li><a href="#output-format">Output Formats</a></li>
+    <li><a href="#concurrency">Concurrency Model</a></li>
+    <li><a href="#errors">Error Handling</a></li>
+  </ol>
+</div>
+
+<h2 id="config-file">1. Configuration File</h2>
+<p>NN-Server is configured through a JSON file. Pass the path as the first argument, or it defaults to <code>config.json</code> in the current directory.</p>
+
+<pre><code>./NN-Server config.json      <span class="comment"># explicit path</span>
+./NN-Server                   <span class="comment"># uses ./config.json</span>
+</code></pre>
+
+<table class="options-table">
+  <tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>"model"</code></td><td>string</td><td>Yes</td><td>—</td><td>Path to the trained model JSON file</td></tr>
+  <tr><td><code>"port"</code></td><td>integer</td><td>No</td><td><code>8080</code></td><td>TCP port to listen on (1–65535)</td></tr>
+  <tr><td><code>"poolSize"</code></td><td>integer</td><td>No</td><td>CPU cores</td><td>Number of Core instances in the pool</td></tr>
+  <tr><td><code>"maxBodySize"</code></td><td>integer</td><td>No</td><td><code>10</code></td><td>Maximum request body size in megabytes. Requests exceeding this limit are rejected with HTTP 413. Set to <code>0</code> for unlimited</td></tr>
+  <tr><td><code>"maxQueueSize"</code></td><td>integer</td><td>No</td><td><code>0</code> (unlimited)</td><td>Maximum number of concurrent requests. When exceeded, new requests are rejected with HTTP 503</td></tr>
+  <tr><td><code>"logFile"</code></td><td>string</td><td>No</td><td>—</td><td>Path to the log file. When set, each request is logged with date, time, client IP, method, path, status code, and duration</td></tr>
+  <tr><td><code>"maxLogSize"</code></td><td>integer</td><td>No</td><td><code>1</code></td><td>Maximum log file size in gigabytes. When reached, the log wraps around and overwrites from the beginning. Set to <code>0</code> for unlimited</td></tr>
+</table>
+
+<div class="info-box">
+<strong>Input/output formats are auto-detected from the model file.</strong> The server reads <code>"inputType"</code>, <code>"inputShape"</code>, <code>"outputType"</code>, and <code>"outputShape"</code> directly from the trained model JSON — matching the same fields used by <a href="../../NN-CLI/docs/formats.html">NN-CLI</a>. When <code>"inputType"</code> is <code>"image"</code>, the <code>"inputShape"</code> is required. When <code>"outputType"</code> is <code>"image"</code>, the <code>"outputShape"</code> is required.
+</div>
+
+<h3>Minimal config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"trained_model.json"</span>
+}
+</code></pre>
+
+<h3>Full config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"/models/isic_checkpoint.json"</span>,
+  <span class="string">"port"</span>: <span class="number">9090</span>,
+  <span class="string">"poolSize"</span>: <span class="number">4</span>,
+  <span class="string">"maxBodySize"</span>: <span class="number">20</span>,
+  <span class="string">"logFile"</span>: <span class="string">"/var/log/nn-server.log"</span>,
+  <span class="string">"maxLogSize"</span>: <span class="number">2</span>
+}
+</code></pre>
+
+<h3>Log format</h3>
+<p>Each request is logged as a single line:</p>
+<pre><code>[2026-03-23 14:30:05.123] 192.168.1.10 POST /predict 200 45.2ms
+[2026-03-23 14:30:06.456] 192.168.1.10 GET /health 200 0.3ms
+[2026-03-23 14:30:07.789] 10.0.0.5 POST /predict 413 0.1ms
+</code></pre>
+
+<h2 id="endpoints">2. HTTP Endpoints</h2>
+
+<table>
+  <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+  <tr><td><code>GET</code></td><td><code>/health</code></td><td>Health check — returns <code>{"status":"ok"}</code></td></tr>
+  <tr><td><code>POST</code></td><td><code>/predict</code></td><td>Run prediction on input data</td></tr>
+  <tr><td><em>any</em></td><td><em>other</em></td><td>Returns 404 <code>{"error":"Not found. Use POST /predict"}</code></td></tr>
+</table>
+
+<div class="card">
+<h3><span class="badge badge-green">GET</span> <code>/health</code></h3>
+<p>Returns a simple health check. Use this to verify the server is running and the model is loaded.</p>
+<pre><code>curl http://localhost:<span class="number">8080</span>/health</code></pre>
+<p><strong>Response:</strong> <code>200 OK</code></p>
+<pre><code>{ <span class="string">"status"</span>: <span class="string">"ok"</span> }</code></pre>
+</div>
+
+<div class="card">
+<h3><span class="badge badge-blue">POST</span> <code>/predict</code></h3>
+<p>Run inference on the loaded model. The input format is determined by the <code>Content-Type</code> header:</p>
+<ul>
+  <li><code>application/json</code> (default) — JSON body with an <code>"input"</code> array</li>
+  <li><code>image/*</code> (e.g. <code>image/jpeg</code>, <code>image/png</code>) — raw image bytes in the body</li>
+</ul>
+</div>
+
+<h2 id="predict-json">3. Predict with JSON Input</h2>
+<p>Send a flat array of floats matching the model's input size.</p>
+
+<h3>Request</h3>
+<pre><code>POST /predict HTTP/1.1
+Content-Type: application/json
+
+{
+  <span class="string">"input"</span>: [<span class="number">0.1</span>, <span class="number">0.5</span>, <span class="number">0.9</span>, ...]
+}</code></pre>
+
+<div class="info-box">
+<strong>Input size:</strong> For ANN models, the array length must match the first layer's <code>numNeurons</code>. For CNN models, it must equal <code>C × H × W</code> from the model's <code>inputShape</code>.
+</div>
+
+<h3>Response — <code>200 OK</code></h3>
+<pre><code>{
+  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.01</span>, <span class="number">0.02</span>, <span class="number">0.01</span>, <span class="number">0.03</span>, <span class="number">0.01</span>, <span class="number">0.00</span>],
+  <span class="string">"logits"</span>: [<span class="number">-2.10</span>, <span class="number">1.65</span>, <span class="number">-2.93</span>, <span class="number">-1.85</span>, <span class="number">-2.84</span>, <span class="number">-2.91</span>, <span class="number">-2.20</span>, <span class="number">-2.95</span>, <span class="number">-1.83</span>, <span class="number">-2.97</span>, <span class="number">-3.40</span>]
+}</code></pre>
+<p>See <a href="#output-format">Output Formats</a> below for details on <code>logits</code>.</p>
+
+<h2 id="predict-image">4. Predict with Image Input</h2>
+<p>Send raw image bytes (JPEG, PNG, BMP, etc.) directly. The server decodes the image, resizes it to the model's <code>inputShape</code>, normalises pixel values to [0, 1], and converts to NCHW layout.</p>
+
+<h3>Request</h3>
+<pre><code>POST /predict HTTP/1.1
+Content-Type: image/jpeg
+Content-Length: 32451
+
+<span class="comment">&lt;raw JPEG bytes&gt;</span></code></pre>
+
+<h3>With curl</h3>
+<pre><code>curl -X POST http://localhost:<span class="number">8080</span>/predict \
+     -H <span class="string">"Content-Type: image/jpeg"</span> \
+     --data-binary @photo.jpg</code></pre>
+
+<div class="info-box">
+<strong>Image input</strong> requires a model with a defined <code>inputShape</code> and <code>"inputType": "image"</code>. This works for both CNN and ANN models. For ANN models, the image is decoded, resized to the <code>inputShape</code>, and flattened into a 1D vector (e.g., a 1×28×28 MNIST image becomes a 784-element input).
+</div>
+
+<h2 id="output-format">5. Output Formats</h2>
+
+<h3>JSON Output (default)</h3>
+<p>When the model's <code>"outputType"</code> is <code>"vector"</code> (or absent), predictions are returned as a JSON object with two parallel arrays:</p>
+<pre><code>Content-Type: application/json
+
+{
+  <span class="string">"output"</span>: [<span class="number">0.02</span>, <span class="number">0.85</span>, <span class="number">0.01</span>, ...],
+  <span class="string">"logits"</span>: [<span class="number">-2.10</span>, <span class="number">1.65</span>, <span class="number">-2.93</span>, ...]
+}</code></pre>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td><code>output</code></td><td>Post-activation values of the last layer (e.g. softmax probabilities — sum to ≈1.0 for classification)</td></tr>
+  <tr><td><code>logits</code></td><td>Pre-activation values <code>z</code> of the last layer — input to the final activation function</td></tr>
+</table>
+<div class="info-box">
+<strong>Why logits?</strong> Softmax is shift-invariant — <code>softmax(z) = softmax(z + c)</code> — so it discards magnitude information. Two very different logit vectors can produce the same softmax probabilities (e.g. <code>[-50, 50]</code> and <code>[-0.2, 0.4]</code> both map to ~<code>[0, 1]</code>), but only the first reflects a confident decision. Exposing logits lets clients compute calibration and out-of-distribution scores: <em>max-logit</em> <code>max(zᵢ)</code>, <em>logit-norm</em> <code>‖z‖</code>, and the <em>free-energy</em> score <code>E(x) = −log Σ exp(zᵢ)</code> (lower = more in-distribution). Argmax of <code>logits</code> always equals argmax of softmax <code>output</code>, so existing class-prediction code keeps working unchanged.
+</div>
+
+<h3>Image Output</h3>
+<p>When the model's <code>"outputType"</code> is <code>"image"</code>, the <code>"outputShape"</code> field is required. The output vector is reconstructed into a PNG image using that shape (logits are not emitted for image-output models — they are not meaningful in that context):</p>
+<pre><code>Content-Type: image/png
+
+<span class="comment">&lt;raw PNG bytes&gt;</span></code></pre>
+<p>This is useful for image-to-image models (segmentation, super-resolution, style transfer, etc.).</p>
+
+<h2 id="concurrency">6. Concurrency Model</h2>
+<p>NN-Server uses a <strong>thread-safe pool</strong> of pre-loaded Core objects for concurrent inference:</p>
+<ol>
+  <li>On startup, <code>NN_SERVER_POOL_SIZE</code> independent copies of the model are loaded into memory</li>
+  <li>Each incoming HTTP connection is dispatched to <code>QThreadPool</code></li>
+  <li>The request handler <strong>acquires</strong> a Core from the pool (blocks if all are busy)</li>
+  <li>Prediction runs on the acquired Core</li>
+  <li>The Core is <strong>released</strong> back to the pool</li>
+</ol>
+<p>This ensures that multiple requests can run truly in parallel (up to <code>NN_SERVER_POOL_SIZE</code> concurrent predictions), with each Core maintaining fully isolated weights and buffers.</p>
+
+<div class="tip-box">
+<strong>Pool sizing:</strong> Set <code>NN_SERVER_POOL_SIZE</code> based on available memory and expected concurrency. Each Core holds a full copy of the model weights. For large CNN models, 2–4 is often sufficient.
+</div>
+
+<h2 id="errors">7. Error Handling</h2>
+<p>All errors are returned as JSON with an <code>"error"</code> field:</p>
+
+<table>
+  <tr><th>Status</th><th>Condition</th><th>Response Body</th></tr>
+  <tr><td><code>400</code></td><td>Malformed HTTP request</td><td><code>{"error":"Malformed HTTP request"}</code></td></tr>
+  <tr><td><code>400</code></td><td>Invalid JSON body</td><td><code>{"error":"Invalid JSON: ..."}</code></td></tr>
+  <tr><td><code>400</code></td><td>Missing <code>"input"</code> array</td><td><code>{"error":"Request must contain an 'input' array"}</code></td></tr>
+  <tr><td><code>400</code></td><td>Missing request body</td><td><code>{"error":"Missing request body"}</code></td></tr>
+  <tr><td><code>404</code></td><td>Unknown endpoint</td><td><code>{"error":"Not found. Use POST /predict"}</code></td></tr>
+  <tr><td><code>413</code></td><td>Request body exceeds <code>maxBodySize</code></td><td><code>{"error":"Request body too large. Maximum allowed: N bytes"}</code></td></tr>
+  <tr><td><code>503</code></td><td>Queue full (<code>maxQueueSize</code> exceeded)</td><td><code>{"error":"Server busy. Too many queued requests"}</code></td></tr>
+  <tr><td><code>500</code></td><td>Input size mismatch</td><td><code>{"error":"Prediction failed: Input size (N) does not match expected shape size (M)"}</code></td></tr>
+  <tr><td><code>500</code></td><td>Image decode failure</td><td><code>{"error":"Prediction failed: ..."}</code></td></tr>
+</table>
+
+<p>Startup errors (missing <code>NN_MODEL_CONFIG</code>, invalid model file, etc.) are printed to <code>stderr</code> and the process exits with code 1.</p>
+
+</main>
+</div>
+<footer class="site-footer">NN-Server Documentation</footer>
+</body></html>
+

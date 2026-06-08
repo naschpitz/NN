@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>End-to-End Examples — NN-Server Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>NN-Server</h1><span class="subtitle">Neural Network Inference Server</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="endpoints.html">Endpoints</a>
+  <a href="usage.html">API &amp; Configuration</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html" class="active">End-to-End Examples</a>
+</nav></aside>
+<main class="main">
+
+<h1>End-to-End Examples</h1>
+
+<div class="toc">
+  <h4>On this page</h4>
+  <ol>
+    <li><a href="#image-classification">Image Classification (CNN)</a></li>
+    <li><a href="#json-prediction">JSON Input Prediction (ANN)</a></li>
+    <li><a href="#concurrent-requests">Concurrent Requests</a></li>
+    <li><a href="#image-output">Image-to-Image Output</a></li>
+    <li><a href="#health-monitoring">Health Monitoring</a></li>
+  </ol>
+</div>
+
+<h2 id="image-classification">1. Image Classification (CNN)</h2>
+<p>This example uses a CNN model trained on the ISIC skin lesion dataset (11 classes) with <a href="../../NN-CLI/docs/index.html">NN-CLI</a>.</p>
+
+<h3>Step 1 — Train the model with NN-CLI</h3>
+<pre><code><span class="comment"># See NN-CLI documentation for training details</span>
+./NN-CLI --config isic_cnn_config.json --samples train/samples.json --output train/output/
+</code></pre>
+
+<h3>Step 2 — Create config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"train/output/checkpoint_E-150_L-0.029486.json"</span>,
+  <span class="string">"port"</span>: <span class="number">8080</span>,
+  <span class="string">"poolSize"</span>: <span class="number">4</span>
+}
+</code></pre>
+
+<h3>Step 3 — Start NN-Server</h3>
+<pre><code>./NN-Server config.json
+
+<span class="comment"># Output:</span>
+<span class="comment"># NN-Server starting...</span>
+<span class="comment">#   Config:    config.json</span>
+<span class="comment">#   Model:     train/output/checkpoint_E-150_L-0.029486.json</span>
+<span class="comment">#   Port:      8080</span>
+<span class="comment">#   Pool size: 4</span>
+<span class="comment">#   Output:    vector (JSON)</span>
+<span class="comment">#</span>
+<span class="comment"># Loading model 1/4...</span>
+<span class="comment"># Loading model 2/4...</span>
+<span class="comment"># Loading model 3/4...</span>
+<span class="comment"># Loading model 4/4...</span>
+<span class="comment"># Server listening on port 8080</span>
+<span class="comment"># Ready to accept requests.</span>
+</code></pre>
+
+<h3>Step 4 — Classify an image</h3>
+<pre><code>curl -X POST http://localhost:<span class="number">8080</span>/predict \
+     -H <span class="string">"Content-Type: image/jpeg"</span> \
+     --data-binary @skin_lesion.jpg
+</code></pre>
+
+<h3>Response</h3>
+<pre><code>{
+  <span class="string">"output"</span>: [
+    <span class="number">0.0023</span>,   <span class="comment">// class 0</span>
+    <span class="number">0.0011</span>,   <span class="comment">// class 1</span>
+    <span class="number">0.0008</span>,   <span class="comment">// class 2</span>
+    <span class="number">0.9412</span>,   <span class="comment">// class 3 — highest probability</span>
+    <span class="number">0.0102</span>,   <span class="comment">// class 4</span>
+    <span class="number">0.0031</span>,   <span class="comment">// class 5</span>
+    <span class="number">0.0045</span>,   <span class="comment">// class 6</span>
+    <span class="number">0.0198</span>,   <span class="comment">// class 7</span>
+    <span class="number">0.0021</span>,   <span class="comment">// class 8</span>
+    <span class="number">0.0098</span>,   <span class="comment">// class 9</span>
+    <span class="number">0.0051</span>    <span class="comment">// class 10</span>
+  ],
+  <span class="string">"logits"</span>: [
+    <span class="number">-3.10</span>, <span class="number">-3.83</span>, <span class="number">-4.14</span>, <span class="number">2.91</span>, <span class="number">-1.61</span>,
+    <span class="number">-2.80</span>, <span class="number">-2.43</span>, <span class="number">-0.95</span>, <span class="number">-3.16</span>, <span class="number">-1.69</span>, <span class="number">-2.34</span>
+  ]
+}
+</code></pre>
+<p>The model predicts class 3 with 94.1% confidence. Its logit (<code>2.91</code>) is significantly above the rest, confirming a confident in-distribution prediction. The image is automatically resized to the model's input shape (3×450×600 for this model).</p>
+<p>To detect out-of-distribution inputs, compute the <strong>free-energy</strong> score from <code>logits</code>: <code>E(x) = −log Σ exp(zᵢ)</code>. For this response <code>E ≈ −2.92</code> — strongly negative, indicating in-distribution. Black or noise inputs typically yield <code>E &gt;&gt; 0</code> with all logits clustered tightly together regardless of how confident softmax appears.</p>
+
+<h2 id="json-prediction">2. JSON Input Prediction (ANN)</h2>
+<p>For dense (ANN) models or when you want to provide pre-processed input directly:</p>
+
+<h3>config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"ann_model.json"</span>
+}
+</code></pre>
+
+<h3>Start the server</h3>
+<pre><code>./NN-Server config.json
+</code></pre>
+
+<h3>Send a prediction request</h3>
+<pre><code>curl -X POST http://localhost:<span class="number">8080</span>/predict \
+     -H <span class="string">"Content-Type: application/json"</span> \
+     -d <span class="string">'{"input": [0.1, 0.5, 0.9, 0.3, 0.7]}'</span>
+</code></pre>
+
+<h3>Response</h3>
+<pre><code>{
+  <span class="string">"output"</span>: [<span class="number">0.23</span>, <span class="number">0.77</span>],
+  <span class="string">"logits"</span>: [<span class="number">-0.62</span>, <span class="number">0.59</span>]
+}
+</code></pre>
+
+<h2 id="concurrent-requests">3. Concurrent Requests</h2>
+<p>NN-Server handles multiple requests in parallel up to <code>NN_SERVER_POOL_SIZE</code>. Here's a bash script that sends 10 requests concurrently:</p>
+
+<pre><code><span class="comment">#!/bin/bash</span>
+<span class="comment"># Send 10 concurrent classification requests</span>
+
+<span class="keyword">for</span> i <span class="keyword">in</span> $(seq <span class="number">1</span> <span class="number">10</span>); <span class="keyword">do</span>
+  curl -s -X POST http://localhost:<span class="number">8080</span>/predict \
+       -H <span class="string">"Content-Type: image/jpeg"</span> \
+       --data-binary @image_$i.jpg \
+       -o result_$i.json &amp;
+<span class="keyword">done</span>
+
+<span class="comment"># Wait for all background jobs</span>
+wait
+
+<span class="comment"># Check results</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> $(seq <span class="number">1</span> <span class="number">10</span>); <span class="keyword">do</span>
+  echo <span class="string">"Image $i:"</span> $(cat result_$i.json)
+<span class="keyword">done</span>
+</code></pre>
+
+<div class="info-box">
+<strong>Pool size vs concurrency:</strong> If you send more concurrent requests than the pool size, the excess requests will block until a Core becomes available. They will <em>not</em> be rejected — just queued. For best throughput, set <code>"poolSize"</code> in your config.json to match your expected peak concurrency.
+</div>
+
+<h2 id="image-output">4. Image-to-Image Output</h2>
+<p>For models that produce image output (segmentation masks, super-resolution, etc.), the server automatically detects the <code>"outputType": "image"</code> field from the model file and uses the required <code>"outputShape"</code> to reconstruct the output as a PNG image.</p>
+
+<h3>config.json</h3>
+<pre><code>{
+  <span class="string">"model"</span>: <span class="string">"segmentation_model.json"</span>
+}
+</code></pre>
+
+<pre><code>./NN-Server config.json
+</code></pre>
+
+<pre><code><span class="comment"># Send an image and save the output PNG</span>
+curl -X POST http://localhost:<span class="number">8080</span>/predict \
+     -H <span class="string">"Content-Type: image/jpeg"</span> \
+     --data-binary @input.jpg \
+     -o segmentation_output.png
+</code></pre>
+
+<p>The response is a raw PNG image with the specified shape. The output vector values are clamped to [0, 1] and scaled to [0, 255].</p>
+
+<h2 id="health-monitoring">5. Health Monitoring</h2>
+<p>Use the <code>/health</code> endpoint to integrate with load balancers, Docker health checks, or monitoring tools:</p>
+
+<h3>Docker health check</h3>
+<pre><code>HEALTHCHECK --interval=<span class="number">30</span>s --timeout=<span class="number">5</span>s --retries=<span class="number">3</span> \
+  CMD curl -f http://localhost:<span class="number">8080</span>/health || exit <span class="number">1</span>
+</code></pre>
+
+<h3>Simple uptime script</h3>
+<pre><code><span class="comment">#!/bin/bash</span>
+<span class="keyword">while</span> true; <span class="keyword">do</span>
+  STATUS=$(curl -s -o /dev/null -w <span class="string">"%{http_code}"</span> http://localhost:<span class="number">8080</span>/health)
+  <span class="keyword">if</span> [ <span class="string">"$STATUS"</span> != <span class="string">"200"</span> ]; <span class="keyword">then</span>
+    echo <span class="string">"$(date): NN-Server is DOWN (status: $STATUS)"</span>
+  <span class="keyword">fi</span>
+  sleep <span class="number">60</span>
+<span class="keyword">done</span>
+</code></pre>
+
+</main>
+</div>
+<footer class="site-footer">NN-Server Documentation</footer>
+</body></html>
+

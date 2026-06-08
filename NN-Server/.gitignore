@@ -1,0 +1,11 @@
+build/
+cmake-build-*/
+.idea/
+*.user
+
+# AI agent instructions
+AGENTS.md
+
+# Local planning / todo files
+todo/
+
