@@ -1,4 +1,5 @@
 build*/
+todo/
 CMakeLists.txt.user*
 *.swp
 *.swo
