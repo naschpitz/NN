@@ -1,7 +1,8 @@
-#ifndef _SAMPLEPROVIDER_HPP
-#define _SAMPLEPROVIDER_HPP
+#ifndef ANN_SAMPLEPROVIDER_HPP
+#define ANN_SAMPLEPROVIDER_HPP
 
-#include "_Sample.hpp"
+#include "ANN_Sample.hpp"
+#include "Common/Common_Device.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -44,4 +45,4 @@ namespace ANN
 
 //===================================================================================================================//
 
-#endif // _SAMPLEPROVIDER_HPP
+#endif // ANN_SAMPLEPROVIDER_HPP

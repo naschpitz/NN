@@ -1,6 +1,6 @@
+#include "NN-CLI_ANNLoader.hpp"
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ImageLoader.hpp"
-#include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 
 #include <QFile>
@@ -14,7 +14,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath, std::optional<Common::ModeType> modeType,
+  ANN::CoreConfig<float> ANNLoader::loadConfig(const std::string& configFilePath, std::optional<Common::ModeType> modeType,
                                                std::optional<Common::DeviceType> deviceType)
   {
     return loadConfig(Loader::parseConfigFile(configFilePath), modeType, deviceType);
@@ -22,13 +22,13 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> Loader::loadConfig(const nlohmann::json& json, std::optional<Common::ModeType> modeType,
+  ANN::CoreConfig<float> ANNLoader::loadConfig(const nlohmann::json& json, std::optional<Common::ModeType> modeType,
                                                std::optional<Common::DeviceType> deviceType)
   {
     ANN::CoreConfig<float> coreConfig;
 
     if (json.contains("device")) {
-      coreConfig.deviceType = ::Device::nameToType(json.at("device").get<std::string>());
+      coreConfig.deviceType = Common::Device::nameToType(json.at("device").get<std::string>());
     } else {
       coreConfig.deviceType = Common::DeviceType::CPU;
     }
@@ -40,7 +40,7 @@ namespace NN_CLI
       coreConfig.numGPUs = json.at("numGPUs").get<int>();
 
     if (json.contains("mode")) {
-      coreConfig.modeType = ::Mode::nameToType(json.at("mode").get<std::string>());
+      coreConfig.modeType = Common::Mode::nameToType(json.at("mode").get<std::string>());
     } else {
       coreConfig.modeType = Common::ModeType::PREDICT;
     }
@@ -59,14 +59,14 @@ namespace NN_CLI
       ANN::Layer layer;
       layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
 
-      layer.actvFuncType = ::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
+      layer.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
 
       coreConfig.layersConfig.push_back(layer);
     }
 
     if (json.contains("costFunction")) {
       const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = ::CostFunction::nameToType(cfc.at("type").get<std::string>());
+      coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
         coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
@@ -95,7 +95,7 @@ namespace NN_CLI
 
         if (opt.contains("type"))
           coreConfig.trainingConfig.optimizer.type =
-            ::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
+            Common::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
 
         if (opt.contains("beta1"))
           coreConfig.trainingConfig.optimizer.beta1 = opt.at("beta1").get<float>();
@@ -155,8 +155,8 @@ namespace NN_CLI
 
     if (json.contains("parameters")) {
       const auto& p = json.at("parameters");
-      coreConfig.parameters.weights = p.at("weights").get<::Tensor3D<float>>();
-      coreConfig.parameters.biases = p.at("biases").get<::Tensor2D<float>>();
+      coreConfig.parameters.weights = p.at("weights").get<ANN::Tensor3D<float>>();
+      coreConfig.parameters.biases = p.at("biases").get<ANN::Tensor2D<float>>();
     }
 
     bool isPredictOrTest =
@@ -171,7 +171,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ANN::Samples<float> Loader::loadSamples(const std::string& samplesFilePath, const IOConfig& ioConfig,
+  ANN::Samples<float> ANNLoader::loadSamples(const std::string& samplesFilePath, const IOConfig& ioConfig,
                                              ulong progressReports)
   {
     QFile file(QString::fromStdString(samplesFilePath));
@@ -231,7 +231,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<ANN::Input<float>> Loader::loadInputs(const std::string& inputFilePath, const IOConfig& ioConfig,
+  std::vector<ANN::Input<float>> ANNLoader::loadInputs(const std::string& inputFilePath, const IOConfig& ioConfig,
                                                        ulong progressReports)
   {
     QFile file(QString::fromStdString(inputFilePath));

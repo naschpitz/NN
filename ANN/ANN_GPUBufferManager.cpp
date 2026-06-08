@@ -1,5 +1,5 @@
-#include "_GPUBufferManager.hpp"
-#include "_Utils.hpp"
+#include "ANN_GPUBufferManager.hpp"
+#include "ANN_Utils.hpp"
 
 #include <algorithm>
 #include <cmath>

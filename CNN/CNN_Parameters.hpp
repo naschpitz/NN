@@ -5,7 +5,7 @@
 #include "CNN_NormParameters.hpp"
 #include "CNN_ResidualParameters.hpp"
 
-#include <_Parameters.hpp>
+#include <ANN_Parameters.hpp>
 
 #include <vector>
 
@@ -13,7 +13,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   // All CNN parameters (conv layers + batch norm layers + residual projections +  dense parameters)
   template <typename T>
   struct Parameters {

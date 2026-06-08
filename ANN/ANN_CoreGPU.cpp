@@ -1,6 +1,6 @@
-#include "_CoreGPU.hpp"
+#include "ANN_CoreGPU.hpp"
 #include "Common/Common_TrainingMonitor.hpp"
-#include "_Utils.hpp"
+#include "ANN_Utils.hpp"
 #include "Common/Common_GPUWorkDistributor.hpp"
 
 #include <algorithm>

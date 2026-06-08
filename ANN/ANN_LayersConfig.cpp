@@ -1,7 +1,6 @@
-#include "_LayersConfig.hpp"
+#include "ANN_LayersConfig.hpp"
 
 using namespace ANN;
-using namespace Common;
 
 //===================================================================================================================//
 

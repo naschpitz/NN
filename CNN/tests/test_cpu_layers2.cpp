@@ -35,7 +35,7 @@ static void testInstanceNormValidateShapes()
 {
   std::cout << "--- testInstanceNormValidateShapes ---" << std::endl;
 
-  ANN::LayersConfig lc;
+  CNN::LayersConfig lc;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -210,7 +210,7 @@ static void testBatchNormValidateShapes()
 {
   std::cout << "--- testBatchNormValidateShapes ---" << std::endl;
 
-  ANN::LayersConfig lc;
+  CNN::LayersConfig lc;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -341,7 +341,7 @@ static void testValidateShapes()
 {
   std::cout << "--- testValidateShapes ---" << std::endl;
 
-  ANN::LayersConfig lc;
+  CNN::LayersConfig lc;
 
   CNN::CNNLayerConfig conv1;
   conv1.type = CNN::LayerType::CONV;
@@ -366,7 +366,7 @@ static void testValidateShapes()
   CHECK(outShape.c == 4 && outShape.h == 3 && outShape.w == 3, "validateShapes output");
 
   // Test with invalid config (filter bigger than input)
-  ANN::LayersConfig lc2;
+  CNN::LayersConfig lc2;
   CNN::CNNLayerConfig badConv;
   badConv.type = CNN::LayerType::CONV;
   badConv.config = CNN::ConvLayerConfig{1, 10, 10, 1, 1, CNN::SlidingStrategyType::VALID};

@@ -15,7 +15,7 @@
 #include <CNN_CoreGPUWorker.hpp>
 #include <CNN_GPUBufferManager.hpp>
 #include <CNN_Sample.hpp>
-#include <_CoreGPUWorker.hpp>
+#include <ANN_CoreGPUWorker.hpp>
 
 //             → Conv(8,3x3,same)→BN→ReLU→Conv(8,3x3,same)→BN→ReLU→MaxPool(2x2)
 //             → AvgPool(4x4)→Flatten→Dense(4,relu)→Dense(3,softmax)

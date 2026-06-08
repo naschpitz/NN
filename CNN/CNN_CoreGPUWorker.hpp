@@ -7,7 +7,7 @@
 #include "CNN_GPUBufferManager.hpp"
 #include "CNN_GPUKernelBuilder.hpp"
 
-#include <_CoreGPUWorker.hpp>
+#include <ANN_CoreGPUWorker.hpp>
 #include <OCLW_Core.hpp>
 
 #include <memory>

@@ -9,18 +9,18 @@ static void testGPUCrossEntropyTraining()
     {{1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}}};
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SOFTMAX}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
 
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1f;
   config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
@@ -48,16 +48,16 @@ static void testGPUCrossEntropyCPUParity()
 
   // Train on CPU with cross-entropy, then compare predict on CPU vs GPU
   ANN::CoreConfig<float> trainConfig;
-  trainConfig.modeType = ::ModeType::TRAIN;
-  trainConfig.deviceType = ::DeviceType::CPU;
+  trainConfig.modeType = Common::ModeType::TRAIN;
+  trainConfig.deviceType = Common::DeviceType::CPU;
   trainConfig.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
 
-  trainConfig.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+  trainConfig.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   trainConfig.trainingConfig.numEpochs = 200;
   trainConfig.trainingConfig.learningRate = 0.1f;
   trainConfig.progressReports = 0;
-  trainConfig.logLevel = ::LogLevel::ERROR;
+  trainConfig.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f}}};
 
@@ -68,22 +68,22 @@ static void testGPUCrossEntropyCPUParity()
 
   // CPU predict
   ANN::CoreConfig<float> cpuConfig;
-  cpuConfig.modeType = ::ModeType::PREDICT;
-  cpuConfig.deviceType = ::DeviceType::CPU;
+  cpuConfig.modeType = Common::ModeType::PREDICT;
+  cpuConfig.deviceType = Common::DeviceType::CPU;
   cpuConfig.layersConfig = trainConfig.layersConfig;
   cpuConfig.parameters = params;
-  cpuConfig.logLevel = ::LogLevel::ERROR;
+  cpuConfig.logLevel = Common::LogLevel::ERROR;
 
   auto cpuCore = ANN::Core<float>::makeCore(cpuConfig);
   ANN::Output<float> cpuPred = cpuCore->predict({1.0f, 0.0f}).output;
 
   // GPU predict
   ANN::CoreConfig<float> gpuConfig;
-  gpuConfig.modeType = ::ModeType::PREDICT;
-  gpuConfig.deviceType = ::DeviceType::GPU;
+  gpuConfig.modeType = Common::ModeType::PREDICT;
+  gpuConfig.deviceType = Common::DeviceType::GPU;
   gpuConfig.layersConfig = trainConfig.layersConfig;
   gpuConfig.parameters = params;
-  gpuConfig.logLevel = ::LogLevel::ERROR;
+  gpuConfig.logLevel = Common::LogLevel::ERROR;
 
   auto gpuCore = ANN::Core<float>::makeCore(gpuConfig);
   ANN::Output<float> gpuPred = gpuCore->predict({1.0f, 0.0f}).output;
@@ -106,18 +106,18 @@ static void testGPUWeightedCrossEntropyTraining()
 
   // Cross-entropy with per-class weights on GPU
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
 
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {5.0f, 1.0f};
   config.trainingConfig.numEpochs = 200;
   config.trainingConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f}}};
 
@@ -131,7 +131,7 @@ static void testGPUWeightedCrossEntropyTraining()
   CHECK(result.numSamples == 2, "GPU weighted CE: 2 samples");
 
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == ::CostFunctionType::CROSS_ENTROPY, "GPU weighted CE: type preserved");
+  CHECK(cfc.type == Common::CostFunctionType::CROSS_ENTROPY, "GPU weighted CE: type preserved");
   CHECK(cfc.weights.size() == 2, "GPU weighted CE: weights preserved");
 
   std::cout << "  GPU weighted CE avgLoss=" << result.averageLoss << std::endl;
@@ -144,16 +144,16 @@ static void testGPUTestMethod()
   std::cout << "--- testGPUTestMethod ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.5f;
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{0.0f, 0.0f}, {0.0f}}, {{1.0f, 1.0f}, {1.0f}}};
 
@@ -177,14 +177,14 @@ static void testGPUTrainingMetadata()
   std::cout << "--- testGPUTrainingMetadata ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::GPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
   config.trainingConfig.numEpochs = 10;
   config.trainingConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<float> samples = {{{1.0f, 0.0f}, {1.0f}}};
   auto core = ANN::Core<float>::makeCore(config);
@@ -205,10 +205,10 @@ static void testGPUPredictMetadata()
   std::cout << "--- testGPUPredictMetadata ---" << std::endl;
 
   ANN::CoreConfig<float> config;
-  config.modeType = ::ModeType::PREDICT;
-  config.deviceType = ::DeviceType::GPU;
-  config.layersConfig = makeLayersConfig({{2, ::ActvFuncType::RELU}, {1, ::ActvFuncType::SIGMOID}});
-  config.logLevel = ::LogLevel::ERROR;
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.logLevel = Common::LogLevel::ERROR;
 
   auto core = ANN::Core<float>::makeCore(config);
   core->predict({1.0f, 0.0f});

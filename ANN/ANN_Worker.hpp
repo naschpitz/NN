@@ -1,7 +1,7 @@
-#ifndef _WORKER_H
-#define _WORKER_H
+#ifndef ANN_WORKER_H
+#define ANN_WORKER_H
 
-#include "_Types.hpp"
+#include "ANN_Types.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
 
 //===================================================================================================================//
@@ -23,4 +23,4 @@ namespace ANN
   };
 }
 
-#endif // _WORKER_H
+#endif // ANN_WORKER_H

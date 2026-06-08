@@ -1,12 +1,12 @@
-#ifndef _CORECPUWORKER_H
-#define _CORECPUWORKER_H
+#ifndef ANN_CORECPUWORKER_H
+#define ANN_CORECPUWORKER_H
 
-#include "_Worker.hpp"
-#include "_ActvFunc.hpp"
-#include "_Types.hpp"
-#include "_LayersConfig.hpp"
+#include "ANN_Worker.hpp"
+#include "ANN_ActvFunc.hpp"
+#include "ANN_Types.hpp"
+#include "ANN_LayersConfig.hpp"
 #include "Common/Common_TrainingConfig.hpp"
-#include "_Parameters.hpp"
+#include "ANN_Parameters.hpp"
 
 #include <random>
 
@@ -110,4 +110,4 @@ namespace ANN
   };
 }
 
-#endif // _CORECPUWORKER_H
+#endif // ANN_CORECPUWORKER_H

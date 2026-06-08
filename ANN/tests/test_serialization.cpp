@@ -8,10 +8,10 @@ static void testParameterRoundTrip()
 
   // Train a network
   ANN::CoreConfig<double> trainConfig;
-  trainConfig.modeType = ::ModeType::TRAIN;
-  trainConfig.deviceType = ::DeviceType::CPU;
+  trainConfig.modeType = Common::ModeType::TRAIN;
+  trainConfig.deviceType = Common::DeviceType::CPU;
   trainConfig.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
   trainConfig.trainingConfig.numEpochs = 100;
   trainConfig.trainingConfig.learningRate = 0.5;
@@ -29,10 +29,10 @@ static void testParameterRoundTrip()
 
   // Create a new Core with the same architecture and extracted parameters
   ANN::CoreConfig<double> loadConfig;
-  loadConfig.modeType = ::ModeType::PREDICT;
-  loadConfig.deviceType = ::DeviceType::CPU;
+  loadConfig.modeType = Common::ModeType::PREDICT;
+  loadConfig.deviceType = Common::DeviceType::CPU;
   loadConfig.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
   loadConfig.parameters = trainedParams;
 
@@ -54,10 +54,10 @@ static void testParameterRoundTripPreservesArchitecture()
   std::cout << "--- testParameterRoundTripPreservesArchitecture ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::PREDICT;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{3, ::ActvFuncType::RELU}, {5, ::ActvFuncType::TANH}, {2, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{3, ANN::ActvFuncType::RELU}, {5, ANN::ActvFuncType::TANH}, {2, ANN::ActvFuncType::SIGMOID}});
 
   // Set distinct parameters
   config.parameters.weights.resize(3);
@@ -72,12 +72,12 @@ static void testParameterRoundTripPreservesArchitecture()
 
   // Extract parameters via getters
   const ANN::Parameters<double>& params = core->getParameters();
-  const ::LayersConfig& layers = core->getLayersConfig();
+  const ANN::LayersConfig& layers = core->getLayersConfig();
 
   // Recreate from extracted state
   ANN::CoreConfig<double> newConfig;
-  newConfig.modeType = ::ModeType::PREDICT;
-  newConfig.deviceType = ::DeviceType::CPU;
+  newConfig.modeType = Common::ModeType::PREDICT;
+  newConfig.deviceType = Common::DeviceType::CPU;
   newConfig.layersConfig = layers;
   newConfig.parameters = params;
 
@@ -106,10 +106,10 @@ static void testGettersReturnExpectedState()
   std::cout << "--- testGettersReturnExpectedState ---" << std::endl;
 
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::PREDICT;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SIGMOID}, {1, ::ActvFuncType::SIGMOID}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
   config.parameters.weights.resize(3);
   config.parameters.weights[1] = {{0.1, 0.2}, {0.3, 0.4}, {0.5, 0.6}};
@@ -120,8 +120,8 @@ static void testGettersReturnExpectedState()
 
   auto core = ANN::Core<double>::makeCore(config);
 
-  CHECK(core->getDeviceType() == ::DeviceType::CPU, "device type is CPU");
-  CHECK(core->getModeType() == ::ModeType::PREDICT, "mode type is PREDICT");
+  CHECK(core->getDeviceType() == Common::DeviceType::CPU, "device type is CPU");
+  CHECK(core->getModeType() == Common::ModeType::PREDICT, "mode type is PREDICT");
   CHECK(core->getLayersConfig().size() == 3, "3 layers");
 
   const auto& params = core->getParameters();

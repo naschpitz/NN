@@ -5,7 +5,7 @@
 #include "NN-CLI_ProgressBar.hpp"
 #include "NN-CLI_TerminalUI.hpp"
 
-#include <_Core.hpp>
+#include <ANN_Core.hpp>
 #include <CNN_Types.hpp>
 #include <CNN_Sample.hpp>
 

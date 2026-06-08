@@ -9,7 +9,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   // Parameters for a single batch normalization layer:
   // gamma (scale) and beta (shift) are learnable, per-channel
   // runningMean and runningVar are accumulated during training, used at inference

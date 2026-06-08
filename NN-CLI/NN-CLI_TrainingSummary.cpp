@@ -146,7 +146,7 @@ namespace NN_CLI
     }
 
     // Optimizer string
-    std::string optStr = ::Optimizer<float>::typeToName(tc.optimizer.type);
+    std::string optStr = Common::Optimizer<float>::typeToName(tc.optimizer.type);
     optStr[0] = toupper(optStr[0]);
 
     // Augmentation string
@@ -320,7 +320,7 @@ namespace NN_CLI
     }
 
     // Optimizer string
-    std::string optStr = ::Optimizer<float>::typeToName(tc.optimizer.type);
+    std::string optStr = Common::Optimizer<float>::typeToName(tc.optimizer.type);
     optStr[0] = toupper(optStr[0]);
 
     // Validation string

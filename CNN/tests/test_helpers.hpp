@@ -12,7 +12,7 @@
 #include "CNN_SlidingStrategy.hpp"
 #include "CNN_LayersConfig.hpp"
 
-#include <_ActvFunc.hpp>
+#include <ANN_ActvFunc.hpp>
 
 #include <cassert>
 #include <cmath>

@@ -525,7 +525,7 @@ void CoreGPU<T>::mergeGradients()
     gpuIndices.append(i);
 
   QtConcurrent::blockingMap(gpuIndices, [this, &allWeights, &allBiases](size_t gpuIdx) {
-    this->gpuWorkers[gpuIdx]->bufferManager->readAccumulatedGradients(allWeights[gpuIdx], allBiases[gpuIdx]);
+    this->gpuWorkers[gpuIdx]->bufferManager->readAnnAccumulatedGradients(allWeights[gpuIdx], allBiases[gpuIdx]);
   });
 
   // Sum on CPU
@@ -542,7 +542,7 @@ void CoreGPU<T>::mergeGradients()
 
   // Write merged gradients back to all workers in parallel
   QtConcurrent::blockingMap(gpuIndices, [this, &totalWeights, &totalBiases](size_t gpuIdx) {
-    this->gpuWorkers[gpuIdx]->bufferManager->setAccumulators(totalWeights, totalBiases);
+    this->gpuWorkers[gpuIdx]->bufferManager->setAnnAccumulators(totalWeights, totalBiases);
   });
 }
 

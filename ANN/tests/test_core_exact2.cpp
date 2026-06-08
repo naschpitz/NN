@@ -74,18 +74,18 @@ static void testCrossEntropyTraining()
 
   // Classification: 2 inputs → 3 classes with softmax + cross-entropy
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {3, ::ActvFuncType::SOFTMAX}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
 
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 500;
   config.trainingConfig.learningRate = 0.1;
   config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   // One-hot encoded targets
   ANN::Samples<double> samples = {
@@ -120,18 +120,18 @@ static void testCrossEntropyLossDecreases()
 
   // Train with cross-entropy and verify loss ACTUALLY DECREASES — not just "is finite".
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
 
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.trainingConfig.numEpochs = 50;
   config.trainingConfig.learningRate = 0.1;
   config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no flaky shuffle order.
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0, 0.0}}, {{0.0, 1.0}, {0.0, 1.0}}};
 
@@ -164,17 +164,17 @@ static void testWeightedCrossEntropyTraining()
 
   // Cross-entropy with per-class weights
   ANN::CoreConfig<double> config;
-  config.modeType = ::ModeType::TRAIN;
-  config.deviceType = ::DeviceType::CPU;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
-    makeLayersConfig({{2, ::ActvFuncType::RELU}, {4, ::ActvFuncType::RELU}, {2, ::ActvFuncType::SOFTMAX}});
+    makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
 
-  config.costFunctionConfig.type = ::CostFunctionType::CROSS_ENTROPY;
+  config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {5.0, 1.0};
   config.trainingConfig.numEpochs = 200;
   config.trainingConfig.learningRate = 0.1;
   config.progressReports = 0;
-  config.logLevel = ::LogLevel::ERROR;
+  config.logLevel = Common::LogLevel::ERROR;
 
   ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0, 0.0}}, {{0.0, 1.0}, {0.0, 1.0}}};
 
@@ -189,7 +189,7 @@ static void testWeightedCrossEntropyTraining()
 
   // Verify config preserved
   const auto& cfc = core->getCostFunctionConfig();
-  CHECK(cfc.type == ::CostFunctionType::CROSS_ENTROPY, "weighted CE: type preserved");
+  CHECK(cfc.type == Common::CostFunctionType::CROSS_ENTROPY, "weighted CE: type preserved");
   CHECK(cfc.weights.size() == 2, "weighted CE: weights preserved");
   CHECK_NEAR(cfc.weights[0], 5.0, 1e-10, "weighted CE: weight[0] = 5.0");
 

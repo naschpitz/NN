@@ -7,7 +7,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   // Shape of a 3D tensor (Channels, Height, Width) - NCHW layout
   class Shape3D
   {

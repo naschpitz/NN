@@ -2,7 +2,7 @@
 #include "CNN_CoreCPU.hpp"
 #include "CNN_CoreGPU.hpp"
 
-#include <_Utils.hpp>
+#include <ANN_Utils.hpp>
 
 #include <stdexcept>
 

@@ -194,7 +194,7 @@ namespace NN_CLI
     nlohmann::ordered_json json;
 
     json["mode"] = Common::Mode::typeToName(core.getModeType());
-    json["device"] = ::Device::typeToName(core.getDeviceType());
+    json["device"] = Common::Device::typeToName(core.getDeviceType());
     json["numThreads"] = core.getNumThreads();
     json["numGPUs"] = core.getNumGPUs();
 
@@ -284,7 +284,7 @@ namespace NN_CLI
     nlohmann::ordered_json json;
 
     json["mode"] = Common::Mode::typeToName(core.getModeType());
-    json["device"] = ::Device::typeToName(core.getDeviceType());
+    json["device"] = Common::Device::typeToName(core.getDeviceType());
     json["numThreads"] = core.getNumThreads();
     json["numGPUs"] = core.getNumGPUs();
 

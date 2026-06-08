@@ -9,7 +9,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   template <typename T>
   class Conv2D
   {

@@ -1,5 +1,5 @@
 #include "test_helpers.hpp"
-#include "../NN-CLI_Loader.hpp"
+#include "../NN-CLI_ANNLoader.hpp"
 
 #include "Common/Common_TrainingMonitor.hpp"
 
@@ -36,7 +36,7 @@ static void testMonitoringConfigParsing()
 
   file.close();
 
-  auto config = Loader::loadConfig(configPath.toStdString());
+  auto config = ANNLoader::loadConfig(configPath.toStdString());
 
   CHECK(config.trainingConfig.monitoringConfig.enabled == true, "monitoring enabled");
   CHECK(config.trainingConfig.monitoringConfig.checkInterval == 10, "checkInterval");
@@ -69,7 +69,7 @@ static void testMonitoringConfigDefaults()
 
   file.close();
 
-  auto config = Loader::loadConfig(configPath.toStdString());
+  auto config = ANNLoader::loadConfig(configPath.toStdString());
 
   CHECK(config.trainingConfig.monitoringConfig.enabled == false, "default disabled");
   CHECK(config.trainingConfig.monitoringConfig.checkInterval == 5, "default checkInterval");
@@ -84,7 +84,7 @@ static void testTrainingMonitorStagnation()
 {
   std::cout << "  testTrainingMonitorStagnation... ";
 
-  ::MonitoringConfig config;
+  Common::MonitoringConfig config;
   config.enabled = true;
   config.checkInterval = 1;
   config.patience = 3;
@@ -123,7 +123,7 @@ static void testTrainingMonitorExplosion()
 {
   std::cout << "  testTrainingMonitorExplosion... ";
 
-  ::MonitoringConfig config;
+  Common::MonitoringConfig config;
   config.enabled = true;
   config.checkInterval = 1;
   config.patience = 100;
@@ -154,7 +154,7 @@ static void testTrainingMonitorWithValidationLoss()
 {
   std::cout << "  testTrainingMonitorWithValidationLoss... ";
 
-  ::MonitoringConfig config;
+  Common::MonitoringConfig config;
   config.enabled = true;
   config.checkInterval = 1;
   config.patience = 2;

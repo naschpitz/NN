@@ -1,10 +1,10 @@
-#ifndef _COREGPUWORKER_H
-#define _COREGPUWORKER_H
+#ifndef ANN_COREGPUWORKER_H
+#define ANN_COREGPUWORKER_H
 
-#include "_Worker.hpp"
-#include "_Core.hpp"
-#include "_GPUBufferManager.hpp"
-#include "_GPUKernelBuilder.hpp"
+#include "ANN_Worker.hpp"
+#include "ANN_Core.hpp"
+#include "ANN_GPUBufferManager.hpp"
+#include "ANN_GPUKernelBuilder.hpp"
 
 #include <OCLW_Core.hpp>
 
@@ -86,4 +86,4 @@ namespace ANN
   };
 }
 
-#endif // _COREGPUWORKER_H
+#endif // ANN_COREGPUWORKER_H

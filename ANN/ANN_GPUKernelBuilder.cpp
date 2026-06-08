@@ -1,5 +1,5 @@
-#include "_GPUKernelBuilder.hpp"
-#include "_Utils.hpp"
+#include "ANN_GPUKernelBuilder.hpp"
+#include "ANN_Utils.hpp"
 
 #include <cmath>
 #include <string>

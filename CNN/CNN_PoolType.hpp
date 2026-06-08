@@ -8,7 +8,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   enum class PoolTypeEnum { MAX, AVG };
 
   const std::unordered_map<std::string, PoolTypeEnum> poolTypeMap = {

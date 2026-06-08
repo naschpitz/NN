@@ -143,7 +143,7 @@ namespace NN_CLI
         CNN::DenseLayerConfig dense;
         dense.numNeurons = layerJson.at("numNeurons").get<ulong>();
 
-        dense.actvFuncType = ::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
+        dense.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
 
         coreConfig.layersConfig.denseLayers.push_back(dense);
       }
@@ -152,7 +152,7 @@ namespace NN_CLI
     // Cost function config
     if (json.contains("costFunction")) {
       const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = ::CostFunction::nameToType(cfc.at("type").get<std::string>());
+      coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfc.at("type").get<std::string>());
 
       if (cfc.contains("weights")) {
         coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
@@ -182,7 +182,7 @@ namespace NN_CLI
 
         if (opt.contains("type"))
           coreConfig.trainingConfig.optimizer.type =
-            ::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
+            Common::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
 
         if (opt.contains("beta1"))
           coreConfig.trainingConfig.optimizer.beta1 = opt.at("beta1").get<float>();
@@ -282,8 +282,8 @@ namespace NN_CLI
 
       if (paramsJson.contains("dense")) {
         const auto& denseJson = paramsJson.at("dense");
-        coreConfig.parameters.denseParams.weights = denseJson.at("weights").get<::Tensor3D<float>>();
-        coreConfig.parameters.denseParams.biases = denseJson.at("biases").get<::Tensor2D<float>>();
+        coreConfig.parameters.denseParams.weights = denseJson.at("weights").get<ANN::Tensor3D<float>>();
+        coreConfig.parameters.denseParams.biases = denseJson.at("biases").get<ANN::Tensor2D<float>>();
       }
     }
 

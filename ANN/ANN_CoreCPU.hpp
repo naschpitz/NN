@@ -1,8 +1,8 @@
-#ifndef _CORECPU_H
-#define _CORECPU_H
+#ifndef ANN_CORECPU_H
+#define ANN_CORECPU_H
 
-#include "_Core.hpp"
-#include "_CoreCPUWorker.hpp"
+#include "ANN_Core.hpp"
+#include "ANN_CoreCPUWorker.hpp"
 
 #include <QMutex>
 
@@ -62,4 +62,4 @@ namespace ANN
   };
 }
 
-#endif // _CORECPU_H
+#endif // ANN_CORECPU_H

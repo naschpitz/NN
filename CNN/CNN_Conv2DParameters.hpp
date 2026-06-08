@@ -9,7 +9,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   // Parameters for a single convolution layer:
   // filters: [numFilters][inputChannels][filterH][filterW] stored as flat vectors
   // biases: [numFilters]
