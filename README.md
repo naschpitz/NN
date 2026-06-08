@@ -39,57 +39,81 @@ Install on common systems:
 | macOS | `brew install cmake qt6 ncurses gperftools` (OpenCL ships with macOS) |
 
 A distro/Homebrew Qt6 installs onto CMake's default search paths, so the build
-needs **no extra configuration**. If your Qt6 lives somewhere non-standard, see
-[Custom Qt6 location](#custom-qt6-location).
+needs **no extra configuration**. If your Qt6 lives somewhere non-standard, point
+CMake at it — see [Build](#build) below.
 
 ## Build
 
+Each component builds into **its own `build/` directory** (there is no single
+root build dir by default). A component is built standalone — it pulls its
+dependencies via `add_subdirectory` (`CNN`→`ANN`→`extern/OpenCLWrapper`, …) — so
+building `NN-CLI` or `NN-Server` transitively builds the libraries they need.
+
 ```bash
 git clone <repo-url> NN && cd NN
-git submodule update --init --recursive     # fetches OpenCLWrapper under each extern/
-cmake -B build
-cmake --build build -j"$(nproc)"
+git submodule update --init --recursive   # OpenCLWrapper under each component's extern/
 ```
 
-Select components with `-DBUILD_ANN`, `-DBUILD_CNN`, `-DBUILD_NN_CLI`,
-`-DBUILD_NN_SERVER` (all `ON` by default; CNN requires ANN). A component can also
-be built standalone from its own directory (e.g. `cd CNN && cmake -B build && …`).
-
-### Custom Qt6 location
-
-If `find_package(Qt6)` can't find Qt6 (it isn't on the default paths), point CMake
-at your kit:
+### Build everything — `./build.sh`
 
 ```bash
-cmake -B build -DCMAKE_PREFIX_PATH=/path/to/Qt6
+./build.sh            # static Qt6 (default)
+./build.sh shared     # shared Qt6
 ```
 
-To avoid passing it every time, either `export CMAKE_PREFIX_PATH=/path/to/Qt6` in
-your shell profile, or create a **`CMakeUserPresets.json`** (git-ignored, machine-local)
-pinning the path and build dir, then `cmake --preset <name>`.
+`build.sh` builds ANN, CNN, NN-CLI and NN-Server, each into its own `build/`. It
+reads the Qt6 kit paths from the repo-root **`CMakeUserPresets.json`** (git-ignored,
+machine-specific) and copies that master into each component before building, so the
+paths are maintained in one place. Create it once with your kit locations:
 
-### Static / self-contained binary (optional)
+```json
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21 },
+  "configurePresets": [
+    { "name": "static", "binaryDir": "${sourceDir}/build",
+      "cacheVariables": { "CMAKE_PREFIX_PATH": "/path/to/Qt6-static", "CMAKE_BUILD_TYPE": "Release" } },
+    { "name": "shared", "binaryDir": "${sourceDir}/build",
+      "cacheVariables": { "CMAKE_PREFIX_PATH": "/path/to/Qt6-shared", "CMAKE_BUILD_TYPE": "Release" } }
+  ],
+  "buildPresets": [
+    { "name": "static", "configurePreset": "static" },
+    { "name": "shared", "configurePreset": "shared" }
+  ]
+}
+```
 
-Building against a *static* Qt6 kit yields a binary with no runtime Qt dependency
-— handy for shipping. Static Qt6 is not a stock distro package; you must supply a
-static kit and point at it:
+### Build a single component
+
+If Qt6 is on the default paths (distro/Homebrew `qt6-base-dev`) — no preset needed:
 
 ```bash
-cmake -B build-static -DCMAKE_PREFIX_PATH=/path/to/static-qt6
-cmake --build build-static -j"$(nproc)"
+cd NN-CLI && cmake -B build && cmake --build build -j"$(nproc)"   # → NN-CLI/build/
 ```
 
-For everyday development, a shared system Qt6 (above) is the lower-friction choice.
+For a custom/non-standard Qt6, either pass `-DCMAKE_PREFIX_PATH=/path/to/Qt6`,
+`export CMAKE_PREFIX_PATH=/path/to/Qt6` once in your shell, or — once the master
+preset has been distributed (e.g. by `build.sh`) — `cmake --preset static`.
+
+### Static vs shared, and the optional unified build
+
+A *static* Qt6 kit yields a self-contained binary (no runtime Qt dependency) —
+good for shipping, but a static kit isn't a stock package. *Shared* system Qt6 is
+the lower-friction default for development. An all-in-one unified build is still
+available at the repo root (`cmake -B build` builds every component via
+`-DBUILD_ANN`/`-DBUILD_CNN`/`-DBUILD_NN_CLI`/`-DBUILD_NN_SERVER`), but the
+per-component layout above is the default.
 
 ## Tests
 
-Each component builds a standalone test executable (no CTest wiring):
+Each component builds a standalone test executable (no CTest wiring); it lives in
+that component's `build/`:
 
 | Component | Binary | Notes |
 |-----------|--------|-------|
-| ANN | `build/ANN/test_ann` | |
-| CNN | `build/CNN/test_cnn` | |
-| NN-CLI | `build/NN-CLI/test_nncli` | pass `--full` to include the long MNIST train/test cases |
-| NN-Server | `build/NN-Server/test_endpoints`, `test_logger` | |
+| ANN | `ANN/build/test_ann` | |
+| CNN | `CNN/build/test_cnn` | |
+| NN-CLI | `NN-CLI/build/test_nncli` | pass `--full` to include the long MNIST train/test cases |
+| NN-Server | `NN-Server/build/test_endpoints`, `test_logger` | |
 
-Run a test binary directly, e.g. `./build/NN-CLI/test_nncli`.
+Run a test binary directly, e.g. `./NN-CLI/build/test_nncli`.
