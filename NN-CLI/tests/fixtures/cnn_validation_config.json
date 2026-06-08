@@ -1,0 +1,52 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "progressReports": 0,
+  "saveModelInterval": 0,
+  "inputShape": {
+    "c": 1,
+    "h": 4,
+    "w": 4
+  },
+  "convolutionalLayers": [
+    {
+      "type": "conv",
+      "numFilters": 2,
+      "filterH": 3,
+      "filterW": 3,
+      "strideY": 1,
+      "strideX": 1,
+      "slidingStrategy": "valid"
+    },
+    {
+      "type": "relu"
+    },
+    {
+      "type": "flatten"
+    }
+  ],
+  "denseLayers": [
+    {
+      "numNeurons": 2,
+      "actvFunc": "softmax"
+    }
+  ],
+  "costFunction": {
+    "type": "crossEntropy"
+  },
+  "training": {
+    "numEpochs": 3,
+    "batchSize": 64,
+    "learningRate": 0.01,
+    "shuffleSeed": 42,
+    "optimizer": {
+      "type": "adam"
+    },
+    "validation": {
+      "enabled": true,
+      "autoSize": false,
+      "size": 0.25,
+      "checkInterval": 1
+    }
+  }
+}

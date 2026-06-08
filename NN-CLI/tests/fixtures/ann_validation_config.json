@@ -1,0 +1,38 @@
+{
+  "mode": "train",
+  "device": "cpu",
+  "progressReports": 0,
+  "saveModelInterval": 1,
+  "layers": [
+    {
+      "numNeurons": 16,
+      "actvFunc": "relu"
+    },
+    {
+      "numNeurons": 8,
+      "actvFunc": "relu"
+    },
+    {
+      "numNeurons": 2,
+      "actvFunc": "softmax"
+    }
+  ],
+  "costFunction": {
+    "type": "crossEntropy"
+  },
+  "training": {
+    "numEpochs": 3,
+    "batchSize": 64,
+    "learningRate": 0.01,
+    "shuffleSeed": 42,
+    "optimizer": {
+      "type": "adam"
+    },
+    "validation": {
+      "enabled": true,
+      "autoSize": false,
+      "size": 0.25,
+      "checkInterval": 1
+    }
+  }
+}
