@@ -300,6 +300,30 @@ static void testCNNResidualMNIST()
   std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
 }
 
+// Regression guard for the validation deadlock. With validation enabled, the per-epoch
+// validation pass (CoreCPU::test) runs from inside train()'s per-sample callback. When
+// train() and test() shared the global QThreadPool, that nested map deadlocked — every
+// worker thread parked in a futex at 0% CPU. The fix gives each core its own pool.
+// This trains a tiny net for 3 epochs (validation fires from epoch 2 on) with a short
+// timeout, so a regression surfaces as a fast failure instead of an hour-long stall.
+// Not --full gated: the legitimate train finishes in well under a second.
+static void testCNNTrainValidationNoDeadlock()
+{
+  std::cout << "  testCNNTrainValidationNoDeadlock... " << std::flush;
+
+  QString modelPath = tempDir() + "/cnn_validation_nodeadlock.json";
+
+  auto result =
+    runNNCLI({"--config", fixturePath("cnn_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",
+              fixturePath("cnn_validation_samples.json"), "--output", modelPath, "--log-level", "quiet"},
+             60000); // 60s deadlock guard — real train takes <1s; a hang trips the timeout
+
+  CHECK(result.exitCode == 0, "CNN validation no-deadlock: training exit code 0 (timeout/-2 = deadlock)");
+  CHECK(QFile::exists(modelPath), "CNN validation no-deadlock: trained model file exists");
+
+  std::cout << std::endl;
+}
+
 //===================================================================================================================//
 
 void runCNNCPUBasicTests()
@@ -309,6 +333,7 @@ void runCNNCPUBasicTests()
   testCNNPredict();
   testCNNTest();
   testCNNTrainWithWeightedLoss();
+  testCNNTrainValidationNoDeadlock();
   testCNNTrainAndTestMNIST();
   testCNNResidualMNIST();
 }
