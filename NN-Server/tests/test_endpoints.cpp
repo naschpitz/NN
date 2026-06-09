@@ -29,7 +29,7 @@ static QTemporaryDir* tmpDir = nullptr;
 static nlohmann::json defaultConfig()
 {
   nlohmann::json config;
-  config["model"] = fixturePath("checkpoint_E-150_L-0.029486.json").toStdString();
+  config["model"] = fixturePath("checkpoint_E-150_L-0.029486.nnmodel.tar").toStdString();
   config["port"] = SERVER_PORT;
   config["poolSize"] = POOL_SIZE;
   config["maxBodySize"] = MAX_BODY_SIZE_MB;
@@ -475,12 +475,12 @@ static void testQueueLimitReject()
 //  image input tests
 // ---------------------------------------------------------------------------
 
-constexpr int _IMG_NUM_OUTPUT = 2; // ann_image_model.json has 2 output classes
+constexpr int _IMG_NUM_OUTPUT = 2; // ann_image_model.nnmodel has 2 output classes
 
 static nlohmann::json annImageConfig()
 {
   nlohmann::json config;
-  config["model"] = fixturePath("ann_image_model.json").toStdString();
+  config["model"] = fixturePath("ann_image_model.nnmodel.tar").toStdString();
   config["port"] = SERVER_PORT;
   config["poolSize"] = POOL_SIZE;
   return config;
