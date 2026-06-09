@@ -460,7 +460,8 @@ namespace NN_CLI
     this->epochLines_.push_back(sep());
 
     // Row length is the same for header and data rows — compute once.
-    const int lineLen = epochW + lossW + valLossW + bestW + dateTimeW + 16;
+    int lineLen = epochW + lossW + valLossW + bestW + dateTimeW + 16;
+    lineLen = std::max(1, lineLen);
 
     // Header row
     {
