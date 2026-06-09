@@ -372,8 +372,8 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         if (this->lastCallbackEpoch_ > 0 && this->lastCallbackEpoch_ % this->ioConfig.saveModelInterval == 0) {
           checkpointPath =
             ModelSerializer::generateCheckpointPath(inputFilePath, this->lastCallbackEpoch_, this->lastEpochLoss_);
-          ModelSerializer::saveModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                        this->buildValidationMetadata());
+          ModelSerializer::saveANNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
+                                                  this->augConfig, this->buildValidationMetadata());
         }
 
         bool isBest = false;
@@ -412,8 +412,8 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
         if (isBest || progress.isNewBest) {
           std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-          ModelSerializer::saveModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                        this->buildValidationMetadata());
+           ModelSerializer::saveANNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig,
+                                                      this->augConfig, this->buildValidationMetadata());
         }
 
         if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && this->lastCallbackEpoch_ > 0) {
@@ -487,8 +487,8 @@ int ANNRunner::finishTraining(const QString& inputFilePath)
 {
   return finishTrainingCommon(this->tui, this->logLevel, this->parser, inputFilePath, *this->core,
                               [this](const std::string& path) {
-                                ModelSerializer::saveModel(path, *this->core, this->coreConfig, this->ioConfig,
-                                                              this->augConfig, this->buildValidationMetadata());
+                                ModelSerializer::saveANNModelToPackage(path, *this->core, this->coreConfig, this->ioConfig,
+                                                                      this->augConfig, this->buildValidationMetadata());
                               });
 }
 

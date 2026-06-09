@@ -472,8 +472,8 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         if (this->ioConfig.saveModelInterval > 0 && lastCallbackEpoch_ > 0 &&
             lastCallbackEpoch_ % this->ioConfig.saveModelInterval == 0) {
           checkpointPath = ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch_, lastEpochLoss_);
-          ModelSerializer::saveCNNModel(checkpointPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                        this->buildValidationMetadata());
+          ModelSerializer::saveCNNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
+                                                     this->augConfig, this->buildValidationMetadata());
         }
 
         // --- Validation ---
@@ -513,8 +513,8 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         // --- Best model save ---
         if (isBest || progress.isNewBest) {
           std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-          ModelSerializer::saveCNNModel(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                        this->buildValidationMetadata());
+          ModelSerializer::saveCNNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig,
+                                                     this->augConfig, this->buildValidationMetadata());
         }
 
         // --- TUI history (skip epoch 0 line) ---
@@ -579,8 +579,8 @@ int CNNRunner::finishTraining(const QString& inputFilePath)
 {
   return finishTrainingCommon(this->tui, this->logLevel, this->parser, inputFilePath, *this->core,
                               [this](const std::string& path) {
-                                ModelSerializer::saveCNNModel(path, *this->core, this->coreConfig, this->ioConfig,
-                                                              this->augConfig, this->buildValidationMetadata());
+                                ModelSerializer::saveCNNModelToPackage(path, *this->core, this->coreConfig, this->ioConfig,
+                                                                       this->augConfig, this->buildValidationMetadata());
                               });
 }
 
