@@ -36,6 +36,183 @@ namespace NN_Server
       return nlohmann::json::parse(fileData.toStdString());
     }
 
+    //-- Helper: parse ANN config from a JSON object (shared by both overloads) --//
+
+    ANN::CoreConfig<float> parseANNConfigFromJson(const nlohmann::json& json, const std::string& path)
+    {
+      ANN::CoreConfig<float> coreConfig;
+
+      // Always predict mode for the server
+      coreConfig.modeType = Common::ModeType::PREDICT;
+
+      if (json.contains("device")) {
+        std::string deviceName = json.at("device").get<std::string>();
+        coreConfig.deviceType = Common::Device::nameToType(deviceName);
+      } else {
+        coreConfig.deviceType = Common::DeviceType::CPU;
+      }
+
+      if (json.contains("numThreads"))
+        coreConfig.numThreads = json.at("numThreads").get<int>();
+
+      if (json.contains("numGPUs"))
+        coreConfig.numGPUs = json.at("numGPUs").get<int>();
+
+      if (!json.contains("layers")) {
+        throw std::runtime_error("Config file missing 'layers': " + path);
+      }
+
+      for (const auto& layerJson : json.at("layers")) {
+        ANN::Layer layer;
+        layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
+        std::string actvFuncName = layerJson.at("actvFunc").get<std::string>();
+        layer.actvFuncType = ANN::ActvFunc::nameToType(actvFuncName);
+        coreConfig.layersConfig.push_back(layer);
+      }
+
+      if (json.contains("costFunction")) {
+        const auto& cfc = json.at("costFunction");
+        std::string cfTypeName = cfc.at("type").get<std::string>();
+        coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfTypeName);
+
+        if (cfc.contains("weights")) {
+          coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
+        }
+      }
+
+      return coreConfig;
+    }
+
+    //-- Helper: parse CNN config from a JSON object (shared by both overloads) --//
+
+    CNN::CoreConfig<float> parseCNNConfigFromJson(const nlohmann::json& json, const std::string& path)
+    {
+      CNN::CoreConfig<float> coreConfig;
+
+      // Always predict mode for the server
+      coreConfig.modeType = Common::ModeType::PREDICT;
+
+      if (json.contains("device")) {
+        std::string deviceName = json.at("device").get<std::string>();
+        coreConfig.deviceType = Common::Device::nameToType(deviceName);
+      } else {
+        coreConfig.deviceType = Common::DeviceType::CPU;
+      }
+
+      if (json.contains("numThreads"))
+        coreConfig.numThreads = json.at("numThreads").get<int>();
+
+      if (json.contains("numGPUs"))
+        coreConfig.numGPUs = json.at("numGPUs").get<int>();
+
+      // Input shape (required for CNN)
+      if (!json.contains("inputShape")) {
+        throw std::runtime_error("CNN config file missing 'inputShape': " + path);
+      }
+
+      const auto& shapeJson = json.at("inputShape");
+      coreConfig.inputShape.c = shapeJson.at("c").get<ulong>();
+      coreConfig.inputShape.h = shapeJson.at("h").get<ulong>();
+      coreConfig.inputShape.w = shapeJson.at("w").get<ulong>();
+
+      // CNN layers
+      if (json.contains("convolutionalLayers")) {
+        for (const auto& layerJson : json.at("convolutionalLayers")) {
+          std::string type = layerJson.at("type").get<std::string>();
+          CNN::CNNLayerConfig layerConfig;
+
+          if (type == "conv") {
+            layerConfig.type = CNN::LayerType::CONV;
+            CNN::ConvLayerConfig conv;
+            conv.numFilters = layerJson.at("numFilters").get<ulong>();
+            conv.filterH = layerJson.at("filterH").get<ulong>();
+            conv.filterW = layerJson.at("filterW").get<ulong>();
+            conv.strideY = layerJson.at("strideY").get<ulong>();
+            conv.strideX = layerJson.at("strideX").get<ulong>();
+            std::string slidingStrategyName = layerJson.at("slidingStrategy").get<std::string>();
+            conv.slidingStrategy = CNN::SlidingStrategy::nameToType(slidingStrategyName);
+            layerConfig.config = conv;
+          } else if (type == "relu") {
+            layerConfig.type = CNN::LayerType::RELU;
+            layerConfig.config = CNN::ReLULayerConfig{};
+          } else if (type == "pool") {
+            layerConfig.type = CNN::LayerType::POOL;
+            CNN::PoolLayerConfig pool;
+            std::string poolTypeName = layerJson.at("poolType").get<std::string>();
+            pool.poolType = CNN::PoolType::nameToType(poolTypeName);
+            pool.poolH = layerJson.at("poolH").get<ulong>();
+            pool.poolW = layerJson.at("poolW").get<ulong>();
+            pool.strideY = layerJson.at("strideY").get<ulong>();
+            pool.strideX = layerJson.at("strideX").get<ulong>();
+            layerConfig.config = pool;
+          } else if (type == "flatten") {
+            layerConfig.type = CNN::LayerType::FLATTEN;
+            layerConfig.config = CNN::FlattenLayerConfig{};
+          } else if (type == "globalavgpool") {
+            layerConfig.type = CNN::LayerType::GLOBALAVGPOOL;
+            layerConfig.config = CNN::GlobalAvgPoolLayerConfig{};
+          } else if (type == "globaldualpool") {
+            layerConfig.type = CNN::LayerType::GLOBALDUALPOOL;
+            layerConfig.config = CNN::GlobalDualPoolLayerConfig{};
+          } else if (type == "instancenorm") {
+            layerConfig.type = CNN::LayerType::INSTANCENORM;
+            CNN::NormLayerConfig bn;
+
+            if (layerJson.contains("epsilon"))
+              bn.epsilon = layerJson.at("epsilon").get<float>();
+
+            if (layerJson.contains("momentum"))
+              bn.momentum = layerJson.at("momentum").get<float>();
+            layerConfig.config = bn;
+          } else if (type == "batchnorm") {
+            layerConfig.type = CNN::LayerType::BATCHNORM;
+            CNN::NormLayerConfig bn;
+
+            if (layerJson.contains("epsilon"))
+              bn.epsilon = layerJson.at("epsilon").get<float>();
+
+            if (layerJson.contains("momentum"))
+              bn.momentum = layerJson.at("momentum").get<float>();
+            layerConfig.config = bn;
+          } else if (type == "residual_start") {
+            layerConfig.type = CNN::LayerType::RESIDUAL_START;
+            layerConfig.config = CNN::ResidualStartConfig{};
+          } else if (type == "residual_end") {
+            layerConfig.type = CNN::LayerType::RESIDUAL_END;
+            layerConfig.config = CNN::ResidualEndConfig{};
+          } else {
+            throw std::runtime_error("Unknown CNN layer type: " + type);
+          }
+
+          coreConfig.layersConfig.cnnLayers.push_back(layerConfig);
+        }
+      }
+
+      // Dense layers
+      if (json.contains("denseLayers")) {
+        for (const auto& layerJson : json.at("denseLayers")) {
+          CNN::DenseLayerConfig dense;
+          dense.numNeurons = layerJson.at("numNeurons").get<ulong>();
+          std::string actvFuncName = layerJson.at("actvFunc").get<std::string>();
+          dense.actvFuncType = ANN::ActvFunc::nameToType(actvFuncName);
+          coreConfig.layersConfig.denseLayers.push_back(dense);
+        }
+      }
+
+      // Cost function config
+      if (json.contains("costFunction")) {
+        const auto& cfc = json.at("costFunction");
+        std::string cfTypeName = cfc.at("type").get<std::string>();
+        coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfTypeName);
+
+        if (cfc.contains("weights")) {
+          coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
+        }
+      }
+
+      return coreConfig;
+    }
+
   } // anonymous namespace
 
   //===================================================================================================================//
@@ -131,42 +308,7 @@ namespace NN_Server
       json = readJsonFromPath(configFilePath);
     }
 
-    ANN::CoreConfig<float> coreConfig;
-
-    // Always predict mode for the server
-    coreConfig.modeType = Common::ModeType::PREDICT;
-
-    if (json.contains("device")) {
-      coreConfig.deviceType = Common::Device::nameToType(json.at("device").get<std::string>());
-    } else {
-      coreConfig.deviceType = Common::DeviceType::CPU;
-    }
-
-    if (json.contains("numThreads"))
-      coreConfig.numThreads = json.at("numThreads").get<int>();
-
-    if (json.contains("numGPUs"))
-      coreConfig.numGPUs = json.at("numGPUs").get<int>();
-
-    if (!json.contains("layers")) {
-      throw std::runtime_error("Config file missing 'layers': " + configFilePath);
-    }
-
-    for (const auto& layerJson : json.at("layers")) {
-      ANN::Layer layer;
-      layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
-      layer.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
-      coreConfig.layersConfig.push_back(layer);
-    }
-
-    if (json.contains("costFunction")) {
-      const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfc.at("type").get<std::string>());
-
-      if (cfc.contains("weights")) {
-        coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
-      }
-    }
+    ANN::CoreConfig<float> coreConfig = parseANNConfigFromJson(json, configFilePath);
 
     // Load parameters — binary (package) only; legacy embedded parameters rejected
     if (!binData.empty()) {
@@ -201,123 +343,7 @@ namespace NN_Server
       json = readJsonFromPath(configFilePath);
     }
 
-    CNN::CoreConfig<float> coreConfig;
-
-    // Always predict mode for the server
-    coreConfig.modeType = Common::ModeType::PREDICT;
-
-    if (json.contains("device")) {
-      coreConfig.deviceType = Common::Device::nameToType(json.at("device").get<std::string>());
-    } else {
-      coreConfig.deviceType = Common::DeviceType::CPU;
-    }
-
-    if (json.contains("numThreads"))
-      coreConfig.numThreads = json.at("numThreads").get<int>();
-
-    if (json.contains("numGPUs"))
-      coreConfig.numGPUs = json.at("numGPUs").get<int>();
-
-    // Input shape (required for CNN)
-    if (!json.contains("inputShape")) {
-      throw std::runtime_error("CNN config file missing 'inputShape': " + configFilePath);
-    }
-
-    const auto& shapeJson = json.at("inputShape");
-    coreConfig.inputShape.c = shapeJson.at("c").get<ulong>();
-    coreConfig.inputShape.h = shapeJson.at("h").get<ulong>();
-    coreConfig.inputShape.w = shapeJson.at("w").get<ulong>();
-
-    // CNN layers
-    if (json.contains("convolutionalLayers")) {
-      for (const auto& layerJson : json.at("convolutionalLayers")) {
-        std::string type = layerJson.at("type").get<std::string>();
-        CNN::CNNLayerConfig layerConfig;
-
-        if (type == "conv") {
-          layerConfig.type = CNN::LayerType::CONV;
-          CNN::ConvLayerConfig conv;
-          conv.numFilters = layerJson.at("numFilters").get<ulong>();
-          conv.filterH = layerJson.at("filterH").get<ulong>();
-          conv.filterW = layerJson.at("filterW").get<ulong>();
-          conv.strideY = layerJson.at("strideY").get<ulong>();
-          conv.strideX = layerJson.at("strideX").get<ulong>();
-          conv.slidingStrategy = CNN::SlidingStrategy::nameToType(layerJson.at("slidingStrategy").get<std::string>());
-          layerConfig.config = conv;
-        } else if (type == "relu") {
-          layerConfig.type = CNN::LayerType::RELU;
-          layerConfig.config = CNN::ReLULayerConfig{};
-        } else if (type == "pool") {
-          layerConfig.type = CNN::LayerType::POOL;
-          CNN::PoolLayerConfig pool;
-          pool.poolType = CNN::PoolType::nameToType(layerJson.at("poolType").get<std::string>());
-          pool.poolH = layerJson.at("poolH").get<ulong>();
-          pool.poolW = layerJson.at("poolW").get<ulong>();
-          pool.strideY = layerJson.at("strideY").get<ulong>();
-          pool.strideX = layerJson.at("strideX").get<ulong>();
-          layerConfig.config = pool;
-        } else if (type == "flatten") {
-          layerConfig.type = CNN::LayerType::FLATTEN;
-          layerConfig.config = CNN::FlattenLayerConfig{};
-        } else if (type == "globalavgpool") {
-          layerConfig.type = CNN::LayerType::GLOBALAVGPOOL;
-          layerConfig.config = CNN::GlobalAvgPoolLayerConfig{};
-        } else if (type == "globaldualpool") {
-          layerConfig.type = CNN::LayerType::GLOBALDUALPOOL;
-          layerConfig.config = CNN::GlobalDualPoolLayerConfig{};
-        } else if (type == "instancenorm") {
-          layerConfig.type = CNN::LayerType::INSTANCENORM;
-          CNN::NormLayerConfig bn;
-
-          if (layerJson.contains("epsilon"))
-            bn.epsilon = layerJson.at("epsilon").get<float>();
-
-          if (layerJson.contains("momentum"))
-            bn.momentum = layerJson.at("momentum").get<float>();
-          layerConfig.config = bn;
-        } else if (type == "batchnorm") {
-          layerConfig.type = CNN::LayerType::BATCHNORM;
-          CNN::NormLayerConfig bn;
-
-          if (layerJson.contains("epsilon"))
-            bn.epsilon = layerJson.at("epsilon").get<float>();
-
-          if (layerJson.contains("momentum"))
-            bn.momentum = layerJson.at("momentum").get<float>();
-          layerConfig.config = bn;
-        } else if (type == "residual_start") {
-          layerConfig.type = CNN::LayerType::RESIDUAL_START;
-          layerConfig.config = CNN::ResidualStartConfig{};
-        } else if (type == "residual_end") {
-          layerConfig.type = CNN::LayerType::RESIDUAL_END;
-          layerConfig.config = CNN::ResidualEndConfig{};
-        } else {
-          throw std::runtime_error("Unknown CNN layer type: " + type);
-        }
-
-        coreConfig.layersConfig.cnnLayers.push_back(layerConfig);
-      }
-    }
-
-    // Dense layers
-    if (json.contains("denseLayers")) {
-      for (const auto& layerJson : json.at("denseLayers")) {
-        CNN::DenseLayerConfig dense;
-        dense.numNeurons = layerJson.at("numNeurons").get<ulong>();
-        dense.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
-        coreConfig.layersConfig.denseLayers.push_back(dense);
-      }
-    }
-
-    // Cost function config
-    if (json.contains("costFunction")) {
-      const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfc.at("type").get<std::string>());
-
-      if (cfc.contains("weights")) {
-        coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
-      }
-    }
+    CNN::CoreConfig<float> coreConfig = parseCNNConfigFromJson(json, configFilePath);
 
     // Load parameters — binary (package) only; legacy embedded parameters rejected
     if (!binData.empty()) {
@@ -369,43 +395,7 @@ namespace NN_Server
 
     // Read JSON from file (not a package — binary params provided separately)
     nlohmann::json json = readJsonFromPath(configFilePath);
-
-    ANN::CoreConfig<float> coreConfig;
-
-    // Always predict mode for the server
-    coreConfig.modeType = Common::ModeType::PREDICT;
-
-    if (json.contains("device")) {
-      coreConfig.deviceType = Common::Device::nameToType(json.at("device").get<std::string>());
-    } else {
-      coreConfig.deviceType = Common::DeviceType::CPU;
-    }
-
-    if (json.contains("numThreads"))
-      coreConfig.numThreads = json.at("numThreads").get<int>();
-
-    if (json.contains("numGPUs"))
-      coreConfig.numGPUs = json.at("numGPUs").get<int>();
-
-    if (!json.contains("layers")) {
-      throw std::runtime_error("Config file missing 'layers': " + configFilePath);
-    }
-
-    for (const auto& layerJson : json.at("layers")) {
-      ANN::Layer layer;
-      layer.numNeurons = layerJson.at("numNeurons").get<ulong>();
-      layer.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
-      coreConfig.layersConfig.push_back(layer);
-    }
-
-    if (json.contains("costFunction")) {
-      const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfc.at("type").get<std::string>());
-
-      if (cfc.contains("weights")) {
-        coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
-      }
-    }
+    ANN::CoreConfig<float> coreConfig = parseANNConfigFromJson(json, configFilePath);
 
     // Load parameters from binary data
     NN_CLI::ModelSerializer::loadANNParametersBinary(binParams, coreConfig, coreConfig.layersConfig);
@@ -426,124 +416,7 @@ namespace NN_Server
 
     // Read JSON from file (not a package — binary params provided separately)
     nlohmann::json json = readJsonFromPath(configFilePath);
-
-    CNN::CoreConfig<float> coreConfig;
-
-    // Always predict mode for the server
-    coreConfig.modeType = Common::ModeType::PREDICT;
-
-    if (json.contains("device")) {
-      coreConfig.deviceType = Common::Device::nameToType(json.at("device").get<std::string>());
-    } else {
-      coreConfig.deviceType = Common::DeviceType::CPU;
-    }
-
-    if (json.contains("numThreads"))
-      coreConfig.numThreads = json.at("numThreads").get<int>();
-
-    if (json.contains("numGPUs"))
-      coreConfig.numGPUs = json.at("numGPUs").get<int>();
-
-    // Input shape (required for CNN)
-    if (!json.contains("inputShape")) {
-      throw std::runtime_error("CNN config file missing 'inputShape': " + configFilePath);
-    }
-
-    const auto& shapeJson = json.at("inputShape");
-    coreConfig.inputShape.c = shapeJson.at("c").get<ulong>();
-    coreConfig.inputShape.h = shapeJson.at("h").get<ulong>();
-    coreConfig.inputShape.w = shapeJson.at("w").get<ulong>();
-
-    // CNN layers
-    if (json.contains("convolutionalLayers")) {
-      for (const auto& layerJson : json.at("convolutionalLayers")) {
-        std::string type = layerJson.at("type").get<std::string>();
-        CNN::CNNLayerConfig layerConfig;
-
-        if (type == "conv") {
-          layerConfig.type = CNN::LayerType::CONV;
-          CNN::ConvLayerConfig conv;
-          conv.numFilters = layerJson.at("numFilters").get<ulong>();
-          conv.filterH = layerJson.at("filterH").get<ulong>();
-          conv.filterW = layerJson.at("filterW").get<ulong>();
-          conv.strideY = layerJson.at("strideY").get<ulong>();
-          conv.strideX = layerJson.at("strideX").get<ulong>();
-          conv.slidingStrategy = CNN::SlidingStrategy::nameToType(layerJson.at("slidingStrategy").get<std::string>());
-          layerConfig.config = conv;
-        } else if (type == "relu") {
-          layerConfig.type = CNN::LayerType::RELU;
-          layerConfig.config = CNN::ReLULayerConfig{};
-        } else if (type == "pool") {
-          layerConfig.type = CNN::LayerType::POOL;
-          CNN::PoolLayerConfig pool;
-          pool.poolType = CNN::PoolType::nameToType(layerJson.at("poolType").get<std::string>());
-          pool.poolH = layerJson.at("poolH").get<ulong>();
-          pool.poolW = layerJson.at("poolW").get<ulong>();
-          pool.strideY = layerJson.at("strideY").get<ulong>();
-          pool.strideX = layerJson.at("strideX").get<ulong>();
-          layerConfig.config = pool;
-        } else if (type == "flatten") {
-          layerConfig.type = CNN::LayerType::FLATTEN;
-          layerConfig.config = CNN::FlattenLayerConfig{};
-        } else if (type == "globalavgpool") {
-          layerConfig.type = CNN::LayerType::GLOBALAVGPOOL;
-          layerConfig.config = CNN::GlobalAvgPoolLayerConfig{};
-        } else if (type == "globaldualpool") {
-          layerConfig.type = CNN::LayerType::GLOBALDUALPOOL;
-          layerConfig.config = CNN::GlobalDualPoolLayerConfig{};
-        } else if (type == "instancenorm") {
-          layerConfig.type = CNN::LayerType::INSTANCENORM;
-          CNN::NormLayerConfig bn;
-
-          if (layerJson.contains("epsilon"))
-            bn.epsilon = layerJson.at("epsilon").get<float>();
-
-          if (layerJson.contains("momentum"))
-            bn.momentum = layerJson.at("momentum").get<float>();
-          layerConfig.config = bn;
-        } else if (type == "batchnorm") {
-          layerConfig.type = CNN::LayerType::BATCHNORM;
-          CNN::NormLayerConfig bn;
-
-          if (layerJson.contains("epsilon"))
-            bn.epsilon = layerJson.at("epsilon").get<float>();
-
-          if (layerJson.contains("momentum"))
-            bn.momentum = layerJson.at("momentum").get<float>();
-          layerConfig.config = bn;
-        } else if (type == "residual_start") {
-          layerConfig.type = CNN::LayerType::RESIDUAL_START;
-          layerConfig.config = CNN::ResidualStartConfig{};
-        } else if (type == "residual_end") {
-          layerConfig.type = CNN::LayerType::RESIDUAL_END;
-          layerConfig.config = CNN::ResidualEndConfig{};
-        } else {
-          throw std::runtime_error("Unknown CNN layer type: " + type);
-        }
-
-        coreConfig.layersConfig.cnnLayers.push_back(layerConfig);
-      }
-    }
-
-    // Dense layers
-    if (json.contains("denseLayers")) {
-      for (const auto& layerJson : json.at("denseLayers")) {
-        CNN::DenseLayerConfig dense;
-        dense.numNeurons = layerJson.at("numNeurons").get<ulong>();
-        dense.actvFuncType = ANN::ActvFunc::nameToType(layerJson.at("actvFunc").get<std::string>());
-        coreConfig.layersConfig.denseLayers.push_back(dense);
-      }
-    }
-
-    // Cost function config
-    if (json.contains("costFunction")) {
-      const auto& cfc = json.at("costFunction");
-      coreConfig.costFunctionConfig.type = Common::CostFunction::nameToType(cfc.at("type").get<std::string>());
-
-      if (cfc.contains("weights")) {
-        coreConfig.costFunctionConfig.weights = cfc.at("weights").get<std::vector<float>>();
-      }
-    }
+    CNN::CoreConfig<float> coreConfig = parseCNNConfigFromJson(json, configFilePath);
 
     // Load parameters from binary data
     NN_CLI::ModelSerializer::loadCNNParametersBinary(binParams, coreConfig, coreConfig.layersConfig);
