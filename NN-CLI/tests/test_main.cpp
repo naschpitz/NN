@@ -12,6 +12,7 @@ bool runFullTests = false;
 void runCPUBasicTests();
 void runCPUMNISTTests();
 void runCPUFeatureTests();
+void runANNCPUSaveLoadTests();
 void runGPUMNISTTests();
 
 // CNN tests
@@ -57,6 +58,7 @@ int main(int argc, char* argv[])
   runCPUBasicTests();
   runCPUMNISTTests();
   runCPUFeatureTests();
+  runANNCPUSaveLoadTests();
 
   std::cout << std::endl;
   std::cout << "===  GPU Tests ===" << std::endl;
