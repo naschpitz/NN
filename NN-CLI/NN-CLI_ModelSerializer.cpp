@@ -173,335 +173,6 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- Helper: write JSON to file --//
-  //===================================================================================================================//
-
-  static void writeJsonToFile(const std::string& filePath, const nlohmann::ordered_json& json)
-  {
-    QFile file(QString::fromStdString(filePath));
-
-    if (!file.open(QIODevice::WriteOnly)) {
-      throw std::runtime_error("Failed to open file for writing: " + filePath);
-    }
-
-    std::string jsonStr = json.dump(4);
-    file.write(jsonStr.c_str());
-    file.close();
-  }
-
-  //===================================================================================================================//
-  //-- saveANNModel --//
-  //===================================================================================================================//
-
-  void ModelSerializer::saveANNModel(const std::string& filePath, const ANN::Core<float>& core,
-                                     const ANN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                                     const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta)
-  {
-    nlohmann::ordered_json json;
-
-    json["mode"] = Common::Mode::typeToName(core.getModeType());
-    json["device"] = Common::Device::typeToName(core.getDeviceType());
-    json["numThreads"] = core.getNumThreads();
-    json["numGPUs"] = core.getNumGPUs();
-
-    // NN-CLI settings
-    json["progressReports"] = coreConfig.progressReports;
-    json["saveModelInterval"] = ioConfig.saveModelInterval;
-
-    // I/O types
-    json["inputType"] = dataTypeToString(ioConfig.inputType);
-    json["outputType"] = dataTypeToString(ioConfig.outputType);
-
-    if (ioConfig.hasInputShape()) {
-      nlohmann::ordered_json isJson;
-      isJson["c"] = ioConfig.inputC;
-      isJson["h"] = ioConfig.inputH;
-      isJson["w"] = ioConfig.inputW;
-      json["inputShape"] = isJson;
-    }
-
-    if (ioConfig.hasOutputShape()) {
-      nlohmann::ordered_json osJson;
-      osJson["c"] = ioConfig.outputC;
-      osJson["h"] = ioConfig.outputH;
-      osJson["w"] = ioConfig.outputW;
-      json["outputShape"] = osJson;
-    }
-
-    // Layers config
-    nlohmann::ordered_json layersArr = nlohmann::ordered_json::array();
-
-    for (const auto& layer : core.getLayersConfig()) {
-      nlohmann::ordered_json layerJson;
-      layerJson["numNeurons"] = layer.numNeurons;
-      layerJson["actvFunc"] = ANN::ActvFunc::typeToName(layer.actvFuncType);
-      layersArr.push_back(layerJson);
-    }
-
-    json["layers"] = layersArr;
-
-    // Cost function config
-    nlohmann::ordered_json cfcJson;
-    cfcJson["type"] = Common::CostFunction::typeToName(core.getCostFunctionConfig().type);
-
-    if (!core.getCostFunctionConfig().weights.empty()) {
-      cfcJson["weights"] = core.getCostFunctionConfig().weights;
-    }
-
-    json["costFunction"] = cfcJson;
-
-    // Training config
-    nlohmann::ordered_json tcJson;
-    serializeTrainingConfig(tcJson, core.getTrainingConfig());
-    serializeAugConfig(tcJson, augConfig);
-    serializeValidationConfig(tcJson, augConfig);
-    serializeMonitoringConfig(tcJson, core);
-    json["training"] = tcJson;
-
-    // Test config
-    nlohmann::ordered_json testJson;
-    serializeTestConfig(testJson, coreConfig.testConfig);
-    json["test"] = testJson;
-
-    // Training metadata
-    const auto& md = core.getTrainingMetadata();
-    nlohmann::ordered_json mdJson;
-    serializeTrainingMetadata(mdJson, md);
-    serializeValidationMeta(mdJson, validationMeta);
-    json["trainingMetadata"] = mdJson;
-
-    // Parameters
-    nlohmann::ordered_json paramsJson;
-    paramsJson["weights"] = core.getParameters().weights;
-    paramsJson["biases"] = core.getParameters().biases;
-    json["parameters"] = paramsJson;
-
-    writeJsonToFile(filePath, json);
-  }
-
-  //===================================================================================================================//
-  //-- saveCNNModel --//
-  //===================================================================================================================//
-
-  void ModelSerializer::saveCNNModel(const std::string& filePath, const CNN::Core<float>& core,
-                                     const CNN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                                     const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta)
-  {
-    nlohmann::ordered_json json;
-
-    json["mode"] = Common::Mode::typeToName(core.getModeType());
-    json["device"] = Common::Device::typeToName(core.getDeviceType());
-    json["numThreads"] = core.getNumThreads();
-    json["numGPUs"] = core.getNumGPUs();
-
-    // NN-CLI settings
-    json["progressReports"] = coreConfig.progressReports;
-    json["saveModelInterval"] = ioConfig.saveModelInterval;
-
-    // I/O types
-    json["inputType"] = dataTypeToString(ioConfig.inputType);
-    json["outputType"] = dataTypeToString(ioConfig.outputType);
-
-    // Input shape
-    const auto& shape = core.getInputShape();
-    nlohmann::ordered_json shapeJson;
-    shapeJson["c"] = shape.c;
-    shapeJson["h"] = shape.h;
-    shapeJson["w"] = shape.w;
-    json["inputShape"] = shapeJson;
-
-    // Output shape
-    if (ioConfig.hasOutputShape()) {
-      nlohmann::ordered_json osJson;
-      osJson["c"] = ioConfig.outputC;
-      osJson["h"] = ioConfig.outputH;
-      osJson["w"] = ioConfig.outputW;
-      json["outputShape"] = osJson;
-    }
-
-    // CNN layers config
-    nlohmann::ordered_json cnnLayersArr = nlohmann::ordered_json::array();
-
-    for (const auto& layer : core.getLayersConfig().cnnLayers) {
-      nlohmann::ordered_json layerJson;
-
-      switch (layer.type) {
-      case CNN::LayerType::CONV: {
-        const auto& conv = std::get<CNN::ConvLayerConfig>(layer.config);
-        layerJson["type"] = "conv";
-        layerJson["numFilters"] = conv.numFilters;
-        layerJson["filterH"] = conv.filterH;
-        layerJson["filterW"] = conv.filterW;
-        layerJson["strideY"] = conv.strideY;
-        layerJson["strideX"] = conv.strideX;
-        layerJson["slidingStrategy"] = CNN::SlidingStrategy::typeToName(conv.slidingStrategy);
-        break;
-      }
-
-      case CNN::LayerType::RELU:
-        layerJson["type"] = "relu";
-        break;
-      case CNN::LayerType::POOL: {
-        const auto& pool = std::get<CNN::PoolLayerConfig>(layer.config);
-        layerJson["type"] = "pool";
-        layerJson["poolType"] = CNN::PoolType::typeToName(pool.poolType);
-        layerJson["poolH"] = pool.poolH;
-        layerJson["poolW"] = pool.poolW;
-        layerJson["strideY"] = pool.strideY;
-        layerJson["strideX"] = pool.strideX;
-        break;
-      }
-
-      case CNN::LayerType::INSTANCENORM: {
-        const auto& bn = std::get<CNN::NormLayerConfig>(layer.config);
-        layerJson["type"] = "instancenorm";
-        layerJson["epsilon"] = bn.epsilon;
-        layerJson["momentum"] = bn.momentum;
-        break;
-      }
-
-      case CNN::LayerType::BATCHNORM: {
-        const auto& bn = std::get<CNN::NormLayerConfig>(layer.config);
-        layerJson["type"] = "batchnorm";
-        layerJson["epsilon"] = bn.epsilon;
-        layerJson["momentum"] = bn.momentum;
-        break;
-      }
-
-      case CNN::LayerType::GLOBALAVGPOOL:
-        layerJson["type"] = "globalavgpool";
-        break;
-      case CNN::LayerType::GLOBALDUALPOOL:
-        layerJson["type"] = "globaldualpool";
-        break;
-      case CNN::LayerType::FLATTEN:
-        layerJson["type"] = "flatten";
-        break;
-      case CNN::LayerType::RESIDUAL_START:
-        layerJson["type"] = "residual_start";
-        break;
-      case CNN::LayerType::RESIDUAL_END:
-        layerJson["type"] = "residual_end";
-        break;
-
-      default: {
-        std::ostringstream oss;
-        oss << "Unknown CNN layer type in serializer: " << static_cast<int>(layer.type);
-        throw std::runtime_error(oss.str());
-      }
-      }
-
-      cnnLayersArr.push_back(layerJson);
-    }
-
-    json["convolutionalLayers"] = cnnLayersArr;
-
-    // Dense layers config
-    nlohmann::ordered_json denseLayersArr = nlohmann::ordered_json::array();
-
-    for (const auto& layer : core.getLayersConfig().denseLayers) {
-      nlohmann::ordered_json layerJson;
-      layerJson["numNeurons"] = layer.numNeurons;
-      layerJson["actvFunc"] = ANN::ActvFunc::typeToName(layer.actvFuncType);
-      denseLayersArr.push_back(layerJson);
-    }
-
-    json["denseLayers"] = denseLayersArr;
-
-    // Cost function config
-    nlohmann::ordered_json cfcJson;
-    cfcJson["type"] = Common::CostFunction::typeToName(core.getCostFunctionConfig().type);
-
-    if (!core.getCostFunctionConfig().weights.empty()) {
-      cfcJson["weights"] = core.getCostFunctionConfig().weights;
-    }
-
-    json["costFunction"] = cfcJson;
-
-    // Training config
-    nlohmann::ordered_json tcJson;
-    serializeTrainingConfig(tcJson, core.getTrainingConfig());
-    serializeAugConfig(tcJson, augConfig);
-    serializeValidationConfig(tcJson, augConfig);
-    serializeMonitoringConfig(tcJson, core);
-    json["training"] = tcJson;
-
-    // Test config
-    nlohmann::ordered_json testJson;
-    serializeTestConfig(testJson, coreConfig.testConfig);
-    json["test"] = testJson;
-
-    // Training metadata
-    const auto& md = core.getTrainingMetadata();
-    nlohmann::ordered_json mdJson;
-    serializeTrainingMetadata(mdJson, md);
-    serializeValidationMeta(mdJson, validationMeta);
-    json["trainingMetadata"] = mdJson;
-
-    // Parameters
-    nlohmann::ordered_json paramsJson;
-
-    // Conv parameters
-    nlohmann::ordered_json convArr = nlohmann::ordered_json::array();
-
-    for (const auto& cp : core.getParameters().convParams) {
-      nlohmann::ordered_json cpJson;
-      cpJson["numFilters"] = cp.numFilters;
-      cpJson["inputC"] = cp.inputC;
-      cpJson["filterH"] = cp.filterH;
-      cpJson["filterW"] = cp.filterW;
-      cpJson["filters"] = cp.filters;
-      cpJson["biases"] = cp.biases;
-      convArr.push_back(cpJson);
-    }
-
-    paramsJson["convolutional"] = convArr;
-
-    // Norm parameters
-    if (!core.getParameters().normParams.empty()) {
-      nlohmann::ordered_json normArr = nlohmann::ordered_json::array();
-
-      for (const auto& bp : core.getParameters().normParams) {
-        nlohmann::ordered_json bpJson;
-        bpJson["numChannels"] = bp.numChannels;
-        bpJson["gamma"] = bp.gamma;
-        bpJson["beta"] = bp.beta;
-        bpJson["runningMean"] = bp.runningMean;
-        bpJson["runningVar"] = bp.runningVar;
-        normArr.push_back(bpJson);
-      }
-
-      paramsJson["instancenorm"] = normArr;
-    }
-
-    // Residual projection parameters
-    if (!core.getParameters().residualParams.empty()) {
-      nlohmann::ordered_json resArr = nlohmann::ordered_json::array();
-
-      for (const auto& rp : core.getParameters().residualParams) {
-        nlohmann::ordered_json rpJson;
-        rpJson["inC"] = rp.inC;
-        rpJson["outC"] = rp.outC;
-        rpJson["weights"] = rp.weights;
-        rpJson["biases"] = rp.biases;
-        resArr.push_back(rpJson);
-      }
-
-      paramsJson["residual"] = resArr;
-    }
-
-    // Dense parameters
-    nlohmann::ordered_json denseParamsJson;
-    denseParamsJson["weights"] = core.getParameters().denseParams.weights;
-    denseParamsJson["biases"] = core.getParameters().denseParams.biases;
-    paramsJson["dense"] = denseParamsJson;
-
-    json["parameters"] = paramsJson;
-
-    writeJsonToFile(filePath, json);
-  }
-
-  //===================================================================================================================//
   //-- Helper: binary format constants --//
   //===================================================================================================================//
 
@@ -1286,18 +957,15 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- saveANNModelToPackage --//
+  //-- buildANNModelJson --//
   //===================================================================================================================//
 
-  void ModelSerializer::saveANNModelToPackage(const std::string& packagePath,
-                                           const ANN::Core<float>& core,
-                                           const ANN::CoreConfig<float>& coreConfig,
-                                           const IOConfig& ioConfig,
-                                           const AugmentationConfig& augConfig,
-                                           const ValidationMetadata& validationMeta)
+  nlohmann::ordered_json ModelSerializer::buildANNModelJson(const ANN::Core<float>& core,
+                                                            const ANN::CoreConfig<float>& coreConfig,
+                                                            const IOConfig& ioConfig,
+                                                            const AugmentationConfig& augConfig,
+                                                            const ValidationMetadata& validationMeta)
   {
-    //-- Build JSON config (same as saveModel but WITHOUT parameters) --//
-
     nlohmann::ordered_json json;
 
     json["mode"] = Common::Mode::typeToName(core.getModeType());
@@ -1371,26 +1039,19 @@ namespace NN_CLI
     serializeValidationMeta(mdJson, validationMeta);
     json["trainingMetadata"] = mdJson;
 
-    //-- Serialize to package --//
-
-    std::string jsonStr = json.dump(4);
-    std::vector<char> binData = serializeANNParametersBinary(core);
-    ModelPackage::createFromMemory(packagePath, jsonStr, binData);
+    return json;
   }
 
   //===================================================================================================================//
-  //-- saveCNNModelToPackage --//
+  //-- buildCNNModelJson --//
   //===================================================================================================================//
 
-  void ModelSerializer::saveCNNModelToPackage(const std::string& packagePath,
-                                              const CNN::Core<float>& core,
-                                              const CNN::CoreConfig<float>& coreConfig,
-                                              const IOConfig& ioConfig,
-                                              const AugmentationConfig& augConfig,
-                                              const ValidationMetadata& validationMeta)
+  nlohmann::ordered_json ModelSerializer::buildCNNModelJson(const CNN::Core<float>& core,
+                                                            const CNN::CoreConfig<float>& coreConfig,
+                                                            const IOConfig& ioConfig,
+                                                            const AugmentationConfig& augConfig,
+                                                            const ValidationMetadata& validationMeta)
   {
-    //-- Build JSON config (same as saveCNNModel but WITHOUT parameters) --//
-
     nlohmann::ordered_json json;
 
     json["mode"] = Common::Mode::typeToName(core.getModeType());
@@ -1542,10 +1203,40 @@ namespace NN_CLI
     serializeValidationMeta(mdJson, validationMeta);
     json["trainingMetadata"] = mdJson;
 
-    //-- Serialize to package --//
+    return json;
+  }
 
-    std::string jsonStr = json.dump(4);
-    std::vector<char> binData = serializeCNNParametersBinary(core);
+  //===================================================================================================================//
+  //-- saveANNModelToPackage --//
+  //===================================================================================================================//
+
+  void ModelSerializer::saveANNModelToPackage(const std::string& packagePath,
+                                           const ANN::Core<float>& core,
+                                           const ANN::CoreConfig<float>& coreConfig,
+                                           const IOConfig& ioConfig,
+                                           const AugmentationConfig& augConfig,
+                                           const ValidationMetadata& validationMeta)
+  {
+    auto json = buildANNModelJson(core, coreConfig, ioConfig, augConfig, validationMeta);
+    auto binData = serializeANNParametersBinary(core);
+    auto jsonStr = json.dump(4);
+    ModelPackage::createFromMemory(packagePath, jsonStr, binData);
+  }
+
+  //===================================================================================================================//
+  //-- saveCNNModelToPackage --//
+  //===================================================================================================================//
+
+  void ModelSerializer::saveCNNModelToPackage(const std::string& packagePath,
+                                              const CNN::Core<float>& core,
+                                              const CNN::CoreConfig<float>& coreConfig,
+                                              const IOConfig& ioConfig,
+                                              const AugmentationConfig& augConfig,
+                                              const ValidationMetadata& validationMeta)
+  {
+    auto json = buildCNNModelJson(core, coreConfig, ioConfig, augConfig, validationMeta);
+    auto binData = serializeCNNParametersBinary(core);
+    auto jsonStr = json.dump(4);
     ModelPackage::createFromMemory(packagePath, jsonStr, binData);
   }
 

@@ -8,6 +8,8 @@
 #include <ANN_Core.hpp>
 #include <CNN_Core.hpp>
 
+#include <json.hpp>
+
 #include <QString>
 
 #include <string>
@@ -28,15 +30,6 @@ namespace NN_CLI
   class ModelSerializer
   {
     public:
-      //-- Model saving (JSON format — legacy) --//
-      static void saveANNModel(const std::string& filePath, const ANN::Core<float>& core,
-                               const ANN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                               const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
-
-      static void saveCNNModel(const std::string& filePath, const CNN::Core<float>& core,
-                               const CNN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                               const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
-
       //-- Binary parameter I/O --//
       static void saveANNParametersBinary(const std::string& binPath,
                                           const ANN::Core<float>& core);
@@ -70,6 +63,20 @@ namespace NN_CLI
                                                    float loss);
       static std::string generateCheckpointPath(const QString& inputFilePath, ulong epoch, float loss);
       static std::string generateBestModelPath(const QString& inputFilePath);
+
+    private:
+      //-- JSON-building helpers --//
+      static nlohmann::ordered_json buildANNModelJson(const ANN::Core<float>& core,
+                                                      const ANN::CoreConfig<float>& coreConfig,
+                                                      const IOConfig& ioConfig,
+                                                      const AugmentationConfig& augConfig,
+                                                      const ValidationMetadata& validationMeta);
+
+      static nlohmann::ordered_json buildCNNModelJson(const CNN::Core<float>& core,
+                                                      const CNN::CoreConfig<float>& coreConfig,
+                                                      const IOConfig& ioConfig,
+                                                      const AugmentationConfig& augConfig,
+                                                      const ValidationMetadata& validationMeta);
   };
 
 } // namespace NN_CLI
