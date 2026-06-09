@@ -18,7 +18,11 @@
 #include <CNN_SlidingStrategy.hpp>
 #include <CNN_PoolType.hpp>
 
+#include <json.hpp>
+
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace NN_Server
 {
@@ -40,6 +44,24 @@ namespace NN_Server
 
       // Load CNN configuration (always in PREDICT mode).
       static CNN::CoreConfig<float> loadCNNConfig(const std::string& configFilePath);
+
+      //-- Package-aware loading --//
+
+      // Check if the path refers to a .nnmodel package.
+      static bool isPackage(const std::string& path);
+
+      // Load JSON config + binary parameters from a .nnmodel package.
+      static std::pair<nlohmann::json, std::vector<char>> loadPackage(const std::string& packagePath);
+
+      // Load ANN configuration with pre-extracted binary parameters.
+      // If binParams is empty, falls back to loadConfig(configFilePath).
+      static ANN::CoreConfig<float> loadConfig(const std::string& configFilePath,
+                                               const std::vector<char>& binParams);
+
+      // Load CNN configuration with pre-extracted binary parameters.
+      // If binParams is empty, falls back to loadCNNConfig(configFilePath).
+      static CNN::CoreConfig<float> loadCNNConfig(const std::string& configFilePath,
+                                                  const std::vector<char>& binParams);
   };
 
 } // namespace NN_Server
