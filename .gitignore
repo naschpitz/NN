@@ -8,6 +8,10 @@ CMakeLists.txt.user*
 .vscode/
 .idea/
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # AI agent instructions — local, not shared via the repo
 AGENTS.md
 
