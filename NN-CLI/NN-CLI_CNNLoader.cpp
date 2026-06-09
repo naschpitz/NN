@@ -1,6 +1,7 @@
 #include "NN-CLI_CNNLoader.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
+#include "NN-CLI_ModelSerializer.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 
 #include <QFile>
@@ -240,58 +241,28 @@ namespace NN_CLI
         coreConfig.testConfig.batchSize = tc.at("batchSize").get<ulong>();
     }
 
-    // Parameters (for predict/test modes or resuming training)
     if (json.contains("parameters")) {
-      const auto& paramsJson = json.at("parameters");
-
-      if (paramsJson.contains("convolutional")) {
-        for (const auto& convJson : paramsJson.at("convolutional")) {
-          CNN::ConvParameters<float> cp;
-          cp.numFilters = convJson.at("numFilters").get<ulong>();
-          cp.inputC = convJson.at("inputC").get<ulong>();
-          cp.filterH = convJson.at("filterH").get<ulong>();
-          cp.filterW = convJson.at("filterW").get<ulong>();
-          cp.filters = convJson.at("filters").get<std::vector<float>>();
-          cp.biases = convJson.at("biases").get<std::vector<float>>();
-          coreConfig.parameters.convParams.push_back(std::move(cp));
-        }
-      }
-
-      if (paramsJson.contains("instancenorm")) {
-        for (const auto& normJson : paramsJson.at("instancenorm")) {
-          CNN::NormParameters<float> bp;
-          bp.numChannels = normJson.at("numChannels").get<ulong>();
-          bp.gamma = normJson.at("gamma").get<std::vector<float>>();
-          bp.beta = normJson.at("beta").get<std::vector<float>>();
-          bp.runningMean = normJson.at("runningMean").get<std::vector<float>>();
-          bp.runningVar = normJson.at("runningVar").get<std::vector<float>>();
-          coreConfig.parameters.normParams.push_back(std::move(bp));
-        }
-      }
-
-      if (paramsJson.contains("residual")) {
-        for (const auto& resJson : paramsJson.at("residual")) {
-          CNN::ResidualParameters<float> rp;
-          rp.inC = resJson.at("inC").get<ulong>();
-          rp.outC = resJson.at("outC").get<ulong>();
-          rp.weights = resJson.at("weights").get<std::vector<float>>();
-          rp.biases = resJson.at("biases").get<std::vector<float>>();
-          coreConfig.parameters.residualParams.push_back(std::move(rp));
-        }
-      }
-
-      if (paramsJson.contains("dense")) {
-        const auto& denseJson = paramsJson.at("dense");
-        coreConfig.parameters.denseParams.weights = denseJson.at("weights").get<ANN::Tensor3D<float>>();
-        coreConfig.parameters.denseParams.biases = denseJson.at("biases").get<ANN::Tensor2D<float>>();
-      }
+      throw std::runtime_error(
+        "This JSON file contains embedded parameters. "
+        "The embedded-parameter format is no longer supported. "
+        "Please use a .nnmodel package with separate parameter files.");
     }
 
-    bool isPredictOrTest =
-      (coreConfig.modeType == Common::ModeType::PREDICT || coreConfig.modeType == Common::ModeType::TEST);
+    return coreConfig;
+  }
 
-    if (isPredictOrTest && !json.contains("parameters")) {
-      throw std::runtime_error("CNN config missing 'parameters' required for predict/test modes");
+  //===================================================================================================================//
+
+  CNN::CoreConfig<float> CNNLoader::loadConfig(const nlohmann::json& json, const std::vector<char>& binParams,
+                                               std::optional<std::string> modeOverride,
+                                               std::optional<std::string> deviceOverride)
+  {
+    // 1. Call the existing JSON-only version to parse architecture/config
+    auto coreConfig = loadConfig(json, modeOverride, deviceOverride);
+
+    // 2. If binary params provided, overwrite parameters from binary data
+    if (!binParams.empty()) {
+      ModelSerializer::loadCNNParametersBinary(binParams, coreConfig, coreConfig.layersConfig);
     }
 
     return coreConfig;
