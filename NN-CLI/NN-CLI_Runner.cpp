@@ -133,7 +133,8 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
           this->annCoreConfig.parameters.biases.empty()) {
         throw std::runtime_error(
             "Config missing parameters required for predict/test mode. "
-            "Use a .nnmodel package or provide 'parameters' in the JSON config.");
+            "Use a .nnmodel package for predict/test mode. Plain JSON "
+            "without parameters cannot be used for inference.");
       }
     }
 
