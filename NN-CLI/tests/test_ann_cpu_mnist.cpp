@@ -18,7 +18,7 @@ static void testTrainAndTestMNIST()
     return;
   }
 
-  trainedMNISTModelPath = tempDir() + "/ann_mnist_trained.nnmodel";
+  trainedMNISTModelPath = tempDir() + "/ann_mnist_trained.nnmodel.tar";
 
   // Step 1: Train on MNIST training data on CPU (10 epochs, 60k samples, Adam + crossEntropy)
   auto trainResult = runNNCLI({"--config", fixturePath("mnist_ann_train_config.json"), "--mode", "train", "--device",

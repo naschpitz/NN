@@ -25,7 +25,7 @@ static void testCheckpointParameters()
   // Clean up any prior checkpoint output
   QDir(tempDir() + "/output").removeRecursively();
 
-  QString modelPath = tempDir() + "/ann_ckpt_model.nnmodel";
+  QString modelPath = tempDir() + "/ann_ckpt_model.nnmodel.tar";
 
   auto result = runNNCLI(
     {"--config", configDst, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
@@ -35,11 +35,11 @@ static void testCheckpointParameters()
 
   // Find checkpoint files in tempDir/output/
   QDir outputDir(tempDir() + "/output");
-  QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.nnmodel"}, QDir::Files);
+  QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.nnmodel.tar"}, QDir::Files);
   CHECK(!checkpoints.isEmpty(), " checkpoint params: checkpoint files exist");
 
   if (!checkpoints.isEmpty()) {
-    // Parse the first checkpoint and verify the .nnmodel package is valid
+    // Parse the first checkpoint and verify the .nnmodel.tar package is valid
     QString checkpointPath = outputDir.filePath(checkpoints.first());
     QJsonObject root = readModelJsonFromPackage(checkpointPath);
 
@@ -73,7 +73,7 @@ static void testTrainWithDropout()
 
   QString configPath = fixturePath("ann_train_dropout_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
-  QString outputPath = tempDir() + "/ann_dropout_model.nnmodel";
+  QString outputPath = tempDir() + "/ann_dropout_model.nnmodel.tar";
 
   auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
@@ -98,7 +98,7 @@ static void testTrainWithAugmentation()
 
   QString configPath = fixturePath("ann_train_augment_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
-  QString outputPath = tempDir() + "/ann_augment_model.nnmodel";
+  QString outputPath = tempDir() + "/ann_augment_model.nnmodel.tar";
 
   auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
@@ -125,7 +125,7 @@ static void testDropoutRateParsing()
   // Verify that dropoutRate=0 (default) is not saved in model JSON
   QString configPath = fixturePath("ann_train_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
-  QString outputPath = tempDir() + "/ann_no_dropout_model.nnmodel";
+  QString outputPath = tempDir() + "/ann_no_dropout_model.nnmodel.tar";
 
   auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
@@ -148,7 +148,7 @@ static void testImageNetworkDetection()
   // An  config with inputType "image" and inputShape must still be detected as , not CNN.
   // Train with the ann_image_train_config fixture (which has layersConfig + inputShape + inputType "image")
   // using image samples, and verify the log says "Network type: ".
-  QString modelPath = tempDir() + "/ann_image_detect_model.nnmodel";
+  QString modelPath = tempDir() + "/ann_image_detect_model.nnmodel.tar";
 
   auto result =
     runNNCLI({"--config", fixturePath("ann_image_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",
