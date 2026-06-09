@@ -460,15 +460,17 @@ namespace NN_CLI
     this->epochLines_.push_back(sep());
 
     // Row length is the same for header and data rows — compute once.
-    const int lineLen = epochW + lossW + valLossW + bestW + dateTimeW + 16;
+    const int lineLen = epochW + lossW + valLossW + bestW + dateTimeW + overhead;
 
     // Header row
     {
       std::vector<char> hdr(lineLen + 1);
 
-      // GCC -Wformat-truncation: cannot prove the buffer is large enough because
-      // the column widths are runtime-computed.  However lineLen is derived from
-      // those same widths (sum + 16 overhead), so truncation is impossible.
+      // GCC -Wformat-truncation: GCC cannot prove the buffer is large enough because
+      // column widths are runtime-computed. snprintf is always safe (truncates rather
+      // than overflows). For typical terminal widths the buffer is exact; on very
+      // narrow terminals, header strings may exceed their column width, causing
+      // cosmetic truncation — not a safety issue.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
       snprintf(hdr.data(), hdr.size(), "| %-*s | %*s | %*s | %-*s | %-*s |", epochW, "Epoch", lossW, "Loss",
@@ -518,8 +520,10 @@ namespace NN_CLI
 
       std::vector<char> row(lineLen + 1);
 
-      // Same rationale as the header snprintf above: lineLen is computed from
-      // the same column widths used in the format, so truncation cannot happen.
+      // GCC -Wformat-truncation: same rationale as the header snprintf above.
+      // Column widths are runtime-computed; snprintf is always safe (truncates
+      // rather than overflows). On very narrow terminals cosmetic truncation may
+      // occur — not a safety issue.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
       snprintf(row.data(), row.size(), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, epochStr, lossW, lossStr,
