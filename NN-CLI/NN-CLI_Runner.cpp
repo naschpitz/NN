@@ -6,6 +6,8 @@
 #include "NN-CLI_CNNLoader.hpp"
 #include "NN-CLI_CNNRunner.hpp"
 #include "NN-CLI_Loader.hpp"
+#include "NN-CLI_ModelPackage.hpp"
+#include "NN-CLI_ModelSerializer.hpp"
 
 #include <iostream>
 #include <optional>
@@ -18,18 +20,36 @@ using namespace NN_CLI;
 Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), logLevel(logLevel)
 {
   QString configPath = this->parser.value("config");
+  std::string configStr = configPath.toStdString();
 
-  // Parse config file once — all subsequent loaders use the pre-parsed JSON
-  auto json = Loader::parseConfigFile(configPath.toStdString());
+  // Detect if input is a .nnmodel package
+  bool isPackage = ModelPackage::isPackage(configStr);
+
+  nlohmann::json json;
+  std::vector<char> packageBinData;
+
+  if (isPackage) {
+    // Extract JSON config from package
+    std::string jsonStr = ModelPackage::readJsonFromPackage(configStr);
+    json = nlohmann::json::parse(jsonStr);
+
+    // Extract binary parameters from package
+    packageBinData = ModelPackage::readBinaryFromPackage(configStr);
+  } else {
+    // Plain JSON file
+    json = Loader::parseConfigFile(configStr);
+  }
 
   // Detect network type from config
   this->networkType = Loader::detectNetworkType(json);
 
   // Build optional mode/device overrides as strings
   std::optional<std::string> modeOverride;
+  std::string modeDisplay = "from config file";
 
   if (this->parser.isSet("mode")) {
     modeOverride = this->parser.value("mode").toLower().toStdString();
+    modeDisplay = this->parser.value("mode").toLower().toStdString() + " (CLI)";
   }
 
   // "calibrate" is a CLI-only mode that internally drives predict. The
@@ -64,12 +84,11 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
 
   // Display info (verbose level >= 1)
   std::string networkTypeStr = (this->networkType == NetworkType::CNN) ? "CNN" : "ANN";
-  std::string modeDisplay = modeOverride.has_value() ? (modeOverride.value() + " (CLI)") : "from config file";
   std::string deviceDisplay = deviceOverride.has_value() ? (deviceOverride.value() + " (CLI)") : "from config file";
 
   if (this->logLevel >= LogLevel::INFO) {
     std::cout << "Network type: " << networkTypeStr << "\n";
-    std::cout << "Loading configuration from: " << configPath.toStdString() << "\n";
+    std::cout << "Loading configuration from: " << configStr << "\n";
     std::cout << "Mode: " << modeDisplay << ", Device: " << deviceDisplay << "\n";
     std::cout << "Input type: " << dataTypeToString(this->ioConfig.inputType)
               << ", Output type: " << dataTypeToString(this->ioConfig.outputType) << "\n";
@@ -87,7 +106,7 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
   }
 
   if (this->networkType == NetworkType::ANN) {
-    // Convert string overrides to  enum overrides
+    // Convert string overrides to enum overrides
     std::optional<Common::ModeType> annModeOverride;
 
     if (modeOverride.has_value())
@@ -98,12 +117,51 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
     if (deviceOverride.has_value())
       annDeviceOverride = Common::Device::nameToType(deviceOverride.value());
 
-    this->annCoreConfig = ANNLoader::loadConfig(json, annModeOverride, annDeviceOverride);
+    if (isPackage) {
+      this->annCoreConfig = ANNLoader::loadConfig(json, packageBinData, annModeOverride, annDeviceOverride);
+    } else {
+      this->annCoreConfig = ANNLoader::loadConfig(json, annModeOverride, annDeviceOverride);
+    }
+
+    // Validate parameters for predict/test in non-package mode (plain JSON).
+    // Packages store params in binary, but a plain JSON without parameters would
+    // produce zero-initialized weights → garbage predictions.
+    if (!isPackage &&
+        (this->annCoreConfig.modeType == Common::ModeType::PREDICT ||
+         this->annCoreConfig.modeType == Common::ModeType::TEST)) {
+      if (this->annCoreConfig.parameters.weights.empty() ||
+          this->annCoreConfig.parameters.biases.empty()) {
+        throw std::runtime_error(
+            "Config missing parameters required for predict/test mode. "
+            "Use a .nnmodel package or provide 'parameters' in the JSON config.");
+      }
+    }
+
     this->annCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
     this->mode = Common::Mode::typeToName(this->annCoreConfig.modeType);
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
-    this->cnnCoreConfig = CNNLoader::loadConfig(json, modeOverride, deviceOverride);
+    if (isPackage) {
+      this->cnnCoreConfig = CNNLoader::loadConfig(json, packageBinData, modeOverride, deviceOverride);
+    } else {
+      this->cnnCoreConfig = CNNLoader::loadConfig(json, modeOverride, deviceOverride);
+    }
+
+    // Validate parameters for predict/test in non-package mode (plain JSON).
+    // Packages store params in binary, but a plain JSON without parameters would
+    // produce zero-initialized weights → garbage predictions.
+    if (!isPackage &&
+        (this->cnnCoreConfig.modeType == Common::ModeType::PREDICT ||
+         this->cnnCoreConfig.modeType == Common::ModeType::TEST)) {
+      bool hasParams = !this->cnnCoreConfig.parameters.convParams.empty() ||
+                       !this->cnnCoreConfig.parameters.denseParams.weights.empty();
+      if (!hasParams) {
+        throw std::runtime_error(
+            "CNN config missing parameters required for predict/test mode. "
+            "Use a .nnmodel package or provide 'parameters' in the JSON config.");
+      }
+    }
+
     this->cnnCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
     this->mode = Common::Mode::typeToName(this->cnnCoreConfig.modeType);
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
