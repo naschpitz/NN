@@ -24,12 +24,20 @@ add_executable(NN-Server
   NN-Server_Loader.cpp
   NN-Server_Logger.cpp
   NN-Server_RequestHandler.cpp
+
+  # Model package support (tar I/O for .nnmodel files)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/NN-CLI_ModelPackage.cpp
+
+  # Binary parameter serialization (shared with NN-CLI)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/NN-CLI_ModelSerializer.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/NN-CLI_DataType.cpp
 )
 
-# Header-only libraries
+# Header-only libraries + NN-CLI source for ModelPackage header
 target_include_directories(NN-Server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
+    ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI
 )
 
 # Link to CNN — ANN, OpenCLWrapper, Qt::Core, OpenCL are propagated automatically via PUBLIC
