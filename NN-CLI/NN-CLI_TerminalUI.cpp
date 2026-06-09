@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <clocale>
 #include <csignal>
+#include <cstdio>
 #include <cstring>
 #include <ctime>
 #include <curses.h>
@@ -443,9 +444,6 @@ namespace NN_CLI
     // Give datetime at most 19 chars, minimum 4, leaving at least 8+8 for loss columns
     int dateTimeW = std::max(4, std::min(19, remaining - 16));
 
-    if (dateTimeW < 4)
-      dateTimeW = 4;
-
     // Split the rest equally between loss and val loss
     int lossValSpace = remaining - dateTimeW;
     int lossW = std::max(4, lossValSpace / 2);
@@ -461,12 +459,15 @@ namespace NN_CLI
     // Top border
     this->epochLines_.push_back(sep());
 
+    // Row length is the same for header and data rows — compute once.
+    const int lineLen = epochW + lossW + valLossW + bestW + dateTimeW + 16;
+
     // Header row
     {
-      char hdr[128];
-      snprintf(hdr, sizeof(hdr), "| %-*s | %*s | %*s | %-*s | %-*s |", epochW, "Epoch", lossW, "Loss", valLossW,
-               "Val Loss", bestW, "Best", dateTimeW, "Completed At");
-      this->epochLines_.push_back(hdr);
+      std::vector<char> hdr(lineLen + 1);
+      snprintf(hdr.data(), hdr.size(), "| %-*s | %*s | %*s | %-*s | %-*s |", epochW, "Epoch", lossW, "Loss",
+               valLossW, "Val Loss", bestW, "Best", dateTimeW, "Completed At");
+      this->epochLines_.push_back(hdr.data());
     }
 
     // Header/data separator
@@ -507,10 +508,10 @@ namespace NN_CLI
         std::strftime(dateStr, sizeof(dateStr), dateFmt, tm_info);
       }
 
-      char row[256];
-      snprintf(row, sizeof(row), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, epochStr, lossW, lossStr, valLossW,
-               valLossStr, bestW, bestCell, dateTimeW, dateStr);
-      this->epochLines_.push_back(row);
+      std::vector<char> row(lineLen + 1);
+      snprintf(row.data(), row.size(), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, epochStr, lossW, lossStr,
+               valLossW, valLossStr, bestW, bestCell, dateTimeW, dateStr);
+      this->epochLines_.push_back(row.data());
     }
 
     // Bottom border
