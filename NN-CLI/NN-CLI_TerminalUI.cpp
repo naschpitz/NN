@@ -427,9 +427,6 @@ namespace NN_CLI
 
   void TerminalUI::rebuildEpochLines()
   {
-    if (this->epochRecords_.empty())
-      return;
-
     // Rebuild the entire table with borders from scratch
     this->epochLines_.clear();
 
@@ -486,41 +483,8 @@ namespace NN_CLI
     // Header/data separator
     this->epochLines_.push_back(sep());
 
-    // Data rows
-    for (const auto& rec : this->epochRecords_) {
-      char epochStr[16], lossStr[32], valLossStr[32], bestCell[8];
-      snprintf(epochStr, sizeof(epochStr), "%d", rec.epoch);
-      snprintf(lossStr, sizeof(lossStr), "%.6f", static_cast<double>(rec.loss));
-
-      if (rec.hasValLoss) {
-        snprintf(valLossStr, sizeof(valLossStr), "%.6f", static_cast<double>(rec.valLoss));
-      } else {
-        snprintf(valLossStr, sizeof(valLossStr), "-");
-      }
-
-      snprintf(bestCell, sizeof(bestCell), "%s", rec.isBest ? "X" : "");
-
-      char dateStr[32] = "";
-      std::tm tm_buf{};
-      std::tm* tm_info = localtime_r(&rec.completionTime, &tm_buf);
-
-      if (tm_info) {
-        const char* dateFmt = "%Y-%m-%d %H:%M:%S";
-
-        if (dateTimeW < 19)
-          dateFmt = "%m-%d %H:%M:%S";
-
-        if (dateTimeW < 14)
-          dateFmt = "%m-%d %H:%M";
-
-        if (dateTimeW < 11)
-          dateFmt = "%H:%M:%S";
-
-        if (dateTimeW < 8)
-          dateFmt = "%H:%M";
-        std::strftime(dateStr, sizeof(dateStr), dateFmt, tm_info);
-      }
-
+    // Data rows (one empty line if no records yet)
+    if (this->epochRecords_.empty()) {
       std::vector<char> row(lineLen + 1);
 
       // GCC -Wformat-truncation: same rationale as the header snprintf above.
@@ -529,11 +493,59 @@ namespace NN_CLI
       // occur — not a safety issue.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-      snprintf(row.data(), row.size(), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, epochStr, lossW, lossStr,
-               valLossW, valLossStr, bestW, bestCell, dateTimeW, dateStr);
+      snprintf(row.data(), row.size(), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, "", lossW, "",
+               valLossW, "", bestW, "", dateTimeW, "");
+#pragma GCC diagnostic pop
+      this->epochLines_.push_back(row.data());
+    } else {
+      for (const auto& rec : this->epochRecords_) {
+        char epochStr[16], lossStr[32], valLossStr[32], bestCell[8];
+        snprintf(epochStr, sizeof(epochStr), "%d", rec.epoch);
+        snprintf(lossStr, sizeof(lossStr), "%.6f", static_cast<double>(rec.loss));
+
+        if (rec.hasValLoss) {
+          snprintf(valLossStr, sizeof(valLossStr), "%.6f", static_cast<double>(rec.valLoss));
+        } else {
+          snprintf(valLossStr, sizeof(valLossStr), "-");
+        }
+
+        snprintf(bestCell, sizeof(bestCell), "%s", rec.isBest ? "X" : "");
+
+        char dateStr[32] = "";
+        std::tm tm_buf{};
+        std::tm* tm_info = localtime_r(&rec.completionTime, &tm_buf);
+
+        if (tm_info) {
+          const char* dateFmt = "%Y-%m-%d %H:%M:%S";
+
+          if (dateTimeW < 19)
+            dateFmt = "%m-%d %H:%M:%S";
+
+          if (dateTimeW < 14)
+            dateFmt = "%m-%d %H:%M";
+
+          if (dateTimeW < 11)
+            dateFmt = "%H:%M:%S";
+
+          if (dateTimeW < 8)
+            dateFmt = "%H:%M";
+          std::strftime(dateStr, sizeof(dateStr), dateFmt, tm_info);
+        }
+
+        std::vector<char> row(lineLen + 1);
+
+        // GCC -Wformat-truncation: same rationale as the header snprintf above.
+        // Column widths are runtime-computed; snprintf is always safe (truncates
+        // rather than overflows). On very narrow terminals cosmetic truncation may
+        // occur — not a safety issue.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+        snprintf(row.data(), row.size(), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, epochStr, lossW, lossStr,
+                 valLossW, valLossStr, bestW, bestCell, dateTimeW, dateStr);
 #pragma GCC diagnostic pop
 
-      this->epochLines_.push_back(row.data());
+        this->epochLines_.push_back(row.data());
+      }
     }
 
     // Bottom border
@@ -568,8 +580,7 @@ namespace NN_CLI
 
     // layout() erased the loading/progress sub-windows; reflow the epoch table to match
     // the new panel width before redrawing panels.
-    if (!this->epochRecords_.empty())
-      this->rebuildEpochLines();
+    this->rebuildEpochLines();
 
     this->drawAllPanels();
     wnoutrefresh(stdscr);
