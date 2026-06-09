@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <iostream>
 #include <numeric>
 #include <random>
@@ -157,7 +158,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
   }
 
-  for (ulong e = 0; e < numEpochs && !this->stopRequested.load(); e++) {
+  for (ulong e = this->trainingConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = 0;
 
     // Shuffle sample order for this epoch
@@ -290,6 +291,9 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
     }
 
+    // Always track last completed epoch, regardless of monitoring
+    this->trainingMetadata.lastEpoch = e + 1;
+
     if (this->trainingCallback) {
       TrainingProgress<T> progress;
       progress.currentEpoch = e + 1;
@@ -304,10 +308,6 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       if (monitor) {
         progress.isNewBest = monitor->isNewBest();
 
-        if (progress.isNewBest) {
-          this->trainingMetadata.lastEpoch = e + 1;
-        }
-
         if (shouldStop) {
           progress.stoppedEarly = true;
         }
@@ -315,6 +315,17 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       this->trainingCallback(progress);
     }
+
+    // Record epoch history
+    EpochRecord<T> epochRecord;
+    epochRecord.epoch = e;
+    epochRecord.loss = avgEpochLoss;
+    epochRecord.valLoss = static_cast<T>(0);
+    epochRecord.hasValLoss = false;
+    epochRecord.isBest = monitor ? monitor->isNewBest() : false;
+    epochRecord.completionTime = static_cast<ulong>(
+      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+    this->trainingMetadata.epochHistory.push_back(epochRecord);
 
     if (shouldStop) {
       break;
