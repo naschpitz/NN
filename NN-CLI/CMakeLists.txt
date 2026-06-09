@@ -55,6 +55,7 @@ add_library(nncli_common OBJECT
     NN-CLI_DataType.cpp
     NN-CLI_ImageLoader.cpp
     NN-CLI_Loader.cpp
+    NN-CLI_ModelPackage.cpp
     NN-CLI_ProgressBar.cpp
     NN-CLI_SummaryTable.cpp
     NN-CLI_TrainingSummary.cpp
