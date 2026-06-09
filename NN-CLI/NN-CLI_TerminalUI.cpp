@@ -434,7 +434,9 @@ namespace NN_CLI
 
     // Compute dynamic column widths to fill the available panel space
     int maxW = std::max(40, static_cast<int>(this->leftWidth_ - 4));
-    int overhead = 16; // non-data chars: "| " + " | " + " | " + " | " + " | " + " |"
+    // Width accounting
+    int overhead         = 16; // non-data chars: "| " + " | " + " | " + " | " + " | " + " |"
+    int reservedLossWidth = 16; // minimum space reserved for loss + valLoss columns (8+8)
     int dataW = std::max(25, maxW - overhead);
 
     int epochW = 5;
@@ -442,7 +444,7 @@ namespace NN_CLI
     int remaining = dataW - epochW - bestW;
 
     // Give datetime at most 19 chars, minimum 4, leaving at least 8+8 for loss columns
-    int dateTimeW = std::max(4, std::min(19, remaining - 16));
+    int dateTimeW = std::max(4, std::min(19, remaining - reservedLossWidth));
 
     // Split the rest equally between loss and val loss
     int lossValSpace = remaining - dateTimeW;
