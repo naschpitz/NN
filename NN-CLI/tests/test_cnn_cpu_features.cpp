@@ -59,7 +59,7 @@ static void testCNNCheckpointParameters()
   // Clean up any prior checkpoint output
   QDir(tempDir() + "/output").removeRecursively();
 
-  QString modelPath = tempDir() + "/cnn_ckpt_model.nnmodel";
+  QString modelPath = tempDir() + "/cnn_ckpt_model.nnmodel.tar";
 
   auto result = runNNCLI(
     {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
@@ -69,7 +69,7 @@ static void testCNNCheckpointParameters()
 
   // Find checkpoint files in tempDir/output/
   QDir outputDir(tempDir() + "/output");
-  QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.nnmodel"}, QDir::Files);
+  QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.nnmodel.tar"}, QDir::Files);
   CHECK(!checkpoints.isEmpty(), "CNN checkpoint params: checkpoint files exist");
 
   if (!checkpoints.isEmpty()) {
@@ -155,7 +155,7 @@ static void testCNNCheckpointInstanceNormRoundTrip()
   // Clean up any prior checkpoint output
   QDir(tempDir() + "/output").removeRecursively();
 
-  QString modelPath = tempDir() + "/cnn_norm_ckpt_model.nnmodel";
+  QString modelPath = tempDir() + "/cnn_norm_ckpt_model.nnmodel.tar";
 
   auto result = runNNCLI(
     {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
@@ -273,7 +273,7 @@ static void testCNNGlobalDualPoolEndToEnd()
   }
 
   // Train
-  QString modelPath = tempDir() + "/cnn_gdp_model.nnmodel";
+  QString modelPath = tempDir() + "/cnn_gdp_model.nnmodel.tar";
 
   auto trainResult = runNNCLI(
     {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
@@ -418,7 +418,7 @@ static void testCNNResidualEndToEnd()
   }
 
   // Train
-  QString modelPath = tempDir() + "/cnn_res_model.nnmodel";
+  QString modelPath = tempDir() + "/cnn_res_model.nnmodel.tar";
 
   auto trainResult = runNNCLI(
     {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});

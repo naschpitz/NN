@@ -101,7 +101,7 @@ inline bool checkGPUAvailable()
   if (cached >= 0)
     return cached == 1;
 
-  QString modelPath = tempDir() + "/gpu_probe.nnmodel";
+  QString modelPath = tempDir() + "/gpu_probe.nnmodel.tar";
 
   QProcess process;
   process.setWorkingDirectory(QCoreApplication::applicationDirPath() + "/..");
@@ -148,7 +148,7 @@ inline ProcessResult runNNCLI(const QStringList& args, int timeoutMs = 120000)
           QString::fromUtf8(process.readAllStandardError())};
 }
 
-// Extract and parse model.json from a .nnmodel tar package, returning the JSON root object.
+// Extract and parse model.json from a .nnmodel.tar package, returning the JSON root object.
 // Returns a null QJsonObject on failure.
 inline QJsonObject readModelJsonFromPackage(const QString& packagePath)
 {

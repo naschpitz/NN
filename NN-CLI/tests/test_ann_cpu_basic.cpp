@@ -13,7 +13,7 @@ static void testTrainXOR()
 {
   std::cout << "  testTrainXOR... ";
 
-  trainedModelPath = tempDir() + "/ann_xor_model.nnmodel";
+  trainedModelPath = tempDir() + "/ann_xor_model.nnmodel.tar";
 
   auto result = runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("ann_train_samples.json"), "--output", trainedModelPath});
@@ -98,7 +98,7 @@ static void testTrainWithWeightedLoss()
 {
   std::cout << "  testTrainWithWeightedLoss... ";
 
-  QString modelPath = tempDir() + "/ann_weighted_model.nnmodel";
+  QString modelPath = tempDir() + "/ann_weighted_model.nnmodel.tar";
 
   auto result = runNNCLI({"--config", fixturePath("ann_train_weighted_config.json"), "--mode", "train", "--device",
                           "cpu", "--samples", fixturePath("ann_train_samples.json"), "--output", modelPath});
@@ -141,7 +141,7 @@ static void testTrainValidationNoDeadlock()
 {
   std::cout << "  testTrainValidationNoDeadlock... ";
 
-  QString modelPath = tempDir() + "/ann_validation_nodeadlock.nnmodel";
+  QString modelPath = tempDir() + "/ann_validation_nodeadlock.nnmodel.tar";
 
   auto result =
     runNNCLI({"--config", fixturePath("ann_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",

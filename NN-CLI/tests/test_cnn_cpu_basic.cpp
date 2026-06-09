@@ -27,7 +27,7 @@ static void testCNNNetworkDetection()
   // Train with tiny fixture + verbose to check detection
   auto result = runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("cnn_train_samples.json"), "--output",
-                           tempDir() + "/cnn_detect_model.nnmodel", "--log-level", "info"});
+                           tempDir() + "/cnn_detect_model.nnmodel.tar", "--log-level", "info"});
 
   CHECK(result.exitCode == 0, "CNN detection: exit code 0");
   CHECK(result.stdOut.contains("Network type: CNN"), "CNN detection: 'Network type: CNN'");
@@ -38,7 +38,7 @@ static void testCNNTrain()
 {
   std::cout << "  testCNNTrain... ";
 
-  trainedCNNModelPath = tempDir() + "/cnn_trained_model.nnmodel";
+  trainedCNNModelPath = tempDir() + "/cnn_trained_model.nnmodel.tar";
 
   auto result = runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("cnn_train_samples.json"), "--output", trainedCNNModelPath});
@@ -124,7 +124,7 @@ static void testCNNTrainWithWeightedLoss()
 {
   std::cout << "  testCNNTrainWithWeightedLoss... ";
 
-  QString modelPath = tempDir() + "/cnn_weighted_model.nnmodel";
+  QString modelPath = tempDir() + "/cnn_weighted_model.nnmodel.tar";
 
   auto result = runNNCLI({"--config", fixturePath("cnn_train_weighted_config.json"), "--mode", "train", "--device",
                           "cpu", "--samples", fixturePath("cnn_train_samples.json"), "--output", modelPath});
@@ -165,7 +165,7 @@ static void testCNNTrainAndTestMNIST()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_mnist_trained.nnmodel";
+  QString modelPath = tempDir() + "/cnn_mnist_trained.nnmodel.tar";
 
   // Step 1: Train on MNIST training data on CPU (10 epochs, 60k samples, Adam + crossEntropy + instancenorm)
   auto trainResult =
@@ -228,7 +228,7 @@ static void testCNNResidualMNIST()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_mnist_residual_trained.nnmodel";
+  QString modelPath = tempDir() + "/cnn_mnist_residual_trained.nnmodel.tar";
 
   // Train ResNet-like architecture on MNIST (10 epochs, 60k samples, Adam + crossEntropy + residual blocks)
   // Residual is deeper than the plain-conv MNIST test, so the training pass is markedly slower; 60min was not enough.
@@ -318,7 +318,7 @@ static void testCNNTrainValidationNoDeadlock()
 {
   std::cout << "  testCNNTrainValidationNoDeadlock... " << std::flush;
 
-  QString modelPath = tempDir() + "/cnn_validation_nodeadlock.nnmodel";
+  QString modelPath = tempDir() + "/cnn_validation_nodeadlock.nnmodel.tar";
 
   auto result =
     runNNCLI({"--config", fixturePath("cnn_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",

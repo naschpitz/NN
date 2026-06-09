@@ -65,7 +65,7 @@ static void testCNNSaveLoadPredictConsistencyGPU()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_slpc_gpu_model.nnmodel";
+  QString modelPath = tempDir() + "/cnn_slpc_gpu_model.nnmodel.tar";
 
   // Step 1: Train on GPU
   auto trainResult = runNNCLI({"--config", configPath, "--mode", "train", "--device", "gpu", "--samples",

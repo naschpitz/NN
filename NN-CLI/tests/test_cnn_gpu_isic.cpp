@@ -142,7 +142,7 @@ static void testCNNISICLikeSaveLoadPredict()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_isic_model.nnmodel";
+  QString modelPath = tempDir() + "/cnn_isic_model.nnmodel.tar";
 
   // Step 1: Train
   auto trainResult = runNNCLI(
@@ -308,7 +308,7 @@ static void testCNNISICLikeSaveLoadPredictGPU()
 
   CHECK(!configPath.isEmpty(), "ISIC-like GPU: config written");
 
-  QString modelPath = tempDir() + "/cnn_isic_gpu_model.nnmodel";
+  QString modelPath = tempDir() + "/cnn_isic_gpu_model.nnmodel.tar";
 
   // Step 1: Train on GPU
   auto trainResult = runNNCLI(
