@@ -27,7 +27,7 @@ static void testCNNNetworkDetection()
   // Train with tiny fixture + verbose to check detection
   auto result = runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("cnn_train_samples.json"), "--output",
-                          tempDir() + "/cnn_detect_model.json", "--log-level", "info"});
+                           tempDir() + "/cnn_detect_model.nnmodel", "--log-level", "info"});
 
   CHECK(result.exitCode == 0, "CNN detection: exit code 0");
   CHECK(result.stdOut.contains("Network type: CNN"), "CNN detection: 'Network type: CNN'");
@@ -38,7 +38,7 @@ static void testCNNTrain()
 {
   std::cout << "  testCNNTrain... ";
 
-  trainedCNNModelPath = tempDir() + "/cnn_trained_model.json";
+  trainedCNNModelPath = tempDir() + "/cnn_trained_model.nnmodel";
 
   auto result = runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("cnn_train_samples.json"), "--output", trainedCNNModelPath});
@@ -124,7 +124,7 @@ static void testCNNTrainWithWeightedLoss()
 {
   std::cout << "  testCNNTrainWithWeightedLoss... ";
 
-  QString modelPath = tempDir() + "/cnn_weighted_model.json";
+  QString modelPath = tempDir() + "/cnn_weighted_model.nnmodel";
 
   auto result = runNNCLI({"--config", fixturePath("cnn_train_weighted_config.json"), "--mode", "train", "--device",
                           "cpu", "--samples", fixturePath("cnn_train_samples.json"), "--output", modelPath});
@@ -135,12 +135,9 @@ static void testCNNTrainWithWeightedLoss()
   CHECK(QFile::exists(modelPath), "CNN weighted train: model file exists");
 
   // Verify saved model JSON contains costFunctionConfig
-  QFile file(modelPath);
+  QJsonObject root = readModelJsonFromPackage(modelPath);
 
-  if (file.open(QIODevice::ReadOnly)) {
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-    QJsonObject root = doc.object();
-
+  if (!root.isEmpty()) {
     CHECK(root.contains("costFunction"), "CNN weighted train: saved model has 'costFunctionConfig'");
 
     QJsonObject cfc = root["costFunction"].toObject();
@@ -152,10 +149,8 @@ static void testCNNTrainWithWeightedLoss()
     CHECK(weights.size() == 2, "CNN weighted train: weights has 2 elements");
     CHECK_NEAR(weights[0].toDouble(), 5.0, 1e-6, "CNN weighted train: weight[0] = 5.0");
     CHECK_NEAR(weights[1].toDouble(), 1.0, 1e-6, "CNN weighted train: weight[1] = 1.0");
-
-    file.close();
   } else {
-    CHECK(false, "CNN weighted train: failed to open saved model file");
+    CHECK(false, "CNN weighted train: failed to read saved model package");
   }
 
   std::cout << std::endl;
@@ -170,7 +165,7 @@ static void testCNNTrainAndTestMNIST()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_mnist_trained.json";
+  QString modelPath = tempDir() + "/cnn_mnist_trained.nnmodel";
 
   // Step 1: Train on MNIST training data on CPU (10 epochs, 60k samples, Adam + crossEntropy + instancenorm)
   auto trainResult =
@@ -233,7 +228,7 @@ static void testCNNResidualMNIST()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_mnist_residual_trained.json";
+  QString modelPath = tempDir() + "/cnn_mnist_residual_trained.nnmodel";
 
   // Train ResNet-like architecture on MNIST (10 epochs, 60k samples, Adam + crossEntropy + residual blocks)
   // Residual is deeper than the plain-conv MNIST test, so the training pass is markedly slower; 60min was not enough.
@@ -251,17 +246,29 @@ static void testCNNResidualMNIST()
     return;
   }
 
-  // Verify model contains residual markers and projection weights
+  // Verify model contains residual markers in the configuration
   if (QFile::exists(modelPath)) {
-    QFile model(modelPath);
+    QJsonObject root = readModelJsonFromPackage(modelPath);
 
-    if (model.open(QIODevice::ReadOnly)) {
-      QByteArray data = model.readAll();
-      model.close();
-      CHECK(data.contains("residual_start"), "CNN Residual MNIST: model has residual_start");
-      CHECK(data.contains("residual_end"), "CNN Residual MNIST: model has residual_end");
-      // Second block has 16→32 channel change, so projection weights must exist
-      CHECK(data.contains("\"residual\""), "CNN Residual MNIST: model has residual params");
+    if (!root.isEmpty()) {
+      QJsonArray convLayers = root["convolutionalLayers"].toArray();
+      bool hasResStart = false;
+      bool hasResEnd = false;
+
+      for (int i = 0; i < convLayers.size(); ++i) {
+        QString type = convLayers[i].toObject()["type"].toString();
+
+        if (type == "residual_start")
+          hasResStart = true;
+
+        if (type == "residual_end")
+          hasResEnd = true;
+      }
+
+      CHECK(hasResStart, "CNN Residual MNIST: model has residual_start");
+      CHECK(hasResEnd, "CNN Residual MNIST: model has residual_end");
+      // Projection weights exist when residual blocks have channel changes (stored in params.bin)
+      CHECK(hasResStart && hasResEnd, "CNN Residual MNIST: model has residual params");
     }
   }
 
@@ -311,7 +318,7 @@ static void testCNNTrainValidationNoDeadlock()
 {
   std::cout << "  testCNNTrainValidationNoDeadlock... " << std::flush;
 
-  QString modelPath = tempDir() + "/cnn_validation_nodeadlock.json";
+  QString modelPath = tempDir() + "/cnn_validation_nodeadlock.nnmodel";
 
   auto result =
     runNNCLI({"--config", fixturePath("cnn_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",

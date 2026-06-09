@@ -25,7 +25,7 @@ static void testCheckpointParameters()
   // Clean up any prior checkpoint output
   QDir(tempDir() + "/output").removeRecursively();
 
-  QString modelPath = tempDir() + "/ann_ckpt_model.json";
+  QString modelPath = tempDir() + "/ann_ckpt_model.nnmodel";
 
   auto result = runNNCLI(
     {"--config", configDst, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
@@ -35,43 +35,27 @@ static void testCheckpointParameters()
 
   // Find checkpoint files in tempDir/output/
   QDir outputDir(tempDir() + "/output");
-  QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.json"}, QDir::Files);
+  QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.nnmodel"}, QDir::Files);
   CHECK(!checkpoints.isEmpty(), " checkpoint params: checkpoint files exist");
 
   if (!checkpoints.isEmpty()) {
-    // Parse the first checkpoint and verify parameters are non-empty
+    // Parse the first checkpoint and verify the .nnmodel package is valid
     QString checkpointPath = outputDir.filePath(checkpoints.first());
-    QFile file(checkpointPath);
+    QJsonObject root = readModelJsonFromPackage(checkpointPath);
 
-    if (file.open(QIODevice::ReadOnly)) {
-      QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-      QJsonObject root = doc.object();
-      CHECK(root.contains("parameters"), " checkpoint params: has 'parameters'");
+    if (!root.isEmpty()) {
+      // model.json present — config has layer structure, parameters are in params.bin
+      CHECK(root.contains("layers"), " checkpoint params: has 'layers' config");
 
-      QJsonObject params = root["parameters"].toObject();
-      QJsonArray weights = params["weights"].toArray();
-      QJsonArray biases = params["biases"].toArray();
+      // Verify checkpoint file has non-trivial size (params.bin contains trained data)
+      QFile cpf(checkpointPath);
 
-      CHECK(!weights.isEmpty(), " checkpoint params: weights non-empty");
-      CHECK(!biases.isEmpty(), " checkpoint params: biases non-empty");
-
-      // Verify at least one layer has actual weight data
-      if (!weights.isEmpty()) {
-        bool hasData = false;
-
-        for (int i = 0; i < weights.size(); ++i) {
-          if (weights[i].toArray().size() > 0) {
-            hasData = true;
-            break;
-          }
-        }
-
-        CHECK(hasData, " checkpoint params: weights contain actual data");
+      if (cpf.open(QIODevice::ReadOnly)) {
+        CHECK(cpf.size() > 1024, " checkpoint params: checkpoint file has parameter data");
+        cpf.close();
       }
-
-      file.close();
     } else {
-      CHECK(false, " checkpoint params: failed to open checkpoint file");
+      CHECK(false, " checkpoint params: failed to read checkpoint package");
     }
   }
 
@@ -89,7 +73,7 @@ static void testTrainWithDropout()
 
   QString configPath = fixturePath("ann_train_dropout_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
-  QString outputPath = tempDir() + "/ann_dropout_model.json";
+  QString outputPath = tempDir() + "/ann_dropout_model.nnmodel";
 
   auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
@@ -97,10 +81,7 @@ static void testTrainWithDropout()
   CHECK(QFile::exists(outputPath), " dropout model file created");
 
   // Verify the model JSON contains dropoutRate in trainingConfig
-  QFile file(outputPath);
-  file.open(QIODevice::ReadOnly);
-  auto json = QJsonDocument::fromJson(file.readAll()).object();
-  file.close();
+  QJsonObject json = readModelJsonFromPackage(outputPath);
 
   auto tc = json["training"].toObject();
   CHECK(tc.contains("dropoutRate"), "dropoutRate saved in model JSON");
@@ -117,7 +98,7 @@ static void testTrainWithAugmentation()
 
   QString configPath = fixturePath("ann_train_augment_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
-  QString outputPath = tempDir() + "/ann_augment_model.json";
+  QString outputPath = tempDir() + "/ann_augment_model.nnmodel";
 
   auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
@@ -125,10 +106,7 @@ static void testTrainWithAugmentation()
   CHECK(QFile::exists(outputPath), " augmented model file created");
 
   // Verify auto class weights were applied
-  QFile file(outputPath);
-  file.open(QIODevice::ReadOnly);
-  auto json = QJsonDocument::fromJson(file.readAll()).object();
-  file.close();
+  QJsonObject json = readModelJsonFromPackage(outputPath);
 
   auto cfc = json["costFunction"].toObject();
   CHECK(cfc["type"].toString() == "weightedSquaredDifference",
@@ -147,16 +125,13 @@ static void testDropoutRateParsing()
   // Verify that dropoutRate=0 (default) is not saved in model JSON
   QString configPath = fixturePath("ann_train_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
-  QString outputPath = tempDir() + "/ann_no_dropout_model.json";
+  QString outputPath = tempDir() + "/ann_no_dropout_model.nnmodel";
 
   auto result = runNNCLI({"--config", configPath, "--samples", samplesPath, "--output", outputPath});
 
   CHECK(result.exitCode == 0, " no-dropout training exits 0");
 
-  QFile file(outputPath);
-  file.open(QIODevice::ReadOnly);
-  auto json = QJsonDocument::fromJson(file.readAll()).object();
-  file.close();
+  QJsonObject json = readModelJsonFromPackage(outputPath);
 
   auto tc = json["training"].toObject();
   CHECK(tc.contains("dropoutRate"), "dropoutRate always saved for complete snapshot");
@@ -173,7 +148,7 @@ static void testImageNetworkDetection()
   // An  config with inputType "image" and inputShape must still be detected as , not CNN.
   // Train with the ann_image_train_config fixture (which has layersConfig + inputShape + inputType "image")
   // using image samples, and verify the log says "Network type: ".
-  QString modelPath = tempDir() + "/ann_image_detect_model.json";
+  QString modelPath = tempDir() + "/ann_image_detect_model.nnmodel";
 
   auto result =
     runNNCLI({"--config", fixturePath("ann_image_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",

@@ -13,7 +13,7 @@ static void testTrainXOR()
 {
   std::cout << "  testTrainXOR... ";
 
-  trainedModelPath = tempDir() + "/ann_xor_model.json";
+  trainedModelPath = tempDir() + "/ann_xor_model.nnmodel";
 
   auto result = runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("ann_train_samples.json"), "--output", trainedModelPath});
@@ -98,7 +98,7 @@ static void testTrainWithWeightedLoss()
 {
   std::cout << "  testTrainWithWeightedLoss... ";
 
-  QString modelPath = tempDir() + "/ann_weighted_model.json";
+  QString modelPath = tempDir() + "/ann_weighted_model.nnmodel";
 
   auto result = runNNCLI({"--config", fixturePath("ann_train_weighted_config.json"), "--mode", "train", "--device",
                           "cpu", "--samples", fixturePath("ann_train_samples.json"), "--output", modelPath});
@@ -109,12 +109,9 @@ static void testTrainWithWeightedLoss()
   CHECK(QFile::exists(modelPath), " weighted train: model file exists");
 
   // Verify saved model JSON contains costFunctionConfig
-  QFile file(modelPath);
+  QJsonObject root = readModelJsonFromPackage(modelPath);
 
-  if (file.open(QIODevice::ReadOnly)) {
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-    QJsonObject root = doc.object();
-
+  if (!root.isEmpty()) {
     CHECK(root.contains("costFunction"), " weighted train: saved model has 'costFunctionConfig'");
 
     QJsonObject cfc = root["costFunction"].toObject();
@@ -126,10 +123,8 @@ static void testTrainWithWeightedLoss()
     CHECK(weights.size() == 2, " weighted train: weights has 2 elements");
     CHECK_NEAR(weights[0].toDouble(), 3.0, 1e-6, " weighted train: weight[0] = 3.0");
     CHECK_NEAR(weights[1].toDouble(), 1.0, 1e-6, " weighted train: weight[1] = 1.0");
-
-    file.close();
   } else {
-    CHECK(false, " weighted train: failed to open saved model file");
+    CHECK(false, " weighted train: failed to read saved model package");
   }
 
   std::cout << std::endl;
@@ -146,7 +141,7 @@ static void testTrainValidationNoDeadlock()
 {
   std::cout << "  testTrainValidationNoDeadlock... ";
 
-  QString modelPath = tempDir() + "/ann_validation_nodeadlock.json";
+  QString modelPath = tempDir() + "/ann_validation_nodeadlock.nnmodel";
 
   auto result =
     runNNCLI({"--config", fixturePath("ann_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",
