@@ -158,7 +158,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
   }
 
-  for (ulong e = 0; e < numEpochs && !this->stopRequested.load(); e++) {
+  for (ulong e = this->trainingConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = 0;
 
     // Shuffle sample order for this epoch
@@ -248,8 +248,10 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     this->trainingMetadata.finalLoss = avgEpochLoss;
 
     // Check training health if monitor is active
+    bool shouldStop = false;
+
     if (monitor) {
-      bool shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
+      shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
 
       // Build epoch progress with monitoring signals
       TrainingProgress<T> progress;
@@ -268,16 +270,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         this->trainingMetadata.stopReason = monitor->stopReason();
       }
 
-      this->trainingMetadata.lastEpoch = e + 1;
       this->trainingMetadata.bestEpoch = monitor->bestEpoch();
       this->trainingMetadata.bestLoss = monitor->bestLoss();
 
       if (this->trainingCallback) {
         this->trainingCallback(progress);
-      }
-
-      if (shouldStop) {
-        break;
       }
     } else {
       // Report epoch completion (gpuIndex = -1 indicates combined result)
@@ -293,8 +290,24 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         progress.totalGPUs = static_cast<int>(this->numGPUs);
         this->trainingCallback(progress);
       }
+    }
 
-      this->trainingMetadata.lastEpoch = e + 1;
+    // Always track last completed epoch, regardless of monitoring
+    this->trainingMetadata.lastEpoch = e + 1;
+
+    // Record epoch history
+    EpochRecord<T> epochRecord;
+    epochRecord.epoch = e;
+    epochRecord.loss = avgEpochLoss;
+    epochRecord.valLoss = static_cast<T>(0);
+    epochRecord.hasValLoss = false;
+    epochRecord.isBest = monitor ? monitor->isNewBest() : false;
+    epochRecord.completionTime = static_cast<ulong>(
+      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+    this->trainingMetadata.epochHistory.push_back(epochRecord);
+
+    if (shouldStop) {
+      break;
     }
   }
 

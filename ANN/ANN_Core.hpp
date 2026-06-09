@@ -6,6 +6,7 @@
 #include "ANN_InputProvider.hpp"
 #include "ANN_Sample.hpp"
 #include "ANN_SampleProvider.hpp"
+#include "Common/Common_EpochRecord.hpp"
 #include "Common/Common_TrainingProgress.hpp"
 #include "Common/Common_TrainingMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
@@ -94,6 +95,11 @@ namespace ANN
         return trainingMetadata;
       }
 
+      TrainingMetadata<T>& getTrainingMetadata()
+      {
+        return trainingMetadata;
+      }
+
       const Parameters<T>& getParameters() const
       {
         return parameters;
@@ -140,6 +146,17 @@ namespace ANN
       LogLevel getLogLevel() const
       {
         return logLevel;
+      }
+
+      //-- Epoch history --//
+      // Prepend loaded epoch history (from a resumed model) before the
+      // newly-trained epochs so the serializer writes the full history.
+      void prependEpochHistory(const std::vector<EpochRecord<T>>& history)
+      {
+        std::vector<EpochRecord<T>> merged = history;
+        merged.insert(merged.end(), this->trainingMetadata.epochHistory.begin(),
+                      this->trainingMetadata.epochHistory.end());
+        this->trainingMetadata.epochHistory = std::move(merged);
       }
 
     protected:

@@ -6,6 +6,7 @@
 #include "CNN_InputProvider.hpp"
 #include "CNN_Sample.hpp"
 #include "CNN_SampleProvider.hpp"
+#include "Common/Common_EpochRecord.hpp"
 #include "Common/Common_TrainingProgress.hpp"
 #include "Common/Common_TrainingMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
@@ -93,6 +94,11 @@ namespace CNN
         return trainingMetadata;
       }
 
+      Common::TrainingMetadata<T>& getTrainingMetadata()
+      {
+        return trainingMetadata;
+      }
+
       const Parameters<T>& getParameters() const
       {
         return parameters;
@@ -155,6 +161,17 @@ namespace CNN
       Common::LogLevel getLogLevel() const
       {
         return logLevel;
+      }
+
+      //-- Epoch history --//
+      // Prepend loaded epoch history (from a resumed model) before the
+      // newly-trained epochs so the serializer writes the full history.
+      void prependEpochHistory(const std::vector<Common::EpochRecord<T>>& history)
+      {
+        std::vector<Common::EpochRecord<T>> merged = history;
+        merged.insert(merged.end(), this->trainingMetadata.epochHistory.begin(),
+                      this->trainingMetadata.epochHistory.end());
+        this->trainingMetadata.epochHistory = std::move(merged);
       }
 
     protected:

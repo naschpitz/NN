@@ -4,6 +4,8 @@
 #include "Common/Common_Mode.hpp"
 #include "Common/Common_Device.hpp"
 #include "Common/Common_LogLevel.hpp"
+#include "Common/Common_EpochRecord.hpp"
+#include "Common/Common_TrainingMetadata.hpp"
 #include "ANN_LayersConfig.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
 #include "Common/Common_TrainingConfig.hpp"
@@ -28,6 +30,7 @@ namespace ANN
       Parameters<T> parameters;
       ulong progressReports = 1000; // Number of progress reports (0 = no reports, default = 1000)
       LogLevel logLevel = LogLevel::ERROR;
+      std::vector<Common::EpochRecord<T>> loadedEpochHistory; // Epoch history loaded from saved model
   };
 }
 

@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <numeric>
 #include <random>
@@ -504,7 +505,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
   }
 
-  for (ulong e = 0; e < numEpochs && !this->stopRequested.load(); e++) {
+  for (ulong e = this->trainingConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = static_cast<T>(0);
     std::atomic<ulong> completedSamples{0};
 
@@ -637,6 +638,9 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       shouldStop = monitor->checkEpoch(e + 1, avgLoss);
     }
 
+    // Always track last completed epoch, regardless of monitoring
+    this->trainingMetadata.lastEpoch = e + 1;
+
     if (this->trainingCallback) {
       TrainingProgress<T> progress;
       progress.currentEpoch = e + 1;
@@ -649,10 +653,6 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       if (monitor) {
         progress.isNewBest = monitor->isNewBest();
 
-        if (progress.isNewBest) {
-          this->trainingMetadata.lastEpoch = e + 1;
-        }
-
         if (shouldStop) {
           progress.stoppedEarly = true;
         }
@@ -660,6 +660,17 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       this->trainingCallback(progress);
     }
+
+    // Record epoch history
+    EpochRecord<T> epochRecord;
+    epochRecord.epoch = e;
+    epochRecord.loss = avgLoss;
+    epochRecord.valLoss = static_cast<T>(0);
+    epochRecord.hasValLoss = false;
+    epochRecord.isBest = monitor ? monitor->isNewBest() : false;
+    epochRecord.completionTime = static_cast<ulong>(
+      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+    this->trainingMetadata.epochHistory.push_back(epochRecord);
 
     if (shouldStop) {
       break;
@@ -819,7 +830,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
   }
 
-  for (ulong e = 0; e < numEpochs && !this->stopRequested.load(); e++) {
+  for (ulong e = this->trainingConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = static_cast<T>(0);
     std::atomic<ulong> completedSamples{0};
 
@@ -1327,6 +1338,9 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
       shouldStop = monitor->checkEpoch(e + 1, avgLoss);
     }
 
+    // Always track last completed epoch, regardless of monitoring
+    this->trainingMetadata.lastEpoch = e + 1;
+
     if (this->trainingCallback) {
       TrainingProgress<T> progress;
       progress.currentEpoch = e + 1;
@@ -1339,10 +1353,6 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
       if (monitor) {
         progress.isNewBest = monitor->isNewBest();
 
-        if (progress.isNewBest) {
-          this->trainingMetadata.lastEpoch = e + 1;
-        }
-
         if (shouldStop) {
           progress.stoppedEarly = true;
         }
@@ -1350,6 +1360,17 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
 
       this->trainingCallback(progress);
     }
+
+    // Record epoch history
+    EpochRecord<T> epochRecord;
+    epochRecord.epoch = e;
+    epochRecord.loss = avgLoss;
+    epochRecord.valLoss = static_cast<T>(0);
+    epochRecord.hasValLoss = false;
+    epochRecord.isBest = monitor ? monitor->isNewBest() : false;
+    epochRecord.completionTime = static_cast<ulong>(
+      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+    this->trainingMetadata.epochHistory.push_back(epochRecord);
 
     if (shouldStop) {
       break;
