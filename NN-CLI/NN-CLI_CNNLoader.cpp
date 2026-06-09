@@ -254,8 +254,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   CNN::CoreConfig<float> CNNLoader::loadConfig(const nlohmann::json& json, const std::vector<char>& binParams,
-                                               std::optional<std::string> modeOverride,
-                                               std::optional<std::string> deviceOverride)
+                                                std::optional<std::string> modeOverride,
+                                                std::optional<std::string> deviceOverride)
   {
     // 1. Call the existing JSON-only version to parse architecture/config
     auto coreConfig = loadConfig(json, modeOverride, deviceOverride);
@@ -263,6 +263,44 @@ namespace NN_CLI
     // 2. If binary params provided, overwrite parameters from binary data
     if (!binParams.empty()) {
       ModelSerializer::loadCNNParametersBinary(binParams, coreConfig, coreConfig.layersConfig);
+    }
+
+    // 3. Parse epoch history and set startingEpoch from saved training metadata
+    if (json.contains("trainingMetadata")) {
+      const auto& md = json.at("trainingMetadata");
+
+      // Set startingEpoch from lastEpoch: the training loop uses 0-based epoch
+      // indices, so if lastEpoch=25 was the last completed epoch, the loop
+      // should resume at startingEpoch=25 (i.e., e=25..99 = 75 more epochs).
+      if (md.contains("lastEpoch")) {
+        ulong lastEpoch = md.at("lastEpoch").get<ulong>();
+
+        if (lastEpoch > 0) {
+          coreConfig.trainingConfig.startingEpoch = lastEpoch;
+        }
+      }
+
+      // Parse epoch history array
+      if (md.contains("epochs") && md.at("epochs").is_array()) {
+        const auto& epochsArr = md.at("epochs");
+        coreConfig.loadedEpochHistory.reserve(epochsArr.size());
+
+        for (const auto& recordJson : epochsArr) {
+          Common::EpochRecord<float> record;
+          record.epoch = recordJson.at("epoch").get<ulong>();
+          record.loss = recordJson.at("loss").get<float>();
+
+          if (recordJson.contains("valLoss") && recordJson.value("hasValLoss", false)) {
+            record.valLoss = recordJson.at("valLoss").get<float>();
+            record.hasValLoss = true;
+          }
+
+          record.isBest = recordJson.value("isBest", false);
+          record.completionTime = recordJson.value("completionTime", 0UL);
+
+          coreConfig.loadedEpochHistory.push_back(record);
+        }
+      }
     }
 
     return coreConfig;

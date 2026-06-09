@@ -20,6 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 //===================================================================================================================//
 
@@ -64,8 +65,18 @@ namespace NN_CLI
       //-- Callback State --//
       ulong lastCallbackEpoch_ = 0;
       float lastEpochLoss_ = 0.0f;
+      bool lastIsBest_ = false;
+      bool lastHadValLoss_ = false;
+      float lastValLoss_ = 0.0f;
+      bool cacheIsSet_ = false;
       std::mutex epochTransitionMutex_;
       std::unique_ptr<ProgressBar> progressBar_;
+
+      //-- Validation objects (stored during train() for finishTraining()) --//
+      std::shared_ptr<ANN::Core<float>> validationCore_;
+      std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr_;
+      std::shared_ptr<std::vector<ulong>> validationIndices_;
+      std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor_;
 
       //-- ncurses terminal UI (only active during training) --//
       std::shared_ptr<TerminalUI> tui;
