@@ -15,6 +15,7 @@ namespace Common
   template <typename T>
   struct TrainingConfig {
       ulong numEpochs = 0;
+      ulong startingEpoch = 0; // Epoch index to start training from (0 = fresh start; >0 = resume)
       float learningRate = 0.01f;
       ulong batchSize = 64; // Mini-batch size (default = 64)
       bool shuffleSamples = true; // Shuffle sample order each epoch (default = true)
