@@ -227,6 +227,9 @@ namespace NN_CLI
 
       // Check if this is the file we want
       if (entryName == fileName) {
+        if (pos + entrySize > tarData.size()) {
+          throw std::runtime_error("ModelPackage: corrupted tar archive, file data exceeds archive bounds");
+        }
         std::vector<char> result(tarData.begin() + pos,
                                  tarData.begin() + pos + entrySize);
         return result;
