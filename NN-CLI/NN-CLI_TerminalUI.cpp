@@ -460,14 +460,21 @@ namespace NN_CLI
     this->epochLines_.push_back(sep());
 
     // Row length is the same for header and data rows — compute once.
-    int lineLen = epochW + lossW + valLossW + bestW + dateTimeW + 16;
-    lineLen = std::max(1, lineLen);
+    const int lineLen = epochW + lossW + valLossW + bestW + dateTimeW + 16;
 
     // Header row
     {
       std::vector<char> hdr(lineLen + 1);
+
+      // GCC -Wformat-truncation: cannot prove the buffer is large enough because
+      // the column widths are runtime-computed.  However lineLen is derived from
+      // those same widths (sum + 16 overhead), so truncation is impossible.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
       snprintf(hdr.data(), hdr.size(), "| %-*s | %*s | %*s | %-*s | %-*s |", epochW, "Epoch", lossW, "Loss",
                valLossW, "Val Loss", bestW, "Best", dateTimeW, "Completed At");
+#pragma GCC diagnostic pop
+
       this->epochLines_.push_back(hdr.data());
     }
 
@@ -510,8 +517,15 @@ namespace NN_CLI
       }
 
       std::vector<char> row(lineLen + 1);
+
+      // Same rationale as the header snprintf above: lineLen is computed from
+      // the same column widths used in the format, so truncation cannot happen.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
       snprintf(row.data(), row.size(), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, epochStr, lossW, lossStr,
                valLossW, valLossStr, bestW, bestCell, dateTimeW, dateStr);
+#pragma GCC diagnostic pop
+
       this->epochLines_.push_back(row.data());
     }
 
