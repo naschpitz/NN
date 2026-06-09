@@ -51,7 +51,7 @@ static void testCNNSaveLoadPredictConsistency()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_slpc_model.json";
+  QString modelPath = tempDir() + "/cnn_slpc_model.nnmodel";
 
   // Step 1: Train
   auto trainResult = runNNCLI({"--config", configPath, "--mode", "train", "--device", "cpu", "--samples",

@@ -127,7 +127,7 @@ static bool runGPUPredictTest(const QString& testName, const QString& convLayers
   QString configPath = writeGPUTestConfig(prefix + "_config.json", convLayersJson);
   QString samplesPath = writeGPUTestSamples(prefix + "_samples.json");
   QString inputsPath = writeGPUTestInputs(prefix + "_inputs.json");
-  QString modelPath = prefix + "_model.json";
+  QString modelPath = prefix + "_model.nnmodel";
 
   // Step 1: Train on CPU
   auto trainResult = runNNCLI(

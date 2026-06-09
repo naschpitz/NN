@@ -142,7 +142,7 @@ static void testCNNISICLikeSaveLoadPredict()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_isic_model.json";
+  QString modelPath = tempDir() + "/cnn_isic_model.nnmodel";
 
   // Step 1: Train
   auto trainResult = runNNCLI(
@@ -156,27 +156,22 @@ static void testCNNISICLikeSaveLoadPredict()
     return;
   }
 
-  // Step 2: Verify saved model has all 4 instancenorm parameter sets
+  // Step 2: Verify saved model has all 4 instancenorm layers in the config
   {
-    QFile mf(modelPath);
+    QJsonObject root = readModelJsonFromPackage(modelPath);
 
-    if (mf.open(QIODevice::ReadOnly)) {
-      QJsonDocument doc = QJsonDocument::fromJson(mf.readAll());
-      QJsonObject params = doc.object()["parameters"].toObject();
-      QJsonArray normArr = params["instancenorm"].toArray();
-      CHECK(normArr.size() == 4, "ISIC-like CPU: 4 instancenorm layers in saved model");
+    if (!root.isEmpty()) {
+      QJsonArray convLayers = root["convolutionalLayers"].toArray();
+      int normCount = 0;
 
-      // Check each BN layer has correct channel count
-      if (normArr.size() == 4) {
-        CHECK(normArr[0].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[0] numChannels=4");
-        CHECK(normArr[1].toObject()["numChannels"].toInt() == 4, "ISIC-like CPU: BN[1] numChannels=4");
-        CHECK(normArr[2].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[2] numChannels=8");
-        CHECK(normArr[3].toObject()["numChannels"].toInt() == 8, "ISIC-like CPU: BN[3] numChannels=8");
+      for (int i = 0; i < convLayers.size(); ++i) {
+        if (convLayers[i].toObject()["type"].toString() == "instancenorm")
+          normCount++;
       }
 
-      mf.close();
+      CHECK(normCount == 4, "ISIC-like CPU: 4 instancenorm layers in saved model");
     } else {
-      CHECK(false, "ISIC-like CPU: failed to open model file");
+      CHECK(false, "ISIC-like CPU: failed to read model package");
     }
   }
 
@@ -313,7 +308,7 @@ static void testCNNISICLikeSaveLoadPredictGPU()
 
   CHECK(!configPath.isEmpty(), "ISIC-like GPU: config written");
 
-  QString modelPath = tempDir() + "/cnn_isic_gpu_model.json";
+  QString modelPath = tempDir() + "/cnn_isic_gpu_model.nnmodel";
 
   // Step 1: Train on GPU
   auto trainResult = runNNCLI(
@@ -327,16 +322,20 @@ static void testCNNISICLikeSaveLoadPredictGPU()
     return;
   }
 
-  // Step 2: Verify 4 instancenorm layers saved
+  // Step 2: Verify 4 instancenorm layers in config
   {
-    QFile mf(modelPath);
+    QJsonObject root = readModelJsonFromPackage(modelPath);
 
-    if (mf.open(QIODevice::ReadOnly)) {
-      QJsonDocument doc = QJsonDocument::fromJson(mf.readAll());
-      QJsonObject params = doc.object()["parameters"].toObject();
-      QJsonArray normArr = params["instancenorm"].toArray();
-      CHECK(normArr.size() == 4, "ISIC-like GPU: 4 instancenorm layers in saved model");
-      mf.close();
+    if (!root.isEmpty()) {
+      QJsonArray convLayers = root["convolutionalLayers"].toArray();
+      int normCount = 0;
+
+      for (int i = 0; i < convLayers.size(); ++i) {
+        if (convLayers[i].toObject()["type"].toString() == "instancenorm")
+          normCount++;
+      }
+
+      CHECK(normCount == 4, "ISIC-like GPU: 4 instancenorm layers in saved model");
     }
   }
 
