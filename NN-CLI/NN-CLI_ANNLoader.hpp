@@ -13,6 +13,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace NN_CLI
 {
@@ -27,6 +28,12 @@ namespace NN_CLI
 
       // Load ANN configuration from pre-parsed JSON.
       static ANN::CoreConfig<float> loadConfig(const nlohmann::json& json,
+                                               std::optional<Common::ModeType> modeType = std::nullopt,
+                                               std::optional<Common::DeviceType> deviceType = std::nullopt);
+
+      // Load ANN configuration from pre-parsed JSON with binary parameters (for .nnmodel packages).
+      static ANN::CoreConfig<float> loadConfig(const nlohmann::json& json,
+                                               const std::vector<char>& binParams,
                                                std::optional<Common::ModeType> modeType = std::nullopt,
                                                std::optional<Common::DeviceType> deviceType = std::nullopt);
 

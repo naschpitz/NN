@@ -8,9 +8,12 @@
 #include <ANN_Core.hpp>
 #include <CNN_Core.hpp>
 
+#include <json.hpp>
+
 #include <QString>
 
 #include <string>
+#include <vector>
 
 namespace NN_CLI
 {
@@ -27,14 +30,32 @@ namespace NN_CLI
   class ModelSerializer
   {
     public:
-      //-- Model saving --//
-      static void saveModel(const std::string& filePath, const ANN::Core<float>& core,
-                               const ANN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                               const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
+      //-- Binary parameter I/O --//
+      static void saveANNParametersBinary(const std::string& binPath,
+                                          const ANN::Core<float>& core);
+      static void saveCNNParametersBinary(const std::string& binPath,
+                                          const CNN::Core<float>& core);
 
-      static void saveCNNModel(const std::string& filePath, const CNN::Core<float>& core,
-                               const CNN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
-                               const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
+      static void loadANNParametersBinary(const std::vector<char>& data,
+                                          ANN::CoreConfig<float>& config,
+                                          const ANN::LayersConfig& layersConfig);
+      static void loadCNNParametersBinary(const std::vector<char>& data,
+                                          CNN::CoreConfig<float>& config,
+                                          const CNN::LayersConfig& layersConfig);
+
+      //-- Package-aware save (single call produces .nnmodel) --//
+      static void saveANNModelToPackage(const std::string& packagePath,
+                                        const ANN::Core<float>& core,
+                                        const ANN::CoreConfig<float>& coreConfig,
+                                        const IOConfig& ioConfig,
+                                        const AugmentationConfig& augConfig,
+                                        const ValidationMetadata& validationMeta);
+      static void saveCNNModelToPackage(const std::string& packagePath,
+                                        const CNN::Core<float>& core,
+                                        const CNN::CoreConfig<float>& coreConfig,
+                                        const IOConfig& ioConfig,
+                                        const AugmentationConfig& augConfig,
+                                        const ValidationMetadata& validationMeta);
 
       //-- Output path helpers --//
       static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);
@@ -42,6 +63,20 @@ namespace NN_CLI
                                                    float loss);
       static std::string generateCheckpointPath(const QString& inputFilePath, ulong epoch, float loss);
       static std::string generateBestModelPath(const QString& inputFilePath);
+
+    private:
+      //-- JSON-building helpers --//
+      static nlohmann::ordered_json buildANNModelJson(const ANN::Core<float>& core,
+                                                      const ANN::CoreConfig<float>& coreConfig,
+                                                      const IOConfig& ioConfig,
+                                                      const AugmentationConfig& augConfig,
+                                                      const ValidationMetadata& validationMeta);
+
+      static nlohmann::ordered_json buildCNNModelJson(const CNN::Core<float>& core,
+                                                      const CNN::CoreConfig<float>& coreConfig,
+                                                      const IOConfig& ioConfig,
+                                                      const AugmentationConfig& augConfig,
+                                                      const ValidationMetadata& validationMeta);
   };
 
 } // namespace NN_CLI
