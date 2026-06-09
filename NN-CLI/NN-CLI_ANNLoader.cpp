@@ -1,6 +1,7 @@
 #include "NN-CLI_ANNLoader.hpp"
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ImageLoader.hpp"
+#include "NN-CLI_ModelSerializer.hpp"
 #include "NN-CLI_ProgressBar.hpp"
 
 #include <QFile>
@@ -154,16 +155,27 @@ namespace NN_CLI
     }
 
     if (json.contains("parameters")) {
-      const auto& p = json.at("parameters");
-      coreConfig.parameters.weights = p.at("weights").get<ANN::Tensor3D<float>>();
-      coreConfig.parameters.biases = p.at("biases").get<ANN::Tensor2D<float>>();
+      throw std::runtime_error(
+        "This JSON file contains embedded parameters. "
+           "The embedded-parameter format is no longer supported. "
+           "Please use a .nnmodel.tar package with separate parameter files.");
     }
 
-    bool isPredictOrTest =
-      (coreConfig.modeType == Common::ModeType::PREDICT || coreConfig.modeType == Common::ModeType::TEST);
+    return coreConfig;
+  }
 
-    if (isPredictOrTest && !json.contains("parameters")) {
-      throw std::runtime_error("Config missing 'parameters' required for predict/test modes");
+  //===================================================================================================================//
+
+  ANN::CoreConfig<float> ANNLoader::loadConfig(const nlohmann::json& json, const std::vector<char>& binParams,
+                                               std::optional<Common::ModeType> modeType,
+                                               std::optional<Common::DeviceType> deviceType)
+  {
+    // 1. Call the existing JSON-only version to parse architecture/config
+    auto coreConfig = loadConfig(json, modeType, deviceType);
+
+    // 2. If binary params provided, overwrite parameters from binary data
+    if (!binParams.empty()) {
+      ModelSerializer::loadANNParametersBinary(binParams, coreConfig, coreConfig.layersConfig);
     }
 
     return coreConfig;

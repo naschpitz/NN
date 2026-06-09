@@ -18,7 +18,7 @@ static void testCNNTrainAndTestMNISTGPU()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_mnist_trained_gpu.json";
+  QString modelPath = tempDir() + "/cnn_mnist_trained_gpu.nnmodel.tar";
 
   // Step 1: Train on MNIST training data on GPU (10 epochs, 60k samples, Adam + crossEntropy + instancenorm)
   auto trainResult =

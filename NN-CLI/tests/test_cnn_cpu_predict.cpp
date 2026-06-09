@@ -82,7 +82,7 @@ static void testCNNMultiInputPredictDiversity()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_diversity_model.json";
+  QString modelPath = tempDir() + "/cnn_diversity_model.nnmodel.tar";
 
   // Train
   auto trainResult = runNNCLI({"--config", configPath, "--mode", "train", "--device", "cpu", "--samples",

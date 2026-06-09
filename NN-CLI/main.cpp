@@ -4,6 +4,7 @@
 
 #include "NN-CLI_Runner.hpp"
 #include "NN-CLI_LogLevel.hpp"
+#include "NN-CLI_ModelPackage.hpp"
 
 #include <iostream>
 #include <string>
@@ -145,6 +146,18 @@ int main(int argc, char* argv[])
     if (modeStr != "train" && modeStr != "predict" && modeStr != "test" && modeStr != "calibrate") {
       std::cerr << "Error: Mode must be 'train', 'predict', 'test', or 'calibrate'.\n";
       return 1;
+    }
+
+    // Non-train modes require a .nnmodel package (not a plain .json config)
+    if ((modeStr == "predict" || modeStr == "test" || modeStr == "calibrate") && parser.isSet(configOption)) {
+      QString configFilePath = parser.value(configOption);
+
+      if (!NN_CLI::ModelPackage::isPackage(configFilePath.toStdString())) {
+        std::cerr << "Error: " << modeStr.toStdString()
+                  << " mode requires a .nnmodel package (not a plain .json).\n";
+        std::cerr << "The plain JSON config format is no longer supported for this mode.\n";
+        return 1;
+      }
     }
   }
 

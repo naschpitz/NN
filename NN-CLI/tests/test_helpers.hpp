@@ -3,6 +3,8 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QProcess>
 #include <QString>
 #include <QStringList>
@@ -99,7 +101,7 @@ inline bool checkGPUAvailable()
   if (cached >= 0)
     return cached == 1;
 
-  QString modelPath = tempDir() + "/gpu_probe.json";
+  QString modelPath = tempDir() + "/gpu_probe.nnmodel.tar";
 
   QProcess process;
   process.setWorkingDirectory(QCoreApplication::applicationDirPath() + "/..");
@@ -144,4 +146,64 @@ inline ProcessResult runNNCLI(const QStringList& args, int timeoutMs = 120000)
 
   return {process.exitCode(), QString::fromUtf8(process.readAllStandardOutput()),
           QString::fromUtf8(process.readAllStandardError())};
+}
+
+// Extract and parse model.json from a .nnmodel.tar package, returning the JSON root object.
+// Returns a null QJsonObject on failure.
+inline QJsonObject readModelJsonFromPackage(const QString& packagePath)
+{
+  QFile file(packagePath);
+
+  if (!file.open(QIODevice::ReadOnly)) {
+    return QJsonObject();
+  }
+
+  QByteArray tarData = file.readAll();
+  file.close();
+
+  // Walk the tar archive looking for "model.json"
+  const int blockSize = 512;
+  int pos = 0;
+
+  while (pos + blockSize <= tarData.size()) {
+    const char* headerPtr = tarData.constData() + pos;
+
+    // Check for end-of-archive (two zero blocks)
+    if (headerPtr[0] == '\0') {
+      break;
+    }
+
+    // Validate USTAR magic at offset 257
+    if (qstrncmp(headerPtr + 257, "ustar", 5) != 0) {
+      break;
+    }
+
+    // Parse filename from header (null-terminated, max 99 chars)
+    QByteArray nameBytes(headerPtr, qstrnlen(headerPtr, 100));
+    QString entryName = QString::fromUtf8(nameBytes);
+
+    // Parse size from header (octal at offset 124, 11 octal digits)
+    QByteArray sizeBytes(headerPtr + 124, 11);
+    bool ok = false;
+    uint entrySize = sizeBytes.toUInt(&ok, 8);
+
+    if (!ok) {
+      break;
+    }
+
+    pos += blockSize;
+
+    // Check if this is model.json
+    if (entryName == QLatin1String("model.json")) {
+      QByteArray jsonData = tarData.mid(pos, static_cast<int>(entrySize));
+      QJsonDocument doc = QJsonDocument::fromJson(jsonData);
+      return doc.object();
+    }
+
+    // Skip data blocks (round up to 512-byte boundary)
+    uint dataBlocks = (entrySize + blockSize - 1) / blockSize;
+    pos += dataBlocks * blockSize;
+  }
+
+  return QJsonObject();
 }
