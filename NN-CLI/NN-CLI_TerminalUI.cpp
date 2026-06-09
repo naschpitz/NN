@@ -411,12 +411,13 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI::pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest)
+  void TerminalUI::pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest,
+                                    std::time_t completionTime)
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
 
-    std::time_t now = std::time(nullptr);
-    this->epochRecords_.push_back({epoch, loss, hasValLoss, valLoss, isBest, now});
+    std::time_t stamp = (completionTime == 0) ? std::time(nullptr) : completionTime;
+    this->epochRecords_.push_back({epoch, loss, hasValLoss, valLoss, isBest, stamp});
 
     this->rebuildEpochLines();
     this->present(false, false);

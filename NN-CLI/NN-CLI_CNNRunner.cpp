@@ -233,6 +233,14 @@ int CNNRunner::train()
     }
   }
 
+  // Store validation objects as members for use in finishTraining().
+  this->validationCore_ = validationCore;
+  this->trainingMonitor_ = trainingMonitor;
+
+  if (validationConfig.enabled) {
+    this->validationIndices_ = std::make_shared<std::vector<ulong>>(split.validationIndices);
+  }
+
   this->setupTrainingCallback(inputFilePath, validationCore, trainingMonitor,
                               validationConfig.enabled ? &dataLoader : nullptr,
                               validationConfig.enabled ? &split.validationIndices : nullptr);
@@ -247,6 +255,25 @@ int CNNRunner::train()
   if (this->tui && this->tui->isInitialized()) {
     this->trainingTui_.resolveBarGpus(this->coreConfig.deviceType == Common::DeviceType::GPU, this->coreConfig.numGPUs);
     dataLoader.setLoadingCallback(this->trainingTui_.loadingCallback());
+  }
+
+  // Pre-populate the TUI epoch table with loaded history (resumed model).
+  if (this->tui && this->tui->isInitialized() && !this->coreConfig.loadedEpochHistory.empty()) {
+    for (const auto& record : this->coreConfig.loadedEpochHistory) {
+      int epochNum = static_cast<int>(record.epoch) + 1;  // Convert 0-based to 1-based for TUI display
+      float lossVal = static_cast<float>(record.loss);
+      float valLossVal = static_cast<float>(record.valLoss);
+      std::time_t compTime = static_cast<std::time_t>(record.completionTime);
+
+      this->tui->pushEpochRecord(epochNum, lossVal, record.hasValLoss, valLossVal, record.isBest, compTime);
+    }
+  }
+
+  // Prepend loaded epoch history into the core before training starts, so
+  // checkpoints during training serialize the full history, not just new epochs.
+  if (!this->coreConfig.loadedEpochHistory.empty()) {
+    this->core->prependEpochHistory(this->coreConfig.loadedEpochHistory);
+    this->coreConfig.loadedEpochHistory.clear();
   }
 
   if (validationConfig.enabled) {
@@ -451,6 +478,8 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     validationProviderPtr = std::make_shared<CNN::SampleProvider<float>>(std::move(provider));
   }
 
+  this->validationProviderPtr_ = validationProviderPtr;
+
   this->core->setTrainingCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
                                    validationIndices, validationDataLoader,
                                    tui](const Common::TrainingProgress<float>& progress) {
@@ -464,14 +493,14 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       bool epochTransition = progress.currentEpoch > this->lastCallbackEpoch_;
 
       if (epochTransition) {
-        const ulong finishedEpoch = lastCallbackEpoch_;
+        const ulong finishedEpoch = this->lastCallbackEpoch_;
 
         // --- Checkpointing (controlled by saveModelInterval) ---
         std::string checkpointPath;
 
-        if (this->ioConfig.saveModelInterval > 0 && lastCallbackEpoch_ > 0 &&
-            lastCallbackEpoch_ % this->ioConfig.saveModelInterval == 0) {
-          checkpointPath = ModelSerializer::generateCheckpointPath(inputFilePath, lastCallbackEpoch_, lastEpochLoss_);
+        if (this->ioConfig.saveModelInterval > 0 && this->lastCallbackEpoch_ > 0 &&
+            this->lastCallbackEpoch_ % this->ioConfig.saveModelInterval == 0) {
+          checkpointPath = ModelSerializer::generateCheckpointPath(inputFilePath, this->lastCallbackEpoch_, this->lastEpochLoss_);
           ModelSerializer::saveCNNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
                                                      this->augConfig, this->buildValidationMetadata());
         }
@@ -518,14 +547,40 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         }
 
         // --- TUI history (skip epoch 0 line) ---
+        bool isBestEpoch = (isBest || progress.isNewBest);
+
         if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && finishedEpoch > 0) {
-          bool isBestEpoch = (isBest || progress.isNewBest);
           tui->pushEpochRecord(static_cast<int>(finishedEpoch), this->lastEpochLoss_, hasValLoss, valLoss, isBestEpoch);
         }
 
         // --- Timing window reset ---
         if (tui && tui->isInitialized()) {
           tui->setTimingLines({" Timing - waiting for first batch"});
+        }
+
+        // --- Update core epochHistory with correct isBest/hasValLoss/valLoss ---
+        // The core's internal monitor is disabled (NN-CLI manages monitoring
+        // externally), so the core records isBest=false and hasValLoss=false.
+        // Overwrite with the actual values computed above so that any
+        // subsequent model save serializes the correct epoch metadata.
+        // Guard with finishedEpoch > 0: on resume, the first transition fires
+        // with finishedEpoch = 0 and would overwrite the last prepended
+        // historical record with stale defaults.
+        if (finishedEpoch > 0) {
+          auto& epochHistory = this->core->getTrainingMetadata().epochHistory;
+
+          if (!epochHistory.empty()) {
+            auto& lastRecord = epochHistory.back();
+            lastRecord.isBest = isBestEpoch;
+            lastRecord.hasValLoss = hasValLoss;
+            lastRecord.valLoss = valLoss;
+          }
+
+          // Cache for the final-epoch fixup in finishTraining().
+          this->lastIsBest_ = isBestEpoch;
+          this->lastHadValLoss_ = hasValLoss;
+          this->lastValLoss_ = valLoss;
+          this->cacheIsSet_ = true;
         }
 
         // --- Monitor stop requests ---
@@ -577,6 +632,85 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
 int CNNRunner::finishTraining(const QString& inputFilePath)
 {
+  // Defensive: unreachable in normal flow (train() clears loadedEpochHistory after
+  // prepending), kept as safety net against future refactoring.
+  if (!this->coreConfig.loadedEpochHistory.empty()) {
+    this->core->prependEpochHistory(this->coreConfig.loadedEpochHistory);
+    this->coreConfig.loadedEpochHistory.clear();
+  }
+
+  auto& trainingMetadata = this->core->getTrainingMetadata();
+  auto& epochHistory = trainingMetadata.epochHistory;
+
+  // The epoch transition callback updates epochHistory.back() at the START of
+  // epoch N+1 (triggered by the first per-sample callback of the new epoch).
+  // The final epoch has no subsequent epoch, so no transition fires and its
+  // record keeps the core's default isBest=false / hasValLoss=false / valLoss=0.
+  //
+  // Run a fresh validation pass for the last epoch and fix up its record.
+  //
+  // cacheIsSet_ means at least one transition with finishedEpoch>0 fired
+  // (>=2 epochs trained).  lastEpoch>0 covers the numEpochs=1 edge case
+  // where no transition populates the cache but one epoch was still trained.
+  bool needsFixup = (this->cacheIsSet_ || trainingMetadata.lastEpoch > 0) && !epochHistory.empty();
+
+  if (needsFixup) {
+    const ulong lastEpoch = trainingMetadata.lastEpoch;
+
+    //-- Run validation for the last epoch (fresh values, not stale cache) --//
+    bool isBest = false;
+    bool hasValLoss = false;
+    float valLoss = 0.0f;
+
+    if (this->validationState.enabled && this->validationCore_ && this->validationProviderPtr_ &&
+        this->validationIndices_ && lastEpoch % this->validationState.checkInterval == 0) {
+      ulong validationTotal = this->validationIndices_->size();
+
+      this->validationCore_->setParameters(this->core->getParameters());
+      this->validationCore_->syncParametersToGPU();
+
+      setupValidationProgressCallback(*this->validationCore_, this->tui, validationTotal, this->coreConfig.numGPUs);
+
+      auto validationResult = this->validationCore_->test(validationTotal, *this->validationProviderPtr_);
+
+      this->validationState.lastValLoss = validationResult.averageLoss;
+      valLoss = validationResult.averageLoss;
+      hasValLoss = true;
+
+      if (validationResult.averageLoss < this->validationState.bestValLoss) {
+        this->validationState.bestValLoss = validationResult.averageLoss;
+        this->validationState.bestValEpoch = lastEpoch;
+      }
+
+      if (this->trainingMonitor_) {
+        this->trainingMonitor_->checkEpoch(lastEpoch, this->lastEpochLoss_,
+                                           std::optional<float>(validationResult.averageLoss));
+        isBest = this->trainingMonitor_->isNewBest();
+      }
+    }
+
+    bool isBestEpoch = isBest;
+
+    //-- Update the last epoch history record --//
+    auto& lastRecord = epochHistory.back();
+    if (hasValLoss) { lastRecord.isBest = isBestEpoch; }
+    // else: preserve the core's isBest (set by internal monitor when validation is disabled)
+    lastRecord.hasValLoss = hasValLoss;
+    lastRecord.valLoss = valLoss;
+
+    //-- Save best model if the last epoch is a new best --//
+    if (isBestEpoch) {
+      std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
+      ModelSerializer::saveCNNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig,
+                                              this->augConfig, this->buildValidationMetadata());
+    }
+
+    //-- Push the last epoch to TUI (no transition fires after the last epoch) --//
+    if (this->tui && this->tui->isInitialized() && this->logLevel > LogLevel::QUIET) {
+      this->tui->pushEpochRecord(static_cast<int>(lastEpoch), this->lastEpochLoss_, hasValLoss, valLoss, isBestEpoch);
+    }
+  }
+
   return finishTrainingCommon(this->tui, this->logLevel, this->parser, inputFilePath, *this->core,
                               [this](const std::string& path) {
                                 ModelSerializer::saveCNNModelToPackage(path, *this->core, this->coreConfig, this->ioConfig,

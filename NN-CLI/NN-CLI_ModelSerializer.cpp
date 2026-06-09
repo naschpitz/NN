@@ -170,6 +170,31 @@ namespace NN_CLI
       mdJson["bestEpoch"] = md.bestEpoch;
       mdJson["bestLoss"] = md.bestLoss;
     }
+
+    // Serialize epoch history (only when non-empty)
+    if (!md.epochHistory.empty()) {
+      nlohmann::ordered_json epochsArr = nlohmann::ordered_json::array();
+
+      for (const auto& record : md.epochHistory) {
+        nlohmann::ordered_json recordJson;
+        recordJson["epoch"] = record.epoch;
+        recordJson["loss"] = static_cast<double>(record.loss);
+
+        if (record.hasValLoss) {
+          recordJson["valLoss"] = static_cast<double>(record.valLoss);
+          recordJson["hasValLoss"] = true;
+        } else {
+          recordJson["hasValLoss"] = false;
+        }
+
+        recordJson["isBest"] = record.isBest;
+        recordJson["completionTime"] = record.completionTime;
+
+        epochsArr.push_back(recordJson);
+      }
+
+      mdJson["epochs"] = epochsArr;
+    }
   }
 
   //===================================================================================================================//

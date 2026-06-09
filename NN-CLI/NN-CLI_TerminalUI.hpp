@@ -72,7 +72,8 @@ namespace NN_CLI
 
       void setTimingLines(const std::vector<std::string>& lines);
       void addEpochLine(const std::string& line);
-      void pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest);
+      void pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest,
+                           std::time_t completionTime = 0);
       // Rebuild the epoch table lines from epochRecords_ using the current panel width.
       // Called on new epochs and on terminal resize so the table always fills the panel.
       void requestResize();
@@ -97,6 +98,13 @@ namespace NN_CLI
       std::recursive_mutex& mutex()
       {
         return this->mutex_;
+      }
+
+      // Read-only access to the structured epoch records (for merging history
+      // before saving the final model).
+      const std::vector<EpochRecord>& getEpochRecords() const
+      {
+        return this->epochRecords_;
       }
 
     private:
