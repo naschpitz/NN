@@ -1,8 +1,12 @@
 #ifndef COMMON_TRAININGMETADATA_HPP
 #define COMMON_TRAININGMETADATA_HPP
 
+#include "Common/Common_EpochRecord.hpp"
+
+#include <cstdint>
 #include <string>
 #include <sys/types.h>
+#include <vector>
 
 //===================================================================================================================//
 
@@ -23,6 +27,9 @@ namespace Common
       std::string stopReason; // Why training stopped (empty = completed all epochs)
       ulong bestEpoch = 0; // Epoch with best loss
       T bestLoss = 0; // Best loss value
+
+      // Per-epoch training history
+      std::vector<EpochRecord<T>> epochHistory;
   };
 }
 
