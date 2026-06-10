@@ -37,12 +37,7 @@ using namespace NN_CLI;
 CNNRunner::CNNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConfig& ioConfig,
                      AugmentationConfig& augConfig, std::unique_ptr<CNN::Core<float>>& core,
                      CNN::CoreConfig<float>& coreConfig)
-  : parser(parser),
-    logLevel(logLevel),
-    ioConfig(ioConfig),
-    augConfig(augConfig),
-    core(core),
-    coreConfig(coreConfig)
+  : Runner(parser, logLevel, ioConfig, augConfig, core, coreConfig)
 {
 }
 
@@ -387,14 +382,6 @@ std::pair<CNN::Samples<float>, bool> CNNRunner::loadSamplesFromOptions(const std
 //  Training helpers
 //===================================================================================================================//
 
-ValidationMetadata CNNRunner::buildValidationMetadata() const
-{
-  return {this->validationState.enabled, this->validationState.numValSamples, this->validationState.lastValLoss,
-          this->validationState.bestValLoss, this->validationState.bestValEpoch};
-}
-
-//===================================================================================================================//
-
 void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<CNN::Core<float>> validationCore,
                                       std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor,
                                       const DataLoader<CNN::Sample<float>>* validationDataLoader,
@@ -562,24 +549,13 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 }
 
 //===================================================================================================================//
+//  Model saving (override from Runner base)
+//===================================================================================================================//
 
-int CNNRunner::finishTraining(const QString& inputFilePath)
+void CNNRunner::doSaveModel(const std::string& outputPath)
 {
-  // Defensive: unreachable in normal flow (train() clears loadedEpochHistory after
-  // prepending), kept as safety net against future refactoring.
-  if (!this->coreConfig.loadedEpochHistory.empty()) {
-    this->core->prependEpochHistory(this->coreConfig.loadedEpochHistory);
-    this->coreConfig.loadedEpochHistory.clear();
-  }
-
-  // Every epoch — including the last — is finalized by the epoch-completed
-  // callback (validation, best-model save, history record), so there is no
-  // end-of-run fix-up to do here; just persist the final model.
-  return finishTrainingCommon(
-    this->tui, this->logLevel, this->parser, inputFilePath, *this->core, [this](const std::string& path) {
-      ModelSerializer::saveCNNModelToPackage(path, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                             this->buildValidationMetadata());
-    });
+  ModelSerializer::saveCNNModelToPackage(outputPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                         this->buildValidationMetadata());
 }
 
 //===================================================================================================================//
