@@ -417,7 +417,10 @@ namespace NN_CLI
 
   void TerminalUI::renderTimingContent()
   {
-    int maxWidth = this->timingPanel.contentWidth();
+    int contentH = this->timingPanel.getH() - 2;
+    int total = static_cast<int>(this->rawTimingLines.size());
+    int pad = (total > contentH) ? 5 : 4;
+    int maxWidth = std::max(1, this->timingPanel.getW() - pad);
     auto lines = this->rawTimingLines;
 
     for (auto& line : lines) {
@@ -446,7 +449,7 @@ namespace NN_CLI
     // Conservative default: when no lines have been pushed yet, assume the
     // formatted config table will need a scrollbar so the initial render
     // reserves enough space.
-    int panelPad = (lines.empty() || total > cH) ? 5 : 4;
+    int panelPad = (lines.empty() || total > cH) ? 4 : 3;
 
     return std::max(1, this->configPanel.getW() - panelPad);
   }
