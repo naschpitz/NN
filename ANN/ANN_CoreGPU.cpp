@@ -88,20 +88,20 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
 
     std::vector<PredictResults<T>> gpuResults(this->numGPUs);
 
-    QtConcurrent::blockingMap(&this->workerPool, workItems,
-                              [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
-                                ProgressCallback callback;
+    QtConcurrent::blockingMap(
+      &this->workerPool, workItems, [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
+        ProgressCallback callback;
 
-                                if (this->progressCallback) {
-                                  callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
-                                    ulong completed = ++completedInputs;
-                                    this->progressCallback(completed, numSamples);
-                                  };
-                                }
+        if (this->progressCallback) {
+          callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
+            ulong completed = ++completedInputs;
+            this->progressCallback(completed, numSamples);
+          };
+        }
 
-                                gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->predictSubset(
-                                  batch, item.startIdx, item.endIdx, callback);
-                              });
+        gpuResults[item.gpuIdx] =
+          this->gpuWorkers[item.gpuIdx]->predictSubset(batch, item.startIdx, item.endIdx, callback);
+      });
 
     // Append per-GPU results in input order.
     for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
@@ -302,8 +302,8 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     epochRecord.valLoss = static_cast<T>(0);
     epochRecord.hasValLoss = false;
     epochRecord.isBest = monitor ? monitor->isNewBest() : false;
-    epochRecord.completionTime = static_cast<ulong>(
-      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+    epochRecord.completionTime =
+      static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
     this->trainingMetadata.epochHistory.push_back(epochRecord);
 
     if (shouldStop) {

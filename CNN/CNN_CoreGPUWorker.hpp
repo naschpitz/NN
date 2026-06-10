@@ -46,7 +46,7 @@ namespace CNN
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
       Common::PredictResults<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
-                                      const ProgressCallback& callback = nullptr);
+                                              const ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training methods (for external orchestration) --//
       void backpropagateSample(const Input<T>& input, const Output<T>& expected);

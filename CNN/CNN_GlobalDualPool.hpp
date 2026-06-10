@@ -20,4 +20,3 @@ namespace CNN
 }
 
 #endif // CNN_GLOBALDUALPOOL_HPP
-

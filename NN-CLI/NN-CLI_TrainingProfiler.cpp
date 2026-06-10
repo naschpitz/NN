@@ -19,9 +19,8 @@ namespace NN_CLI
                                      Phase::KernelRestore};
 
     // GPU-profiled sub-phases, in display order. Stored/aggregated in arrays keyed by TimingPhase.
-    constexpr Phase kGpuSubPhases[] = {Phase::CnnForward,  Phase::AnnForward,    Phase::AnnBackward,
-                                       Phase::CnnBackward, Phase::CNNAccumulate, Phase::Accumulate,
-                                       Phase::LossCompute};
+    constexpr Phase kGpuSubPhases[] = {Phase::CnnForward,    Phase::AnnForward, Phase::AnnBackward, Phase::CnnBackward,
+                                       Phase::CNNAccumulate, Phase::Accumulate, Phase::LossCompute};
 
     template <std::size_t N>
     double gpuSubTotal(const std::array<double, N>& a)

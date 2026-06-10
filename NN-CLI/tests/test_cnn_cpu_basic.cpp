@@ -27,7 +27,7 @@ static void testCNNNetworkDetection()
   // Train with tiny fixture + verbose to check detection
   auto result = runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("cnn_train_samples.json"), "--output",
-                           tempDir() + "/cnn_detect_model.nnmodel.tar", "--log-level", "info"});
+                          tempDir() + "/cnn_detect_model.nnmodel.tar", "--log-level", "info"});
 
   CHECK(result.exitCode == 0, "CNN detection: exit code 0");
   CHECK(result.stdOut.contains("Network type: CNN"), "CNN detection: 'Network type: CNN'");

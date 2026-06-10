@@ -61,9 +61,7 @@ int CNNRunner::train()
   if (this->logLevel > LogLevel::QUIET)
     this->tui->init();
 
-  this->trainingTui.attach(this->tui, [this]() {
-    this->profiler.resetRenderState();
-  });
+  this->trainingTui.attach(this->tui, [this]() { this->profiler.resetRenderState(); });
 
   // Show loading status in the TUI while samples are processed.
   if (this->tui->isInitialized())
@@ -149,17 +147,16 @@ int CNNRunner::train()
 
   if (this->logLevel > LogLevel::QUIET) {
     std::vector<SummaryTable::Section> sections;
-    sections.push_back({"Model Configuration",
-                         TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig,
-                                                         numOriginalTrainSamples, numTrainSamples,
-                                                         numValidationSamples, validationRatio, validationAuto)});
+    sections.push_back(
+      {"Model Configuration",
+       TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
+                                       numValidationSamples, validationRatio, validationAuto)});
 
     ulong numOutputClasses = this->coreConfig.layersConfig.denseLayers.empty()
                                ? 0
                                : this->coreConfig.layersConfig.denseLayers.back().numNeurons;
     if (numOutputClasses >= 2) {
-      sections.push_back({"Loss Reference",
-                           LossReferenceTable::collectRows(numOutputClasses)});
+      sections.push_back({"Loss Reference", LossReferenceTable::collectRows(numOutputClasses)});
     }
 
     this->tui->setConfigSections(sections);
@@ -170,12 +167,12 @@ int CNNRunner::train()
     this->tui->refreshConfigPanel();
   }
 
-
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
   std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
 
   if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
-    trainingMonitor = std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
+    trainingMonitor =
+      std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
     this->coreConfig.trainingConfig.monitoringConfig.enabled = false;
     this->core = CNN::Core<float>::makeCore(this->coreConfig);
   }
@@ -246,7 +243,7 @@ int CNNRunner::train()
   // Pre-populate the TUI epoch table with loaded history (resumed model).
   if (this->tui && this->tui->isInitialized() && !this->coreConfig.loadedEpochHistory.empty()) {
     for (const auto& record : this->coreConfig.loadedEpochHistory) {
-      int epochNum = static_cast<int>(record.epoch) + 1;  // Convert 0-based to 1-based for TUI display
+      int epochNum = static_cast<int>(record.epoch) + 1; // Convert 0-based to 1-based for TUI display
       float lossVal = static_cast<float>(record.loss);
       float valLossVal = static_cast<float>(record.valLoss);
       std::time_t compTime = static_cast<std::time_t>(record.completionTime);
@@ -463,9 +460,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
         if (this->ioConfig.saveModelInterval > 0 && this->lastCallbackEpoch > 0 &&
             this->lastCallbackEpoch % this->ioConfig.saveModelInterval == 0) {
-          checkpointPath = ModelSerializer::generateCheckpointPath(inputFilePath, this->lastCallbackEpoch, this->lastEpochLoss);
+          checkpointPath =
+            ModelSerializer::generateCheckpointPath(inputFilePath, this->lastCallbackEpoch, this->lastEpochLoss);
           ModelSerializer::saveCNNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
-                                                     this->augConfig, this->buildValidationMetadata());
+                                                 this->augConfig, this->buildValidationMetadata());
         }
 
         // --- Validation ---
@@ -506,7 +504,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         if (isBest || progress.isNewBest) {
           std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
           ModelSerializer::saveCNNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig,
-                                                     this->augConfig, this->buildValidationMetadata());
+                                                 this->augConfig, this->buildValidationMetadata());
         }
 
         // --- TUI history (skip epoch 0 line) ---
@@ -647,7 +645,7 @@ int CNNRunner::finishTraining(const QString& inputFilePath)
 
       if (this->trainingMonitor) {
         this->trainingMonitor->checkEpoch(lastEpoch, this->lastEpochLoss,
-                                           std::optional<float>(validationResult.averageLoss));
+                                          std::optional<float>(validationResult.averageLoss));
         isBest = this->trainingMonitor->isNewBest();
       }
     }
@@ -656,7 +654,9 @@ int CNNRunner::finishTraining(const QString& inputFilePath)
 
     //-- Update the last epoch history record --//
     auto& lastRecord = epochHistory.back();
-    if (hasValLoss) { lastRecord.isBest = isBestEpoch; }
+    if (hasValLoss) {
+      lastRecord.isBest = isBestEpoch;
+    }
     // else: preserve the core's isBest (set by internal monitor when validation is disabled)
     lastRecord.hasValLoss = hasValLoss;
     lastRecord.valLoss = valLoss;
@@ -664,8 +664,8 @@ int CNNRunner::finishTraining(const QString& inputFilePath)
     //-- Save best model if the last epoch is a new best --//
     if (isBestEpoch) {
       std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-      ModelSerializer::saveCNNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig,
-                                              this->augConfig, this->buildValidationMetadata());
+      ModelSerializer::saveCNNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                             this->buildValidationMetadata());
     }
 
     //-- Push the last epoch to TUI (no transition fires after the last epoch) --//
@@ -674,11 +674,11 @@ int CNNRunner::finishTraining(const QString& inputFilePath)
     }
   }
 
-  return finishTrainingCommon(this->tui, this->logLevel, this->parser, inputFilePath, *this->core,
-                              [this](const std::string& path) {
-                                ModelSerializer::saveCNNModelToPackage(path, *this->core, this->coreConfig, this->ioConfig,
-                                                                       this->augConfig, this->buildValidationMetadata());
-                              });
+  return finishTrainingCommon(
+    this->tui, this->logLevel, this->parser, inputFilePath, *this->core, [this](const std::string& path) {
+      ModelSerializer::saveCNNModelToPackage(path, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                             this->buildValidationMetadata());
+    });
 }
 
 //===================================================================================================================//

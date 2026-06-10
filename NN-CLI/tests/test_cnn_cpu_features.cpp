@@ -475,8 +475,8 @@ static void testCNNResidualEndToEnd()
 
   QString predictOutput = tempDir() + "/cnn_res_predict_output.json";
 
-  auto predResult = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath,
-                              "--output", predictOutput});
+  auto predResult = runNNCLI(
+    {"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath, "--output", predictOutput});
 
   CHECK(predResult.exitCode == 0, "CNN Residual e2e: predict exit code 0");
 

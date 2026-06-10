@@ -74,8 +74,8 @@ static void testLogFormat()
   int closeBracket = content.indexOf(']');
   QString timestamp = content.mid(1, closeBracket - 1); // strip [ and ]
   // Timestamp should have more than just "YYYY-MM-DD HH:MM:SS.mmm" (23 chars)
-  CHECK(timestamp.length() > 23, "log_format: timestamp includes timezone (length=" +
-        std::to_string(timestamp.length()) + ")");
+  CHECK(timestamp.length() > 23,
+        "log_format: timestamp includes timezone (length=" + std::to_string(timestamp.length()) + ")");
 
   std::cout << std::endl;
 }
@@ -235,4 +235,3 @@ void runLoggerTests()
   testLogCircularAppendsAfterRestart();
   testLogDisabledWithEmptyPath();
 }
-

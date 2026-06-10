@@ -55,8 +55,7 @@ namespace NN_Server
 
       // Load ANN configuration with pre-extracted binary parameters.
       // If binParams is empty, falls back to loadConfig(configFilePath).
-      static ANN::CoreConfig<float> loadConfig(const std::string& configFilePath,
-                                               const std::vector<char>& binParams);
+      static ANN::CoreConfig<float> loadConfig(const std::string& configFilePath, const std::vector<char>& binParams);
 
       // Load CNN configuration with pre-extracted binary parameters.
       // If binParams is empty, falls back to loadCNNConfig(configFilePath).

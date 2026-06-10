@@ -82,7 +82,6 @@ namespace NN_CLI
 
       //-- Loading-bar wiring shared with the CNN runner --//
       TrainingTui trainingTui;
-
   };
 
 } // namespace NN_CLI

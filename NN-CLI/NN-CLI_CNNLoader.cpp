@@ -242,10 +242,9 @@ namespace NN_CLI
     }
 
     if (json.contains("parameters")) {
-      throw std::runtime_error(
-        "This JSON file contains embedded parameters. "
-        "The embedded-parameter format is no longer supported. "
-        "Please use a .nnmodel package with separate parameter files.");
+      throw std::runtime_error("This JSON file contains embedded parameters. "
+                               "The embedded-parameter format is no longer supported. "
+                               "Please use a .nnmodel package with separate parameter files.");
     }
 
     return coreConfig;
@@ -254,8 +253,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   CNN::CoreConfig<float> CNNLoader::loadConfig(const nlohmann::json& json, const std::vector<char>& binParams,
-                                                std::optional<std::string> modeOverride,
-                                                std::optional<std::string> deviceOverride)
+                                               std::optional<std::string> modeOverride,
+                                               std::optional<std::string> deviceOverride)
   {
     // 1. Call the existing JSON-only version to parse architecture/config
     auto coreConfig = loadConfig(json, modeOverride, deviceOverride);

@@ -70,8 +70,8 @@ namespace NN_Server
         // Normalize IPv4-mapped IPv6 addresses
         bool ok = false;
         quint32 ipv4 = socket.peerAddress().toIPv4Address(&ok);
-        std::string ip = ok ? QHostAddress(ipv4).toString().toStdString()
-                            : socket.peerAddress().toString().toStdString();
+        std::string ip =
+          ok ? QHostAddress(ipv4).toString().toStdString() : socket.peerAddress().toString().toStdString();
         this->logger->logRequest(ip, "?", "?", 503, 0.0);
       }
 

@@ -126,15 +126,12 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
     // Validate parameters for predict/test in non-package mode (plain JSON).
     // Packages store params in binary, but a plain JSON without parameters would
     // produce zero-initialized weights → garbage predictions.
-    if (!isPackage &&
-        (this->annCoreConfig.modeType == Common::ModeType::PREDICT ||
-         this->annCoreConfig.modeType == Common::ModeType::TEST)) {
-      if (this->annCoreConfig.parameters.weights.empty() ||
-          this->annCoreConfig.parameters.biases.empty()) {
-        throw std::runtime_error(
-            "Config missing parameters required for predict/test mode. "
-            "Use a .nnmodel package for predict/test mode. Plain JSON "
-            "without parameters cannot be used for inference.");
+    if (!isPackage && (this->annCoreConfig.modeType == Common::ModeType::PREDICT ||
+                       this->annCoreConfig.modeType == Common::ModeType::TEST)) {
+      if (this->annCoreConfig.parameters.weights.empty() || this->annCoreConfig.parameters.biases.empty()) {
+        throw std::runtime_error("Config missing parameters required for predict/test mode. "
+                                 "Use a .nnmodel package for predict/test mode. Plain JSON "
+                                 "without parameters cannot be used for inference.");
       }
     }
 
@@ -151,15 +148,13 @@ Runner::Runner(const QCommandLineParser& parser, LogLevel logLevel) : parser(par
     // Validate parameters for predict/test in non-package mode (plain JSON).
     // Packages store params in binary, but a plain JSON without parameters would
     // produce zero-initialized weights → garbage predictions.
-    if (!isPackage &&
-        (this->cnnCoreConfig.modeType == Common::ModeType::PREDICT ||
-         this->cnnCoreConfig.modeType == Common::ModeType::TEST)) {
+    if (!isPackage && (this->cnnCoreConfig.modeType == Common::ModeType::PREDICT ||
+                       this->cnnCoreConfig.modeType == Common::ModeType::TEST)) {
       bool hasParams = !this->cnnCoreConfig.parameters.convParams.empty() ||
                        !this->cnnCoreConfig.parameters.denseParams.weights.empty();
       if (!hasParams) {
-        throw std::runtime_error(
-            "CNN config missing parameters required for predict/test mode. "
-            "Use a .nnmodel package or provide 'parameters' in the JSON config.");
+        throw std::runtime_error("CNN config missing parameters required for predict/test mode. "
+                                 "Use a .nnmodel package or provide 'parameters' in the JSON config.");
       }
     }
 

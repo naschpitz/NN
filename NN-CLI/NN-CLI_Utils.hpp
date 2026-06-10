@@ -146,7 +146,7 @@ namespace NN_CLI
     public:
       /// Load IDX dataset as  samples (flat input vectors)
       static ANN::Samples<T> loadIDX(const std::string& dataPath, const std::string& labelsPath,
-                                        ulong progressReports = 1000);
+                                     ulong progressReports = 1000);
 
       /// Load IDX dataset as CNN samples (3D tensor inputs with given shape)
       static CNN::Samples<T> loadCNNIDX(const std::string& dataPath, const std::string& labelsPath,

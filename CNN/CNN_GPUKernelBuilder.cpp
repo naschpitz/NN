@@ -58,7 +58,7 @@ void GPUKernelBuilder<T>::setupTrainingKernels()
   this->addReverseBridgeKernels(0);
   this->addBackpropagateKernels(0, 0, numLayers);
 
-  // Accumulate: CNN + 
+  // Accumulate: CNN +
   this->addCNNAccumulateKernels(0, 0, numLayers);
   this->bufferManager.annGPUWorker->kernelBuilder->addAccumulateKernels();
 

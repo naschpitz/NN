@@ -36,18 +36,18 @@ namespace NN_CLI
   //===================================================================================================================//
 
   TerminalUI::TerminalUI()
-    : trainingPanel(0, 0, 0, 0, "Training", 2)
-    , epochsPanel(0, 0, 0, 0, "Epochs", 2)
-    , configPanel(0, 0, 0, 0, "Configuration", 2)
-    , timingPanel(0, 0, 0, 0, "Timing", 2)
+    : trainingPanel(0, 0, 0, 0, "Training", 2),
+      epochsPanel(0, 0, 0, 0, "Epochs", 2),
+      configPanel(0, 0, 0, 0, "Configuration", 2),
+      timingPanel(0, 0, 0, 0, "Timing", 2)
   {
     this->epochsPanel.setAutoScroll(true);
 
     this->epochsTable.setColumns({
-      {"Epoch",        5,  TerminalUI_Table::Align::RIGHT},
-      {"Loss",         8,  TerminalUI_Table::Align::RIGHT},
-      {"Val Loss",     8,  TerminalUI_Table::Align::RIGHT},
-      {"Best",         4,  TerminalUI_Table::Align::LEFT},
+      {"Epoch", 5, TerminalUI_Table::Align::RIGHT},
+      {"Loss", 8, TerminalUI_Table::Align::RIGHT},
+      {"Val Loss", 8, TerminalUI_Table::Align::RIGHT},
+      {"Best", 4, TerminalUI_Table::Align::LEFT},
       {"Completed At", 19, TerminalUI_Table::Align::LEFT},
     });
   }
@@ -138,7 +138,6 @@ namespace NN_CLI
       this->progressWin = nullptr;
     }
 
-
     endwin();
   }
 
@@ -198,7 +197,6 @@ namespace NN_CLI
       this->loadingWin = nullptr;
     }
 
-
     int loadW = std::max(1, this->leftWidth - 4);
 
     this->loadingWin = newwin(1, loadW, trainingY + 1, 2);
@@ -213,7 +211,6 @@ namespace NN_CLI
       werase(this->progressWin);
       touchwin(this->progressWin);
     }
-
 
     if (this->resizeCallback)
       this->resizeCallback();
@@ -392,8 +389,8 @@ namespace NN_CLI
 
     // Trim leading empty strings so that offset 0 corresponds to the first non-empty line
     // of content, keeping scroll logic and scrollbar naturally consistent.
-    auto firstNonEmpty = std::find_if(formattedLines.begin(), formattedLines.end(),
-                                      [](const std::string& s) { return !s.empty(); });
+    auto firstNonEmpty =
+      std::find_if(formattedLines.begin(), formattedLines.end(), [](const std::string& s) { return !s.empty(); });
     std::vector<std::string> trimmed(firstNonEmpty, formattedLines.end());
 
     for (auto& line : trimmed) {
@@ -469,9 +466,8 @@ namespace NN_CLI
     // placeholder row account for the structural lines).
     int cH = this->epochsPanel.getH() - 2;
     int structuralLines = this->epochRecords.empty() ? 5 : 4;
-    int estimatedTotal = static_cast<int>(this->epochRecords.size())
-                       + static_cast<int>(this->epochMessages.size())
-                       + structuralLines;
+    int estimatedTotal =
+      static_cast<int>(this->epochRecords.size()) + static_cast<int>(this->epochMessages.size()) + structuralLines;
     int panelPad = (estimatedTotal > cH) ? 5 : 4;
 
     return std::max(1, this->epochsPanel.getW() - panelPad);
@@ -485,8 +481,7 @@ namespace NN_CLI
 
     // Trim leading empty strings so that offset 0 corresponds to the first non-empty line
     // of content, keeping scroll logic and scrollbar naturally consistent.
-    auto firstNonEmpty = std::find_if(lines.begin(), lines.end(),
-                                      [](const std::string& s) { return !s.empty(); });
+    auto firstNonEmpty = std::find_if(lines.begin(), lines.end(), [](const std::string& s) { return !s.empty(); });
     std::vector<std::string> trimmed(firstNonEmpty, lines.end());
     this->configPanel.setLines(trimmed);
     this->configPanel.scrollState().offset = 0;
@@ -522,7 +517,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void TerminalUI::pushEpochRecord(int epoch, float loss, bool hasValLoss, float valLoss, bool isBest,
-                                    std::time_t completionTime)
+                                   std::time_t completionTime)
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
 

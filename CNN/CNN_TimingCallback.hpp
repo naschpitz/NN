@@ -39,23 +39,23 @@ namespace CNN
   using namespace Common;
   enum class TimingPhase : int {
     // Orchestrator phases (gpuIndex = -1)
-    DataFetch = 0,    // sampleProvider() — CPU, batch fetch / prefetch wait
-    GpuTrain,         // fan-out of trainSubset across GPUs (wall clock, parallel)
-    GradMerge,        // multi-GPU gradient merge on CPU (CNN + )
-    WeightUpdate,     // per-GPU weight update kernels
-    KernelRestore,    // per-GPU training-kernel restore after update
+    DataFetch = 0, // sampleProvider() — CPU, batch fetch / prefetch wait
+    GpuTrain, // fan-out of trainSubset across GPUs (wall clock, parallel)
+    GradMerge, // multi-GPU gradient merge on CPU (CNN + )
+    WeightUpdate, // per-GPU weight update kernels
+    KernelRestore, // per-GPU training-kernel restore after update
     // Worker phases (gpuIndex >= 0)
-    H2DUpload,        // host -> GPU writeBuffer enqueues (input + expected + dropout)
-    GpuCompute,       // core->run() — fused forward + backward (+ accumulate)
+    H2DUpload, // host -> GPU writeBuffer enqueues (input + expected + dropout)
+    GpuCompute, // core->run() — fused forward + backward (+ accumulate)
     // Sub-phase breakdown (populated from GPU profiling, not host-side events)
-    Augmentation,     // GPU image augmentation (inside DataFetch, host-side)
-    CnnForward,       // CNN propagate kernels (GPU-profiled)
-    AnnForward,       //  propagate kernels (GPU-profiled)
-    AnnBackward,      //  backprop kernels (GPU-profiled)
-    CnnBackward,      // CNN backprop kernels (GPU-profiled)
-    CNNAccumulate,    // CNN gradient accumulation (GPU-profiled)
-    Accumulate,    //  gradient accumulation (GPU-profiled)
-    LossCompute,      // loss kernel (GPU-profiled)
+    Augmentation, // GPU image augmentation (inside DataFetch, host-side)
+    CnnForward, // CNN propagate kernels (GPU-profiled)
+    AnnForward, //  propagate kernels (GPU-profiled)
+    AnnBackward, //  backprop kernels (GPU-profiled)
+    CnnBackward, // CNN backprop kernels (GPU-profiled)
+    CNNAccumulate, // CNN gradient accumulation (GPU-profiled)
+    Accumulate, //  gradient accumulation (GPU-profiled)
+    LossCompute, // loss kernel (GPU-profiled)
     Count
   };
 
@@ -68,11 +68,10 @@ namespace CNN
   //-- GPU profile data --//
   //===================================================================================================================//
 
-  struct GpuPhaseProfile
-  {
-      TimingPhase phase;   // sub-phase category
-      double gpuMs;        // GPU-measured execution time (sum of kernel times in this phase)
-      ulong kernelCalls;   // number of kernel enqueues in this phase
+  struct GpuPhaseProfile {
+      TimingPhase phase; // sub-phase category
+      double gpuMs; // GPU-measured execution time (sum of kernel times in this phase)
+      ulong kernelCalls; // number of kernel enqueues in this phase
   };
 
   // Invoked after each core->run() in the fast path with per-sub-phase GPU-measured

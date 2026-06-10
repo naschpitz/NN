@@ -139,16 +139,15 @@ int ANNRunner::train()
 
   if (this->logLevel > LogLevel::QUIET) {
     std::vector<SummaryTable::Section> sections;
-    sections.push_back({"Model Configuration",
-                         TrainingSummary::collectRows(this->coreConfig, this->augConfig,
-                                                      numOriginalTrainSamples, numTrainSamples,
-                                                      numValidationSamples, validationRatio, validationAuto)});
+    sections.push_back(
+      {"Model Configuration",
+       TrainingSummary::collectRows(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
+                                    numValidationSamples, validationRatio, validationAuto)});
 
     ulong numOutputClasses =
       this->coreConfig.layersConfig.empty() ? 0 : this->coreConfig.layersConfig.back().numNeurons;
     if (numOutputClasses >= 2) {
-      sections.push_back({"Loss Reference",
-                           LossReferenceTable::collectRows(numOutputClasses)});
+      sections.push_back({"Loss Reference", LossReferenceTable::collectRows(numOutputClasses)});
     }
 
     this->tui->setConfigSections(sections);
@@ -159,11 +158,11 @@ int ANNRunner::train()
     this->tui->refreshConfigPanel();
   }
 
-
   std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
 
   if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
-    trainingMonitor = std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
+    trainingMonitor =
+      std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
     this->coreConfig.trainingConfig.monitoringConfig.enabled = false;
     this->core = ANN::Core<float>::makeCore(this->coreConfig);
   }
@@ -207,7 +206,7 @@ int ANNRunner::train()
   // Pre-populate the TUI epoch table with loaded history (resumed model).
   if (this->tui && this->tui->isInitialized() && !this->coreConfig.loadedEpochHistory.empty()) {
     for (const auto& record : this->coreConfig.loadedEpochHistory) {
-      int epochNum = static_cast<int>(record.epoch) + 1;  // Convert 0-based to 1-based for TUI display
+      int epochNum = static_cast<int>(record.epoch) + 1; // Convert 0-based to 1-based for TUI display
       float lossVal = static_cast<float>(record.loss);
       float valLossVal = static_cast<float>(record.valLoss);
       std::time_t compTime = static_cast<std::time_t>(record.completionTime);
@@ -410,7 +409,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
           std::string checkpointPath =
             ModelSerializer::generateCheckpointPath(inputFilePath, finishedEpoch, this->lastEpochLoss);
           ModelSerializer::saveANNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
-                                                  this->augConfig, this->buildValidationMetadata());
+                                                 this->augConfig, this->buildValidationMetadata());
         }
 
         // --- Validation ---
@@ -580,7 +579,7 @@ int ANNRunner::finishTraining(const QString& inputFilePath)
 
       if (this->trainingMonitor) {
         this->trainingMonitor->checkEpoch(lastEpoch, this->lastEpochLoss,
-                                           std::optional<float>(validationResult.averageLoss));
+                                          std::optional<float>(validationResult.averageLoss));
         isBest = this->trainingMonitor->isNewBest();
       }
     }
@@ -589,7 +588,9 @@ int ANNRunner::finishTraining(const QString& inputFilePath)
 
     //-- Update the last epoch history record --//
     auto& lastRecord = epochHistory.back();
-    if (hasValLoss) { lastRecord.isBest = isBestEpoch; }
+    if (hasValLoss) {
+      lastRecord.isBest = isBestEpoch;
+    }
     // else: preserve the core's isBest (set by internal monitor when validation is disabled)
     lastRecord.hasValLoss = hasValLoss;
     lastRecord.valLoss = valLoss;
@@ -597,8 +598,8 @@ int ANNRunner::finishTraining(const QString& inputFilePath)
     //-- Save best model if the last epoch is a new best --//
     if (isBestEpoch) {
       std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-      ModelSerializer::saveANNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig,
-                                              this->augConfig, this->buildValidationMetadata());
+      ModelSerializer::saveANNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                             this->buildValidationMetadata());
     }
 
     //-- Push the last epoch to TUI (no transition fires after the last epoch) --//
@@ -607,11 +608,11 @@ int ANNRunner::finishTraining(const QString& inputFilePath)
     }
   }
 
-  return finishTrainingCommon(this->tui, this->logLevel, this->parser, inputFilePath, *this->core,
-                              [this](const std::string& path) {
-                                ModelSerializer::saveANNModelToPackage(path, *this->core, this->coreConfig, this->ioConfig,
-                                                                       this->augConfig, this->buildValidationMetadata());
-                              });
+  return finishTrainingCommon(
+    this->tui, this->logLevel, this->parser, inputFilePath, *this->core, [this](const std::string& path) {
+      ModelSerializer::saveANNModelToPackage(path, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                             this->buildValidationMetadata());
+    });
 }
 
 //===================================================================================================================//

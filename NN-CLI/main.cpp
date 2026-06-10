@@ -153,8 +153,7 @@ int main(int argc, char* argv[])
       QString configFilePath = parser.value(configOption);
 
       if (!NN_CLI::ModelPackage::isPackage(configFilePath.toStdString())) {
-        std::cerr << "Error: " << modeStr.toStdString()
-                  << " mode requires a .nnmodel package (not a plain .json).\n";
+        std::cerr << "Error: " << modeStr.toStdString() << " mode requires a .nnmodel package (not a plain .json).\n";
         std::cerr << "The plain JSON config format is no longer supported for this mode.\n";
         return 1;
       }

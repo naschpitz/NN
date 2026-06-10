@@ -200,8 +200,8 @@ namespace NN_CLI
               << std::string(pad, ' ') << " |";
         } else {
           // Continuation lines: blank key column, just the wrapped value
-          oss << "| " << std::left << std::setw(static_cast<int>(keyW)) << ""
-              << " | " << val << std::string(pad, ' ') << " |";
+          oss << "| " << std::left << std::setw(static_cast<int>(keyW)) << "" << " | " << val << std::string(pad, ' ')
+              << " |";
         }
 
         lines.push_back(oss.str());
