@@ -144,6 +144,7 @@ namespace NN_CLI
       // Called from present() when the corresponding dirty flag is set.
       void renderEpochContent();
       void renderConfigContent();
+      void renderTimingContent();
 
       //-- Sub-windows (overlays) --//
 
@@ -186,11 +187,13 @@ namespace NN_CLI
       std::vector<SummaryTable::Section> configSections;
       std::vector<EpochRecord> epochRecords;
       std::vector<std::string> epochMessages; // monitor/status messages preserved across table rebuilds
+      std::vector<std::string> rawTimingLines;
 
       //-- Dirty flags --//
 
       bool epochLinesDirty{true};
       bool configLinesDirty{true};
+      bool timingLinesDirty{true};
   };
 
 } // namespace NN_CLI
