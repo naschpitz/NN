@@ -2,7 +2,7 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 
-#include "NN-CLI_Runner.hpp"
+#include "NN-CLI_App.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_ModelPackage.hpp"
 
@@ -11,7 +11,7 @@
 
 void printUsage()
 {
-  std::cout << "NN-CLI - Neural Network Command Line Interface ( + CNN)\n\n";
+  std::cout << "NN-CLI - Neural Network Command Line Interface (ANN + CNN)\n\n";
   std::cout << "Usage:\n";
   std::cout << "  NN-CLI --config <file> --mode train [options]                       # Training\n";
   std::cout << "  NN-CLI --config <file> --mode predict --input <f>                   # Predict (batch)\n";
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
   QCoreApplication::setApplicationVersion("1.0");
 
   QCommandLineParser parser;
-  parser.setApplicationDescription("Neural Network CLI ( + CNN)");
+  parser.setApplicationDescription("Neural Network CLI (ANN + CNN)");
   parser.addHelpOption();
 
   // Config file option
@@ -213,7 +213,7 @@ int main(int argc, char* argv[])
   }
 
   try {
-    NN_CLI::Runner runner(parser, logLevel);
+    NN_CLI::App runner(parser, logLevel);
     return runner.run();
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << "\n";

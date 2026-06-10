@@ -38,7 +38,7 @@ namespace NN_CLI
  *      as the threshold.
  *   6. Emit threshold.json next to the model checkpoint.
  *
- * The runner consumes a Core that the parent Runner created in PREDICT
+ * The runner consumes a Core that the parent App created in PREDICT
  * mode — calibrate is a CLI-level mode, not a model-level one.
  */
   class CalibrateRunner
@@ -58,7 +58,7 @@ namespace NN_CLI
       IOConfig ioConfig;
       AugmentationConfig augConfig;
 
-      // Cores are owned by the parent Runner; we hold references.
+      // Cores are owned by the parent App; we hold references.
       std::unique_ptr<ANN::Core<float>>& annCore;
       ANN::CoreConfig<float> annCoreConfig;
       std::unique_ptr<CNN::Core<float>>& cnnCore;
