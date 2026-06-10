@@ -555,7 +555,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
           if (this->trainingCallback) {
             QMutexLocker locker(&callbackMutex);
-            TrainingProgress<T> progress;
+            TrainingProgressEvent<T> progress;
             progress.currentEpoch = e + 1;
             progress.totalEpochs = numEpochs;
             progress.currentSample = completed;
@@ -638,11 +638,12 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       shouldStop = monitor->checkEpoch(e + 1, avgLoss);
     }
 
-    // Always track last completed epoch, regardless of monitoring
-    this->trainingMetadata.lastEpoch = e + 1;
+    // Always track the 0-based index of the last completed epoch (matches
+    // EpochRecord::epoch), regardless of monitoring
+    this->trainingMetadata.lastEpoch = e;
 
     if (this->trainingCallback) {
-      TrainingProgress<T> progress;
+      TrainingProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -671,6 +672,18 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     epochRecord.completionTime =
       static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
     this->trainingMetadata.epochHistory.push_back(epochRecord);
+
+    // Notify the consumer that epoch e (0-based) is complete, so it can run
+    // epoch-boundary work (validation, checkpoints) against the synced params.
+    if (this->epochCompletedCallback) {
+      EpochCompletionEvent<T> completion;
+      completion.epoch = e;
+      completion.totalEpochs = numEpochs;
+      completion.epochLoss = avgLoss;
+      completion.isNewBest = monitor ? monitor->isNewBest() : false;
+      completion.stoppedEarly = shouldStop;
+      this->epochCompletedCallback(completion);
+    }
 
     if (shouldStop) {
       break;
@@ -1035,7 +1048,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
 
           if (this->trainingCallback) {
             QMutexLocker locker(&callbackMutex);
-            TrainingProgress<T> progress;
+            TrainingProgressEvent<T> progress;
             progress.currentEpoch = e + 1;
             progress.totalEpochs = numEpochs;
             progress.currentSample = completed;
@@ -1338,11 +1351,12 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
       shouldStop = monitor->checkEpoch(e + 1, avgLoss);
     }
 
-    // Always track last completed epoch, regardless of monitoring
-    this->trainingMetadata.lastEpoch = e + 1;
+    // Always track the 0-based index of the last completed epoch (matches
+    // EpochRecord::epoch), regardless of monitoring
+    this->trainingMetadata.lastEpoch = e;
 
     if (this->trainingCallback) {
-      TrainingProgress<T> progress;
+      TrainingProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -1371,6 +1385,18 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     epochRecord.completionTime =
       static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
     this->trainingMetadata.epochHistory.push_back(epochRecord);
+
+    // Notify the consumer that epoch e (0-based) is complete, so it can run
+    // epoch-boundary work (validation, checkpoints) against the synced params.
+    if (this->epochCompletedCallback) {
+      EpochCompletionEvent<T> completion;
+      completion.epoch = e;
+      completion.totalEpochs = numEpochs;
+      completion.epochLoss = avgLoss;
+      completion.isNewBest = monitor ? monitor->isNewBest() : false;
+      completion.stoppedEarly = shouldStop;
+      this->epochCompletedCallback(completion);
+    }
 
     if (shouldStop) {
       break;

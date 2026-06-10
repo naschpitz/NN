@@ -85,7 +85,7 @@ static void testMultiGPUCallback()
   bool sawGPU1 = false;
 
   auto core = ANN::Core<float>::makeCore(config);
-  core->setTrainingCallback([&](const ANN::TrainingProgress<float>& progress) {
+  core->setTrainingCallback([&](const ANN::TrainingProgressEvent<float>& progress) {
     callbackCount++;
 
     if (progress.gpuIndex == 0)

@@ -183,7 +183,7 @@ static void testTrainingCallback()
 
   int callbackCount = 0;
   auto core = ANN::Core<double>::makeCore(config);
-  core->setTrainingCallback([&callbackCount](const Common::TrainingProgress<double>& progress) { callbackCount++; });
+  core->setTrainingCallback([&callbackCount](const Common::TrainingProgressEvent<double>& progress) { callbackCount++; });
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -261,7 +261,7 @@ static void testParametersDuringTraining()
   bool weightsNonEmpty = false;
   bool biasesNonEmpty = false;
 
-  core->setTrainingCallback([&](const Common::TrainingProgress<double>& progress) {
+  core->setTrainingCallback([&](const Common::TrainingProgressEvent<double>& progress) {
     // Detect epoch-completion callback: epochLoss > 0 and sampleLoss == 0
     if (progress.epochLoss > 0 && progress.sampleLoss == 0 && !paramsChecked) {
       const ANN::Parameters<double>& params = core->getParameters();

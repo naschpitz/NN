@@ -268,7 +268,7 @@ static void testGPUParametersDuringTraining()
   bool denseBiasesNonEmpty = false;
   ulong lastEpoch = 0;
 
-  core->setTrainingCallback([&](const Common::TrainingProgress<float>& progress) {
+  core->setTrainingCallback([&](const Common::TrainingProgressEvent<float>& progress) {
     if (progress.currentEpoch > lastEpoch && lastEpoch > 0 && !paramsChecked) {
       const CNN::Parameters<float>& params = core->getParameters();
       convFiltersNonEmpty = !params.convParams.empty() && !params.convParams[0].filters.empty();

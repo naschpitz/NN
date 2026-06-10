@@ -430,7 +430,7 @@ void CoreGPUWorker<T>::reportSampleProgress(const TrainingCallback<T>& callback,
   T sampleLoss = currentAccumLoss - prevAccumLoss;
   prevAccumLoss = currentAccumLoss;
 
-  TrainingProgress<T> progress;
+  TrainingProgressEvent<T> progress;
   progress.currentEpoch = epoch;
   progress.totalEpochs = totalEpochs;
   progress.currentSample = currentSample;

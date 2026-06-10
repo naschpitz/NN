@@ -268,15 +268,12 @@ namespace NN_CLI
     if (json.contains("trainingMetadata")) {
       const auto& md = json.at("trainingMetadata");
 
-      // Set startingEpoch from lastEpoch: the training loop uses 0-based epoch
-      // indices, so if lastEpoch=25 was the last completed epoch, the loop
-      // should resume at startingEpoch=25 (i.e., e=25..99 = 75 more epochs).
+      // Set startingEpoch from lastEpoch: lastEpoch is the 0-based index of the
+      // last completed epoch, so resume on the next one. E.g. lastEpoch=24
+      // (epochs 0..24 done) resumes at startingEpoch=25 (e=25..99 = 75 more).
       if (md.contains("lastEpoch")) {
         ulong lastEpoch = md.at("lastEpoch").get<ulong>();
-
-        if (lastEpoch > 0) {
-          coreConfig.trainingConfig.startingEpoch = lastEpoch;
-        }
+        coreConfig.trainingConfig.startingEpoch = lastEpoch + 1;
       }
 
       // Parse epoch history array

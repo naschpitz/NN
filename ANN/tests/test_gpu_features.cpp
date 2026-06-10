@@ -20,7 +20,7 @@ static void testGPUTrainingCallback()
 
   int callbackCount = 0;
   auto core = ANN::Core<float>::makeCore(config);
-  core->setTrainingCallback([&callbackCount](const ANN::TrainingProgress<float>& progress) { callbackCount++; });
+  core->setTrainingCallback([&callbackCount](const ANN::TrainingProgressEvent<float>& progress) { callbackCount++; });
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
