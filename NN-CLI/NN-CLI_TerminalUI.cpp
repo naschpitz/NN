@@ -353,6 +353,7 @@ namespace NN_CLI
 
   void TerminalUI::present(bool runOverlay, bool touchSub)
   {
+    this->rebuildEpochLines();
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
