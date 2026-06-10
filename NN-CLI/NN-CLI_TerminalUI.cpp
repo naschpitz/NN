@@ -505,6 +505,14 @@ namespace NN_CLI
     this->layout();
     this->epochLinesDirty_ = true;
     this->configLinesDirty_ = true;
+
+    // layout() erased and recreated the sub-windows (loadingWin_, progressWin_).
+    // Repaint any overlay (e.g. the loading bar) so it survives the resize even
+    // when handleResize() is called from the training callback, which subsequently
+    // calls refresh() -> present(false, true) without runOverlay.
+    if (this->overlayCallback_)
+      this->overlayCallback_();
+
     return true;
   }
 
