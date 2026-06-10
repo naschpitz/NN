@@ -402,11 +402,6 @@ namespace NN_CLI
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
     this->epochMessages_.push_back(line);
-    this->epochLines_.push_back(line);
-
-    if (this->epochs_.autoScroll)
-      this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - std::max(0, this->epochsH_ - 2));
-
     this->present(false, false);
   }
 
@@ -420,7 +415,6 @@ namespace NN_CLI
     std::time_t stamp = (completionTime == 0) ? std::time(nullptr) : completionTime;
     this->epochRecords_.push_back({epoch, loss, hasValLoss, valLoss, isBest, stamp});
 
-    this->rebuildEpochLines();
     this->present(false, false);
   }
 
@@ -578,19 +572,6 @@ namespace NN_CLI
       return false;
 
     this->layout();
-
-    // layout() erased the loading/progress sub-windows; reflow the epoch table to match
-    // the new panel width before redrawing panels.
-    this->rebuildEpochLines();
-
-    this->drawAllPanels();
-    wnoutrefresh(stdscr);
-
-    // Let the caller repaint the loading bar on top of the freshly drawn panels so it
-    // doesn't vanish until the next mini-batch tick.
-    if (this->overlayCallback_)
-      this->overlayCallback_();
-
     return true;
   }
 
