@@ -218,14 +218,18 @@ namespace NN_CLI
   {
     if (epoch == this->currentEpoch)
       return;
-
+ 
+    if (this->stepInProgress)
+      this->finalizeStep();
+ 
     this->currentEpoch = epoch;
     this->epochMs.fill(0.0);
     this->epochRuns = 0;
     this->stepCount = 0;
     this->epochGpuProfile.fill(0.0);
     this->epochGpuProfileKernelCalls = 0;
-
+    this->stepInProgress = false;
+ 
     std::lock_guard<std::mutex> lock(this->mutex);
     this->lastStep.valid = false;
   }
