@@ -14,9 +14,9 @@ namespace NN_CLI
   class PredictSummary
   {
     public:
-      static void printCNN(const CNN::CoreConfig<float>& cnnConfig, ulong numInputs, const std::string& inputPath,
+      static void printANN(const ANN::CoreConfig<float>& annConfig, ulong numInputs, const std::string& inputPath,
                            const std::string& outputPath);
-      static void print(const ANN::CoreConfig<float>& annConfig, ulong numInputs, const std::string& inputPath,
+      static void printCNN(const CNN::CoreConfig<float>& cnnConfig, ulong numInputs, const std::string& inputPath,
                            const std::string& outputPath);
   };
 
