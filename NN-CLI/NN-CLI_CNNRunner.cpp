@@ -63,8 +63,6 @@ int CNNRunner::train()
 
   this->trainingTui_.attach(this->tui, [this]() {
     this->profiler.resetRenderState();
-    ulong cw = this->tui->leftWidth() > 4 ? static_cast<ulong>(this->tui->configContentWidth()) : 0;
-    this->regenerateConfigLines(cw);
   });
 
   // Show loading status in the TUI while samples are processed.
@@ -144,34 +142,34 @@ int CNNRunner::train()
     this->core = CNN::Core<float>::makeCore(this->coreConfig);
   }
 
-  // Collect config table lines for the TUI config panel.
+  // Collect config sections for the TUI config panel.
   ulong numValidationSamples = validationConfig.enabled ? split.validationIndices.size() : 0;
   ulong numOriginalTrainSamples = totalOriginalSamples - numValidationSamples;
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
   if (this->logLevel > LogLevel::QUIET) {
-    this->cachedNumOrigTrainSamples_ = numOriginalTrainSamples;
-    this->cachedNumTrainSamples_ = numTrainSamples;
-    this->cachedNumValSamples_ = numValidationSamples;
-    this->cachedValRatio_ = validationRatio;
-    this->cachedValAuto_ = validationAuto;
+    std::vector<SummaryTable::Section> sections;
+    sections.push_back({"Model Configuration",
+                         TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig,
+                                                         numOriginalTrainSamples, numTrainSamples,
+                                                         numValidationSamples, validationRatio, validationAuto)});
 
     ulong numOutputClasses = this->coreConfig.layersConfig.denseLayers.empty()
                                ? 0
                                : this->coreConfig.layersConfig.denseLayers.back().numNeurons;
-    this->cachedNumOutputClasses_ = numOutputClasses;
-    this->configLinesLoaded_ = true;
+    if (numOutputClasses >= 2) {
+      sections.push_back({"Loss Reference",
+                           LossReferenceTable::collectRows(numOutputClasses)});
+    }
 
-    // Fit the config tables to the left panel when the TUI is active; otherwise let them size to
-    // the full terminal (maxWidth 0).
-    ulong cw = this->tui->leftWidth() > 4 ? static_cast<ulong>(this->tui->configContentWidth()) : 0;
-    this->regenerateConfigLines(cw);
+    this->tui->setConfigSections(sections);
   }
 
   // Render config panel
   if (this->tui->isInitialized()) {
     this->tui->refreshConfigPanel();
   }
+
 
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
   std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
@@ -404,29 +402,6 @@ ValidationMetadata CNNRunner::buildValidationMetadata() const
 {
   return {this->validationState.enabled, this->validationState.numValSamples, this->validationState.lastValLoss,
           this->validationState.bestValLoss, this->validationState.bestValEpoch};
-}
-
-//===================================================================================================================//
-
-void CNNRunner::regenerateConfigLines(ulong maxWidth)
-{
-  if (!this->configLinesLoaded_)
-    return;
-
-  std::vector<SummaryTable::Section> sections;
-
-  auto trainRows = TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
-                                                   this->cachedNumTrainSamples_, this->cachedNumValSamples_,
-                                                   this->cachedValRatio_, this->cachedValAuto_);
-  sections.push_back({"Model Configuration", std::move(trainRows)});
-
-  if (this->cachedNumOutputClasses_ >= 2) {
-    auto lossRows = LossReferenceTable::collectRows(this->cachedNumOutputClasses_);
-    sections.push_back({"Loss Reference", std::move(lossRows)});
-  }
-
-  auto lines = SummaryTable::collectSections(sections, maxWidth);
-  this->tui->setConfigLines(lines);
 }
 
 //===================================================================================================================//

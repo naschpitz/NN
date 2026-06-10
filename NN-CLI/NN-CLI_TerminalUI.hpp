@@ -7,6 +7,7 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include "NN-CLI_SummaryTable.hpp"
 
 struct _win_st;
 typedef struct _win_st WINDOW;
@@ -62,6 +63,8 @@ namespace NN_CLI
       int configContentWidth() const;
 
       void setConfigLines(const std::vector<std::string>& lines);
+
+      void setConfigSections(const std::vector<SummaryTable::Section>& sections);
       void refreshConfigPanel();
 
       WINDOW* progressWindow() const
@@ -131,6 +134,7 @@ namespace NN_CLI
       // Rebuild the epoch table lines from epochRecords_ using the current panel width.
       // Called on new epochs and on terminal resize so the table always fills the panel.
       void rebuildEpochLines();
+      void rebuildConfigLines();
 
       // Draw a vertical scrollbar in column `col` over `contentH` rows starting at `yTop`,
       // with the thumb positioned for `scroll` within [0, total - contentH]. No-op if it all fits.
@@ -171,12 +175,14 @@ namespace NN_CLI
       std::function<void()> overlayCallback_;
 
       std::vector<std::string> configLines_;
+      std::vector<SummaryTable::Section> configSections_;
       std::vector<std::string> timingLines_;
       std::vector<std::string> epochLines_;
       std::vector<EpochRecord> epochRecords_; // structured epoch data (for future use)
       std::vector<std::string> epochMessages_; // monitor/status messages preserved across table rebuilds
 
       bool epochLinesDirty_{true};
+      bool configLinesDirty_{true};
   };
 
 } // namespace NN_CLI

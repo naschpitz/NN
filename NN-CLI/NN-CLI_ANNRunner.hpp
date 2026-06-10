@@ -49,7 +49,6 @@ namespace NN_CLI
                                  const std::vector<ulong>* validationIndices = nullptr);
       int finishTraining(const QString& inputFilePath);
       ValidationMetadata buildValidationMetadata() const;
-      void regenerateConfigLines(ulong maxWidth);
 
       //-- References to shared state (owned by Runner) --//
       const QCommandLineParser& parser;
@@ -84,14 +83,6 @@ namespace NN_CLI
       //-- Loading-bar wiring shared with the CNN runner --//
       TrainingTui trainingTui_;
 
-      //-- Cached config for on-resize regeneration --//
-      ulong cachedNumOrigTrainSamples_ = 0;
-      ulong cachedNumTrainSamples_ = 0;
-      ulong cachedNumValSamples_ = 0;
-      float cachedValRatio_ = 0.0f;
-      bool cachedValAuto_ = false;
-      ulong cachedNumOutputClasses_ = 0;
-      bool configLinesLoaded_ = false;
   };
 
 } // namespace NN_CLI
