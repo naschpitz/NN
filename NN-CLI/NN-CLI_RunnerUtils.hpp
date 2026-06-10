@@ -51,7 +51,11 @@ namespace NN_CLI
 
     const auto& trainingConfig = core.getTrainingConfig();
     const auto& trainingMetadata = core.getTrainingMetadata();
-    ulong actualEpochs = trainingMetadata.lastEpoch > 0 ? trainingMetadata.lastEpoch : trainingConfig.numEpochs;
+    // lastEpoch is a 0-based index, so the count of epochs trained is index + 1.
+    // Fall back to the configured numEpochs when no epoch completed.
+    ulong actualEpochs = trainingMetadata.epochHistory.empty()
+                           ? trainingConfig.numEpochs
+                           : trainingMetadata.epochHistory.back().epoch + 1;
 
     std::string outputPathStr;
 

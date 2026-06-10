@@ -70,21 +70,15 @@ namespace NN_CLI
 
       //-- Loading-bar wiring shared with the  runner --//
       TrainingTui trainingTui;
-      //-- Callback State --//
-      ulong lastCallbackEpoch = 0;
+      //-- Callback state --//
+      // Latest epoch-average training loss, written by the per-batch progress
+      // callback and read by the epoch-completed callback. Serialized through
+      // the model metadata via checkpoints/best-model saves.
       float lastEpochLoss = 0.0f;
-      bool lastIsBest = false;
-      bool lastHadValLoss = false;
-      float lastValLoss = 0.0f;
-      bool cacheIsSet = false;
-      std::mutex epochTransitionMutex;
+      // Serializes the per-batch progress callback (fired concurrently from GPU
+      // worker threads) against the epoch-completed callback.
+      std::mutex callbackMutex;
       std::unique_ptr<ProgressBar> progressBar;
-
-      //-- Validation objects (stored during train() for finishTraining()) --//
-      std::shared_ptr<CNN::Core<float>> validationCore;
-      std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr;
-      std::shared_ptr<std::vector<ulong>> validationIndices;
-      std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
   };
 
 } // namespace NN_CLI

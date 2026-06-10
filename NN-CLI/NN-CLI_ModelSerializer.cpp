@@ -160,8 +160,12 @@ namespace NN_CLI
     mdJson["numSamples"] = md.numSamples;
     mdJson["finalLoss"] = md.finalLoss;
 
-    if (md.lastEpoch > 0)
-      mdJson["lastEpoch"] = md.lastEpoch;
+    // Serialize the 0-based index of the last completed epoch whenever any
+    // epoch ran. Sourced from epochHistory so it always matches the serialized
+    // epochs[] (a single-epoch run has lastEpoch == 0, which an "> 0" guard
+    // would wrongly drop).
+    if (!md.epochHistory.empty())
+      mdJson["lastEpoch"] = md.epochHistory.back().epoch;
 
     if (!md.stopReason.empty())
       mdJson["stopReason"] = md.stopReason;

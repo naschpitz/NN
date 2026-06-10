@@ -7,7 +7,7 @@
 #include "CNN_Sample.hpp"
 #include "CNN_SampleProvider.hpp"
 #include "Common/Common_EpochRecord.hpp"
-#include "Common/Common_TrainingProgress.hpp"
+#include "Common/Common_TrainingProgressEvent.hpp"
 #include "Common/Common_TrainingMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
 #include "Common/Common_PredictResult.hpp"
@@ -123,6 +123,13 @@ namespace CNN
         trainingCallback = callback;
       }
 
+      // Invoked once per completed epoch with the 0-based epoch index. The
+      // consumer performs epoch-boundary work here (validation, checkpoints).
+      void setEpochCompletedCallback(Common::EpochCompletedCallback<T> callback)
+      {
+        epochCompletedCallback = callback;
+      }
+
       void setProgressCallback(Common::ProgressCallback callback)
       {
         progressCallback = callback;
@@ -205,6 +212,7 @@ namespace CNN
 
       //-- Internal state --//
       TrainingCallback<T> trainingCallback;
+      EpochCompletedCallback<T> epochCompletedCallback;
       ProgressCallback progressCallback;
       TimingCallback timingCallback;
       GpuProfileCallback gpuProfileCallback;

@@ -186,14 +186,6 @@ int ANNRunner::train()
     validationCore = ANN::Core<float>::makeCore(validationCoreConfig);
   }
 
-  // Store validation objects as members for use in finishTraining().
-  this->validationCore = validationCore;
-  this->trainingMonitor = trainingMonitor;
-
-  if (validationConfig.enabled) {
-    this->validationIndices = std::make_shared<std::vector<ulong>>(split.validationIndices);
-  }
-
   this->setupTrainingCallback(inputFilePath, validationCore, trainingMonitor,
                               validationConfig.enabled ? &dataLoader : nullptr,
                               validationConfig.enabled ? &split.validationIndices : nullptr);
@@ -371,7 +363,6 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
                                       const DataLoader<ANN::Sample<float>>* validationDataLoader,
                                       const std::vector<ulong>* validationIndices)
 {
-  this->lastCallbackEpoch = 0;
   this->lastEpochLoss = 0.0f;
 
   ulong batchSize = this->coreConfig.trainingConfig.batchSize;
@@ -386,141 +377,123 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     validationProviderPtr = std::make_shared<ANN::SampleProvider<float>>(std::move(provider));
   }
 
-  this->validationProviderPtr = validationProviderPtr;
+  // Live progress callback: fires per batch. It only drives the progress
+  // display — every epoch-boundary task lives in the epoch-completed callback.
+  this->core->setTrainingCallback([this, tui](const Common::TrainingProgressEvent<float>& progress) {
+    std::lock_guard<std::mutex> lock(this->callbackMutex);
 
-  this->core->setTrainingCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
-                                   validationIndices, validationDataLoader,
-                                   tui](const Common::TrainingProgress<float>& progress) {
-    {
-      std::lock_guard<std::mutex> lock(this->epochTransitionMutex);
+    if (progress.epochLoss > 0)
+      this->lastEpochLoss = progress.epochLoss;
 
-      // Epoch transition: process epoch-end tasks when a new epoch starts.
-      // saveModelInterval controls checkpoint frequency only; epoch
-      // transitions must always be processed for TUI, validation, and
-      // monitoring logic to work.
-      bool epochTransition = progress.currentEpoch > this->lastCallbackEpoch;
+    if (this->logLevel > LogLevel::QUIET) {
+      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
+                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
 
-      if (epochTransition) {
-        const ulong finishedEpoch = this->lastCallbackEpoch;
+      if (tui && tui->isInitialized()) {
+        std::lock_guard<std::recursive_mutex> tuiLock(tui->getMutex());
+        tui->handleResize();
+        this->progressBar->update(info, tui->progressWindow());
+        tui->refresh();
+      } else {
+        this->progressBar->update(info);
+      }
+    }
+  });
 
-        // --- Checkpointing (controlled by saveModelInterval) ---
-        if (this->ioConfig.saveModelInterval > 0 && finishedEpoch > 0 &&
-            finishedEpoch % this->ioConfig.saveModelInterval == 0) {
-          std::string checkpointPath =
-            ModelSerializer::generateCheckpointPath(inputFilePath, finishedEpoch, this->lastEpochLoss);
-          ModelSerializer::saveANNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
-                                                 this->augConfig, this->buildValidationMetadata());
-        }
+  // Epoch-completed callback: fires once per epoch (after the epoch's record is
+  // recorded) with the 0-based epoch index. The core hands us the index
+  // directly, so there is no transition tracking and no off-by-one — completion.epoch
+  // matches EpochRecord::epoch and the serialized bestValidationEpoch.
+  this->core->setEpochCompletedCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
+                                         validationIndices,
+                                         tui](const Common::EpochCompletionEvent<float>& completion) {
+    std::lock_guard<std::mutex> lock(this->callbackMutex);
 
-        // --- Validation ---
-        bool isBest = false;
-        bool monitorShouldStop = false;
-        float valLoss = 0.0f;
-        bool hasValLoss = false;
+    const ulong epoch = completion.epoch; // 0-based index of the just-completed epoch
 
-        if (finishedEpoch > 0 && this->validationState.enabled && validationCore && validationProviderPtr &&
-            validationIndices && finishedEpoch % this->validationState.checkInterval == 0) {
-          ulong validationTotal = validationIndices->size();
+    // --- Checkpointing (every saveModelInterval completed epochs) ---
+    // epoch + 1 is the count of completed epochs; checkpoint filenames stay
+    // 1-based to match the TUI's human-facing epoch numbering.
+    if (this->ioConfig.saveModelInterval > 0 && (epoch + 1) % this->ioConfig.saveModelInterval == 0) {
+      std::string checkpointPath =
+        ModelSerializer::generateCheckpointPath(inputFilePath, epoch + 1, this->lastEpochLoss);
+      ModelSerializer::saveANNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
+                                             this->augConfig, this->buildValidationMetadata());
+    }
 
-          validationCore->setParameters(this->core->getParameters());
+    // --- Validation ---
+    bool isBest = false;
+    bool monitorShouldStop = false;
+    float valLoss = 0.0f;
+    bool hasValLoss = false;
 
-          setupValidationProgressCallback(*validationCore, tui, validationTotal, progress.totalGPUs);
+    if (this->validationState.enabled && validationCore && validationProviderPtr && validationIndices &&
+        epoch % this->validationState.checkInterval == 0) {
+      ulong validationTotal = validationIndices->size();
 
-          // Mute the loading bar while validation streams its own samples through the shared
-          // loader, so the "Loading samples" bar isn't hijacked by validation's batch counts
-          // (validation has its own "Validating" bar on the progress window).
-          auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
+      validationCore->setParameters(this->core->getParameters());
 
-          this->validationState.lastValLoss = validationResult.averageLoss;
-          valLoss = validationResult.averageLoss;
-          hasValLoss = true;
+      setupValidationProgressCallback(*validationCore, tui, validationTotal, this->coreConfig.numGPUs);
 
-          if (validationResult.averageLoss < this->validationState.bestValLoss) {
-            this->validationState.bestValLoss = validationResult.averageLoss;
-            this->validationState.bestValEpoch = finishedEpoch;
-          }
+      auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
 
-          if (trainingMonitor) {
-            monitorShouldStop = trainingMonitor->checkEpoch(finishedEpoch, this->lastEpochLoss,
-                                                            std::optional<float>(validationResult.averageLoss));
-            isBest = trainingMonitor->isNewBest();
-          }
-        }
+      this->validationState.lastValLoss = validationResult.averageLoss;
+      valLoss = validationResult.averageLoss;
+      hasValLoss = true;
 
-        // --- Best model save ---
-        if (isBest || progress.isNewBest) {
-          std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-          ModelSerializer::saveANNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig,
-                                                 this->augConfig, this->buildValidationMetadata());
-        }
-
-        // --- TUI history (skip epoch 0 line) ---
-        bool isBestEpoch = (isBest || progress.isNewBest);
-
-        if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET && finishedEpoch > 0) {
-          tui->pushEpochRecord(static_cast<int>(finishedEpoch), this->lastEpochLoss, hasValLoss, valLoss, isBestEpoch);
-        }
-
-        // --- Update core epochHistory with correct isBest/hasValLoss/valLoss ---
-        // The core's internal monitor is disabled (NN-CLI manages monitoring
-        // externally), so the core records isBest=false and hasValLoss=false.
-        // Overwrite with the actual values computed above so that any
-        // subsequent model save serializes the correct epoch metadata.
-        // Guard with finishedEpoch > 0: on resume, the first transition fires
-        // with finishedEpoch = 0 and would overwrite the last prepended
-        // historical record with stale defaults.
-        if (finishedEpoch > 0) {
-          auto& epochHistory = this->core->getTrainingMetadata().epochHistory;
-
-          if (!epochHistory.empty()) {
-            auto& lastRecord = epochHistory.back();
-            lastRecord.isBest = isBestEpoch;
-            lastRecord.hasValLoss = hasValLoss;
-            lastRecord.valLoss = valLoss;
-          }
-
-          // Cache for the final-epoch fixup in finishTraining().
-          this->lastIsBest = isBestEpoch;
-          this->lastHadValLoss = hasValLoss;
-          this->lastValLoss = valLoss;
-          this->cacheIsSet = true;
-        }
-
-        // --- Monitor stop requests ---
-        if (monitorShouldStop) {
-          if (tui && tui->isInitialized())
-            tui->addEpochLine("[Monitor] Training stopped: " + trainingMonitor->getStopReason());
-
-          this->core->requestStop();
-        }
-
-        if (progress.stoppedEarly) {
-          if (tui && tui->isInitialized())
-            tui->addEpochLine("[Monitor] Training stopped: " + this->core->getTrainingMetadata().stopReason);
-
-          this->core->requestStop();
-        }
-
-        this->lastCallbackEpoch = progress.currentEpoch;
+      if (validationResult.averageLoss < this->validationState.bestValLoss) {
+        this->validationState.bestValLoss = validationResult.averageLoss;
+        this->validationState.bestValEpoch = epoch;
       }
 
-      if (this->logLevel > LogLevel::QUIET) {
-        ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
-                          progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
-
-        if (tui && tui->isInitialized()) {
-          std::lock_guard<std::recursive_mutex> tuiLock(tui->getMutex());
-          tui->handleResize();
-          this->progressBar->update(info, tui->progressWindow());
-          tui->refresh();
-        } else {
-          this->progressBar->update(info);
-        }
+      if (trainingMonitor) {
+        monitorShouldStop =
+          trainingMonitor->checkEpoch(epoch, this->lastEpochLoss, std::optional<float>(validationResult.averageLoss));
+        isBest = trainingMonitor->isNewBest();
       }
+    }
 
-      if (progress.epochLoss > 0)
-        this->lastEpochLoss = progress.epochLoss;
-    } // lock_guard released
+    bool isBestEpoch = (isBest || completion.isNewBest);
+
+    // --- Best model save ---
+    if (isBestEpoch) {
+      std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
+      ModelSerializer::saveANNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                             this->buildValidationMetadata());
+    }
+
+    // --- Write the validation results into this epoch's history record ---
+    // The core's internal monitor is disabled (NN-CLI monitors externally), so
+    // it recorded isBest=false / hasValLoss=false. The just-completed epoch is
+    // epochHistory.back() (the core appended it immediately before this call).
+    auto& epochHistory = this->core->getTrainingMetadata().epochHistory;
+
+    if (!epochHistory.empty()) {
+      auto& lastRecord = epochHistory.back();
+      lastRecord.isBest = isBestEpoch;
+      lastRecord.hasValLoss = hasValLoss;
+      lastRecord.valLoss = valLoss;
+    }
+
+    // --- TUI history line (1-based for display) ---
+    if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET) {
+      tui->pushEpochRecord(static_cast<int>(epoch) + 1, this->lastEpochLoss, hasValLoss, valLoss, isBestEpoch);
+    }
+
+    // --- Monitor stop requests ---
+    if (monitorShouldStop) {
+      if (tui && tui->isInitialized())
+        tui->addEpochLine("[Monitor] Training stopped: " + trainingMonitor->getStopReason());
+
+      this->core->requestStop();
+    }
+
+    if (completion.stoppedEarly) {
+      if (tui && tui->isInitialized())
+        tui->addEpochLine("[Monitor] Training stopped: " + this->core->getTrainingMetadata().stopReason);
+
+      this->core->requestStop();
+    }
   });
 }
 
@@ -535,79 +508,9 @@ int ANNRunner::finishTraining(const QString& inputFilePath)
     this->coreConfig.loadedEpochHistory.clear();
   }
 
-  auto& trainingMetadata = this->core->getTrainingMetadata();
-  auto& epochHistory = trainingMetadata.epochHistory;
-
-  // The epoch transition callback updates epochHistory.back() at the START of
-  // epoch N+1 (triggered by the first per-sample callback of the new epoch).
-  // The final epoch has no subsequent epoch, so no transition fires and its
-  // record keeps the core's default isBest=false / hasValLoss=false / valLoss=0.
-  //
-  // Run a fresh validation pass for the last epoch and fix up its record.
-  //
-  // cacheIsSet means at least one transition with finishedEpoch>0 fired
-  // (>=2 epochs trained).  lastEpoch>0 covers the numEpochs=1 edge case
-  // where no transition populates the cache but one epoch was still trained.
-  bool needsFixup = (this->cacheIsSet || trainingMetadata.lastEpoch > 0) && !epochHistory.empty();
-
-  if (needsFixup) {
-    const ulong lastEpoch = trainingMetadata.lastEpoch;
-
-    //-- Run validation for the last epoch (fresh values, not stale cache) --//
-    bool isBest = false;
-    bool hasValLoss = false;
-    float valLoss = 0.0f;
-
-    if (this->validationState.enabled && this->validationCore && this->validationProviderPtr &&
-        this->validationIndices && lastEpoch % this->validationState.checkInterval == 0) {
-      ulong validationTotal = this->validationIndices->size();
-
-      this->validationCore->setParameters(this->core->getParameters());
-
-      setupValidationProgressCallback(*this->validationCore, this->tui, validationTotal, this->coreConfig.numGPUs);
-
-      auto validationResult = this->validationCore->test(validationTotal, *this->validationProviderPtr);
-
-      this->validationState.lastValLoss = validationResult.averageLoss;
-      valLoss = validationResult.averageLoss;
-      hasValLoss = true;
-
-      if (validationResult.averageLoss < this->validationState.bestValLoss) {
-        this->validationState.bestValLoss = validationResult.averageLoss;
-        this->validationState.bestValEpoch = lastEpoch;
-      }
-
-      if (this->trainingMonitor) {
-        this->trainingMonitor->checkEpoch(lastEpoch, this->lastEpochLoss,
-                                          std::optional<float>(validationResult.averageLoss));
-        isBest = this->trainingMonitor->isNewBest();
-      }
-    }
-
-    bool isBestEpoch = isBest;
-
-    //-- Update the last epoch history record --//
-    auto& lastRecord = epochHistory.back();
-    if (hasValLoss) {
-      lastRecord.isBest = isBestEpoch;
-    }
-    // else: preserve the core's isBest (set by internal monitor when validation is disabled)
-    lastRecord.hasValLoss = hasValLoss;
-    lastRecord.valLoss = valLoss;
-
-    //-- Save best model if the last epoch is a new best --//
-    if (isBestEpoch) {
-      std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-      ModelSerializer::saveANNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                             this->buildValidationMetadata());
-    }
-
-    //-- Push the last epoch to TUI (no transition fires after the last epoch) --//
-    if (this->tui && this->tui->isInitialized() && this->logLevel > LogLevel::QUIET) {
-      this->tui->pushEpochRecord(static_cast<int>(lastEpoch), this->lastEpochLoss, hasValLoss, valLoss, isBestEpoch);
-    }
-  }
-
+  // Every epoch — including the last — is finalized by the epoch-completed
+  // callback (validation, best-model save, history record), so there is no
+  // end-of-run fix-up to do here; just persist the final model.
   return finishTrainingCommon(
     this->tui, this->logLevel, this->parser, inputFilePath, *this->core, [this](const std::string& path) {
       ModelSerializer::saveANNModelToPackage(path, *this->core, this->coreConfig, this->ioConfig, this->augConfig,

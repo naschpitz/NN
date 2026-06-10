@@ -134,7 +134,7 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
 
     // Report progress
     if (callback) {
-      TrainingProgress<T> progress;
+      TrainingProgressEvent<T> progress;
       progress.currentEpoch = epoch;
       progress.totalEpochs = totalEpochs;
       progress.currentSample = s + 1;

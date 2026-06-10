@@ -23,7 +23,7 @@ namespace Common
       T finalLoss; // Average loss at the end of training
 
       // Monitoring fields
-      ulong lastEpoch = 0; // Epoch at which this model was saved
+      ulong lastEpoch = 0; // 0-based index of the last completed epoch (matches epochHistory.back().epoch)
       std::string stopReason; // Why training stopped (empty = completed all epochs)
       ulong bestEpoch = 0; // Epoch with best loss
       T bestLoss = 0; // Best loss value

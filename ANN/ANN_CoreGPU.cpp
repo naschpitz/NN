@@ -206,8 +206,8 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
           if (this->trainingCallback) {
             ulong offset = gpuCumulativeSamples[item.gpuIdx];
             size_t gpuIdx = item.gpuIdx;
-            callback = [this, offset, gpuIdx, numSamples](const TrainingProgress<T>& progress) {
-              TrainingProgress<T> gpuProgress = progress;
+            callback = [this, offset, gpuIdx, numSamples](const TrainingProgressEvent<T>& progress) {
+              TrainingProgressEvent<T> gpuProgress = progress;
               gpuProgress.currentSample = offset + progress.currentSample;
               gpuProgress.totalSamples = numSamples;
               gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
@@ -254,7 +254,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
 
       // Build epoch progress with monitoring signals
-      TrainingProgress<T> progress;
+      TrainingProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -279,7 +279,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     } else {
       // Report epoch completion (gpuIndex = -1 indicates combined result)
       if (this->trainingCallback) {
-        TrainingProgress<T> progress;
+        TrainingProgressEvent<T> progress;
         progress.currentEpoch = e + 1;
         progress.totalEpochs = numEpochs;
         progress.currentSample = numSamples;
@@ -292,8 +292,9 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       }
     }
 
-    // Always track last completed epoch, regardless of monitoring
-    this->trainingMetadata.lastEpoch = e + 1;
+    // Always track the 0-based index of the last completed epoch (matches
+    // EpochRecord::epoch), regardless of monitoring
+    this->trainingMetadata.lastEpoch = e;
 
     // Record epoch history
     EpochRecord<T> epochRecord;
@@ -305,6 +306,18 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     epochRecord.completionTime =
       static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
     this->trainingMetadata.epochHistory.push_back(epochRecord);
+
+    // Notify the consumer that epoch e (0-based) is complete, so it can run
+    // epoch-boundary work (validation, checkpoints) against the synced params.
+    if (this->epochCompletedCallback) {
+      EpochCompletionEvent<T> completion;
+      completion.epoch = e;
+      completion.totalEpochs = numEpochs;
+      completion.epochLoss = avgEpochLoss;
+      completion.isNewBest = monitor ? monitor->isNewBest() : false;
+      completion.stoppedEarly = shouldStop;
+      this->epochCompletedCallback(completion);
+    }
 
     if (shouldStop) {
       break;

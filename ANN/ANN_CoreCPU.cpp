@@ -296,7 +296,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
 
       // Build epoch progress with monitoring signals
-      TrainingProgress<T> progress;
+      TrainingProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -320,8 +320,9 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss, callbackMutex);
     }
 
-    // Always track last completed epoch, regardless of monitoring
-    this->trainingMetadata.lastEpoch = e + 1;
+    // Always track the 0-based index of the last completed epoch (matches
+    // EpochRecord::epoch), regardless of monitoring
+    this->trainingMetadata.lastEpoch = e;
 
     // Record epoch history
     EpochRecord<T> epochRecord;
@@ -333,6 +334,18 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     epochRecord.completionTime =
       static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
     this->trainingMetadata.epochHistory.push_back(epochRecord);
+
+    // Notify the consumer that epoch e (0-based) is complete, so it can run
+    // epoch-boundary work (validation, checkpoints) against the synced params.
+    if (this->epochCompletedCallback) {
+      EpochCompletionEvent<T> completion;
+      completion.epoch = e;
+      completion.totalEpochs = numEpochs;
+      completion.epochLoss = avgEpochLoss;
+      completion.isNewBest = monitor ? monitor->isNewBest() : false;
+      completion.stoppedEarly = shouldStop;
+      this->epochCompletedCallback(completion);
+    }
 
     if (shouldStop) {
       break;
@@ -685,7 +698,7 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 
   QMutexLocker locker(&callbackMutex);
 
-  TrainingProgress<T> progress;
+  TrainingProgressEvent<T> progress;
   progress.currentEpoch = currentEpoch;
   progress.totalEpochs = totalEpochs;
   progress.currentSample = currentSample;

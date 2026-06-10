@@ -140,7 +140,7 @@ static void testParametersDuringTraining()
   bool denseBiasesNonEmpty = false;
   ulong lastEpoch = 0;
 
-  core->setTrainingCallback([&](const Common::TrainingProgress<double>& progress) {
+  core->setTrainingCallback([&](const Common::TrainingProgressEvent<double>& progress) {
     // Detect epoch transition (first callback of a new epoch)
     if (progress.currentEpoch > lastEpoch && lastEpoch > 0 && !paramsChecked) {
       const CNN::Parameters<double>& params = core->getParameters();
