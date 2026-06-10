@@ -11,8 +11,32 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
+  void PredictSummary::printANN(const ANN::CoreConfig<float>& annConfig, ulong numInputs, const std::string& inputPath,
+                                 const std::string& outputPath)
+  {
+    ulong denseCount = annConfig.layersConfig.size();
+    ulong outputNeurons = annConfig.layersConfig.empty() ? 0 : annConfig.layersConfig.back().numNeurons;
+
+    std::string deviceStr = SummaryTable::deviceString(annConfig.deviceType, annConfig.numGPUs, annConfig.numThreads);
+
+    std::vector<SummaryRow> rows;
+    rows.push_back({"Device", deviceStr});
+    rows.push_back({"Network type", ""});
+    rows.push_back({"", ""});
+    rows.push_back({"Dense layers", std::to_string(denseCount)});
+    rows.push_back({"Output neurons", std::to_string(outputNeurons)});
+    rows.push_back({"", ""});
+    rows.push_back({"Inputs", SummaryTable::formatWithCommas(numInputs)});
+    rows.push_back({"Input file", inputPath});
+    rows.push_back({"Output file", outputPath});
+
+    SummaryTable::print("Predict Configuration", rows);
+  }
+
+  //===================================================================================================================//
+
   void PredictSummary::printCNN(const CNN::CoreConfig<float>& cnnConfig, ulong numInputs, const std::string& inputPath,
-                                const std::string& outputPath)
+                                 const std::string& outputPath)
   {
     const auto& inputShape = cnnConfig.inputShape;
     const auto& layers = cnnConfig.layersConfig;
@@ -45,30 +69,6 @@ namespace NN_CLI
     rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"Residual blocks", std::to_string(residualCount)});
     rows.push_back({"Total parameters", SummaryTable::formatWithCommas(totalParams)});
-    rows.push_back({"Output neurons", std::to_string(outputNeurons)});
-    rows.push_back({"", ""});
-    rows.push_back({"Inputs", SummaryTable::formatWithCommas(numInputs)});
-    rows.push_back({"Input file", inputPath});
-    rows.push_back({"Output file", outputPath});
-
-    SummaryTable::print("Predict Configuration", rows);
-  }
-
-  //===================================================================================================================//
-
-  void PredictSummary::print(const ANN::CoreConfig<float>& annConfig, ulong numInputs, const std::string& inputPath,
-                                const std::string& outputPath)
-  {
-    ulong denseCount = annConfig.layersConfig.size();
-    ulong outputNeurons = annConfig.layersConfig.empty() ? 0 : annConfig.layersConfig.back().numNeurons;
-
-    std::string deviceStr = SummaryTable::deviceString(annConfig.deviceType, annConfig.numGPUs, annConfig.numThreads);
-
-    std::vector<SummaryRow> rows;
-    rows.push_back({"Device", deviceStr});
-    rows.push_back({"Network type", ""});
-    rows.push_back({"", ""});
-    rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"Output neurons", std::to_string(outputNeurons)});
     rows.push_back({"", ""});
     rows.push_back({"Inputs", SummaryTable::formatWithCommas(numInputs)});

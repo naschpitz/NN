@@ -307,7 +307,7 @@ int ANNRunner::predict()
     ANNLoader::loadInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
 
   if (this->logLevel > LogLevel::QUIET)
-    PredictSummary::print(this->coreConfig, inputs.size(), inputPath.toStdString(), outputPath.toStdString());
+    PredictSummary::printANN(this->coreConfig, inputs.size(), inputPath.toStdString(), outputPath.toStdString());
 
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = ANN::Utils<float>::formatISO8601();
