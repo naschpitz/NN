@@ -330,8 +330,8 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     epochRecord.valLoss = static_cast<T>(0);
     epochRecord.hasValLoss = false;
     epochRecord.isBest = monitor ? monitor->isNewBest() : false;
-    epochRecord.completionTime = static_cast<ulong>(
-      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+    epochRecord.completionTime =
+      static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
     this->trainingMetadata.epochHistory.push_back(epochRecord);
 
     if (shouldStop) {

@@ -12,7 +12,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void PredictSummary::printANN(const ANN::CoreConfig<float>& annConfig, ulong numInputs, const std::string& inputPath,
-                                 const std::string& outputPath)
+                                const std::string& outputPath)
   {
     ulong denseCount = annConfig.layersConfig.size();
     ulong outputNeurons = annConfig.layersConfig.empty() ? 0 : annConfig.layersConfig.back().numNeurons;
@@ -36,7 +36,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void PredictSummary::printCNN(const CNN::CoreConfig<float>& cnnConfig, ulong numInputs, const std::string& inputPath,
-                                 const std::string& outputPath)
+                                const std::string& outputPath)
   {
     const auto& inputShape = cnnConfig.inputShape;
     const auto& layers = cnnConfig.layersConfig;

@@ -34,8 +34,7 @@ namespace NN_CLI
                                                std::optional<std::string> deviceOverride = std::nullopt);
 
       // Load CNN configuration from pre-parsed JSON with binary parameters (for .nnmodel packages).
-      static CNN::CoreConfig<float> loadConfig(const nlohmann::json& json,
-                                               const std::vector<char>& binParams,
+      static CNN::CoreConfig<float> loadConfig(const nlohmann::json& json, const std::vector<char>& binParams,
                                                std::optional<std::string> modeOverride = std::nullopt,
                                                std::optional<std::string> deviceOverride = std::nullopt);
 

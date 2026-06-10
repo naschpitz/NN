@@ -374,10 +374,9 @@ namespace NN_CLI
   //===================================================================================================================//
 
   std::vector<std::string> TrainingSummary::collect(const ANN::CoreConfig<float>& annConfig,
-                                                       const AugmentationConfig& augConfig,
-                                                       ulong numOriginalTrainSamples, ulong numTrainSamples,
-                                                       ulong numValidationSamples, float validationRatio,
-                                                       bool validationAuto, ulong maxWidth)
+                                                    const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
+                                                    ulong numTrainSamples, ulong numValidationSamples,
+                                                    float validationRatio, bool validationAuto, ulong maxWidth)
   {
     auto rows = collectRows(annConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
                             validationRatio, validationAuto);

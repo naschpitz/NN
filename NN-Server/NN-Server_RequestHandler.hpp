@@ -37,8 +37,7 @@ namespace NN_Server
       // Predict result: post-activation output and pre-activation (z) logits
       // of the dense head's last layer. Logits enable OOD-detection scores
       // (max-logit, logit-norm, free-energy) that softmax discards.
-      struct PredictionResult
-      {
+      struct PredictionResult {
           std::vector<float> output;
           std::vector<float> logits;
       };

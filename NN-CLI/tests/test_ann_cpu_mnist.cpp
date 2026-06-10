@@ -85,8 +85,7 @@ static void testPredictMNIST()
   }
 
   if (trainedMNISTModelPath.isEmpty() || !QFile::exists(trainedMNISTModelPath)) {
-    CHECK(false,
-          " predict MNIST: skipped — no trained MNIST model available (testTrainAndTestMNIST must run first)");
+    CHECK(false, " predict MNIST: skipped — no trained MNIST model available (testTrainAndTestMNIST must run first)");
     std::cout << std::endl;
     return;
   }
@@ -156,8 +155,7 @@ static void testTestMNIST()
   }
 
   if (trainedMNISTModelPath.isEmpty() || !QFile::exists(trainedMNISTModelPath)) {
-    CHECK(false,
-          " test MNIST: skipped — no trained MNIST model available (testTrainAndTestMNIST must run first)");
+    CHECK(false, " test MNIST: skipped — no trained MNIST model available (testTrainAndTestMNIST must run first)");
     std::cout << std::endl;
     return;
   }

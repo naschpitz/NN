@@ -252,9 +252,8 @@ namespace NN_CLI
   //-- Helper: write binary data block to buffer --//
   //===================================================================================================================//
 
-  static void writeBlockToBuffer(std::vector<char>& buffer, uint8_t blockType, uint32_t layerIdx,
-                                 uint8_t ndim, uint32_t dim0, uint32_t dim1, uint32_t dim2,
-                                 const std::vector<float>& data)
+  static void writeBlockToBuffer(std::vector<char>& buffer, uint8_t blockType, uint32_t layerIdx, uint8_t ndim,
+                                 uint32_t dim0, uint32_t dim1, uint32_t dim2, const std::vector<float>& data)
   {
     uint32_t dataSize = static_cast<uint32_t>(data.size() * sizeof(float));
 
@@ -346,11 +345,11 @@ namespace NN_CLI
       uint32_t layerIdx = static_cast<uint32_t>(i);
       const auto& cp = params.convParams[i];
 
-      writeBlockToBuffer(buffer, BLOCK_CONV_FILTERS, layerIdx, 1,
-                         static_cast<uint32_t>(cp.filters.size()), 0, 0, cp.filters);
+      writeBlockToBuffer(buffer, BLOCK_CONV_FILTERS, layerIdx, 1, static_cast<uint32_t>(cp.filters.size()), 0, 0,
+                         cp.filters);
 
-      writeBlockToBuffer(buffer, BLOCK_CONV_BIASES, layerIdx, 1,
-                         static_cast<uint32_t>(cp.biases.size()), 0, 0, cp.biases);
+      writeBlockToBuffer(buffer, BLOCK_CONV_BIASES, layerIdx, 1, static_cast<uint32_t>(cp.biases.size()), 0, 0,
+                         cp.biases);
     }
 
     // Norm parameters: GAMMA + BETA + RUNNING_MEAN + RUNNING_VAR per layer
@@ -358,14 +357,12 @@ namespace NN_CLI
       uint32_t layerIdx = static_cast<uint32_t>(i);
       const auto& np = params.normParams[i];
 
-      writeBlockToBuffer(buffer, BLOCK_NORM_GAMMA, layerIdx, 1,
-                         static_cast<uint32_t>(np.gamma.size()), 0, 0, np.gamma);
-      writeBlockToBuffer(buffer, BLOCK_NORM_BETA, layerIdx, 1,
-                         static_cast<uint32_t>(np.beta.size()), 0, 0, np.beta);
-      writeBlockToBuffer(buffer, BLOCK_NORM_RUNNING_MEAN, layerIdx, 1,
-                         static_cast<uint32_t>(np.runningMean.size()), 0, 0, np.runningMean);
-      writeBlockToBuffer(buffer, BLOCK_NORM_RUNNING_VAR, layerIdx, 1,
-                         static_cast<uint32_t>(np.runningVar.size()), 0, 0, np.runningVar);
+      writeBlockToBuffer(buffer, BLOCK_NORM_GAMMA, layerIdx, 1, static_cast<uint32_t>(np.gamma.size()), 0, 0, np.gamma);
+      writeBlockToBuffer(buffer, BLOCK_NORM_BETA, layerIdx, 1, static_cast<uint32_t>(np.beta.size()), 0, 0, np.beta);
+      writeBlockToBuffer(buffer, BLOCK_NORM_RUNNING_MEAN, layerIdx, 1, static_cast<uint32_t>(np.runningMean.size()), 0,
+                         0, np.runningMean);
+      writeBlockToBuffer(buffer, BLOCK_NORM_RUNNING_VAR, layerIdx, 1, static_cast<uint32_t>(np.runningVar.size()), 0, 0,
+                         np.runningVar);
     }
 
     // Residual parameters: WEIGHTS + BIASES per layer
@@ -373,10 +370,10 @@ namespace NN_CLI
       uint32_t layerIdx = static_cast<uint32_t>(i);
       const auto& rp = params.residualParams[i];
 
-      writeBlockToBuffer(buffer, BLOCK_RESIDUAL_WEIGHTS, layerIdx, 1,
-                         static_cast<uint32_t>(rp.weights.size()), 0, 0, rp.weights);
-      writeBlockToBuffer(buffer, BLOCK_RESIDUAL_BIASES, layerIdx, 1,
-                         static_cast<uint32_t>(rp.biases.size()), 0, 0, rp.biases);
+      writeBlockToBuffer(buffer, BLOCK_RESIDUAL_WEIGHTS, layerIdx, 1, static_cast<uint32_t>(rp.weights.size()), 0, 0,
+                         rp.weights);
+      writeBlockToBuffer(buffer, BLOCK_RESIDUAL_BIASES, layerIdx, 1, static_cast<uint32_t>(rp.biases.size()), 0, 0,
+                         rp.biases);
     }
 
     // Dense parameters: ANN_WEIGHTS + ANN_BIASES (delegated to ANN structure)
@@ -479,9 +476,8 @@ namespace NN_CLI
   //-- loadANNParametersBinary --//
   //===================================================================================================================//
 
-  void ModelSerializer::loadANNParametersBinary(const std::vector<char>& data,
-                                             ANN::CoreConfig<float>& config,
-                                             const ANN::LayersConfig& layersConfig)
+  void ModelSerializer::loadANNParametersBinary(const std::vector<char>& data, ANN::CoreConfig<float>& config,
+                                                const ANN::LayersConfig& layersConfig)
   {
     // Validate minimum size
     if (data.size() < BINARY_HEADER_SIZE) {
@@ -598,9 +594,8 @@ namespace NN_CLI
   //-- loadCNNParametersBinary --//
   //===================================================================================================================//
 
-  void ModelSerializer::loadCNNParametersBinary(const std::vector<char>& data,
-                                                 CNN::CoreConfig<float>& config,
-                                                 const CNN::LayersConfig& layersConfig)
+  void ModelSerializer::loadCNNParametersBinary(const std::vector<char>& data, CNN::CoreConfig<float>& config,
+                                                const CNN::LayersConfig& layersConfig)
   {
     // Validate minimum size
     if (data.size() < BINARY_HEADER_SIZE) {
@@ -641,9 +636,19 @@ namespace NN_CLI
 
     // Precompute metadata by walking the layer config with running shape tracking.
     // This gives us both the counts AND the shape metadata for each parameter set.
-    struct ConvMeta { ulong numFilters; ulong inputC; ulong filterH; ulong filterW; };
-    struct NormMeta { ulong numChannels; };
-    struct ResidualMeta { ulong inC; ulong outC; };
+    struct ConvMeta {
+        ulong numFilters;
+        ulong inputC;
+        ulong filterH;
+        ulong filterW;
+    };
+    struct NormMeta {
+        ulong numChannels;
+    };
+    struct ResidualMeta {
+        ulong inC;
+        ulong outC;
+    };
 
     std::vector<ConvMeta> convMetaVec;
     std::vector<NormMeta> normMetaVec;
@@ -1235,12 +1240,10 @@ namespace NN_CLI
   //-- saveANNModelToPackage --//
   //===================================================================================================================//
 
-  void ModelSerializer::saveANNModelToPackage(const std::string& packagePath,
-                                           const ANN::Core<float>& core,
-                                           const ANN::CoreConfig<float>& coreConfig,
-                                           const IOConfig& ioConfig,
-                                           const AugmentationConfig& augConfig,
-                                           const ValidationMetadata& validationMeta)
+  void ModelSerializer::saveANNModelToPackage(const std::string& packagePath, const ANN::Core<float>& core,
+                                              const ANN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
+                                              const AugmentationConfig& augConfig,
+                                              const ValidationMetadata& validationMeta)
   {
     auto json = buildANNModelJson(core, coreConfig, ioConfig, augConfig, validationMeta);
     auto binData = serializeANNParametersBinary(core);
@@ -1252,10 +1255,8 @@ namespace NN_CLI
   //-- saveCNNModelToPackage --//
   //===================================================================================================================//
 
-  void ModelSerializer::saveCNNModelToPackage(const std::string& packagePath,
-                                              const CNN::Core<float>& core,
-                                              const CNN::CoreConfig<float>& coreConfig,
-                                              const IOConfig& ioConfig,
+  void ModelSerializer::saveCNNModelToPackage(const std::string& packagePath, const CNN::Core<float>& core,
+                                              const CNN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
                                               const AugmentationConfig& augConfig,
                                               const ValidationMetadata& validationMeta)
   {

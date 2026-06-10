@@ -11,7 +11,7 @@ namespace CNN
   template <typename T>
   struct ResidualParameters {
       std::vector<T> weights; // outC × inC (1×1 conv, no spatial kernel)
-      std::vector<T> biases;  // outC
+      std::vector<T> biases; // outC
       ulong inC = 0;
       ulong outC = 0;
   };
@@ -20,4 +20,3 @@ namespace CNN
 //===================================================================================================================//
 
 #endif // CNN_RESIDUALPARAMETERS_HPP
-

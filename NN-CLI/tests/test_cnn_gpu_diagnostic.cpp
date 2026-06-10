@@ -405,10 +405,9 @@ static void testCNNGPUPredictDeepDiagnostic()
 
           for (size_t ni = 0; ni < cpuParams.denseParams.weights[li].size(); ni++)
             cpuFlatWeights.insert(cpuFlatWeights.end(), cpuParams.denseParams.weights[li][ni].begin(),
-                                     cpuParams.denseParams.weights[li][ni].end());
+                                  cpuParams.denseParams.weights[li][ni].end());
 
-        CHECK(compareVectors("ann_gpu_weights", cpuFlatWeights, gpuWeights),
-              "Deep diag:  GPU weights match CPU");
+        CHECK(compareVectors("ann_gpu_weights", cpuFlatWeights, gpuWeights), "Deep diag:  GPU weights match CPU");
       }
 
       // Read  biases from GPU
@@ -425,7 +424,7 @@ static void testCNNGPUPredictDeepDiagnostic()
 
         for (size_t li = 0; li < cpuParams.denseParams.biases.size(); li++)
           cpuFlatBiases.insert(cpuFlatBiases.end(), cpuParams.denseParams.biases[li].begin(),
-                                  cpuParams.denseParams.biases[li].end());
+                               cpuParams.denseParams.biases[li].end());
 
         CHECK(compareVectors("ann_gpu_biases", cpuFlatBiases, gpuBiases), "Deep diag:  GPU biases match CPU");
       }

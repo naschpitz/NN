@@ -111,9 +111,8 @@ namespace NN_CLI
   //-- createFromMemory --//
   //===================================================================================================================//
 
-  void ModelPackage::createFromMemory(const std::string& packagePath,
-                                       const std::string& jsonStr,
-                                       const std::vector<char>& binData)
+  void ModelPackage::createFromMemory(const std::string& packagePath, const std::string& jsonStr,
+                                      const std::vector<char>& binData)
   {
     // Write to a temporary file first, then atomically rename to final path.
     // This prevents partial writes from corrupting an existing model file.
@@ -195,8 +194,7 @@ namespace NN_CLI
   //-- readFileFromTar --//
   //===================================================================================================================//
 
-  std::vector<char> ModelPackage::readFileFromTar(const std::vector<char>& tarData,
-                                                   const std::string& fileName)
+  std::vector<char> ModelPackage::readFileFromTar(const std::vector<char>& tarData, const std::string& fileName)
   {
     const size_t blockSize = 512;
     size_t pos = 0;
@@ -230,8 +228,7 @@ namespace NN_CLI
         if (pos + entrySize > tarData.size()) {
           throw std::runtime_error("ModelPackage: corrupted tar archive, file data exceeds archive bounds");
         }
-        std::vector<char> result(tarData.begin() + pos,
-                                 tarData.begin() + pos + entrySize);
+        std::vector<char> result(tarData.begin() + pos, tarData.begin() + pos + entrySize);
         return result;
       }
 
@@ -248,8 +245,7 @@ namespace NN_CLI
   //-- readFileFromTarFile --//
   //===================================================================================================================//
 
-  std::vector<char> ModelPackage::readFileFromTarFile(const std::string& tarPath,
-                                                       const std::string& fileName)
+  std::vector<char> ModelPackage::readFileFromTarFile(const std::string& tarPath, const std::string& fileName)
   {
     std::ifstream ifs(tarPath, std::ios::binary | std::ios::ate);
 

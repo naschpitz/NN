@@ -67,10 +67,22 @@ namespace Common
       }
 
       //-- Accessors --//
-      bool isNewBest() const { return this->newBest; }
-      std::string getStopReason() const { return this->stopReason; }
-      ulong getBestEpoch() const { return this->bestEpoch; }
-      T getBestLoss() const { return this->bestLoss; }
+      bool isNewBest() const
+      {
+        return this->newBest;
+      }
+      std::string getStopReason() const
+      {
+        return this->stopReason;
+      }
+      ulong getBestEpoch() const
+      {
+        return this->bestEpoch;
+      }
+      T getBestLoss() const
+      {
+        return this->bestLoss;
+      }
 
     private:
       //-- Configuration --//
@@ -94,8 +106,8 @@ namespace Common
 
         if (epochsWithoutImprovement >= config.patience) {
           std::ostringstream oss;
-          oss << "Loss stagnation: no improvement > " << config.metrics.lossStagnation.minDelta << " for " << config.patience
-              << " check intervals (" << config.patience * config.checkInterval << " epochs)";
+          oss << "Loss stagnation: no improvement > " << config.metrics.lossStagnation.minDelta << " for "
+              << config.patience << " check intervals (" << config.patience * config.checkInterval << " epochs)";
           this->stopReason = oss.str();
           return true;
         }

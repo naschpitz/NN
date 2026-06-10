@@ -15,7 +15,8 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> ANNLoader::loadConfig(const std::string& configFilePath, std::optional<Common::ModeType> modeType,
+  ANN::CoreConfig<float> ANNLoader::loadConfig(const std::string& configFilePath,
+                                               std::optional<Common::ModeType> modeType,
                                                std::optional<Common::DeviceType> deviceType)
   {
     return loadConfig(Loader::parseConfigFile(configFilePath), modeType, deviceType);
@@ -155,10 +156,9 @@ namespace NN_CLI
     }
 
     if (json.contains("parameters")) {
-      throw std::runtime_error(
-        "This JSON file contains embedded parameters. "
-           "The embedded-parameter format is no longer supported. "
-           "Please use a .nnmodel.tar package with separate parameter files.");
+      throw std::runtime_error("This JSON file contains embedded parameters. "
+                               "The embedded-parameter format is no longer supported. "
+                               "Please use a .nnmodel.tar package with separate parameter files.");
     }
 
     return coreConfig;
@@ -167,8 +167,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   ANN::CoreConfig<float> ANNLoader::loadConfig(const nlohmann::json& json, const std::vector<char>& binParams,
-                                                std::optional<Common::ModeType> modeType,
-                                                std::optional<Common::DeviceType> deviceType)
+                                               std::optional<Common::ModeType> modeType,
+                                               std::optional<Common::DeviceType> deviceType)
   {
     // 1. Call the existing JSON-only version to parse architecture/config
     auto coreConfig = loadConfig(json, modeType, deviceType);

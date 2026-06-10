@@ -31,31 +31,21 @@ namespace NN_CLI
   {
     public:
       //-- Binary parameter I/O --//
-      static void saveANNParametersBinary(const std::string& binPath,
-                                          const ANN::Core<float>& core);
-      static void saveCNNParametersBinary(const std::string& binPath,
-                                          const CNN::Core<float>& core);
+      static void saveANNParametersBinary(const std::string& binPath, const ANN::Core<float>& core);
+      static void saveCNNParametersBinary(const std::string& binPath, const CNN::Core<float>& core);
 
-      static void loadANNParametersBinary(const std::vector<char>& data,
-                                          ANN::CoreConfig<float>& config,
+      static void loadANNParametersBinary(const std::vector<char>& data, ANN::CoreConfig<float>& config,
                                           const ANN::LayersConfig& layersConfig);
-      static void loadCNNParametersBinary(const std::vector<char>& data,
-                                          CNN::CoreConfig<float>& config,
+      static void loadCNNParametersBinary(const std::vector<char>& data, CNN::CoreConfig<float>& config,
                                           const CNN::LayersConfig& layersConfig);
 
       //-- Package-aware save (single call produces .nnmodel) --//
-      static void saveANNModelToPackage(const std::string& packagePath,
-                                        const ANN::Core<float>& core,
-                                        const ANN::CoreConfig<float>& coreConfig,
-                                        const IOConfig& ioConfig,
-                                        const AugmentationConfig& augConfig,
-                                        const ValidationMetadata& validationMeta);
-      static void saveCNNModelToPackage(const std::string& packagePath,
-                                        const CNN::Core<float>& core,
-                                        const CNN::CoreConfig<float>& coreConfig,
-                                        const IOConfig& ioConfig,
-                                        const AugmentationConfig& augConfig,
-                                        const ValidationMetadata& validationMeta);
+      static void saveANNModelToPackage(const std::string& packagePath, const ANN::Core<float>& core,
+                                        const ANN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
+                                        const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
+      static void saveCNNModelToPackage(const std::string& packagePath, const CNN::Core<float>& core,
+                                        const CNN::CoreConfig<float>& coreConfig, const IOConfig& ioConfig,
+                                        const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
 
       //-- Output path helpers --//
       static std::string generateTrainingFilename(ulong epochs, ulong samples, float loss);
@@ -68,14 +58,12 @@ namespace NN_CLI
       //-- JSON-building helpers --//
       static nlohmann::ordered_json buildANNModelJson(const ANN::Core<float>& core,
                                                       const ANN::CoreConfig<float>& coreConfig,
-                                                      const IOConfig& ioConfig,
-                                                      const AugmentationConfig& augConfig,
+                                                      const IOConfig& ioConfig, const AugmentationConfig& augConfig,
                                                       const ValidationMetadata& validationMeta);
 
       static nlohmann::ordered_json buildCNNModelJson(const CNN::Core<float>& core,
                                                       const CNN::CoreConfig<float>& coreConfig,
-                                                      const IOConfig& ioConfig,
-                                                      const AugmentationConfig& augConfig,
+                                                      const IOConfig& ioConfig, const AugmentationConfig& augConfig,
                                                       const ValidationMetadata& validationMeta);
   };
 

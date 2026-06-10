@@ -13,10 +13,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  TerminalUI_Table::TerminalUI_Table(int maxWidth)
-    : maxWidth(maxWidth)
-  {
-  }
+  TerminalUI_Table::TerminalUI_Table(int maxWidth) : maxWidth(maxWidth) {}
 
   //===================================================================================================================//
 

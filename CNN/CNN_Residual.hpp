@@ -21,10 +21,8 @@ namespace CNN
       // Returns dSkip — the gradient for the skip input.
       // If projection exists, also accumulates dWeights and dBiases.
       static Tensor3D<T> backpropagate(const Tensor3D<T>& dBlockOutput, const Tensor3D<T>& skipInput,
-                                       const ResidualParameters<T>* projection,
-                                       ResidualParameters<T>* dProjection);
+                                       const ResidualParameters<T>* projection, ResidualParameters<T>* dProjection);
   };
 }
 
 #endif // CNN_RESIDUAL_HPP
-

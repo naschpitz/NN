@@ -105,8 +105,7 @@ int main(int argc, char* argv[])
     if (val >= 0) {
       maxQueueSize = val;
     } else {
-      std::cerr << "Warning: Invalid maxQueueSize value " << val
-                << ", using default (unlimited).\n";
+      std::cerr << "Warning: Invalid maxQueueSize value " << val << ", using default (unlimited).\n";
     }
   }
 
