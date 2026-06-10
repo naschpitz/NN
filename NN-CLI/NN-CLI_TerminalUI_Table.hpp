@@ -67,11 +67,11 @@ namespace NN_CLI
 
       //-- Accessors --//
 
-      int maxWidth() const;
+      int getMaxWidth() const;
       int columnCount() const;
 
       // Triggers width computation if dirty; returns the resolved column widths.
-      const std::vector<int>& computedWidths() const;
+      const std::vector<int>& getComputedWidths() const;
 
       // A standalone separator line matching the current column widths.
       // Useful for callers who need to insert section breaks between renders.
@@ -86,12 +86,12 @@ namespace NN_CLI
       std::string makeTitleRow() const;
 
       //-- Members --//
-      std::vector<Column> columns_;
-      std::string title_;
-      std::vector<Row> rows_;
-      int maxWidth_ = 80;
-      mutable std::vector<int> computedWidths_;
-      mutable bool widthsDirty_ = true;
+      std::vector<Column> columns;
+      std::string title;
+      std::vector<Row> rows;
+      int maxWidth = 80;
+      mutable std::vector<int> computedWidths;
+      mutable bool widthsDirty = true;
   };
 
 } // namespace NN_CLI

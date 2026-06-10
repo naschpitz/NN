@@ -36,22 +36,22 @@ namespace NN_CLI
       // Loading is over once the training stream starts consuming (call before core->train()).
       void markLoadingFinished()
       {
-        this->loading_ = false;
+        this->loading = false;
       }
 
     private:
       // Repaint the loading bar from the remembered state (no-op while not loading).
       void renderBar();
 
-      std::shared_ptr<TerminalUI> tui_;
-      int barGpus_ = 1;
+      std::shared_ptr<TerminalUI> tui;
+      int barGpus = 1;
 
       //-- Loading-bar state, re-rendered on resize --//
-      ulong current_ = 0;
-      ulong total_ = 0;
-      ulong batchNum_ = 0;
-      ulong totalBatches_ = 0;
-      bool loading_ = false;
+      ulong current = 0;
+      ulong total = 0;
+      ulong batchNum = 0;
+      ulong totalBatches = 0;
+      bool loading = false;
   };
 
 } // namespace NN_CLI

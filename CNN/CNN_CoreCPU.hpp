@@ -38,7 +38,7 @@ namespace CNN
       //   training callback never contends with train()'s own parallel region. Sharing //
       //   the global pool deadlocks: the nested test() can never acquire a worker       //
       //   thread because they are all occupied by the enclosing train().                //
-      QThreadPool workerPool_;
+      QThreadPool workerPool;
 
       //-- BatchNorm flag (set by scanning layersConfig for BATCHNORM layers) --//
       bool hasBatchNorm = false;

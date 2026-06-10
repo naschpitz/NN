@@ -20,18 +20,18 @@ namespace Common
     public:
       TrainingMonitor(const MonitoringConfig& config)
         : config(config),
-          bestLoss_(std::numeric_limits<T>::max()),
-          bestEpoch_(0),
+          bestLoss(std::numeric_limits<T>::max()),
+          bestEpoch(0),
           epochsWithoutImprovement(0),
-          newBest_(false),
-          stopReason_()
+          newBest(false),
+          stopReason()
       {
       }
 
       // Called at end of each epoch. Returns true if training should stop.
       bool checkEpoch(ulong epoch, T epochLoss, std::optional<T> validationLoss = std::nullopt)
       {
-        newBest_ = false;
+        this->newBest = false;
 
         // Use validation loss when available, otherwise training loss
         T loss = validationLoss.has_value() ? validationLoss.value() : epochLoss;
@@ -39,10 +39,10 @@ namespace Common
         // Update best loss tracking
         T delta = static_cast<T>(config.metrics.lossStagnation.minDelta);
 
-        if (loss < bestLoss_ - delta) {
-          bestLoss_ = loss;
-          bestEpoch_ = epoch;
-          newBest_ = true;
+        if (loss < this->bestLoss - delta) {
+          this->bestLoss = loss;
+          this->bestEpoch = epoch;
+          this->newBest = true;
           epochsWithoutImprovement = 0;
         }
 
@@ -57,7 +57,7 @@ namespace Common
         }
 
         // Check loss stagnation (patience-based)
-        if (!newBest_) {
+        if (!this->newBest) {
           if (checkLossStagnation(loss)) {
             return true;
           }
@@ -67,21 +67,21 @@ namespace Common
       }
 
       //-- Accessors --//
-      bool isNewBest() const { return newBest_; }
-      std::string stopReason() const { return stopReason_; }
-      ulong bestEpoch() const { return bestEpoch_; }
-      T bestLoss() const { return bestLoss_; }
+      bool isNewBest() const { return this->newBest; }
+      std::string getStopReason() const { return this->stopReason; }
+      ulong getBestEpoch() const { return this->bestEpoch; }
+      T getBestLoss() const { return this->bestLoss; }
 
     private:
       //-- Configuration --//
       MonitoringConfig config;
 
       //-- Loss tracking --//
-      T bestLoss_;
-      ulong bestEpoch_;
+      T bestLoss;
+      ulong bestEpoch;
       ulong epochsWithoutImprovement;
-      bool newBest_;
-      std::string stopReason_;
+      bool newBest;
+      std::string stopReason;
 
       //-- Metric evaluators --//
       bool checkLossStagnation(T loss)
@@ -96,7 +96,7 @@ namespace Common
           std::ostringstream oss;
           oss << "Loss stagnation: no improvement > " << config.metrics.lossStagnation.minDelta << " for " << config.patience
               << " check intervals (" << config.patience * config.checkInterval << " epochs)";
-          stopReason_ = oss.str();
+          this->stopReason = oss.str();
           return true;
         }
 
@@ -110,19 +110,19 @@ namespace Common
         }
 
         if (std::isnan(static_cast<double>(loss))) {
-          stopReason_ = "Loss explosion: NaN detected";
+          this->stopReason = "Loss explosion: NaN detected";
           return true;
         }
 
         // Only check threshold if we have a valid best loss
-        if (bestLoss_ < std::numeric_limits<T>::max()) {
+        if (this->bestLoss < std::numeric_limits<T>::max()) {
           T threshold = static_cast<T>(config.metrics.lossExplosion.threshold);
 
-          if (loss > threshold * bestLoss_) {
+          if (loss > threshold * this->bestLoss) {
             std::ostringstream oss;
             oss << "Loss explosion: current loss (" << loss << ") exceeds " << config.metrics.lossExplosion.threshold
-                << "x best loss (" << bestLoss_ << ")";
-            stopReason_ = oss.str();
+                << "x best loss (" << this->bestLoss << ")";
+            this->stopReason = oss.str();
             return true;
           }
         }

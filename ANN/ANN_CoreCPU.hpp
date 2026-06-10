@@ -46,7 +46,7 @@ namespace ANN
       //   the global pool deadlocks: the nested test() can never acquire a worker       //
       //   thread because they are all occupied by the enclosing train(). Mirrors        //
       //   CNN::CoreCPU.                                                                  //
-      QThreadPool workerPool_;
+      QThreadPool workerPool;
 
       //-- Global accumulators (for merging worker results) --//
       Tensor3D<T> accum_dCost_dWeights;

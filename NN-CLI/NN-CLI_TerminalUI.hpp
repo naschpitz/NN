@@ -43,29 +43,29 @@ namespace NN_CLI
 
       bool isInitialized() const
       {
-        return this->initialized_;
+        return this->initialized;
       }
 
       //-- Accessors --//
 
-      int rows() const
+      int getRows() const
       {
-        return this->rows_;
+        return this->rows;
       }
 
-      int cols() const
+      int getCols() const
       {
-        return this->cols_;
+        return this->cols;
       }
 
-      int timingWidth() const
+      int getTimingWidth() const
       {
-        return this->timingWidth_;
+        return this->timingWidth;
       }
 
-      int leftWidth() const
+      int getLeftWidth() const
       {
-        return this->leftWidth_;
+        return this->leftWidth;
       }
 
       // Return the content width for the Configuration panel, dynamically accounting
@@ -74,24 +74,24 @@ namespace NN_CLI
 
       WINDOW* progressWindow() const
       {
-        return this->progressWin_;
+        return this->progressWin;
       }
 
       WINDOW* loadingWindow() const
       {
-        return this->loadingWin_;
+        return this->loadingWin;
       }
 
-      std::recursive_mutex& mutex()
+      std::recursive_mutex& getMutex()
       {
-        return this->mutex_;
+        return this->mutex;
       }
 
       // Read-only access to the structured epoch records (for merging history
       // before saving the final model).
       const std::vector<EpochRecord>& getEpochRecords() const
       {
-        return this->epochRecords_;
+        return this->epochRecords;
       }
 
       //-- Content --//
@@ -116,7 +116,7 @@ namespace NN_CLI
 
       void setResizeCallback(std::function<void()> callback)
       {
-        this->resizeCallback_ = std::move(callback);
+        this->resizeCallback = std::move(callback);
       }
 
       // Invoked after the panels are redrawn (panel frames pushed to stdscr) so the caller can
@@ -124,7 +124,7 @@ namespace NN_CLI
       // window that layout() erases on resize and that nothing else redraws between callback ticks.
       void setOverlayCallback(std::function<void()> callback)
       {
-        this->overlayCallback_ = std::move(callback);
+        this->overlayCallback = std::move(callback);
       }
 
     private:
@@ -147,50 +147,50 @@ namespace NN_CLI
 
       //-- Sub-windows (overlays) --//
 
-      WINDOW* progressWin_ = nullptr;
-      WINDOW* loadingWin_ = nullptr;
+      WINDOW* progressWin = nullptr;
+      WINDOW* loadingWin = nullptr;
 
       //-- Terminal state --//
 
-      int rows_ = 0;
-      int cols_ = 0;
-      bool initialized_ = false;
+      int rows = 0;
+      int cols = 0;
+      bool initialized = false;
 
-      int leftWidth_ = 0;
-      int timingWidth_ = 0;
+      int leftWidth = 0;
+      int timingWidth = 0;
 
       //-- Panels --//
 
-      TerminalUI_Panel trainingPanel_;
-      TerminalUI_Panel epochsPanel_;
-      TerminalUI_Panel configPanel_;
-      TerminalUI_Panel timingPanel_;
+      TerminalUI_Panel trainingPanel;
+      TerminalUI_Panel epochsPanel;
+      TerminalUI_Panel configPanel;
+      TerminalUI_Panel timingPanel;
 
       //-- Tables --//
 
-      TerminalUI_Table epochsTable_;
+      TerminalUI_Table epochsTable;
 
       //-- Panel selection --//
 
-      int activePanel_ = 0; // 0=Config, 1=Epochs, 2=Timing
+      int activePanel = 0; // 0=Config, 1=Epochs, 2=Timing
 
       //-- Synchronization --//
 
-      mutable std::recursive_mutex mutex_;
-      std::atomic<uint> resizeRequested_{0};
-      std::function<void()> resizeCallback_;
-      std::function<void()> overlayCallback_;
+      mutable std::recursive_mutex mutex;
+      std::atomic<uint> resizeRequested{0};
+      std::function<void()> resizeCallback;
+      std::function<void()> overlayCallback;
 
       //-- Data --//
 
-      std::vector<SummaryTable::Section> configSections_;
-      std::vector<EpochRecord> epochRecords_;
-      std::vector<std::string> epochMessages_; // monitor/status messages preserved across table rebuilds
+      std::vector<SummaryTable::Section> configSections;
+      std::vector<EpochRecord> epochRecords;
+      std::vector<std::string> epochMessages; // monitor/status messages preserved across table rebuilds
 
       //-- Dirty flags --//
 
-      bool epochLinesDirty_{true};
-      bool configLinesDirty_{true};
+      bool epochLinesDirty{true};
+      bool configLinesDirty{true};
   };
 
 } // namespace NN_CLI

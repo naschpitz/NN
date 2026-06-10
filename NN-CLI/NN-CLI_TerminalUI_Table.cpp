@@ -14,15 +14,15 @@ namespace NN_CLI
   //===================================================================================================================//
 
   TerminalUI_Table::TerminalUI_Table(int maxWidth)
-    : maxWidth_(maxWidth)
+    : maxWidth(maxWidth)
   {
   }
 
   //===================================================================================================================//
 
   TerminalUI_Table::TerminalUI_Table(std::vector<Column> columns, int maxWidth)
-    : columns_(std::move(columns)),
-      maxWidth_(maxWidth)
+    : columns(std::move(columns)),
+      maxWidth(maxWidth)
   {
   }
 
@@ -32,23 +32,23 @@ namespace NN_CLI
 
   void TerminalUI_Table::setColumns(std::vector<Column> columns)
   {
-    this->columns_ = std::move(columns);
-    this->widthsDirty_ = true;
+    this->columns = std::move(columns);
+    this->widthsDirty = true;
   }
 
   //===================================================================================================================//
 
   void TerminalUI_Table::setTitle(const std::string& title)
   {
-    this->title_ = title;
+    this->title = title;
   }
 
   //===================================================================================================================//
 
   void TerminalUI_Table::setMaxWidth(int maxWidth)
   {
-    this->maxWidth_ = maxWidth;
-    this->widthsDirty_ = true;
+    this->maxWidth = maxWidth;
+    this->widthsDirty = true;
   }
 
   //===================================================================================================================//
@@ -57,21 +57,21 @@ namespace NN_CLI
 
   void TerminalUI_Table::addRow(const Row& cells)
   {
-    this->rows_.push_back(cells);
+    this->rows.push_back(cells);
   }
 
   //===================================================================================================================//
 
   void TerminalUI_Table::addRows(const std::vector<Row>& rows)
   {
-    this->rows_.insert(this->rows_.end(), rows.begin(), rows.end());
+    this->rows.insert(this->rows.end(), rows.begin(), rows.end());
   }
 
   //===================================================================================================================//
 
   void TerminalUI_Table::clearRows()
   {
-    this->rows_.clear();
+    this->rows.clear();
   }
 
   //===================================================================================================================//
@@ -80,25 +80,25 @@ namespace NN_CLI
 
   std::vector<std::string> TerminalUI_Table::render() const
   {
-    if (this->widthsDirty_)
+    if (this->widthsDirty)
       this->computeWidths();
 
     std::vector<std::string> lines;
 
-    if (this->columns_.empty())
+    if (this->columns.empty())
       return lines;
 
     // Top border
     lines.push_back(this->makeSeparator());
 
     // Title row (spans all columns, centered) — replaces the header row.
-    if (!this->title_.empty()) {
+    if (!this->title.empty()) {
       lines.push_back(this->makeTitleRow());
       lines.push_back(this->makeSeparator());
     } else {
       // Header row with column names
       Row headers;
-      for (const auto& col : this->columns_)
+      for (const auto& col : this->columns)
         headers.push_back(col.name);
 
       lines.push_back(this->makeRow(headers));
@@ -106,11 +106,11 @@ namespace NN_CLI
     }
 
     // Data rows (one empty placeholder row if no data has been added)
-    if (this->rows_.empty()) {
-      Row emptyRow(this->columns_.size(), std::string());
+    if (this->rows.empty()) {
+      Row emptyRow(this->columns.size(), std::string());
       lines.push_back(this->makeRow(emptyRow));
     } else {
-      for (const auto& row : this->rows_)
+      for (const auto& row : this->rows)
         lines.push_back(this->makeRow(row));
     }
 
@@ -124,33 +124,33 @@ namespace NN_CLI
   //-- Accessors --//
   //===================================================================================================================//
 
-  int TerminalUI_Table::maxWidth() const
+  int TerminalUI_Table::getMaxWidth() const
   {
-    return this->maxWidth_;
+    return this->maxWidth;
   }
 
   //===================================================================================================================//
 
   int TerminalUI_Table::columnCount() const
   {
-    return static_cast<int>(this->columns_.size());
+    return static_cast<int>(this->columns.size());
   }
 
   //===================================================================================================================//
 
-  const std::vector<int>& TerminalUI_Table::computedWidths() const
+  const std::vector<int>& TerminalUI_Table::getComputedWidths() const
   {
-    if (this->widthsDirty_)
+    if (this->widthsDirty)
       this->computeWidths();
 
-    return this->computedWidths_;
+    return this->computedWidths;
   }
 
   //===================================================================================================================//
 
   std::string TerminalUI_Table::separator() const
   {
-    if (this->widthsDirty_)
+    if (this->widthsDirty)
       this->computeWidths();
 
     return this->makeSeparator();
@@ -162,11 +162,11 @@ namespace NN_CLI
 
   void TerminalUI_Table::computeWidths() const
   {
-    const int N = static_cast<int>(this->columns_.size());
+    const int N = static_cast<int>(this->columns.size());
 
     if (N == 0) {
-      this->computedWidths_.clear();
-      this->widthsDirty_ = false;
+      this->computedWidths.clear();
+      this->widthsDirty = false;
       return;
     }
 
@@ -176,22 +176,22 @@ namespace NN_CLI
     // giving 1 + sum(width+3) = 1 + sum(width) + 3*N = 3*N + 1 + sum(width).
     // So dataWidth + overhead = row total length = maxWidth.
     const int overhead = 3 * N + 1;
-    const int dataWidth = std::max(0, this->maxWidth_ - overhead);
+    const int dataWidth = std::max(0, this->maxWidth - overhead);
 
     // Sum width hints for proportional allocation.
     int totalHints = 0;
-    for (const auto& col : this->columns_)
+    for (const auto& col : this->columns)
       totalHints += std::max(1, col.widthHint);
 
-    this->computedWidths_.resize(N);
+    this->computedWidths.resize(N);
 
     if (dataWidth <= 0 || totalHints <= 0) {
       // No usable space or zero hints — equal distribution as fallback.
       const int perCol = dataWidth > 0 ? dataWidth / N : 0;
       for (int i = 0; i < N; i++)
-        this->computedWidths_[i] = perCol;
+        this->computedWidths[i] = perCol;
 
-      this->widthsDirty_ = false;
+      this->widthsDirty = false;
       return;
     }
 
@@ -199,15 +199,15 @@ namespace NN_CLI
     // The last column absorbs rounding remainder so the row fills maxWidth exactly.
     int allocated = 0;
     for (int i = 0; i < N - 1; i++) {
-      int w = dataWidth * std::max(1, this->columns_[i].widthHint) / totalHints;
+      int w = dataWidth * std::max(1, this->columns[i].widthHint) / totalHints;
       w = std::max(1, w);
-      this->computedWidths_[i] = w;
+      this->computedWidths[i] = w;
       allocated += w;
     }
 
-    this->computedWidths_[N - 1] = std::max(1, dataWidth - allocated);
+    this->computedWidths[N - 1] = std::max(1, dataWidth - allocated);
 
-    this->widthsDirty_ = false;
+    this->widthsDirty = false;
   }
 
   //===================================================================================================================//
@@ -245,14 +245,14 @@ namespace NN_CLI
   {
     std::string result = "|";
 
-    for (int i = 0; i < static_cast<int>(this->columns_.size()); i++) {
+    for (int i = 0; i < static_cast<int>(this->columns.size()); i++) {
       std::string cellText = (i < static_cast<int>(cells.size())) ? cells[i] : "";
 
       // Apply per-column formatter if present.
-      if (this->columns_[i].formatter)
-        cellText = this->columns_[i].formatter(cellText);
+      if (this->columns[i].formatter)
+        cellText = this->columns[i].formatter(cellText);
 
-      result += " " + this->formatCell(cellText, this->computedWidths_[i], this->columns_[i].align) + " |";
+      result += " " + this->formatCell(cellText, this->computedWidths[i], this->columns[i].align) + " |";
     }
 
     return result;
@@ -264,8 +264,8 @@ namespace NN_CLI
   {
     std::string result = "+";
 
-    for (int i = 0; i < static_cast<int>(this->computedWidths_.size()); i++)
-      result += std::string(this->computedWidths_[i] + 2, '-') + "+";
+    for (int i = 0; i < static_cast<int>(this->computedWidths.size()); i++)
+      result += std::string(this->computedWidths[i] + 2, '-') + "+";
 
     return result;
   }
@@ -274,21 +274,21 @@ namespace NN_CLI
 
   std::string TerminalUI_Table::makeTitleRow() const
   {
-    const int N = static_cast<int>(this->computedWidths_.size());
+    const int N = static_cast<int>(this->computedWidths.size());
 
     // Total content width between the outer "|" markers of a regular row.
     // A regular row: "| " + w0 + " | " + w1 + ... + " | " + wN-1 + " |"
     // Between outer "|"s: " w0 | w1 | ... | wN-1 " = sum(wi) + 3*N - 1
     int titleSpace = 3 * N - 1;
-    for (int w : this->computedWidths_)
+    for (int w : this->computedWidths)
       titleSpace += w;
 
-    const int titleLen = static_cast<int>(this->title_.size());
+    const int titleLen = static_cast<int>(this->title.size());
     const int padding = std::max(0, titleSpace - titleLen);
     const int leftPad = padding / 2;
     const int rightPad = padding - leftPad;
 
-    return "|" + std::string(leftPad, ' ') + this->title_ + std::string(rightPad, ' ') + "|";
+    return "|" + std::string(leftPad, ' ') + this->title + std::string(rightPad, ' ') + "|";
   }
 
 } // namespace NN_CLI

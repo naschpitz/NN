@@ -67,8 +67,8 @@ namespace NN_CLI
   {
     if (logLevel > LogLevel::QUIET) {
       ProgressBar::printLoadingProgress(label, 0, total, progressReports);
-      core.setProgressCallback([progressReports, label](ulong current, ulong total_) {
-        ProgressBar::printLoadingProgress(label, current, total_, progressReports);
+      core.setProgressCallback([progressReports, label](ulong current, ulong total) {
+        ProgressBar::printLoadingProgress(label, current, total, progressReports);
       });
     }
   }
@@ -131,7 +131,7 @@ namespace NN_CLI
       int validationGpus = std::max(1, totalGPUs);
       validationCore.setProgressCallback([tui, validationTotal, validationGpus](ulong current, ulong) {
         float pct = static_cast<float>(current) / static_cast<float>(validationTotal) * 100.0f;
-        std::lock_guard<std::recursive_mutex> tuiLock(tui->mutex());
+        std::lock_guard<std::recursive_mutex> tuiLock(tui->getMutex());
         tui->handleResize();
         ProgressBar::renderValidationBar(tui->progressWindow(), pct, validationGpus);
       });
