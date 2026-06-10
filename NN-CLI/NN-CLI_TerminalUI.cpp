@@ -279,6 +279,11 @@ namespace NN_CLI
       this->configLinesDirty = false;
     }
 
+    if (this->timingLinesDirty) {
+      this->renderTimingContent();
+      this->timingLinesDirty = false;
+    }
+
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
@@ -399,8 +404,28 @@ namespace NN_CLI
                                       [](const std::string& s) { return !s.empty(); });
     std::vector<std::string> trimmed(firstNonEmpty, formattedLines.end());
 
+    for (auto& line : trimmed) {
+      if (static_cast<int>(line.size()) < static_cast<int>(maxWidth))
+        line.append(static_cast<std::string::size_type>(maxWidth - line.size()), ' ');
+    }
+
     this->configPanel.setLines(trimmed);
     this->configPanel.scrollState().offset = 0;
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI::renderTimingContent()
+  {
+    int maxWidth = this->timingPanel.contentWidth();
+    auto lines = this->rawTimingLines;
+
+    for (auto& line : lines) {
+      if (static_cast<int>(line.size()) < maxWidth)
+        line.append(static_cast<std::string::size_type>(maxWidth - static_cast<int>(line.size())), ' ');
+    }
+
+    this->timingPanel.setLines(lines);
   }
 
   //===================================================================================================================//
@@ -455,7 +480,8 @@ namespace NN_CLI
   void TerminalUI::setTimingLines(const std::vector<std::string>& lines)
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex);
-    this->timingPanel.setLines(lines);
+    this->rawTimingLines = lines;
+    this->timingLinesDirty = true;
   }
 
   //===================================================================================================================//
@@ -505,6 +531,7 @@ namespace NN_CLI
     this->layout();
     this->epochLinesDirty = true;
     this->configLinesDirty = true;
+    this->timingLinesDirty = true;
 
     // layout() erased and recreated the sub-windows (loadingWin, progressWin).
     // Repaint any overlay (e.g. the loading bar) so it survives the resize even
@@ -525,6 +552,7 @@ namespace NN_CLI
     this->layout();
     this->epochLinesDirty = true;
     this->configLinesDirty = true;
+    this->timingLinesDirty = true;
 
     // Full resize redraw: recreate the panels and repaint the loading-bar overlay on top so the
     // loading line doesn't vanish until the next mini-batch tick.
