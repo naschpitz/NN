@@ -58,10 +58,7 @@ int ANNRunner::train()
   if (this->logLevel > LogLevel::QUIET)
     this->tui->init();
 
-  this->trainingTui_.attach(this->tui, [this]() {
-    ulong cw = this->tui->leftWidth() > 4 ? static_cast<ulong>(this->tui->configContentWidth()) : 0;
-    this->regenerateConfigLines(cw);
-  });
+  this->trainingTui_.attach(this->tui);
 
   if (this->tui->isInitialized())
     this->tui->refreshConfigPanel();
@@ -141,24 +138,27 @@ int ANNRunner::train()
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
   if (this->logLevel > LogLevel::QUIET) {
-    this->cachedNumOrigTrainSamples_ = numOriginalTrainSamples;
-    this->cachedNumTrainSamples_ = numTrainSamples;
-    this->cachedNumValSamples_ = numValidationSamples;
-    this->cachedValRatio_ = validationRatio;
-    this->cachedValAuto_ = validationAuto;
-    this->cachedNumOutputClasses_ =
-      this->coreConfig.layersConfig.empty() ? 0 : this->coreConfig.layersConfig.back().numNeurons;
-    this->configLinesLoaded_ = true;
+    std::vector<SummaryTable::Section> sections;
+    sections.push_back({"Model Configuration",
+                         TrainingSummary::collectRows(this->coreConfig, this->augConfig,
+                                                      numOriginalTrainSamples, numTrainSamples,
+                                                      numValidationSamples, validationRatio, validationAuto)});
 
-    // Fit the config tables to the left panel when the TUI is active; otherwise let them size to
-    // the full terminal (maxWidth 0).
-    ulong cw = this->tui->leftWidth() > 4 ? static_cast<ulong>(this->tui->configContentWidth()) : 0;
-    this->regenerateConfigLines(cw);
+    ulong numOutputClasses =
+      this->coreConfig.layersConfig.empty() ? 0 : this->coreConfig.layersConfig.back().numNeurons;
+    if (numOutputClasses >= 2) {
+      sections.push_back({"Loss Reference",
+                           LossReferenceTable::collectRows(numOutputClasses)});
+    }
+
+    this->tui->setConfigSections(sections);
   }
 
+  // Render config panel
   if (this->tui->isInitialized()) {
     this->tui->refreshConfigPanel();
   }
+
 
   std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
 
@@ -523,28 +523,6 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         this->lastEpochLoss_ = progress.epochLoss;
     } // lock_guard released
   });
-}
-
-//===================================================================================================================//
-
-void ANNRunner::regenerateConfigLines(ulong maxWidth)
-{
-  if (!this->configLinesLoaded_)
-    return;
-
-  std::vector<std::string> configLines;
-
-  auto trainLines = TrainingSummary::collect(this->coreConfig, this->augConfig, this->cachedNumOrigTrainSamples_,
-                                                this->cachedNumTrainSamples_, this->cachedNumValSamples_,
-                                                this->cachedValRatio_, this->cachedValAuto_, maxWidth);
-  configLines.insert(configLines.end(), trainLines.begin(), trainLines.end());
-
-  if (this->cachedNumOutputClasses_ >= 2) {
-    auto lossLines = LossReferenceTable::collect(this->cachedNumOutputClasses_, maxWidth);
-    configLines.insert(configLines.end(), lossLines.begin(), lossLines.end());
-  }
-
-  this->tui->setConfigLines(configLines);
 }
 
 //===================================================================================================================//

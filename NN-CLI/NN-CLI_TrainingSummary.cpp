@@ -290,11 +290,11 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<std::string> TrainingSummary::collect(const ANN::CoreConfig<float>& annConfig,
+  std::vector<SummaryRow> TrainingSummary::collectRows(const ANN::CoreConfig<float>& annConfig,
                                                        const AugmentationConfig& augConfig,
                                                        ulong numOriginalTrainSamples, ulong numTrainSamples,
                                                        ulong numValidationSamples, float validationRatio,
-                                                       bool validationAuto, ulong maxWidth)
+                                                       bool validationAuto)
   {
     const auto& tc = annConfig.trainingConfig;
     const auto& costConfig = annConfig.costFunctionConfig;
@@ -368,6 +368,19 @@ namespace NN_CLI
     rows.push_back({"Cost function", costStr});
     rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
 
+    return rows;
+  }
+
+  //===================================================================================================================//
+
+  std::vector<std::string> TrainingSummary::collect(const ANN::CoreConfig<float>& annConfig,
+                                                       const AugmentationConfig& augConfig,
+                                                       ulong numOriginalTrainSamples, ulong numTrainSamples,
+                                                       ulong numValidationSamples, float validationRatio,
+                                                       bool validationAuto, ulong maxWidth)
+  {
+    auto rows = collectRows(annConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
+                            validationRatio, validationAuto);
     return SummaryTable::collect("Model Configuration", rows, maxWidth);
   }
 

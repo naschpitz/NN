@@ -33,6 +33,11 @@ namespace NN_CLI
                                                  ulong numTrainSamples, ulong numValidationSamples,
                                                  float validationRatio, bool validationAuto, ulong maxWidth = 0);
 
+      static std::vector<SummaryRow> collectRows(const ANN::CoreConfig<float>& annConfig,
+                                                 const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
+                                                 ulong numTrainSamples, ulong numValidationSamples,
+                                                 float validationRatio, bool validationAuto);
+
       static ulong countCNNParameters(const CNN::CoreConfig<float>& config);
   };
 

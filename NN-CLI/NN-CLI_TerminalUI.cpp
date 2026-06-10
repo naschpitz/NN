@@ -385,6 +385,10 @@ namespace NN_CLI
       this->rebuildEpochLines();
       this->epochLinesDirty_ = false;
     }
+    if (this->configLinesDirty_) {
+      this->rebuildConfigLines();
+      this->configLinesDirty_ = false;
+    }
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
@@ -428,6 +432,15 @@ namespace NN_CLI
     this->config_.offset = 0;
   }
 
+
+  //===================================================================================================================//
+
+  void TerminalUI::setConfigSections(const std::vector<SummaryTable::Section>& sections)
+  {
+    std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+    this->configSections_ = sections;
+    this->configLinesDirty_ = true;
+  }
   void TerminalUI::setTimingLines(const std::vector<std::string>& lines)
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
@@ -456,6 +469,18 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
+
+  //===================================================================================================================//
+
+  void TerminalUI::rebuildConfigLines()
+  {
+    if (this->configSections_.empty())
+      return;
+
+    ulong maxWidth = this->leftWidth_ > 4 ? static_cast<ulong>(this->configContentWidth()) : 0;
+    auto formattedLines = SummaryTable::collectSections(this->configSections_, maxWidth);
+    this->setConfigLines(formattedLines);
+  }
   void TerminalUI::rebuildEpochLines()
   {
     // Rebuild the entire table with borders from scratch
@@ -615,6 +640,7 @@ namespace NN_CLI
 
     this->layout();
     this->epochLinesDirty_ = true;
+    this->configLinesDirty_ = true;
     return true;
   }
 
@@ -624,6 +650,7 @@ namespace NN_CLI
     this->resizeRequested_.store(0, std::memory_order_relaxed);
     this->layout();
     this->epochLinesDirty_ = true;
+    this->configLinesDirty_ = true;
 
     // Full resize redraw: recreate the panels and repaint the loading-bar overlay on top so the
     // loading line doesn't vanish until the next mini-batch tick.
