@@ -13,7 +13,7 @@ namespace NN_CLI
 
   class TerminalUI;
 
-  // Owns the "Loading samples" bar lifecycle during training and keeps it wired to a TerminalUI
+  // Owns the "Samples" bar lifecycle during training and keeps it wired to a TerminalUI
   // across terminal resizes. Shared by the  and CNN runners: their cores differ, but the TUI
   // plumbing (GPU-count reservation, loading callback, resize repaint) is identical.
   class TrainingTui

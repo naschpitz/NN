@@ -270,7 +270,7 @@ namespace NN_CLI
       }
 
       samples.push_back(std::move(sample));
-      ProgressBar::printLoadingProgress("Loading samples:", ++idx, totalSamples, progressReports);
+      ProgressBar::printLoadingProgress("Samples:", ++idx, totalSamples, progressReports);
     }
 
     return samples;
