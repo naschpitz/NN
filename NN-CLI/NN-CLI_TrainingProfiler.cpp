@@ -317,7 +317,7 @@ namespace NN_CLI
         termWidth = static_cast<ulong>(ws.ws_col);
     }
 
-    ulong containerWidth = termWidth > 5 ? termWidth - 5 : 120;
+    ulong containerWidth = termWidth > 4 ? termWidth - 4 : 120;
     int msW = static_cast<int>(
       containerWidth > static_cast<ulong>(tableOverhead + minMsW) ? containerWidth - tableOverhead : minMsW);
     msW = std::max(msW, minMsW);

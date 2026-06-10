@@ -59,7 +59,7 @@ int ANNRunner::train()
     this->tui->init();
 
   this->trainingTui_.attach(this->tui, [this]() {
-    ulong cw = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
+    ulong cw = this->tui->leftWidth() > 4 ? static_cast<ulong>(this->tui->configContentWidth()) : 0;
     this->regenerateConfigLines(cw);
   });
 
@@ -152,7 +152,7 @@ int ANNRunner::train()
 
     // Fit the config tables to the left panel when the TUI is active; otherwise let them size to
     // the full terminal (maxWidth 0).
-    ulong cw = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 0;
+    ulong cw = this->tui->leftWidth() > 4 ? static_cast<ulong>(this->tui->configContentWidth()) : 0;
     this->regenerateConfigLines(cw);
   }
 

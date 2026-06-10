@@ -63,7 +63,7 @@ int CNNRunner::train()
 
   this->trainingTui_.attach(this->tui, [this]() {
     this->profiler.resetRenderState();
-    ulong cw = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
+    ulong cw = this->tui->leftWidth() > 4 ? static_cast<ulong>(this->tui->configContentWidth()) : 0;
     this->regenerateConfigLines(cw);
   });
 
@@ -162,22 +162,10 @@ int CNNRunner::train()
     this->cachedNumOutputClasses_ = numOutputClasses;
     this->configLinesLoaded_ = true;
 
-    ulong configWidth = this->tui->leftWidth() > 4 ? this->tui->leftWidth() - 4 : 80;
-
-    std::vector<SummaryTable::Section> sections;
-
-    auto trainRows =
-      TrainingSummary::collectCNNRows(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
-                                      numValidationSamples, validationRatio, validationAuto);
-    sections.push_back({"Model Configuration", std::move(trainRows)});
-
-    if (numOutputClasses >= 2) {
-      auto lossRows = LossReferenceTable::collectRows(numOutputClasses);
-      sections.push_back({"Loss Reference", std::move(lossRows)});
-    }
-
-    auto configLines = SummaryTable::collectSections(sections, configWidth);
-    this->tui->setConfigLines(configLines);
+    // Fit the config tables to the left panel when the TUI is active; otherwise let them size to
+    // the full terminal (maxWidth 0).
+    ulong cw = this->tui->leftWidth() > 4 ? static_cast<ulong>(this->tui->configContentWidth()) : 0;
+    this->regenerateConfigLines(cw);
   }
 
   // Render config panel
