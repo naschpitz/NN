@@ -317,16 +317,8 @@ namespace NN_CLI
 
   void TerminalUI::renderEpochContent()
   {
-    // Pre-estimate whether a scrollbar will be needed to compute the table width.
-    // The panel's contentWidth() uses the *current* lines which may be stale, so we
-    // estimate from the record/message counts — same approach as the old rebuildEpochLines().
-    int contentH = this->epochsPanel.getH() - 2;
-    int structuralLines = this->epochRecords.empty() ? 5 : 4;
-    int estimatedTotal = static_cast<int>(this->epochRecords.size())
-                       + static_cast<int>(this->epochMessages.size())
-                       + structuralLines;
-    int panelPad = (estimatedTotal > contentH) ? 5 : 4;
-    int tableWidth = std::max(40, this->epochsPanel.getW() - panelPad);
+    // The epochs table needs a minimum width to keep its columns legible.
+    int tableWidth = std::max(40, this->epochContentWidth());
 
     this->epochsTable.setMaxWidth(tableWidth);
 
@@ -417,10 +409,7 @@ namespace NN_CLI
 
   void TerminalUI::renderTimingContent()
   {
-    int contentH = this->timingPanel.getH() - 2;
-    int total = static_cast<int>(this->rawTimingLines.size());
-    int pad = (total > contentH) ? 5 : 4;
-    int maxWidth = std::max(1, this->timingPanel.getW() - pad);
+    int maxWidth = this->timingContentWidth();
     auto lines = this->rawTimingLines;
 
     for (auto& line : lines) {
@@ -448,10 +437,44 @@ namespace NN_CLI
 
     // Conservative default: when no lines have been pushed yet, assume the
     // formatted config table will need a scrollbar so the initial render
-    // reserves enough space.
-    int panelPad = (lines.empty() || total > cH) ? 4 : 3;
+    // reserves enough space. The pad mirrors TerminalUI_Panel::contentWidth():
+    // border + gap on the left, [gap + scrollbar +] border on the right.
+    int panelPad = (lines.empty() || total > cH) ? 5 : 4;
 
     return std::max(1, this->configPanel.getW() - panelPad);
+  }
+
+  //===================================================================================================================//
+
+  int TerminalUI::timingContentWidth() const
+  {
+    std::lock_guard<std::recursive_mutex> lock(this->mutex);
+
+    int cH = this->timingPanel.getH() - 2;
+    int total = static_cast<int>(this->rawTimingLines.size());
+    int panelPad = (total > cH) ? 5 : 4;
+
+    return std::max(1, this->timingPanel.getW() - panelPad);
+  }
+
+  //===================================================================================================================//
+
+  int TerminalUI::epochContentWidth() const
+  {
+    std::lock_guard<std::recursive_mutex> lock(this->mutex);
+
+    // The panel's lines are rebuilt from the epoch records after this width is
+    // queried, so the current lines may be stale — estimate the upcoming line
+    // count from the record/message counts instead (table borders, header and
+    // placeholder row account for the structural lines).
+    int cH = this->epochsPanel.getH() - 2;
+    int structuralLines = this->epochRecords.empty() ? 5 : 4;
+    int estimatedTotal = static_cast<int>(this->epochRecords.size())
+                       + static_cast<int>(this->epochMessages.size())
+                       + structuralLines;
+    int panelPad = (estimatedTotal > cH) ? 5 : 4;
+
+    return std::max(1, this->epochsPanel.getW() - panelPad);
   }
 
   //===================================================================================================================//

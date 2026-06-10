@@ -286,13 +286,16 @@ namespace NN_CLI
       if (!this->lastStep.valid)
         return {" Timing - waiting for first batch"};
 
-      if (this->lastStep.batchNumber == this->lastRenderedBatchNumber)
+      // Re-render when either the batch advanced or the target width changed
+      // (panel resize, scrollbar appearing/disappearing).
+      if (this->lastStep.batchNumber == this->lastRenderedBatchNumber && maxWidth == this->lastRenderedWidth)
         return {};
 
       v = this->lastStep;
     }
 
     this->lastRenderedBatchNumber = v.batchNumber;
+    this->lastRenderedWidth = maxWidth;
 
     std::vector<std::string> lines;
     const double total = v.orchTotal > 0.0 ? v.orchTotal : 1.0;
@@ -304,20 +307,24 @@ namespace NN_CLI
     constexpr int tableOverhead = phaseW + pctW + 10;
     constexpr int minMsW = 10;
 
-    struct winsize ws;
-    ulong termWidth = 0;
+    ulong containerWidth = 0;
 
     if (maxWidth > 0) {
-      termWidth = static_cast<ulong>(maxWidth);
+      // The caller provides the exact width the table should occupy (e.g. the TUI
+      // panel's content width, already accounting for borders and scrollbar).
+      containerWidth = static_cast<ulong>(maxWidth);
     } else {
+      struct winsize ws;
+      ulong termWidth = 0;
+
       if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
         termWidth = static_cast<ulong>(ws.ws_col);
 
       if (termWidth == 0 && ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0)
         termWidth = static_cast<ulong>(ws.ws_col);
-    }
 
-    ulong containerWidth = termWidth > 4 ? termWidth - 4 : 120;
+      containerWidth = termWidth > 4 ? termWidth - 4 : 120;
+    }
     int msW = static_cast<int>(
       containerWidth > static_cast<ulong>(tableOverhead + minMsW) ? containerWidth - tableOverhead : minMsW);
     msW = std::max(msW, minMsW);
