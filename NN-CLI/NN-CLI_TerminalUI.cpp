@@ -32,14 +32,35 @@ namespace NN_CLI
   } // namespace
 
   //===================================================================================================================//
+  //-- Ctors / Dtors --//
+  //===================================================================================================================//
 
-  TerminalUI::TerminalUI() {}
+  TerminalUI::TerminalUI()
+    : trainingPanel_(0, 0, 0, 0, "Training", 2)
+    , epochsPanel_(0, 0, 0, 0, "Epochs", 2)
+    , configPanel_(0, 0, 0, 0, "Configuration", 2)
+    , timingPanel_(0, 0, 0, 0, "Timing", 2)
+  {
+    this->epochsPanel_.setAutoScroll(true);
+
+    this->epochsTable_.setColumns({
+      {"Epoch",        5,  TerminalUI_Table::Align::RIGHT},
+      {"Loss",         8,  TerminalUI_Table::Align::RIGHT},
+      {"Val Loss",     8,  TerminalUI_Table::Align::RIGHT},
+      {"Best",         4,  TerminalUI_Table::Align::LEFT},
+      {"Completed At", 19, TerminalUI_Table::Align::LEFT},
+    });
+  }
+
+  //===================================================================================================================//
 
   TerminalUI::~TerminalUI()
   {
     this->shutdown();
   }
 
+  //===================================================================================================================//
+  //-- Lifecycle --//
   //===================================================================================================================//
 
   bool TerminalUI::init()
@@ -117,10 +138,6 @@ namespace NN_CLI
       this->progressWin_ = nullptr;
     }
 
-    if (this->timingWin_) {
-      delwin(this->timingWin_);
-      this->timingWin_ = nullptr;
-    }
 
     endwin();
   }
@@ -151,17 +168,25 @@ namespace NN_CLI
     }
 
     int screenRows = this->rows_ - 1;
-    this->helpY_ = screenRows;
+    int trainingH = 5;
+    int remaining = std::max(8, screenRows - trainingH);
+    int configH = std::max(3, std::min(remaining - 5, remaining * 55 / 100));
+    int epochsH = std::max(3, remaining - configH);
 
-    this->trainingH_ = 5;
-    int remaining = std::max(8, screenRows - this->trainingH_);
+    int trainingY = 0;
+    int epochsY = trainingY + trainingH;
+    int configY = epochsY + epochsH;
 
-    this->configH_ = std::max(3, std::min(remaining - 5, remaining * 55 / 100));
-    this->epochsH_ = std::max(3, remaining - this->configH_);
+    //-- Resize panels --//
 
-    this->trainingY_ = 0;
-    this->epochsY_ = this->trainingY_ + this->trainingH_;
-    this->configY_ = this->epochsY_ + this->epochsH_;
+    this->trainingPanel_.resize(trainingY, 0, trainingH, this->leftWidth_);
+    this->epochsPanel_.resize(epochsY, 0, epochsH, this->leftWidth_);
+    this->configPanel_.resize(configY, 0, configH, this->leftWidth_);
+
+    if (this->timingWidth_ > 0)
+      this->timingPanel_.resize(0, this->leftWidth_, screenRows, this->timingWidth_);
+
+    //-- Recreate overlay sub-windows --//
 
     if (this->progressWin_) {
       delwin(this->progressWin_);
@@ -173,16 +198,11 @@ namespace NN_CLI
       this->loadingWin_ = nullptr;
     }
 
-    if (this->timingWin_) {
-      delwin(this->timingWin_);
-      this->timingWin_ = nullptr;
-    }
 
     int loadW = std::max(1, this->leftWidth_ - 4);
 
-    this->loadingWin_ = newwin(1, loadW, this->trainingY_ + 1, 2);
-    this->progressWin_ = newwin(2, loadW, this->trainingY_ + 2, 2);
-    this->timingWin_ = (this->timingWidth_ > 0) ? newwin(screenRows, this->timingWidth_, 0, this->leftWidth_) : nullptr;
+    this->loadingWin_ = newwin(1, loadW, trainingY + 1, 2);
+    this->progressWin_ = newwin(2, loadW, trainingY + 2, 2);
 
     if (this->loadingWin_) {
       werase(this->loadingWin_);
@@ -194,201 +214,71 @@ namespace NN_CLI
       touchwin(this->progressWin_);
     }
 
-    if (this->timingWin_) {
-      werase(this->timingWin_);
-      touchwin(this->timingWin_);
-    }
 
     if (this->resizeCallback_)
       this->resizeCallback_();
   }
 
   //===================================================================================================================//
-  //-- Drawing primitives --//
+  //-- Drawing --//
   //===================================================================================================================//
-
-  void TerminalUI::drawPanelFrame(int y, int h, const char* title, int titleColor)
-  {
-    this->drawPanelFrame(y, h, 0, this->cols_, title, titleColor);
-  }
-
-  void TerminalUI::drawPanelFrame(int y, int h, int x, int w, const char* title, int titleColor)
-  {
-    if (y < 0 || y + h > this->rows_ || h < 2)
-      return;
-
-    int titleLen = static_cast<int>(std::strlen(title));
-    int endX = x + w - 1;
-
-    mvaddch(y, x, ACS_ULCORNER);
-
-    if (titleLen > 0 && 5 + titleLen + 2 < w) {
-      mvhline(y, x + 1, ACS_HLINE, 3);
-      mvaddstr(y, x + 4, " ");
-      attron(COLOR_PAIR(titleColor) | A_BOLD);
-      mvaddstr(y, x + 5, title);
-      attroff(COLOR_PAIR(titleColor) | A_BOLD);
-      int after = 5 + titleLen;
-      mvaddstr(y, x + after, " ");
-      mvhline(y, x + after + 1, ACS_HLINE, endX - (x + after + 1));
-    } else {
-      mvhline(y, x + 1, ACS_HLINE, w - 2);
-    }
-
-    mvaddch(y, endX, ACS_URCORNER);
-
-    for (int r = 1; r < h - 1; r++) {
-      mvaddch(y + r, x, ACS_VLINE);
-      mvhline(y + r, x + 1, ' ', w - 2);
-      mvaddch(y + r, endX, ACS_VLINE);
-    }
-
-    mvaddch(y + h - 1, x, ACS_LLCORNER);
-    mvhline(y + h - 1, x + 1, ACS_HLINE, w - 2);
-    mvaddch(y + h - 1, endX, ACS_LRCORNER);
-  }
-
-  //===================================================================================================================//
-  //-- Full redraw --//
-  //===================================================================================================================//
-
-  int TerminalUI::configContentWidth() const
-  {
-    // Acquire the mutex because this method reads shared state (configLines_,
-    // configH_, leftWidth_) from outside the class — callers like the Runners
-    // are not always under a TerminalUI lock when they invoke this.
-    std::lock_guard<std::recursive_mutex> lock(this->mutex_);
-
-    int panelPad = 4;
-
-    if (this->configLines_.empty()) {
-      // Conservative default: when no lines have been pushed yet, assume the
-      // formatted config table will need a scrollbar so the initial render
-      // reserves enough space.  Otherwise the "no-scrollbar" width (pad=4) is
-      // tried first, the table overflows, and the renderer clips because
-      // scrollbar space was not pre-reserved.
-      panelPad = 5;
-    } else if (static_cast<int>(this->configLines_.size()) > this->configH_ - 2) {
-      panelPad = 5;
-    }
-
-    return std::max(1, this->leftWidth_ - panelPad);
-  }
 
   void TerminalUI::drawAllPanels()
   {
     touchwin(stdscr);
     erase();
 
-    int contentH = 0;
+    // Update active panel colors: active=YELLOW(3), inactive=CYAN(2).
+    this->trainingPanel_.setColorPair(2);
+    this->configPanel_.setColorPair(this->activePanel_ == 0 ? 3 : 2);
+    this->epochsPanel_.setColorPair(this->activePanel_ == 1 ? 3 : 2);
+    this->timingPanel_.setColorPair(this->activePanel_ == 2 ? 3 : 2);
 
-    int cfgColor = (this->activePanel_ == 0) ? 3 : 2;
-    int epColor = (this->activePanel_ == 1) ? 3 : 2;
-    int timColor = (this->activePanel_ == 2) ? 3 : 2;
+    // Draw all frames first (so content can overlap frame edges if needed).
+    this->trainingPanel_.drawFrame();
+    this->epochsPanel_.drawFrame();
+    this->configPanel_.drawFrame();
 
-    //-- Left column: Config panel --//
-    this->drawPanelFrame(this->configY_, this->configH_, 0, this->leftWidth_, "Configuration", cfgColor);
-    contentH = this->configH_ - 2;
+    if (this->timingWidth_ > 0)
+      this->timingPanel_.drawFrame();
 
-    int configTotal = static_cast<int>(this->configLines_.size());
-    int configMaxW = (configTotal <= contentH) ? (this->leftWidth_ - 4) : (this->leftWidth_ - 5);
+    // Draw content and scrollbars for scrollable panels.
+    this->epochsPanel_.drawContent();
+    this->epochsPanel_.drawScrollbar();
 
-    for (int i = 0; i < contentH; i++) {
-      int lineIdx = this->config_.offset + i;
+    this->configPanel_.drawContent();
+    this->configPanel_.drawScrollbar();
 
-      if (lineIdx >= 0 && lineIdx < configTotal) {
-        const std::string& line = this->configLines_[lineIdx];
-        int printLen = std::min(static_cast<int>(line.size()), configMaxW);
-
-        if (printLen > 0)
-          mvaddnstr(this->configY_ + 1 + i, 2, line.c_str(), printLen);
-      }
+    if (this->timingWidth_ > 0) {
+      this->timingPanel_.drawContent();
+      this->timingPanel_.drawScrollbar();
     }
 
-    this->drawScrollbar(this->leftWidth_ - 2, this->configY_ + 1, contentH, this->config_.offset,
-                        static_cast<int>(this->configLines_.size()));
-
-    //-- Left column: Training panel --//
-    this->drawPanelFrame(this->trainingY_, this->trainingH_, 0, this->leftWidth_, "Training", 2);
-
-    //-- Left column: Epochs panel --//
-    this->drawPanelFrame(this->epochsY_, this->epochsH_, 0, this->leftWidth_, "Epochs", epColor);
-    contentH = this->epochsH_ - 2;
-    int totalLines = static_cast<int>(this->epochLines_.size());
-    int epochsMaxW = (totalLines <= contentH) ? (this->leftWidth_ - 4) : (this->leftWidth_ - 5);
-    int maxScroll = std::max(0, totalLines - contentH);
-    int start = this->epochs_.autoScroll ? maxScroll : std::clamp(this->epochs_.offset, 0, maxScroll);
-
-    for (int i = 0; i < contentH && start + i < totalLines; i++) {
-      const std::string& line = this->epochLines_[start + i];
-      int printLen = std::min(static_cast<int>(line.size()), epochsMaxW);
-
-      if (printLen > 0)
-        mvaddnstr(this->epochsY_ + 1 + i, 2, line.c_str(), printLen);
-    }
-
-    this->drawScrollbar(this->leftWidth_ - 2, this->epochsY_ + 1, contentH, start, totalLines);
-
-    //-- Right column: Timing panel (full-height) --//
-    if (this->timingWin_) {
-      int timingH = this->helpY_;
-      int timingX = this->leftWidth_;
-
-      this->drawPanelFrame(0, timingH, timingX, this->timingWidth_, "Timing", timColor);
-      contentH = timingH - 2;
-      int timingTotal = static_cast<int>(this->timingLines_.size());
-      // The scrollbar (when needed) sits at cols_-2 inside the right-padding space —
-      // content always uses timingWidth_-4 so the profiler can format at a stable width.
-      int timingMaxW = this->timingWidth_ - 4;
-      int timingMaxScroll = std::max(0, timingTotal - contentH);
-      int timingStart = std::clamp(this->timing_.offset, 0, timingMaxScroll);
-
-      for (int i = 0; i < contentH && timingStart + i < timingTotal; i++) {
-        const std::string& line = this->timingLines_[timingStart + i];
-        int printLen = std::min(static_cast<int>(line.size()), timingMaxW);
-
-        if (printLen > 0)
-          mvaddnstr(1 + i, timingX + 2, line.c_str(), printLen);
-      }
-
-      this->drawScrollbar(this->cols_ - 2, 1, contentH, timingStart, timingTotal);
-    }
-
-    //-- Help bar --//
-    mvaddch(this->helpY_, 0, ACS_LLCORNER);
-    mvhline(this->helpY_, 1, ACS_HLINE, this->cols_ - 2);
-    mvaddch(this->helpY_, this->cols_ - 1, ACS_LRCORNER);
+    // Help bar at the bottom of the screen.
+    int helpY = this->rows_ - 1;
+    mvaddch(helpY, 0, ACS_LLCORNER);
+    mvhline(helpY, 1, ACS_HLINE, this->cols_ - 2);
+    mvaddch(helpY, this->cols_ - 1, ACS_LRCORNER);
 
     attron(COLOR_PAIR(2) | A_BOLD);
-    mvaddstr(this->helpY_, 3, "Tab: select panel  jk/arrows: scroll  PgUp/PgDn: page  Home/End: jump");
+    mvaddstr(helpY, 3, "Tab: select panel  jk/arrows: scroll  PgUp/PgDn: page  Home/End: jump");
     attroff(COLOR_PAIR(2) | A_BOLD);
   }
 
-  void TerminalUI::drawScrollbar(int col, int yTop, int contentH, int scroll, int total)
-  {
-    if (total <= contentH)
-      return;
-
-    int thumb = scroll * (contentH - 1) / std::max(1, total - contentH);
-
-    for (int i = 0; i < contentH; i++)
-      mvaddch(yTop + i, col, (i == thumb) ? ACS_CKBOARD : ACS_VLINE);
-  }
-
-  //===================================================================================================================//
-  //-- Compositing --//
   //===================================================================================================================//
 
   void TerminalUI::present(bool runOverlay, bool touchSub)
   {
     if (this->epochLinesDirty_) {
-      this->rebuildEpochLines();
+      this->renderEpochContent();
       this->epochLinesDirty_ = false;
     }
+
     if (this->configLinesDirty_) {
-      this->rebuildConfigLines();
+      this->renderConfigContent();
       this->configLinesDirty_ = false;
     }
+
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
@@ -417,7 +307,125 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+  //-- Content rendering (private helpers) --//
+  //===================================================================================================================//
+
+  void TerminalUI::renderEpochContent()
+  {
+    // Pre-estimate whether a scrollbar will be needed to compute the table width.
+    // The panel's contentWidth() uses the *current* lines which may be stale, so we
+    // estimate from the record/message counts — same approach as the old rebuildEpochLines().
+    int contentH = this->epochsPanel_.h() - 2;
+    int structuralLines = this->epochRecords_.empty() ? 5 : 4;
+    int estimatedTotal = static_cast<int>(this->epochRecords_.size())
+                       + static_cast<int>(this->epochMessages_.size())
+                       + structuralLines;
+    int panelPad = (estimatedTotal > contentH) ? 5 : 4;
+    int tableWidth = std::max(40, this->epochsPanel_.w() - panelPad);
+
+    this->epochsTable_.setMaxWidth(tableWidth);
+
+    // Choose datetime format based on the computed "Completed At" column width.
+    const auto& colWidths = this->epochsTable_.computedWidths();
+    int dateTimeColW = (colWidths.size() > 4) ? colWidths[4] : 19;
+
+    const char* dateFmt = "%Y-%m-%d %H:%M:%S";
+
+    if (dateTimeColW < 19)
+      dateFmt = "%m-%d %H:%M:%S";
+
+    if (dateTimeColW < 14)
+      dateFmt = "%m-%d %H:%M";
+
+    if (dateTimeColW < 11)
+      dateFmt = "%H:%M:%S";
+
+    if (dateTimeColW < 8)
+      dateFmt = "%H:%M";
+
+    // Rebuild all rows from the structured epoch records.
+    this->epochsTable_.clearRows();
+
+    for (const auto& rec : this->epochRecords_) {
+      char epochStr[16];
+      char lossStr[32];
+      char valLossStr[32];
+      char bestCell[8];
+      char dateStr[32];
+
+      snprintf(epochStr, sizeof(epochStr), "%d", rec.epoch);
+      snprintf(lossStr, sizeof(lossStr), "%.6f", static_cast<double>(rec.loss));
+
+      if (rec.hasValLoss) {
+        snprintf(valLossStr, sizeof(valLossStr), "%.6f", static_cast<double>(rec.valLoss));
+      } else {
+        snprintf(valLossStr, sizeof(valLossStr), "-");
+      }
+
+      snprintf(bestCell, sizeof(bestCell), "%s", rec.isBest ? "X" : "");
+
+      dateStr[0] = '\0';
+      std::tm tm_buf{};
+      std::tm* tm_info = localtime_r(&rec.completionTime, &tm_buf);
+
+      if (tm_info)
+        std::strftime(dateStr, sizeof(dateStr), dateFmt, tm_info);
+
+      this->epochsTable_.addRow({epochStr, lossStr, valLossStr, bestCell, dateStr});
+    }
+
+    // Render the table to formatted lines, then append stored monitor/status messages.
+    auto lines = this->epochsTable_.render();
+
+    for (const auto& msg : this->epochMessages_)
+      lines.push_back(msg);
+
+    this->epochsPanel_.setLines(lines);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI::renderConfigContent()
+  {
+    if (this->configSections_.empty())
+      return;
+
+    ulong maxWidth = this->configPanel_.w() > 4 ? static_cast<ulong>(this->configContentWidth()) : 0;
+    auto formattedLines = SummaryTable::collectSections(this->configSections_, maxWidth);
+
+    // Trim leading empty strings so that offset 0 corresponds to the first non-empty line
+    // of content, keeping scroll logic and scrollbar naturally consistent.
+    auto firstNonEmpty = std::find_if(formattedLines.begin(), formattedLines.end(),
+                                      [](const std::string& s) { return !s.empty(); });
+    std::vector<std::string> trimmed(firstNonEmpty, formattedLines.end());
+
+    this->configPanel_.setLines(trimmed);
+    this->configPanel_.scrollState().offset = 0;
+  }
+
+  //===================================================================================================================//
   //-- Public API --//
+  //===================================================================================================================//
+
+  int TerminalUI::configContentWidth() const
+  {
+    // Acquire the mutex because this method reads shared state from outside the
+    // class — callers like the Runners are not always under a TerminalUI lock when
+    // they invoke this.
+    std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+
+    int cH = this->configPanel_.h() - 2;
+    const auto& lines = this->configPanel_.lines();
+    int total = static_cast<int>(lines.size());
+
+    // Conservative default: when no lines have been pushed yet, assume the
+    // formatted config table will need a scrollbar so the initial render
+    // reserves enough space.
+    int panelPad = (lines.empty() || total > cH) ? 5 : 4;
+
+    return std::max(1, this->configPanel_.w() - panelPad);
+  }
+
   //===================================================================================================================//
 
   void TerminalUI::setConfigLines(const std::vector<std::string>& lines)
@@ -428,10 +436,10 @@ namespace NN_CLI
     // of content, keeping scroll logic and scrollbar naturally consistent.
     auto firstNonEmpty = std::find_if(lines.begin(), lines.end(),
                                       [](const std::string& s) { return !s.empty(); });
-    this->configLines_.assign(firstNonEmpty, lines.end());
-    this->config_.offset = 0;
+    std::vector<std::string> trimmed(firstNonEmpty, lines.end());
+    this->configPanel_.setLines(trimmed);
+    this->configPanel_.scrollState().offset = 0;
   }
-
 
   //===================================================================================================================//
 
@@ -441,11 +449,16 @@ namespace NN_CLI
     this->configSections_ = sections;
     this->configLinesDirty_ = true;
   }
+
+  //===================================================================================================================//
+
   void TerminalUI::setTimingLines(const std::vector<std::string>& lines)
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
-    this->timingLines_ = lines;
+    this->timingPanel_.setLines(lines);
   }
+
+  //===================================================================================================================//
 
   void TerminalUI::addEpochLine(const std::string& line)
   {
@@ -469,170 +482,20 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-
-  //===================================================================================================================//
-
-  void TerminalUI::rebuildConfigLines()
-  {
-    if (this->configSections_.empty())
-      return;
-
-    ulong maxWidth = this->leftWidth_ > 4 ? static_cast<ulong>(this->configContentWidth()) : 0;
-    auto formattedLines = SummaryTable::collectSections(this->configSections_, maxWidth);
-    this->setConfigLines(formattedLines);
-  }
-//===================================================================================================================//
-  void TerminalUI::rebuildEpochLines()
-  {
-    // Rebuild the entire table with borders from scratch
-    this->epochLines_.clear();
-
-    // Compute dynamic column widths to fill the available panel space
-    int contentH = this->epochsH_ - 2;
-    int structuralLines = this->epochRecords_.empty() ? 5 : 4;
-    int estimatedTotal = static_cast<int>(this->epochRecords_.size())
-                       + static_cast<int>(this->epochMessages_.size())
-                       + structuralLines;
-    int panelPad = (estimatedTotal > contentH) ? 5 : 4;
-    int maxW = std::max(40, static_cast<int>(this->leftWidth_ - panelPad));
-    // Width accounting
-    int overhead         = 16; // non-data chars: "| " + " | " + " | " + " | " + " | " + " |"
-    int reservedLossWidth = 16; // minimum space reserved for loss + valLoss columns (8+8)
-    int dataW = std::max(0, maxW - overhead);
-
-    int epochW = 5;
-    int bestW = 4;
-    int remaining = dataW - epochW - bestW;
-
-    // Give datetime at most 19 chars, minimum 4, leaving at least 8+8 for loss columns
-    int dateTimeW = std::max(4, std::min(19, remaining - reservedLossWidth));
-
-    // Split the rest equally between loss and val loss
-    int lossValSpace = remaining - dateTimeW;
-    int lossW = std::max(4, lossValSpace / 2);
-    int valLossW = std::max(4, lossValSpace - lossW);
-
-    // Separator line helper
-    auto sep = [&]() -> std::string {
-      return "+" + std::string(epochW + 2, '-') + "+" + std::string(lossW + 2, '-') + "+" +
-             std::string(valLossW + 2, '-') + "+" + std::string(bestW + 2, '-') + "+" +
-             std::string(dateTimeW + 2, '-') + "+";
-    };
-
-    // Top border
-    this->epochLines_.push_back(sep());
-
-    // Row length is the same for header and data rows — compute once.
-    const int lineLen = epochW + lossW + valLossW + bestW + dateTimeW + overhead;
-
-    // Header row
-    {
-      std::vector<char> hdr(lineLen + 1);
-
-      // GCC -Wformat-truncation: GCC cannot prove the buffer is large enough because
-      // column widths are runtime-computed. snprintf is always safe (truncates rather
-      // than overflows). For typical terminal widths the buffer is exact; on very
-      // narrow terminals, header strings may exceed their column width, causing
-      // cosmetic truncation — not a safety issue.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-      snprintf(hdr.data(), hdr.size(), "| %-*s | %*s | %*s | %-*s | %-*s |", epochW, "Epoch", lossW, "Loss",
-               valLossW, "Val Loss", bestW, "Best", dateTimeW, "Completed At");
-#pragma GCC diagnostic pop
-
-      this->epochLines_.push_back(hdr.data());
-    }
-
-    // Header/data separator
-    this->epochLines_.push_back(sep());
-
-    // Data rows (one empty line if no records yet)
-    if (this->epochRecords_.empty()) {
-      std::vector<char> row(lineLen + 1);
-
-      // GCC -Wformat-truncation: same rationale as the header snprintf above.
-      // Column widths are runtime-computed; snprintf is always safe (truncates
-      // rather than overflows). On very narrow terminals cosmetic truncation may
-      // occur — not a safety issue.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-      snprintf(row.data(), row.size(), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, "", lossW, "",
-               valLossW, "", bestW, "", dateTimeW, "");
-#pragma GCC diagnostic pop
-      this->epochLines_.push_back(row.data());
-    } else {
-      for (const auto& rec : this->epochRecords_) {
-        char epochStr[16], lossStr[32], valLossStr[32], bestCell[8];
-        snprintf(epochStr, sizeof(epochStr), "%d", rec.epoch);
-        snprintf(lossStr, sizeof(lossStr), "%.6f", static_cast<double>(rec.loss));
-
-        if (rec.hasValLoss) {
-          snprintf(valLossStr, sizeof(valLossStr), "%.6f", static_cast<double>(rec.valLoss));
-        } else {
-          snprintf(valLossStr, sizeof(valLossStr), "-");
-        }
-
-        snprintf(bestCell, sizeof(bestCell), "%s", rec.isBest ? "X" : "");
-
-        char dateStr[32] = "";
-        std::tm tm_buf{};
-        std::tm* tm_info = localtime_r(&rec.completionTime, &tm_buf);
-
-        if (tm_info) {
-          const char* dateFmt = "%Y-%m-%d %H:%M:%S";
-
-          if (dateTimeW < 19)
-            dateFmt = "%m-%d %H:%M:%S";
-
-          if (dateTimeW < 14)
-            dateFmt = "%m-%d %H:%M";
-
-          if (dateTimeW < 11)
-            dateFmt = "%H:%M:%S";
-
-          if (dateTimeW < 8)
-            dateFmt = "%H:%M";
-          std::strftime(dateStr, sizeof(dateStr), dateFmt, tm_info);
-        }
-
-        std::vector<char> row(lineLen + 1);
-
-        // GCC -Wformat-truncation: same rationale as the header snprintf above.
-        // Column widths are runtime-computed; snprintf is always safe (truncates
-        // rather than overflows). On very narrow terminals cosmetic truncation may
-        // occur — not a safety issue.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-        snprintf(row.data(), row.size(), "| %*s | %*s | %*s | %-*s | %-*s |", epochW, epochStr, lossW, lossStr,
-                 valLossW, valLossStr, bestW, bestCell, dateTimeW, dateStr);
-#pragma GCC diagnostic pop
-
-        this->epochLines_.push_back(row.data());
-      }
-    }
-
-    // Bottom border
-    this->epochLines_.push_back(sep());
-
-    // Append stored monitor/status messages below the table
-    for (const auto& msg : this->epochMessages_)
-      this->epochLines_.push_back(msg);
-
-    // Auto-scroll offset - header is now part of the data, so use epochsH_ - 2
-    if (this->epochs_.autoScroll)
-      this->epochs_.offset = std::max(0, static_cast<int>(this->epochLines_.size()) - std::max(0, this->epochsH_ - 2));
-  }
-
   void TerminalUI::refreshConfigPanel()
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
     this->present(false, false);
   }
 
+  //===================================================================================================================//
+
   void TerminalUI::requestResize()
   {
     this->resizeRequested_.store(1, std::memory_order_relaxed);
   }
+
+  //===================================================================================================================//
 
   bool TerminalUI::handleResize()
   {
@@ -644,6 +507,8 @@ namespace NN_CLI
     this->configLinesDirty_ = true;
     return true;
   }
+
+  //===================================================================================================================//
 
   void TerminalUI::redraw()
   {
@@ -657,6 +522,8 @@ namespace NN_CLI
     // loading line doesn't vanish until the next mini-batch tick.
     this->present(true, false);
   }
+
+  //===================================================================================================================//
 
   void TerminalUI::refresh()
   {
@@ -702,38 +569,7 @@ namespace NN_CLI
       this->present(false, false);
   }
 
-  bool TerminalUI::applyScroll(ScrollState& s, int ch, int contentH, int total)
-  {
-    int maxScroll = std::max(0, total - contentH);
-
-    switch (ch) {
-    case KEY_UP:
-    case 'k':
-      s.offset = std::max(0, s.offset - 1);
-      break;
-    case KEY_DOWN:
-    case 'j':
-      s.offset = std::min(maxScroll, s.offset + 1);
-      break;
-    case KEY_PPAGE:
-      s.offset = std::max(0, s.offset - contentH);
-      break;
-    case KEY_NPAGE:
-      s.offset = std::min(maxScroll, s.offset + contentH);
-      break;
-    case KEY_HOME:
-      s.offset = 0;
-      break;
-    case KEY_END:
-      s.offset = maxScroll;
-      break;
-    default:
-      return false;
-    }
-
-    s.autoScroll = false;
-    return true;
-  }
+  //===================================================================================================================//
 
   bool TerminalUI::handleScrollInput(int ch)
   {
@@ -744,11 +580,11 @@ namespace NN_CLI
 
     switch (this->activePanel_) {
     case 0:
-      return this->applyScroll(this->config_, ch, this->configH_ - 2, static_cast<int>(this->configLines_.size()));
+      return this->configPanel_.applyScrollInput(ch);
     case 1:
-      return this->applyScroll(this->epochs_, ch, this->epochsH_ - 2, static_cast<int>(this->epochLines_.size()));
+      return this->epochsPanel_.applyScrollInput(ch);
     case 2:
-      return this->applyScroll(this->timing_, ch, this->helpY_ - 2, static_cast<int>(this->timingLines_.size()));
+      return this->timingPanel_.applyScrollInput(ch);
     }
 
     return false;
