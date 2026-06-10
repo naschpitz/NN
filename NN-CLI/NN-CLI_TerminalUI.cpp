@@ -353,7 +353,10 @@ namespace NN_CLI
 
   void TerminalUI::present(bool runOverlay, bool touchSub)
   {
-    this->rebuildEpochLines();
+    if (this->epochLinesDirty_) {
+      this->rebuildEpochLines();
+      this->epochLinesDirty_ = false;
+    }
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
@@ -402,7 +405,7 @@ namespace NN_CLI
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
     this->epochMessages_.push_back(line);
-    this->present(false, false);
+    this->epochLinesDirty_ = true;
   }
 
   //===================================================================================================================//
@@ -415,7 +418,7 @@ namespace NN_CLI
     std::time_t stamp = (completionTime == 0) ? std::time(nullptr) : completionTime;
     this->epochRecords_.push_back({epoch, loss, hasValLoss, valLoss, isBest, stamp});
 
-    this->present(false, false);
+    this->epochLinesDirty_ = true;
   }
 
   //===================================================================================================================//
@@ -572,6 +575,7 @@ namespace NN_CLI
       return false;
 
     this->layout();
+    this->epochLinesDirty_ = true;
     return true;
   }
 
@@ -580,6 +584,7 @@ namespace NN_CLI
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
     this->resizeRequested_.store(0, std::memory_order_relaxed);
     this->layout();
+    this->epochLinesDirty_ = true;
 
     // Full resize redraw: recreate the panels and repaint the loading-bar overlay on top so the
     // loading line doesn't vanish until the next mini-batch tick.

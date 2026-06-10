@@ -171,6 +171,8 @@ namespace NN_CLI
       std::vector<std::string> epochLines_;
       std::vector<EpochRecord> epochRecords_; // structured epoch data (for future use)
       std::vector<std::string> epochMessages_; // monitor/status messages preserved across table rebuilds
+
+      bool epochLinesDirty_{true};
   };
 
 } // namespace NN_CLI
