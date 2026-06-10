@@ -421,7 +421,7 @@ namespace NN_CLI
     float pct = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
     char rawLabel[32];
-    snprintf(rawLabel, sizeof(rawLabel), "Loading samples (%lu/%lu)", static_cast<unsigned long>(batchNum),
+    snprintf(rawLabel, sizeof(rawLabel), "Samples (%lu/%lu)", static_cast<unsigned long>(batchNum),
              static_cast<unsigned long>(totalBatches));
 
     // Mirror the epoch bar's geometry so the two bars line up vertically. numGpus is supplied by
