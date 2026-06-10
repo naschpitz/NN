@@ -57,6 +57,10 @@ namespace NN_CLI
         return this->leftWidth_;
       }
 
+      // Return the content width for the Configuration panel, dynamically accounting
+      // for whether a scrollbar is needed — the same logic used by rebuildEpochLines().
+      int configContentWidth() const;
+
       void setConfigLines(const std::vector<std::string>& lines);
       void refreshConfigPanel();
 
@@ -161,7 +165,7 @@ namespace NN_CLI
       ScrollState epochs_{0, true};
       ScrollState timing_;
 
-      std::recursive_mutex mutex_;
+      mutable std::recursive_mutex mutex_;
       std::atomic<uint> resizeRequested_{0};
       std::function<void()> resizeCallback_;
       std::function<void()> overlayCallback_;

@@ -252,13 +252,35 @@ namespace NN_CLI
   //-- Full redraw --//
   //===================================================================================================================//
 
+  int TerminalUI::configContentWidth() const
+  {
+    // Acquire the mutex because this method reads shared state (configLines_,
+    // configH_, leftWidth_) from outside the class — callers like the Runners
+    // are not always under a TerminalUI lock when they invoke this.
+    std::lock_guard<std::recursive_mutex> lock(this->mutex_);
+
+    int panelPad = 4;
+
+    if (this->configLines_.empty()) {
+      // Conservative default: when no lines have been pushed yet, assume the
+      // formatted config table will need a scrollbar so the initial render
+      // reserves enough space.  Otherwise the "no-scrollbar" width (pad=4) is
+      // tried first, the table overflows, and the renderer clips because
+      // scrollbar space was not pre-reserved.
+      panelPad = 5;
+    } else if (static_cast<int>(this->configLines_.size()) > this->configH_ - 2) {
+      panelPad = 5;
+    }
+
+    return std::max(1, this->leftWidth_ - panelPad);
+  }
+
   void TerminalUI::drawAllPanels()
   {
     touchwin(stdscr);
     erase();
 
     int contentH = 0;
-    int maxW = this->leftWidth_ - 4;
 
     int cfgColor = (this->activePanel_ == 0) ? 3 : 2;
     int epColor = (this->activePanel_ == 1) ? 3 : 2;
@@ -268,12 +290,15 @@ namespace NN_CLI
     this->drawPanelFrame(this->configY_, this->configH_, 0, this->leftWidth_, "Configuration", cfgColor);
     contentH = this->configH_ - 2;
 
+    int configTotal = static_cast<int>(this->configLines_.size());
+    int configMaxW = (configTotal <= contentH) ? (this->leftWidth_ - 4) : (this->leftWidth_ - 5);
+
     for (int i = 0; i < contentH; i++) {
       int lineIdx = this->config_.offset + i;
 
-      if (lineIdx >= 0 && lineIdx < static_cast<int>(this->configLines_.size())) {
+      if (lineIdx >= 0 && lineIdx < configTotal) {
         const std::string& line = this->configLines_[lineIdx];
-        int printLen = std::min(static_cast<int>(line.size()), maxW);
+        int printLen = std::min(static_cast<int>(line.size()), configMaxW);
 
         if (printLen > 0)
           mvaddnstr(this->configY_ + 1 + i, 2, line.c_str(), printLen);
@@ -290,12 +315,13 @@ namespace NN_CLI
     this->drawPanelFrame(this->epochsY_, this->epochsH_, 0, this->leftWidth_, "Epochs", epColor);
     contentH = this->epochsH_ - 2;
     int totalLines = static_cast<int>(this->epochLines_.size());
+    int epochsMaxW = (totalLines <= contentH) ? (this->leftWidth_ - 4) : (this->leftWidth_ - 5);
     int maxScroll = std::max(0, totalLines - contentH);
     int start = this->epochs_.autoScroll ? maxScroll : std::clamp(this->epochs_.offset, 0, maxScroll);
 
     for (int i = 0; i < contentH && start + i < totalLines; i++) {
       const std::string& line = this->epochLines_[start + i];
-      int printLen = std::min(static_cast<int>(line.size()), maxW);
+      int printLen = std::min(static_cast<int>(line.size()), epochsMaxW);
 
       if (printLen > 0)
         mvaddnstr(this->epochsY_ + 1 + i, 2, line.c_str(), printLen);
@@ -310,8 +336,10 @@ namespace NN_CLI
 
       this->drawPanelFrame(0, timingH, timingX, this->timingWidth_, "Timing", timColor);
       contentH = timingH - 2;
-      int timingMaxW = this->timingWidth_ - 4;
       int timingTotal = static_cast<int>(this->timingLines_.size());
+      // The scrollbar (when needed) sits at cols_-2 inside the right-padding space —
+      // content always uses timingWidth_-4 so the profiler can format at a stable width.
+      int timingMaxW = this->timingWidth_ - 4;
       int timingMaxScroll = std::max(0, timingTotal - contentH);
       int timingStart = std::clamp(this->timing_.offset, 0, timingMaxScroll);
 
@@ -391,7 +419,12 @@ namespace NN_CLI
   void TerminalUI::setConfigLines(const std::vector<std::string>& lines)
   {
     std::lock_guard<std::recursive_mutex> lock(this->mutex_);
-    this->configLines_ = lines;
+
+    // Trim leading empty strings so that offset 0 corresponds to the first non-empty line
+    // of content, keeping scroll logic and scrollbar naturally consistent.
+    auto firstNonEmpty = std::find_if(lines.begin(), lines.end(),
+                                      [](const std::string& s) { return !s.empty(); });
+    this->configLines_.assign(firstNonEmpty, lines.end());
     this->config_.offset = 0;
   }
 
@@ -429,11 +462,17 @@ namespace NN_CLI
     this->epochLines_.clear();
 
     // Compute dynamic column widths to fill the available panel space
-    int maxW = std::max(40, static_cast<int>(this->leftWidth_ - 4));
+    int contentH = this->epochsH_ - 2;
+    int structuralLines = this->epochRecords_.empty() ? 5 : 4;
+    int estimatedTotal = static_cast<int>(this->epochRecords_.size())
+                       + static_cast<int>(this->epochMessages_.size())
+                       + structuralLines;
+    int panelPad = (estimatedTotal > contentH) ? 5 : 4;
+    int maxW = std::max(40, static_cast<int>(this->leftWidth_ - panelPad));
     // Width accounting
     int overhead         = 16; // non-data chars: "| " + " | " + " | " + " | " + " | " + " |"
     int reservedLossWidth = 16; // minimum space reserved for loss + valLoss columns (8+8)
-    int dataW = std::max(25, maxW - overhead);
+    int dataW = std::max(0, maxW - overhead);
 
     int epochW = 5;
     int bestW = 4;
