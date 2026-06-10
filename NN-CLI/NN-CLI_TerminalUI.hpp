@@ -58,11 +58,6 @@ namespace NN_CLI
         return this->cols;
       }
 
-      int getTimingWidth() const
-      {
-        return this->timingWidth;
-      }
-
       int getLeftWidth() const
       {
         return this->leftWidth;
@@ -71,6 +66,15 @@ namespace NN_CLI
       // Return the content width for the Configuration panel, dynamically accounting
       // for whether a scrollbar is needed — the same logic used by renderConfigContent().
       int configContentWidth() const;
+
+      // Return the content width for the Timing panel, dynamically accounting for
+      // whether a scrollbar is needed — the width the profiler should format its table to.
+      int timingContentWidth() const;
+
+      // Return the content width for the Epochs panel. Unlike the other panels, the
+      // scrollbar need is estimated from the epoch record/message counts because the
+      // panel's lines are rebuilt from those records after this is queried.
+      int epochContentWidth() const;
 
       WINDOW* progressWindow() const
       {

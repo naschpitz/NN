@@ -135,8 +135,9 @@ namespace NN_CLI
     keyW = std::max(keyW, 6UL);
 
     ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
-    ulong containerWidth =
-      (maxWidth > 0) ? (termWidth > 1 ? termWidth - 1 : termWidth) : (termWidth > 5 ? termWidth - 5 : termWidth);
+    // An explicit maxWidth is the exact line width to produce (e.g. a TUI panel's
+    // content width); only the auto-detected stdout width keeps a safety margin.
+    ulong containerWidth = (maxWidth > 0) ? termWidth : (termWidth > 5 ? termWidth - 5 : termWidth);
     ulong tableOverhead = keyW + 7;
     ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : 6UL;
     valueW = std::max(valueW, 6UL);
@@ -151,8 +152,7 @@ namespace NN_CLI
   {
     std::vector<std::string> lines;
     ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
-    ulong containerWidth =
-      (maxWidth > 0) ? (termWidth > 1 ? termWidth - 1 : termWidth) : (termWidth > 5 ? termWidth - 5 : termWidth);
+    ulong containerWidth = (maxWidth > 0) ? termWidth : (termWidth > 5 ? termWidth - 5 : termWidth);
     ulong tableOverhead = keyW + 7;
     ulong maxValueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : 6UL;
     valueW = std::min(valueW, maxValueW);
@@ -231,8 +231,7 @@ namespace NN_CLI
     keyW = std::max(keyW, 6UL);
 
     ulong termWidth = (maxWidth > 0) ? maxWidth : detectTerminalWidth();
-    ulong containerWidth =
-      (maxWidth > 0) ? (termWidth > 1 ? termWidth - 1 : termWidth) : (termWidth > 5 ? termWidth - 5 : termWidth);
+    ulong containerWidth = (maxWidth > 0) ? termWidth : (termWidth > 5 ? termWidth - 5 : termWidth);
     ulong tableOverhead = keyW + 7;
     ulong valueW = containerWidth > tableOverhead ? containerWidth - tableOverhead : 6UL;
     valueW = std::max(valueW, 6UL);

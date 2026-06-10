@@ -25,6 +25,8 @@ namespace NN_CLI
       void resetRenderState();
 
       //-- TUI table lines --//
+      // maxWidth > 0: exact line width to produce (e.g. the TUI panel's content width);
+      // maxWidth == 0: auto-detect the terminal width and keep a stdout safety margin.
       std::vector<std::string> getTimingLines(int maxWidth = 0) const;
 
       void reset();
@@ -91,6 +93,7 @@ namespace NN_CLI
       mutable std::mutex mutex;
       StepView lastStep;
       mutable ulong lastRenderedBatchNumber = static_cast<ulong>(-1);
+      mutable int lastRenderedWidth = -1;
 
       //-- Helpers --//
       static const char* phaseLabel(CNN::TimingPhase phase);
