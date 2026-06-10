@@ -88,7 +88,7 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
 
     std::vector<PredictResults<T>> gpuResults(this->numGPUs);
 
-    QtConcurrent::blockingMap(&this->workerPool_, workItems,
+    QtConcurrent::blockingMap(&this->workerPool, workItems,
                               [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
                                 ProgressCallback callback;
 
@@ -195,7 +195,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       // Use QtConcurrent to process each GPU's work in parallel
       QtConcurrent::blockingMap(
-        &this->workerPool_, workItems,
+        &this->workerPool, workItems,
         [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples, &gpuCumulativeSamples](const GPUWorkItem& item) {
           // Build the per-GPU sub-batch
           Samples<T> gpuSamples(batchSamples.begin() + item.localStart, batchSamples.begin() + item.localEnd);
@@ -267,11 +267,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       if (shouldStop) {
         progress.stoppedEarly = true;
-        this->trainingMetadata.stopReason = monitor->stopReason();
+        this->trainingMetadata.stopReason = monitor->getStopReason();
       }
 
-      this->trainingMetadata.bestEpoch = monitor->bestEpoch();
-      this->trainingMetadata.bestLoss = monitor->bestLoss();
+      this->trainingMetadata.bestEpoch = monitor->getBestEpoch();
+      this->trainingMetadata.bestLoss = monitor->getBestLoss();
 
       if (this->trainingCallback) {
         this->trainingCallback(progress);
@@ -322,7 +322,7 @@ template <typename T>
 TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   return ::distributeTestAcrossGPUs<T>(
-    &this->workerPool_, numSamples, sampleProvider, this->numGPUs, this->testConfig.batchSize, this->progressCallback,
+    &this->workerPool, numSamples, sampleProvider, this->numGPUs, this->testConfig.batchSize, this->progressCallback,
     [this](size_t gpuIdx, const Samples<T>& batch, ulong startIdx, ulong endIdx) -> std::pair<T, ulong> {
       return this->gpuWorkers[gpuIdx]->testSubset(batch, startIdx, endIdx);
     });

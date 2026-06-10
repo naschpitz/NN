@@ -15,12 +15,12 @@ namespace NN_CLI
   //===================================================================================================================//
 
   TerminalUI_Panel::TerminalUI_Panel(int y, int x, int h, int w, std::string title, int colorPair)
-    : y_(y),
-      x_(x),
-      h_(h),
-      w_(w),
-      title_(std::move(title)),
-      colorPair_(colorPair)
+    : y(y),
+      x(x),
+      h(h),
+      w(w),
+      title(std::move(title)),
+      colorPair(colorPair)
   {
   }
 
@@ -30,24 +30,24 @@ namespace NN_CLI
 
   void TerminalUI_Panel::resize(int y, int x, int h, int w)
   {
-    this->y_ = y;
-    this->x_ = x;
-    this->h_ = h;
-    this->w_ = w;
+    this->y = y;
+    this->x = x;
+    this->h = h;
+    this->w = w;
   }
 
   //===================================================================================================================//
 
   void TerminalUI_Panel::setTitle(const std::string& title)
   {
-    this->title_ = title;
+    this->title = title;
   }
 
   //===================================================================================================================//
 
   void TerminalUI_Panel::setColorPair(int colorPair)
   {
-    this->colorPair_ = colorPair;
+    this->colorPair = colorPair;
   }
 
   //===================================================================================================================//
@@ -56,14 +56,14 @@ namespace NN_CLI
 
   void TerminalUI_Panel::setLines(const std::vector<std::string>& lines)
   {
-    this->lines_ = lines;
+    this->lines = lines;
   }
 
   //===================================================================================================================//
 
   void TerminalUI_Panel::setAutoScroll(bool autoScroll)
   {
-    this->scroll_.autoScroll = autoScroll;
+    this->scroll.autoScroll = autoScroll;
   }
 
   //===================================================================================================================//
@@ -72,47 +72,47 @@ namespace NN_CLI
 
   void TerminalUI_Panel::drawFrame() const
   {
-    if (this->h_ < 2 || this->w_ < 2)
+    if (this->h < 2 || this->w < 2)
       return;
 
-    int titleLen = static_cast<int>(this->title_.size());
-    int endX = this->x_ + this->w_ - 1;
+    int titleLen = static_cast<int>(this->title.size());
+    int endX = this->x + this->w - 1;
 
     //-- Top border with optional title --//
 
-    mvaddch(this->y_, this->x_, ACS_ULCORNER);
+    mvaddch(this->y, this->x, ACS_ULCORNER);
 
-    if (titleLen > 0 && 5 + titleLen + 2 < this->w_) {
-      mvhline(this->y_, this->x_ + 1, ACS_HLINE, 3);
-      mvaddstr(this->y_, this->x_ + 4, " ");
-      attron(COLOR_PAIR(this->colorPair_) | A_BOLD);
-      mvaddstr(this->y_, this->x_ + 5, this->title_.c_str());
-      attroff(COLOR_PAIR(this->colorPair_) | A_BOLD);
+    if (titleLen > 0 && 5 + titleLen + 2 < this->w) {
+      mvhline(this->y, this->x + 1, ACS_HLINE, 3);
+      mvaddstr(this->y, this->x + 4, " ");
+      attron(COLOR_PAIR(this->colorPair) | A_BOLD);
+      mvaddstr(this->y, this->x + 5, this->title.c_str());
+      attroff(COLOR_PAIR(this->colorPair) | A_BOLD);
       int after = 5 + titleLen;
-      mvaddstr(this->y_, this->x_ + after, " ");
-      int remainingHline = endX - (this->x_ + after + 1);
+      mvaddstr(this->y, this->x + after, " ");
+      int remainingHline = endX - (this->x + after + 1);
 
       if (remainingHline > 0)
-        mvhline(this->y_, this->x_ + after + 1, ACS_HLINE, remainingHline);
+        mvhline(this->y, this->x + after + 1, ACS_HLINE, remainingHline);
     } else {
-      mvhline(this->y_, this->x_ + 1, ACS_HLINE, this->w_ - 2);
+      mvhline(this->y, this->x + 1, ACS_HLINE, this->w - 2);
     }
 
-    mvaddch(this->y_, endX, ACS_URCORNER);
+    mvaddch(this->y, endX, ACS_URCORNER);
 
     //-- Side borders (interior blanked) --//
 
-    for (int r = 1; r < this->h_ - 1; r++) {
-      mvaddch(this->y_ + r, this->x_, ACS_VLINE);
-      mvhline(this->y_ + r, this->x_ + 1, ' ', this->w_ - 2);
-      mvaddch(this->y_ + r, endX, ACS_VLINE);
+    for (int r = 1; r < this->h - 1; r++) {
+      mvaddch(this->y + r, this->x, ACS_VLINE);
+      mvhline(this->y + r, this->x + 1, ' ', this->w - 2);
+      mvaddch(this->y + r, endX, ACS_VLINE);
     }
 
     //-- Bottom border --//
 
-    mvaddch(this->y_ + this->h_ - 1, this->x_, ACS_LLCORNER);
-    mvhline(this->y_ + this->h_ - 1, this->x_ + 1, ACS_HLINE, this->w_ - 2);
-    mvaddch(this->y_ + this->h_ - 1, endX, ACS_LRCORNER);
+    mvaddch(this->y + this->h - 1, this->x, ACS_LLCORNER);
+    mvhline(this->y + this->h - 1, this->x + 1, ACS_HLINE, this->w - 2);
+    mvaddch(this->y + this->h - 1, endX, ACS_LRCORNER);
   }
 
   //===================================================================================================================//
@@ -124,7 +124,7 @@ namespace NN_CLI
     if (cH <= 0)
       return;
 
-    int total = static_cast<int>(this->lines_.size());
+    int total = static_cast<int>(this->lines.size());
     int maxW = this->contentWidth();
     int start = this->scrollOffset();
 
@@ -132,11 +132,11 @@ namespace NN_CLI
       int lineIdx = start + i;
 
       if (lineIdx >= 0 && lineIdx < total) {
-        const std::string& line = this->lines_[lineIdx];
+        const std::string& line = this->lines[lineIdx];
         int printLen = std::min(static_cast<int>(line.size()), maxW);
 
         if (printLen > 0)
-          mvaddnstr(this->y_ + 1 + i, this->x_ + 2, line.c_str(), printLen);
+          mvaddnstr(this->y + 1 + i, this->x + 2, line.c_str(), printLen);
       }
     }
   }
@@ -150,13 +150,13 @@ namespace NN_CLI
     if (cH <= 0)
       return;
 
-    int total = static_cast<int>(this->lines_.size());
+    int total = static_cast<int>(this->lines.size());
 
     if (total <= cH)
       return;
 
-    int col = this->x_ + this->w_ - 2;
-    int yTop = this->y_ + 1;
+    int col = this->x + this->w - 2;
+    int yTop = this->y + 1;
     int scroll = this->scrollOffset();
     int thumb = scroll * (cH - 1) / std::max(1, total - cH);
 
@@ -171,41 +171,41 @@ namespace NN_CLI
   bool TerminalUI_Panel::applyScrollInput(int ch)
   {
     int cH = this->contentHeight();
-    int total = static_cast<int>(this->lines_.size());
+    int total = static_cast<int>(this->lines.size());
     int maxScroll = std::max(0, total - cH);
 
     // Sync offset to the current auto-scroll position before clearing autoScroll,
     // so that the first manual scroll starts from the visible bottom rather than
     // jumping to an unrelated position.
-    if (this->scroll_.autoScroll)
-      this->scroll_.offset = maxScroll;
+    if (this->scroll.autoScroll)
+      this->scroll.offset = maxScroll;
 
     switch (ch) {
     case KEY_UP:
     case 'k':
-      this->scroll_.offset = std::max(0, this->scroll_.offset - 1);
+      this->scroll.offset = std::max(0, this->scroll.offset - 1);
       break;
     case KEY_DOWN:
     case 'j':
-      this->scroll_.offset = std::min(maxScroll, this->scroll_.offset + 1);
+      this->scroll.offset = std::min(maxScroll, this->scroll.offset + 1);
       break;
     case KEY_PPAGE:
-      this->scroll_.offset = std::max(0, this->scroll_.offset - cH);
+      this->scroll.offset = std::max(0, this->scroll.offset - cH);
       break;
     case KEY_NPAGE:
-      this->scroll_.offset = std::min(maxScroll, this->scroll_.offset + cH);
+      this->scroll.offset = std::min(maxScroll, this->scroll.offset + cH);
       break;
     case KEY_HOME:
-      this->scroll_.offset = 0;
+      this->scroll.offset = 0;
       break;
     case KEY_END:
-      this->scroll_.offset = maxScroll;
+      this->scroll.offset = maxScroll;
       break;
     default:
       return false;
     }
 
-    this->scroll_.autoScroll = false;
+    this->scroll.autoScroll = false;
     return true;
   }
 
@@ -216,17 +216,17 @@ namespace NN_CLI
   int TerminalUI_Panel::contentWidth() const
   {
     int cH = this->contentHeight();
-    int total = static_cast<int>(this->lines_.size());
+    int total = static_cast<int>(this->lines.size());
     int pad = (total > cH) ? 5 : 4;
 
-    return std::max(1, this->w_ - pad);
+    return std::max(1, this->w - pad);
   }
 
   //===================================================================================================================//
 
   int TerminalUI_Panel::contentHeight() const
   {
-    return std::max(0, this->h_ - 2);
+    return std::max(0, this->h - 2);
   }
 
   //===================================================================================================================//
@@ -234,13 +234,13 @@ namespace NN_CLI
   int TerminalUI_Panel::scrollOffset() const
   {
     int cH = this->contentHeight();
-    int total = static_cast<int>(this->lines_.size());
+    int total = static_cast<int>(this->lines.size());
     int maxScroll = std::max(0, total - cH);
 
-    if (this->scroll_.autoScroll)
+    if (this->scroll.autoScroll)
       return maxScroll;
 
-    return std::clamp(this->scroll_.offset, 0, maxScroll);
+    return std::clamp(this->scroll.offset, 0, maxScroll);
   }
 
 } // namespace NN_CLI

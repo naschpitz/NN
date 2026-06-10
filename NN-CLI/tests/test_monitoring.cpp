@@ -97,7 +97,7 @@ static void testTrainingMonitorStagnation()
   // Epoch 1: loss = 1.0 — new best
   CHECK(monitor.checkEpoch(1, 1.0f) == false, "epoch 1 no stop");
   CHECK(monitor.isNewBest() == true, "epoch 1 is new best");
-  CHECK(monitor.bestEpoch() == 1, "best epoch is 1");
+  CHECK(monitor.getBestEpoch() == 1, "best epoch is 1");
 
   // Epoch 2: loss = 0.5 — improvement
   CHECK(monitor.checkEpoch(2, 0.5f) == false, "epoch 2 no stop");
@@ -112,7 +112,7 @@ static void testTrainingMonitorStagnation()
 
   // Epoch 5: loss = 0.5 — no improvement (patience 3/3 → stop)
   CHECK(monitor.checkEpoch(5, 0.5f) == true, "epoch 5 stops");
-  CHECK(monitor.stopReason().find("stagnation") != std::string::npos, "stop reason mentions stagnation");
+  CHECK(monitor.getStopReason().find("stagnation") != std::string::npos, "stop reason mentions stagnation");
 
   std::cout << "PASS" << std::endl;
 }
@@ -141,8 +141,8 @@ static void testTrainingMonitorExplosion()
 
   // Epoch 3: loss = 6.0 — over 5x best (1.0 × 5 = 5.0)
   CHECK(monitor.checkEpoch(3, 6.0f) == true, "epoch 3 stops (6x best)");
-  CHECK(monitor.stopReason().find("explosion") != std::string::npos ||
-          monitor.stopReason().find("Explosion") != std::string::npos,
+  CHECK(monitor.getStopReason().find("explosion") != std::string::npos ||
+          monitor.getStopReason().find("Explosion") != std::string::npos,
         "stop reason mentions explosion");
 
   std::cout << "PASS" << std::endl;
@@ -175,7 +175,7 @@ static void testTrainingMonitorWithValidationLoss()
   CHECK(monitor.checkEpoch(3, 0.5f, std::optional<float>(1.0f)) == true, "epoch 3 stops (patience 2/2)");
 
   // Best should still be epoch 1
-  CHECK(monitor.bestEpoch() == 1, "best epoch is 1 (based on validation loss)");
+  CHECK(monitor.getBestEpoch() == 1, "best epoch is 1 (based on validation loss)");
 
   std::cout << "PASS" << std::endl;
 }

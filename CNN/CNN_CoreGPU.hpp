@@ -40,7 +40,7 @@ namespace CNN
       //-- Dedicated pool for cross-GPU dispatch. Each core owns its own pool (not the global
       //   one) so a validation test() run from inside train()'s callback never starves on
       //   worker threads held by the enclosing train(). Dispatched via QtConcurrent::blockingMap.
-      QThreadPool workerPool_;
+      QThreadPool workerPool;
 
       //-- Initialization --//
       void initializeWorkers();

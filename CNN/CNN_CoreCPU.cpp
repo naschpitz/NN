@@ -101,13 +101,13 @@ void CoreCPU<T>::runWorkers(int numThreads, const std::function<void(int)>& body
   // Dispatch numThreads worker chunks across this core's own pool (not the global one),
   // so a validation test() called from inside train()'s callback runs on a separate core's
   // pool and never starves on worker threads held by the enclosing train().
-  if (this->workerPool_.maxThreadCount() < numThreads)
-    this->workerPool_.setMaxThreadCount(numThreads);
+  if (this->workerPool.maxThreadCount() < numThreads)
+    this->workerPool.setMaxThreadCount(numThreads);
 
   QVector<int> workerIndices(numThreads);
   std::iota(workerIndices.begin(), workerIndices.end(), 0);
 
-  QtConcurrent::blockingMap(&this->workerPool_, workerIndices, [&body](int workerIdx) { body(workerIdx); });
+  QtConcurrent::blockingMap(&this->workerPool, workerIndices, [&body](int workerIdx) { body(workerIdx); });
 }
 
 //===================================================================================================================//
@@ -679,9 +679,9 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
   // Populate monitoring metadata
   if (monitor) {
-    this->trainingMetadata.stopReason = monitor->stopReason();
-    this->trainingMetadata.bestEpoch = monitor->bestEpoch();
-    this->trainingMetadata.bestLoss = monitor->bestLoss();
+    this->trainingMetadata.stopReason = monitor->getStopReason();
+    this->trainingMetadata.bestEpoch = monitor->getBestEpoch();
+    this->trainingMetadata.bestLoss = monitor->getBestLoss();
   }
 
   this->trainingEnd();
@@ -1379,9 +1379,9 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
 
   // Populate monitoring metadata
   if (monitor) {
-    this->trainingMetadata.stopReason = monitor->stopReason();
-    this->trainingMetadata.bestEpoch = monitor->bestEpoch();
-    this->trainingMetadata.bestLoss = monitor->bestLoss();
+    this->trainingMetadata.stopReason = monitor->getStopReason();
+    this->trainingMetadata.bestEpoch = monitor->getBestEpoch();
+    this->trainingMetadata.bestLoss = monitor->getBestLoss();
   }
 
   this->trainingEnd();

@@ -86,49 +86,49 @@ namespace NN_CLI
       // Returns w-4 when content fits, w-5 when the scrollbar is shown.
       int contentWidth() const;
 
-      int y() const
+      int getY() const
       {
-        return this->y_;
+        return this->y;
       }
 
-      int x() const
+      int getX() const
       {
-        return this->x_;
+        return this->x;
       }
 
-      int h() const
+      int getH() const
       {
-        return this->h_;
+        return this->h;
       }
 
-      int w() const
+      int getW() const
       {
-        return this->w_;
+        return this->w;
       }
 
-      const std::string& title() const
+      const std::string& getTitle() const
       {
-        return this->title_;
+        return this->title;
       }
 
-      int colorPair() const
+      int getColorPair() const
       {
-        return this->colorPair_;
+        return this->colorPair;
       }
 
       ScrollState& scrollState()
       {
-        return this->scroll_;
+        return this->scroll;
       }
 
       const ScrollState& scrollState() const
       {
-        return this->scroll_;
+        return this->scroll;
       }
 
-      const std::vector<std::string>& lines() const
+      const std::vector<std::string>& getLines() const
       {
-        return this->lines_;
+        return this->lines;
       }
 
     private:
@@ -142,14 +142,14 @@ namespace NN_CLI
 
       //-- Members --//
 
-      int y_ = 0;
-      int x_ = 0;
-      int h_ = 0;
-      int w_ = 0;
-      std::string title_;
-      int colorPair_ = 2; // CYAN (inactive) by default
-      ScrollState scroll_;
-      std::vector<std::string> lines_;
+      int y = 0;
+      int x = 0;
+      int h = 0;
+      int w = 0;
+      std::string title;
+      int colorPair = 2; // CYAN (inactive) by default
+      ScrollState scroll;
+      std::vector<std::string> lines;
   };
 
 } // namespace NN_CLI

@@ -69,22 +69,22 @@ namespace NN_CLI
       std::shared_ptr<TerminalUI> tui;
 
       //-- Loading-bar wiring shared with the  runner --//
-      TrainingTui trainingTui_;
+      TrainingTui trainingTui;
       //-- Callback State --//
-      ulong lastCallbackEpoch_ = 0;
-      float lastEpochLoss_ = 0.0f;
-      bool lastIsBest_ = false;
-      bool lastHadValLoss_ = false;
-      float lastValLoss_ = 0.0f;
-      bool cacheIsSet_ = false;
-      std::mutex epochTransitionMutex_;
-      std::unique_ptr<ProgressBar> progressBar_;
+      ulong lastCallbackEpoch = 0;
+      float lastEpochLoss = 0.0f;
+      bool lastIsBest = false;
+      bool lastHadValLoss = false;
+      float lastValLoss = 0.0f;
+      bool cacheIsSet = false;
+      std::mutex epochTransitionMutex;
+      std::unique_ptr<ProgressBar> progressBar;
 
       //-- Validation objects (stored during train() for finishTraining()) --//
-      std::shared_ptr<CNN::Core<float>> validationCore_;
-      std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr_;
-      std::shared_ptr<std::vector<ulong>> validationIndices_;
-      std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor_;
+      std::shared_ptr<CNN::Core<float>> validationCore;
+      std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr;
+      std::shared_ptr<std::vector<ulong>> validationIndices;
+      std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
   };
 
 } // namespace NN_CLI

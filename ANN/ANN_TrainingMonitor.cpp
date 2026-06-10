@@ -11,11 +11,11 @@ using namespace Common;
 template <typename T>
 TrainingMonitor<T>::TrainingMonitor(const MonitoringConfig& config)
   : config(config),
-    bestLoss_(std::numeric_limits<T>::max()),
-    bestEpoch_(0),
+    bestLoss(std::numeric_limits<T>::max()),
+    bestEpoch(0),
     epochsWithoutImprovement(0),
-    newBest_(false),
-    stopReason_()
+    newBest(false),
+    stopReason()
 {
 }
 
@@ -24,7 +24,7 @@ TrainingMonitor<T>::TrainingMonitor(const MonitoringConfig& config)
 template <typename T>
 bool TrainingMonitor<T>::checkEpoch(ulong epoch, T epochLoss, std::optional<T> validationLoss)
 {
-  newBest_ = false;
+  this->newBest = false;
 
   // Use validation loss when available, otherwise training loss
   T loss = validationLoss.has_value() ? validationLoss.value() : epochLoss;
@@ -32,10 +32,10 @@ bool TrainingMonitor<T>::checkEpoch(ulong epoch, T epochLoss, std::optional<T> v
   // Update best loss tracking
   T delta = static_cast<T>(config.metrics.lossStagnation.minDelta);
 
-  if (loss < bestLoss_ - delta) {
-    bestLoss_ = loss;
-    bestEpoch_ = epoch;
-    newBest_ = true;
+  if (loss < this->bestLoss - delta) {
+    this->bestLoss = loss;
+    this->bestEpoch = epoch;
+    this->newBest = true;
     epochsWithoutImprovement = 0;
   }
 
@@ -50,7 +50,7 @@ bool TrainingMonitor<T>::checkEpoch(ulong epoch, T epochLoss, std::optional<T> v
   }
 
   // Check loss stagnation (patience-based)
-  if (!newBest_) {
+  if (!this->newBest) {
     if (checkLossStagnation(loss)) {
       return true;
     }
@@ -64,31 +64,31 @@ bool TrainingMonitor<T>::checkEpoch(ulong epoch, T epochLoss, std::optional<T> v
 template <typename T>
 bool TrainingMonitor<T>::isNewBest() const
 {
-  return newBest_;
+  return this->newBest;
 }
 
 //===================================================================================================================//
 
 template <typename T>
-std::string TrainingMonitor<T>::stopReason() const
+std::string TrainingMonitor<T>::getStopReason() const
 {
-  return stopReason_;
+  return this->stopReason;
 }
 
 //===================================================================================================================//
 
 template <typename T>
-ulong TrainingMonitor<T>::bestEpoch() const
+ulong TrainingMonitor<T>::getBestEpoch() const
 {
-  return bestEpoch_;
+  return this->bestEpoch;
 }
 
 //===================================================================================================================//
 
 template <typename T>
-T TrainingMonitor<T>::bestLoss() const
+T TrainingMonitor<T>::getBestLoss() const
 {
-  return bestLoss_;
+  return this->bestLoss;
 }
 
 //===================================================================================================================//
@@ -108,7 +108,7 @@ bool TrainingMonitor<T>::checkLossStagnation(T loss)
     std::ostringstream oss;
     oss << "Loss stagnation: no improvement > " << config.metrics.lossStagnation.minDelta << " for " << config.patience
         << " check intervals (" << config.patience * config.checkInterval << " epochs)";
-    stopReason_ = oss.str();
+    this->stopReason = oss.str();
     return true;
   }
 
@@ -125,19 +125,19 @@ bool TrainingMonitor<T>::checkLossExplosion(T loss)
   }
 
   if (std::isnan(static_cast<double>(loss))) {
-    stopReason_ = "Loss explosion: NaN detected";
+    this->stopReason = "Loss explosion: NaN detected";
     return true;
   }
 
   // Only check threshold if we have a valid best loss
-  if (bestLoss_ < std::numeric_limits<T>::max()) {
+  if (this->bestLoss < std::numeric_limits<T>::max()) {
     T threshold = static_cast<T>(config.metrics.lossExplosion.threshold);
 
-    if (loss > threshold * bestLoss_) {
+    if (loss > threshold * this->bestLoss) {
       std::ostringstream oss;
       oss << "Loss explosion: current loss (" << loss << ") exceeds " << config.metrics.lossExplosion.threshold
-          << "x best loss (" << bestLoss_ << ")";
-      stopReason_ = oss.str();
+          << "x best loss (" << this->bestLoss << ")";
+      this->stopReason = oss.str();
       return true;
     }
   }
