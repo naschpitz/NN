@@ -1,0 +1,99 @@
+#ifndef NN_CLI_TERMINALUI_TABLE_HPP
+#define NN_CLI_TERMINALUI_TABLE_HPP
+
+#include <functional>
+#include <string>
+#include <vector>
+
+namespace NN_CLI
+{
+
+  // Reusable ASCII table formatter that produces std::vector<std::string> of
+  // formatted lines.  No ncurses dependency — pure string manipulation.
+  //
+  // Column widths are computed at render time from the maxWidth and per-column
+  // width hints, following the same algorithm as TerminalUI::rebuildEpochLines():
+  //   1. Subtract structural overhead (borders, padding) from maxWidth.
+  //   2. Distribute the remaining data width proportionally among columns
+  //      based on their widthHint values.
+  //
+  // Supports three primary use cases:
+  //   - Key-value two-column tables (SummaryTable style, with centered title).
+  //   - Three-column profiler tables (TrainingProfiler style, header + data).
+  //   - Multi-column epoch tables (rebuildEpochLines style, 5+ columns).
+
+  class TerminalUI_Table
+  {
+    public:
+      //-- Types --//
+
+      enum class Align { LEFT, RIGHT, CENTER };
+
+      struct Column {
+          std::string name;
+          int widthHint = 0;
+          Align align = Align::LEFT;
+          // Optional per-cell formatter applied before alignment/padding.
+          std::function<std::string(const std::string&)> formatter;
+      };
+
+      using Row = std::vector<std::string>;
+
+      //-- Ctors --//
+
+      TerminalUI_Table();
+      explicit TerminalUI_Table(int maxWidth);
+      TerminalUI_Table(std::vector<Column> columns, int maxWidth);
+
+      //-- Configuration --//
+
+      void setColumns(std::vector<Column> columns);
+      void setTitle(const std::string& title);
+      void setMaxWidth(int maxWidth);
+
+      //-- Data --//
+
+      void addRow(const Row& cells);
+      void addRows(const std::vector<Row>& rows);
+      void clearRows();
+
+      //-- Rendering --//
+
+      // Build and return the complete table as formatted lines.
+      // When a title is set, it replaces the header row (SummaryTable pattern).
+      // When no title is set, the column-name header row is rendered.
+      // An empty data set produces one placeholder row.
+      std::vector<std::string> render() const;
+
+      //-- Accessors --//
+
+      int maxWidth() const;
+      int columnCount() const;
+
+      // Triggers width computation if dirty; returns the resolved column widths.
+      const std::vector<int>& computedWidths() const;
+
+      // A standalone separator line matching the current column widths.
+      // Useful for callers who need to insert section breaks between renders.
+      std::string separator() const;
+
+    private:
+      //-- Methods --//
+      void computeWidths() const;
+      std::string formatCell(const std::string& text, int width, Align align) const;
+      std::string makeRow(const Row& cells) const;
+      std::string makeSeparator() const;
+      std::string makeTitleRow() const;
+
+      //-- Members --//
+      std::vector<Column> columns_;
+      std::string title_;
+      std::vector<Row> rows_;
+      int maxWidth_ = 80;
+      mutable std::vector<int> computedWidths_;
+      mutable bool widthsDirty_ = true;
+  };
+
+} // namespace NN_CLI
+
+#endif // NN_CLI_TERMINALUI_TABLE_HPP

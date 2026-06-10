@@ -27,6 +27,8 @@ add_executable(NN-CLI
   NN-CLI_PredictSummary.cpp
   NN-CLI_Runner.cpp
   NN-CLI_TerminalUI.cpp
+  NN-CLI_TerminalUI_Panel.cpp
+  NN-CLI_TerminalUI_Table.cpp
   NN-CLI_TestSummary.cpp
   NN-CLI_TrainingProfiler.cpp
   NN-CLI_TrainingTui.cpp
