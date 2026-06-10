@@ -481,6 +481,7 @@ namespace NN_CLI
     auto formattedLines = SummaryTable::collectSections(this->configSections_, maxWidth);
     this->setConfigLines(formattedLines);
   }
+//===================================================================================================================//
   void TerminalUI::rebuildEpochLines()
   {
     // Rebuild the entire table with borders from scratch
