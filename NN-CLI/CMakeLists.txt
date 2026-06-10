@@ -22,6 +22,7 @@ add_executable(NN-CLI
   NN-CLI_CalibrateRunner.cpp
   NN-CLI_CNNLoader.cpp
   NN-CLI_CNNRunner.cpp
+  NN-CLI_Runner.cpp
   NN-CLI_LossReferenceTable.cpp
   NN-CLI_ModelSerializer.cpp
   NN-CLI_PredictSummary.cpp
