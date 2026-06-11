@@ -16,7 +16,7 @@
 
 #include <json.hpp>
 
-#include <ANN_Utils.hpp>
+#include "Common/Common_Utils.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -321,7 +321,7 @@ int ANNRunner::predict()
     PredictSummary::printANN(this->coreConfig, inputs.size(), inputPath.toStdString(), outputPath.toStdString());
 
   auto batchStart = std::chrono::system_clock::now();
-  std::string startTimeStr = ANN::Utils<float>::formatISO8601();
+  std::string startTimeStr = Common::Utils::formatISO8601();
 
   setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Predicting", inputs.size());
 
@@ -339,10 +339,10 @@ int ANNRunner::predict()
   Common::PredictResults<float> results = this->core->predict(inputs.size(), sliceProvider);
 
   auto batchEnd = std::chrono::system_clock::now();
-  std::string endTimeStr = ANN::Utils<float>::formatISO8601();
+  std::string endTimeStr = Common::Utils::formatISO8601();
   std::chrono::duration<double> batchElapsed = batchEnd - batchStart;
   double batchDurationSeconds = batchElapsed.count();
-  std::string batchDurationFormatted = ANN::Utils<float>::formatDuration(batchDurationSeconds);
+  std::string batchDurationFormatted = Common::Utils::formatDuration(batchDurationSeconds);
 
   return writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
                             batchDurationSeconds, batchDurationFormatted, inputs.size());

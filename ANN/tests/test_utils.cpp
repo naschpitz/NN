@@ -1,3 +1,4 @@
+#include "Common/Common_Utils.hpp"
 #include "test_helpers.hpp"
 
 //===================================================================================================================//
@@ -70,13 +71,13 @@ static void testFormatDuration()
 {
   std::cout << "--- testFormatDuration ---" << std::endl;
 
-  CHECK(ANN::Utils<double>::formatDuration(0.0) == "0s", "0s");
-  CHECK(ANN::Utils<double>::formatDuration(-5.0) == "0s", "negative → 0s");
-  CHECK(ANN::Utils<double>::formatDuration(45.0) == "45s", "45s");
-  CHECK(ANN::Utils<double>::formatDuration(90.0) == "1m 30s", "1m 30s");
-  CHECK(ANN::Utils<double>::formatDuration(3661.0) == "1h 1m 1s", "1h 1m 1s");
-  CHECK(ANN::Utils<double>::formatDuration(86400.0) == "1d", "1d");
-  CHECK(ANN::Utils<double>::formatDuration(60.0) == "1m", "1m exactly");
+  CHECK(Common::Utils::formatDuration(0.0) == "0s", "0s");
+  CHECK(Common::Utils::formatDuration(-5.0) == "0s", "negative → 0s");
+  CHECK(Common::Utils::formatDuration(45.0) == "45s", "45s");
+  CHECK(Common::Utils::formatDuration(90.0) == "1m 30s", "1m 30s");
+  CHECK(Common::Utils::formatDuration(3661.0) == "1h 1m 1s", "1h 1m 1s");
+  CHECK(Common::Utils::formatDuration(86400.0) == "1d", "1d");
+  CHECK(Common::Utils::formatDuration(60.0) == "1m", "1m exactly");
 }
 
 //===================================================================================================================//
@@ -142,7 +143,7 @@ static void testFormatISO8601()
 {
   std::cout << "--- testFormatISO8601 ---" << std::endl;
 
-  std::string iso = ANN::Utils<double>::formatISO8601();
+  std::string iso = Common::Utils::formatISO8601();
   // Basic format: "2026-02-21T..." — just verify it's non-empty and starts with "20"
   CHECK(!iso.empty(), "formatISO8601 non-empty");
   CHECK(iso.substr(0, 2) == "20", "formatISO8601 starts with 20");
