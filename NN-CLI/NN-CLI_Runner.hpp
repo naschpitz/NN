@@ -40,6 +40,19 @@ namespace NN_CLI
       void addObserver(IRunnerObserver* observer);
       void removeObserver(IRunnerObserver* observer);
 
+      //-- Accessors --//
+
+      // Return the total number of epochs configured for this training run.
+      int getTotalEpochs() const;
+
+      // Return a const reference to the core configuration.
+      const CoreConfigT& getCoreConfig() const;
+
+      // Return formatted timing/profiling lines for display in the TUI timing panel.
+      // maxWidth > 0 constrains output to the given column width; maxWidth == 0
+      // auto-detects the terminal width.
+      virtual std::vector<std::string> getTimingLines(int maxWidth = 0) const = 0;
+
     protected:
       //-- Methods --//
       ValidationMetadata buildValidationMetadata() const;
@@ -49,7 +62,8 @@ namespace NN_CLI
       virtual void doSaveModel(const std::string& outputPath) = 0;
 
       //-- Observer notifications --//
-      void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss, float fraction);
+      void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss,
+                               const std::vector<float>& fractions);
       void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
                                 const std::string& summary);
       void notifyTrainingFinished(bool success, const std::string& finalSummary);
@@ -72,6 +86,10 @@ namespace NN_CLI
       // Latest epoch-average training loss, written by the per-batch progress
       // callback and read by the epoch-completed callback.
       float lastEpochLoss = 0.0f;
+      // Per-GPU fractions for multi-GPU training, reset at each epoch boundary.
+      std::vector<float> gpuFractions;
+      int trackedEpoch = -1;
+      int trackedTotalGPUs = 0;
       // Serializes the per-batch progress callback (fired concurrently from
       // worker threads) against the epoch-completed callback.
       std::mutex callbackMutex;

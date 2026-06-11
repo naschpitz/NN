@@ -62,10 +62,10 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::removeObserver(NN_CLI::IRunnerObserver*
 
 template <typename CoreT, typename CoreConfigT>
 void NN_CLI::Runner<CoreT, CoreConfigT>::notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                             float fraction)
+                                                              const std::vector<float>& fractions)
 {
   for (auto* observer : this->observers)
-    observer->onBatchProgress(batchIdx, totalBatches, currentLoss, fraction);
+    observer->onBatchProgress(batchIdx, totalBatches, currentLoss, fractions);
 }
 
 //===================================================================================================================//
@@ -112,6 +112,24 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTimingUpdated(const std::string& 
 {
   for (auto* observer : this->observers)
     observer->onTimingUpdated(metric, value);
+}
+
+//===================================================================================================================//
+//  Accessors
+//===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
+int NN_CLI::Runner<CoreT, CoreConfigT>::getTotalEpochs() const
+{
+  return static_cast<int>(this->coreConfig.trainingConfig.numEpochs);
+}
+
+//===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
+const CoreConfigT& NN_CLI::Runner<CoreT, CoreConfigT>::getCoreConfig() const
+{
+  return this->coreConfig;
 }
 
 //===================================================================================================================//

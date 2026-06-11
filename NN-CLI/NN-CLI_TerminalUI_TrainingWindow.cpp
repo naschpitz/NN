@@ -43,7 +43,7 @@ namespace NN_CLI
     this->epochTable.setColumns({
       {"Epoch", 5, TerminalUI_Table::Align::RIGHT},
       {"Loss", 8, TerminalUI_Table::Align::RIGHT},
-      {"Val Loss", 8, TerminalUI_Table::Align::RIGHT},
+      {"Accuracy", 8, TerminalUI_Table::Align::RIGHT},
       {"Best", 4, TerminalUI_Table::Align::LEFT},
       {"Completed At", 19, TerminalUI_Table::Align::LEFT},
     });
@@ -138,6 +138,22 @@ namespace NN_CLI
   {
     if (this->progressBarPtr)
       this->progressBarPtr->clearSubLineText();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::setLoadingProgress(float fraction)
+  {
+    if (this->progressBarPtr)
+      this->progressBarPtr->setBarData("Loading", fraction);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::clearLoadingProgress()
+  {
+    if (this->progressBarPtr)
+      this->progressBarPtr->setBarData("", 0.0f);
   }
 
   //===================================================================================================================//

@@ -28,6 +28,9 @@ namespace NN_CLI
       int test();
       int predict();
 
+      //-- Accessors --//
+      std::vector<std::string> getTimingLines(int maxWidth = 0) const override;
+
     protected:
       //-- Overrides --//
       void doSaveModel(const std::string& outputPath) override;
