@@ -74,6 +74,13 @@ namespace NN_CLI
       // Clear the sub-line text below the progress bar.
       void clearProgressSubLine();
 
+      // Set a loading-phase progress bar with the given fraction.  Used to
+      // display the "sample loading" phase before training begins.
+      void setLoadingProgress(float fraction);
+
+      // Clear the loading-phase progress bar.
+      void clearLoadingProgress();
+
       //-- Epoch table --//
 
       // Replace the epoch table column definitions.

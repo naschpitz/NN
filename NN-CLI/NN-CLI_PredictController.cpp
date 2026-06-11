@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace NN_CLI
 {
@@ -60,11 +61,13 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void PredictController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float fraction)
+  void PredictController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
+                                                      const std::vector<float>& fractions)
   {
     // Predict mode: batch progress maps to sample processing progress.
     (void)currentLoss;
 
+    float fraction = fractions.empty() ? 0.0f : fractions[0];
     std::cout << "\r  Progress: " << (batchIdx + 1) << "/" << totalBatches << " ("
               << std::fixed << std::setprecision(1) << (fraction * 100.0f) << "%)" << std::flush;
   }
