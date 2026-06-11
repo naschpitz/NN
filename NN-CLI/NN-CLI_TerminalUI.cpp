@@ -172,13 +172,14 @@ namespace NN_CLI
     int configY = epochsY + epochsH;
 
     //-- Resize panels --//
+    // Widget::resize(width, height, x, y)
 
-    this->trainingPanel.resize(trainingY, 0, trainingH, this->leftWidth);
-    this->epochsPanel.resize(epochsY, 0, epochsH, this->leftWidth);
-    this->configPanel.resize(configY, 0, configH, this->leftWidth);
+    this->trainingPanel.resize(this->leftWidth, trainingH, 0, trainingY);
+    this->epochsPanel.resize(this->leftWidth, epochsH, 0, epochsY);
+    this->configPanel.resize(this->leftWidth, configH, 0, configY);
 
     if (this->timingWidth > 0)
-      this->timingPanel.resize(0, this->leftWidth, screenRows, this->timingWidth);
+      this->timingPanel.resize(this->timingWidth, screenRows, this->leftWidth, 0);
 
     //-- Recreate overlay sub-windows --//
 

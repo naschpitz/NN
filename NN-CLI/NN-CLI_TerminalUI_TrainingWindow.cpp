@@ -1,0 +1,388 @@
+#include "NN-CLI_TerminalUI_TrainingWindow.hpp"
+
+#include <algorithm>
+
+namespace NN_CLI
+{
+
+  //===================================================================================================================//
+  //-- Ctors / Dtors --//
+  //===================================================================================================================//
+
+  TerminalUI_TrainingWindow::TerminalUI_TrainingWindow()
+  {
+    //-- Create and register child panels --//
+
+    auto progressPanel = std::make_unique<TerminalUI_Panel>("Progress", 2);
+    auto epochsPanel = std::make_unique<TerminalUI_Panel>("Epochs", 2);
+    auto modelInfoPanel = std::make_unique<TerminalUI_Panel>("Model Info", 2);
+    auto timingPanel = std::make_unique<TerminalUI_Panel>("Timing", 2);
+
+    this->progressPanelPtr = progressPanel.get();
+    this->epochsPanelPtr = epochsPanel.get();
+    this->modelInfoPanelPtr = modelInfoPanel.get();
+    this->timingPanelPtr = timingPanel.get();
+
+    this->addChild(std::move(progressPanel));
+    this->addChild(std::move(epochsPanel));
+    this->addChild(std::move(modelInfoPanel));
+    this->addChild(std::move(timingPanel));
+
+    //-- Configure panels --//
+
+    this->epochsPanelPtr->setAutoScroll(true);
+
+    //-- Create and attach the progress bar inside the progress panel --//
+
+    auto progressBar = std::make_unique<TerminalUI_ProgressBar>();
+    this->progressBarPtr = progressBar.get();
+    this->progressPanelPtr->addChild(std::move(progressBar));
+
+    //-- Configure the epoch table with default columns --//
+
+    this->epochTable.setColumns({
+      {"Epoch", 5, TerminalUI_Table::Align::RIGHT},
+      {"Loss", 8, TerminalUI_Table::Align::RIGHT},
+      {"Val Loss", 8, TerminalUI_Table::Align::RIGHT},
+      {"Best", 4, TerminalUI_Table::Align::LEFT},
+      {"Completed At", 19, TerminalUI_Table::Align::LEFT},
+    });
+  }
+
+  //===================================================================================================================//
+
+  TerminalUI_TrainingWindow::~TerminalUI_TrainingWindow() {}
+
+  //===================================================================================================================//
+  //-- Layout --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::layoutChildren()
+  {
+    int W = this->width;
+    int H = this->height;
+
+    if (W <= 0 || H <= 0)
+      return;
+
+    //-- Reserve the progress panel at the bottom --//
+
+    int progressH = std::min(kProgressHeight, H);
+    int remainingH = std::max(0, H - progressH);
+
+    //-- Horizontal split: timing panel on the right if screen is wide enough --//
+
+    int timingW = 0;
+    int leftW = W;
+
+    if (W >= kMinLeftWidth + kMinTimingWidth) {
+      int idealTimingW = W * 35 / 100;
+      timingW = std::max(kMinTimingWidth, std::min(W - kMinLeftWidth, idealTimingW));
+      leftW = W - timingW;
+    }
+
+    //-- Vertical split of the left column: model info ~45%, epochs ~55% --//
+
+    int modelInfoH = std::max(3, remainingH * 45 / 100);
+    int epochsH = std::max(3, remainingH - modelInfoH);
+
+    //-- Position panels --//
+    //   modelInfoPanel  — top-left:       (0, 0)            size: (leftW, modelInfoH)
+    //   epochsPanel     — bottom-left:    (0, modelInfoH)   size: (leftW, epochsH)
+    //   timingPanel     — right column:   (leftW, 0)        size: (timingW, remainingH)
+    //   progressPanel   — bottom full:    (0, H - progressH) size: (W, progressH)
+
+    if (this->childCount() < 4)
+      return;
+
+    this->children[0]->resize(W, progressH, 0, H - progressH);
+    this->children[1]->resize(leftW, epochsH, 0, modelInfoH);
+    this->children[2]->resize(leftW, modelInfoH, 0, 0);
+
+    if (timingW > 0)
+      this->children[3]->resize(timingW, remainingH, leftW, 0);
+    else
+      this->children[3]->resize(0, 0, 0, 0);
+  }
+
+  //===================================================================================================================//
+  //-- Progress updates --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::updateProgress(const std::string& label, float fraction)
+  {
+    if (this->progressBarPtr)
+      this->progressBarPtr->setBarData(label, fraction);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::updateProgress(const std::string& label,
+                                                  const std::vector<float>& fractions)
+  {
+    if (this->progressBarPtr)
+      this->progressBarPtr->setBarData(label, fractions);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::updateProgressSubLine(const std::string& text, int colorPair)
+  {
+    if (this->progressBarPtr)
+      this->progressBarPtr->setSubLineText(text, colorPair);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::clearProgressSubLine()
+  {
+    if (this->progressBarPtr)
+      this->progressBarPtr->clearSubLineText();
+  }
+
+  //===================================================================================================================//
+  //-- Epoch table --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::setEpochColumns(std::vector<TerminalUI_Table::Column> columns)
+  {
+    this->epochTable.setColumns(std::move(columns));
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::addEpochRow(const TerminalUI_Table::Row& row)
+  {
+    this->epochTable.addRow(row);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::addEpochRows(const std::vector<TerminalUI_Table::Row>& rows)
+  {
+    this->epochTable.addRows(rows);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::clearEpochRows()
+  {
+    this->epochTable.clearRows();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::addEpochMessage(const std::string& message)
+  {
+    this->epochMessages.push_back(message);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::clearEpochMessages()
+  {
+    this->epochMessages.clear();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::refreshEpochContent()
+  {
+    if (!this->epochsPanelPtr)
+      return;
+
+    // Compute the effective table width from the panel's content area.
+    int tableWidth = std::max(40, this->epochsPanelPtr->contentWidth());
+    this->epochTable.setMaxWidth(tableWidth);
+
+    // Render the table to formatted lines.
+    auto lines = this->epochTable.render();
+
+    // Append status / monitor messages below the table.
+    for (const auto& msg : this->epochMessages)
+      lines.push_back(msg);
+
+    this->epochsPanelPtr->setLines(lines);
+  }
+
+  //===================================================================================================================//
+  //-- Model info --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::setModelInfoTitle(const std::string& title)
+  {
+    this->modelInfoTable.setTitle(title);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::setModelInfoEntries(
+    const std::vector<TerminalUI_ModelInfoTable::Entry>& entries)
+  {
+    this->modelInfoTable.setEntries(entries);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::addModelInfoEntry(const std::string& key, const std::string& value)
+  {
+    this->modelInfoTable.addEntry(key, value);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::clearModelInfoEntries()
+  {
+    this->modelInfoTable.clearEntries();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::refreshModelInfoContent()
+  {
+    if (!this->modelInfoPanelPtr)
+      return;
+
+    int tableWidth = std::max(30, this->modelInfoPanelPtr->contentWidth());
+    this->modelInfoTable.setMaxWidth(tableWidth);
+
+    auto lines = this->modelInfoTable.render();
+    this->modelInfoPanelPtr->setLines(lines);
+    this->modelInfoPanelPtr->scrollState().offset = 0;
+  }
+
+  //===================================================================================================================//
+  //-- Timing --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::setTimingLines(const std::vector<std::string>& lines)
+  {
+    this->rawTimingLines = lines;
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::refreshTimingContent()
+  {
+    if (!this->timingPanelPtr)
+      return;
+
+    int contentW = this->timingPanelPtr->contentWidth();
+    auto lines = this->rawTimingLines;
+
+    for (auto& line : lines) {
+      int lineLen = static_cast<int>(line.size());
+
+      if (lineLen < contentW)
+        line.append(static_cast<std::string::size_type>(contentW - lineLen), ' ');
+    }
+
+    this->timingPanelPtr->setLines(lines);
+  }
+
+  //===================================================================================================================//
+  //-- Panel selection --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::setActivePanel(int panelIndex)
+  {
+    this->activePanel = panelIndex;
+  }
+
+  //===================================================================================================================//
+
+  int TerminalUI_TrainingWindow::getActivePanel() const
+  {
+    return this->activePanel;
+  }
+
+  //===================================================================================================================//
+  //-- Panel access --//
+  //===================================================================================================================//
+
+  TerminalUI_Panel* TerminalUI_TrainingWindow::getProgressPanel() const
+  {
+    return this->progressPanelPtr;
+  }
+
+  //===================================================================================================================//
+
+  TerminalUI_Panel* TerminalUI_TrainingWindow::getEpochsPanel() const
+  {
+    return this->epochsPanelPtr;
+  }
+
+  //===================================================================================================================//
+
+  TerminalUI_Panel* TerminalUI_TrainingWindow::getModelInfoPanel() const
+  {
+    return this->modelInfoPanelPtr;
+  }
+
+  //===================================================================================================================//
+
+  TerminalUI_Panel* TerminalUI_TrainingWindow::getTimingPanel() const
+  {
+    return this->timingPanelPtr;
+  }
+
+  //===================================================================================================================//
+  //-- Widget overrides --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::draw()
+  {
+    this->updatePanelColors();
+    TerminalUI_Window::draw();
+  }
+
+  //===================================================================================================================//
+
+  bool TerminalUI_TrainingWindow::handleEvent(int ch)
+  {
+    // Tab cycles the active panel.
+    if (ch == '\t') {
+      this->activePanel = (this->activePanel + 1) % 3;
+      return true;
+    }
+
+    // Scroll keys are routed to the active panel only.
+    TerminalUI_Panel* scrollablePanels[] = {
+      this->modelInfoPanelPtr,
+      this->epochsPanelPtr,
+      this->timingPanelPtr,
+    };
+
+    if (this->activePanel >= 0 && this->activePanel < 3) {
+      TerminalUI_Panel* active = scrollablePanels[this->activePanel];
+
+      if (active && active->applyScrollInput(ch))
+        return true;
+    }
+
+    // Non-scroll events propagate to all children.
+    return TerminalUI_Window::handleEvent(ch);
+  }
+
+  //===================================================================================================================//
+  //-- Protected — helpers --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::updatePanelColors()
+  {
+    // Active panel: YELLOW (3).  Inactive panels: CYAN (2).
+    // The progress panel is always CYAN since it is not scrollable.
+    if (this->progressPanelPtr)
+      this->progressPanelPtr->setColorPair(2);
+
+    if (this->modelInfoPanelPtr)
+      this->modelInfoPanelPtr->setColorPair(this->activePanel == MODEL_INFO ? 3 : 2);
+
+    if (this->epochsPanelPtr)
+      this->epochsPanelPtr->setColorPair(this->activePanel == EPOCHS ? 3 : 2);
+
+    if (this->timingPanelPtr)
+      this->timingPanelPtr->setColorPair(this->activePanel == TIMING ? 3 : 2);
+  }
+
+} // namespace NN_CLI

@@ -1,6 +1,7 @@
 #include "NN-CLI_TerminalUI_Table.hpp"
 
 #include <algorithm>
+#include <curses.h>
 
 namespace NN_CLI
 {
@@ -69,6 +70,44 @@ namespace NN_CLI
   void TerminalUI_Table::clearRows()
   {
     this->rows.clear();
+  }
+
+  //===================================================================================================================//
+  //-- Widget overrides --//
+  //===================================================================================================================//
+
+  void TerminalUI_Table::draw()
+  {
+    // Use the widget's width as the effective max width for rendering.
+    int effectiveWidth = (this->width > 0) ? this->width : this->maxWidth;
+    int savedMaxWidth = this->maxWidth;
+
+    this->maxWidth = effectiveWidth;
+    this->widthsDirty = true;
+
+    auto lines = this->render();
+
+    // Restore the original maxWidth so render() callers are unaffected.
+    this->maxWidth = savedMaxWidth;
+    this->widthsDirty = true;
+
+    // Draw lines onto stdscr, capped by the widget's height.
+    int maxRows = (this->height > 0) ? this->height : static_cast<int>(lines.size());
+
+    for (int i = 0; i < maxRows && i < static_cast<int>(lines.size()); i++) {
+      const std::string& line = lines[i];
+      int printLen = std::min(static_cast<int>(line.size()), this->width);
+
+      if (printLen > 0)
+        mvaddnstr(this->y + i, this->x, line.c_str(), printLen);
+    }
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_Table::resize(int width, int height, int x, int y)
+  {
+    TerminalUI_Widget::resize(width, height, x, y);
   }
 
   //===================================================================================================================//

@@ -1,6 +1,8 @@
 #ifndef NN_CLI_TERMINALUI_TABLE_HPP
 #define NN_CLI_TERMINALUI_TABLE_HPP
 
+#include "NN-CLI_TerminalUI_Widget.hpp"
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -8,8 +10,14 @@
 namespace NN_CLI
 {
 
-  // Reusable ASCII table formatter that produces std::vector<std::string> of
-  // formatted lines.  No ncurses dependency — pure string manipulation.
+  // Reusable ASCII table formatter and terminal widget that produces
+  // std::vector<std::string> of formatted lines and can render them directly
+  // onto stdscr at the widget's (x, y) position.
+  //
+  // Inherits from TerminalUI_Widget so it can participate in the MVC view
+  // hierarchy.  The unified draw() override renders the table at the widget's
+  // position; the render() method returns formatted lines for callers that
+  // need raw string output (e.g. Panel content lines).
   //
   // Column widths are computed at render time from the maxWidth and per-column
   // width hints, following the same algorithm as TerminalUI::rebuildEpochLines():
@@ -22,7 +30,7 @@ namespace NN_CLI
   //   - Three-column profiler tables (TrainingProfiler style, header + data).
   //   - Multi-column epoch tables (rebuildEpochLines style, 5+ columns).
 
-  class TerminalUI_Table
+  class TerminalUI_Table : public TerminalUI_Widget
   {
     public:
       //-- Types --//
@@ -56,6 +64,15 @@ namespace NN_CLI
       void addRow(const Row& cells);
       void addRows(const std::vector<Row>& rows);
       void clearRows();
+
+      //-- Widget overrides --//
+
+      // Render the table onto stdscr at (x, y), drawing up to height rows.
+      // The widget's width constrains the effective maxWidth.
+      void draw() override;
+
+      // Update position and size.  Syncs maxWidth with the new width.
+      void resize(int width, int height, int x, int y) override;
 
       //-- Rendering --//
 

@@ -213,8 +213,8 @@ int main(int argc, char* argv[])
   }
 
   try {
-    NN_CLI::App runner(parser, logLevel);
-    return runner.run();
+    NN_CLI::App app(parser, logLevel);
+    return app.run();
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << "\n";
     return 1;

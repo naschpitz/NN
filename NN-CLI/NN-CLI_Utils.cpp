@@ -1,5 +1,4 @@
 #include "NN-CLI_Utils.hpp"
-#include "NN-CLI_TerminalUI_ProgressBar.hpp"
 
 #include <stdexcept>
 
@@ -38,7 +37,7 @@ ANN::Samples<T> Utils<T>::loadIDX(const std::string& dataPath, const std::string
   samples.reserve(data.size());
   size_t totalSamples = data.size();
 
-  TerminalUI_ProgressBar::printLoadingProgress("Samples:", 0, totalSamples, progressReports);
+  printLoadingProgress("Samples:", 0, totalSamples, progressReports);
 
   for (size_t i = 0; i < totalSamples; ++i) {
     ANN::Sample<T> sample;
@@ -55,7 +54,7 @@ ANN::Samples<T> Utils<T>::loadIDX(const std::string& dataPath, const std::string
     sample.output[labels[i]] = static_cast<T>(1);
 
     samples.push_back(std::move(sample));
-    TerminalUI_ProgressBar::printLoadingProgress("Samples:", i + 1, totalSamples, progressReports);
+    printLoadingProgress("Samples:", i + 1, totalSamples, progressReports);
   }
 
   return samples;
@@ -160,7 +159,7 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
   samples.reserve(data.size());
   size_t totalSamples = data.size();
 
-  TerminalUI_ProgressBar::printLoadingProgress("Samples:", 0, totalSamples, progressReports);
+  printLoadingProgress("Samples:", 0, totalSamples, progressReports);
 
   for (size_t i = 0; i < totalSamples; ++i) {
     CNN::Sample<T> sample;
@@ -184,7 +183,7 @@ CNN::Samples<T> Utils<T>::loadCNNIDX(const std::string& dataPath, const std::str
     sample.output[labels[i]] = static_cast<T>(1);
 
     samples.push_back(std::move(sample));
-    TerminalUI_ProgressBar::printLoadingProgress("Samples:", i + 1, totalSamples, progressReports);
+    printLoadingProgress("Samples:", i + 1, totalSamples, progressReports);
   }
 
   return samples;

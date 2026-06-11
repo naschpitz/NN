@@ -14,26 +14,29 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
+  TerminalUI_Panel::TerminalUI_Panel(const std::string& title, int colorPair) : title(title), colorPair(colorPair) {}
+
+  //===================================================================================================================//
+
   TerminalUI_Panel::TerminalUI_Panel(int y, int x, int h, int w, std::string title, int colorPair)
-    : y(y),
-      x(x),
-      h(h),
-      w(w),
-      title(std::move(title)),
+    : title(std::move(title)),
       colorPair(colorPair)
   {
+    // Map (y, x, h, w) to Widget's (x, y, width, height).
+    this->x = x;
+    this->y = y;
+    this->width = w;
+    this->height = h;
   }
 
   //===================================================================================================================//
   //-- Layout --//
   //===================================================================================================================//
 
-  void TerminalUI_Panel::resize(int y, int x, int h, int w)
+  void TerminalUI_Panel::resize(int width, int height, int x, int y)
   {
-    this->y = y;
-    this->x = x;
-    this->h = h;
-    this->w = w;
+    TerminalUI_Widget::resize(width, height, x, y);
+    this->layoutChildren();
   }
 
   //===================================================================================================================//
@@ -70,19 +73,31 @@ namespace NN_CLI
   //-- Drawing --//
   //===================================================================================================================//
 
+  void TerminalUI_Panel::draw()
+  {
+    this->drawFrame();
+    this->drawContent();
+    this->drawScrollbar();
+
+    for (auto& child : this->children)
+      child->draw();
+  }
+
+  //===================================================================================================================//
+
   void TerminalUI_Panel::drawFrame() const
   {
-    if (this->h < 2 || this->w < 2)
+    if (this->height < 2 || this->width < 2)
       return;
 
     int titleLen = static_cast<int>(this->title.size());
-    int endX = this->x + this->w - 1;
+    int endX = this->x + this->width - 1;
 
     //-- Top border with optional title --//
 
     mvaddch(this->y, this->x, ACS_ULCORNER);
 
-    if (titleLen > 0 && 5 + titleLen + 2 < this->w) {
+    if (titleLen > 0 && 5 + titleLen + 2 < this->width) {
       mvhline(this->y, this->x + 1, ACS_HLINE, 3);
       mvaddstr(this->y, this->x + 4, " ");
       attron(COLOR_PAIR(this->colorPair) | A_BOLD);
@@ -95,24 +110,24 @@ namespace NN_CLI
       if (remainingHline > 0)
         mvhline(this->y, this->x + after + 1, ACS_HLINE, remainingHline);
     } else {
-      mvhline(this->y, this->x + 1, ACS_HLINE, this->w - 2);
+      mvhline(this->y, this->x + 1, ACS_HLINE, this->width - 2);
     }
 
     mvaddch(this->y, endX, ACS_URCORNER);
 
     //-- Side borders (interior blanked) --//
 
-    for (int r = 1; r < this->h - 1; r++) {
+    for (int r = 1; r < this->height - 1; r++) {
       mvaddch(this->y + r, this->x, ACS_VLINE);
-      mvhline(this->y + r, this->x + 1, ' ', this->w - 2);
+      mvhline(this->y + r, this->x + 1, ' ', this->width - 2);
       mvaddch(this->y + r, endX, ACS_VLINE);
     }
 
     //-- Bottom border --//
 
-    mvaddch(this->y + this->h - 1, this->x, ACS_LLCORNER);
-    mvhline(this->y + this->h - 1, this->x + 1, ACS_HLINE, this->w - 2);
-    mvaddch(this->y + this->h - 1, endX, ACS_LRCORNER);
+    mvaddch(this->y + this->height - 1, this->x, ACS_LLCORNER);
+    mvhline(this->y + this->height - 1, this->x + 1, ACS_HLINE, this->width - 2);
+    mvaddch(this->y + this->height - 1, endX, ACS_LRCORNER);
   }
 
   //===================================================================================================================//
@@ -155,10 +170,10 @@ namespace NN_CLI
     if (total <= cH)
       return;
 
-    int col = this->x + this->w - 2;
+    int col = this->x + this->width - 2;
     int yTop = this->y + 1;
-    int scroll = this->scrollOffset();
-    int thumb = scroll * (cH - 1) / std::max(1, total - cH);
+    int scr = this->scrollOffset();
+    int thumb = scr * (cH - 1) / std::max(1, total - cH);
 
     for (int i = 0; i < cH; i++)
       mvaddch(yTop + i, col, (i == thumb) ? ACS_CKBOARD : ACS_VLINE);
@@ -166,6 +181,21 @@ namespace NN_CLI
 
   //===================================================================================================================//
   //-- Input --//
+  //===================================================================================================================//
+
+  bool TerminalUI_Panel::handleEvent(int ch)
+  {
+    if (this->applyScrollInput(ch))
+      return true;
+
+    for (auto& child : this->children) {
+      if (child->handleEvent(ch))
+        return true;
+    }
+
+    return false;
+  }
+
   //===================================================================================================================//
 
   bool TerminalUI_Panel::applyScrollInput(int ch)
@@ -210,6 +240,54 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+  //-- Child management --//
+  //===================================================================================================================//
+
+  void TerminalUI_Panel::addChild(std::unique_ptr<TerminalUI_Widget> child)
+  {
+    if (child)
+      this->children.push_back(std::move(child));
+  }
+
+  //===================================================================================================================//
+
+  std::unique_ptr<TerminalUI_Widget> TerminalUI_Panel::removeChild(int index)
+  {
+    if (index < 0 || index >= static_cast<int>(this->children.size()))
+      return nullptr;
+
+    auto removed = std::move(this->children[index]);
+    this->children.erase(this->children.begin() + index);
+
+    return removed;
+  }
+
+  //===================================================================================================================//
+
+  TerminalUI_Widget* TerminalUI_Panel::getChild(int index) const
+  {
+    if (index < 0 || index >= static_cast<int>(this->children.size()))
+      return nullptr;
+
+    return this->children[index].get();
+  }
+
+  //===================================================================================================================//
+  //-- Layout (children) --//
+  //===================================================================================================================//
+
+  void TerminalUI_Panel::layoutChildren()
+  {
+    int cx = this->x + 2;
+    int cy = this->y + 1;
+    int cw = std::max(0, this->width - 4);
+    int ch = std::max(0, this->height - 2);
+
+    for (auto& child : this->children)
+      child->resize(cw, ch, cx, cy);
+  }
+
+  //===================================================================================================================//
   //-- Accessors --//
   //===================================================================================================================//
 
@@ -219,14 +297,14 @@ namespace NN_CLI
     int total = static_cast<int>(this->lines.size());
     int pad = (total > cH) ? 5 : 4;
 
-    return std::max(1, this->w - pad);
+    return std::max(1, this->width - pad);
   }
 
   //===================================================================================================================//
 
   int TerminalUI_Panel::contentHeight() const
   {
-    return std::max(0, this->h - 2);
+    return std::max(0, this->height - 2);
   }
 
   //===================================================================================================================//

@@ -10,13 +10,13 @@ namespace
 {
   //-- Layout constants shared by every ncurses progress bar so they all line up
   //-- vertically in the Training panel. --//
-  constexpr int kLabelWidth    = 28;  // labels are left-padded to this width
-  constexpr int kBracketWidth  =  2;  // the " [" written right after the label
-  constexpr int kRightPad      = 20;  // reserved on the right for "] 100.000%" suffix (+ slack)
-  constexpr int kSegmentInfoPerSegment = 9;  // width of one " | N:XXX%" cell in the per-segment suffix
+  constexpr int kLabelWidth = 28; // labels are left-padded to this width
+  constexpr int kBracketWidth = 2; // the " [" written right after the label
+  constexpr int kRightPad = 20; // reserved on the right for "] 100.000%" suffix (+ slack)
+  constexpr int kSegmentInfoPerSegment = 9; // width of one " | N:XXX%" cell in the per-segment suffix
 
-  //-- Color pairs (configured in TerminalUI::init). --//
-  constexpr int kBarColor = 1;  // green filled bar segment
+  //-- Color pairs (configured in TerminalUI/Window init). --//
+  constexpr int kBarColor = 1; // green filled bar segment
 
   //===================================================================================================================//
   // Width reserved on the right for the per-segment "(0:XX% | 1:XX%)" suffix (0 when single-segment).
@@ -27,10 +27,30 @@ namespace
 
   //===================================================================================================================//
   // Usable bar width inside `win`, mirrored across all bars so their brackets line up.
-  int barWidthFor(WINDOW* win, int segments)
+  int barWidthFor(int cols, int segments)
   {
-    int cols = ::getmaxx(win);
     return std::max(10, cols - kLabelWidth - kBracketWidth - kRightPad - segmentSuffixWidth(segments));
+  }
+
+  //===================================================================================================================//
+  // Usable bar width when drawing on stdscr at a given x position.
+  int barWidthForStdscr(int x, int width, int segments)
+  {
+    int cols = width > 0 ? width : 80;
+    return std::max(10, cols - kLabelWidth - kBracketWidth - kRightPad - segmentSuffixWidth(segments));
+  }
+
+  //===================================================================================================================//
+  // Emit the label left-padded to kLabelWidth, then " [", onto stdscr at (row, col).
+  void emitLabelStdscr(int row, int col, const std::string& label)
+  {
+    int len = static_cast<int>(label.size());
+    mvaddstr(row, col, label.c_str());
+
+    for (int i = len; i < kLabelWidth; i++)
+      mvaddch(row, col + i, ' ');
+
+    mvaddstr(row, col + kLabelWidth, " [");
   }
 
   //===================================================================================================================//
@@ -47,6 +67,24 @@ namespace
   }
 
   //===================================================================================================================//
+  // Emit a single solid bar on stdscr: `filled` green blocks, then light shading out to `barWidth`.
+  void emitSingleBarStdscr(int row, int col, float fraction, int barWidth)
+  {
+    int filled = std::clamp(static_cast<int>(fraction * barWidth), 0, barWidth);
+    int startCol = col + kLabelWidth + kBracketWidth;
+
+    attron(COLOR_PAIR(kBarColor));
+
+    for (int i = 0; i < filled; i++)
+      mvaddch(row, startCol + i, L'█');
+
+    attroff(COLOR_PAIR(kBarColor));
+
+    for (int i = filled; i < barWidth; i++)
+      mvaddch(row, startCol + i, L'░');
+  }
+
+  //===================================================================================================================//
   // Emit a single solid bar: `filled` green blocks, then light shading out to `barWidth`.
   void emitSingleBar(WINDOW* win, float fraction, int barWidth)
   {
@@ -55,16 +93,35 @@ namespace
     ::wattron(win, COLOR_PAIR(kBarColor));
 
     for (int i = 0; i < filled; i++)
-      ::waddstr(win, "█");
+      ::waddstr(win, "\xe2\x96\x88");
 
     ::wattroff(win, COLOR_PAIR(kBarColor));
 
     for (int i = filled; i < barWidth; i++)
-      ::waddstr(win, "░");
+      ::waddstr(win, "\xe2\x96\x91");
   }
 
   //===================================================================================================================//
-  // Emit a segmented bar, one equal-width segment separated by "│".
+  // Emit a segmented bar on stdscr, one equal-width segment separated by "|".
+  void emitSegmentedBarStdscr(int row, int col, const std::vector<float>& fractions, int numSegments, int barWidth)
+  {
+    int segmentWidth = barWidth / numSegments;
+    int startCol = col + kLabelWidth + kBracketWidth;
+
+    for (int seg = 0; seg < numSegments; seg++) {
+      float pct = (seg < static_cast<int>(fractions.size())) ? fractions[seg] : 0.0f;
+      emitSingleBarStdscr(row, startCol, pct, segmentWidth);
+      startCol += segmentWidth;
+
+      if (seg < numSegments - 1) {
+        mvaddch(row, startCol, '|');
+        startCol += 1;
+      }
+    }
+  }
+
+  //===================================================================================================================//
+  // Emit a segmented bar, one equal-width segment separated by "|".
   void emitSegmentedBar(WINDOW* win, const std::vector<float>& fractions, int numSegments, int barWidth)
   {
     int segmentWidth = barWidth / numSegments;
@@ -74,7 +131,7 @@ namespace
       emitSingleBar(win, pct, segmentWidth);
 
       if (seg < numSegments - 1)
-        ::waddstr(win, "│");
+        ::waddstr(win, "\xe2\x94\x82");
     }
   }
 
@@ -105,12 +162,111 @@ namespace NN_CLI
   //-- Ctors --//
   //===================================================================================================================//
 
-  TerminalUI_ProgressBar::TerminalUI_ProgressBar()
+  TerminalUI_ProgressBar::TerminalUI_ProgressBar() {}
+
+  //===================================================================================================================//
+  //-- Widget data --//
+  //===================================================================================================================//
+
+  void TerminalUI_ProgressBar::setBarData(const std::string& label, float fraction)
   {
+    this->barLabel = label;
+    this->barFractions = {std::clamp(fraction, 0.0f, 1.0f)};
   }
 
   //===================================================================================================================//
-  //-- ncurses Rendering --//
+
+  void TerminalUI_ProgressBar::setBarData(const std::string& label, const std::vector<float>& fractions)
+  {
+    this->barLabel = label;
+    this->barFractions.clear();
+    this->barFractions.reserve(fractions.size());
+
+    for (float f : fractions)
+      this->barFractions.push_back(std::clamp(f, 0.0f, 1.0f));
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_ProgressBar::setSubLineText(const std::string& text, int colorPair)
+  {
+    this->subLineText = text;
+    this->subLineColorPair = colorPair;
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_ProgressBar::clearSubLineText()
+  {
+    this->subLineText.clear();
+    this->subLineColorPair = 0;
+  }
+
+  //===================================================================================================================//
+  //-- Widget overrides --//
+  //===================================================================================================================//
+
+  void TerminalUI_ProgressBar::draw()
+  {
+    if (this->width <= 0 || this->height <= 0)
+      return;
+
+    int numSegments = std::max(1, static_cast<int>(this->barFractions.size()));
+
+    // Compute the fraction to display (average for multi-segment).
+    float fraction = 0.0f;
+
+    for (float f : this->barFractions)
+      fraction += f;
+
+    if (!this->barFractions.empty())
+      fraction /= static_cast<float>(this->barFractions.size());
+
+    int bw = barWidthForStdscr(this->x, this->width, numSegments);
+
+    // Draw label and bar on the first row.
+    emitLabelStdscr(this->y, this->x, this->barLabel);
+
+    if (numSegments == 1) {
+      emitSingleBarStdscr(this->y, this->x, this->barFractions.empty() ? 0.0f : this->barFractions[0], bw);
+    } else {
+      emitSegmentedBarStdscr(this->y, this->x, this->barFractions, numSegments, bw);
+    }
+
+    // Percentage suffix.
+    char pctBuf[16];
+    snprintf(pctBuf, sizeof(pctBuf), "] %6.3f%%", static_cast<double>(fraction * 100.0f));
+    int pctCol = this->x + kLabelWidth + kBracketWidth + bw;
+    mvaddstr(this->y, pctCol, pctBuf);
+
+    // Draw sub-line on the second row (if present).
+    if (this->height >= 2 && !this->subLineText.empty()) {
+      if (this->subLineColorPair > 0)
+        attron(COLOR_PAIR(this->subLineColorPair));
+
+      mvaddstr(this->y + 1, this->x, this->subLineText.c_str());
+
+      if (this->subLineColorPair > 0)
+        attroff(COLOR_PAIR(this->subLineColorPair));
+
+      // Clear stale content beyond the text.
+      int textLen = static_cast<int>(this->subLineText.size());
+      int maxClear = this->width - (this->x + textLen);
+
+      for (int i = 0; i < maxClear; i++)
+        mvaddch(this->y + 1, this->x + textLen + i, ' ');
+    }
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_ProgressBar::resize(int width, int height, int x, int y)
+  {
+    TerminalUI_Widget::resize(width, height, x, y);
+  }
+
+  //===================================================================================================================//
+  //-- ncurses Rendering (legacy) --//
   //===================================================================================================================//
 
   void TerminalUI_ProgressBar::renderSingleBar(WINDOW* win, const std::string& label, float fraction)
@@ -122,7 +278,7 @@ namespace NN_CLI
 
     ::werase(win);
 
-    int bw = barWidthFor(win, 1);
+    int bw = barWidthFor(::getmaxx(win), 1);
     emitLabel(win, label);
     emitSingleBar(win, fraction, bw);
 
@@ -136,7 +292,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void TerminalUI_ProgressBar::renderMultiBar(WINDOW* win, const std::string& label,
-                                               const std::vector<float>& fractions)
+                                              const std::vector<float>& fractions)
   {
     if (!win)
       return;
@@ -153,7 +309,7 @@ namespace NN_CLI
     ::werase(win);
 
     int cols = ::getmaxx(win);
-    int bw = barWidthFor(win, numSegments);
+    int bw = barWidthFor(cols, numSegments);
 
     emitLabel(win, label);
     emitSegmentedBar(win, clamped, numSegments, bw);
@@ -218,7 +374,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   void TerminalUI_ProgressBar::printLoadingProgress(const std::string& label, size_t current, size_t total,
-                                                     ulong progressReports, int barWidth)
+                                                    ulong progressReports, int barWidth)
   {
     ulong interval = (progressReports > 0) ? std::max(static_cast<size_t>(1), total / progressReports) : 0;
 
@@ -236,7 +392,7 @@ namespace NN_CLI
     out << "\r" << label << " [";
 
     for (int i = 0; i < barWidth; i++)
-      out << (i < filledWidth ? "█" : "░");
+      out << (i < filledWidth ? "\xe2\x96\x88" : "\xe2\x96\x91");
 
     out << "] " << current << "/" << total << "  " << std::fixed << std::setprecision(1) << (percent * 100.0f) << "%";
     out << "   ";
