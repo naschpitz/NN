@@ -8,7 +8,7 @@
 #include <OCLW_Core.hpp>
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
-#include "NN-CLI_ProgressBar.hpp"
+#include "NN-CLI_TrainingProgressTracker.hpp"
 #include "NN-CLI_PredictSummary.hpp"
 #include "NN-CLI_RunnerUtils.hpp"
 #include "NN-CLI_TestSummary.hpp"
@@ -56,7 +56,7 @@ int CNNRunner::train()
   if (this->logLevel > LogLevel::QUIET)
     this->tui->init();
 
-  this->trainingTui.attach(this->tui, [this]() { this->profiler.resetRenderState(); });
+  this->trainingController.attach(this->tui, [this]() { this->profiler.resetRenderState(); });
 
   // Show loading status in the TUI while samples are processed.
   if (this->tui->isInitialized())
@@ -223,8 +223,8 @@ int CNNRunner::train()
   }
 
   if (this->tui && this->tui->isInitialized()) {
-    this->trainingTui.resolveBarGpus(this->coreConfig.deviceType == Common::DeviceType::GPU, this->coreConfig.numGPUs);
-    dataLoader.setLoadingCallback(this->trainingTui.loadingCallback());
+    this->trainingController.resolveBarGpus(this->coreConfig.deviceType == Common::DeviceType::GPU, this->coreConfig.numGPUs);
+    dataLoader.setLoadingCallback(this->trainingController.loadingCallback());
   }
 
   // Pre-populate the TUI epoch table with loaded history (resumed model).
@@ -250,12 +250,12 @@ int CNNRunner::train()
     auto trainProvider =
       dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
                                     this->augConfig.augmentationProbability, SampleLoadType::Training);
-    this->trainingTui.markLoadingFinished();
+    this->trainingController.markLoadingFinished();
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
     auto sampleProvider = dataLoader.makeSampleProvider(
       this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Training);
-    this->trainingTui.markLoadingFinished();
+    this->trainingController.markLoadingFinished();
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
 
@@ -390,9 +390,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   this->lastEpochLoss = 0.0f;
 
   ulong batchSize = this->coreConfig.trainingConfig.batchSize;
-  this->progressBar = std::make_unique<ProgressBar>(this->ioConfig.progressReports, 50, std::max(2UL, batchSize / 2));
-
-  this->progressBar->setHoldEpochLine(false);
+  this->trainingController.initTracker(this->ioConfig.progressReports, std::max(2UL, batchSize / 2), 50);
 
   // TUI is already created in train(); capture it for the callback lambda.
   auto tui = this->tui;
@@ -434,7 +432,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
         tui->handleResize();
 
-        this->progressBar->update(info, tui->progressWindow());
+        this->trainingController.updateProgress(info);
 
         auto timingLines = this->profiler.getTimingLines(tui->timingContentWidth());
 

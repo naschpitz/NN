@@ -5,10 +5,9 @@
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
-#include "NN-CLI_ProgressBar.hpp"
 #include "NN-CLI_RunnerUtils.hpp"
 #include "NN-CLI_TerminalUI.hpp"
-#include "NN-CLI_TrainingTui.hpp"
+#include "NN-CLI_TrainingController.hpp"
 #include "NN-CLI_Utils.hpp"
 
 #include <QCommandLineParser>
@@ -63,13 +62,12 @@ namespace NN_CLI
       // Serializes the per-batch progress callback (fired concurrently from
       // worker threads) against the epoch-completed callback.
       std::mutex callbackMutex;
-      std::unique_ptr<ProgressBar> progressBar;
 
       //-- ncurses terminal UI (only active during training) --//
       std::shared_ptr<TerminalUI> tui;
 
       //-- Loading-bar wiring shared with the CNN runner --//
-      TrainingTui trainingTui;
+      TrainingController trainingController;
   };
 
 } // namespace NN_CLI

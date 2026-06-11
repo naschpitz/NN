@@ -6,7 +6,7 @@
 #include "NN-CLI_LossReferenceTable.hpp"
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
-#include "NN-CLI_ProgressBar.hpp"
+#include "NN-CLI_TrainingProgressTracker.hpp"
 #include "NN-CLI_PredictSummary.hpp"
 #include "NN-CLI_RunnerUtils.hpp"
 #include "NN-CLI_TestSummary.hpp"
@@ -53,7 +53,7 @@ int ANNRunner::train()
   if (this->logLevel > LogLevel::QUIET)
     this->tui->init();
 
-  this->trainingTui.attach(this->tui);
+  this->trainingController.attach(this->tui);
 
   if (this->tui->isInitialized())
     this->tui->refreshConfigPanel();
@@ -186,8 +186,8 @@ int ANNRunner::train()
                               validationConfig.enabled ? &split.validationIndices : nullptr);
 
   if (this->tui && this->tui->isInitialized()) {
-    this->trainingTui.resolveBarGpus(this->coreConfig.deviceType == Common::DeviceType::GPU, this->coreConfig.numGPUs);
-    dataLoader.setLoadingCallback(this->trainingTui.loadingCallback());
+    this->trainingController.resolveBarGpus(this->coreConfig.deviceType == Common::DeviceType::GPU, this->coreConfig.numGPUs);
+    dataLoader.setLoadingCallback(this->trainingController.loadingCallback());
   }
 
   // Pre-populate the TUI epoch table with loaded history (resumed model).
@@ -213,12 +213,12 @@ int ANNRunner::train()
     auto trainProvider =
       dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
                                     this->augConfig.augmentationProbability, SampleLoadType::Training);
-    this->trainingTui.markLoadingFinished();
+    this->trainingController.markLoadingFinished();
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
     auto sampleProvider = dataLoader.makeSampleProvider(
       this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Training);
-    this->trainingTui.markLoadingFinished();
+    this->trainingController.markLoadingFinished();
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
 
@@ -353,7 +353,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   this->lastEpochLoss = 0.0f;
 
   ulong batchSize = this->coreConfig.trainingConfig.batchSize;
-  this->progressBar = std::make_unique<ProgressBar>(this->ioConfig.progressReports, 50, std::max(2UL, batchSize / 2));
+  this->trainingController.initTracker(this->ioConfig.progressReports, std::max(2UL, batchSize / 2), 50);
 
   auto tui = this->tui;
 
@@ -379,10 +379,10 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       if (tui && tui->isInitialized()) {
         std::lock_guard<std::recursive_mutex> tuiLock(tui->getMutex());
         tui->handleResize();
-        this->progressBar->update(info, tui->progressWindow());
+        this->trainingController.updateProgress(info);
         tui->refresh();
       } else {
-        this->progressBar->update(info);
+        this->trainingController.updateProgress(info);
       }
     }
   });
