@@ -3,6 +3,23 @@
 #include <algorithm>
 #include <curses.h>
 
+
+namespace
+{
+  //== getVisualWidth ==========================================================//
+  // Returns the visual (column) width of a UTF-8 encoded string by counting
+  // non-continuation bytes (bytes that do NOT start with binary 10).
+  static int getVisualWidth(const std::string& text)
+  {
+    int width = 0;
+    for (unsigned char c : text) {
+      if ((c & 0xC0) != 0x80) width++;
+    }
+    return width;
+  }
+
+} // anonymous namespace
+
 namespace NN_CLI
 {
 
@@ -96,10 +113,7 @@ namespace NN_CLI
 
     for (int i = 0; i < maxRows && i < static_cast<int>(lines.size()); i++) {
       const std::string& line = lines[i];
-      int printLen = std::min(static_cast<int>(line.size()), this->width);
-
-      if (printLen > 0)
-        mvaddnstr(this->y + i, this->x, line.c_str(), printLen);
+      mvaddstr(this->y + i, this->x, line.c_str());
     }
   }
 
@@ -255,7 +269,7 @@ namespace NN_CLI
     if (width <= 0)
       return text;
 
-    const int textLen = static_cast<int>(text.size());
+    const int textLen = getVisualWidth(text);
     const int padding = std::max(0, width - textLen);
 
     switch (align) {
@@ -319,7 +333,7 @@ namespace NN_CLI
     for (int w : this->computedWidths)
       titleSpace += w;
 
-    const int titleLen = static_cast<int>(this->title.size());
+    const int titleLen = getVisualWidth(this->title);
     const int padding = std::max(0, titleSpace - titleLen);
     const int leftPad = padding / 2;
     const int rightPad = padding - leftPad;

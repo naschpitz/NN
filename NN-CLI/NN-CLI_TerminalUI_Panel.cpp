@@ -3,6 +3,43 @@
 #include <algorithm>
 #include <curses.h>
 
+namespace
+{
+  //== visualWidthToBytes =====================================================//
+  // Return the byte offset within [text, text+textSize) that covers at most
+  // maxCols visual columns.  Multi-byte UTF-8 sequences are counted as one
+  // column (same convention as TerminalUI_Table::getVisualWidth).  The result
+  // is always <= textSize and never splits a multi-byte sequence.
+  static int visualWidthToBytes(const char* text, int textSize, int maxCols)
+  {
+    int cols = 0;
+    int bytes = 0;
+
+    while (bytes < textSize && cols < maxCols) {
+      unsigned char c = static_cast<unsigned char>(text[bytes]);
+
+      // Determine the byte length of this UTF-8 character.
+      int charBytes = 1;
+      if ((c & 0xE0) == 0xC0)
+        charBytes = 2;
+      else if ((c & 0xF0) == 0xE0)
+        charBytes = 3;
+      else if ((c & 0xF8) == 0xF0)
+        charBytes = 4;
+
+      // Don't split a multi-byte character.
+      if (bytes + charBytes > textSize)
+        break;
+
+      cols++;
+      bytes += charBytes;
+    }
+
+    return bytes;
+  }
+
+} // anonymous namespace
+
 namespace NN_CLI
 {
 
@@ -148,10 +185,15 @@ namespace NN_CLI
 
       if (lineIdx >= 0 && lineIdx < total) {
         const std::string& line = this->lines[lineIdx];
-        int printLen = std::min(static_cast<int>(line.size()), maxW);
 
-        if (printLen > 0)
-          mvaddnstr(this->y + 1 + i, this->x + 2, line.c_str(), printLen);
+        if (!line.empty()) {
+          // Compute the byte offset that covers at most maxW visual columns.
+          // Using raw line.size() as the byte limit for mvaddnstr truncates
+          // multi-byte UTF-8 content (e.g. ✓) because line.size() counts bytes
+          // while maxW counts visual columns.
+          int byteLen = visualWidthToBytes(line.c_str(), static_cast<int>(line.size()), maxW);
+          mvaddnstr(this->y + 1 + i, this->x + 2, line.c_str(), byteLen);
+        }
       }
     }
   }

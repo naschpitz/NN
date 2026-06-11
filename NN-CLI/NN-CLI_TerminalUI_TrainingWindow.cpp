@@ -240,6 +240,11 @@ namespace NN_CLI
       return;
 
     // Compute the effective table width from the panel's content area.
+    // contentWidth() depends on whether the scrollbar is shown, which in turn
+    // depends on the number of lines currently stored in the panel.  After
+    // rendering and setting new lines the scrollbar status may flip, changing
+    // contentWidth by 1 column.  Detect that transition and re-render at the
+    // correct width so the table fills the content area precisely.
     int tableWidth = std::max(40, this->epochsPanelPtr->contentWidth());
     this->epochTable.setMaxWidth(tableWidth);
 
@@ -251,6 +256,20 @@ namespace NN_CLI
       lines.push_back(msg);
 
     this->epochsPanelPtr->setLines(lines);
+
+    // If the new line count toggled the scrollbar, contentWidth() may have
+    // changed.  Re-render at the updated width so column alignment is exact.
+    int revisedWidth = std::max(40, this->epochsPanelPtr->contentWidth());
+
+    if (revisedWidth != tableWidth) {
+      this->epochTable.setMaxWidth(revisedWidth);
+      lines = this->epochTable.render();
+
+      for (const auto& msg : this->epochMessages)
+        lines.push_back(msg);
+
+      this->epochsPanelPtr->setLines(lines);
+    }
   }
 
   //===================================================================================================================//

@@ -173,13 +173,12 @@ namespace NN_CLI
     }
 
     bool isBest = summary.find("Best*") != std::string::npos;
-    std::string bestStr = isBest ? "Best*" : "";
+    std::string bestStr = isBest ? "✓" : "";
     std::string timestamp = Common::Utils::formatHumanReadable();
 
     TerminalUI_Table::Row row = {epochStr, lossStream.str(), accuracyStr, bestStr, timestamp};
 
     this->window->addEpochRow(row);
-    this->window->addEpochMessage(summary);
     this->window->refreshEpochContent();
 
     // When validation was performed for this epoch (accuracy >= 0), show a
