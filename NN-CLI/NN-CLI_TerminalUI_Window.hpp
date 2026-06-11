@@ -3,6 +3,7 @@
 
 #include "NN-CLI_TerminalUI_Widget.hpp"
 
+#include <atomic>
 #include <memory>
 #include <vector>
 
@@ -47,6 +48,10 @@ namespace NN_CLI
       {
         return this->initialized;
       }
+
+      // Called from the SIGWINCH handler to schedule a deferred resize.
+      // Safe to call from a signal handler (sets an atomic flag only).
+      void requestResize();
 
       //-- Terminal dimensions --//
 
@@ -95,6 +100,7 @@ namespace NN_CLI
       bool initialized = false;
       int rows = 0;
       int cols = 0;
+      std::atomic<bool> resizeRequested{false};
       std::vector<std::unique_ptr<TerminalUI_Widget>> children;
   };
 
