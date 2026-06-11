@@ -31,12 +31,10 @@ add_executable(NN-CLI
   NN-CLI_TerminalUI_Panel.cpp
   NN-CLI_TerminalUI_Table.cpp
   NN-CLI_TerminalUI_Window.cpp
-  NN-CLI_TerminalUI_ModelInfoTable.cpp
   NN-CLI_TerminalUI_TrainingWindow.cpp
   NN-CLI_TestSummary.cpp
   NN-CLI_TrainingProfiler.cpp
   NN-CLI_TrainingController.cpp
-  NN-CLI_LoadingBarController.cpp
   NN-CLI_PredictController.cpp
   NN-CLI_TestController.cpp
   NN-CLI_Utils.cpp
@@ -65,7 +63,6 @@ add_library(nncli_common OBJECT
     NN-CLI_ImageLoader.cpp
     NN-CLI_Loader.cpp
     NN-CLI_ModelPackage.cpp
-    NN-CLI_TrainingProgressTracker.cpp
     NN-CLI_TerminalUI_ProgressBar.cpp
     NN-CLI_TerminalUI_Widget.cpp
     NN-CLI_SummaryTable.cpp

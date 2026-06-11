@@ -1,6 +1,8 @@
 #ifndef NN_CLI_RUNNEROBSERVER_HPP
 #define NN_CLI_RUNNEROBSERVER_HPP
 
+#include "NN-CLI_Types.hpp"
+
 #include <string>
 #include <vector>
 
@@ -36,6 +38,37 @@ namespace NN_CLI
        */
       virtual void onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
                                    const std::vector<float>& fractions) {}
+
+      /**
+       * Called while a batch of samples is being loaded/augmented from the
+       * data source (drives the "Samples" data-loading progress bar).
+       * @param current        Number of samples loaded so far in this batch.
+       * @param total          Total samples in this batch.
+       * @param batchIndex     0-based index of the batch currently loading.
+       * @param totalBatches   Total number of batches in the epoch.
+       * @param isValidation   True when loading validation samples.
+       */
+      virtual void onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
+                                        bool isValidation)
+      {
+        (void)current;
+        (void)total;
+        (void)batchIndex;
+        (void)totalBatches;
+        (void)isValidation;
+      }
+
+      /**
+       * Called while the validation pass runs at an epoch boundary (drives the
+       * transitional "Validating" progress bar).
+       * @param current        Number of validation samples evaluated so far.
+       * @param total          Total validation samples.
+       */
+      virtual void onValidationProgress(ulong current, ulong total)
+      {
+        (void)current;
+        (void)total;
+      }
 
       /**
        * Called once per epoch after all mini-batches are processed.

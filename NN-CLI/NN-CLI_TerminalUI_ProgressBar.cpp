@@ -203,12 +203,19 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+
+  void TerminalUI_ProgressBar::setVisible(bool visible)
+  {
+    this->visible = visible;
+  }
+
+  //===================================================================================================================//
   //-- Widget overrides --//
   //===================================================================================================================//
 
   void TerminalUI_ProgressBar::draw()
   {
-    if (this->width <= 0 || this->height <= 0)
+    if (!this->visible || this->width <= 0 || this->height <= 0)
       return;
 
     int numSegments = std::max(1, static_cast<int>(this->barFractions.size()));

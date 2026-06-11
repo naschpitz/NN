@@ -47,6 +47,58 @@ std::vector<std::string> ANNRunner::getTimingLines(int maxWidth) const
 }
 
 //===================================================================================================================//
+
+ulong ANNRunner::getNumOutputClasses() const
+{
+  if (!this->coreConfig.layersConfig.empty())
+    return this->coreConfig.layersConfig.back().numNeurons;
+  return 0;
+}
+
+
+//===================================================================================================================//
+//  Model info overrides
+//===================================================================================================================//
+
+ulong ANNRunner::getTotalParameters() const
+{
+  ulong total = 0;
+  const auto& layers = this->coreConfig.layersConfig;
+
+  // Layer 0 is the input layer; weights start at layer 1.
+  for (size_t l = 1; l < layers.size(); l++) {
+    ulong numNeurons = layers[l].numNeurons;
+    ulong prevNumNeurons = layers[l - 1].numNeurons;
+    total += numNeurons * prevNumNeurons; // weights
+    total += numNeurons;                  // biases
+  }
+
+  return total;
+}
+
+//===================================================================================================================//
+
+std::string ANNRunner::getNetworkType() const
+{
+  return "ANN";
+}
+
+//===================================================================================================================//
+
+std::string ANNRunner::getInputShapeString() const
+{
+  // ANN has no explicit input shape in the config; input size is implicit
+  // from the first layer's dimensions at training time.
+  return "";
+}
+
+//===================================================================================================================//
+
+ulong ANNRunner::getNumDenseLayers() const
+{
+  return this->coreConfig.layersConfig.size();
+}
+//===================================================================================================================//
 //  Mode methods
 //===================================================================================================================//
 
@@ -127,6 +179,10 @@ int ANNRunner::train()
   ulong numOriginalTrainSamples = totalOriginalSamples - numValidationSamples;
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
+  this->_numOriginalTrainSamples = numOriginalTrainSamples;
+  this->_numTrainSamples = numTrainSamples;
+  this->_numValidationSamples = numValidationSamples;
+
 
   this->notifyModelInfoUpdated("totalOriginalSamples", std::to_string(totalOriginalSamples));
   this->notifyModelInfoUpdated("numTrainSamples", std::to_string(numTrainSamples));
@@ -171,6 +227,14 @@ int ANNRunner::train()
     this->core->prependEpochHistory(this->coreConfig.loadedEpochHistory);
     this->coreConfig.loadedEpochHistory.clear();
   }
+
+  // Drive the "Samples" data-loading progress bar: the DataLoader fires this
+  // callback (from its worker threads) as each batch is loaded/augmented.
+  dataLoader.setLoadingCallback(
+    [this](ulong current, ulong total, ulong batchIndex, ulong totalBatches, SampleLoadType loadType) {
+      this->notifySampleLoadProgress(current, total, batchIndex, totalBatches,
+                                     loadType == SampleLoadType::Validation);
+    });
 
   if (validationConfig.enabled) {
     auto trainProvider =
@@ -405,7 +469,10 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
       validationCore->setParameters(this->core->getParameters());
 
-      setupValidationProgressCallback(*validationCore, validationTotal, this->ioConfig.progressReports);
+      // Live "Validating" bar: route validation progress through the observer
+      // instead of printing to stdout (which would corrupt the ncurses TUI).
+      validationCore->setProgressCallback(
+        [this, validationTotal](ulong current, ulong) { this->notifyValidationProgress(current, validationTotal); });
 
       auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
 

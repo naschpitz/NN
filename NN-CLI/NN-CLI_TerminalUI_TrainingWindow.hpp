@@ -1,13 +1,14 @@
 #ifndef NN_CLI_TERMINALUI_TRAININGWINDOW_HPP
 #define NN_CLI_TERMINALUI_TRAININGWINDOW_HPP
 
-#include "NN-CLI_TerminalUI_ModelInfoTable.hpp"
+#include "NN-CLI_SummaryTable.hpp"
 #include "NN-CLI_TerminalUI_Panel.hpp"
 #include "NN-CLI_TerminalUI_ProgressBar.hpp"
 #include "NN-CLI_TerminalUI_Table.hpp"
 #include "NN-CLI_TerminalUI_Window.hpp"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace NN_CLI
@@ -74,11 +75,12 @@ namespace NN_CLI
       // Clear the sub-line text below the progress bar.
       void clearProgressSubLine();
 
-      // Set a loading-phase progress bar with the given fraction.  Used to
-      // display the "sample loading" phase before training begins.
-      void setLoadingProgress(float fraction);
+      // Set the dedicated "sample loading" progress bar (the top bar in the
+      // progress panel, shown above the training bar).  Makes the bar visible
+      // on first use.
+      void setLoadingProgress(const std::string& label, float fraction);
 
-      // Clear the loading-phase progress bar.
+      // Hide the loading-phase progress bar.
       void clearLoadingProgress();
 
       //-- Epoch table --//
@@ -111,13 +113,24 @@ namespace NN_CLI
       void setModelInfoTitle(const std::string& title);
 
       // Replace all model info entries.
-      void setModelInfoEntries(const std::vector<TerminalUI_ModelInfoTable::Entry>& entries);
+      void setModelInfoEntries(const std::vector<std::pair<std::string, std::string>>& entries);
+
+      // Replace all model configuration rows directly (preserving section
+      // separators encoded as empty-key rows).  Used by the Controller to push
+      // the full model-info row set built by Runner::buildModelInfoRows().
+      void setModelInfoRows(const std::vector<SummaryRow>& rows);
 
       // Append a single model info entry.
       void addModelInfoEntry(const std::string& key, const std::string& value);
 
       // Remove all model info entries.
       void clearModelInfoEntries();
+
+      // Replace all loss reference rows.
+      void setLossReferenceRows(const std::vector<SummaryRow>& rows);
+
+      // Remove all loss reference rows.
+      void clearLossReferenceRows();
 
       // Rebuild the model info panel content from the current entries and
       // apply it to the model info panel.
@@ -170,14 +183,22 @@ namespace NN_CLI
       TerminalUI_Panel* modelInfoPanelPtr = nullptr;
       TerminalUI_Panel* timingPanelPtr = nullptr;
 
-      // Raw pointer to the progress bar widget (owned as a child of
-      // progressPanel).
+      // Raw pointers to the progress bar widgets (owned as children of
+      // progressPanel).  loadingBarPtr is the top "Samples" bar; progressBarPtr
+      // is the training / validation bar below it.
+      TerminalUI_ProgressBar* loadingBarPtr = nullptr;
       TerminalUI_ProgressBar* progressBarPtr = nullptr;
 
-      // Internal tables used to render formatted content before pushing
-      // lines to the panels.  Not part of the widget hierarchy.
+      // Internal epoch table used to render formatted content before pushing
+      // lines to the epochs panel.  Not part of the widget hierarchy.
       TerminalUI_Table epochTable;
-      TerminalUI_ModelInfoTable modelInfoTable;
+      // Summary rows used to render the model info panel via SummaryTable.
+      // Two independent sections: model configuration and loss reference.
+      std::vector<SummaryRow> modelConfigRows;
+      std::vector<SummaryRow> lossReferenceRows;
+
+      // Title for the model configuration section (set by setModelInfoTitle).
+      std::string modelInfoTitle;
 
       // Raw timing lines stored for re-padding on resize.
       std::vector<std::string> rawTimingLines;

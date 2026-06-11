@@ -3,11 +3,9 @@
 #include "NN-CLI_ANNRunner.hpp"
 #include "NN-CLI_CNNRunner.hpp"
 #include "NN-CLI_TerminalUI_TrainingWindow.hpp"
+#include "NN-CLI_LossReferenceTable.hpp"
 
 #include <ANN_Utils.hpp>
-
-#include "Common/Common_CostFunctionConfig.hpp"
-#include "Common/Common_Optimizer.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -65,32 +63,6 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- Loading progress --//
-  //===================================================================================================================//
-
-  template <typename RunnerT>
-  void TrainingController<RunnerT>::startLoadingProgress(const std::string& label)
-  {
-    if (!this->window)
-      return;
-
-    this->window->updateProgress(label, 0.0f);
-    this->window->draw();
-  }
-
-  //===================================================================================================================//
-
-  template <typename RunnerT>
-  void TrainingController<RunnerT>::stopLoadingProgress()
-  {
-    if (!this->window)
-      return;
-
-    this->window->clearLoadingProgress();
-    this->window->draw();
-  }
-
-  //===================================================================================================================//
   //-- Accessors --//
   //===================================================================================================================//
 
@@ -113,9 +85,51 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
+  void TrainingController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex,
+                                                          ulong totalBatches, bool isValidation)
+  {
+    (void)isValidation;
+
+    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
+
+    if (!this->window)
+      return;
+
+    float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
+
+    std::string label = "Samples";
+    if (totalBatches > 0)
+      label += " (" + std::to_string(batchIndex + 1) + "/" + std::to_string(totalBatches) + ")";
+
+    this->window->setLoadingProgress(label, fraction);
+    this->window->draw();
+  }
+
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  void TrainingController<RunnerT>::onValidationProgress(ulong current, ulong total)
+  {
+    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
+
+    if (!this->window)
+      return;
+
+    this->isValidating = true;
+
+    float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
+    this->window->updateProgress("Validating", fraction);
+    this->window->draw();
+  }
+
+  //===================================================================================================================//
+
+  template <typename RunnerT>
   void TrainingController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
                                                       const std::vector<float>& fractions)
   {
+    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
+
     if (!this->window)
       return;
 
@@ -135,6 +149,8 @@ namespace NN_CLI
   void TrainingController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
                                                       const std::string& summary)
   {
+    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
+
     if (!this->window)
       return;
 
@@ -183,6 +199,8 @@ namespace NN_CLI
   template <typename RunnerT>
   void TrainingController<RunnerT>::onTrainingFinished(bool success, const std::string& finalSummary)
   {
+    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
+
     if (!this->window)
       return;
 
@@ -199,10 +217,19 @@ namespace NN_CLI
   template <typename RunnerT>
   void TrainingController<RunnerT>::onModelInfoUpdated(const std::string& property, const std::string& value)
   {
-    if (!this->window)
+    (void)property;
+    (void)value;
+
+    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
+
+    if (!this->window || !this->runner)
       return;
 
-    this->window->addModelInfoEntry(property, value);
+    // The Runner emits these notifications after it has updated its internal
+    // state (e.g. sample counts once the dataset is loaded), so rebuild the
+    // whole configuration section from the authoritative row set rather than
+    // appending one raw key/value at a time.
+    this->window->setModelInfoRows(this->runner->buildModelInfoRows());
     this->window->refreshModelInfoContent();
     this->window->draw();
   }
@@ -212,6 +239,8 @@ namespace NN_CLI
   template <typename RunnerT>
   void TrainingController<RunnerT>::onLogMessage(const std::string& message, bool isError)
   {
+    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
+
     if (!this->window)
       return;
 
@@ -228,6 +257,8 @@ namespace NN_CLI
   {
     (void)metric;
     (void)value;
+
+    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
 
     if (!this->window)
       return;
@@ -266,28 +297,18 @@ namespace NN_CLI
     if (!this->window || !this->runner)
       return;
 
-    const auto& coreConfig = this->runner->getCoreConfig();
+    //-- Model configuration section --//
+    // Mirror the pre-refactoring Summary table exactly: the Runner builds the
+    // full set of rows (device, layers, parameters, sample counts, training
+    // hyper-parameters, cost function, ...) including section separators.
+    // Sample counts are zero until train() loads the data; onModelInfoUpdated()
+    // re-fetches these rows once the counts are known.
+    this->window->setModelInfoTitle("Model Configuration");
+    this->window->setModelInfoRows(this->runner->buildModelInfoRows());
 
-    //-- Optimizer --//
-    std::string optimizerName = Common::Optimizer<float>::typeToName(coreConfig.trainingConfig.optimizer.type);
-    this->window->addModelInfoEntry("Optimizer", optimizerName);
-
-    //-- Learning rate --//
-    std::ostringstream lrStream;
-    lrStream << std::fixed << std::setprecision(6) << coreConfig.trainingConfig.learningRate;
-    this->window->addModelInfoEntry("Learning Rate", lrStream.str());
-
-    //-- Batch size --//
-    this->window->addModelInfoEntry("Batch Size", std::to_string(coreConfig.trainingConfig.batchSize));
-
-    //-- Dropout rate --//
-    std::ostringstream dropoutStream;
-    dropoutStream << std::fixed << std::setprecision(2) << coreConfig.trainingConfig.dropoutRate;
-    this->window->addModelInfoEntry("Dropout Rate", dropoutStream.str());
-
-    //-- Cost function --//
-    std::string costFunctionName = Common::CostFunction::typeToName(coreConfig.costFunctionConfig.type);
-    this->window->addModelInfoEntry("Cost Function", costFunctionName);
+    //-- Loss Reference section --//
+    ulong numClasses = this->runner->getNumOutputClasses();
+    this->window->setLossReferenceRows(LossReferenceTable::collectRows(numClasses));
 
     this->window->refreshModelInfoContent();
   }

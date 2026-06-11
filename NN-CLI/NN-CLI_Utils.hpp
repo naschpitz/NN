@@ -154,17 +154,6 @@ namespace NN_CLI
     return false;
   }
 
-  //-------------------------------------------------------------------------------------------------------------------//
-
-  /// Attach a validation progress callback to a validation core.
-  /// Prints a stdout progress bar during validation.
-  template <typename CoreType>
-  inline void setupValidationProgressCallback(CoreType& validationCore, ulong validationTotal, ulong progressReports)
-  {
-    validationCore.setProgressCallback([validationTotal, progressReports](ulong current, ulong) {
-      printLoadingProgress("Validating", current, validationTotal, progressReports);
-    });
-  }
 
   //-------------------------------------------------------------------------------------------------------------------//
 

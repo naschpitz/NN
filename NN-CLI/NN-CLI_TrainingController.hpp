@@ -5,6 +5,7 @@
 #include "NN-CLI_TerminalUI_TrainingWindow.hpp"
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -56,15 +57,6 @@ namespace NN_CLI
       // RunnerT::train().
       int startTraining();
 
-      //-- Loading progress --//
-
-      // Show a loading progress bar with the given label.  Routes to the
-      // TrainingWindow to display a "sample loading" phase indicator.
-      void startLoadingProgress(const std::string& label);
-
-      // Clear the loading progress bar, ending the loading phase.
-      void stopLoadingProgress();
-
       //-- Accessors --//
 
       TerminalUI_TrainingWindow* getWindow() const;
@@ -72,6 +64,11 @@ namespace NN_CLI
 
     protected:
       //-- IRunnerObserver overrides --//
+
+      void onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
+                                bool isValidation) override;
+
+      void onValidationProgress(ulong current, ulong total) override;
 
       void onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
                            const std::vector<float>& fractions) override;
@@ -107,6 +104,12 @@ namespace NN_CLI
       int totalEpochs = 0;
       bool isValidating = false;
 
+      // Serializes all View (ncurses) access.  Observer callbacks arrive from
+      // multiple worker threads — the per-batch training callback, the data
+      // loader's loading callback, and the validation callback — so every
+      // window mutation + draw must hold this lock.  Recursive so a handler
+      // that fans out to helpers cannot self-deadlock.
+      std::recursive_mutex uiMutex;
   };
 
   //===================================================================================================================//
