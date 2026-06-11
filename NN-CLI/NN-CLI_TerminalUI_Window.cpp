@@ -31,19 +31,7 @@ namespace NN_CLI
 
     ::setlocale(LC_ALL, "");
 
-    FILE* tty = ::fopen("/dev/tty", "r+");
-
-    if (!tty)
-      return false;
-
-    SCREEN* screen = ::newterm(nullptr, tty, tty);
-
-    if (!screen) {
-      ::fclose(tty);
-      return false;
-    }
-
-    ::set_term(screen);
+    ::initscr();
 
     ::cbreak();
     ::noecho();
@@ -68,7 +56,7 @@ namespace NN_CLI
     this->rows = ::getmaxy(stdscr);
     this->cols = ::getmaxx(stdscr);
 
-    TerminalUI_Widget::resize(this->cols, this->rows, 0, 0);
+    this->resize(this->cols, this->rows, 0, 0);
 
     this->initialized = true;
     return true;
