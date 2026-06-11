@@ -2,7 +2,7 @@
 #define NN_CLI_UTILS_HPP
 
 #include "NN-CLI_LogLevel.hpp"
-#include "NN-CLI_ProgressBar.hpp"
+#include "NN-CLI_TerminalUI_ProgressBar.hpp"
 #include "NN-CLI_TerminalUI.hpp"
 
 #include <ANN_Core.hpp>
@@ -66,9 +66,9 @@ namespace NN_CLI
                                         const std::string& label, ulong total)
   {
     if (logLevel > LogLevel::QUIET) {
-      ProgressBar::printLoadingProgress(label, 0, total, progressReports);
+      TerminalUI_ProgressBar::printLoadingProgress(label, 0, total, progressReports);
       core.setProgressCallback([progressReports, label](ulong current, ulong total) {
-        ProgressBar::printLoadingProgress(label, current, total, progressReports);
+        TerminalUI_ProgressBar::printLoadingProgress(label, current, total, progressReports);
       });
     }
   }
@@ -128,12 +128,13 @@ namespace NN_CLI
                                               ulong validationTotal, int totalGPUs)
   {
     if (tui && tui->isInitialized()) {
-      int validationGpus = std::max(1, totalGPUs);
-      validationCore.setProgressCallback([tui, validationTotal, validationGpus](ulong current, ulong) {
+      validationCore.setProgressCallback([tui, validationTotal](ulong current, ulong) {
         float pct = static_cast<float>(current) / static_cast<float>(validationTotal) * 100.0f;
         std::lock_guard<std::recursive_mutex> tuiLock(tui->getMutex());
         tui->handleResize();
-        ProgressBar::renderValidationBar(tui->progressWindow(), pct, validationGpus);
+        TerminalUI_ProgressBar renderer;
+        renderer.renderSingleBar(tui->progressWindow(), "Validating", pct / 100.0f);
+        renderer.clearSubLine(tui->progressWindow());
       });
     }
   }
