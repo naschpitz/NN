@@ -127,6 +127,12 @@ namespace NN_CLI
       this->loadingBarPtr->resize(contentW, loadingH, contentX, contentY);
       this->progressBarPtr->resize(contentW, trainingH, contentX, contentY + loadingH);
     }
+
+    // Rebuild panel content so that tables pick up the new column widths
+    // after a terminal resize.
+    this->refreshEpochContent();
+    this->refreshModelInfoContent();
+    this->refreshTimingContent();
   }
 
   //===================================================================================================================//

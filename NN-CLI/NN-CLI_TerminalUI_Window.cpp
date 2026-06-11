@@ -2,10 +2,22 @@
 
 #include <algorithm>
 #include <clocale>
+#include <csignal>
 #include <curses.h>
 
 namespace NN_CLI
 {
+
+  namespace
+  {
+    TerminalUI_Window* g_activeWindow = nullptr;
+
+    void sigwinchHandler(int)
+    {
+      if (g_activeWindow)
+        g_activeWindow->requestResize();
+    }
+  } // namespace
 
   //===================================================================================================================//
   //-- Ctors / Dtors --//
@@ -58,6 +70,9 @@ namespace NN_CLI
 
     this->resize(this->cols, this->rows, 0, 0);
 
+    g_activeWindow = this;
+    std::signal(SIGWINCH, sigwinchHandler);
+
     this->initialized = true;
     return true;
   }
@@ -70,6 +85,9 @@ namespace NN_CLI
       return;
 
     this->initialized = false;
+    g_activeWindow = nullptr;
+    std::signal(SIGWINCH, SIG_DFL);
+
     this->children.clear();
 
     ::endwin();
@@ -119,6 +137,15 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+  //-- Resize --//
+  //===================================================================================================================//
+
+  void TerminalUI_Window::requestResize()
+  {
+    this->resizeRequested.store(true, std::memory_order_relaxed);
+  }
+
+  //===================================================================================================================//
   //-- Widget overrides --//
   //===================================================================================================================//
 
@@ -126,6 +153,18 @@ namespace NN_CLI
   {
     if (!this->initialized)
       return;
+
+    // Check if a terminal resize was requested by the SIGWINCH handler.
+    if (this->resizeRequested.exchange(false, std::memory_order_relaxed)) {
+      ::endwin();
+      ::refresh();
+      ::clear();
+
+      int newRows = ::getmaxy(stdscr);
+      int newCols = ::getmaxx(stdscr);
+
+      this->resize(newCols, newRows, 0, 0);
+    }
 
     ::touchwin(stdscr);
     ::erase();
