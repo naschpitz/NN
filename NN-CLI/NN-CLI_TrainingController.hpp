@@ -1,7 +1,9 @@
-#ifndef NN_CLI_TRAININGTUI_HPP
-#define NN_CLI_TRAININGTUI_HPP
+#ifndef NN_CLI_TRAININGCONTROLLER_HPP
+#define NN_CLI_TRAININGCONTROLLER_HPP
 
 #include "NN-CLI_DataLoader.hpp"
+
+#include "NN-CLI_TrainingProgressTracker.hpp"
 
 #include <functional>
 #include <memory>
@@ -16,7 +18,7 @@ namespace NN_CLI
   // Owns the "Samples" bar lifecycle during training and keeps it wired to a TerminalUI
   // across terminal resizes. Shared by the  and CNN runners: their cores differ, but the TUI
   // plumbing (GPU-count reservation, loading callback, resize repaint) is identical.
-  class TrainingTui
+  class TrainingController
   {
     public:
       // Bind to the training TUI and register the overlay that repaints the loading bar after a
@@ -39,12 +41,21 @@ namespace NN_CLI
         this->loading = false;
       }
 
+      // Initialize the training progress tracker with the given parameters.
+      void initTracker(ulong progressReports, ulong windowSize, int barWidth);
+
+      // Forward progress info to the tracker for ncurses rendering.
+      void updateProgress(const ProgressInfo& progress);
+
     private:
       // Repaint the loading bar from the remembered state (no-op while not loading).
       void renderBar();
 
       std::shared_ptr<TerminalUI> tui;
       int barGpus = 1;
+
+      //-- Training progress tracker --//
+      std::unique_ptr<TrainingProgressTracker> progressTracker;
 
       //-- Loading-bar state, re-rendered on resize --//
       ulong current = 0;
@@ -56,4 +67,4 @@ namespace NN_CLI
 
 } // namespace NN_CLI
 
-#endif // NN_CLI_TRAININGTUI_HPP
+#endif // NN_CLI_TRAININGCONTROLLER_HPP
