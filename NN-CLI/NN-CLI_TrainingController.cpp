@@ -5,7 +5,7 @@
 #include "NN-CLI_TerminalUI_TrainingWindow.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
 
-#include <ANN_Utils.hpp>
+#include "Common/Common_Utils.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -86,7 +86,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TrainingController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex,
-                                                          ulong totalBatches, bool isValidation)
+                                                           ulong totalBatches, bool isValidation)
   {
     (void)isValidation;
 
@@ -126,7 +126,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TrainingController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                      const std::vector<float>& fractions)
+                                                       const std::vector<float>& fractions)
   {
     std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
 
@@ -147,7 +147,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TrainingController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
-                                                      const std::string& summary)
+                                                       const std::string& summary)
   {
     std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
 
@@ -174,7 +174,7 @@ namespace NN_CLI
 
     bool isBest = summary.find("Best*") != std::string::npos;
     std::string bestStr = isBest ? "Best*" : "";
-    std::string timestamp = ANN::Utils<float>::formatISO8601();
+    std::string timestamp = Common::Utils::formatISO8601();
 
     TerminalUI_Table::Row row = {epochStr, lossStream.str(), accuracyStr, bestStr, timestamp};
 

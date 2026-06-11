@@ -1,7 +1,7 @@
 #include "ANN_Core.hpp"
 #include "ANN_CoreCPU.hpp"
 #include "ANN_CoreGPU.hpp"
-#include "ANN_Utils.hpp"
+#include "Common/Common_Utils.hpp"
 
 using namespace ANN;
 using namespace Common;
@@ -54,7 +54,7 @@ template <typename T>
 void Core<T>::trainingStart(ulong numSamples)
 {
   this->trainingStartTime = std::chrono::system_clock::now();
-  this->trainingMetadata.startTime = Utils<T>::formatISO8601();
+  this->trainingMetadata.startTime = Common::Utils::formatISO8601();
   this->trainingMetadata.numSamples = numSamples;
 }
 
@@ -64,11 +64,11 @@ template <typename T>
 TrainingMetadata<T> Core<T>::trainingEnd()
 {
   auto endTime = std::chrono::system_clock::now();
-  this->trainingMetadata.endTime = Utils<T>::formatISO8601();
+  this->trainingMetadata.endTime = Common::Utils::formatISO8601();
 
   std::chrono::duration<double> duration = endTime - this->trainingStartTime;
   this->trainingMetadata.durationSeconds = duration.count();
-  this->trainingMetadata.durationFormatted = Utils<T>::formatDuration(this->trainingMetadata.durationSeconds);
+  this->trainingMetadata.durationFormatted = Common::Utils::formatDuration(this->trainingMetadata.durationSeconds);
 
   return this->trainingMetadata;
 }
@@ -95,7 +95,7 @@ template <typename T>
 void Core<T>::predictStart()
 {
   this->predictStartTime = std::chrono::system_clock::now();
-  this->predictMetadata.startTime = Utils<T>::formatISO8601();
+  this->predictMetadata.startTime = Common::Utils::formatISO8601();
 }
 
 //===================================================================================================================//
@@ -104,11 +104,11 @@ template <typename T>
 PredictMetadata<T> Core<T>::predictEnd()
 {
   auto endTime = std::chrono::system_clock::now();
-  this->predictMetadata.endTime = Utils<T>::formatISO8601();
+  this->predictMetadata.endTime = Common::Utils::formatISO8601();
 
   std::chrono::duration<double> duration = endTime - this->predictStartTime;
   this->predictMetadata.durationSeconds = duration.count();
-  this->predictMetadata.durationFormatted = Utils<T>::formatDuration(this->predictMetadata.durationSeconds);
+  this->predictMetadata.durationFormatted = Common::Utils::formatDuration(this->predictMetadata.durationSeconds);
 
   return this->predictMetadata;
 }

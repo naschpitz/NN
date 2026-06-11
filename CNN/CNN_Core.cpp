@@ -2,7 +2,7 @@
 #include "CNN_CoreCPU.hpp"
 #include "CNN_CoreGPU.hpp"
 
-#include <ANN_Utils.hpp>
+#include "Common/Common_Utils.hpp"
 
 #include <stdexcept>
 
@@ -80,7 +80,7 @@ template <typename T>
 void Core<T>::trainingStart(ulong numSamples)
 {
   this->trainingStartTime = std::chrono::system_clock::now();
-  this->trainingMetadata.startTime = ANN::Utils<T>::formatISO8601();
+  this->trainingMetadata.startTime = Common::Utils::formatISO8601();
   this->trainingMetadata.numSamples = numSamples;
 }
 
@@ -92,9 +92,9 @@ TrainingMetadata<T> Core<T>::trainingEnd()
   auto endTime = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed = endTime - this->trainingStartTime;
 
-  this->trainingMetadata.endTime = ANN::Utils<T>::formatISO8601();
+  this->trainingMetadata.endTime = Common::Utils::formatISO8601();
   this->trainingMetadata.durationSeconds = elapsed.count();
-  this->trainingMetadata.durationFormatted = ANN::Utils<T>::formatDuration(elapsed.count());
+  this->trainingMetadata.durationFormatted = Common::Utils::formatDuration(elapsed.count());
 
   return this->trainingMetadata;
 }
@@ -142,10 +142,10 @@ PredictMetadata<T> Core<T>::predictEnd()
   auto endTime = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed = endTime - this->predictStartTime;
 
-  this->predictMetadata.startTime = ANN::Utils<T>::formatISO8601();
-  this->predictMetadata.endTime = ANN::Utils<T>::formatISO8601();
+  this->predictMetadata.startTime = Common::Utils::formatISO8601();
+  this->predictMetadata.endTime = Common::Utils::formatISO8601();
   this->predictMetadata.durationSeconds = elapsed.count();
-  this->predictMetadata.durationFormatted = ANN::Utils<T>::formatDuration(elapsed.count());
+  this->predictMetadata.durationFormatted = Common::Utils::formatDuration(elapsed.count());
 
   return this->predictMetadata;
 }

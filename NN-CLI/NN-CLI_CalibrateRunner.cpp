@@ -3,7 +3,7 @@
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Utils.hpp"
 
-#include <ANN_Utils.hpp>
+#include "Common/Common_Utils.hpp"
 
 #include <json.hpp>
 
@@ -433,7 +433,7 @@ int CalibrateRunner::run()
   std::chrono::duration<double> elapsed = t1 - t0;
 
   if (this->logLevel > LogLevel::QUIET) {
-    std::string doneMsg = "\nCalibration done in " + ANN::Utils<float>::formatDuration(elapsed.count()) +
+    std::string doneMsg = "\nCalibration done in " + Common::Utils::formatDuration(elapsed.count()) +
                           "\nThreshold written to: " + outputPath + "\n";
     std::cout << doneMsg;
     this->notifyLogMessage(doneMsg, false);
