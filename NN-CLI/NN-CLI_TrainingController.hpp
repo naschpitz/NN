@@ -4,7 +4,6 @@
 #include "NN-CLI_RunnerObserver.hpp"
 #include "NN-CLI_TerminalUI_TrainingWindow.hpp"
 
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -57,6 +56,15 @@ namespace NN_CLI
       // RunnerT::train().
       int startTraining();
 
+      //-- Loading progress --//
+
+      // Show a loading progress bar with the given label.  Routes to the
+      // TrainingWindow to display a "sample loading" phase indicator.
+      void startLoadingProgress(const std::string& label);
+
+      // Clear the loading progress bar, ending the loading phase.
+      void stopLoadingProgress();
+
       //-- Accessors --//
 
       TerminalUI_TrainingWindow* getWindow() const;
@@ -65,7 +73,8 @@ namespace NN_CLI
     protected:
       //-- IRunnerObserver overrides --//
 
-      void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float fraction) override;
+      void onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
+                           const std::vector<float>& fractions) override;
 
       void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
                             const std::string& summary) override;
@@ -79,14 +88,25 @@ namespace NN_CLI
       void onTimingUpdated(const std::string& metric, float value) override;
 
     private:
+      //-- Methods --//
+
+      // Populate the model info panel with core configuration data.
+      void populateModelInfo();
+
+      // Refresh the timing panel content from the runner's profiling data.
+      void refreshTimingPanel();
+
       //-- Members --//
 
       std::unique_ptr<TerminalUI_TrainingWindow> window;
       std::unique_ptr<RunnerT> runner;
 
-      //-- Timing state --//
+      //-- Training state --//
 
-      std::map<std::string, float> timingMetrics;
+      int currentEpoch = 0;
+      int totalEpochs = 0;
+      bool isValidating = false;
+
   };
 
   //===================================================================================================================//

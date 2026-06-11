@@ -2,6 +2,7 @@
 #define NN_CLI_RUNNEROBSERVER_HPP
 
 #include <string>
+#include <vector>
 
 //===================================================================================================================//
 
@@ -30,9 +31,11 @@ namespace NN_CLI
        * @param batchIdx       0-based index of the current mini-batch within the epoch.
        * @param totalBatches   Total number of mini-batches in the epoch.
        * @param currentLoss    Running average loss for the current epoch.
-       * @param fraction       Progress fraction [0..1] within the current epoch.
+       * @param fractions      Per-device progress fractions [0..1].  One element
+       *                       for single-GPU/CPU; one per GPU for multi-GPU training.
        */
-      virtual void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float fraction) {}
+      virtual void onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
+                                   const std::vector<float>& fractions) {}
 
       /**
        * Called once per epoch after all mini-batches are processed.
