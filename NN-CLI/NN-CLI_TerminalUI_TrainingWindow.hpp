@@ -162,12 +162,26 @@ namespace NN_CLI
       TerminalUI_Panel* getModelInfoPanel() const;
       TerminalUI_Panel* getTimingPanel() const;
 
+      //-- Event routing --//
+
+      // Handle a Tab keypress to cycle the active panel (wraps 0→1→2→0).
+      // Returns true if ch was Tab and was consumed.
+      bool cycleActivePanel(int ch);
+
+      // Route a scroll keypress to the active panel's applyScrollInput().
+      // Returns true if ch was a recognized scroll key.
+      bool scrollActivePanel(int ch);
+
       //-- Widget overrides --//
 
-      void draw() override;
       bool handleEvent(int ch) override;
 
     protected:
+      //-- Hooks --//
+
+      // Apply active / inactive panel color pairs before rendering.
+      void preRender() override;
+
       //-- Methods --//
 
       // Apply active / inactive color pairs to the panels.

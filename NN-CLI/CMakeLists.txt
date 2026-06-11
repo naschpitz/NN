@@ -155,6 +155,13 @@ add_executable(test_nncli
   tests/test_validation.cpp
   tests/test_monitoring.cpp
   tests/test_gpu_augment.cpp
+  tests/test_terminal_ui.cpp
+  # TerminalUI sources needed for unit tests (panel, table, window, training window).
+  # Compiled separately from nncli_common to keep the shared object library lean.
+  ${CMAKE_CURRENT_SOURCE_DIR}/NN-CLI_TerminalUI_Panel.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/NN-CLI_TerminalUI_Table.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/NN-CLI_TerminalUI_Window.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/NN-CLI_TerminalUI_TrainingWindow.cpp
 )
 target_include_directories(test_nncli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
