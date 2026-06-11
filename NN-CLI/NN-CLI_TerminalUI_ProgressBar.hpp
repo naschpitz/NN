@@ -18,8 +18,8 @@ namespace NN_CLI
   // Generic terminal progress-bar rendering widget.  Provides ncurses and
   // stdout rendering primitives for single and segmented (multi-segment)
   // progress bars.  Has NO knowledge of training-specific concepts like
-  // ProgressInfo, epochs, or GPU indices — those concerns live in
-  // TrainingProgressTracker.
+  // epochs or GPU indices — the Controller maps those onto label/fraction
+  // updates.
   //
   // Inherits from TerminalUI_Widget so it can be placed inside a Panel or
   // Window as part of the MVC view hierarchy.  The unified draw() override
@@ -27,8 +27,8 @@ namespace NN_CLI
   // stored label and fractions.
   //
   // The legacy methods that accept an explicit WINDOW* parameter remain
-  // available for backward compatibility with existing callers (Runners,
-  // Loaders, TrainingProgressTracker).
+  // available for the stdout/console rendering paths still used by the
+  // Loaders and Calibrate mode.
 
   class TerminalUI_ProgressBar : public TerminalUI_Widget
   {
@@ -50,6 +50,10 @@ namespace NN_CLI
 
       // Clear the sub-line text.
       void clearSubLineText();
+
+      // Show or hide the bar.  A hidden bar occupies its layout slot but draws
+      // nothing (used for the loading bar before any samples are loaded).
+      void setVisible(bool visible);
 
       //-- Widget overrides --//
 
@@ -98,6 +102,7 @@ namespace NN_CLI
       std::vector<float> barFractions;
       std::string subLineText;
       int subLineColorPair = 0;
+      bool visible = true;
   };
 
 } // namespace NN_CLI

@@ -32,7 +32,13 @@ namespace NN_CLI
 
     this->epochsPanelPtr->setAutoScroll(true);
 
-    //-- Create and attach the progress bar inside the progress panel --//
+    //-- Create and attach the two stacked progress bars inside the progress --//
+    //-- panel: the "Samples" loading bar on top, the training bar below.     --//
+
+    auto loadingBar = std::make_unique<TerminalUI_ProgressBar>();
+    this->loadingBarPtr = loadingBar.get();
+    this->loadingBarPtr->setVisible(false); // hidden until the first sample load
+    this->progressPanelPtr->addChild(std::move(loadingBar));
 
     auto progressBar = std::make_unique<TerminalUI_ProgressBar>();
     this->progressBarPtr = progressBar.get();
@@ -103,6 +109,24 @@ namespace NN_CLI
       this->children[3]->resize(timingW, remainingH, leftW, 0);
     else
       this->children[3]->resize(0, 0, 0, 0);
+
+    //-- Stack the two progress bars inside the progress panel --//
+    // The generic Panel layout places all children at the content origin (so
+    // they would overlap); reposition them onto separate rows here: the
+    // "Samples" loading bar on top (1 row) and the training bar below it
+    // (remaining rows = bar + sub-line).
+    int contentX = 2;             // progress panel x (0) + border/pad
+    int contentY = (H - progressH) + 1; // progress panel y + top border
+    int contentW = std::max(1, W - 4);
+    int contentH = std::max(0, progressH - 2);
+
+    if (this->loadingBarPtr && this->progressBarPtr) {
+      int loadingH = (contentH > 1) ? 1 : 0;
+      int trainingH = std::max(0, contentH - loadingH);
+
+      this->loadingBarPtr->resize(contentW, loadingH, contentX, contentY);
+      this->progressBarPtr->resize(contentW, trainingH, contentX, contentY + loadingH);
+    }
   }
 
   //===================================================================================================================//
@@ -142,18 +166,20 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::setLoadingProgress(float fraction)
+  void TerminalUI_TrainingWindow::setLoadingProgress(const std::string& label, float fraction)
   {
-    if (this->progressBarPtr)
-      this->progressBarPtr->setBarData("Loading", fraction);
+    if (this->loadingBarPtr) {
+      this->loadingBarPtr->setVisible(true);
+      this->loadingBarPtr->setBarData(label, fraction);
+    }
   }
 
   //===================================================================================================================//
 
   void TerminalUI_TrainingWindow::clearLoadingProgress()
   {
-    if (this->progressBarPtr)
-      this->progressBarPtr->setBarData("", 0.0f);
+    if (this->loadingBarPtr)
+      this->loadingBarPtr->setVisible(false);
   }
 
   //===================================================================================================================//
@@ -227,29 +253,53 @@ namespace NN_CLI
 
   void TerminalUI_TrainingWindow::setModelInfoTitle(const std::string& title)
   {
-    this->modelInfoTable.setTitle(title);
+    this->modelInfoTitle = title;
   }
 
   //===================================================================================================================//
 
   void TerminalUI_TrainingWindow::setModelInfoEntries(
-    const std::vector<TerminalUI_ModelInfoTable::Entry>& entries)
+    const std::vector<std::pair<std::string, std::string>>& entries)
   {
-    this->modelInfoTable.setEntries(entries);
+    this->modelConfigRows.clear();
+
+    for (const auto& entry : entries)
+      this->modelConfigRows.push_back({entry.first, entry.second});
   }
 
   //===================================================================================================================//
 
   void TerminalUI_TrainingWindow::addModelInfoEntry(const std::string& key, const std::string& value)
   {
-    this->modelInfoTable.addEntry(key, value);
+    this->modelConfigRows.push_back({key, value});
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::setModelInfoRows(const std::vector<SummaryRow>& rows)
+  {
+    this->modelConfigRows = rows;
   }
 
   //===================================================================================================================//
 
   void TerminalUI_TrainingWindow::clearModelInfoEntries()
   {
-    this->modelInfoTable.clearEntries();
+    this->modelConfigRows.clear();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::setLossReferenceRows(const std::vector<SummaryRow>& rows)
+  {
+    this->lossReferenceRows = rows;
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::clearLossReferenceRows()
+  {
+    this->lossReferenceRows.clear();
   }
 
   //===================================================================================================================//
@@ -260,9 +310,22 @@ namespace NN_CLI
       return;
 
     int tableWidth = std::max(30, this->modelInfoPanelPtr->contentWidth());
-    this->modelInfoTable.setMaxWidth(tableWidth);
 
-    auto lines = this->modelInfoTable.render();
+    std::vector<SummaryTable::Section> sections;
+
+    SummaryTable::Section configSection;
+    configSection.title = this->modelInfoTitle.empty() ? "Model Configuration" : this->modelInfoTitle;
+    configSection.rows = this->modelConfigRows;
+    sections.push_back(std::move(configSection));
+
+    if (!this->lossReferenceRows.empty()) {
+      SummaryTable::Section lossSection;
+      lossSection.title = "Loss Reference";
+      lossSection.rows = this->lossReferenceRows;
+      sections.push_back(std::move(lossSection));
+    }
+
+    auto lines = SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
     this->modelInfoPanelPtr->setLines(lines);
     this->modelInfoPanelPtr->scrollState().offset = 0;
   }

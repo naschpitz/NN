@@ -31,6 +31,16 @@ namespace NN_CLI
       //-- Accessors --//
       std::vector<std::string> getTimingLines(int maxWidth = 0) const override;
 
+      ulong getNumOutputClasses() const override;
+
+      //-- Model info overrides --//
+      ulong getTotalParameters() const override;
+      std::string getNetworkType() const override;
+      std::string getInputShapeString() const override;
+      ulong getNumConvLayers() const override;
+      ulong getNumDenseLayers() const override;
+      ulong getNumResidualBlocks() const override;
+
     protected:
       //-- Overrides --//
       void doSaveModel(const std::string& outputPath) override;

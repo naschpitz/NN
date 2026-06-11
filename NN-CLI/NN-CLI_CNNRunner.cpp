@@ -10,6 +10,7 @@
 #include "NN-CLI_PredictSummary.hpp"
 #include "NN-CLI_RunnerUtils.hpp"
 #include "NN-CLI_TestSummary.hpp"
+#include "NN-CLI_TrainingSummary.hpp"
 #include "NN-CLI_Utils.hpp"
 
 #include <QDir>
@@ -45,6 +46,74 @@ CNNRunner::CNNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConf
 std::vector<std::string> CNNRunner::getTimingLines(int maxWidth) const
 {
     return this->profiler.getTimingLines(maxWidth);
+}
+
+//===================================================================================================================//
+
+ulong CNNRunner::getNumOutputClasses() const
+{
+  if (!this->coreConfig.layersConfig.denseLayers.empty())
+    return this->coreConfig.layersConfig.denseLayers.back().numNeurons;
+  return 0;
+}
+
+//===================================================================================================================//
+//  Model info overrides
+//===================================================================================================================//
+
+ulong CNNRunner::getTotalParameters() const
+{
+  return TrainingSummary::countCNNParameters(this->coreConfig);
+}
+
+//===================================================================================================================//
+
+std::string CNNRunner::getNetworkType() const
+{
+  return "CNN";
+}
+
+//===================================================================================================================//
+
+std::string CNNRunner::getInputShapeString() const
+{
+  const auto& s = this->coreConfig.inputShape;
+  return std::to_string(s.c) + " x " + std::to_string(s.h) + " x " + std::to_string(s.w);
+}
+
+//===================================================================================================================//
+
+ulong CNNRunner::getNumConvLayers() const
+{
+  ulong count = 0;
+
+  for (const auto& l : this->coreConfig.layersConfig.cnnLayers) {
+    if (l.type == CNN::LayerType::CONV)
+      count++;
+  }
+
+  return count;
+}
+
+//===================================================================================================================//
+
+ulong CNNRunner::getNumDenseLayers() const
+{
+  return this->coreConfig.layersConfig.denseLayers.size();
+}
+
+//===================================================================================================================//
+
+ulong CNNRunner::getNumResidualBlocks() const
+{
+  ulong count = 0;
+
+  for (const auto& l : this->coreConfig.layersConfig.cnnLayers) {
+    if (l.type == CNN::LayerType::RESIDUAL_START)
+      count++;
+  }
+
+  return count;
 }
 
 //===================================================================================================================//
@@ -129,6 +198,10 @@ int CNNRunner::train()
   ulong numOriginalTrainSamples = totalOriginalSamples - numValidationSamples;
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
+  this->_numOriginalTrainSamples = numOriginalTrainSamples;
+  this->_numTrainSamples = numTrainSamples;
+  this->_numValidationSamples = numValidationSamples;
+
   this->notifyModelInfoUpdated("totalOriginalSamples", std::to_string(totalOriginalSamples));
   this->notifyModelInfoUpdated("numTrainSamples", std::to_string(numTrainSamples));
   this->notifyModelInfoUpdated("numValidationSamples", std::to_string(numValidationSamples));
@@ -200,6 +273,14 @@ int CNNRunner::train()
     this->core->prependEpochHistory(this->coreConfig.loadedEpochHistory);
     this->coreConfig.loadedEpochHistory.clear();
   }
+
+  // Drive the "Samples" data-loading progress bar: the DataLoader fires this
+  // callback (from its worker threads) as each batch is loaded/augmented.
+  dataLoader.setLoadingCallback(
+    [this](ulong current, ulong total, ulong batchIndex, ulong totalBatches, SampleLoadType loadType) {
+      this->notifySampleLoadProgress(current, total, batchIndex, totalBatches,
+                                     loadType == SampleLoadType::Validation);
+    });
 
   if (validationConfig.enabled) {
     auto trainProvider =
@@ -448,7 +529,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       validationCore->setParameters(this->core->getParameters());
       validationCore->syncParametersToGPU();
 
-      setupValidationProgressCallback(*validationCore, validationTotal, this->ioConfig.progressReports);
+      // Live "Validating" bar: route validation progress through the observer
+      // instead of printing to stdout (which would corrupt the ncurses TUI).
+      validationCore->setProgressCallback(
+        [this, validationTotal](ulong current, ulong) { this->notifyValidationProgress(current, validationTotal); });
 
       auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
 
