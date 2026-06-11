@@ -1,7 +1,7 @@
 #include "NN-CLI_CalibrateRunner.hpp"
 
 #include "NN-CLI_ImageLoader.hpp"
-#include "NN-CLI_ProgressBar.hpp"
+#include "NN-CLI_TerminalUI_ProgressBar.hpp"
 
 #include <ANN_Utils.hpp>
 
@@ -172,7 +172,7 @@ namespace
         ulong done = ++loadedCount;
 
         if (logLevel > LogLevel::QUIET)
-          ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
+          TerminalUI_ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
       });
 
       InputsT inputs;
@@ -189,9 +189,9 @@ namespace
     };
 
     if (logLevel > LogLevel::QUIET) {
-      ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
+      TerminalUI_ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
       core.setProgressCallback([progressReports, &progressLabel](ulong current, ulong totalCb) {
-        ProgressBar::printLoadingProgress(progressLabel, current, totalCb, progressReports);
+        TerminalUI_ProgressBar::printLoadingProgress(progressLabel, current, totalCb, progressReports);
       });
     }
 

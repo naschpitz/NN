@@ -2,7 +2,7 @@
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
-#include "NN-CLI_ProgressBar.hpp"
+#include "NN-CLI_TerminalUI_ProgressBar.hpp"
 
 #include <QFile>
 #include <QFileInfo>
@@ -270,7 +270,7 @@ namespace NN_CLI
       }
 
       samples.push_back(std::move(sample));
-      ProgressBar::printLoadingProgress("Samples:", ++idx, totalSamples, progressReports);
+      TerminalUI_ProgressBar::printLoadingProgress("Samples:", ++idx, totalSamples, progressReports);
     }
 
     return samples;
@@ -315,7 +315,7 @@ namespace NN_CLI
         inputs.push_back(entry.get<std::vector<float>>());
       }
 
-      ProgressBar::printLoadingProgress("Loading inputs:", ++idx, totalInputs, progressReports);
+      TerminalUI_ProgressBar::printLoadingProgress("Loading inputs:", ++idx, totalInputs, progressReports);
     }
 
     return inputs;
