@@ -95,6 +95,15 @@ namespace NN_CLI
       bool handleEvent(int ch) override;
 
     protected:
+      //-- Hooks --//
+
+      // Called before each render() in draw().  Subclasses override to
+      // update visual state (e.g. panel highlight colors) that depends
+      // on input-driven state changes (Tab cycling, scroll).  Called
+      // before the first render and again before the re-render that
+      // follows any consumed input events.
+      virtual void preRender() {}
+
       //-- Members --//
 
       bool initialized = false;
@@ -102,6 +111,17 @@ namespace NN_CLI
       int cols = 0;
       std::atomic<bool> resizeRequested{false};
       std::vector<std::unique_ptr<TerminalUI_Widget>> children;
+
+    private:
+      //-- Methods --//
+
+      // Render all children to stdscr and flush.
+      void render();
+
+      // Non-blocking input poll: read one key from getch(), translate mouse
+      // wheel events to scroll keys, and dispatch to handleEvent().
+      // Returns true if an event was consumed (caller should re-render).
+      bool pollAndDispatchInput();
   };
 
 } // namespace NN_CLI

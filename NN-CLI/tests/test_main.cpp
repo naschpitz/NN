@@ -32,6 +32,7 @@ void runDataLoaderTests();
 void runValidationTests();
 void runMonitoringTests();
 void runGpuAugmentTests();
+void runTerminalUITests();
 
 int main(int argc, char* argv[])
 {
@@ -98,6 +99,10 @@ int main(int argc, char* argv[])
   std::cout << std::endl;
   std::cout << "=== Monitoring Tests ===" << std::endl;
   runMonitoringTests();
+
+  std::cout << std::endl;
+  std::cout << "=== Terminal UI Tests ===" << std::endl;
+  runTerminalUITests();
 
   // Cleanup temp files
   cleanupTemp();

@@ -412,26 +412,31 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- Widget overrides --//
+  //-- Hooks --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::draw()
+  void TerminalUI_TrainingWindow::preRender()
   {
     this->updatePanelColors();
-    TerminalUI_Window::draw();
+  }
+
+  //===================================================================================================================//
+  //-- Event routing --//
+  //===================================================================================================================//
+
+  bool TerminalUI_TrainingWindow::cycleActivePanel(int ch)
+  {
+    if (ch != '\t')
+      return false;
+
+    this->activePanel = (this->activePanel + 1) % 3;
+    return true;
   }
 
   //===================================================================================================================//
 
-  bool TerminalUI_TrainingWindow::handleEvent(int ch)
+  bool TerminalUI_TrainingWindow::scrollActivePanel(int ch)
   {
-    // Tab cycles the active panel.
-    if (ch == '\t') {
-      this->activePanel = (this->activePanel + 1) % 3;
-      return true;
-    }
-
-    // Scroll keys are routed to the active panel only.
     TerminalUI_Panel* scrollablePanels[] = {
       this->modelInfoPanelPtr,
       this->epochsPanelPtr,
@@ -444,6 +449,21 @@ namespace NN_CLI
       if (active && active->applyScrollInput(ch))
         return true;
     }
+
+    return false;
+  }
+
+  //===================================================================================================================//
+  //-- Widget overrides --//
+  //===================================================================================================================//
+
+  bool TerminalUI_TrainingWindow::handleEvent(int ch)
+  {
+    if (this->cycleActivePanel(ch))
+      return true;
+
+    if (this->scrollActivePanel(ch))
+      return true;
 
     // Non-scroll events propagate to all children.
     return TerminalUI_Window::handleEvent(ch);

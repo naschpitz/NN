@@ -50,6 +50,7 @@ namespace NN_CLI
     ::curs_set(0);
     ::keypad(stdscr, TRUE);
     ::nodelay(stdscr, TRUE);
+    ::mousemask(BUTTON4_PRESSED | BUTTON5_PRESSED, nullptr);
 
     if (::has_colors()) {
       ::start_color();
@@ -166,6 +167,27 @@ namespace NN_CLI
       this->resize(newCols, newRows, 0, 0);
     }
 
+    this->preRender();
+    this->render();
+
+    // Drain all pending input events so that buffered keystrokes and
+    // mouse-wheel clicks are processed in a single pass.  Re-render once
+    // at the end if any event was consumed, avoiding per-key repaints.
+    bool anyConsumed = false;
+
+    while (this->pollAndDispatchInput())
+      anyConsumed = true;
+
+    if (anyConsumed) {
+      this->preRender();
+      this->render();
+    }
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_Window::render()
+  {
     ::touchwin(stdscr);
     ::erase();
 
@@ -173,6 +195,35 @@ namespace NN_CLI
       child->draw();
 
     ::refresh();
+  }
+
+  //===================================================================================================================//
+
+  bool TerminalUI_Window::pollAndDispatchInput()
+  {
+    int ch = ::getch();
+
+    if (ch == ERR)
+      return false;
+
+    // Translate mouse wheel events into scroll keys so that panels can
+    // handle them through the existing applyScrollInput() path.
+    if (ch == KEY_MOUSE) {
+      MEVENT me;
+
+      if (::getmouse(&me) == OK) {
+        if (me.bstate & BUTTON4_PRESSED)
+          ch = KEY_UP;
+        else if (me.bstate & BUTTON5_PRESSED)
+          ch = KEY_DOWN;
+        else
+          return false;  // non-wheel mouse event, ignore
+      } else {
+        return false;
+      }
+    }
+
+    return this->handleEvent(ch);
   }
 
   //===================================================================================================================//
