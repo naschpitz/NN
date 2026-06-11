@@ -174,7 +174,7 @@ namespace NN_CLI
 
     bool isBest = summary.find("Best*") != std::string::npos;
     std::string bestStr = isBest ? "Best*" : "";
-    std::string timestamp = Common::Utils::formatISO8601();
+    std::string timestamp = Common::Utils::formatHumanReadable();
 
     TerminalUI_Table::Row row = {epochStr, lossStream.str(), accuracyStr, bestStr, timestamp};
 
