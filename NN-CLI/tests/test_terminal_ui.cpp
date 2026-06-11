@@ -2,6 +2,7 @@
 
 #include "NN-CLI_TerminalUI_TrainingWindow.hpp"
 
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,21 @@ namespace TestKeys
   constexpr int kKeyHome = 0406;  // KEY_HOME
   constexpr int kKeyEnd  = 0550;  // KEY_END
 } // namespace TestKeys
+
+//===================================================================================================================//
+
+// Count non-continuation bytes (= Unicode code points = visual columns for
+// the narrow characters used in the table).  Mirrors the logic in
+// TerminalUI_Table.cpp's anonymous-namespace getVisualWidth().
+static int getVisualWidth(const std::string& text)
+{
+  int width = 0;
+  for (unsigned char c : text) {
+    if ((c & 0xC0) != 0x80)
+      width++;
+  }
+  return width;
+}
 
 //===================================================================================================================//
 
@@ -165,5 +181,130 @@ void runTerminalUITests()
 
     // handleEvent should return false for unrecognized keys.
     CHECK(!window.handleEvent(-1), "handleEvent should not consume unknown key -1");
+  }
+
+  //-- Table rendering with multi-byte UTF-8 preserves right border --//
+
+  {
+    // Regression: the rightmost "|" divider of the last column was truncated
+    // by mvaddnstr because line.size() (byte count) exceeded the visual-
+    // column limit (maxW) when the row contained multi-byte UTF-8 characters
+    // like the checkmark (U+2713, 3 bytes, 1 visual column).
+
+    NN_CLI::TerminalUI_Table table;
+    table.setColumns({
+      {"Epoch", 5, NN_CLI::TerminalUI_Table::Align::RIGHT},
+      {"Loss", 8, NN_CLI::TerminalUI_Table::Align::RIGHT},
+      {"Accuracy", 8, NN_CLI::TerminalUI_Table::Align::RIGHT},
+      {"Best", 4, NN_CLI::TerminalUI_Table::Align::LEFT},
+      {"Completed At", 19, NN_CLI::TerminalUI_Table::Align::LEFT},
+    });
+
+    // Use the same maxWidth a typical panel would provide.
+    const int maxWidth = 76;
+    table.setMaxWidth(maxWidth);
+
+    // Row WITHOUT multi-byte chars — pure ASCII baseline.
+    table.addRow({"1", "2.345678", "89.12", "", "Jun 11, 2026 14:30"});
+
+    // Row WITH checkmark — multi-byte UTF-8 in the "Best" column.
+    // The checkmark U+2713 is encoded as 3 bytes in UTF-8 (E2 9C 93) but
+    // occupies only 1 visual column.
+    table.addRow({"2", "1.234567", "95.00", "✓", "Jun 11, 2026 14:35"});
+
+    auto lines = table.render();
+
+    // The table should produce at least separator + header + separator +
+    // 2 data rows + separator = 6 lines.
+    CHECK(static_cast<int>(lines.size()) >= 6,
+          "Epoch table with 2 rows should produce at least 6 lines");
+
+    // Data rows and header must end with the right border "|".
+    // Separator lines end with "+" and are checked separately.
+    for (int i = 0; i < static_cast<int>(lines.size()); i++) {
+      char expectedBorder = '|';
+      // Lines 0, 2, 5 (for 2 data rows) are separators ending with '+'.
+      // All other lines are data/header rows ending with '|'.
+      bool isSeparator = (lines[i].find('+') == 0);
+      if (isSeparator) {
+        // Separators are of the form "+---+---+..."
+        CHECK(!lines[i].empty() && lines[i].back() == '+',
+              "Separator line " + std::to_string(i) + " must end with '+'");
+      } else {
+        CHECK(!lines[i].empty() && lines[i].back() == '|',
+              "Data/header line " + std::to_string(i) + " must end with '|'");
+      }
+    }
+
+    // Find the data rows (lines[3] and [4] for the 2 data rows).
+    // Line layout: [0]=sep, [1]=header, [2]=sep, [3]=row1, [4]=row2, [5]=sep
+    const std::string& asciiRow = lines[3];
+    const std::string& utf8Row  = lines[4];
+
+    // ASCII row: byte count == visual width.
+    int asciiVisual = getVisualWidth(asciiRow);
+    CHECK(static_cast<int>(asciiRow.size()) == asciiVisual,
+          "ASCII row byte count must equal visual width");
+    CHECK(asciiVisual == maxWidth,
+          "ASCII row visual width must equal maxWidth (" + std::to_string(maxWidth) + ")");
+
+    // UTF-8 row (with checkmark): byte count > visual width.
+    int utf8Visual = getVisualWidth(utf8Row);
+    CHECK(static_cast<int>(utf8Row.size()) > utf8Visual,
+          "Row with checkmark must have byte count > visual width (multi-byte char)");
+    CHECK(utf8Visual == maxWidth,
+          "UTF-8 row visual width must equal maxWidth (" + std::to_string(maxWidth) + ")");
+
+    // The critical invariant: the byte count exceeds maxWidth, so a naive
+    // min(line.size(), maxW) would truncate the string.
+    int utf8Bytes = static_cast<int>(utf8Row.size());
+    int extraBytes = utf8Bytes - maxWidth;
+
+    CHECK(extraBytes > 0,
+          "Row with checkmark must have byte count > maxWidth");
+
+    // With one checkmark (3 bytes, 1 col) the extra bytes should be exactly 2.
+    CHECK(utf8Bytes == maxWidth + 2,
+          "Row with one checkmark must have byte count = maxWidth + 2 (got " +
+          std::to_string(utf8Bytes) + ", expected " + std::to_string(maxWidth + 2) + ")");
+
+    // Simulate the OLD broken truncation: min(bytes, maxW) would give maxW
+    // bytes, cutting off the trailing " |".
+    int oldPrintLen = std::min(utf8Bytes, maxWidth);
+    CHECK(oldPrintLen < utf8Bytes,
+          "Old truncation min(bytes, maxW) must be less than full byte count");
+
+    // The last 2 bytes of the UTF-8 row are " |" — the right border.
+    CHECK(utf8Row[utf8Bytes - 2] == ' ' && utf8Row[utf8Bytes - 1] == '|',
+          "Last 2 bytes of UTF-8 row must be ' |' (space + right border)");
+
+    // -- Simulate both truncation strategies and prove the fix -- //
+
+    // OLD truncation (byte-based): min(bytes, maxW).
+    // This cuts off the last 2 bytes (" |"), losing the right border.
+    int oldTruncLen = std::min(utf8Bytes, maxWidth);
+    std::string oldTruncated = utf8Row.substr(0, static_cast<std::string::size_type>(oldTruncLen));
+    CHECK(oldTruncated.back() != '|',
+          "OLD byte-based truncation must lose the right border '|'");
+
+    // NEW truncation (visual-width-based): walk UTF-8 sequences up to maxW cols.
+    // This preserves the full visual width including the right border '|'.
+    int newBytes = 0;
+    int cols = 0;
+    while (newBytes < utf8Bytes && cols < maxWidth) {
+      unsigned char c = static_cast<unsigned char>(utf8Row[newBytes]);
+      int charBytes = 1;
+      if ((c & 0xE0) == 0xC0) charBytes = 2;
+      else if ((c & 0xF0) == 0xE0) charBytes = 3;
+      else if ((c & 0xF8) == 0xF0) charBytes = 4;
+      if (newBytes + charBytes > utf8Bytes) break;
+      cols++;
+      newBytes += charBytes;
+    }
+    std::string newTruncated = utf8Row.substr(0, static_cast<std::string::size_type>(newBytes));
+    CHECK(newTruncated.back() == '|',
+          "NEW visual-width truncation must preserve the right border '|'");
+    CHECK(static_cast<int>(newTruncated.size()) == utf8Bytes,
+          "NEW truncation must include all bytes (nothing cut off)");
   }
 }
