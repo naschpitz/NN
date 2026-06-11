@@ -5,9 +5,8 @@
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
+#include "NN-CLI_RunnerObserver.hpp"
 #include "NN-CLI_RunnerUtils.hpp"
-#include "NN-CLI_TerminalUI.hpp"
-#include "NN-CLI_TrainingController.hpp"
 #include "NN-CLI_Utils.hpp"
 
 #include <QCommandLineParser>
@@ -15,6 +14,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 //===================================================================================================================//
 
@@ -32,9 +32,13 @@ namespace NN_CLI
     public:
       //-- Constructors --//
       Runner(const QCommandLineParser& parser, LogLevel logLevel, IOConfig& ioConfig, AugmentationConfig& augConfig,
-                 std::unique_ptr<CoreT>& core, CoreConfigT& coreConfig);
+             std::unique_ptr<CoreT>& core, CoreConfigT& coreConfig);
 
       virtual ~Runner() = default;
+
+      //-- Observer management --//
+      void addObserver(IRunnerObserver* observer);
+      void removeObserver(IRunnerObserver* observer);
 
     protected:
       //-- Methods --//
@@ -43,6 +47,15 @@ namespace NN_CLI
 
       //-- Pure virtual --//
       virtual void doSaveModel(const std::string& outputPath) = 0;
+
+      //-- Observer notifications --//
+      void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss, float fraction);
+      void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
+                                const std::string& summary);
+      void notifyTrainingFinished(bool success, const std::string& finalSummary);
+      void notifyModelInfoUpdated(const std::string& property, const std::string& value);
+      void notifyLogMessage(const std::string& message, bool isError);
+      void notifyTimingUpdated(const std::string& metric, float value);
 
       //-- Shared state --//
       const QCommandLineParser& parser;
@@ -63,14 +76,10 @@ namespace NN_CLI
       // worker threads) against the epoch-completed callback.
       std::mutex callbackMutex;
 
-      //-- ncurses terminal UI (only active during training) --//
-      std::shared_ptr<TerminalUI> tui;
-
-      //-- Loading-bar wiring shared with the CNN runner --//
-      TrainingController trainingController;
+      //-- Observer list --//
+      std::vector<IRunnerObserver*> observers;
   };
 
 } // namespace NN_CLI
-
 
 #endif // NN_CLI_RUNNER_HPP

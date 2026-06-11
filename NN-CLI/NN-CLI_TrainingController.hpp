@@ -1,69 +1,95 @@
 #ifndef NN_CLI_TRAININGCONTROLLER_HPP
 #define NN_CLI_TRAININGCONTROLLER_HPP
 
-#include "NN-CLI_DataLoader.hpp"
+#include "NN-CLI_RunnerObserver.hpp"
+#include "NN-CLI_TerminalUI_TrainingWindow.hpp"
 
-#include "NN-CLI_TrainingProgressTracker.hpp"
-
-#include <functional>
+#include <map>
 #include <memory>
-
-#include <sys/types.h>
+#include <string>
+#include <vector>
 
 namespace NN_CLI
 {
 
-  class TerminalUI;
+  //===================================================================================================================//
 
-  // Owns the "Samples" bar lifecycle during training and keeps it wired to a TerminalUI
-  // across terminal resizes. Shared by the  and CNN runners: their cores differ, but the TUI
-  // plumbing (GPU-count reservation, loading callback, resize repaint) is identical.
-  class TrainingController
+  // MVC Controller for training sessions.  Bridges a concrete Runner (Model)
+  // and a TerminalUI_TrainingWindow (View) through the IRunnerObserver
+  // interface.  Owns both components and translates training events into
+  // high-level view updates — the controller itself is completely free of
+  // ncurses internals.
+  //
+  // Template parameter RunnerT is the concrete runner type (e.g. ANNRunner or
+  // CNNRunner).  The controller takes ownership of the runner via unique_ptr
+  // and registers itself as an observer to receive batch, epoch, and model-info
+  // events.  Each observer override delegates to a single high-level call on
+  // the TrainingWindow, keeping the mapping transparent and testable.
+  //
+  // Usage:
+  //   auto runner = std::make_unique<ANNRunner>(...);
+  //   TrainingController<ANNRunner> ctrl;
+  //   ctrl.init(std::move(runner));
+  //   int result = ctrl.startTraining();
+
+  template <typename RunnerT>
+  class TrainingController : public IRunnerObserver
   {
     public:
-      // Bind to the training TUI and register the overlay that repaints the loading bar after a
-      // resize. `onResize` (may be empty) is forwarded as the TUI resize callback, e.g. to reflow
-      // the Config panel at the new width.
-      void attach(std::shared_ptr<TerminalUI> tui, std::function<void()> onResize = {});
+      //-- Ctors / Dtors --//
 
-      // Reserve the per-GPU suffix width so the loading bar lines up with the epoch bar. The
-      // prefetch loader runs ahead of the first training update, so the GPU count is resolved up
-      // front (same logic the GPU core uses) rather than discovered dynamically.
-      // deviceIsGpu / numGpusConfig come from the (library-specific) core config.
-      void resolveBarGpus(bool deviceIsGpu, int numGpusConfig);
+      TrainingController() = default;
 
-      // DataLoader loading callback: remembers progress, services a pending resize, repaints the bar.
-      std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> loadingCallback();
+      ~TrainingController() override;
 
-      // Loading is over once the training stream starts consuming (call before core->train()).
-      void markLoadingFinished()
-      {
-        this->loading = false;
-      }
+      TrainingController(const TrainingController&) = delete;
+      TrainingController& operator=(const TrainingController&) = delete;
+      TrainingController(TrainingController&&) = delete;
+      TrainingController& operator=(TrainingController&&) = delete;
 
-      // Initialize the training progress tracker with the given parameters.
-      void initTracker(ulong progressReports, ulong windowSize, int barWidth);
+      //-- Lifecycle --//
 
-      // Forward progress info to the tracker for ncurses rendering.
-      void updateProgress(const ProgressInfo& progress);
+      // Create the TrainingWindow, take ownership of the Runner, and register
+      // this controller as an IRunnerObserver on the Runner.
+      void init(std::unique_ptr<RunnerT> runner);
+
+      // Trigger the Runner's training process.  Returns the exit code from
+      // RunnerT::train().
+      int startTraining();
+
+      //-- Accessors --//
+
+      TerminalUI_TrainingWindow* getWindow() const;
+      RunnerT* getRunner() const;
+
+    protected:
+      //-- IRunnerObserver overrides --//
+
+      void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float fraction) override;
+
+      void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
+                            const std::string& summary) override;
+
+      void onTrainingFinished(bool success, const std::string& finalSummary) override;
+
+      void onModelInfoUpdated(const std::string& property, const std::string& value) override;
+
+      void onLogMessage(const std::string& message, bool isError) override;
+
+      void onTimingUpdated(const std::string& metric, float value) override;
 
     private:
-      // Repaint the loading bar from the remembered state (no-op while not loading).
-      void renderBar();
+      //-- Members --//
 
-      std::shared_ptr<TerminalUI> tui;
-      int barGpus = 1;
+      std::unique_ptr<TerminalUI_TrainingWindow> window;
+      std::unique_ptr<RunnerT> runner;
 
-      //-- Training progress tracker --//
-      std::unique_ptr<TrainingProgressTracker> progressTracker;
+      //-- Timing state --//
 
-      //-- Loading-bar state, re-rendered on resize --//
-      ulong current = 0;
-      ulong total = 0;
-      ulong batchNum = 0;
-      ulong totalBatches = 0;
-      bool loading = false;
+      std::map<std::string, float> timingMetrics;
   };
+
+  //===================================================================================================================//
 
 } // namespace NN_CLI
 

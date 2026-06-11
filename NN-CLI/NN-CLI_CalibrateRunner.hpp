@@ -5,6 +5,7 @@
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_NetworkType.hpp"
+#include "NN-CLI_RunnerObserver.hpp"
 
 #include <ANN_Core.hpp>
 #include <ANN_CoreConfig.hpp>
@@ -49,9 +50,18 @@ namespace NN_CLI
                       std::unique_ptr<ANN::Core<float>>& annCore, const ANN::CoreConfig<float>& annCoreConfig,
                       std::unique_ptr<CNN::Core<float>>& cnnCore, const CNN::CoreConfig<float>& cnnCoreConfig);
 
+      //-- Observer management --//
+      void addObserver(IRunnerObserver* observer);
+      void removeObserver(IRunnerObserver* observer);
+
       int run();
 
     private:
+      //-- Observer notifications --//
+      void notifyLogMessage(const std::string& message, bool isError);
+      void notifyTrainingFinished(bool success, const std::string& finalSummary);
+
+      //-- Members --//
       const QCommandLineParser& parser;
       LogLevel logLevel;
       NetworkType networkType;
@@ -63,6 +73,9 @@ namespace NN_CLI
       ANN::CoreConfig<float> annCoreConfig;
       std::unique_ptr<CNN::Core<float>>& cnnCore;
       CNN::CoreConfig<float> cnnCoreConfig;
+
+      //-- Observer list --//
+      std::vector<IRunnerObserver*> observers;
 
       //-- Phases --//
       // Ensure --ood-dir contains DTD/Places365/synthetic; download/generate if missing.

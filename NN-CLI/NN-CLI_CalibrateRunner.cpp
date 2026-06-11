@@ -1,7 +1,7 @@
 #include "NN-CLI_CalibrateRunner.hpp"
 
 #include "NN-CLI_ImageLoader.hpp"
-#include "NN-CLI_TerminalUI_ProgressBar.hpp"
+#include "NN-CLI_Utils.hpp"
 
 #include <ANN_Utils.hpp>
 
@@ -172,7 +172,8 @@ namespace
         ulong done = ++loadedCount;
 
         if (logLevel > LogLevel::QUIET)
-          TerminalUI_ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
+          printLoadingProgress(std::string("Loading ") + progressLabel, done, total,
+                                                       progressReports);
       });
 
       InputsT inputs;
@@ -189,9 +190,9 @@ namespace
     };
 
     if (logLevel > LogLevel::QUIET) {
-      TerminalUI_ProgressBar::printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
+      printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
       core.setProgressCallback([progressReports, &progressLabel](ulong current, ulong totalCb) {
-        TerminalUI_ProgressBar::printLoadingProgress(progressLabel, current, totalCb, progressReports);
+        printLoadingProgress(progressLabel, current, totalCb, progressReports);
       });
     }
 
@@ -228,6 +229,54 @@ CalibrateRunner::CalibrateRunner(const QCommandLineParser& parser, LogLevel logL
 }
 
 //===================================================================================================================//
+//-- Observer management --//
+//===================================================================================================================//
+
+void CalibrateRunner::addObserver(NN_CLI::IRunnerObserver* observer)
+{
+  if (observer == nullptr)
+    return;
+
+  for (auto* existing : this->observers) {
+    if (existing == observer)
+      return;
+  }
+
+  this->observers.push_back(observer);
+}
+
+//===================================================================================================================//
+
+void CalibrateRunner::removeObserver(NN_CLI::IRunnerObserver* observer)
+{
+  if (observer == nullptr)
+    return;
+
+  auto it = std::find(this->observers.begin(), this->observers.end(), observer);
+
+  if (it != this->observers.end())
+    this->observers.erase(it);
+}
+
+//===================================================================================================================//
+//-- Observer notifications --//
+//===================================================================================================================//
+
+void CalibrateRunner::notifyLogMessage(const std::string& message, bool isError)
+{
+  for (auto* observer : this->observers)
+    observer->onLogMessage(message, isError);
+}
+
+//===================================================================================================================//
+
+void CalibrateRunner::notifyTrainingFinished(bool success, const std::string& finalSummary)
+{
+  for (auto* observer : this->observers)
+    observer->onTrainingFinished(success, finalSummary);
+}
+
+//===================================================================================================================//
 //-- run --//
 //===================================================================================================================//
 
@@ -235,7 +284,9 @@ int CalibrateRunner::run()
 {
   // ---- args --------------------------------------------------------------
   if (!this->parser.isSet("id-images")) {
-    std::cerr << "Error: --id-images <dir> is required for calibrate mode.\n";
+    std::string errMsg = "Error: --id-images <dir> is required for calibrate mode.";
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
     return 1;
   }
 
@@ -290,23 +341,38 @@ int CalibrateRunner::run()
   }
 
   if (this->logLevel > LogLevel::QUIET) {
-    std::cout << "Calibrate mode\n";
-    std::cout << "  Model:           " << this->parser.value("config").toStdString() << "\n";
-    std::cout << "  ID images:       " << idDir << "  (sample " << idCount << ")\n";
-    std::cout << "  OOD dir:         " << oodDir << "  (sample " << oodCount << ")\n";
-    std::cout << "  ID percentile:   " << idPercentile << "\n";
-    std::cout << "  Output:          " << outputPath << "\n";
-    std::cout << "\n";
+    std::string msg = "Calibrate mode\n"
+                      "  Model:           " +
+                      this->parser.value("config").toStdString() +
+                      "\n"
+                      "  ID images:       " +
+                      idDir + "  (sample " + std::to_string(idCount) +
+                      ")\n"
+                      "  OOD dir:         " +
+                      oodDir + "  (sample " + std::to_string(oodCount) +
+                      ")\n"
+                      "  ID percentile:   " +
+                      std::to_string(idPercentile) +
+                      "\n"
+                      "  Output:          " +
+                      outputPath + "\n\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
   }
 
   // ---- fetch OOD if needed ----------------------------------------------
   if (fetchIfMissing && !dirHasImages(oodDir)) {
-    if (this->logLevel > LogLevel::QUIET)
-      std::cout << "OOD dir is empty — fetching DTD + Places365 + synthetic.\n";
+    if (this->logLevel > LogLevel::QUIET) {
+      std::string msg = "OOD dir is empty — fetching DTD + Places365 + synthetic.\n";
+      std::cout << msg;
+      this->notifyLogMessage(msg, false);
+    }
 
     this->ensureOODDataset(oodDir);
   } else if (!dirHasImages(oodDir)) {
-    std::cerr << "Error: --ood-dir " << oodDir << " has no images and --no-fetch was set.\n";
+    std::string errMsg = "Error: --ood-dir " + oodDir + " has no images and --no-fetch was set.";
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
     return 1;
   }
 
@@ -315,12 +381,16 @@ int CalibrateRunner::run()
   std::vector<std::string> oodAll = gatherImages(oodDir);
 
   if (idAll.empty()) {
-    std::cerr << "Error: no images found under --id-images " << idDir << "\n";
+    std::string errMsg = "Error: no images found under --id-images " + idDir;
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
     return 1;
   }
 
   if (oodAll.empty()) {
-    std::cerr << "Error: no images found under --ood-dir " << oodDir << "\n";
+    std::string errMsg = "Error: no images found under --ood-dir " + oodDir;
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
     return 1;
   }
 
@@ -328,8 +398,13 @@ int CalibrateRunner::run()
   std::vector<std::string> oodSample = sampleImages(oodAll, oodCount, /*seed=*/42);
 
   if (this->logLevel > LogLevel::QUIET) {
-    std::cout << "Sampled " << idSample.size() << " ID images (of " << idAll.size() << " available)\n";
-    std::cout << "Sampled " << oodSample.size() << " OOD images (of " << oodAll.size() << " available)\n\n";
+    std::string msg = "Sampled " + std::to_string(idSample.size()) + " ID images (of " + std::to_string(idAll.size()) +
+                      " available)\n"
+                      "Sampled " +
+                      std::to_string(oodSample.size()) + " OOD images (of " + std::to_string(oodAll.size()) +
+                      " available)\n\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
   }
 
   // ---- predict + free-energy --------------------------------------------
@@ -355,12 +430,18 @@ int CalibrateRunner::run()
   this->writeThresholdJson(outputPath, idEnergies, oodEnergies, idPercentile);
 
   auto t1 = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed = t1 - t0;
 
   if (this->logLevel > LogLevel::QUIET) {
-    std::chrono::duration<double> elapsed = t1 - t0;
-    std::cout << "\nCalibration done in " << ANN::Utils<float>::formatDuration(elapsed.count()) << "\n";
-    std::cout << "Threshold written to: " << outputPath << "\n";
+    std::string doneMsg = "\nCalibration done in " + ANN::Utils<float>::formatDuration(elapsed.count()) +
+                          "\nThreshold written to: " + outputPath + "\n";
+    std::cout << doneMsg;
+    this->notifyLogMessage(doneMsg, false);
   }
+
+  std::string summary = "Calibration completed | ID: " + std::to_string(idEnergies.size()) +
+                        " | OOD: " + std::to_string(oodEnergies.size()) + " | Output: " + outputPath;
+  this->notifyTrainingFinished(true, summary);
 
   return 0;
 }
@@ -379,18 +460,27 @@ void CalibrateRunner::ensureOODDataset(const std::string& oodDir)
 
   if (!dirHasImages(dtdDir))
     this->fetchDTD(dtdDir.string());
-  else if (this->logLevel > LogLevel::QUIET)
-    std::cout << "[skip] DTD already extracted at " << dtdDir.string() << "\n";
+  else if (this->logLevel > LogLevel::QUIET) {
+    std::string msg = "[skip] DTD already extracted at " + dtdDir.string() + "\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
+  }
 
   if (!dirHasImages(placesDir))
     this->fetchPlaces365Val(placesDir.string());
-  else if (this->logLevel > LogLevel::QUIET)
-    std::cout << "[skip] Places365 val_256 already extracted at " << placesDir.string() << "\n";
+  else if (this->logLevel > LogLevel::QUIET) {
+    std::string msg = "[skip] Places365 val_256 already extracted at " + placesDir.string() + "\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
+  }
 
   if (!dirHasImages(synDir))
     this->generateSynthetic(synDir.string());
-  else if (this->logLevel > LogLevel::QUIET)
-    std::cout << "[skip] Synthetic OOD already at " << synDir.string() << "\n";
+  else if (this->logLevel > LogLevel::QUIET) {
+    std::string msg = "[skip] Synthetic OOD already at " + synDir.string() + "\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
+  }
 }
 
 //===================================================================================================================//
@@ -402,8 +492,11 @@ void CalibrateRunner::fetchDTD(const std::string& destDir)
   fs::create_directories(destDir);
   fs::path tgz = fs::path(destDir).parent_path() / "dtd-r1.0.1.tar.gz";
 
-  if (this->logLevel > LogLevel::QUIET)
-    std::cout << "[fetch] DTD (~600 MB) → " << destDir << "\n";
+  if (this->logLevel > LogLevel::QUIET) {
+    std::string msg = "[fetch] DTD (~600 MB) → " + destDir + "\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
+  }
 
   shellRun("curl",
            {"-L", "--fail", "-o", QString::fromStdString(tgz.string()),
@@ -425,8 +518,11 @@ void CalibrateRunner::fetchPlaces365Val(const std::string& destDir)
   fs::create_directories(destDir);
   fs::path tarPath = fs::path(destDir).parent_path() / "val_256.tar";
 
-  if (this->logLevel > LogLevel::QUIET)
-    std::cout << "[fetch] Places365 val_256 (~500 MB) → " << destDir << "\n";
+  if (this->logLevel > LogLevel::QUIET) {
+    std::string msg = "[fetch] Places365 val_256 (~500 MB) → " + destDir + "\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
+  }
 
   shellRun("curl",
            {"-L", "--fail", "-o", QString::fromStdString(tarPath.string()),
@@ -445,8 +541,11 @@ void CalibrateRunner::generateSynthetic(const std::string& destDir)
 {
   fs::create_directories(destDir);
 
-  if (this->logLevel > LogLevel::QUIET)
-    std::cout << "[gen]   Synthetic OOD → " << destDir << "\n";
+  if (this->logLevel > LogLevel::QUIET) {
+    std::string msg = "[gen]   Synthetic OOD → " + destDir + "\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
+  }
 
   // 3-channel 256×256 (NN-CLI's ImageLoader will resize to the model's inputShape).
   const int C = 3, H = 256, W = 256;
@@ -605,7 +704,7 @@ std::vector<std::vector<float>> CalibrateRunner::runPredict(const std::vector<st
   ulong total = imagePaths.size();
   ulong progressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
 
-  // Pick target dimensions (CNN uses 3D inputShape; 's image path uses ioConfig).
+  // Pick target dimensions (CNN uses 3D inputShape; ANN's image path uses ioConfig).
   int targetC = (this->networkType == NetworkType::CNN) ? static_cast<int>(this->cnnCoreConfig.inputShape.c)
                                                         : static_cast<int>(this->ioConfig.inputC);
   int targetH = (this->networkType == NetworkType::CNN) ? static_cast<int>(this->cnnCoreConfig.inputShape.h)

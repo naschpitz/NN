@@ -8,6 +8,9 @@
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_ModelPackage.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
+#include "NN-CLI_PredictController.hpp"
+#include "NN-CLI_TestController.hpp"
+#include "NN-CLI_TrainingController.hpp"
 
 #include <iostream>
 #include <optional>
@@ -125,7 +128,7 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
 
     // Validate parameters for predict/test in non-package mode (plain JSON).
     // Packages store params in binary, but a plain JSON without parameters would
-    // produce zero-initialized weights → garbage predictions.
+    // produce zero-initialized weights -> garbage predictions.
     if (!isPackage && (this->annCoreConfig.modeType == Common::ModeType::PREDICT ||
                        this->annCoreConfig.modeType == Common::ModeType::TEST)) {
       if (this->annCoreConfig.parameters.weights.empty() || this->annCoreConfig.parameters.biases.empty()) {
@@ -147,7 +150,7 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
 
     // Validate parameters for predict/test in non-package mode (plain JSON).
     // Packages store params in binary, but a plain JSON without parameters would
-    // produce zero-initialized weights → garbage predictions.
+    // produce zero-initialized weights -> garbage predictions.
     if (!isPackage && (this->cnnCoreConfig.modeType == Common::ModeType::PREDICT ||
                        this->cnnCoreConfig.modeType == Common::ModeType::TEST)) {
       bool hasParams = !this->cnnCoreConfig.parameters.convParams.empty() ||
@@ -168,33 +171,58 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
 
 int App::run()
 {
+  //-- Calibrate mode: CLI-level mode that bypasses the Controller layer --//
+  // CalibrateRunner internally drives predict and doesn't map to the
+  // TrainingController / PredictController / TestController pattern.
   if (this->isCalibrateMode) {
     CalibrateRunner calibrateRunner(this->parser, this->logLevel, this->networkType, this->ioConfig, this->augConfig,
                                     this->annCore, this->annCoreConfig, this->cnnCore, this->cnnCoreConfig);
     return calibrateRunner.run();
   }
 
+  //-- Create the appropriate Controller based on mode and network type --//
+  // The Controller takes ownership of the Runner, registers itself as an
+  // IRunnerObserver, and bridges Runner events to the View.  The Runner
+  // holds references back to this App's core/coreConfig/ioConfig/augConfig
+  // members, which remain valid for the duration of run().
+
   if (this->networkType == NetworkType::ANN) {
-    ANNRunner annRunner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->annCore,
-                        this->annCoreConfig);
+    auto runner = std::make_unique<ANNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
+                                              this->annCore, this->annCoreConfig);
 
-    if (this->mode == "train")
-      return annRunner.train();
+    if (this->mode == "train") {
+      TrainingController<ANNRunner> controller;
+      controller.init(std::move(runner));
+      return controller.startTraining();
+    }
 
-    if (this->mode == "test")
-      return annRunner.test();
+    if (this->mode == "test") {
+      TestController<ANNRunner> controller;
+      controller.init(std::move(runner));
+      return controller.startTest();
+    }
 
-    return annRunner.predict();
+    PredictController<ANNRunner> controller;
+    controller.init(std::move(runner));
+    return controller.startPredict();
   } else {
-    CNNRunner cnnRunner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->cnnCore,
-                        this->cnnCoreConfig);
+    auto runner = std::make_unique<CNNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
+                                              this->cnnCore, this->cnnCoreConfig);
 
-    if (this->mode == "train")
-      return cnnRunner.train();
+    if (this->mode == "train") {
+      TrainingController<CNNRunner> controller;
+      controller.init(std::move(runner));
+      return controller.startTraining();
+    }
 
-    if (this->mode == "test")
-      return cnnRunner.test();
+    if (this->mode == "test") {
+      TestController<CNNRunner> controller;
+      controller.init(std::move(runner));
+      return controller.startTest();
+    }
 
-    return cnnRunner.predict();
+    PredictController<CNNRunner> controller;
+    controller.init(std::move(runner));
+    return controller.startPredict();
   }
 }

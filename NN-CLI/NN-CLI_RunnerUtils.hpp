@@ -6,7 +6,6 @@
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
-#include "NN-CLI_TerminalUI.hpp"
 #include "NN-CLI_Utils.hpp"
 
 #include <QCommandLineParser>
@@ -31,21 +30,15 @@ namespace NN_CLI
   //-------------------------------------------------------------------------------------------------------------------//
 
   /// Common finish-training logic shared by  and CNN runners.
-  /// @param tui           Terminal UI shared pointer (shut down and reset inside).
   /// @param logLevel      Current log level.
   /// @param parser        CLI parser (for --output).
   /// @param inputFilePath Path to the input samples file (used for default output path).
   /// @param core          The trained core ( or CNN) — must support getTrainingConfig() and getTrainingMetadata().
   /// @param saveFn        Callable that takes (const std::string& outputPath) and persists the model.
   template <typename CoreT, typename SaveFn>
-  int finishTrainingCommon(std::shared_ptr<TerminalUI>& tui, LogLevel logLevel, const QCommandLineParser& parser,
+  int finishTrainingCommon(LogLevel logLevel, const QCommandLineParser& parser,
                            const QString& inputFilePath, const CoreT& core, const SaveFn& saveFn)
   {
-    if (tui) {
-      tui->shutdown();
-      tui.reset();
-    }
-
     if (logLevel > LogLevel::QUIET)
       std::cout << "\nTraining completed.\n";
 

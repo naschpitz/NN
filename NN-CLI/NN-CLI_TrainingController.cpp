@@ -1,98 +1,172 @@
 #include "NN-CLI_TrainingController.hpp"
 
-#include "NN-CLI_TerminalUI_ProgressBar.hpp"
-#include "NN-CLI_TerminalUI.hpp"
+#include "NN-CLI_ANNRunner.hpp"
+#include "NN-CLI_CNNRunner.hpp"
+#include "NN-CLI_TerminalUI_TrainingWindow.hpp"
 
-#include <OCLW_Core.hpp>
-
-#include <algorithm>
-#include <mutex>
-#include <sstream>
+#include <string>
+#include <vector>
 
 namespace NN_CLI
 {
 
-  void TrainingController::attach(std::shared_ptr<TerminalUI> tui, std::function<void()> onResize)
+  //===================================================================================================================//
+  //-- Ctors / Dtors --//
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  TrainingController<RunnerT>::~TrainingController()
   {
-    this->tui = std::move(tui);
-
-    if (!this->tui)
-      return;
-
-    if (onResize)
-      this->tui->setResizeCallback(std::move(onResize));
-
-    // After a resize redraws the panels, layout() has erased the progress sub-window. Repaint
-    // the loading bar from the last-known state so it survives the resize instead of staying blank
-    // until the next mini-batch load callback fires.
-    this->tui->setOverlayCallback([this]() { this->renderBar(); });
+    if (this->runner)
+      this->runner->removeObserver(this);
   }
 
-  void TrainingController::resolveBarGpus(bool deviceIsGpu, int numGpusConfig)
+  //===================================================================================================================//
+  //-- Lifecycle --//
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  void TrainingController<RunnerT>::init(std::unique_ptr<RunnerT> runner)
   {
-    this->barGpus = 1;
+    this->window = std::make_unique<TerminalUI_TrainingWindow>();
+    this->runner = std::move(runner);
 
-    if (!deviceIsGpu)
-      return;
+    if (this->runner)
+      this->runner->addObserver(this);
 
-    OpenCLWrapper::Core::initialize(false);
-    int availableGpus = static_cast<int>(OpenCLWrapper::Core::getNumDevices());
-    this->barGpus = (numGpusConfig > 0) ? std::min(availableGpus, numGpusConfig) : availableGpus;
-    this->barGpus = std::max(1, this->barGpus);
-  }
-
-  std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> TrainingController::loadingCallback()
-  {
-    return [this](ulong current, ulong total, ulong batchNum, ulong totalBatches, SampleLoadType loadType) {
-      if (loadType != SampleLoadType::Training)
-        return; // only track training sample loading
-
-      this->current = current;
-      this->total = total;
-      this->batchNum = batchNum;
-      this->totalBatches = totalBatches;
-      this->loading = true;
-
-      std::lock_guard<std::recursive_mutex> lock(this->tui->getMutex());
-      this->tui->handleResize();
-      this->renderBar();
-    };
+    // Initialize the ncurses TUI.  If init fails (e.g. no TTY attached),
+    // the window gracefully degrades -- draw() becomes a no-op, so the
+    // training proceeds with console-only output from the Runner.
+    if (this->window)
+      this->window->init();
   }
 
   //===================================================================================================================//
 
-  void TrainingController::initTracker(ulong progressReports, ulong windowSize, int barWidth)
+  template <typename RunnerT>
+  int TrainingController<RunnerT>::startTraining()
   {
-    this->progressTracker = std::make_unique<TrainingProgressTracker>(progressReports, windowSize, barWidth);
+    if (!this->runner)
+      return 1;
+
+    return this->runner->train();
+  }
+
+  //===================================================================================================================//
+  //-- Accessors --//
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  TerminalUI_TrainingWindow* TrainingController<RunnerT>::getWindow() const
+  {
+    return this->window.get();
   }
 
   //===================================================================================================================//
 
-  void TrainingController::updateProgress(const ProgressInfo& progress)
+  template <typename RunnerT>
+  RunnerT* TrainingController<RunnerT>::getRunner() const
   {
-    if (!this->progressTracker)
+    return this->runner.get();
+  }
+
+  //===================================================================================================================//
+  //-- IRunnerObserver overrides --//
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  void TrainingController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float fraction)
+  {
+    if (!this->window)
       return;
 
-    if (!this->tui || !this->tui->isInitialized())
-      return;
-
-    this->progressTracker->update(progress, this->tui->progressWindow());
+    std::string label = "Batch " + std::to_string(batchIdx) + "/" + std::to_string(totalBatches) +
+                        "  Loss: " + std::to_string(currentLoss);
+    this->window->updateProgress(label, fraction);
+    this->window->draw();
   }
 
   //===================================================================================================================//
 
-  void TrainingController::renderBar()
+  template <typename RunnerT>
+  void TrainingController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
+                                                      const std::string& summary)
   {
-    if (!this->loading || !this->tui)
+    if (!this->window)
       return;
 
-    std::ostringstream labelStream;
-    labelStream << "Samples (" << this->batchNum << "/" << this->totalBatches << ")";
-    std::string label = labelStream.str();
-    float fraction = (this->total > 0) ? static_cast<float>(this->current) / static_cast<float>(this->total) : 0.0f;
-
-    TerminalUI_ProgressBar renderer;
-    renderer.renderSingleBar(this->tui->progressWindow(), label, fraction);
+    this->window->addEpochMessage(summary);
+    this->window->refreshEpochContent();
+    this->window->draw();
   }
+
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  void TrainingController<RunnerT>::onTrainingFinished(bool success, const std::string& finalSummary)
+  {
+    if (!this->window)
+      return;
+
+    std::string prefix = success ? "[Training complete] " : "[Training failed] ";
+    this->window->addEpochMessage(prefix + finalSummary);
+    this->window->refreshEpochContent();
+    this->window->draw();
+  }
+
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  void TrainingController<RunnerT>::onModelInfoUpdated(const std::string& property, const std::string& value)
+  {
+    if (!this->window)
+      return;
+
+    this->window->addModelInfoEntry(property, value);
+    this->window->refreshModelInfoContent();
+    this->window->draw();
+  }
+
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  void TrainingController<RunnerT>::onLogMessage(const std::string& message, bool isError)
+  {
+    if (!this->window)
+      return;
+
+    std::string formatted = isError ? ("[ERROR] " + message) : message;
+    this->window->addEpochMessage(formatted);
+    this->window->refreshEpochContent();
+    this->window->draw();
+  }
+
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  void TrainingController<RunnerT>::onTimingUpdated(const std::string& metric, float value)
+  {
+    if (!this->window)
+      return;
+
+    this->timingMetrics[metric] = value;
+
+    std::vector<std::string> lines;
+    lines.reserve(this->timingMetrics.size());
+
+    for (const auto& [name, val] : this->timingMetrics)
+      lines.push_back(" " + name + ": " + std::to_string(val) + " ms");
+
+    this->window->setTimingLines(lines);
+    this->window->refreshTimingContent();
+    this->window->draw();
+  }
+
+  //===================================================================================================================//
+  //-- Explicit template instantiations --//
+  //===================================================================================================================//
+
+  template class TrainingController<ANNRunner>;
+  template class TrainingController<CNNRunner>;
 
 } // namespace NN_CLI

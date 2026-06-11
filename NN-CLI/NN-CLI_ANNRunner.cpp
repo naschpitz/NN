@@ -3,14 +3,11 @@
 
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_DataLoader.hpp"
-#include "NN-CLI_LossReferenceTable.hpp"
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
-#include "NN-CLI_TrainingProgressTracker.hpp"
 #include "NN-CLI_PredictSummary.hpp"
 #include "NN-CLI_RunnerUtils.hpp"
 #include "NN-CLI_TestSummary.hpp"
-#include "NN-CLI_TrainingSummary.hpp"
 #include "NN-CLI_Utils.hpp"
 
 #include <QDir>
@@ -48,16 +45,6 @@ int ANNRunner::train()
   if (checkSamplesIdxDataConflict(this->parser))
     return 1;
 
-  this->tui = std::make_shared<TerminalUI>();
-
-  if (this->logLevel > LogLevel::QUIET)
-    this->tui->init();
-
-  this->trainingController.attach(this->tui);
-
-  if (this->tui->isInitialized())
-    this->tui->refreshConfigPanel();
-
   QString inputFilePath;
   DataLoader<ANN::Sample<float>> dataLoader;
 
@@ -75,10 +62,8 @@ int ANNRunner::train()
   } else {
     auto [samples, success] = this->loadSamplesFromOptions("training", inputFilePath);
 
-    if (!success) {
-      this->tui->shutdown();
+    if (!success)
       return 1;
-    }
 
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
@@ -132,26 +117,10 @@ int ANNRunner::train()
   ulong numOriginalTrainSamples = totalOriginalSamples - numValidationSamples;
   ulong numTrainSamples = validationConfig.enabled ? split.trainIndices.size() : dataLoader.numSamples();
 
-  if (this->logLevel > LogLevel::QUIET) {
-    std::vector<SummaryTable::Section> sections;
-    sections.push_back(
-      {"Model Configuration",
-       TrainingSummary::collectRows(this->coreConfig, this->augConfig, numOriginalTrainSamples, numTrainSamples,
-                                    numValidationSamples, validationRatio, validationAuto)});
 
-    ulong numOutputClasses =
-      this->coreConfig.layersConfig.empty() ? 0 : this->coreConfig.layersConfig.back().numNeurons;
-    if (numOutputClasses >= 2) {
-      sections.push_back({"Loss Reference", LossReferenceTable::collectRows(numOutputClasses)});
-    }
-
-    this->tui->setConfigSections(sections);
-  }
-
-  // Render config panel
-  if (this->tui->isInitialized()) {
-    this->tui->refreshConfigPanel();
-  }
+  this->notifyModelInfoUpdated("totalOriginalSamples", std::to_string(totalOriginalSamples));
+  this->notifyModelInfoUpdated("numTrainSamples", std::to_string(numTrainSamples));
+  this->notifyModelInfoUpdated("numValidationSamples", std::to_string(numValidationSamples));
 
   std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
 
@@ -185,22 +154,6 @@ int ANNRunner::train()
                               validationConfig.enabled ? &dataLoader : nullptr,
                               validationConfig.enabled ? &split.validationIndices : nullptr);
 
-  if (this->tui && this->tui->isInitialized()) {
-    this->trainingController.resolveBarGpus(this->coreConfig.deviceType == Common::DeviceType::GPU, this->coreConfig.numGPUs);
-    dataLoader.setLoadingCallback(this->trainingController.loadingCallback());
-  }
-
-  // Pre-populate the TUI epoch table with loaded history (resumed model).
-  if (this->tui && this->tui->isInitialized() && !this->coreConfig.loadedEpochHistory.empty()) {
-    for (const auto& record : this->coreConfig.loadedEpochHistory) {
-      int epochNum = static_cast<int>(record.epoch) + 1; // Convert 0-based to 1-based for TUI display
-      float lossVal = static_cast<float>(record.loss);
-      float valLossVal = static_cast<float>(record.valLoss);
-      std::time_t compTime = static_cast<std::time_t>(record.completionTime);
-
-      this->tui->pushEpochRecord(epochNum, lossVal, record.hasValLoss, valLossVal, record.isBest, compTime);
-    }
-  }
 
   // Prepend loaded epoch history into the core before training starts, so
   // checkpoints during training serialize the full history, not just new epochs.
@@ -213,12 +166,10 @@ int ANNRunner::train()
     auto trainProvider =
       dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
                                     this->augConfig.augmentationProbability, SampleLoadType::Training);
-    this->trainingController.markLoadingFinished();
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
     auto sampleProvider = dataLoader.makeSampleProvider(
       this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Training);
-    this->trainingController.markLoadingFinished();
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
 
@@ -353,9 +304,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   this->lastEpochLoss = 0.0f;
 
   ulong batchSize = this->coreConfig.trainingConfig.batchSize;
-  this->trainingController.initTracker(this->ioConfig.progressReports, std::max(2UL, batchSize / 2), 50);
-
-  auto tui = this->tui;
+  int totalEpochs = static_cast<int>(this->coreConfig.trainingConfig.numEpochs);
 
   std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr;
 
@@ -366,26 +315,21 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
   // Live progress callback: fires per batch. It only drives the progress
   // display — every epoch-boundary task lives in the epoch-completed callback.
-  this->core->setTrainingCallback([this, tui](const Common::TrainingProgressEvent<float>& progress) {
-    std::lock_guard<std::mutex> lock(this->callbackMutex);
+  this->core->setTrainingCallback(
+    [this, batchSize, totalEpochs](const Common::TrainingProgressEvent<float>& progress) {
+      std::lock_guard<std::mutex> lock(this->callbackMutex);
 
-    if (progress.epochLoss > 0)
-      this->lastEpochLoss = progress.epochLoss;
+      if (progress.epochLoss > 0)
+        this->lastEpochLoss = progress.epochLoss;
 
-    if (this->logLevel > LogLevel::QUIET) {
-      ProgressInfo info{progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples,
-                        progress.epochLoss,    progress.sampleLoss,  progress.gpuIndex,      progress.totalGPUs};
-
-      if (tui && tui->isInitialized()) {
-        std::lock_guard<std::recursive_mutex> tuiLock(tui->getMutex());
-        tui->handleResize();
-        this->trainingController.updateProgress(info);
-        tui->refresh();
-      } else {
-        this->trainingController.updateProgress(info);
-      }
-    }
-  });
+      // Observer notification — batch progress.
+      float fraction = (progress.totalSamples > 0)
+                         ? static_cast<float>(progress.currentSample) / static_cast<float>(progress.totalSamples)
+                         : 0.0f;
+      int batchIdx = static_cast<int>(progress.currentSample / batchSize);
+      int totalBatches = static_cast<int>((progress.totalSamples + batchSize - 1) / batchSize);
+      this->notifyBatchProgress(batchIdx, totalBatches, progress.epochLoss, fraction);
+    });
 
   // Epoch-completed callback: fires once per epoch (after the epoch's record is
   // recorded) with the 0-based epoch index. The core hands us the index
@@ -393,14 +337,14 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   // matches EpochRecord::epoch and the serialized bestValidationEpoch.
   this->core->setEpochCompletedCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
                                          validationIndices,
-                                         tui](const Common::EpochCompletionEvent<float>& completion) {
+                                         totalEpochs](const Common::EpochCompletionEvent<float>& completion) {
     std::lock_guard<std::mutex> lock(this->callbackMutex);
 
     const ulong epoch = completion.epoch; // 0-based index of the just-completed epoch
 
     // --- Checkpointing (every saveModelInterval completed epochs) ---
     // epoch + 1 is the count of completed epochs; checkpoint filenames stay
-    // 1-based to match the TUI's human-facing epoch numbering.
+    // 1-based for human-facing numbering.
     if (this->ioConfig.saveModelInterval > 0 && (epoch + 1) % this->ioConfig.saveModelInterval == 0) {
       std::string checkpointPath =
         ModelSerializer::generateCheckpointPath(inputFilePath, epoch + 1, this->lastEpochLoss);
@@ -413,6 +357,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     bool monitorShouldStop = false;
     float valLoss = 0.0f;
     bool hasValLoss = false;
+    float accuracy = -1.0f;
 
     if (this->validationState.enabled && validationCore && validationProviderPtr && validationIndices &&
         epoch % this->validationState.checkInterval == 0) {
@@ -420,13 +365,14 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
       validationCore->setParameters(this->core->getParameters());
 
-      setupValidationProgressCallback(*validationCore, tui, validationTotal, this->coreConfig.numGPUs);
+      setupValidationProgressCallback(*validationCore, validationTotal, this->ioConfig.progressReports);
 
       auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
 
       this->validationState.lastValLoss = validationResult.averageLoss;
       valLoss = validationResult.averageLoss;
       hasValLoss = true;
+      accuracy = validationResult.accuracy;
 
       if (validationResult.averageLoss < this->validationState.bestValLoss) {
         this->validationState.bestValLoss = validationResult.averageLoss;
@@ -462,23 +408,30 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       lastRecord.valLoss = valLoss;
     }
 
-    // --- TUI history line (1-based for display) ---
-    if (tui && tui->isInitialized() && this->logLevel > LogLevel::QUIET) {
-      tui->pushEpochRecord(static_cast<int>(epoch) + 1, this->lastEpochLoss, hasValLoss, valLoss, isBestEpoch);
-    }
+    // --- Observer notification — epoch completed ---
+    std::string epochSummary = "Epoch " + std::to_string(epoch + 1) + "/" + std::to_string(totalEpochs) +
+                               " | Loss: " + std::to_string(this->lastEpochLoss);
+
+    if (hasValLoss)
+      epochSummary += " | ValLoss: " + std::to_string(valLoss);
+
+    if (isBestEpoch)
+      epochSummary += " | Best*";
+
+    this->notifyEpochCompleted(static_cast<int>(epoch), totalEpochs, this->lastEpochLoss, accuracy, epochSummary);
 
     // --- Monitor stop requests ---
     if (monitorShouldStop) {
-      if (tui && tui->isInitialized())
-        tui->addEpochLine("[Monitor] Training stopped: " + trainingMonitor->getStopReason());
+      std::string stopMsg = "[Monitor] Training stopped: " + trainingMonitor->getStopReason();
 
+      this->notifyLogMessage(stopMsg, false);
       this->core->requestStop();
     }
 
     if (completion.stoppedEarly) {
-      if (tui && tui->isInitialized())
-        tui->addEpochLine("[Monitor] Training stopped: " + this->core->getTrainingMetadata().stopReason);
+      std::string stopMsg = "[Monitor] Training stopped: " + this->core->getTrainingMetadata().stopReason;
 
+      this->notifyLogMessage(stopMsg, false);
       this->core->requestStop();
     }
   });

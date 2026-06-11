@@ -1,6 +1,9 @@
 #ifndef NN_CLI_TERMINALUI_PANEL_HPP
 #define NN_CLI_TERMINALUI_PANEL_HPP
 
+#include "NN-CLI_TerminalUI_Widget.hpp"
+
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -12,20 +15,26 @@ typedef struct _win_st WINDOW;
 namespace NN_CLI
 {
 
-  // Panel container that owns bounds and handles framing/content drawing for a
-  // specific area of the screen.  Unifies the left-column panels (Configuration,
-  // Epochs) and the right-column Timing panel under one drawing/scrolling model.
+  // Container widget that draws a bordered panel with optional title, manages
+  // scrollable text content, and owns child widgets laid out within its
+  // content area.
   //
-  // Drawing is performed directly on stdscr; the panel stores its (y, x, h, w)
-  // bounds and the caller positions it via resize().  The three draw methods
-  // (drawFrame, drawContent, drawScrollbar) are independent so callers can
-  // compose them — e.g. drawing all frames first, then all content.
+  // Inherits from TerminalUI_Widget so it can participate in the MVC view
+  // hierarchy alongside Window, ProgressBar, Table, and other widgets.
+  //
+  // Drawing is performed directly on stdscr via the ncurses mvaddch/mvaddstr
+  // family.  The three legacy draw methods (drawFrame, drawContent,
+  // drawScrollbar) are kept for backward compatibility; the unified draw()
+  // override invokes all three and then renders children.
+  //
+  // Resize propagation: resize() updates this panel's bounds and then calls
+  // layoutChildren() to reposition child widgets within the content area.
   //
   // Color pair convention (matches TerminalUI init):
   //   2 = CYAN   (inactive / normal)
   //   3 = YELLOW (active / highlighted)
 
-  class TerminalUI_Panel
+  class TerminalUI_Panel : public TerminalUI_Widget
   {
     public:
       //-- Types --//
@@ -41,12 +50,22 @@ namespace NN_CLI
       //-- Ctors --//
 
       TerminalUI_Panel();
+
+      // Primary constructor: title and color pair.  Position/size are set via
+      // resize() or the backward-compatible constructor below.
+      TerminalUI_Panel(const std::string& title, int colorPair);
+
+      // Backward-compatible constructor: (row, col, rows, cols, title, colorPair).
+      // Maps directly to the Widget's position and size fields.
       TerminalUI_Panel(int y, int x, int h, int w, std::string title, int colorPair);
 
       //-- Layout --//
 
-      // Update bounds.  Does not redraw — call drawFrame/drawContent/drawScrollbar after.
-      void resize(int y, int x, int h, int w);
+      // Widget override: update bounds and propagate to children via
+      // layoutChildren().
+      //
+      // Parameter order: (width, height, x, y) — width before position.
+      void resize(int width, int height, int x, int y) override;
 
       // Update the panel title (used by drawFrame).
       void setTitle(const std::string& title);
@@ -65,6 +84,9 @@ namespace NN_CLI
 
       //-- Drawing --//
 
+      // Unified Widget override: draws frame, content, scrollbar, and children.
+      void draw() override;
+
       // Draw the ACS border frame and colored title.
       void drawFrame() const;
 
@@ -76,16 +98,46 @@ namespace NN_CLI
 
       //-- Input --//
 
+      // Widget override: delegates to applyScrollInput() for scroll keys, then
+      // propagates to children.
+      bool handleEvent(int ch) override;
+
       // Handle a keypress for scrolling (Up/Down/k/j, PgUp/PgDn, Home/End).
       // Returns true if `ch` was a recognized scroll key.  Clears autoScroll.
       bool applyScrollInput(int ch);
 
+      //-- Child management --//
+
+      // Take ownership of a child widget positioned within this panel.
+      void addChild(std::unique_ptr<TerminalUI_Widget> child);
+
+      // Release and return the child at the given index, or nullptr if out of range.
+      std::unique_ptr<TerminalUI_Widget> removeChild(int index);
+
+      int childCount() const
+      {
+        return static_cast<int>(this->children.size());
+      }
+
+      TerminalUI_Widget* getChild(int index) const;
+
+      //-- Layout (children) --//
+
+      // Reposition child widgets within this panel's content area.  The default
+      // implementation gives every child the full content area; override for
+      // custom strategies.
+      virtual void layoutChildren();
+
       //-- Accessors --//
 
       // Effective content width, accounting for the scrollbar column when needed.
-      // Returns w-4 when content fits, w-5 when the scrollbar is shown.
+      // Returns width-4 when content fits, width-5 when the scrollbar is shown.
       int contentWidth() const;
 
+      // Height available for content lines inside the frame (height - 2).
+      int contentHeight() const;
+
+      // Backward-compatible aliases that map to the Widget base accessors.
       int getY() const
       {
         return this->y;
@@ -98,12 +150,12 @@ namespace NN_CLI
 
       int getH() const
       {
-        return this->h;
+        return this->height;
       }
 
       int getW() const
       {
-        return this->w;
+        return this->width;
       }
 
       const std::string& getTitle() const
@@ -131,25 +183,19 @@ namespace NN_CLI
         return this->lines;
       }
 
-    private:
+    protected:
       //-- Methods --//
-
-      // Number of rows available for content inside the frame (h - 2).
-      int contentHeight() const;
 
       // Resolved scroll offset: autoScroll returns max, otherwise clamped offset.
       int scrollOffset() const;
 
       //-- Members --//
 
-      int y = 0;
-      int x = 0;
-      int h = 0;
-      int w = 0;
       std::string title;
       int colorPair = 2; // CYAN (inactive) by default
       ScrollState scroll;
       std::vector<std::string> lines;
+      std::vector<std::unique_ptr<TerminalUI_Widget>> children;
   };
 
 } // namespace NN_CLI

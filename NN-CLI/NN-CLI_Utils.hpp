@@ -2,8 +2,6 @@
 #define NN_CLI_UTILS_HPP
 
 #include "NN-CLI_LogLevel.hpp"
-#include "NN-CLI_TerminalUI_ProgressBar.hpp"
-#include "NN-CLI_TerminalUI.hpp"
 
 #include <ANN_Core.hpp>
 #include <CNN_Types.hpp>
@@ -16,7 +14,9 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -58,6 +58,41 @@ namespace NN_CLI
   //  Shared CLI helpers — progress bars, validation guards
   //-------------------------------------------------------------------------------------------------------------------//
 
+  /// Simple loading progress bar printed to std::cout (no ncurses).
+  /// Throttled by `progressReports` — only updates every total/progressReports
+  /// steps.  Prints a final newline when current == total.
+  inline void printLoadingProgress(const std::string& label, size_t current, size_t total,
+                                   ulong progressReports = 1000, int barWidth = 40)
+  {
+    ulong interval = (progressReports > 0) ? std::max(static_cast<size_t>(1), total / progressReports) : 0;
+
+    if (interval == 0)
+      return;
+
+    if (current > 1 && current != total && (current % interval) != 0)
+      return;
+
+    float percent = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
+    percent = std::clamp(percent, 0.0f, 1.0f);
+    int filledWidth = static_cast<int>(percent * barWidth);
+
+    std::ostringstream out;
+    out << "\r" << label << " [";
+
+    for (int i = 0; i < barWidth; i++)
+      out << (i < filledWidth ? "\xe2\x96\x88" : "\xe2\x96\x91");
+
+    out << "] " << current << "/" << total << "  " << std::fixed << std::setprecision(1) << (percent * 100.0f) << "%";
+    out << "   ";
+
+    std::cout << out.str() << std::flush;
+
+    if (current == total)
+      std::cout << std::endl;
+  }
+
+  //-------------------------------------------------------------------------------------------------------------------//
+
   /// Set up a test/predict-mode progress callback on the core.
   /// Prints an initial "0 / total" bar and wires a callback that prints progress
   /// on every batch completion.
@@ -66,9 +101,9 @@ namespace NN_CLI
                                         const std::string& label, ulong total)
   {
     if (logLevel > LogLevel::QUIET) {
-      TerminalUI_ProgressBar::printLoadingProgress(label, 0, total, progressReports);
+      printLoadingProgress(label, 0, total, progressReports);
       core.setProgressCallback([progressReports, label](ulong current, ulong total) {
-        TerminalUI_ProgressBar::printLoadingProgress(label, current, total, progressReports);
+        printLoadingProgress(label, current, total, progressReports);
       });
     }
   }
@@ -121,22 +156,14 @@ namespace NN_CLI
 
   //-------------------------------------------------------------------------------------------------------------------//
 
-  /// Attach a validation progress bar callback to a validation core so the TUI
-  /// progress window shows validation progress.
+  /// Attach a validation progress callback to a validation core.
+  /// Prints a stdout progress bar during validation.
   template <typename CoreType>
-  inline void setupValidationProgressCallback(CoreType& validationCore, std::shared_ptr<TerminalUI> tui,
-                                              ulong validationTotal, int totalGPUs)
+  inline void setupValidationProgressCallback(CoreType& validationCore, ulong validationTotal, ulong progressReports)
   {
-    if (tui && tui->isInitialized()) {
-      validationCore.setProgressCallback([tui, validationTotal](ulong current, ulong) {
-        float pct = static_cast<float>(current) / static_cast<float>(validationTotal) * 100.0f;
-        std::lock_guard<std::recursive_mutex> tuiLock(tui->getMutex());
-        tui->handleResize();
-        TerminalUI_ProgressBar renderer;
-        renderer.renderSingleBar(tui->progressWindow(), "Validating", pct / 100.0f);
-        renderer.clearSubLine(tui->progressWindow());
-      });
-    }
+    validationCore.setProgressCallback([validationTotal, progressReports](ulong current, ulong) {
+      printLoadingProgress("Validating", current, validationTotal, progressReports);
+    });
   }
 
   //-------------------------------------------------------------------------------------------------------------------//

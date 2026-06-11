@@ -20,8 +20,22 @@ namespace NN_CLI
 {
 
   /**
-   * App handles initial config loading, network type detection, and delegates
-   * to ANNRunner or CNNRunner for the actual train/test/predict execution.
+   * Application entry point and Controller factory for the MVC architecture.
+   *
+   * Handles initial config loading, network type detection, and delegates
+   * to the appropriate Controller (TrainingController, PredictController,
+   * or TestController) based on the selected mode.  Each Controller bridges
+   * a concrete Runner (Model) and a View through the IRunnerObserver
+   * interface.
+   *
+   * Architecture:
+   *   App -> Controller -> {Model (Runner), View (Window)}
+   *   Model -> Controller (via Observer notifications)
+   *   Controller -> View (via API updates)
+   *
+   * Calibrate mode is a special case that bypasses the Controller layer
+   * and invokes CalibrateRunner directly (it is a CLI-level mode, not a
+   * model-level one).
    */
   class App
   {
