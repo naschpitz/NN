@@ -81,11 +81,6 @@ namespace NN_CLI
         return this->progressWin;
       }
 
-      WINDOW* loadingWindow() const
-      {
-        return this->loadingWin;
-      }
-
       std::recursive_mutex& getMutex()
       {
         return this->mutex;
@@ -124,8 +119,8 @@ namespace NN_CLI
       }
 
       // Invoked after the panels are redrawn (panel frames pushed to stdscr) so the caller can
-      // repaint transient sub-window overlays — e.g. the loading bar, which lives in its own
-      // window that layout() erases on resize and that nothing else redraws between callback ticks.
+      // repaint transient sub-window overlays — e.g. the loading bar, which layout() erases
+      // on resize and that nothing else redraws between callback ticks.
       void setOverlayCallback(std::function<void()> callback)
       {
         this->overlayCallback = std::move(callback);
@@ -138,7 +133,7 @@ namespace NN_CLI
       void drawAllPanels();
 
       // Composite the screen: redraw panels into stdscr, then layer the sub-windows on top.
-      // runOverlay re-renders the loading-bar overlay (after layout() recreates the windows);
+      // runOverlay re-renders the overlay (after layout() recreates the windows);
       // touchSub forces a full re-copy of the sub-windows when their content is otherwise unchanged.
       void present(bool runOverlay, bool touchSub);
 
@@ -153,7 +148,6 @@ namespace NN_CLI
       //-- Sub-windows (overlays) --//
 
       WINDOW* progressWin = nullptr;
-      WINDOW* loadingWin = nullptr;
 
       //-- Terminal state --//
 

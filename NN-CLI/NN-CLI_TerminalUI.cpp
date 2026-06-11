@@ -128,11 +128,6 @@ namespace NN_CLI
     std::signal(SIGINT, SIG_DFL);
     std::signal(SIGTERM, SIG_DFL);
 
-    if (this->loadingWin) {
-      delwin(this->loadingWin);
-      this->loadingWin = nullptr;
-    }
-
     if (this->progressWin) {
       delwin(this->progressWin);
       this->progressWin = nullptr;
@@ -192,20 +187,9 @@ namespace NN_CLI
       this->progressWin = nullptr;
     }
 
-    if (this->loadingWin) {
-      delwin(this->loadingWin);
-      this->loadingWin = nullptr;
-    }
-
     int loadW = std::max(1, this->leftWidth - 4);
 
-    this->loadingWin = newwin(1, loadW, trainingY + 1, 2);
     this->progressWin = newwin(2, loadW, trainingY + 2, 2);
-
-    if (this->loadingWin) {
-      werase(this->loadingWin);
-      touchwin(this->loadingWin);
-    }
 
     if (this->progressWin) {
       werase(this->progressWin);
@@ -284,20 +268,13 @@ namespace NN_CLI
     this->drawAllPanels();
     wnoutrefresh(stdscr);
 
-    // The loading bar (and any overlay) lives in its own window; repaint it on top of the panels
-    // after layout() recreated/erased the windows.
+    // The overlay may repaint the progress sub-window (e.g. for the loading bar); run the
+    // callback after layout() recreated/erased the windows.
     if (runOverlay && this->overlayCallback)
       this->overlayCallback();
 
     // drawAllPanels() blanks the stdscr cells beneath the sub-windows, so when a sub-window's own
     // content is unchanged we must touch it to force a full re-copy on top.
-    if (this->loadingWin) {
-      if (touchSub)
-        touchwin(this->loadingWin);
-
-      wnoutrefresh(this->loadingWin);
-    }
-
     if (this->progressWin) {
       if (touchSub)
         touchwin(this->progressWin);
@@ -554,7 +531,7 @@ namespace NN_CLI
     this->configLinesDirty = true;
     this->timingLinesDirty = true;
 
-    // layout() erased and recreated the sub-windows (loadingWin, progressWin).
+    // layout() erased and recreated the sub-windows (progressWin).
     // Repaint any overlay (e.g. the loading bar) so it survives the resize even
     // when handleResize() is called from the training callback, which subsequently
     // calls refresh() -> present(false, true) without runOverlay.
@@ -575,8 +552,8 @@ namespace NN_CLI
     this->configLinesDirty = true;
     this->timingLinesDirty = true;
 
-    // Full resize redraw: recreate the panels and repaint the loading-bar overlay on top so the
-    // loading line doesn't vanish until the next mini-batch tick.
+    // Full resize redraw: recreate the panels and repaint the overlay on top so the
+    // loading bar doesn't vanish until the next mini-batch tick.
     this->present(true, false);
   }
 
