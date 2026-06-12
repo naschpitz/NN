@@ -4,6 +4,7 @@
 #include "NN-CLI_CNNRunner.hpp"
 #include "NN-CLI_TerminalUI_TrainingWindow.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
+#include "NN-CLI_SummaryTable.hpp"
 
 #include "Common/Common_Utils.hpp"
 
@@ -102,6 +103,8 @@ namespace NN_CLI
   void TrainingController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex,
                                                            ulong totalBatches, bool isValidation)
   {
+    (void)batchIndex;
+    (void)totalBatches;
     (void)isValidation;
 
     if (!this->window)
@@ -111,9 +114,8 @@ namespace NN_CLI
 
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
-    std::string label = "Samples";
-    if (totalBatches > 0)
-      label += " (" + std::to_string(batchIndex + 1) + "/" + std::to_string(totalBatches) + ")";
+    std::string label = "Samples (" + SummaryTable::formatWithCommas(current) + "/" +
+                        SummaryTable::formatWithCommas(total) + ")";
 
     this->window->setLoadingProgress(label, fraction);
   }
