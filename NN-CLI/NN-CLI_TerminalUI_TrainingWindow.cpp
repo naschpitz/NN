@@ -146,6 +146,8 @@ namespace NN_CLI
   {
     if (this->progressBarPtr)
       this->progressBarPtr->setBarData(label, fraction);
+
+    this->syncProgressBarSuffixes();
   }
 
   //===================================================================================================================//
@@ -155,6 +157,8 @@ namespace NN_CLI
   {
     if (this->progressBarPtr)
       this->progressBarPtr->setBarData(label, fractions);
+
+    this->syncProgressBarSuffixes();
   }
 
   //===================================================================================================================//
@@ -181,6 +185,8 @@ namespace NN_CLI
       this->loadingBarPtr->setVisible(true);
       this->loadingBarPtr->setBarData(label, fraction);
     }
+
+    this->syncProgressBarSuffixes();
   }
 
   //===================================================================================================================//
@@ -489,6 +495,24 @@ namespace NN_CLI
 
     // Non-scroll events propagate to all children.
     return TerminalUI_Window::handleEvent(ch);
+  }
+
+  //===================================================================================================================//
+  //-- Private — progress bar layout sync --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainingWindow::syncProgressBarSuffixes()
+  {
+    if (!this->loadingBarPtr || !this->progressBarPtr)
+      return;
+
+    // Grant both bars the widest per-segment suffix either of them needs so
+    // their brackets stay vertically aligned and progress is comparable.
+    int reserve = std::max(this->loadingBarPtr->requiredSuffixWidth(),
+                           this->progressBarPtr->requiredSuffixWidth());
+
+    this->loadingBarPtr->setReservedSuffixWidth(reserve);
+    this->progressBarPtr->setReservedSuffixWidth(reserve);
   }
 
   //===================================================================================================================//

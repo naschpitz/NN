@@ -34,11 +34,12 @@ namespace
   }
 
   //===================================================================================================================//
-  // Usable bar width when drawing on stdscr at a given x position.
-  int barWidthForStdscr(int x, int width, int segments)
+  // Usable bar width when drawing on stdscr, with `suffixCols` reserved on the
+  // right for the per-segment suffix.
+  int barWidthForStdscr(int width, int suffixCols)
   {
     int cols = width > 0 ? width : 80;
-    return std::max(10, cols - kLabelWidth - kBracketWidth - kRightPad - segmentSuffixWidth(segments));
+    return std::max(10, cols - kLabelWidth - kBracketWidth - kRightPad - suffixCols);
   }
 
   //===================================================================================================================//
@@ -228,6 +229,20 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+
+  int TerminalUI_ProgressBar::requiredSuffixWidth() const
+  {
+    return segmentSuffixWidth(static_cast<int>(this->barFractions.size()));
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_ProgressBar::setReservedSuffixWidth(int cols)
+  {
+    this->reservedSuffixWidth = std::max(0, cols);
+  }
+
+  //===================================================================================================================//
   //-- Widget overrides --//
   //===================================================================================================================//
 
@@ -247,7 +262,11 @@ namespace NN_CLI
     if (!this->barFractions.empty())
       fraction /= static_cast<float>(this->barFractions.size());
 
-    int bw = barWidthForStdscr(this->x, this->width, numSegments);
+    // Reserve at least this bar's own suffix width; an externally granted
+    // reservation (synced across sibling bars) can widen it so all bars share
+    // identical bracket positions regardless of their segment counts.
+    int suffixCols = std::max(this->reservedSuffixWidth, segmentSuffixWidth(numSegments));
+    int bw = barWidthForStdscr(this->width, suffixCols);
 
     // Draw label and bar on the first row.
     emitLabelStdscr(this->y, this->x, this->barLabel);
