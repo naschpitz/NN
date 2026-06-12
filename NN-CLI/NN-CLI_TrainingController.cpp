@@ -17,9 +17,6 @@
 
 namespace
 {
-  //-- Color pair for the epoch-complete loss text (green, configured in Window init). --//
-  constexpr int kLossColor = 6;
-
   //===================================================================================================================//
   // Format an ETA in seconds as "mm:ss" (or "h:mm:ss" once it exceeds an hour).
   std::string formatEta(double seconds)
@@ -234,12 +231,6 @@ namespace NN_CLI
 
     this->window->addEpochRow(row);
     this->window->refreshEpochContent();
-
-    // Sub-line: the completed epoch's final loss, in green.  Persists through
-    // validation until the next epoch's first batch-progress event.
-    std::ostringstream lossText;
-    lossText << "Loss: " << std::fixed << std::setprecision(6) << epochLoss;
-    this->window->updateProgressSubLine(lossText.str(), kLossColor);
 
     // When validation was performed for this epoch (accuracy >= 0), show a
     // transitional "Validating" progress bar that persists until the next

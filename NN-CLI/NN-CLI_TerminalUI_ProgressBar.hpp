@@ -55,6 +55,15 @@ namespace NN_CLI
       // nothing (used for the loading bar before any samples are loaded).
       void setVisible(bool visible);
 
+      // Columns this bar needs on the right for its per-segment suffix
+      // (0 when single-segment).
+      int requiredSuffixWidth() const;
+
+      // Reserve `cols` columns on the right regardless of this bar's own
+      // segment count.  Sibling bars stacked in the same panel are given the
+      // max of their required widths so their brackets align vertically.
+      void setReservedSuffixWidth(int cols);
+
       //-- Widget overrides --//
 
       // Render the progress bar at (x, y) on stdscr using stored bar data.
@@ -103,6 +112,7 @@ namespace NN_CLI
       std::string subLineText;
       int subLineColorPair = 0;
       bool visible = true;
+      int reservedSuffixWidth = 0;
   };
 
 } // namespace NN_CLI
