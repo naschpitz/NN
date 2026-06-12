@@ -80,7 +80,7 @@ namespace NN_CLI
       void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
                            float etaSeconds, const std::vector<float>& fractions) override;
 
-      void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
+      void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                             const std::string& summary) override;
 
       void onTrainingFinished(bool success, const std::string& finalSummary) override;

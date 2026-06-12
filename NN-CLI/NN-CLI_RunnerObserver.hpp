@@ -85,16 +85,18 @@ namespace NN_CLI
        * @param epochIdx       0-based index of the completed epoch.
        * @param totalEpochs    Total number of epochs in the training run.
        * @param epochLoss      Average loss over the completed epoch.
-       * @param accuracy       Validation accuracy if available, else -1.0f.
+       * @param hasValLoss     True when a validation pass ran for this epoch.
+       * @param valLoss        Average validation loss; meaningless when hasValLoss is false.
        * @param summary        Human-readable epoch summary string.
        */
-      virtual void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
+      virtual void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                                     const std::string& summary)
       {
         (void)epochIdx;
         (void)totalEpochs;
         (void)epochLoss;
-        (void)accuracy;
+        (void)hasValLoss;
+        (void)valLoss;
         (void)summary;
       }
 

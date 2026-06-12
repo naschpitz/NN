@@ -78,15 +78,16 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void PredictController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
-                                                     const std::string& summary)
+  void PredictController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
+                                                     float valLoss, const std::string& summary)
   {
     // Predict mode does not use epoch events, but print the summary for
     // interface completeness in case the runner fires one.
     (void)epochIdx;
     (void)totalEpochs;
     (void)epochLoss;
-    (void)accuracy;
+    (void)hasValLoss;
+    (void)valLoss;
 
     std::cout << summary << "\n";
   }
