@@ -27,7 +27,7 @@
 <main class="main">
 
 <h1>NN-CLI — Neural Network Command Line Interface</h1>
-<p>A unified command-line tool for training, testing, predicting, and calibrating with both <strong>ANN</strong> (Artificial Neural Networks) and <strong>CNN</strong> (Convolutional Neural Networks). NN-CLI auto-detects the network type from your configuration file and delegates to the appropriate library.</p>
+<p>A unified command-line tool for training, testing, predicting, and calibrating with both <strong>ANN</strong> (Artificial Neural Networks) and <strong>CNN</strong> (Convolutional Neural Networks). NN-CLI auto-detects the network type from your configuration file and delegates to the appropriate library. The architecture follows an MVC pattern (App → Controller → {Model, View}), though calibrate mode bypasses the Controller layer entirely.</p>
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:2rem 0">
   <div class="card" style="text-align:center">
@@ -57,7 +57,7 @@
   <li><strong>Provide a JSON config</strong> — defines network architecture and training parameters</li>
   <li><strong>NN-CLI detects</strong> whether it's an ANN or CNN configuration</li>
   <li><strong>Choose a mode</strong> — <code>train</code>, <code>test</code>, <code>predict</code>, or <code>calibrate</code></li>
-  <li><strong>Supply data</strong> — JSON samples, IDX binary files, or a single input</li>
+  <li><strong>Supply data</strong> — JSON samples, IDX binary files, .nnmodel packages, or a single input</li>
   <li><strong>Get results</strong> — trained model JSON, test metrics, or prediction output</li>
 </ol>
 
@@ -72,7 +72,11 @@ NN-CLI --config mnist_cnn_config.json \
 NN-CLI --config trained_model.json \
        --mode predict \
        --input digit.json
-</code></pre>
+ </code></pre>
+
+<div class="info-box">
+<strong>Note:</strong> Non-train modes (predict, test, calibrate) require a <code>.nnmodel</code> package — plain JSON configs are rejected. Use <code>tar -cf model.nnmodel model.json params.bin</code> to create one from a trained model.
+</div>
 
 <h2>Explore the Documentation</h2>
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
@@ -97,7 +101,7 @@ NN-CLI --config trained_model.json \
 <h2>Dependencies</h2>
 <table>
   <tr><th>Dependency</th><th>Purpose</th><th>Included</th></tr>
-  <tr><td><a href="../CNN/index.html">CNN</a></td><td>Convolutional network implementation</td><td>Git submodule</td></tr>
+  <tr><td><a href="../CNN/index.html">CNN</a></td><td>Convolutional network implementation</td><td>Local (monorepo)</td></tr>
   <tr><td><a href="../ANN/index.html">ANN</a></td><td>Dense network implementation</td><td>Transitive (via CNN)</td></tr>
   <tr><td><a href="https://github.com/naschpitz/openCLWrapper">OpenCLWrapper</a></td><td>OpenCL GPU abstraction</td><td>Transitive (via CNN→ANN)</td></tr>
   <tr><td>Qt 5/6 Core + Concurrent</td><td>CLI parsing, threading, file I/O</td><td>System</td></tr>

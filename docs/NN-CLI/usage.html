@@ -127,8 +127,8 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 <h2 id="detection">5. Network Type Detection</h2>
 <p>NN-CLI automatically identifies whether a config defines an ANN or CNN:</p>
 <ul>
-  <li><strong>CNN</strong> — config contains <code>"inputShape"</code> or <code>"convolutionalLayers"</code></li>
-  <li><strong>ANN</strong> — otherwise (uses <code>"layers"</code> with <code>"numNeurons"</code>)</li>
+  <li><strong>ANN</strong> — config contains a <code>"layers"</code> key</li>
+  <li><strong>CNN</strong> — otherwise (config lacks <code>"layers"</code> and uses <code>"convolutionalLayers"</code>/<code>"denseLayers"</code>)</li>
 </ul>
 <p>No command-line flag is needed — the detection is transparent.</p>
 

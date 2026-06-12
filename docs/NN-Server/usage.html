@@ -82,9 +82,9 @@
 
 <h3>Log format</h3>
 <p>Each request is logged as a single line:</p>
-<pre><code>[2026-03-23 14:30:05.123] 192.168.1.10 POST /predict 200 45.2ms
-[2026-03-23 14:30:06.456] 192.168.1.10 GET /health 200 0.3ms
-[2026-03-23 14:30:07.789] 10.0.0.5 POST /predict 413 0.1ms
+<pre><code>[2026-03-23 14:30:05.123 -05:00] 192.168.1.10 POST /predict 200 45.2ms
+[2026-03-23 14:30:06.456 -05:00] 192.168.1.10 GET /health 200 0.3ms
+[2026-03-23 14:30:07.789 -05:00] 10.0.0.5 POST /predict 413 0.1ms
 </code></pre>
 
 <h2 id="endpoints">2. HTTP Endpoints</h2>
@@ -151,7 +151,7 @@ Content-Length: 32451
      --data-binary @photo.jpg</code></pre>
 
 <div class="info-box">
-<strong>Image input</strong> requires a model with a defined <code>inputShape</code> and <code>"inputType": "image"</code>. This works for both CNN and ANN models. For ANN models, the image is decoded, resized to the <code>inputShape</code>, and flattened into a 1D vector (e.g., a 1×28×28 MNIST image becomes a 784-element input).
+<strong>Image input</strong> requires a model with a defined <code>inputShape</code>. This works for both CNN and ANN models. For ANN models, the image is decoded, resized to the <code>inputShape</code>, and flattened into a 1D vector (e.g., a 1×28×28 MNIST image becomes a 784-element input).
 </div>
 
 <h2 id="output-format">5. Output Formats</h2>
@@ -183,16 +183,16 @@ Content-Length: 32451
 <h2 id="concurrency">6. Concurrency Model</h2>
 <p>NN-Server uses a <strong>thread-safe pool</strong> of pre-loaded Core objects for concurrent inference:</p>
 <ol>
-  <li>On startup, <code>NN_SERVER_POOL_SIZE</code> independent copies of the model are loaded into memory</li>
+  <li>On startup, <code>poolSize</code> independent copies of the model are loaded into memory</li>
   <li>Each incoming HTTP connection is dispatched to <code>QThreadPool</code></li>
   <li>The request handler <strong>acquires</strong> a Core from the pool (blocks if all are busy)</li>
   <li>Prediction runs on the acquired Core</li>
   <li>The Core is <strong>released</strong> back to the pool</li>
 </ol>
-<p>This ensures that multiple requests can run truly in parallel (up to <code>NN_SERVER_POOL_SIZE</code> concurrent predictions), with each Core maintaining fully isolated weights and buffers.</p>
+<p>This ensures that multiple requests can run truly in parallel (up to <code>poolSize</code> concurrent predictions), with each Core maintaining fully isolated weights and buffers.</p>
 
 <div class="tip-box">
-<strong>Pool sizing:</strong> Set <code>NN_SERVER_POOL_SIZE</code> based on available memory and expected concurrency. Each Core holds a full copy of the model weights. For large CNN models, 2–4 is often sufficient.
+<strong>Pool sizing:</strong> Set <code>"poolSize"</code> in config.json based on available memory and expected concurrency. Each Core holds a full copy of the model weights. For large CNN models, 2–4 is often sufficient.
 </div>
 
 <h2 id="errors">7. Error Handling</h2>
@@ -211,7 +211,7 @@ Content-Length: 32451
   <tr><td><code>500</code></td><td>Image decode failure</td><td><code>{"error":"Prediction failed: ..."}</code></td></tr>
 </table>
 
-<p>Startup errors (missing <code>NN_MODEL_CONFIG</code>, invalid model file, etc.) are printed to <code>stderr</code> and the process exits with code 1.</p>
+<p>Startup errors (missing <code>"model"</code> field in config, invalid model file, etc.) are printed to <code>stderr</code> and the process exits with code 1.</p>
 
 </main>
 </div>

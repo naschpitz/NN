@@ -37,6 +37,7 @@
     <li><a href="#input">Input JSON (Prediction)</a></li>
     <li><a href="#idx">IDX Binary Format</a></li>
     <li><a href="#output-format">Output Formats</a></li>
+    <li><a href="#nnmodel-format">Model Package (.nnmodel)</a></li>
   </ol>
 </div>
 
@@ -177,7 +178,7 @@
   <tr><td><code>training.monitoring.metrics.lossExplosion.threshold</code></td><td>float</td><td>No</td><td>Stop if loss exceeds threshold x best loss (default 10.0)</td></tr>
   <tr><td><code>numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>numGPUs</code></td><td>int</td><td>No</td><td>Number of GPUs to use (0 = all available)</td></tr>
-  <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Pre-trained weights &amp; biases</td></tr>
+  <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Deprecated — parameters are now stored in <code>params.bin</code> inside the <code>.nnmodel</code> package</td></tr>
 </table>
 
 <p>Example — only rotation (strong) and translation, everything else disabled:</p>
@@ -262,7 +263,7 @@
 <p>CNN configs also support <code>inputType</code>, <code>outputType</code>, and <code>outputShape</code>. The <code>inputShape</code> is always required for CNN (used by the network itself). When <code>outputType</code> is <code>"image"</code>, <code>outputShape</code> must be provided for image reconstruction.</p>
 
 <div class="info-box">
-  <strong>Detection rule:</strong> If the JSON contains <code>"inputShape"</code> or <code>"convolutionalLayers"</code>, NN-CLI treats it as a CNN config. Otherwise it's ANN.
+  <strong>Detection rule:</strong> If the JSON contains a <code>"layers"</code> key, NN-CLI treats it as an ANN config. Otherwise it's a CNN.
 </div>
 
 <p>The <code>training</code> fields (including <code>validation</code>, <code>monitoring</code>, augmentation, optimizer, dropout, etc.) are identical for both ANN and CNN. See the <a href="#ann-config">ANN Configuration</a> field table above for the full reference.</p>
@@ -418,7 +419,7 @@
 <h2 id="output-format">6. Output Formats</h2>
 
 <h3>Training Output</h3>
-<p>Complete model JSON with all parameters, suitable for predict/test. The <code>inputType</code>, <code>outputType</code>, <code>progressReports</code>, and <code>saveModelInterval</code> are persisted so predict/test can reload them automatically:</p>
+<p>Training produces a <code>.nnmodel</code> package (tar archive with <code>model.json</code> + <code>params.bin</code>). The <code>model.json</code> contains the architecture, metadata, and config fields — <code>inputType</code>, <code>outputType</code>, <code>progressReports</code>, and <code>saveModelInterval</code> are persisted so predict/test can reload them. Parameters are stored separately in <code>params.bin</code> (the old embedded-parameter format is no longer supported).</p>
 <pre><code>{
   <span class="string">"mode"</span>: <span class="string">"predict"</span>,
   <span class="string">"device"</span>: <span class="string">"cpu"</span>,
@@ -436,8 +437,7 @@
     <span class="string">"durationSeconds"</span>: <span class="number">123.4</span>,
     <span class="string">"numSamples"</span>: <span class="number">60000</span>,
     <span class="string">"finalLoss"</span>: <span class="number">0.0234</span>
-  },
-  <span class="string">"parameters"</span>: { <span class="string">"weights"</span>: [...], <span class="string">"biases"</span>: [...] }
+  }
 }
 </code></pre>
 
@@ -503,6 +503,19 @@
 }
 </code></pre>
 <p>Consumers (e.g. a downstream client app) embed <code>freeEnergyThreshold</code> as a constant and flag predictions with <code>E &gt; threshold</code> as low-confidence / likely OOD. The threshold is tied to the specific trained checkpoint — retrain the model, rerun <code>--mode calibrate</code>.</p>
+
+<h2 id="nnmodel-format">Model Package Format (.nnmodel)</h2>
+<p>NN-CLI uses <code>.nnmodel</code> packages (tar archives) for non-train modes. Plain JSON configs are rejected for predict/test/calibrate — only <code>.nnmodel</code> or <code>.nnmodel.tar</code> files are accepted.</p>
+<p>A <code>.nnmodel</code> package contains:</p>
+<ul>
+  <li><code>model.json</code> — the trained model configuration with architecture and metadata</li>
+  <li><code>params.bin</code> — binary serialized weights and biases</li>
+</ul>
+<p>The package is created programmatically by NN-CLI during training. It is a valid USTAR tar archive, so it can also be created manually with <code>tar</code> if needed:</p>
+<pre><code>tar -cf model.nnmodel model.json params.bin</code></pre>
+<p>To extract:</p>
+<pre><code>tar -xf model.nnmodel</code></pre>
+<p>The <code>NN-CLI_ModelPackage::isPackage()</code> function checks for <code>.nnmodel</code> or <code>.nnmodel.tar</code> extensions.</p>
 
 </main>
 </div>
