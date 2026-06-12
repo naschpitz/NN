@@ -95,10 +95,11 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyBatchProgress(int batchIdx, int t
 
 template <typename CoreT, typename CoreConfigT>
 void NN_CLI::Runner<CoreT, CoreConfigT>::notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss,
-                                                              float accuracy, const std::string& summary)
+                                                              bool hasValLoss, float valLoss,
+                                                              const std::string& summary)
 {
   for (auto* observer : this->observers)
-    observer->onEpochCompleted(epochIdx, totalEpochs, epochLoss, accuracy, summary);
+    observer->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, summary);
 }
 
 //===================================================================================================================//

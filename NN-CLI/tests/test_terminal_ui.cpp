@@ -195,7 +195,7 @@ void runTerminalUITests()
     table.setColumns({
       {"Epoch", 5, NN_CLI::TerminalUI_Table::Align::RIGHT},
       {"Loss", 8, NN_CLI::TerminalUI_Table::Align::RIGHT},
-      {"Accuracy", 8, NN_CLI::TerminalUI_Table::Align::RIGHT},
+      {"Validation Loss", 15, NN_CLI::TerminalUI_Table::Align::RIGHT},
       {"Best", 4, NN_CLI::TerminalUI_Table::Align::LEFT},
       {"Completed At", 19, NN_CLI::TerminalUI_Table::Align::LEFT},
     });
@@ -205,12 +205,12 @@ void runTerminalUITests()
     table.setMaxWidth(maxWidth);
 
     // Row WITHOUT multi-byte chars — pure ASCII baseline.
-    table.addRow({"1", "2.345678", "89.12", "", "Jun 11, 2026 14:30"});
+    table.addRow({"1", "2.345678", "1.987654", "", "Jun 11, 2026 14:30"});
 
     // Row WITH checkmark — multi-byte UTF-8 in the "Best" column.
     // The checkmark U+2713 is encoded as 3 bytes in UTF-8 (E2 9C 93) but
     // occupies only 1 visual column.
-    table.addRow({"2", "1.234567", "95.00", "✓", "Jun 11, 2026 14:35"});
+    table.addRow({"2", "1.234567", "0.876543", "✓", "Jun 11, 2026 14:35"});
 
     auto lines = table.render();
 

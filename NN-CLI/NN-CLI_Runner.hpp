@@ -134,7 +134,7 @@ namespace NN_CLI
       void notifyValidationProgress(ulong current, ulong total);
       void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
                                float etaSeconds, const std::vector<float>& fractions);
-      void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
+      void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                                 const std::string& summary);
       void notifyTrainingFinished(bool success, const std::string& finalSummary);
       void notifyModelInfoUpdated(const std::string& property, const std::string& value);

@@ -197,8 +197,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
-                                                       const std::string& summary)
+  void TrainingController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
+                                                       float valLoss, const std::string& summary)
   {
     if (!this->window)
       return;
@@ -214,29 +214,29 @@ namespace NN_CLI
     std::ostringstream lossStream;
     lossStream << std::fixed << std::setprecision(6) << epochLoss;
 
-    std::string accuracyStr;
-    if (accuracy >= 0.0f) {
-      std::ostringstream accStream;
-      accStream << std::fixed << std::setprecision(2) << accuracy;
-      accuracyStr = accStream.str();
+    std::string valLossStr;
+    if (hasValLoss) {
+      std::ostringstream valLossStream;
+      valLossStream << std::fixed << std::setprecision(6) << valLoss;
+      valLossStr = valLossStream.str();
     } else {
-      accuracyStr = "N/A";
+      valLossStr = "-";
     }
 
     bool isBest = summary.find("Best*") != std::string::npos;
     std::string bestStr = isBest ? "✓" : "";
     std::string timestamp = Common::Utils::formatHumanReadable();
 
-    TerminalUI_Table::Row row = {epochStr, lossStream.str(), accuracyStr, bestStr, timestamp};
+    TerminalUI_Table::Row row = {epochStr, lossStream.str(), valLossStr, bestStr, timestamp};
 
     this->window->addEpochRow(row);
     this->window->refreshEpochContent();
 
-    // When validation was performed for this epoch (accuracy >= 0), show a
-    // transitional "Validating" progress bar that persists until the next
-    // onBatchProgress event replaces it with "Training".  The "Validating"
-    // bar replaces the progress bar content, NOT the panel title.
-    if (accuracy >= 0.0f) {
+    // When validation was performed for this epoch, show a transitional
+    // "Validating" progress bar that persists until the next onBatchProgress
+    // event replaces it with "Training".  The "Validating" bar replaces the
+    // progress bar content, NOT the panel title.
+    if (hasValLoss) {
       this->isValidating = true;
       this->window->updateProgress("Validating", 1.0f);
     }

@@ -478,7 +478,6 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     bool monitorShouldStop = false;
     float valLoss = 0.0f;
     bool hasValLoss = false;
-    float accuracy = -1.0f;
 
     if (this->validationState.enabled && validationCore && validationProviderPtr && validationIndices &&
         epoch % this->validationState.checkInterval == 0) {
@@ -497,7 +496,6 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
       this->validationState.lastValLoss = validationResult.averageLoss;
       valLoss = validationResult.averageLoss;
       hasValLoss = true;
-      accuracy = validationResult.accuracy;
 
       if (validationResult.averageLoss < this->validationState.bestValLoss) {
         this->validationState.bestValLoss = validationResult.averageLoss;
@@ -545,7 +543,8 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     if (isBestEpoch)
       epochSummary += " | Best*";
 
-    this->notifyEpochCompleted(static_cast<int>(epoch), totalEpochs, this->lastEpochLoss, accuracy, epochSummary);
+    this->notifyEpochCompleted(static_cast<int>(epoch), totalEpochs, this->lastEpochLoss, hasValLoss, valLoss,
+                               epochSummary);
 
     // --- Monitor stop requests ---
     if (monitorShouldStop) {

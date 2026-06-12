@@ -49,7 +49,7 @@ namespace NN_CLI
     this->epochTable.setColumns({
       {"Epoch", 5, TerminalUI_Table::Align::RIGHT},
       {"Loss", 8, TerminalUI_Table::Align::RIGHT},
-      {"Accuracy", 8, TerminalUI_Table::Align::RIGHT},
+      {"Validation Loss", 15, TerminalUI_Table::Align::RIGHT},
       {"Best", 4, TerminalUI_Table::Align::LEFT},
       {"Completed At", 19, TerminalUI_Table::Align::LEFT},
     });
