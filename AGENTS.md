@@ -1,52 +1,35 @@
 # NN — Monorepo
 
-NN is a C++17 + Qt + OpenCL neural-network monorepo. The components that used to
-live in separate repositories (ANN, CNN, NN-CLI, NN-Server) are now **plain
-directories in one git repo**. Only `OpenCLWrapper` remains a git submodule.
-
-> This file lives at the **repo root** and is the single source of truth for the
-> whole monorepo. OpenCode loads it for any work under `NN/`. Per-component notes
-> are at the bottom; add a component-level `AGENTS.md` only for genuinely
-> component-specific guidance. (Do **not** add it to `.gitignore` — it should
-> travel with the repo.)
+C++17 + Qt6 + OpenCL neural-network monorepo: feedforward (ANN) and convolutional (CNN)
+libraries with CPU/GPU backends, a CLI tool, and an HTTP inference server.
 
 ## Layout
 
 ```
 NN/
-  CMakeLists.txt     Top-level build; BUILD_ANN / BUILD_CNN / BUILD_NN_CLI / BUILD_NN_SERVER toggles
-  Common/            Header-only shared config structs (Common_*.hpp); exposed as the NN_Common INTERFACE lib
-  ANN/               Feedforward ANN library (CPU + GPU backends). Leaf dependency.
-  CNN/               Convolutional library. Depends on ANN (PUBLIC). Reuses ANN per-sample for dense layers.
-  NN-CLI/            CLI frontend: train / predict / test / calibrate. Links CNN (→ ANN, OpenCLWrapper).
-  NN-Server/         HTTP inference server (QTcpServer) with a thread-safe CorePool over ANN/CNN cores.
-  OpenCLWrapper/     OpenCL abstraction (OCLW_Core, OCLW_CU). Used by ANN & CNN for GPU compute. (git submodule)
+  CMakeLists.txt     Top-level build toggle (BUILD_ANN / BUILD_CNN / BUILD_NN_CLI / BUILD_NN_SERVER)
+  Common/            Header-only config structs (Common_*.hpp); NN_Common INTERFACE lib
+  ANN/               Feedforward library (CPU + GPU). Leaf dependency.
+  CNN/               Convolutional library; depends on ANN.
+  NN-CLI/            CLI: train / predict / test / calibrate.
+  NN-Server/         HTTP inference server (QTcpServer + CorePool).
+  ANN/extern/OpenCLWrapper   OpenCL abstraction (git submodule).
+  CNN/extern/OpenCLWrapper   OpenCL abstraction (git submodule).
 ```
 
-Dependency order (PUBLIC-linked, so order matters): **OpenCLWrapper → ANN → CNN
-→ {NN-CLI, NN-Server}**, with `Common/` headers available everywhere via
-`#include "Common/Xxx.hpp"`.
+Dependency order (PUBLIC-linked): **OpenCLWrapper → ANN → CNN → {NN-CLI, NN-Server}**.
+Common headers: `#include "Common/Xxx.hpp"` from anywhere.
 
 ## Build
 
-### Primary — root `build.sh`
-
-From the repo root, run the orchestrator script which iterates over all
-components, copies a shared `CMakeUserPresets.json` into each, configures with a
-cmake preset, and builds into `<component>/build/`. It also runs
-`git submodule update --init --recursive` automatically.
-
+### All components
 ```bash
-./build.sh            # default "static" preset
-./build.sh shared     # shared-library preset
+./build.sh            # static Qt6 (default)
+./build.sh shared     # shared Qt6
 ```
-
-Requires a `CMakeUserPresets.json` at the repo root with Qt6 kit paths
-(git-ignored, machine-specific).
+Copies root `CMakeUserPresets.json` into each component, runs `git submodule update`, then builds each into `<component>/build/`.
 
 ### Single component
-
-Each component has its own `build.sh` for standalone builds:
 ```bash
 ./ANN/build.sh
 ./CNN/build.sh
@@ -54,102 +37,91 @@ Each component has its own `build.sh` for standalone builds:
 ./NN-Server/build.sh
 ```
 
-### Manual cmake (advanced)
-
-The raw cmake commands still work for toggling components or passing custom flags
-(dependencies are validated — CNN requires ANN):
+### Manual cmake
 ```bash
 cmake -B build && cmake --build build -j$(nproc)
-cmake -B build -DBUILD_NN_SERVER=OFF -DBUILD_NN_CLI=ON && cmake --build build -j$(nproc)
+# Toggle components: cmake -B build -DBUILD_NN_SERVER=OFF -DBUILD_NN_CLI=ON && cmake --build build -j$(nproc)
 ```
+Dependencies validated at configure time (CNN requires ANN).
 
-Build directories (`<component>/build/`, `build*/`) are gitignored.
+### Prerequisites
+- C++17 compiler (GCC ≥ 9 / Clang ≥ 10)
+- CMake ≥ 3.14
+- Qt6 (Core, Concurrent; NN-Server needs Network)
+- OpenCL ICD + headers + GPU driver
+- ncurses-wide (NN-CLI training UI)
+- *Optional:* tcmalloc (lower RSS under heavy augmentation)
+
+`CMakeUserPresets.json` at the repo root holds Qt6 kit paths (gitignored, machine-specific).
 
 ## Tests
 
-There is **no CTest wiring**; each component builds a standalone test executable:
+No CTest wiring. Each component builds its own test binary:
 
-| Component | Test binary | Notes |
-|-----------|-------------|-------|
-| ANN       | `test_ann`       | |
-| CNN       | `test_cnn`       | |
-| NN-CLI    | `test_nncli`     | spawns the built `NN-CLI` binary; pass `--full` to include the long MNIST train/test cases |
+| Component | Binary | Notes |
+|-----------|--------|-------|
+| ANN | `test_ann` | |
+| CNN | `test_cnn` | |
+| NN-CLI | `test_nncli` | pass `--full` for long MNIST train/test |
 | NN-Server | `test_endpoints`, `test_logger` | |
 
-Run a test binary directly from the build dir (e.g. `./build/.../test_nncli`).
-Add tests for every new feature (see principles below).
+Run from the component's `build/` dir. Add tests for every new feature.
 
-## Code organization standard
+## Code style
 
-This matches the existing code — keep it consistent.
+Enforced by `.clang-format` (LLVM-based, 2-space indent, 120-col limit, Linux brace style) + pre-commit hooks.
+**Match existing style in every file — even if you'd do it differently.**
 
-### `.hpp` — class layout
-- Access order: `public:` → `protected:` → `private:` (one section each).
-- Within a section: types/aliases → ctors/dtors → methods → members, each group
-  under a `//-- Section Name --//` header.
+### `.hpp` class layout
+`public:` → `protected:` → `private:`. Within each: types → ctors/dtors → methods → members.
+Each sub-group under `//-- Section Name --//`.
 
 ### `.cpp`
-- Implementations follow the **exact same order** as the `.hpp` declarations.
-- Separate every method with a full-width rule:
-  `//===================================================================================================================//`
-- For complex files, section headers sit between two rules.
-- Static member init at the top; template instantiations at the bottom.
+Implementations follow the `.hpp` order exactly. Separate every method with:
+`//===================================================================================================================//`
+Static member init at top; template instantiations at bottom.
 
-### Naming (as used, not generic)
-- Files: `<Prefix>_<Name>.{hpp,cpp}` (e.g. `CNN_CoreCPU.cpp`, `NN-CLI_Runner.cpp`).
-- Namespaces: `ANN`, `CNN`, `NN_CLI` (not lowercase). Types `PascalCase`,
-  methods/vars `camelCase`. Member access via `this->`.
-- Formatting is enforced by `.clang-format` + pre-commit hooks — run them.
+### Naming
+- Files: `<Prefix>_<Name>.{hpp,cpp}` (e.g. `CNN_CoreCPU.cpp`, `NN-CLI_Runner.cpp`)
+- Namespaces: `ANN`, `CNN`, `NN_CLI` (PascalCase, not lowercase)
+- Types: PascalCase · methods/vars: camelCase · member access: `this->`
 
-## Architecture & design principles
+## Principles
 
-1. **No special-case branching on type in callers.** Adding a variant (activation,
-   cost function, layer type) must not spawn a parallel function/kernel or an
-   `if (type == X)` in the caller. Add a dedicated impl function and a new `case`
-   inside the one existing function/switch; the decision lives *inside* the call.
-2. **Readability — extract temporaries.** Never inline complex expressions
-   (`.data()`, `const_cast`, indexing, member access) into call arguments; assign
-   named locals first.
-3. **Tests for every new feature** — unit tests in isolation **and** an
-   integration test through the full pipeline (train/predict/test).
-4. **Concurrency:** the CPU cores parallelize per-batch on a thread pool and
-   invoke callbacks from inside that parallel region. Be careful running
-   pool-using work (e.g. a validation pass) from a training callback — see the
-   global `deadlock-triage` skill. Each core should use its own pool, not a
-   shared global one.
+### Design
+
+1. **No type branching in callers.** Adding a variant (activation, cost, layer) means one new `case` in the existing dispatch function — no parallel paths, no `if (type == X)` in callers.
+2. **Extract temporaries.** Never inline `.data()`, `const_cast`, indexing into call arguments; use named locals.
+3. **Tests for every feature.** Unit tests + integration through the full pipeline (train → predict → test).
+4. **Concurrency.** CPU cores parallelize per-batch on a thread pool, invoking callbacks inside that region. Each core uses its own pool — never a shared global one. Running pool-using work from a training callback risks deadlock (see `deadlock-triage` skill).
+
+### Behavior
+
+1. **Surgical edits.** Change only what the task requires. Don't "improve" adjacent code, comments, or formatting. Don't refactor things that aren't broken. If your change orphans imports/variables, clean those up — but leave pre-existing dead code unless asked.
+2. **Simplicity.** Write the minimum code that solves the problem. No speculative features, no abstractions for single-use code, no error handling for impossible scenarios.
+3. **Surface uncertainty.** If something is unclear, stop and ask. If multiple interpretations exist, present them — don't pick silently. State assumptions before coding.
+4. **Define success criteria.** Translate tasks into verifiable goals. "Fix the bug" → "Write a test that reproduces it, then make it pass." Loop until verified.
 
 ## Commit conventions
 
-Conventional commits (`feat` / `fix` / `refactor` / `perf` / `test` / `docs` /
-`chore` / `build` / `ci`), imperative subject, body explaining **why**.
-**Never** add a `Co-Authored-By` or any co-author trailer. Commit/push only when
-asked. (Full rules: global `commit-conventions` skill.)
+Conventional commits (`feat` / `fix` / `refactor` / `perf` / `test` / `docs` / `chore` / `build` / `ci`).
+Imperative subject, body explains **why**. **Never** add `Co-Authored-By`. Commit/push only when asked.
 
-## Working with the global agent stack
+## Pre-commit hooks
 
-The global OpenCode setup (`~/.config/opencode/`) provides the orchestrator,
-tiered workers, the `debugger` agent, and skills (`submodule-sync`,
-`deadlock-triage`, `perf-profiling`, `memory-leak-hunt`, `security-review`,
-`pr-prep`, `flaky-test-stabilizer`, `commit-conventions`, `code-review`,
-`dry-check`). Those are repo-agnostic; this file is the repo-specific context
-that complements them. They compose — this file does not replace them.
+- **clang-format** (v18.1.8) — excludes `extern/` and `libs/`
+- **Local blank-line script** (`scripts/ensure-blank-lines.py`) — ensures blank lines around if/else/try/catch in C/C++ — excludes `extern/` and `libs/`
 
----
+## OpenCLWrapper
+
+Submodule at `ANN/extern/OpenCLWrapper` and `CNN/extern/OpenCLWrapper` (same remote, two working trees).
+Edit in the submodule, then bump the pointer (see `submodule-sync` skill).
+Clang-format and blank-line hooks exclude `extern/` — submodule files are not reformatted.
 
 ## Component notes
 
-- **ANN** — standalone feedforward library; `ANN_CoreCPU*` (CPU) and
-  `ANN_CoreGPU*` (GPU) backends, activation/cost functions, device abstraction.
-  Leaf dependency; the dense layers inside CNN reuse its per-sample API.
-- **CNN** — convolution/pooling/normalization/residual layers; `CNN_CoreCPU*` /
-  `CNN_CoreGPU*`. Depends on ANN and transitively exports it.
-- **NN-CLI** — JSON-config-driven CLI; modes `train` / `predict` / `test` /
-  `calibrate`; `--device cpu|gpu`; GPU image augmentation. Source in
-  `NN-CLI_*Runner.*`, `main.cpp`.
-- **NN-Server** — QTcpServer-based HTTP inference server; `CorePool` manages ANN/CNN core
-  instances with thread-safe handling; request routing + JSON I/O; model loader
-  and image pre/post-processing.
-- **OpenCLWrapper** — OpenCL device/context/kernel abstraction shared by the GPU
-  backends. Edit it in the submodule, then bump the pointer (see `submodule-sync`).
-- **Common** — header-only shared config/result structs included as
-  `Common/Common_*.hpp`; no build step (INTERFACE library `NN_Common`).
+- **ANN** — feedforward library; `ANN_CoreCPU*` / `ANN_CoreGPU*` backends, activation/cost functions, device abstraction. Leaf dependency. → `ANN/AGENTS.md`
+- **CNN** — conv/pool/norm/residual layers; `CNN_CoreCPU*` / `CNN_CoreGPU*`. Depends on ANN, transitively exports it. → `CNN/AGENTS.md`
+- **NN-CLI** — JSON-config CLI; modes `train`/`predict`/`test`/`calibrate`; `--device cpu|gpu`. Sources in `NN-CLI_*Runner.*`, `main.cpp`. → `NN-CLI/AGENTS.md`
+- **NN-Server** — QTcpServer HTTP server; `CorePool` manages ANN/CNN instances thread-safely; request routing, JSON I/O, model loader, image processing. → `NN-Server/AGENTS.md`
+- **Common** — header-only config/result structs (`Common/Common_*.hpp`); INTERFACE library `NN_Common`.

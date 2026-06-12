@@ -12,9 +12,6 @@ CMakeLists.txt.user*
 __pycache__/
 *.pyc
 
-# AI agent instructions — local, not shared via the repo
-AGENTS.md
-
 # Local CMake presets (machine-specific Qt6 kit paths)
 CMakeUserPresets.json
 
