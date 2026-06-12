@@ -27,7 +27,6 @@ add_executable(NN-CLI
   NN-CLI_ModelSerializer.cpp
   NN-CLI_PredictSummary.cpp
   NN-CLI_App.cpp
-  NN-CLI_TerminalUI.cpp
   NN-CLI_TerminalUI_Panel.cpp
   NN-CLI_TerminalUI_Table.cpp
   NN-CLI_TerminalUI_Window.cpp
