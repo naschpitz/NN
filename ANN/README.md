@@ -13,7 +13,7 @@ A C++ neural network library supporting both CPU and GPU (OpenCL) execution.
 ## Dependencies
 
 - Qt Core and Qt Concurrent
-- [OpenCLWrapper](https://github.com/naschpitz/OpenCLWrapper) (for GPU support)
+- [OpenCLWrapper](../OpenCLWrapper/) (git submodule, for GPU support)
 
 ## Building
 
@@ -26,7 +26,7 @@ make
 ## API Overview
 
 ANN is a pure library — all interaction is through C++ types. There is no built-in file I/O;
-the calling application (e.g. [NN-CLI](https://github.com/naschpitz/NN-CLI)) handles serialization.
+the calling application (e.g. [NN-CLI](../NN-CLI/)) handles serialization.
 
 ```cpp
 #include <ANN_Core.hpp>

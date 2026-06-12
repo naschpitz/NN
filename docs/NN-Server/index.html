@@ -54,7 +54,7 @@
 
 <h2>How It Works</h2>
 <ol>
-  <li><strong>Load a trained model</strong> — provide a JSON model file (from <a href="../NN-CLI/index.html">NN-CLI</a> training output)</li>
+  <li><strong>Load a trained model</strong> — provide a <code>.nnmodel</code> package (tar archive with <code>model.json</code> + <code>params.bin</code>) from <a href="../NN-CLI/index.html">NN-CLI</a> training output</li>
   <li><strong>NN-Server detects</strong> whether it's an ANN or CNN model and creates a pool of Core instances</li>
   <li><strong>Accept HTTP requests</strong> — clients POST to <code>/predict</code> with JSON or image data</li>
   <li><strong>Run inference</strong> — a Core is acquired from the pool, prediction runs, result is returned</li>
@@ -131,9 +131,9 @@ curl -X POST http://localhost:<span class="number">8080</span>/predict \
 <h2>Dependencies</h2>
 <table>
   <tr><th>Dependency</th><th>Purpose</th><th>Included</th></tr>
-  <tr><td><a href="../CNN/index.html">CNN</a></td><td>Convolutional network implementation</td><td>Git submodule</td></tr>
+  <tr><td><a href="../CNN/index.html">CNN</a></td><td>Convolutional network implementation</td><td>Local (monorepo)</td></tr>
   <tr><td><a href="../ANN/index.html">ANN</a></td><td>Dense network implementation</td><td>Transitive (via CNN)</td></tr>
-  <tr><td><a href="https://github.com/naschpitz/openCLWrapper">OpenCLWrapper</a></td><td>OpenCL GPU abstraction</td><td>Transitive (via CNN→ANN)</td></tr>
+  <tr><td><a href="../OpenCLWrapper/">OpenCLWrapper</a></td><td>OpenCL GPU abstraction</td><td>Git submodule (see <a href="../OpenCLWrapper/">OpenCLWrapper/</a>)</td></tr>
   <tr><td>Qt 5/6 Core + Network</td><td>TCP server, threading, file I/O</td><td>System</td></tr>
   <tr><td><a href="https://github.com/nlohmann/json">nlohmann/json</a></td><td>JSON parsing</td><td>Header-only (bundled)</td></tr>
   <tr><td><a href="https://github.com/nothings/stb">stb</a></td><td>Image loading, writing, resizing</td><td>Header-only (libs/stb/)</td></tr>

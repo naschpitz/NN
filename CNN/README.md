@@ -1,6 +1,6 @@
 # CNN - Convolutional Neural Network Library
 
-A C++ convolutional neural network library supporting both CPU and GPU (OpenCL) execution. Delegates dense (fully-connected) layers to the [ANN](https://github.com/naschpitz/ANN) library.
+A C++ convolutional neural network library supporting both CPU and GPU (OpenCL) execution. Delegates dense (fully-connected) layers to the [ANN](../ANN/) library.
 
 ## Features
 
@@ -16,23 +16,22 @@ A C++ convolutional neural network library supporting both CPU and GPU (OpenCL) 
 ## Dependencies
 
 - Qt Core and Qt Concurrent
-- [ANN](https://github.com/naschpitz/ANN) (dense layer implementation)
-- [OpenCLWrapper](https://github.com/naschpitz/openCLWrapper) (for GPU support)
+- [ANN](../ANN/) (dense layer implementation)
+- [OpenCLWrapper](../OpenCLWrapper/) (git submodule, for GPU support)
 
 ## Building
 
 ```bash
-git clone --recursive https://github.com/naschpitz/CNN.git
-cd CNN
-mkdir build && cd build
-cmake ..
-make
+# CNN is part of the NN monorepo. Build from the repo root:
+./build.sh
+# Or build standalone:
+./CNN/build.sh
 ```
 
 ## API Overview
 
 CNN is a pure library — all interaction is through C++ types. There is no built-in file I/O;
-the calling application (e.g. [NN-CLI](https://github.com/naschpitz/NN-CLI)) handles serialization.
+the calling application (e.g. [NN-CLI](../NN-CLI/)) handles serialization.
 
 ```cpp
 #include <CNN_Core.hpp>

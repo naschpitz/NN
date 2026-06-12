@@ -11,7 +11,7 @@ ANN/            Feedforward ANN library (CPU + GPU). Leaf dependency.
 CNN/            Convolutional library; depends on ANN.
 Common/         Header-only shared config/result structs (NN_Common INTERFACE lib).
 NN-CLI/         CLI: train / predict / test / calibrate.
-NN-Server/      HTTP inference server (Civetweb) over a thread-safe CorePool.
+NN-Server/      HTTP inference server (QTcpServer) over a thread-safe CorePool.
 ANN/extern/OpenCLWrapper   OpenCL abstraction (git submodule).
 CNN/extern/OpenCLWrapper   OpenCL abstraction (git submodule).
 ```

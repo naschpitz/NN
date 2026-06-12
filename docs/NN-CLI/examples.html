@@ -298,7 +298,7 @@
 </div>
 
 <div class="info-box">
-<strong>Trained Model Reuse:</strong> The output of training automatically updates the mode to "predict" or "test". You can directly use the trained JSON for inference without manual edits.
+<strong>Trained Model Reuse:</strong> The output of training automatically updates the mode to "predict" or "test". For non-train modes (predict, test, calibrate), NN-CLI requires a <code>.nnmodel</code> package — plain JSON configs are rejected. Create one with <code>tar -cf model.nnmodel model.json params.bin</code>.
 </div>
 
 </main>
