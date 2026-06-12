@@ -7,6 +7,8 @@
 
 #include "Common/Common_Utils.hpp"
 
+#include <QMutex>
+
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -42,13 +44,20 @@ namespace NN_CLI
     }
 
     // Initialize the ncurses TUI.  If init fails (e.g. no TTY attached),
-    // the window gracefully degrades -- draw() becomes a no-op, so the
-    // training proceeds with console-only output from the Runner.
+    // the window gracefully degrades -- the UI thread is never started, so
+    // the training proceeds with console-only output from the Runner.
     if (this->window)
       this->window->init();
 
     // Populate the Model Info panel with static core configuration data.
     this->populateModelInfo();
+
+    // Start the window's dedicated UI thread.  From here on the window
+    // redraws itself at a fixed frame rate and handles input and resize on
+    // its own thread; the observer callbacks below only update view data
+    // under the window mutex.
+    if (this->window)
+      this->window->startUiThread();
   }
 
   //===================================================================================================================//
@@ -90,10 +99,10 @@ namespace NN_CLI
   {
     (void)isValidation;
 
-    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
-
     if (!this->window)
       return;
+
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
@@ -102,7 +111,6 @@ namespace NN_CLI
       label += " (" + std::to_string(batchIndex + 1) + "/" + std::to_string(totalBatches) + ")";
 
     this->window->setLoadingProgress(label, fraction);
-    this->window->draw();
   }
 
   //===================================================================================================================//
@@ -110,16 +118,15 @@ namespace NN_CLI
   template <typename RunnerT>
   void TrainingController<RunnerT>::onValidationProgress(ulong current, ulong total)
   {
-    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
-
     if (!this->window)
       return;
+
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     this->isValidating = true;
 
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
     this->window->updateProgress("Validating", fraction);
-    this->window->draw();
   }
 
   //===================================================================================================================//
@@ -128,10 +135,10 @@ namespace NN_CLI
   void TrainingController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
                                                        const std::vector<float>& fractions)
   {
-    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
-
     if (!this->window)
       return;
+
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     // Clear any transitional "Validating" state from the previous epoch.
     this->isValidating = false;
@@ -140,7 +147,6 @@ namespace NN_CLI
     std::string label = "Training (" + std::to_string(displayEpoch) + "/" + std::to_string(this->totalEpochs) + ")";
     this->window->updateProgress(label, fractions);
     this->refreshTimingPanel();
-    this->window->draw();
   }
 
   //===================================================================================================================//
@@ -149,10 +155,10 @@ namespace NN_CLI
   void TrainingController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
                                                        const std::string& summary)
   {
-    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
-
     if (!this->window)
       return;
+
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     // Track the current epoch (0-based index → next epoch number for display).
     this->currentEpoch = epochIdx + 1;
@@ -189,8 +195,6 @@ namespace NN_CLI
       this->isValidating = true;
       this->window->updateProgress("Validating", 1.0f);
     }
-
-    this->window->draw();
   }
 
   //===================================================================================================================//
@@ -198,17 +202,16 @@ namespace NN_CLI
   template <typename RunnerT>
   void TrainingController<RunnerT>::onTrainingFinished(bool success, const std::string& finalSummary)
   {
-    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
-
     if (!this->window)
       return;
+
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     this->isValidating = false;
 
     std::string prefix = success ? "[Training complete] " : "[Training failed] ";
     this->window->addEpochMessage(prefix + finalSummary);
     this->window->refreshEpochContent();
-    this->window->draw();
   }
 
   //===================================================================================================================//
@@ -219,10 +222,10 @@ namespace NN_CLI
     (void)property;
     (void)value;
 
-    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
-
     if (!this->window || !this->runner)
       return;
+
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     // The Runner emits these notifications after it has updated its internal
     // state (e.g. sample counts once the dataset is loaded), so rebuild the
@@ -230,7 +233,6 @@ namespace NN_CLI
     // appending one raw key/value at a time.
     this->window->setModelInfoRows(this->runner->buildModelInfoRows());
     this->window->refreshModelInfoContent();
-    this->window->draw();
   }
 
   //===================================================================================================================//
@@ -238,15 +240,14 @@ namespace NN_CLI
   template <typename RunnerT>
   void TrainingController<RunnerT>::onLogMessage(const std::string& message, bool isError)
   {
-    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
-
     if (!this->window)
       return;
+
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     std::string formatted = isError ? ("[ERROR] " + message) : message;
     this->window->addEpochMessage(formatted);
     this->window->refreshEpochContent();
-    this->window->draw();
   }
 
   //===================================================================================================================//
@@ -257,13 +258,12 @@ namespace NN_CLI
     (void)metric;
     (void)value;
 
-    std::lock_guard<std::recursive_mutex> lock(this->uiMutex);
-
     if (!this->window)
       return;
 
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
+
     this->refreshTimingPanel();
-    this->window->draw();
   }
 
   //===================================================================================================================//

@@ -1,8 +1,13 @@
 #include "NN-CLI_TerminalUI_Window.hpp"
 
+// Qt headers must be included before <curses.h>: curses defines a `timeout`
+// macro that breaks Qt declarations parsed after it.
+#include <QThread>
+
 #include <algorithm>
 #include <clocale>
 #include <csignal>
+#include <cstdio>
 #include <curses.h>
 
 namespace NN_CLI
@@ -50,7 +55,17 @@ namespace NN_CLI
     ::curs_set(0);
     ::keypad(stdscr, TRUE);
     ::nodelay(stdscr, TRUE);
-    ::mousemask(BUTTON4_PRESSED | BUTTON5_PRESSED, nullptr);
+
+    // Mouse reporting (mousemask) is deliberately NOT enabled: when an SGR
+    // mouse sequence arrives truncated (e.g. tty buffer overflow during fast
+    // wheel scrolling), ncurses getch() blocks on stdin indefinitely waiting
+    // for the rest of it, ignoring nodelay — freezing whichever thread polls
+    // input.  Instead, request the terminal's "alternate scroll" mode
+    // (DECSET 1007): with mouse reporting off, wheel events on the alternate
+    // screen arrive as arrow-key presses, which the panels already handle
+    // and which ncurses parses with a bounded ESCDELAY wait.
+    ::fputs("\x1b[?1007h", stdout);
+    ::fflush(stdout);
 
     if (::has_colors()) {
       ::start_color();
@@ -85,6 +100,8 @@ namespace NN_CLI
     if (!this->initialized)
       return;
 
+    this->stopUiThread();
+
     this->initialized = false;
     g_activeWindow = nullptr;
     std::signal(SIGWINCH, SIG_DFL);
@@ -92,6 +109,34 @@ namespace NN_CLI
     this->children.clear();
 
     ::endwin();
+
+    // Restore the terminal's default wheel behavior (alternate scroll off).
+    ::fputs("\x1b[?1007l", stdout);
+    ::fflush(stdout);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_Window::startUiThread()
+  {
+    if (!this->initialized || this->uiThreadRunning.load())
+      return;
+
+    this->uiThreadRunning.store(true);
+    this->uiThread.reset(QThread::create(&TerminalUI_Window::uiThreadLoop, this));
+    this->uiThread->start();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_Window::stopUiThread()
+  {
+    this->uiThreadRunning.store(false);
+
+    if (this->uiThread) {
+      this->uiThread->wait();
+      this->uiThread.reset();
+    }
   }
 
   //===================================================================================================================//
@@ -170,9 +215,10 @@ namespace NN_CLI
     this->preRender();
     this->render();
 
-    // Drain all pending input events so that buffered keystrokes and
-    // mouse-wheel clicks are processed in a single pass.  Re-render once
-    // at the end if any event was consumed, avoiding per-key repaints.
+    // Drain all pending input events so that buffered keystrokes (including
+    // wheel ticks delivered as arrow keys via alternate scroll) are processed
+    // in a single pass.  Re-render once at the end if any event was consumed,
+    // avoiding per-key repaints.
     bool anyConsumed = false;
 
     while (this->pollAndDispatchInput())
@@ -206,24 +252,27 @@ namespace NN_CLI
     if (ch == ERR)
       return false;
 
-    // Translate mouse wheel events into scroll keys so that panels can
-    // handle them through the existing applyScrollInput() path.
-    if (ch == KEY_MOUSE) {
-      MEVENT me;
-
-      if (::getmouse(&me) == OK) {
-        if (me.bstate & BUTTON4_PRESSED)
-          ch = KEY_UP;
-        else if (me.bstate & BUTTON5_PRESSED)
-          ch = KEY_DOWN;
-        else
-          return false;  // non-wheel mouse event, ignore
-      } else {
-        return false;
-      }
-    }
-
     return this->handleEvent(ch);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_Window::uiThreadLoop()
+  {
+    // ~30 FPS: frequent enough for smooth progress bars, cheap enough that
+    // the periodic redraw is negligible next to the training work.  ncurses
+    // diffs the virtual screen internally, so an unchanged frame sends
+    // almost nothing to the terminal.
+    constexpr unsigned long kFrameIntervalMs = 33;
+
+    while (this->uiThreadRunning.load()) {
+      {
+        QMutexLocker<QRecursiveMutex> lock(&this->uiMutex);
+        this->draw();
+      }
+
+      QThread::msleep(kFrameIntervalMs);
+    }
   }
 
   //===================================================================================================================//
