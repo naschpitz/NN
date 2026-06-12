@@ -389,51 +389,9 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
   // Live progress callback: fires per batch. It only drives the progress
   // display — every epoch-boundary task lives in the epoch-completed callback.
-  this->core->setTrainingCallback(
-    [this, batchSize, totalEpochs](const Common::TrainingProgressEvent<float>& progress) {
-      QMutexLocker<QMutex> lock(&this->callbackMutex);
-
-      if (progress.epochLoss > 0)
-        this->lastEpochLoss = progress.epochLoss;
-
-      // Observer notification — batch progress (per-GPU fractions).
-      std::vector<float> fractions;
-      int totalGPUs = progress.totalGPUs;
-
-      if (totalGPUs > 1) {
-        // Multi-GPU: reset per-epoch tracking at epoch boundaries.
-        if (this->trackedEpoch != static_cast<int>(progress.currentEpoch) ||
-            this->trackedTotalGPUs != totalGPUs) {
-          this->trackedEpoch = static_cast<int>(progress.currentEpoch);
-          this->trackedTotalGPUs = totalGPUs;
-          this->gpuFractions.assign(totalGPUs, 0.0f);
-        }
-
-        // Update this GPU's local fraction.
-        if (progress.gpuIndex >= 0 && progress.gpuIndex < totalGPUs) {
-          ulong samplesPerGPU = progress.totalSamples / totalGPUs;
-          ulong gpuOffset = static_cast<ulong>(progress.gpuIndex) * samplesPerGPU;
-          ulong localProgress = (progress.currentSample > gpuOffset)
-                                  ? (progress.currentSample - gpuOffset) : 0;
-          float gpuFraction = (samplesPerGPU > 0)
-                                ? static_cast<float>(localProgress) / static_cast<float>(samplesPerGPU)
-                                : 0.0f;
-          this->gpuFractions[progress.gpuIndex] = std::min(1.0f, std::max(0.0f, gpuFraction));
-        }
-
-        fractions = this->gpuFractions;
-      } else {
-        // Single GPU or CPU: single fraction.
-        float fraction = (progress.totalSamples > 0)
-                           ? static_cast<float>(progress.currentSample) / static_cast<float>(progress.totalSamples)
-                           : 0.0f;
-        fractions = {fraction};
-      }
-
-      int batchIdx = static_cast<int>(progress.currentSample / batchSize);
-      int totalBatches = static_cast<int>((progress.totalSamples + batchSize - 1) / batchSize);
-      this->notifyBatchProgress(batchIdx, totalBatches, progress.epochLoss, fractions);
-    });
+  this->core->setTrainingCallback([this, batchSize](const Common::TrainingProgressEvent<float>& progress) {
+    this->handleTrainingProgress(progress, batchSize);
+  });
 
   // Epoch-completed callback: fires once per epoch (after the epoch's record is
   // recorded) with the 0-based epoch index. The core hands us the index

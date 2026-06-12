@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <curses.h>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -67,21 +68,23 @@ namespace
   }
 
   //===================================================================================================================//
-  // Emit a single solid bar on stdscr: `filled` green blocks, then light shading out to `barWidth`.
-  void emitSingleBarStdscr(int row, int col, float fraction, int barWidth)
+  // Emit a single solid bar on stdscr starting at absolute column `startCol`:
+  // `filled` green blocks, then light shading out to `barWidth`.
+  // The block glyphs are multi-byte UTF-8, so they must go through mvaddstr —
+  // mvaddch takes a chtype and would truncate them to garbage.
+  void emitSingleBarStdscr(int row, int startCol, float fraction, int barWidth)
   {
     int filled = std::clamp(static_cast<int>(fraction * barWidth), 0, barWidth);
-    int startCol = col + kLabelWidth + kBracketWidth;
 
     attron(COLOR_PAIR(kBarColor));
 
     for (int i = 0; i < filled; i++)
-      mvaddch(row, startCol + i, L'█');
+      mvaddstr(row, startCol + i, "\xe2\x96\x88");
 
     attroff(COLOR_PAIR(kBarColor));
 
     for (int i = filled; i < barWidth; i++)
-      mvaddch(row, startCol + i, L'░');
+      mvaddstr(row, startCol + i, "\xe2\x96\x91");
   }
 
   //===================================================================================================================//
@@ -102,42 +105,50 @@ namespace
   }
 
   //===================================================================================================================//
-  // Emit a segmented bar on stdscr, one equal-width segment separated by "|".
+  // Emit a segmented bar on stdscr, one segment per fraction separated by "│".
+  // Segments share barWidth minus the separator columns; the last segment
+  // absorbs the division remainder so the bar fills barWidth exactly.
   void emitSegmentedBarStdscr(int row, int col, const std::vector<float>& fractions, int numSegments, int barWidth)
   {
-    int segmentWidth = barWidth / numSegments;
+    int separators = numSegments - 1;
+    int segmentWidth = (barWidth - separators) / numSegments;
+    int lastSegmentWidth = (barWidth - separators) - segmentWidth * separators;
     int startCol = col + kLabelWidth + kBracketWidth;
 
     for (int seg = 0; seg < numSegments; seg++) {
       float pct = (seg < static_cast<int>(fractions.size())) ? fractions[seg] : 0.0f;
-      emitSingleBarStdscr(row, startCol, pct, segmentWidth);
-      startCol += segmentWidth;
+      int width = (seg == separators) ? lastSegmentWidth : segmentWidth;
+      emitSingleBarStdscr(row, startCol, pct, width);
+      startCol += width;
 
-      if (seg < numSegments - 1) {
-        mvaddch(row, startCol, '|');
+      if (seg < separators) {
+        mvaddstr(row, startCol, "\xe2\x94\x82");
         startCol += 1;
       }
     }
   }
 
   //===================================================================================================================//
-  // Emit a segmented bar, one equal-width segment separated by "|".
+  // Emit a segmented bar, one segment per fraction separated by "│".
+  // Same width distribution as emitSegmentedBarStdscr.
   void emitSegmentedBar(WINDOW* win, const std::vector<float>& fractions, int numSegments, int barWidth)
   {
-    int segmentWidth = barWidth / numSegments;
+    int separators = numSegments - 1;
+    int segmentWidth = (barWidth - separators) / numSegments;
+    int lastSegmentWidth = (barWidth - separators) - segmentWidth * separators;
 
     for (int seg = 0; seg < numSegments; seg++) {
       float pct = (seg < static_cast<int>(fractions.size())) ? fractions[seg] : 0.0f;
-      emitSingleBar(win, pct, segmentWidth);
+      emitSingleBar(win, pct, (seg == separators) ? lastSegmentWidth : segmentWidth);
 
-      if (seg < numSegments - 1)
+      if (seg < separators)
         ::waddstr(win, "\xe2\x94\x82");
     }
   }
 
   //===================================================================================================================//
-  // Emit the trailing per-segment suffix " (0:XX% | 1:XX%)".
-  void emitSegmentSuffix(WINDOW* win, const std::vector<float>& fractions)
+  // Build the trailing per-segment suffix " (0:XX% | 1:XX%)".
+  std::string buildSegmentSuffix(const std::vector<float>& fractions)
   {
     std::ostringstream info;
     info << " (";
@@ -150,7 +161,14 @@ namespace
     }
 
     info << ")";
-    ::waddstr(win, info.str().c_str());
+    return info.str();
+  }
+
+  //===================================================================================================================//
+  // Emit the trailing per-segment suffix " (0:XX% | 1:XX%)".
+  void emitSegmentSuffix(WINDOW* win, const std::vector<float>& fractions)
+  {
+    ::waddstr(win, buildSegmentSuffix(fractions).c_str());
   }
 
 } // namespace
@@ -235,7 +253,8 @@ namespace NN_CLI
     emitLabelStdscr(this->y, this->x, this->barLabel);
 
     if (numSegments == 1) {
-      emitSingleBarStdscr(this->y, this->x, this->barFractions.empty() ? 0.0f : this->barFractions[0], bw);
+      emitSingleBarStdscr(this->y, this->x + kLabelWidth + kBracketWidth,
+                          this->barFractions.empty() ? 0.0f : this->barFractions[0], bw);
     } else {
       emitSegmentedBarStdscr(this->y, this->x, this->barFractions, numSegments, bw);
     }
@@ -245,6 +264,15 @@ namespace NN_CLI
     snprintf(pctBuf, sizeof(pctBuf), "] %6.3f%%", static_cast<double>(fraction * 100.0f));
     int pctCol = this->x + kLabelWidth + kBracketWidth + bw;
     mvaddstr(this->y, pctCol, pctBuf);
+
+    // Per-segment suffix " (0:XX% | 1:XX%)" right after the percentage, when it fits.
+    if (numSegments > 1) {
+      std::string suffix = buildSegmentSuffix(this->barFractions);
+      int suffixCol = pctCol + static_cast<int>(strlen(pctBuf));
+
+      if (suffixCol + static_cast<int>(suffix.size()) <= this->x + this->width)
+        mvaddstr(this->y, suffixCol, suffix.c_str());
+    }
 
     // Draw sub-line on the second row (if present).
     if (this->height >= 2 && !this->subLineText.empty()) {

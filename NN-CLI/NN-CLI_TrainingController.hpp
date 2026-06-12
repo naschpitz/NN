@@ -94,6 +94,10 @@ namespace NN_CLI
     private:
       //-- Methods --//
 
+      // Build the training progress bar label for the epoch currently in
+      // progress (e.g. "Epoch    1/100").
+      std::string buildEpochLabel() const;
+
       // Populate the model info panel with core configuration data.
       void populateModelInfo();
 

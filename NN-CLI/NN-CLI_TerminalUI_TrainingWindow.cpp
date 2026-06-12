@@ -88,9 +88,12 @@ namespace NN_CLI
     }
 
     //-- Vertical split of the left column: model info ~45%, epochs ~55% --//
+    // When the terminal is too short to fit the upper panels above the
+    // progress panel, collapse them to zero height (a zero-size panel draws
+    // nothing) instead of forcing minimum heights that would overlap it.
 
-    int modelInfoH = std::max(3, remainingH * 45 / 100);
-    int epochsH = std::max(3, remainingH - modelInfoH);
+    int modelInfoH = std::min(remainingH, std::max(3, remainingH * 45 / 100));
+    int epochsH = std::max(0, remainingH - modelInfoH);
 
     //-- Position panels --//
     //   modelInfoPanel  — top-left:       (0, 0)            size: (leftW, modelInfoH)
