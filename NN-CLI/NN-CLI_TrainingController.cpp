@@ -15,6 +15,35 @@
 #include <string>
 #include <vector>
 
+namespace
+{
+  //-- Color pair for the epoch-complete loss text (green, configured in Window init). --//
+  constexpr int kLossColor = 6;
+
+  //===================================================================================================================//
+  // Format an ETA in seconds as "mm:ss" (or "h:mm:ss" once it exceeds an hour).
+  std::string formatEta(double seconds)
+  {
+    if (seconds < 0.0)
+      seconds = 0.0;
+
+    long total = static_cast<long>(seconds + 0.5);
+    long h = total / 3600;
+    long m = (total % 3600) / 60;
+    long s = total % 60;
+
+    std::ostringstream out;
+
+    if (h > 0)
+      out << h << ":" << std::setfill('0') << std::setw(2) << m << ":" << std::setw(2) << s;
+    else
+      out << std::setfill('0') << std::setw(2) << m << ":" << std::setw(2) << s;
+
+    return out.str();
+  }
+
+} // namespace
+
 namespace NN_CLI
 {
 
@@ -53,10 +82,13 @@ namespace NN_CLI
     // Populate the Model Info panel with static core configuration data.
     this->populateModelInfo();
 
-    // Seed the training progress bar so it shows "Epoch    1/N" at 0% from
-    // the start, before the first batch-progress event arrives.
-    if (this->window)
+    // Seed the training progress bar so it shows "Epoch    1/N" at 0% with
+    // an empty stats line from the start, before the first batch-progress
+    // event arrives.
+    if (this->window) {
       this->window->updateProgress(this->buildEpochLabel(), 0.0f);
+      this->window->updateProgressSubLine("Loss: 0.000000");
+    }
 
     // Start the window's dedicated UI thread.  From here on the window
     // redraws itself at a fixed frame rate and handles input and resize on
@@ -140,8 +172,12 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TrainingController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
+                                                       float samplesPerSec, float etaSeconds,
                                                        const std::vector<float>& fractions)
   {
+    (void)batchIdx;
+    (void)totalBatches;
+
     if (!this->window)
       return;
 
@@ -151,6 +187,13 @@ namespace NN_CLI
     this->isValidating = false;
 
     this->window->updateProgress(this->buildEpochLabel(), fractions);
+
+    // Sub-line: running average loss, ingestion rate, and epoch ETA.
+    std::ostringstream stats;
+    stats << "Loss: " << std::fixed << std::setprecision(6) << currentLoss << "  " << std::setw(6)
+          << static_cast<long>(samplesPerSec) << " img/s  ETA " << formatEta(etaSeconds);
+    this->window->updateProgressSubLine(stats.str());
+
     this->refreshTimingPanel();
   }
 
@@ -191,6 +234,12 @@ namespace NN_CLI
 
     this->window->addEpochRow(row);
     this->window->refreshEpochContent();
+
+    // Sub-line: the completed epoch's final loss, in green.  Persists through
+    // validation until the next epoch's first batch-progress event.
+    std::ostringstream lossText;
+    lossText << "Loss: " << std::fixed << std::setprecision(6) << epochLoss;
+    this->window->updateProgressSubLine(lossText.str(), kLossColor);
 
     // When validation was performed for this epoch (accuracy >= 0), show a
     // transitional "Validating" progress bar that persists until the next

@@ -62,9 +62,13 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TestController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
+                                                  float samplesPerSec, float etaSeconds,
                                                   const std::vector<float>& fractions)
   {
     // Test mode: batch progress maps to batch evaluation progress with loss.
+    (void)samplesPerSec;
+    (void)etaSeconds;
+
     float fraction = fractions.empty() ? 0.0f : fractions[0];
     std::cout << "\r  Progress: " << (batchIdx + 1) << "/" << totalBatches << " ("
               << std::fixed << std::setprecision(1) << (fraction * 100.0f) << "%)"

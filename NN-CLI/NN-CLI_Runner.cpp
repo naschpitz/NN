@@ -84,10 +84,11 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyValidationProgress(ulong current,
 
 template <typename CoreT, typename CoreConfigT>
 void NN_CLI::Runner<CoreT, CoreConfigT>::notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss,
+                                                              float samplesPerSec, float etaSeconds,
                                                               const std::vector<float>& fractions)
 {
   for (auto* observer : this->observers)
-    observer->onBatchProgress(batchIdx, totalBatches, currentLoss, fractions);
+    observer->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
 }
 
 //===================================================================================================================//
@@ -146,8 +147,19 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainingProgress(const Common::Tr
 {
   QMutexLocker<QMutex> lock(&this->callbackMutex);
 
-  if (progress.epochLoss > 0)
+  bool isEpochComplete = progress.epochLoss > 0;
+
+  if (isEpochComplete)
     this->lastEpochLoss = progress.epochLoss;
+
+  // Reset the per-epoch sub-line statistics when a new epoch begins.
+  if (!isEpochComplete && this->statsEpoch != static_cast<int>(progress.currentEpoch)) {
+    this->statsEpoch = static_cast<int>(progress.currentEpoch);
+    this->epochStartTime = std::chrono::steady_clock::now();
+    this->runningLossSum = 0.0;
+    this->runningLossCount = 0;
+    this->rateWindow.clear();
+  }
 
   // Observer notification — batch progress (per-GPU fractions).
   std::vector<float> fractions;
@@ -181,9 +193,72 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainingProgress(const Common::Tr
     fractions = {fraction};
   }
 
+  // Accumulate the running average loss from per-sample losses.
+  if (!isEpochComplete) {
+    this->runningLossSum += static_cast<double>(progress.sampleLoss);
+    this->runningLossCount++;
+  }
+
+  // Throttle mid-epoch observer notifications to ~progressReports per epoch;
+  // epoch-complete events always pass through.
+  if (!isEpochComplete) {
+    if (this->ioConfig.progressReports == 0)
+      return;
+
+    ulong interval = std::max(static_cast<ulong>(1), progress.totalSamples / this->ioConfig.progressReports);
+
+    if (progress.currentSample % interval != 0 && progress.currentSample != progress.totalSamples)
+      return;
+  }
+
+  // Overall fraction of the epoch done (average across devices).
+  double fractionDone = 0.0;
+
+  for (float f : fractions)
+    fractionDone += f;
+
+  if (!fractions.empty())
+    fractionDone /= static_cast<double>(fractions.size());
+
+  double samplesDone = fractionDone * static_cast<double>(progress.totalSamples);
+  auto now = std::chrono::steady_clock::now();
+
+  // Record a rate sample for the sliding-window ingestion-rate estimate.
+  if (!isEpochComplete) {
+    this->rateWindow.push_back({samplesDone, now});
+
+    ulong windowSize = std::max(static_cast<ulong>(2), batchSize / 2);
+
+    while (this->rateWindow.size() > windowSize)
+      this->rateWindow.pop_front();
+  }
+
+  // Ingestion rate from the sliding window (full-epoch fallback) and ETA.
+  double rate = 0.0;
+
+  if (this->rateWindow.size() >= 2) {
+    const RateSample& oldest = this->rateWindow.front();
+    const RateSample& newest = this->rateWindow.back();
+    double sampleDelta = newest.samplesDone - oldest.samplesDone;
+    double timeDelta = std::chrono::duration<double>(newest.timestamp - oldest.timestamp).count();
+    rate = (timeDelta > 0.0) ? sampleDelta / timeDelta : 0.0;
+  } else {
+    double elapsed = std::chrono::duration<double>(now - this->epochStartTime).count();
+    rate = (elapsed > 0.0) ? samplesDone / elapsed : 0.0;
+  }
+
+  double eta = (rate > 0.0) ? (static_cast<double>(progress.totalSamples) - samplesDone) / rate : 0.0;
+
+  float currentLoss = isEpochComplete
+                        ? progress.epochLoss
+                        : (this->runningLossCount > 0
+                             ? static_cast<float>(this->runningLossSum / static_cast<double>(this->runningLossCount))
+                             : 0.0f);
+
   int batchIdx = static_cast<int>(progress.currentSample / batchSize);
   int totalBatches = static_cast<int>((progress.totalSamples + batchSize - 1) / batchSize);
-  this->notifyBatchProgress(batchIdx, totalBatches, progress.epochLoss, fractions);
+  this->notifyBatchProgress(batchIdx, totalBatches, currentLoss, static_cast<float>(rate),
+                            static_cast<float>(eta), fractions);
 }
 
 //===================================================================================================================//

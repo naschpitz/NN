@@ -15,6 +15,8 @@
 #include <QCommandLineParser>
 #include <QMutex>
 
+#include <chrono>
+#include <deque>
 #include <memory>
 #include <string>
 #include <vector>
@@ -130,8 +132,8 @@ namespace NN_CLI
       void notifySampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
                                     bool isValidation);
       void notifyValidationProgress(ulong current, ulong total);
-      void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                               const std::vector<float>& fractions);
+      void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
+                               float etaSeconds, const std::vector<float>& fractions);
       void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
                                 const std::string& summary);
       void notifyTrainingFinished(bool success, const std::string& finalSummary);
@@ -163,6 +165,18 @@ namespace NN_CLI
       std::vector<float> gpuFractions;
       int trackedEpoch = -1;
       int trackedTotalGPUs = 0;
+      // Progress sub-line statistics, reset at each epoch boundary: running
+      // average sample loss and a sliding window of (samples done, timestamp)
+      // pairs for the ingestion-rate / ETA estimate.
+      double runningLossSum = 0.0;
+      ulong runningLossCount = 0;
+      int statsEpoch = -1;
+      std::chrono::steady_clock::time_point epochStartTime;
+      struct RateSample {
+          double samplesDone;
+          std::chrono::steady_clock::time_point timestamp;
+      };
+      std::deque<RateSample> rateWindow;
       // Serializes the per-batch progress callback (fired concurrently from
       // worker threads) against the epoch-completed callback.
       QMutex callbackMutex;
