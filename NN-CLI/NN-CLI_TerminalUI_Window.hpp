@@ -3,6 +3,8 @@
 
 #include "NN-CLI_TerminalUI_Widget.hpp"
 
+#include <QMutex>
+
 #include <atomic>
 #include <memory>
 #include <vector>
@@ -11,6 +13,8 @@
 // a `timeout` macro that conflicts with Qt's QTimer::timeout).
 struct _win_st;
 typedef struct _win_st WINDOW;
+
+class QThread;
 
 namespace NN_CLI
 {
@@ -21,6 +25,13 @@ namespace NN_CLI
   //
   // Lifecycle: call init() to start ncurses, shutdown() to tear it down.
   // Children are added via addChild() and owned via unique_ptr.
+  //
+  // Threading model: after startUiThread(), a dedicated UI thread owns all
+  // periodic ncurses work — rendering, input polling, and resize handling —
+  // at a fixed frame rate.  Worker threads must never call draw(); they
+  // update widget data under getMutex() and the UI thread picks the changes
+  // up on its next frame.  This keeps a slow or blocked terminal from ever
+  // stalling the threads that produce the data.
   //
   // The default layoutChildren() gives every child the full window area.
   // Override it in a subclass to implement custom layout strategies (e.g.
@@ -47,6 +58,23 @@ namespace NN_CLI
       bool isInitialized() const
       {
         return this->initialized;
+      }
+
+      // Start the dedicated UI thread.  Call after a successful init();
+      // no-op when the TUI failed to initialize or the thread already runs.
+      void startUiThread();
+
+      // Stop and join the UI thread.  Called automatically by shutdown();
+      // must not be called while holding getMutex() (the UI thread takes it
+      // each frame and the join would deadlock).
+      void stopUiThread();
+
+      // Serializes the widget tree (and ncurses) between the UI thread and
+      // the data-updating threads.  Lock it around any mutation of window or
+      // panel content.
+      QRecursiveMutex& getMutex()
+      {
+        return this->uiMutex;
       }
 
       // Called from the SIGWINCH handler to schedule a deferred resize.
@@ -118,10 +146,20 @@ namespace NN_CLI
       // Render all children to stdscr and flush.
       void render();
 
-      // Non-blocking input poll: read one key from getch(), translate mouse
-      // wheel events to scroll keys, and dispatch to handleEvent().
-      // Returns true if an event was consumed (caller should re-render).
+      // Non-blocking input poll: read one key from getch() and dispatch it
+      // to handleEvent().  Returns true if an event was consumed (caller
+      // should re-render).
       bool pollAndDispatchInput();
+
+      // UI thread body: run draw() (render + input + resize) under the
+      // mutex at a fixed cadence until stopUiThread() clears the flag.
+      void uiThreadLoop();
+
+      //-- Members --//
+
+      std::unique_ptr<QThread> uiThread;
+      std::atomic<bool> uiThreadRunning{false};
+      QRecursiveMutex uiMutex;
   };
 
 } // namespace NN_CLI

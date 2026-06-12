@@ -5,7 +5,6 @@
 #include "NN-CLI_TerminalUI_TrainingWindow.hpp"
 
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -19,6 +18,14 @@ namespace NN_CLI
   // interface.  Owns both components and translates training events into
   // high-level view updates — the controller itself is completely free of
   // ncurses internals.
+  //
+  // Threading: observer callbacks arrive from multiple worker threads (the
+  // per-batch training callback, the data loader's loading callback, the
+  // validation callback).  Each callback only updates view data under the
+  // window's mutex and returns; all rendering, input polling, and resize
+  // handling happen on the window's dedicated UI thread (started in init()).
+  // Worker threads therefore never touch ncurses and can never be stalled
+  // by the terminal.
   //
   // Template parameter RunnerT is the concrete runner type (e.g. ANNRunner or
   // CNNRunner).  The controller takes ownership of the runner via unique_ptr
@@ -103,13 +110,6 @@ namespace NN_CLI
       int currentEpoch = 0;
       int totalEpochs = 0;
       bool isValidating = false;
-
-      // Serializes all View (ncurses) access.  Observer callbacks arrive from
-      // multiple worker threads — the per-batch training callback, the data
-      // loader's loading callback, and the validation callback — so every
-      // window mutation + draw must hold this lock.  Recursive so a handler
-      // that fans out to helpers cannot self-deadlock.
-      std::recursive_mutex uiMutex;
   };
 
   //===================================================================================================================//
