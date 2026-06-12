@@ -143,8 +143,8 @@ namespace NN_CLI
 
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
-    std::string label = "Samples (" + SummaryTable::formatWithCommas(current) + "/" +
-                        SummaryTable::formatWithCommas(total) + ")";
+    std::string label = "Samples " + SummaryTable::formatWithCommas(current) + "/" +
+                        SummaryTable::formatWithCommas(total);
 
     this->window->setLoadingProgress(label, fraction);
   }

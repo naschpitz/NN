@@ -187,9 +187,10 @@ namespace NN_CLI
       // Apply active / inactive color pairs to the panels.
       void updatePanelColors();
 
-      // Grant both progress bars the widest per-segment suffix either needs
-      // so their brackets stay vertically aligned (comparable progress).
-      void syncProgressBarSuffixes();
+      // Grant both progress bars the widest label and per-segment suffix
+      // either needs so their brackets stay vertically aligned (comparable
+      // progress) while the bars take every remaining column.
+      void syncProgressBarLayout();
 
     private:
       //-- Members --//

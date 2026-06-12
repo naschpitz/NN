@@ -147,7 +147,7 @@ namespace NN_CLI
     if (this->progressBarPtr)
       this->progressBarPtr->setBarData(label, fraction);
 
-    this->syncProgressBarSuffixes();
+    this->syncProgressBarLayout();
   }
 
   //===================================================================================================================//
@@ -158,7 +158,7 @@ namespace NN_CLI
     if (this->progressBarPtr)
       this->progressBarPtr->setBarData(label, fractions);
 
-    this->syncProgressBarSuffixes();
+    this->syncProgressBarLayout();
   }
 
   //===================================================================================================================//
@@ -186,7 +186,7 @@ namespace NN_CLI
       this->loadingBarPtr->setBarData(label, fraction);
     }
 
-    this->syncProgressBarSuffixes();
+    this->syncProgressBarLayout();
   }
 
   //===================================================================================================================//
@@ -501,18 +501,23 @@ namespace NN_CLI
   //-- Private — progress bar layout sync --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::syncProgressBarSuffixes()
+  void TerminalUI_TrainingWindow::syncProgressBarLayout()
   {
     if (!this->loadingBarPtr || !this->progressBarPtr)
       return;
 
-    // Grant both bars the widest per-segment suffix either of them needs so
-    // their brackets stay vertically aligned and progress is comparable.
-    int reserve = std::max(this->loadingBarPtr->requiredSuffixWidth(),
-                           this->progressBarPtr->requiredSuffixWidth());
+    // Grant both bars the widest label and per-segment suffix either of them
+    // needs so their brackets stay vertically aligned (comparable progress)
+    // while the bars themselves take every remaining column.
+    int labelReserve = std::max(this->loadingBarPtr->requiredLabelWidth(),
+                                this->progressBarPtr->requiredLabelWidth());
+    int suffixReserve = std::max(this->loadingBarPtr->requiredSuffixWidth(),
+                                 this->progressBarPtr->requiredSuffixWidth());
 
-    this->loadingBarPtr->setReservedSuffixWidth(reserve);
-    this->progressBarPtr->setReservedSuffixWidth(reserve);
+    this->loadingBarPtr->setReservedLabelWidth(labelReserve);
+    this->progressBarPtr->setReservedLabelWidth(labelReserve);
+    this->loadingBarPtr->setReservedSuffixWidth(suffixReserve);
+    this->progressBarPtr->setReservedSuffixWidth(suffixReserve);
   }
 
   //===================================================================================================================//
