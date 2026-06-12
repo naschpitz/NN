@@ -25,7 +25,7 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
-#include <mutex>
+#include <QMutex>
 #include <numeric>
 
 using namespace NN_CLI;
@@ -450,7 +450,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   // in the epoch-completed callback below.
   this->core->setTrainingCallback(
     [this, batchSize, totalEpochs](const Common::TrainingProgressEvent<float>& progress) {
-      std::lock_guard<std::mutex> lock(this->callbackMutex);
+      QMutexLocker<QMutex> lock(&this->callbackMutex);
 
       if (progress.epochLoss > 0)
         this->lastEpochLoss = progress.epochLoss;
@@ -501,7 +501,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   this->core->setEpochCompletedCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
                                          validationIndices,
                                          totalEpochs](const Common::EpochCompletionEvent<float>& completion) {
-    std::lock_guard<std::mutex> lock(this->callbackMutex);
+    QMutexLocker<QMutex> lock(&this->callbackMutex);
 
     const ulong epoch = completion.epoch; // 0-based index of the just-completed epoch
 

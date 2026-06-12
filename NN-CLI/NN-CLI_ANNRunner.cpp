@@ -22,7 +22,7 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
-#include <mutex>
+#include <QMutex>
 #include <numeric>
 
 using namespace NN_CLI;
@@ -391,7 +391,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   // display — every epoch-boundary task lives in the epoch-completed callback.
   this->core->setTrainingCallback(
     [this, batchSize, totalEpochs](const Common::TrainingProgressEvent<float>& progress) {
-      std::lock_guard<std::mutex> lock(this->callbackMutex);
+      QMutexLocker<QMutex> lock(&this->callbackMutex);
 
       if (progress.epochLoss > 0)
         this->lastEpochLoss = progress.epochLoss;
@@ -442,7 +442,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   this->core->setEpochCompletedCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
                                          validationIndices,
                                          totalEpochs](const Common::EpochCompletionEvent<float>& completion) {
-    std::lock_guard<std::mutex> lock(this->callbackMutex);
+    QMutexLocker<QMutex> lock(&this->callbackMutex);
 
     const ulong epoch = completion.epoch; // 0-based index of the just-completed epoch
 

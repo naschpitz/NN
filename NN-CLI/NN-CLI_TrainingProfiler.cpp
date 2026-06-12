@@ -43,7 +43,7 @@ namespace NN_CLI
 
   void TrainingProfiler::reset()
   {
-    std::lock_guard<std::mutex> lock(this->mutex);
+    QMutexLocker<QMutex> lock(&this->mutex);
 
     std::memset(this->stepMs, 0, sizeof(this->stepMs));
     std::memset(this->stepRuns, 0, sizeof(this->stepRuns));
@@ -182,7 +182,7 @@ namespace NN_CLI
     this->totalGpuProfileKernelCalls += gpuProfileKernelCallsSum;
 
     {
-      std::lock_guard<std::mutex> lock(this->mutex);
+      QMutexLocker<QMutex> lock(&this->mutex);
       this->lastStep = view;
     }
   }
@@ -230,7 +230,7 @@ namespace NN_CLI
     this->epochGpuProfileKernelCalls = 0;
     this->stepInProgress = false;
  
-    std::lock_guard<std::mutex> lock(this->mutex);
+    QMutexLocker<QMutex> lock(&this->mutex);
     this->lastStep.valid = false;
   }
 
@@ -284,7 +284,7 @@ namespace NN_CLI
   {
     StepView v;
     {
-      std::lock_guard<std::mutex> lock(this->mutex);
+      QMutexLocker<QMutex> lock(&this->mutex);
 
       if (!this->lastStep.valid)
         return {" Timing - waiting for first batch"};

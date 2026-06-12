@@ -3,10 +3,11 @@
 
 #include <CNN_TimingCallback.hpp>
 
+#include <QMutex>
+
 #include <array>
 #include <chrono>
 #include <cstddef>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -90,7 +91,7 @@ namespace NN_CLI
       ulong totalGpuProfileKernelCalls = 0;
 
       //-- Published snapshot for rendering --//
-      mutable std::mutex mutex;
+      mutable QMutex mutex;
       StepView lastStep;
       mutable ulong lastRenderedBatchNumber = static_cast<ulong>(-1);
       mutable int lastRenderedWidth = -1;

@@ -11,9 +11,9 @@
 #include "NN-CLI_Utils.hpp"
 
 #include <QCommandLineParser>
+#include <QMutex>
 
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -157,7 +157,7 @@ namespace NN_CLI
       int trackedTotalGPUs = 0;
       // Serializes the per-batch progress callback (fired concurrently from
       // worker threads) against the epoch-completed callback.
-      std::mutex callbackMutex;
+      QMutex callbackMutex;
 
       //-- Observer list --//
       std::vector<IRunnerObserver*> observers;
