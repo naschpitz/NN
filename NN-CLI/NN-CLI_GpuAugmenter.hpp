@@ -7,9 +7,10 @@
 
 #include <OCLW_Core.hpp>
 
-#include <condition_variable>
+#include <QMutex>
+#include <QWaitCondition>
+
 #include <memory>
-#include <mutex>
 #include <random>
 #include <vector>
 
@@ -68,8 +69,8 @@ namespace NN_CLI
       std::vector<std::unique_ptr<GpuAugmenter>> augmenters;
       std::vector<std::unique_ptr<std::mt19937>> rngs;
       std::vector<int> freeList;
-      std::mutex mutex;
-      std::condition_variable cv;
+      QMutex mutex;
+      QWaitCondition cv;
       std::function<void(bool)> timingCallback;
   };
 }

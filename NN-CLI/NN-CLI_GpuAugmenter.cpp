@@ -464,20 +464,35 @@ namespace NN_CLI
     // Acquire a free augmenter (blocks until one is available).
     int idx;
     {
-      std::unique_lock<std::mutex> lock(this->mutex);
-      this->cv.wait(lock, [this] { return !this->freeList.empty(); });
+      QMutexLocker<QMutex> lock(&this->mutex);
+
+      while (this->freeList.empty())
+        this->cv.wait(&this->mutex);
+
       idx = this->freeList.back();
       this->freeList.pop_back();
     }
 
-    this->augmenters[idx]->augment(batch, count, transforms, probability, *this->rngs[idx]);
+    // Return the augmenter to the free list even when augment() throws —
+    // leaking the slot would leave every later caller blocked forever on
+    // the wait above.
+    auto release = [this, idx]() {
+      {
+        QMutexLocker<QMutex> lock(&this->mutex);
+        this->freeList.push_back(idx);
+      }
 
-    {
-      std::lock_guard<std::mutex> lock(this->mutex);
-      this->freeList.push_back(idx);
+      this->cv.wakeOne();
+    };
+
+    try {
+      this->augmenters[idx]->augment(batch, count, transforms, probability, *this->rngs[idx]);
+    } catch (...) {
+      release();
+      throw;
     }
 
-    this->cv.notify_one();
+    release();
 
     if (this->timingCallback)
       this->timingCallback(false);
