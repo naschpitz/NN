@@ -55,13 +55,23 @@ namespace NN_CLI
       // nothing (used for the loading bar before any samples are loaded).
       void setVisible(bool visible);
 
+      // Columns this bar needs on the left for its current label.
+      int requiredLabelWidth() const;
+
+      // Grant `cols` label columns regardless of this bar's own label size.
+      // Sibling bars stacked in the same panel are given the max of their
+      // required widths so their opening brackets align vertically.
+      // Reservations only grow during the widget's lifetime.
+      void setReservedLabelWidth(int cols);
+
       // Columns this bar needs on the right for its per-segment suffix
       // (0 when single-segment).
       int requiredSuffixWidth() const;
 
       // Reserve `cols` columns on the right regardless of this bar's own
       // segment count.  Sibling bars stacked in the same panel are given the
-      // max of their required widths so their brackets align vertically.
+      // max of their required widths so their closing brackets align
+      // vertically.  Reservations only grow during the widget's lifetime.
       void setReservedSuffixWidth(int cols);
 
       //-- Widget overrides --//
@@ -112,6 +122,7 @@ namespace NN_CLI
       std::string subLineText;
       int subLineColorPair = 0;
       bool visible = true;
+      int reservedLabelWidth = 0;
       int reservedSuffixWidth = 0;
   };
 

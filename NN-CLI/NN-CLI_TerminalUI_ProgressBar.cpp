@@ -9,50 +9,59 @@
 
 namespace
 {
-  //-- Layout constants shared by every ncurses progress bar so they all line up
-  //-- vertically in the Training panel. --//
-  constexpr int kLabelWidth = 28; // labels are left-padded to this width
+  //-- Layout constants --//
+  constexpr int kLabelWidth = 28; // legacy WINDOW* renderers only: labels left-padded to this width
   constexpr int kBracketWidth = 2; // the " [" written right after the label
-  constexpr int kRightPad = 20; // reserved on the right for "] 100.000%" suffix (+ slack)
-  constexpr int kSegmentInfoPerSegment = 9; // width of one " | N:XXX%" cell in the per-segment suffix
 
   //-- Color pairs (configured in TerminalUI/Window init). --//
   constexpr int kBarColor = 1; // green filled bar segment
 
+  //-- Percentage format shared by rendering and width reservation. --//
+  constexpr const char* kPctFormat = "] %6.3f%%";
+
   //===================================================================================================================//
-  // Width reserved on the right for the per-segment "(0:XX% | 1:XX%)" suffix (0 when single-segment).
-  int segmentSuffixWidth(int segments)
+  // Width of the percentage suffix at its widest ("] 100.000%"), measured from
+  // the actual format so the layout reservation can never drift from what is
+  // rendered.
+  int pctWidth()
   {
-    return segments > 1 ? kSegmentInfoPerSegment * segments - 1 : 0;
+    static const int width = [] {
+      char buf[16];
+      return snprintf(buf, sizeof(buf), kPctFormat, 100.0);
+    }();
+
+    return width;
   }
 
   //===================================================================================================================//
-  // Usable bar width inside `win`, mirrored across all bars so their brackets line up.
-  int barWidthFor(int cols, int segments)
+  // Usable bar width inside `win`, with `suffixCols` reserved on the right for
+  // the per-segment suffix.
+  int barWidthFor(int cols, int suffixCols)
   {
-    return std::max(10, cols - kLabelWidth - kBracketWidth - kRightPad - segmentSuffixWidth(segments));
+    return std::max(10, cols - kLabelWidth - kBracketWidth - pctWidth() - suffixCols);
   }
 
   //===================================================================================================================//
-  // Usable bar width when drawing on stdscr, with `suffixCols` reserved on the
-  // right for the per-segment suffix.
-  int barWidthForStdscr(int width, int suffixCols)
+  // Usable bar width when drawing on stdscr, with `labelCols` granted on the
+  // left for the label and `suffixCols` reserved on the right for the
+  // per-segment suffix.
+  int barWidthForStdscr(int width, int labelCols, int suffixCols)
   {
     int cols = width > 0 ? width : 80;
-    return std::max(10, cols - kLabelWidth - kBracketWidth - kRightPad - suffixCols);
+    return std::max(10, cols - labelCols - kBracketWidth - pctWidth() - suffixCols);
   }
 
   //===================================================================================================================//
-  // Emit the label left-padded to kLabelWidth, then " [", onto stdscr at (row, col).
-  void emitLabelStdscr(int row, int col, const std::string& label)
+  // Emit the label left-padded to `labelCols`, then " [", onto stdscr at (row, col).
+  void emitLabelStdscr(int row, int col, const std::string& label, int labelCols)
   {
     int len = static_cast<int>(label.size());
     mvaddstr(row, col, label.c_str());
 
-    for (int i = len; i < kLabelWidth; i++)
+    for (int i = len; i < labelCols; i++)
       mvaddch(row, col + i, ' ');
 
-    mvaddstr(row, col + kLabelWidth, " [");
+    mvaddstr(row, col + labelCols, " [");
   }
 
   //===================================================================================================================//
@@ -106,15 +115,16 @@ namespace
   }
 
   //===================================================================================================================//
-  // Emit a segmented bar on stdscr, one segment per fraction separated by "│".
-  // Segments share barWidth minus the separator columns; the last segment
-  // absorbs the division remainder so the bar fills barWidth exactly.
-  void emitSegmentedBarStdscr(int row, int col, const std::vector<float>& fractions, int numSegments, int barWidth)
+  // Emit a segmented bar on stdscr starting at absolute column `startCol`, one
+  // segment per fraction separated by "│".  Segments share barWidth minus the
+  // separator columns; the last segment absorbs the division remainder so the
+  // bar fills barWidth exactly.
+  void emitSegmentedBarStdscr(int row, int startCol, const std::vector<float>& fractions, int numSegments,
+                              int barWidth)
   {
     int separators = numSegments - 1;
     int segmentWidth = (barWidth - separators) / numSegments;
     int lastSegmentWidth = (barWidth - separators) - segmentWidth * separators;
-    int startCol = col + kLabelWidth + kBracketWidth;
 
     for (int seg = 0; seg < numSegments; seg++) {
       float pct = (seg < static_cast<int>(fractions.size())) ? fractions[seg] : 0.0f;
@@ -163,13 +173,6 @@ namespace
 
     info << ")";
     return info.str();
-  }
-
-  //===================================================================================================================//
-  // Emit the trailing per-segment suffix " (0:XX% | 1:XX%)".
-  void emitSegmentSuffix(WINDOW* win, const std::vector<float>& fractions)
-  {
-    ::waddstr(win, buildSegmentSuffix(fractions).c_str());
   }
 
 } // namespace
@@ -230,16 +233,40 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
+  int TerminalUI_ProgressBar::requiredLabelWidth() const
+  {
+    return static_cast<int>(this->barLabel.size());
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_ProgressBar::setReservedLabelWidth(int cols)
+  {
+    // Reservations only grow so bar geometry stays stable across transient
+    // states (e.g. a shorter label while a counter has fewer digits).
+    this->reservedLabelWidth = std::max(this->reservedLabelWidth, cols);
+  }
+
+  //===================================================================================================================//
+
   int TerminalUI_ProgressBar::requiredSuffixWidth() const
   {
-    return segmentSuffixWidth(static_cast<int>(this->barFractions.size()));
+    if (this->barFractions.size() <= 1)
+      return 0;
+
+    // Measure the actual formatted suffix: setw keeps its width constant for
+    // a given segment count, so this is stable while values change and scales
+    // with any number of segments.
+    return static_cast<int>(buildSegmentSuffix(this->barFractions).size());
   }
 
   //===================================================================================================================//
 
   void TerminalUI_ProgressBar::setReservedSuffixWidth(int cols)
   {
-    this->reservedSuffixWidth = std::max(0, cols);
+    // Reservations only grow so bar geometry stays stable across transient
+    // states (e.g. the single-segment "Validating" bar between epochs).
+    this->reservedSuffixWidth = std::max(this->reservedSuffixWidth, cols);
   }
 
   //===================================================================================================================//
@@ -262,31 +289,33 @@ namespace NN_CLI
     if (!this->barFractions.empty())
       fraction /= static_cast<float>(this->barFractions.size());
 
-    // Reserve at least this bar's own suffix width; an externally granted
-    // reservation (synced across sibling bars) can widen it so all bars share
-    // identical bracket positions regardless of their segment counts.
-    int suffixCols = std::max(this->reservedSuffixWidth, segmentSuffixWidth(numSegments));
-    int bw = barWidthForStdscr(this->width, suffixCols);
+    // Grant at least this bar's own measured label and suffix widths; the
+    // externally granted reservations (synced across sibling bars by the
+    // parent) can widen them so all bars share identical bracket positions
+    // while the bar itself takes every remaining column.
+    std::string suffix = (numSegments > 1) ? buildSegmentSuffix(this->barFractions) : std::string();
+    int suffixCols = std::max(this->reservedSuffixWidth, static_cast<int>(suffix.size()));
+    int labelCols = std::max(this->reservedLabelWidth, static_cast<int>(this->barLabel.size()));
+    int bw = barWidthForStdscr(this->width, labelCols, suffixCols);
+    int barStart = this->x + labelCols + kBracketWidth;
 
     // Draw label and bar on the first row.
-    emitLabelStdscr(this->y, this->x, this->barLabel);
+    emitLabelStdscr(this->y, this->x, this->barLabel, labelCols);
 
     if (numSegments == 1) {
-      emitSingleBarStdscr(this->y, this->x + kLabelWidth + kBracketWidth,
-                          this->barFractions.empty() ? 0.0f : this->barFractions[0], bw);
+      emitSingleBarStdscr(this->y, barStart, this->barFractions.empty() ? 0.0f : this->barFractions[0], bw);
     } else {
-      emitSegmentedBarStdscr(this->y, this->x, this->barFractions, numSegments, bw);
+      emitSegmentedBarStdscr(this->y, barStart, this->barFractions, numSegments, bw);
     }
 
     // Percentage suffix.
     char pctBuf[16];
-    snprintf(pctBuf, sizeof(pctBuf), "] %6.3f%%", static_cast<double>(fraction * 100.0f));
-    int pctCol = this->x + kLabelWidth + kBracketWidth + bw;
+    snprintf(pctBuf, sizeof(pctBuf), kPctFormat, static_cast<double>(fraction * 100.0f));
+    int pctCol = barStart + bw;
     mvaddstr(this->y, pctCol, pctBuf);
 
     // Per-segment suffix " (0:XX% | 1:XX%)" right after the percentage, when it fits.
-    if (numSegments > 1) {
-      std::string suffix = buildSegmentSuffix(this->barFractions);
+    if (!suffix.empty()) {
       int suffixCol = pctCol + static_cast<int>(strlen(pctBuf));
 
       if (suffixCol + static_cast<int>(suffix.size()) <= this->x + this->width)
@@ -332,12 +361,12 @@ namespace NN_CLI
 
     ::werase(win);
 
-    int bw = barWidthFor(::getmaxx(win), 1);
+    int bw = barWidthFor(::getmaxx(win), 0);
     emitLabel(win, label);
     emitSingleBar(win, fraction, bw);
 
     char pctBuf[16];
-    snprintf(pctBuf, sizeof(pctBuf), "] %6.3f%%", static_cast<double>(fraction * 100.0f));
+    snprintf(pctBuf, sizeof(pctBuf), kPctFormat, static_cast<double>(fraction * 100.0f));
     ::waddstr(win, pctBuf);
 
     ::wnoutrefresh(win);
@@ -363,7 +392,8 @@ namespace NN_CLI
     ::werase(win);
 
     int cols = ::getmaxx(win);
-    int bw = barWidthFor(cols, numSegments);
+    std::string suffix = (numSegments > 1) ? buildSegmentSuffix(clamped) : std::string();
+    int bw = barWidthFor(cols, static_cast<int>(suffix.size()));
 
     emitLabel(win, label);
     emitSegmentedBar(win, clamped, numSegments, bw);
@@ -377,14 +407,14 @@ namespace NN_CLI
     float avgPct = clamped.empty() ? 0.0f : (totalPct / static_cast<float>(clamped.size())) * 100.0f;
 
     char pctBuf[16];
-    snprintf(pctBuf, sizeof(pctBuf), "] %6.3f%%", static_cast<double>(avgPct));
+    snprintf(pctBuf, sizeof(pctBuf), kPctFormat, static_cast<double>(avgPct));
     ::waddstr(win, pctBuf);
 
-    // Emit the per-segment suffix only when multi-segment and it fits within the window.
-    int overhead = kLabelWidth + kBracketWidth + kRightPad + segmentSuffixWidth(numSegments);
+    // Emit the per-segment suffix only when it fits within the window.
+    int overhead = kLabelWidth + kBracketWidth + pctWidth() + static_cast<int>(suffix.size());
 
-    if (numSegments > 1 && segmentSuffixWidth(numSegments) > 0 && bw + overhead <= cols)
-      emitSegmentSuffix(win, clamped);
+    if (!suffix.empty() && bw + overhead <= cols)
+      ::waddstr(win, suffix.c_str());
 
     ::wnoutrefresh(win);
   }
