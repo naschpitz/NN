@@ -62,10 +62,13 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void PredictController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
+                                                      float samplesPerSec, float etaSeconds,
                                                       const std::vector<float>& fractions)
   {
     // Predict mode: batch progress maps to sample processing progress.
     (void)currentLoss;
+    (void)samplesPerSec;
+    (void)etaSeconds;
 
     float fraction = fractions.empty() ? 0.0f : fractions[0];
     std::cout << "\r  Progress: " << (batchIdx + 1) << "/" << totalBatches << " ("

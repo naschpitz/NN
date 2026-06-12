@@ -77,8 +77,8 @@ namespace NN_CLI
 
       void onValidationProgress(ulong current, ulong total) override;
 
-      void onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                           const std::vector<float>& fractions) override;
+      void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
+                           float etaSeconds, const std::vector<float>& fractions) override;
 
       void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, float accuracy,
                             const std::string& summary) override;

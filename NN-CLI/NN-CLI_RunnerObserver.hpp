@@ -33,11 +33,21 @@ namespace NN_CLI
        * @param batchIdx       0-based index of the current mini-batch within the epoch.
        * @param totalBatches   Total number of mini-batches in the epoch.
        * @param currentLoss    Running average loss for the current epoch.
+       * @param samplesPerSec  Sample ingestion rate (sliding-window average), 0 if unknown.
+       * @param etaSeconds     Estimated seconds until the epoch completes, 0 if unknown.
        * @param fractions      Per-device progress fractions [0..1].  One element
        *                       for single-GPU/CPU; one per GPU for multi-GPU training.
        */
-      virtual void onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                   const std::vector<float>& fractions) {}
+      virtual void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
+                                   float etaSeconds, const std::vector<float>& fractions)
+      {
+        (void)batchIdx;
+        (void)totalBatches;
+        (void)currentLoss;
+        (void)samplesPerSec;
+        (void)etaSeconds;
+        (void)fractions;
+      }
 
       /**
        * Called while a batch of samples is being loaded/augmented from the
