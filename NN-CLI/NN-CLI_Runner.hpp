@@ -10,6 +10,8 @@
 #include "NN-CLI_SummaryTable.hpp"
 #include "NN-CLI_Utils.hpp"
 
+#include "Common/Common_TrainingProgressEvent.hpp"
+
 #include <QCommandLineParser>
 #include <QMutex>
 
@@ -114,6 +116,12 @@ namespace NN_CLI
       //-- Methods --//
       ValidationMetadata buildValidationMetadata() const;
       int finishTraining(const QString& inputFilePath);
+
+      // Shared per-batch training-progress handler, installed as the core's
+      // training callback by both ANNRunner and CNNRunner: tracks per-GPU
+      // fractions (reset at epoch boundaries) and notifies observers of
+      // batch progress.  Thread-safe (locks callbackMutex).
+      void handleTrainingProgress(const Common::TrainingProgressEvent<float>& progress, ulong batchSize);
 
       //-- Pure virtual --//
       virtual void doSaveModel(const std::string& outputPath) = 0;

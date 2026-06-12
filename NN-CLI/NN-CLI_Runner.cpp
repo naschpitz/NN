@@ -137,6 +137,56 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTimingUpdated(const std::string& 
 }
 
 //===================================================================================================================//
+//  Training progress handling
+//===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
+void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainingProgress(const Common::TrainingProgressEvent<float>& progress,
+                                                                ulong batchSize)
+{
+  QMutexLocker<QMutex> lock(&this->callbackMutex);
+
+  if (progress.epochLoss > 0)
+    this->lastEpochLoss = progress.epochLoss;
+
+  // Observer notification — batch progress (per-GPU fractions).
+  std::vector<float> fractions;
+  int totalGPUs = progress.totalGPUs;
+
+  if (totalGPUs > 1) {
+    // Multi-GPU: reset per-epoch tracking at epoch boundaries.
+    if (this->trackedEpoch != static_cast<int>(progress.currentEpoch) || this->trackedTotalGPUs != totalGPUs) {
+      this->trackedEpoch = static_cast<int>(progress.currentEpoch);
+      this->trackedTotalGPUs = totalGPUs;
+      this->gpuFractions.assign(totalGPUs, 0.0f);
+    }
+
+    // Update this GPU's fraction.  The core reports currentSample as the
+    // GPU's own cumulative sample count within the epoch (not a global
+    // counter), and each GPU processes ~totalSamples/totalGPUs of them.
+    if (progress.gpuIndex >= 0 && progress.gpuIndex < totalGPUs) {
+      ulong samplesPerGPU = progress.totalSamples / totalGPUs;
+      float gpuFraction = (samplesPerGPU > 0)
+                            ? static_cast<float>(progress.currentSample) / static_cast<float>(samplesPerGPU)
+                            : 0.0f;
+      this->gpuFractions[progress.gpuIndex] = std::min(1.0f, std::max(0.0f, gpuFraction));
+    }
+
+    fractions = this->gpuFractions;
+  } else {
+    // Single GPU or CPU: single fraction.
+    float fraction = (progress.totalSamples > 0)
+                       ? static_cast<float>(progress.currentSample) / static_cast<float>(progress.totalSamples)
+                       : 0.0f;
+    fractions = {fraction};
+  }
+
+  int batchIdx = static_cast<int>(progress.currentSample / batchSize);
+  int totalBatches = static_cast<int>((progress.totalSamples + batchSize - 1) / batchSize);
+  this->notifyBatchProgress(batchIdx, totalBatches, progress.epochLoss, fractions);
+}
+
+//===================================================================================================================//
 //  Accessors
 //===================================================================================================================//
 

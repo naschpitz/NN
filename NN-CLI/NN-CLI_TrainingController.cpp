@@ -52,6 +52,11 @@ namespace NN_CLI
     // Populate the Model Info panel with static core configuration data.
     this->populateModelInfo();
 
+    // Seed the training progress bar so it shows "Epoch    1/N" at 0% from
+    // the start, before the first batch-progress event arrives.
+    if (this->window)
+      this->window->updateProgress(this->buildEpochLabel(), 0.0f);
+
     // Start the window's dedicated UI thread.  From here on the window
     // redraws itself at a fixed frame rate and handles input and resize on
     // its own thread; the observer callbacks below only update view data
@@ -143,9 +148,7 @@ namespace NN_CLI
     // Clear any transitional "Validating" state from the previous epoch.
     this->isValidating = false;
 
-    int displayEpoch = this->currentEpoch + 1;
-    std::string label = "Training (" + std::to_string(displayEpoch) + "/" + std::to_string(this->totalEpochs) + ")";
-    this->window->updateProgress(label, fractions);
+    this->window->updateProgress(this->buildEpochLabel(), fractions);
     this->refreshTimingPanel();
   }
 
@@ -264,6 +267,19 @@ namespace NN_CLI
     QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     this->refreshTimingPanel();
+  }
+
+  //===================================================================================================================//
+  //-- Private — epoch label --//
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  std::string TrainingController<RunnerT>::buildEpochLabel() const
+  {
+    std::ostringstream oss;
+    oss << "Epoch " << std::setw(4) << (this->currentEpoch + 1) << "/" << this->totalEpochs;
+
+    return oss.str();
   }
 
   //===================================================================================================================//
