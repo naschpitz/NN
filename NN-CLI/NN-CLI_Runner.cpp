@@ -535,7 +535,7 @@ int NN_CLI::Runner<CoreT, CoreConfigT>::finishTraining(const QString& inputFileP
 
   this->notifyTrainingFinished(true, summary);
 
-  return finishTrainingCommon(this->logLevel, this->parser, inputFilePath, *this->core,
+  return NN_CLI::RunnerUtils::finishTrainingCommon(this->logLevel, this->parser, inputFilePath, *this->core,
                               [this](const std::string& path) { this->doSaveModel(path); });
 }
 

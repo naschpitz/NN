@@ -1291,7 +1291,7 @@ namespace NN_CLI
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
 
-    NN_CLI::ensureOutputDir(inputDir.filePath("output"));
+    NN_CLI::Utils<>::ensureOutputDir(inputDir.filePath("output"));
 
     QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainingFilename(epochs, samples, loss)));
     return outputPath.toStdString();
@@ -1305,7 +1305,7 @@ namespace NN_CLI
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
 
-    NN_CLI::ensureOutputDir(inputDir.filePath("output"));
+    NN_CLI::Utils<>::ensureOutputDir(inputDir.filePath("output"));
 
     std::ostringstream oss;
     oss << "checkpoint_E-" << epoch << "_L-" << std::fixed << std::setprecision(6) << loss << ".nnmodel.tar";
@@ -1322,7 +1322,7 @@ namespace NN_CLI
     QDir inputDir = inputInfo.absoluteDir();
     QDir outputDir(inputDir.filePath("output"));
 
-    NN_CLI::ensureOutputDir(inputDir.filePath("output"));
+    NN_CLI::Utils<>::ensureOutputDir(inputDir.filePath("output"));
 
     QString outputPath = outputDir.filePath("best_model.nnmodel.tar");
     return outputPath.toStdString();
