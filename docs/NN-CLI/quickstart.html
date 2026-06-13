@@ -62,15 +62,36 @@ make -j$(nproc)
 <pre><code><span class="comment"># Check that it runs</span>
 ./build/NN-CLI --help
 
-<span class="comment"># Expected output:</span>
-<span class="comment"># Usage: NN-CLI [options]</span>
-<span class="comment"># Neural Network Command Line Interface</span>
-<span class="comment"># </span>
+<span class="comment"># NN-CLI - Neural Network Command Line Interface (ANN + CNN)</span>
+<span class="comment">#</span>
+<span class="comment"># Usage:</span>
+<span class="comment">#   NN-CLI --config &lt;file&gt; --mode train [options]                       # Training</span>
+<span class="comment">#   NN-CLI --config &lt;file&gt; --mode predict --input &lt;f&gt;                   # Predict (batch)</span>
+<span class="comment">#   NN-CLI --config &lt;file&gt; --mode test [options]                        # Evaluation</span>
+<span class="comment">#   NN-CLI --config &lt;file&gt; --mode calibrate --id-images &lt;dir&gt; [opts]   # OOD threshold</span>
+<span class="comment">#</span>
 <span class="comment"># Options:</span>
-<span class="comment">#   -h, --help          Displays help</span>
-<span class="comment">#   -c, --config &lt;file&gt; Path to JSON configuration file</span>
-<span class="comment">#   -m, --mode &lt;mode&gt;   Mode: 'train', 'predict', 'test', or 'calibrate'</span>
-<span class="comment">#   ...</span>
+<span class="comment">#   --config, -c &lt;file&gt;    Path to JSON configuration file (required)</span>
+<span class="comment">#   --mode, -m &lt;mode&gt;      Mode: 'train', 'predict', 'test', or 'calibrate'</span>
+<span class="comment">#   --device, -d &lt;device&gt;  Device: 'cpu' or 'gpu' (overrides config file)</span>
+<span class="comment">#   --input, -i &lt;file&gt;     Path to JSON file with batch inputs (predict mode, required)</span>
+<span class="comment">#   --input-type &lt;type&gt;    Input data type: 'vector' or 'image' (overrides config file)</span>
+<span class="comment">#   --samples, -s &lt;file&gt;   Path to JSON file with samples (train/test modes)</span>
+<span class="comment">#   --idx-data &lt;file&gt;      Path to IDX3 data file (alternative to --samples)</span>
+<span class="comment">#   --idx-labels &lt;file&gt;    Path to IDX1 labels file (requires --idx-data)</span>
+<span class="comment">#   --output, -o &lt;file&gt;    Output file/dir (default: predict_&lt;input&gt;.json or threshold.json)</span>
+<span class="comment">#   --output-type &lt;type&gt;   Output data type: 'vector' or 'image' (overrides config file)</span>
+<span class="comment">#   --log-level, -l &lt;lvl&gt;  Log level: quiet, error, warning, info, debug (default: error)</span>
+<span class="comment">#   --gpu-profile          Enable OpenCL GPU kernel profiling (adds ~12% overhead)</span>
+<span class="comment">#</span>
+<span class="comment"># Calibrate-mode options:</span>
+<span class="comment">#   --id-images &lt;dir&gt;      Directory of in-distribution images (recursed) [required]</span>
+<span class="comment">#   --ood-dir &lt;dir&gt;        OOD images directory (default: &lt;cwd&gt;/extern-datasets/ood)</span>
+<span class="comment">#   --id-sample-count &lt;N&gt;  Random subsample size for ID set (default 500)</span>
+<span class="comment">#   --ood-sample-count &lt;N&gt; Random subsample size for OOD set (default 1500)</span>
+<span class="comment">#   --id-percentile &lt;P&gt;    ID percentile used as the threshold (default 95)</span>
+<span class="comment">#   --no-fetch             Don't auto-download OOD if --ood-dir is empty (default: fetch)</span>
+<span class="comment">#   --help, -h             Show this help message</span>
 </code></pre>
 
 <h2>First Training Run</h2>

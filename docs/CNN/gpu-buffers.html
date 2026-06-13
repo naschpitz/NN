@@ -65,12 +65,167 @@
   <h4>On this page</h4>
   <ol>
     <li><a href="#overview">Overview</a></li>
+    <li><a href="#buffer-table">Buffer Reference Table</a></li>
     <li><a href="#im2col-buffer">im2col Workspace Buffer</a></li>
   </ol>
 </div>
 
 <h2 id="overview">Overview</h2>
 <p>The CNN GPU implementation uses several OpenCL buffers to store activations, gradients, filter weights, biases, and intermediate data. Buffers are allocated once during initialization and reused across training iterations. Most buffers are sized per-batch (one copy per sample in the batch), while workspace buffers are shared.</p>
+
+<h2 id="buffer-table">Buffer Reference Table</h2>
+<table>
+  <thead>
+    <tr><th>Buffer Name</th><th>Purpose</th><th>Sizing</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>cnn_actvs</code></td>
+      <td>Forward activations — output of each CNN layer (and ANN dense layers) during forward pass</td>
+      <td><code>totalActvSize × batchSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_grads</code></td>
+      <td>Backward gradients — dCost_dActvs for each CNN layer (and ANN dense layers) during backward pass</td>
+      <td><code>totalActvSize × batchSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_filters</code></td>
+      <td>Convolution filter weights (learnable parameters)</td>
+      <td><code>totalFilterSize</code> (sum of all conv layer filter sizes)</td>
+    </tr>
+    <tr>
+      <td><code>cnn_dFilters</code></td>
+      <td>Per-sample filter gradients (accumulated into <code>cnn_accum_dFilters</code>)</td>
+      <td><code>totalFilterSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_accum_dFilters</code></td>
+      <td>Accumulated filter gradients across the mini-batch — used for gradient merging in multi-GPU training</td>
+      <td><code>totalFilterSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_biases</code></td>
+      <td>Convolution bias terms (learnable parameters)</td>
+      <td><code>totalBiasSize</code> (sum of all conv layer bias counts)</td>
+    </tr>
+    <tr>
+      <td><code>cnn_dBiases</code></td>
+      <td>Per-sample bias gradients (accumulated into <code>cnn_accum_dBiases</code>)</td>
+      <td><code>totalBiasSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_accum_dBiases</code></td>
+      <td>Accumulated bias gradients across the mini-batch — used for gradient merging in multi-GPU training</td>
+      <td><code>totalBiasSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_im2col</code></td>
+      <td>Shared workspace for im2col output — rearranged input patches for GEMM-based convolution</td>
+      <td><code>max(C<sub>in</sub> × K<sub>H</sub> × K<sub>W</sub> × O<sub>H</sub> × O<sub>W</sub>)</code> across all conv layers</td>
+    </tr>
+    <tr>
+      <td><code>cnn_pool_indices</code></td>
+      <td>Max-pool index maps — stores input indices of max values for backward pass</td>
+      <td><code>totalPoolIndexSize × batchSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_norm_gamma</code></td>
+      <td>Learnable gamma (scale) parameters for normalization layers</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_norm_beta</code></td>
+      <td>Learnable beta (shift) parameters for normalization layers</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_norm_running_mean</code></td>
+      <td>Running mean for batch normalization (inference statistics)</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_norm_running_var</code></td>
+      <td>Running variance for batch normalization (inference statistics)</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_norm_dGamma</code> / <code>cnn_norm_dBeta</code></td>
+      <td>Per-sample normalization gradient for gamma/beta</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_accum_norm_dGamma</code> / <code>cnn_accum_norm_dBeta</code></td>
+      <td>Accumulated normalization gradients across the mini-batch</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_norm_batch_mean</code> / <code>cnn_norm_batch_var</code></td>
+      <td>Per-sample batch mean/variance for batch norm backprop</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_accum_norm_batch_mean</code> / <code>cnn_accum_norm_batch_var</code></td>
+      <td>Accumulators for batch mean/var across samples (for running stats update)</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_norm_xnorm</code></td>
+      <td>Normalized input values for normalization backprop — sized per-batch</td>
+      <td><code>totalActvSize × batchSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_res_proj_w</code></td>
+      <td>Residual projection weights (1×1 conv for channel mismatch)</td>
+      <td>Sum of <code>outC × inC</code> for all residual projections with channel mismatch</td>
+    </tr>
+    <tr>
+      <td><code>cnn_res_proj_b</code></td>
+      <td>Residual projection biases</td>
+      <td>Sum of <code>outC</code> for all residual projections with channel mismatch</td>
+    </tr>
+    <tr>
+      <td><code>cnn_res_dproj_w</code> / <code>cnn_res_dproj_b</code></td>
+      <td>Residual projection gradient buffers</td>
+      <td>Same as projection weight/bias sizes</td>
+    </tr>
+    <tr>
+      <td><code>cnn_adam_m_filters</code> / <code>cnn_adam_v_filters</code></td>
+      <td>Adam optimizer first/second moment estimates for filter weights (ADAM only)</td>
+      <td><code>totalFilterSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_adam_m_biases</code> / <code>cnn_adam_v_biases</code></td>
+      <td>Adam optimizer first/second moment estimates for biases (ADAM only)</td>
+      <td><code>totalBiasSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_adam_m_norm_gamma</code> / <code>cnn_adam_v_norm_gamma</code></td>
+      <td>Adam optimizer first/second moment estimates for norm gamma (ADAM only)</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_adam_m_norm_beta</code> / <code>cnn_adam_v_norm_beta</code></td>
+      <td>Adam optimizer first/second moment estimates for norm beta (ADAM only)</td>
+      <td><code>totalNormParamSize</code></td>
+    </tr>
+    <tr>
+      <td><code>cnn_adam_m_res_w</code> / <code>cnn_adam_v_res_w</code></td>
+      <td>Adam optimizer first/second moment estimates for residual projection weights (ADAM only)</td>
+      <td>Sum of projection weight sizes</td>
+    </tr>
+    <tr>
+      <td><code>cnn_adam_m_res_b</code> / <code>cnn_adam_v_res_b</code></td>
+      <td>Adam optimizer first/second moment estimates for residual projection biases (ADAM only)</td>
+      <td>Sum of projection bias sizes</td>
+    </tr>
+    <tr>
+      <td><code>accum_loss</code></td>
+      <td>GPU-side loss accumulator — avoids per-sample GPU→CPU readback</td>
+      <td><code>1</code> (scalar)</td>
+    </tr>
+  </tbody>
+</table>
 
 <h2 id="im2col-buffer">im2col Workspace Buffer</h2>
 <p>The <code>cnn_im2col</code> buffer is a temporary workspace used by the <a href="math-convolution.html#im2col-gemm">im2col + GEMM convolution</a> approach. It holds the column matrix produced by the <code>im2col</code> kernel — a rearranged copy of the input where each column contains all input values needed for one output position.</p>

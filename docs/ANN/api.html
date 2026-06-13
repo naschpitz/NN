@@ -45,6 +45,9 @@
     <li><a href="#types">Type Aliases</a></li>
     <li><a href="#enums">Enumerations</a></li>
     <li><a href="#structs">Structs &amp; Configs</a></li>
+    <li><a href="#monitoring">Monitoring &amp; Calibration</a></li>
+    <li><a href="#callbacks">Callbacks &amp; Events</a></li>
+    <li><a href="#records">Records &amp; Metadata</a></li>
     <li><a href="#core">Core&lt;T&gt; (Abstract Base)</a></li>
     <li><a href="#corecpu">CoreCPU&lt;T&gt;</a></li>
     <li><a href="#coregpu">CoreGPU&lt;T&gt; &amp; CoreGPUWorker&lt;T&gt;</a></li>
@@ -183,7 +186,7 @@
   <tr><td><code>shuffleSeed</code></td><td><code>uint32_t</code></td><td>RNG seed for the per-epoch shuffle. Default <code>0</code> means seed from <code>std::random_device</code> — non-deterministic, what production wants. Set to a non-zero value (e.g. tests use <code>42</code>) and the whole training run reproduces bit-for-bit, including the shuffle order. Only meaningful when <code>shuffleSamples</code> is true.</td></tr>
   <tr><td><code>dropoutRate</code></td><td><code>float</code></td><td>Dropout probability for hidden layers during training (default 0.0 = disabled). Uses inverted dropout: activations are scaled by 1/(1−p) during training so no adjustment is needed at inference.</td></tr>
   <tr><td><code>optimizer</code></td><td><code>Optimizer&lt;T&gt;</code></td><td>Optimizer configuration (default: SGD)</td></tr>
-  <tr><td><code>validationDataset</code></td><td><code>ValidationConfig&lt;T&gt;</code></td><td>Validation split configuration (default: enabled, auto-size)</td></tr>
+  <tr>      <td><code>validationDataset</code></td><td><code>ValidationConfig</code></td><td>Validation split configuration (default: enabled, auto-size)</td></tr>
   <tr><td><code>monitoringConfig</code></td><td><code>MonitoringConfig</code></td><td>Training health monitoring (default: disabled)</td></tr>
 </table>
 
@@ -294,6 +297,104 @@
   <tr><td><code>accuracy</code></td><td><code>T</code></td><td>Percentage of correct classifications (0–100)</td></tr>
 </table>
 
+<!-- ========== MONITORING ========== -->
+<h2 id="monitoring">3a. Monitoring &amp; Calibration Configs <span class="badge badge-blue">Common/</span></h2>
+
+<h3>MonitoringConfig <span class="badge badge-blue">Common/Common_MonitoringConfig.hpp</span></h3>
+<p>Configures training health monitoring (early stopping via loss stagnation or explosion detection).</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>enabled</code></td><td><code>bool</code></td><td>Enable monitoring (default <code>false</code>)</td></tr>
+  <tr><td><code>checkInterval</code></td><td><code>ulong</code></td><td>Check frequency in epochs (default 5)</td></tr>
+  <tr><td><code>patience</code></td><td><code>ulong</code></td><td>Number of checks without improvement before early stop (default 20)</td></tr>
+  <tr><td><code>metrics</code></td><td><code>MonitoringMetrics</code></td><td>Sub-configs for stagnation and explosion detection</td></tr>
+</table>
+
+<h3>LossStagnationConfig <span class="badge badge-blue">Common/Common_MonitoringConfig.hpp</span></h3>
+<p>Sub-config for loss stagnation detection (no meaningful improvement).</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>enabled</code></td><td><code>bool</code></td><td>Enable stagnation detection (default <code>true</code>)</td></tr>
+  <tr><td><code>minDelta</code></td><td><code>float</code></td><td>Minimum loss improvement to consider meaningful (default 0.0001)</td></tr>
+</table>
+
+<h3>LossExplosionConfig <span class="badge badge-blue">Common/Common_MonitoringConfig.hpp</span></h3>
+<p>Sub-config for loss explosion detection (NaN/Inf or extreme values).</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>enabled</code></td><td><code>bool</code></td><td>Enable explosion detection (default <code>true</code>)</td></tr>
+  <tr><td><code>threshold</code></td><td><code>float</code></td><td>Loss value above which training is considered exploded (default 10.0)</td></tr>
+</table>
+
+<h3>MonitoringMetrics <span class="badge badge-blue">Common/Common_MonitoringConfig.hpp</span></h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>lossStagnation</code></td><td><code>LossStagnationConfig</code></td><td>Stagnation detection settings</td></tr>
+  <tr><td><code>lossExplosion</code></td><td><code>LossExplosionConfig</code></td><td>Explosion detection settings</td></tr>
+</table>
+
+<h3>CalibrateConfig <span class="badge badge-blue">Common/Common_CalibrateConfig.hpp</span></h3>
+<p>Configuration for the calibration pipeline (OOD detection thresholds from in-distribution samples).</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>idSampleCount</code></td><td><code>std::size_t</code></td><td>Number of in-distribution samples to draw (default 500)</td></tr>
+  <tr><td><code>oodSampleCount</code></td><td><code>std::size_t</code></td><td>Number of out-of-distribution samples to draw (default 1500)</td></tr>
+  <tr><td><code>idPercentile</code></td><td><code>double</code></td><td>ID percentile that becomes the OOD threshold (default 95.0)</td></tr>
+  <tr><td><code>fetchIfMissing</code></td><td><code>bool</code></td><td>Auto-fetch missing OOD datasets (default <code>true</code>)</td></tr>
+</table>
+
+<h3>ValidationConfig <span class="badge badge-blue">Common/Common_ValidationConfig.hpp</span></h3>
+<p>Configures the validation split used during training for periodic evaluation.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>enabled</code></td><td><code>bool</code></td><td>Enable validation (default <code>true</code>)</td></tr>
+  <tr><td><code>autoSize</code></td><td><code>bool</code></td><td>Auto-determine validation set size from dataset (default <code>true</code>)</td></tr>
+  <tr><td><code>size</code></td><td><code>float</code></td><td>Validation set fraction of training data (default 0.15 = 15%)</td></tr>
+  <tr><td><code>checkInterval</code></td><td><code>ulong</code></td><td>Run validation every N epochs (default 1 = every epoch)</td></tr>
+</table>
+
+<!-- ========== CALLBACKS ========== -->
+<h2 id="callbacks">3b. Callbacks &amp; Events <span class="badge badge-blue">Common/</span></h2>
+
+<h3>EpochCompletionEvent&lt;T&gt; <span class="badge badge-blue">Common/Common_EpochCompletionEvent.hpp</span></h3>
+<p>Passed to the epoch-completed callback. Reports the just-finished epoch with a 0-based index, matching <code>EpochRecord::epoch</code> and the serialized epochs history — unlike <code>TrainingProgressEvent</code>, whose high-frequency <code>currentEpoch</code> is 1-based.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>epoch</code></td><td><code>ulong</code></td><td>0-based index of the completed epoch</td></tr>
+  <tr><td><code>totalEpochs</code></td><td><code>ulong</code></td><td>Total epochs the run will perform</td></tr>
+  <tr><td><code>epochLoss</code></td><td><code>T</code></td><td>Average training loss for this epoch</td></tr>
+  <tr><td><code>isNewBest</code></td><td><code>bool</code></td><td>A core-internal monitor flagged a new best (default <code>false</code>)</td></tr>
+  <tr><td><code>stoppedEarly</code></td><td><code>bool</code></td><td>A core-internal monitor requested an early stop (default <code>false</code>)</td></tr>
+</table>
+
+<h3>EpochCompletedCallback&lt;T&gt; <span class="badge badge-blue">Common/Common_EpochCompletionEvent.hpp</span></h3>
+<p>Invoked exactly once per completed epoch, after the epoch's record is appended to the training history. Distinct from the per-sample <code>TrainingCallback</code> that drives live progress display: this is the hook for epoch-boundary work (validation, checkpointing, monitoring).</p>
+<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
+<span class="keyword">using</span> EpochCompletedCallback =
+  std::function&lt;void(<span class="keyword">const</span> EpochCompletionEvent&lt;T&gt;&amp;)&gt;;
+</code></pre>
+
+<h3>ProgressCallback <span class="badge badge-blue">Common/Common_ProgressCallback.hpp</span></h3>
+<p>Generic progress callback for test and predict modes. Parameters: <code>(currentSample, totalSamples)</code>.</p>
+<pre><code><span class="keyword">using</span> ProgressCallback =
+  std::function&lt;void(<span class="keyword">ulong</span> currentSample, <span class="keyword">ulong</span> totalSamples)&gt;;
+</code></pre>
+
+<!-- ========== RECORDS ========== -->
+<h2 id="records">3c. Records &amp; Metadata <span class="badge badge-blue">Common/</span></h2>
+
+<h3>EpochRecord&lt;T&gt; <span class="badge badge-blue">Common/Common_EpochRecord.hpp</span></h3>
+<p>Per-epoch record for tracking training history across epochs.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>epoch</code></td><td><code>ulong</code></td><td>0-based epoch index (default 0)</td></tr>
+  <tr><td><code>loss</code></td><td><code>T</code></td><td>Training loss (default 0)</td></tr>
+  <tr><td><code>valLoss</code></td><td><code>T</code></td><td>Validation loss (only meaningful if <code>hasValLoss</code> is true, default 0)</td></tr>
+  <tr><td><code>hasValLoss</code></td><td><code>bool</code></td><td>Whether validation ran this epoch (default <code>false</code>)</td></tr>
+  <tr><td><code>isBest</code></td><td><code>bool</code></td><td>Whether this epoch produced the best model so far (default <code>false</code>)</td></tr>
+  <tr><td><code>completionTime</code></td><td><code>uint64_t</code></td><td>Epoch completion time as unix timestamp in seconds (default 0)</td></tr>
+</table>
+
 <!-- ========== CORE ========== -->
 <h2 id="core">4. Core&lt;T&gt; — Abstract Base Class <span class="badge badge-green">ANN_Core.hpp</span></h2>
 <p>The abstract base class for all ANN backends. Use the factory method to create instances:</p>
@@ -323,9 +424,19 @@
   <tr><td><code>getLayersConfig()</code></td><td><code>const LayersConfig&amp;</code></td></tr>
   <tr><td><code>getTrainConfig()</code></td><td><code>const TrainConfig&lt;T&gt;&amp;</code></td></tr>
   <tr><td><code>getTrainMetadata()</code></td><td><code>const TrainMetadata&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getTrainMetadata()</code></td><td><code>TrainMetadata&lt;T&gt;&amp;</code></td></tr>
   <tr><td><code>getPredictMetadata()</code></td><td><code>const PredictMetadata&lt;T&gt;&amp;</code></td></tr>
   <tr><td><code>getParameters()</code></td><td><code>const Parameters&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getCostFunctionConfig()</code></td><td><code>const CostFunctionConfig&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>setParameters(const Parameters&lt;T&gt;&amp;)</code></td><td><code>void</code></td></tr>
   <tr><td><code>setTrainingCallback(TrainingCallback&lt;T&gt;)</code></td><td><code>void</code></td></tr>
+  <tr><td><code>setEpochCompletedCallback(EpochCompletedCallback&lt;T&gt;)</code></td><td><code>void</code></td></tr>
+  <tr><td><code>setProgressCallback(ProgressCallback)</code></td><td><code>void</code></td></tr>
+  <tr><td><code>requestStop()</code></td><td><code>void</code></td></tr>
+  <tr><td><code>isStopRequested()</code></td><td><code>bool</code></td></tr>
+  <tr><td><code>setLogLevel(LogLevel)</code></td><td><code>void</code></td></tr>
+  <tr><td><code>getLogLevel()</code></td><td><code>LogLevel</code></td></tr>
+  <tr><td><code>prependEpochHistory(const vector&lt;EpochRecord&lt;T&gt;&gt;&amp;)</code></td><td><code>void</code></td></tr>
 </table>
 
 <!-- ========== CORECPU ========== -->
@@ -336,14 +447,25 @@
 </div>
 
 <h3>Key Internal Functions (called from <code>train</code>)</h3>
+<p>All methods store state as private members (<code>actvs</code>, <code>zs</code>, <code>dCost_dWeights</code>, <code>dCost_dBiases</code>, accumulators). No state parameters are passed.</p>
 <table>
-  <tr><th>Function</th><th>Purpose</th></tr>
-  <tr><td><code>propagate(input, actvs, zs)</code></td><td>Propagation: compute z and activation for every layer</td></tr>
-  <tr><td><code>backpropagate(output, actvs, zs, dActvs, dWeights, dBiases)</code></td><td>Compute all gradients via chain rule</td></tr>
-  <tr><td><code>calc_dCost_dActv(j, output, actvs)</code></td><td>Output-layer activation gradient: 2·(a − y)</td></tr>
-  <tr><td><code>calc_dCost_dActv(l, k, zs, dActvs)</code></td><td>Hidden-layer activation gradient via chain rule</td></tr>
-  <tr><td><code>calc_dCost_dWeight(l, j, k, actvs, zs, dActvs)</code></td><td>Weight gradient: a[l-1][k] · f'(z[l][j]) · δ[l][j]</td></tr>
-  <tr><td><code>calc_dCost_dBias(l, j, zs, dActvs)</code></td><td>Bias gradient: f'(z[l][j]) · δ[l][j]</td></tr>
+  <tr><th>Method</th><th>Signature</th><th>Purpose</th></tr>
+  <tr><td><code>propagate</code></td><td><code>void propagate(const Input&lt;T&gt;&amp; input, bool applyDropout = false)</code></td><td>Forward pass: compute z and activation for every layer. Stores results in <code>actvs</code> / <code>zs</code></td></tr>
+  <tr><td><code>backpropagate</code></td><td><code>void backpropagate(const Output&lt;T&gt;&amp; output)</code></td><td>Backward pass: compute all gradients via chain rule. Stores results in <code>dCost_dWeights</code> / <code>dCost_dBiases</code></td></tr>
+  <tr><td><code>backpropagateAndReturnInputGradients</code></td><td><code>Tensor1D&lt;T&gt; backpropagateAndReturnInputGradients(const Output&lt;T&gt;&amp; output)</code></td><td>Backward pass returning input-layer gradients (for CNN step-by-step)</td></tr>
+  <tr><td><code>computeLoss</code></td><td><code>T computeLoss(const Output&lt;T&gt;&amp; expected)</code></td><td>Compute loss for a single sample</td></tr>
+  <tr><td><code>calc_dCost_dActv</code></td><td><code>T calc_dCost_dActv(ulong j, const Output&lt;T&gt;&amp; output)</code></td><td>Output-layer activation gradient: 2·(a − y)</td></tr>
+  <tr><td><code>calc_dCost_dActv</code></td><td><code>T calc_dCost_dActv(ulong l, ulong k)</code></td><td>Hidden-layer activation gradient via chain rule</td></tr>
+  <tr><td><code>calc_dCost_dWeight</code></td><td><code>T calc_dCost_dWeight(ulong l, ulong j, ulong k)</code></td><td>Weight gradient: a[l-1][k] · f'(z[l][j]) · δ[l][j]</td></tr>
+  <tr><td><code>calc_dCost_dBias</code></td><td><code>T calc_dCost_dBias(ulong l, ulong j)</code></td><td>Bias gradient: f'(z[l][j]) · δ[l][j]</td></tr>
+  <tr><td><code>getOutput</code></td><td><code>Output&lt;T&gt; getOutput() const</code></td><td>Returns post-activation output of the last layer</td></tr>
+  <tr><td><code>getOutputLogits</code></td><td><code>Logits&lt;T&gt; getOutputLogits() const</code></td><td>Returns pre-activation z-vector of the last layer</td></tr>
+  <tr><td><code>getActvs</code></td><td><code>const Tensor2D&lt;T&gt;&amp; getActvs() const</code></td><td>Returns all-layer activations</td></tr>
+  <tr><td><code>getAccumWeights</code></td><td><code>const Tensor3D&lt;T&gt;&amp; getAccumWeights() const</code></td><td>Returns accumulated weight gradients</td></tr>
+  <tr><td><code>getAccumBiases</code></td><td><code>const Tensor2D&lt;T&gt;&amp; getAccumBiases() const</code></td><td>Returns accumulated bias gradients</td></tr>
+  <tr><td><code>getAccumLoss</code></td><td><code>T getAccumLoss() const</code></td><td>Returns accumulated loss</td></tr>
+  <tr><td><code>accumulate</code></td><td><code>void accumulate()</code></td><td>Add current gradients to running accumulators</td></tr>
+  <tr><td><code>resetAccumulators</code></td><td><code>void resetAccumulators()</code></td><td>Zero out gradient accumulators</td></tr>
 </table>
 
 <!-- ========== COREGPU ========== -->

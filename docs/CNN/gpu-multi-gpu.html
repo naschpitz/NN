@@ -143,7 +143,7 @@
 <p>The key advantage of data parallelism is its simplicity — the model is identical on each GPU, so no model partitioning is needed. Training throughput scales nearly linearly with the number of GPUs, since the computational bottleneck (convolution) runs independently on each device.</p>
 
 <h2 id="gradient-merging">Gradient Merging</h2>
-<p>After each epoch, gradients from all workers are merged on the CPU. The process for CNN gradients is:</p>
+<p>After every mini-batch, gradients from all workers are merged. The process for CNN gradients is:</p>
 
 <ol>
   <li><strong>Read gradients</strong> — each worker reads its accumulated gradient buffers (<code>dFilters</code>, <code>dBiases</code>, normalization <code>dGamma</code>/<code>dBeta</code>, residual projection <code>dW</code>/<code>dBias</code>) from GPU memory to CPU memory via <code>readAccumulatedGradients()</code>.</li>
@@ -153,19 +153,19 @@
 
 <p>For ANN (dense layer) parameters, a different approach is used:</p>
 <ol>
-  <li>Each worker's ANN core independently updates its own dense parameters during training.</li>
-  <li>After each epoch, <code>CoreGPU::mergeGradients()</code> <strong>averages</strong> the dense layer weights and biases across all workers.</li>
-  <li>The averaged parameters are written back to every worker's ANN core.</li>
+  <li>Each worker's ANN GPU worker independently accumulates gradients during training.</li>
+  <li>After every mini-batch, <code>CoreGPU::mergeGradients()</code> <strong>sums</strong> the dense layer accumulated gradients across all workers.</li>
+  <li>The summed gradients are written back to every worker's GPU buffers via <code>setAnnAccumulators()</code>.</li>
 </ol>
 
 <div class="info-box">
-  <strong>Why sum CNN gradients but average ANN parameters?</strong> CNN gradients are accumulated (not applied yet), so summing gives the total gradient across all samples. ANN parameters have already been updated independently on each worker, so averaging brings them back to a consensus value.
+  <strong>Why sum both CNN and ANN gradients?</strong> Both CNN and ANN gradients are accumulated (not yet applied), so summing gives the total gradient across all samples processed by all GPUs in the mini-batch.
 </div>
 
 <h2 id="parameter-sync">Parameter Synchronization</h2>
 <p>After gradient merging and parameter update, updated CNN parameters (filter weights, biases, normalization gamma/beta, residual projection weights/biases) are broadcast from the first worker back to all other workers. This ensures every GPU starts the next epoch with identical parameters.</p>
 
-<p>The synchronization happens at the end of each epoch, not after each sample or mini-batch. This minimizes expensive GPU↔CPU data transfers while still maintaining parameter consistency across devices.</p>
+<p>The synchronization happens after every mini-batch — gradients are merged, parameters are updated via SGD/Adam, and the updated parameters are reflected on each worker's GPU buffers. This ensures every GPU starts the next mini-batch with consistent parameters.</p>
 
 <h2 id="training-loop">Multi-GPU Training Loop</h2>
 <p>Here is the complete multi-GPU training loop as implemented in <code>CoreGPU::train()</code>:</p>
@@ -173,34 +173,27 @@
 <pre><code><span class="keyword">for</span> epoch <span class="keyword">in</span> [0, numEpochs):
   shuffle(samples)
 
-  <span class="comment">// 1. Each worker trains on its subset in parallel</span>
-  <span class="keyword">for</span> <span class="keyword">each</span> worker <span class="keyword">in</span> workers:  <span class="comment">// launched as threads</span>
-    worker.trainSubset(samples, startIdx, endIdx, ...)
+  <span class="comment">// Process samples in mini-batches</span>
+  <span class="keyword">for</span> each mini-batch:
+    <span class="comment">// 1. Each worker trains on its subset in parallel</span>
+    <span class="keyword">for</span> <span class="keyword">each</span> worker <span class="keyword">in</span> workers:  <span class="comment">// launched as threads</span>
+      worker.trainSubset(samples, startIdx, endIdx, ...)
 
-  <span class="comment">// 2. Read CNN gradient accumulators from each GPU</span>
-  <span class="keyword">for</span> <span class="keyword">each</span> worker:
-    worker.readAccumulatedGradients()
+    <span class="comment">// 2. Merge CNN gradients across all workers</span>
+    mergeCNNGradients()
 
-  <span class="comment">// 3. Sum CNN gradients across all workers</span>
-  mergeCNNGradients()
+    <span class="comment">// 3. Merge ANN gradients across all workers</span>
+    mergeGradients()
 
-  <span class="comment">// 4. Write merged gradients back & run SGD/Adam update kernels</span>
-  <span class="keyword">for</span> <span class="keyword">each</span> worker:
-    worker.setAccumulators()
-    worker.update(totalSamples)
-
-  <span class="comment">// 5. Merge ANN parameters across all workers</span>
-  mergeGradients()
-
-  <span class="comment">// 6. Sync updated parameters to all workers</span>
-  <span class="comment">// (done implicitly via shared parameter references)</span></code></pre>
+    <span class="comment">// 4. Update weights on each worker (SGD/Adam)</span>
+    <span class="keyword">for</span> <span class="keyword">each</span> worker:
+      worker.update(currentBatchSize)</code></pre>
 
 <h2 id="kernel-compilation">Kernel Compilation</h2>
 <p>OpenCL kernels are compiled at runtime when a <code>CoreGPUWorker</code> is first created. The compilation process:</p>
 
 <ol>
-  <li><strong>Write type definitions</strong> — generate <code>CNN_Defines.hpp.cl</code> with <code>#define TYPE float</code> (or double) based on the template parameter <code>T</code>.</li>
-  <li><strong>Load source files</strong> — read all <code>.cl</code> kernel source files from the <code>opencl/</code> directory.</li>
+  <li><strong>Load source files</strong> — read all <code>.cl</code> kernel source files from the <code>opencl/</code> directory. <code>CNN_Defines.hpp.cl</code> is loaded first (defining <code>TYPE</code> as <code>float</code>), followed by all kernel implementation files.</li>
   <li><strong>Compile</strong> — submit all source to the OpenCL runtime for compilation on the target GPU device. Compilation errors are caught and reported with the full OpenCL build log.</li>
   <li><strong>Register kernels</strong> — <code>GPUKernelBuilder</code> walks the network architecture and registers the specific kernels needed, with their buffer arguments and work dimensions.</li>
 </ol>

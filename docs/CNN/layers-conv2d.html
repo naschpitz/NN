@@ -431,8 +431,9 @@
 <p>For example, a layer with 64 filters, 32 input channels, and 3×3 kernels has \(64 \times 32 \times 3 \times 3 + 64 = 18{,}496\) parameters.</p>
 
 <h3>JSON Configuration</h3>
-<pre><code><span class="comment">// Minimal: 16 filters, 3×3, stride 1, VALID sliding</span>
-{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">16</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span> }
+<pre><code><span class="comment">// All conv2d fields are required — the loaders use .at() on every field
+// without providing defaults (missing any will throw).</span>
+{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">16</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>, <span class="string">"strideY"</span>: <span class="number">1</span>, <span class="string">"strideX"</span>: <span class="number">1</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"valid"</span> }
 
 <span class="comment">// Full specification: SAME sliding, stride (2,2)</span>
 { <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">64</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>, <span class="string">"strideY"</span>: <span class="number">2</span>, <span class="string">"strideX"</span>: <span class="number">2</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"same"</span> }</code></pre>

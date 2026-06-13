@@ -143,8 +143,8 @@
 <p>Returned by <code>predict()</code>. Carries both the post-activation output and the pre-activation (z) values of the ANN dense head's last layer. Logits enable calibration / out-of-distribution detection scores (max-logit, logit-norm, free-energy <code>−log Σ exp(zᵢ)</code>) that softmax discards because softmax is shift-invariant: <code>softmax(z) = softmax(z + c)</code>.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
-  <tr><td><code>output</code></td><td><code>Output&lt;T&gt;</code></td><td>Post-activation values of the dense head's last layer (e.g. softmax probabilities)</td></tr>
-  <tr><td><code>logits</code></td><td><code>Logits&lt;T&gt;</code></td><td>Pre-activation values (z) of the dense head's last layer</td></tr>
+  <tr><td><code>output</code></td><td><code>ANN::Output&lt;T&gt;</code></td><td>Post-activation values of the dense head's last layer (e.g. softmax probabilities)</td></tr>
+  <tr><td><code>logits</code></td><td><code>ANN::Logits&lt;T&gt;</code></td><td>Pre-activation values (z) of the dense head's last layer</td></tr>
 </table>
 
 <div class="info-box">
@@ -335,6 +335,12 @@
   <tr><td><code>actvFuncType</code></td><td><code>ANN::ActvFuncType</code></td><td>Activation function (RELU, SIGMOID, TANH, or SOFTMAX)</td></tr>
 </table>
 
+<h3>ResidualStartConfig <span class="badge badge-blue">CNN_LayersConfig.hpp</span></h3>
+<p>Marker config for the start of a residual (skip-connection) block. No parameters — the block's projection weights (if any) are stored in <code>ResidualParameters</code>.</p>
+
+<h3>ResidualEndConfig <span class="badge badge-blue">CNN_LayersConfig.hpp</span></h3>
+<p>Marker config for the end of a residual block. No parameters — the end marker triggers addition of the skip input to the block output.</p>
+
 <h3>ConvParameters&lt;T&gt; <span class="badge badge-blue">CNN_Conv2DParameters.hpp</span></h3>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
@@ -413,13 +419,18 @@
 
 <table>
   <tr><th>Internal Method</th><th>Description</th></tr>
-  <tr><td><code>propagateCNN(input, training, intermediates, poolMaxIndices)</code></td><td>Run input through all CNN layers. When <code>training=true</code>, stores intermediate activations for backpropagation</td></tr>
-  <tr><td><code>backpropagateCNN(dCNNOut, intermediates, poolMaxIndices, dFilters, dBiases)</code></td><td>Backpropagate through CNN layers</td></tr>
-  <tr><td><code>initializeConvParams()</code></td><td>He initialisation for conv filters</td></tr>
-  <tr><td><code>resetCNNAccumulators()</code></td><td>Zero gradient accumulators</td></tr>
-  <tr><td><code>accumulateCNNGradients()</code></td><td>Add sample gradients to accumulators</td></tr>
-  <tr><td><code>updateCNNParameters(numSamples)</code></td><td>SGD update for conv parameters</td></tr>
+  <tr><td><code>runWorkers(numThreads, body)</code></td><td>Dispatch <code>body(workerIdx)</code> for <code>workerIdx</code> in <code>[0, numThreads)</code> on this core's dedicated pool</td></tr>
+  <tr><td><code>resetGlobalCNNAccumulators()</code></td><td>Zero global CNN gradient accumulators before a training epoch</td></tr>
+  <tr><td><code>mergeWorkerCNNAccumulators(worker)</code></td><td>Accumulate per-worker CNN gradient accumulators into global accumulators</td></tr>
+  <tr><td><code>updateCNNParameters(numSamples)</code></td><td>SGD or Adam update for conv parameters using global accumulators</td></tr>
+  <tr><td><code>updateNormRunningStats(numSamples)</code></td><td>Update batch norm running mean/variance from accumulated stats</td></tr>
+  <tr><td><code>allocateAdamState()</code></td><td>Allocate Adam optimizer state vectors for CNN conv parameters</td></tr>
+  <tr><td><code>trainBatchNorm(numSamples, sampleProvider)</code></td><td>BatchNorm-aware training: layer-by-layer forward/backward with running stats</td></tr>
 </table>
+
+<div class="info-box">
+  <strong>Note:</strong> <code>propagateCNN()</code> and <code>backpropagateCNN()</code> are methods of <code>CoreCPUWorker&lt;T&gt;</code> (per-worker). <code>initializeConvParams()</code> is a static method on <code>Worker&lt;T&gt;</code>.
+</div>
 
 <h2 id="coregpu">6. CoreGPU&lt;T&gt; &amp; CoreGPUWorker&lt;T&gt;</h2>
 <p><code>CoreGPU</code> orchestrates multiple <code>CoreGPUWorker</code> instances for multi-GPU training.</p>
@@ -429,7 +440,7 @@
   <tr><th>Method</th><th>Description</th></tr>
   <tr><td><code>initializeWorkers()</code></td><td>Create one CoreGPUWorker per GPU</td></tr>
   <tr><td><code>mergeCNNGradients()</code></td><td>Sum CNN accumulators across all GPUs</td></tr>
-  <tr><td><code>mergeANNParameters()</code></td><td>Average dense-layer parameters across GPUs</td></tr>
+  <tr><td><code>mergeGradients()</code></td><td>Merge gradients across all GPUs (CNN + ANN)</td></tr>
 </table>
 
 <h3>CoreGPUWorker&lt;T&gt;</h3>
@@ -439,8 +450,8 @@
   <tr><td><code>predictSubset(inputs, start, end)</code></td><td>Batch inference on a range of inputs (called by CoreGPU). Returns <code>PredictResults&lt;T&gt;</code>.</td></tr>
   <tr><td><code>trainSubset(samples, start, end, ...)</code></td><td>Train on a range of samples</td></tr>
   <tr><td><code>testSubset(samples, start, end)</code></td><td>Evaluate a range of samples</td></tr>
-  <tr><td><code>readAccumulatedGradients()</code></td><td>Read gradient buffers from GPU</td></tr>
-  <tr><td><code>setAccumulators()</code></td><td>Write merged gradients back to GPU</td></tr>
+  <tr><td><code>backpropagateSample(input, expected)</code></td><td>Backpropagate through one sample (step-by-step mode)</td></tr>
+  <tr><td><code>accumulate()</code></td><td>Accumulate gradients (step-by-step mode)</td></tr>
   <tr><td><code>update(numSamples)</code></td><td>Run SGD update kernels</td></tr>
 </table>
 
@@ -481,6 +492,30 @@
   <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
   <tr><td><code>propagate(input)</code></td><td><code>Tensor1D&lt;T&gt;</code></td><td>Reshape 3D → 1D (zero-copy)</td></tr>
   <tr><td><code>backpropagate(dOut, inputShape)</code></td><td><code>Tensor3D&lt;T&gt;</code></td><td>Reshape 1D → 3D</td></tr>
+</table>
+
+<h3>GlobalAvgPool&lt;T&gt; <span class="badge badge-green">CNN_GlobalAvgPool.hpp</span></h3>
+<p>Global average pooling — reduces each channel to its spatial mean. No learnable parameters.</p>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>propagate(input, inputShape)</code></td><td><code>void</code></td><td>In-place: replaces <code>input</code> with spatial averages — shape <code>(C, H, W) → (C, 1, 1)</code></td></tr>
+  <tr><td><code>backpropagate(gradOutput, inputShape)</code></td><td><code>void</code></td><td>In-place: broadcasts gradient uniformly across spatial dimensions — shape <code>(C, 1, 1) → (C, H, W)</code></td></tr>
+</table>
+
+<h3>GlobalDualPool&lt;T&gt; <span class="badge badge-green">CNN_GlobalDualPool.hpp</span></h3>
+<p>Global dual pooling — concatenates global average and global max per channel, doubling the channel count. No learnable parameters.</p>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>propagate(input, inputShape)</code></td><td><code>void</code></td><td>In-place: <code>(C, H, W) → (2C, 1, 1)</code> — first C channels are avg, last C are max</td></tr>
+  <tr><td><code>backpropagate(gradOutput, layerInput, inputShape)</code></td><td><code>void</code></td><td>In-place: distributes gradient from <code>(2C, 1, 1)</code> back to <code>(C, H, W)</code> — avg gradient is uniform, max gradient at max index only</td></tr>
+</table>
+
+<h3>Residual&lt;T&gt; <span class="badge badge-green">CNN_Residual.hpp</span></h3>
+<p>Residual (skip-connection) block. Adds the skip input to the block output. If a <code>ResidualParameters</code> projection is provided, applies a 1×1 conv to the skip path before adding (for channel mismatch).</p>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>propagate(blockOutput, skipInput, projection)</code></td><td><code>void</code></td><td>In-place: adds skip input to block output. If <code>projection</code> is non-null, applies 1×1 conv to skip before adding</td></tr>
+  <tr><td><code>backpropagate(dBlockOutput, skipInput, projection, dProjection)</code></td><td><code>Tensor3D&lt;T&gt;</code></td><td>Splits gradient to skip path. <code>dBlockOutput</code> is modified in-place (gradient continues backward). Returns <code>dSkip</code> — gradient for the skip input. If projection exists, accumulates its gradients into <code>dProjection</code></td></tr>
 </table>
 
 

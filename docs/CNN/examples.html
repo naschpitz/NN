@@ -157,7 +157,7 @@ config.trainConfig.learningRate = <span class="number">0.01f</span>;
 config.progressReports = <span class="number">1000</span>;  <span class="comment">// Progress frequency (all modes)</span>
 
 <span class="comment">// Train the network</span>
-core-&gt;<span class="func">train</span>(samples);
+core-&gt;<span class="func">train</span>(samples.size(), CNN::<span class="func">makeSampleProvider</span>(samples));
 
 <span class="comment">// Access training metadata</span>
 <span class="keyword">auto</span> metadata = core-&gt;<span class="func">getTrainMetadata</span>();
@@ -203,7 +203,7 @@ CNN::Samples&lt;<span class="type">float</span>&gt; testSamples;
 <span class="comment">// ... populate testSamples ...</span>
 
 <span class="comment">// Run test</span>
-CNN::TestResult&lt;<span class="type">float</span>&gt; result = core-&gt;<span class="func">test</span>(testSamples);
+CNN::TestResult&lt;<span class="type">float</span>&gt; result = core-&gt;<span class="func">test</span>(testSamples.size(), CNN::<span class="func">makeSampleProvider</span>(testSamples));
 
 <span class="comment">// Print results</span>
 std::cout &lt;&lt; <span class="string">"Test samples: "</span> &lt;&lt; result.numSamples &lt;&lt; std::endl;
@@ -229,7 +229,7 @@ config.trainConfig.learningRate = <span class="number">0.01f</span>;
 
 <span class="comment">// Create and train (everything else is identical)</span>
 <span class="keyword">auto</span> core = CNN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
-core-&gt;<span class="func">train</span>(samples);
+core-&gt;<span class="func">train</span>(samples.size(), CNN::<span class="func">makeSampleProvider</span>(samples));
 </code></pre>
 
 <div class="tip-box">
@@ -245,7 +245,7 @@ config.trainConfig.numEpochs = <span class="number">1</span>;  <span class="comm
 
 <span class="keyword">for</span> (<span class="type">int</span> epoch = <span class="number">0</span>; epoch &lt; <span class="number">10</span>; ++epoch) {
     <span class="comment">// Train one epoch</span>
-    core-&gt;<span class="func">train</span>(samples);
+core-&gt;<span class="func">train</span>(samples.size(), CNN::<span class="func">makeSampleProvider</span>(samples));
     
     <span class="comment">// Access training metadata after each epoch</span>
     <span class="keyword">auto</span> metadata = core-&gt;<span class="func">getTrainMetadata</span>();
@@ -253,7 +253,7 @@ config.trainConfig.numEpochs = <span class="number">1</span>;  <span class="comm
               &lt;&lt; metadata.finalLoss &lt;&lt; std::endl;
     
     <span class="comment">// Optionally test on validation set</span>
-    <span class="keyword">auto</span> testResult = core-&gt;<span class="func">test</span>(valSamples);
+    <span class="keyword">auto</span> testResult = core-&gt;<span class="func">test</span>(valSamples.size(), CNN::<span class="func">makeSampleProvider</span>(valSamples));
     std::cout &lt;&lt; <span class="string">"  Val loss: "</span> &lt;&lt; testResult.averageLoss &lt;&lt; std::endl;
 }
 </code></pre>
