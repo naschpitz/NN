@@ -10,6 +10,7 @@
 #include "Common/Common_CostFunctionConfig.hpp"
 #include "Common/Common_TrainingConfig.hpp"
 #include "Common/Common_TestConfig.hpp"
+#include "Common/Common_CalibrationConfig.hpp"
 #include "ANN_Parameters.hpp"
 
 //===================================================================================================================//
@@ -27,6 +28,7 @@ namespace ANN
       CostFunctionConfig<T> costFunctionConfig;
       TrainingConfig<T> trainingConfig;
       TestConfig testConfig;
+      Common::CalibrationConfig calibrationConfig;
       Parameters<T> parameters;
       ulong progressReports = 1000; // Number of progress reports (0 = no reports, default = 1000)
       LogLevel logLevel = LogLevel::ERROR;

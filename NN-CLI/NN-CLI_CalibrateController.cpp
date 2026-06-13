@@ -38,12 +38,12 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  int CalibrateController<RunnerT>::startCalibrate(const CalibrationConfig& config)
+  int CalibrateController<RunnerT>::startCalibrate()
   {
     if (!this->runner)
       return 1;
 
-    return this->runner->calibrate(config);
+    return this->runner->calibrate();
   }
 
   //===================================================================================================================//

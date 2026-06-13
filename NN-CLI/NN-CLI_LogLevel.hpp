@@ -1,11 +1,13 @@
 #ifndef NN_CLI_LOGLEVEL_HPP
 #define NN_CLI_LOGLEVEL_HPP
 
+#include "Common/Common_LogLevel.hpp"
+
 //===================================================================================================================//
 
 namespace NN_CLI
 {
-  enum class LogLevel : int { QUIET = 0, ERROR = 1, WARNING = 2, INFO = 3, DEBUG = 4 };
+  using LogLevel = Common::LogLevel;
 }
 
 //===================================================================================================================//

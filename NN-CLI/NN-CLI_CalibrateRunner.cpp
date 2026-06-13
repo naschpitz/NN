@@ -109,28 +109,30 @@ int NN_CLI::CalibrateRunner::run()
     return 1;
   }
 
-  // Build CalibrationConfig from CLI args (same parsing as App.cpp).
-  CalibrationConfig config;
-  config.idImagesDir = this->parser.value("id-images").toStdString();
-  config.oodDir = this->parser.isSet("ood-dir") ? this->parser.value("ood-dir").toStdString()
-                                                : (fs::current_path() / "extern-datasets" / "ood").string();
-
-  config.idSampleCount = this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong()
-                                                               : 500;
-  config.oodSampleCount = this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong()
-                                                                 : 1500;
-
-  config.idPercentile = this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0;
-  config.fetchIfMissing = !this->parser.isSet("no-fetch");
-  config.logLevel = this->logLevel;
-  config.progressReports = this->ioConfig.progressReports;
-
+  // ---- merge CLI args into coreConfig.calibrationConfig ---------------------
+  this->annCoreConfig.calibrationConfig.idImagesDir = this->parser.value("id-images").toStdString();
+  this->annCoreConfig.calibrationConfig.oodDir = this->parser.isSet("ood-dir")
+                                                   ? this->parser.value("ood-dir").toStdString()
+                                                   : (fs::current_path() / "extern-datasets" / "ood").string();
+  this->annCoreConfig.calibrationConfig.idSampleCount = this->parser.isSet("id-sample-count")
+                                                           ? this->parser.value("id-sample-count").toULongLong()
+                                                           : 500;
+  this->annCoreConfig.calibrationConfig.oodSampleCount = this->parser.isSet("ood-sample-count")
+                                                           ? this->parser.value("ood-sample-count").toULongLong()
+                                                           : 1500;
+  this->annCoreConfig.calibrationConfig.idPercentile = this->parser.isSet("id-percentile")
+                                                          ? this->parser.value("id-percentile").toDouble()
+                                                          : 95.0;
+  this->annCoreConfig.calibrationConfig.fetchIfMissing = !this->parser.isSet("no-fetch");
   if (this->parser.isSet("output")) {
-    config.outputPath = this->parser.value("output").toStdString();
+    this->annCoreConfig.calibrationConfig.outputPath = this->parser.value("output").toStdString();
   } else {
     fs::path configPath = this->parser.value("config").toStdString();
-    config.outputPath = (configPath.parent_path() / "threshold.json").string();
+    this->annCoreConfig.calibrationConfig.outputPath =
+        (configPath.parent_path() / "threshold.json").string();
   }
+  this->annCoreConfig.calibrationConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
+  this->annCoreConfig.calibrationConfig.progressReports = this->ioConfig.progressReports;
 
   if (this->logLevel > LogLevel::QUIET) {
     std::string msg = "Calibrate mode\n"
@@ -138,33 +140,38 @@ int NN_CLI::CalibrateRunner::run()
                       this->parser.value("config").toStdString() +
                       "\n"
                       "  ID images:       " +
-                      config.idImagesDir + "  (sample " + std::to_string(config.idSampleCount) +
+                      this->annCoreConfig.calibrationConfig.idImagesDir +
+                      "  (sample " + std::to_string(this->annCoreConfig.calibrationConfig.idSampleCount) +
                       ")\n"
                       "  OOD dir:         " +
-                      config.oodDir + "  (sample " + std::to_string(config.oodSampleCount) +
+                      this->annCoreConfig.calibrationConfig.oodDir +
+                      "  (sample " + std::to_string(this->annCoreConfig.calibrationConfig.oodSampleCount) +
                       ")\n"
                       "  ID percentile:   " +
-                      std::to_string(config.idPercentile) +
+                      std::to_string(this->annCoreConfig.calibrationConfig.idPercentile) +
                       "\n"
                       "  Output:          " +
-                      config.outputPath + "\n\n";
+                      this->annCoreConfig.calibrationConfig.outputPath + "\n\n";
     std::cout << msg;
     this->notifyLogMessage(msg, false);
   }
 
   // ---- create temp runner and delegate -------------------------------------
   if (this->networkType == NetworkType::CNN) {
+    // Mirror ANN calibration config to CNN config (same params for both arch types)
+    this->cnnCoreConfig.calibrationConfig = this->annCoreConfig.calibrationConfig;
+
     CNNRunner runner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->cnnCore,
                      this->cnnCoreConfig);
     runner.addObserver(this);
-    int rc = runner.calibrate(config);
+    int rc = runner.calibrate();
     runner.removeObserver(this);
     return rc;
   } else {
     ANNRunner runner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->annCore,
                      this->annCoreConfig);
     runner.addObserver(this);
-    int rc = runner.calibrate(config);
+    int rc = runner.calibrate();
     runner.removeObserver(this);
     return rc;
   }
