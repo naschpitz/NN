@@ -8,7 +8,7 @@
 #include "ANN_SampleProvider.hpp"
 #include "Common/Common_EpochRecord.hpp"
 #include "Common/Common_TrainingProgressEvent.hpp"
-#include "Common/Common_TrainingMetadata.hpp"
+#include "Common/Common_TrainMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
 #include "Common/Common_PredictResult.hpp"
 #include "Common/Common_ProgressCallback.hpp"
@@ -80,9 +80,9 @@ namespace ANN
         return layersConfig;
       }
 
-      const TrainingConfig<T>& getTrainingConfig() const
+      const TrainConfig<T>& getTrainConfig() const
       {
-        return trainingConfig;
+        return trainConfig;
       }
 
       const PredictMetadata<T>& getPredictMetadata() const
@@ -90,14 +90,14 @@ namespace ANN
         return predictMetadata;
       }
 
-      const TrainingMetadata<T>& getTrainingMetadata() const
+      const TrainMetadata<T>& getTrainMetadata() const
       {
-        return trainingMetadata;
+        return trainMetadata;
       }
 
-      TrainingMetadata<T>& getTrainingMetadata()
+      TrainMetadata<T>& getTrainMetadata()
       {
-        return trainingMetadata;
+        return trainMetadata;
       }
 
       const Parameters<T>& getParameters() const
@@ -161,9 +161,9 @@ namespace ANN
       void prependEpochHistory(const std::vector<EpochRecord<T>>& history)
       {
         std::vector<EpochRecord<T>> merged = history;
-        merged.insert(merged.end(), this->trainingMetadata.epochHistory.begin(),
-                      this->trainingMetadata.epochHistory.end());
-        this->trainingMetadata.epochHistory = std::move(merged);
+        merged.insert(merged.end(), this->trainMetadata.epochHistory.begin(),
+                      this->trainMetadata.epochHistory.end());
+        this->trainMetadata.epochHistory = std::move(merged);
       }
 
     protected:
@@ -173,7 +173,7 @@ namespace ANN
 
       //-- Training timing --//
       void trainingStart(ulong numSamples);
-      TrainingMetadata<T> trainingEnd();
+       TrainMetadata<T> trainingEnd();
 
       //-- Predict timing --//
       void predictStart();
@@ -185,9 +185,9 @@ namespace ANN
       int numThreads = 0;
       int numGPUs = 0;
       LayersConfig layersConfig;
-      TrainingConfig<T> trainingConfig;
+      TrainConfig<T> trainConfig;
       TestConfig testConfig;
-      TrainingMetadata<T> trainingMetadata;
+      TrainMetadata<T> trainMetadata;
       PredictMetadata<T> predictMetadata;
       Parameters<T> parameters;
       CostFunctionConfig<T> costFunctionConfig;

@@ -13,12 +13,12 @@ using namespace Common;
 
 template <typename T>
 GPUBufferManager<T>::GPUBufferManager(OpenCLWrapper::Core* core, const LayersConfig& layersConfig,
-                                      Parameters<T>& parameters, const TrainingConfig<T>& trainingConfig,
+                                      Parameters<T>& parameters, const TrainConfig<T>& trainConfig,
                                       const CostFunctionConfig<T>& costFunctionConfig, LogLevel logLevel)
   : core(core),
     layersConfig(layersConfig),
     parameters(parameters),
-    trainingConfig(trainingConfig),
+    trainConfig(trainConfig),
     costFunctionConfig(costFunctionConfig),
     logLevel(logLevel)
 {
@@ -162,14 +162,14 @@ void GPUBufferManager<T>::allocateBuffers()
   this->core->template writeBuffer<T>("lossWeights", lossWeightsVec, 0);
 
   // Dropout mask buffer (allocated if dropout is enabled)
-  this->hasDropout = (this->trainingConfig.dropoutRate > 0.0f);
+  this->hasDropout = (this->trainConfig.dropoutRate > 0.0f);
 
   if (this->hasDropout) {
     this->core->template allocateBuffer<T>("dropoutMask", totalNumNeurons);
   }
 
   // Adam optimizer buffers
-  if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
+  if (this->trainConfig.optimizer.type == OptimizerType::ADAM) {
     T zero = static_cast<T>(0);
 
     this->core->template allocateBuffer<T>("adam_m_weights", totalNumWeights);
@@ -334,7 +334,7 @@ template <typename T>
 void GPUBufferManager<T>::generateAndUploadDropoutMask()
 {
   ulong numLayers = this->layersConfig.size();
-  float rate = this->trainingConfig.dropoutRate;
+  float rate = this->trainConfig.dropoutRate;
 
   T scale = static_cast<T>(1) / (static_cast<T>(1) - static_cast<T>(rate));
   std::bernoulli_distribution dist(1.0 - static_cast<double>(rate));

@@ -5,7 +5,7 @@
     { "numNeurons": 2, "actvFunc": "relu" },
     { "numNeurons": 1, "actvFunc": "banana" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 1,
     "learningRate": 0.1
   }

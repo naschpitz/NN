@@ -35,7 +35,7 @@ static void testCNNCheckpointParameters()
   "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 20,
     "learningRate": 0.1
   }
@@ -132,7 +132,7 @@ static void testCNNCheckpointInstanceNormRoundTrip()
   "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 20,
     "learningRate": 0.1
   }
@@ -226,7 +226,7 @@ static void testCNNGlobalDualPoolEndToEnd()
   "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 200,
     "learningRate": 0.5
   }
@@ -375,7 +375,7 @@ static void testCNNResidualEndToEnd()
   "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 200,
     "learningRate": 0.5
   }

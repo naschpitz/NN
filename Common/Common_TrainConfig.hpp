@@ -1,5 +1,5 @@
-#ifndef COMMON_TRAININGCONFIG_HPP
-#define COMMON_TRAININGCONFIG_HPP
+#ifndef COMMON_TRAINCONFIG_HPP
+#define COMMON_TRAINCONFIG_HPP
 
 #include "Common_MonitoringConfig.hpp"
 #include "Common_Optimizer.hpp"
@@ -13,7 +13,7 @@
 namespace Common
 {
   template <typename T>
-  struct TrainingConfig {
+  struct TrainConfig {
       ulong numEpochs = 0;
       ulong startingEpoch = 0; // Epoch index to start training from (0 = fresh start; >0 = resume)
       float learningRate = 0.01f;
@@ -32,4 +32,4 @@ namespace Common
 
 //===================================================================================================================//
 
-#endif // COMMON_TRAININGCONFIG_HPP
+#endif // COMMON_TRAINCONFIG_HPP

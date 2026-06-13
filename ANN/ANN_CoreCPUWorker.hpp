@@ -5,7 +5,7 @@
 #include "ANN_ActvFunc.hpp"
 #include "ANN_Types.hpp"
 #include "ANN_LayersConfig.hpp"
-#include "Common/Common_TrainingConfig.hpp"
+#include "Common/Common_TrainConfig.hpp"
 #include "ANN_Parameters.hpp"
 
 #include <random>
@@ -19,7 +19,7 @@ namespace ANN
   class CoreCPUWorker : public Worker<T>
   {
     public:
-      CoreCPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
+      CoreCPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
                     const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                     bool allocateTrainingBuffers = true);
 
@@ -80,7 +80,7 @@ namespace ANN
     private:
       //-- Shared references (owned by CoreCPU/Core) --//
       const LayersConfig& layersConfig;
-      const TrainingConfig<T>& trainingConfig;
+      const TrainConfig<T>& trainConfig;
       const Parameters<T>& parameters;
 
       //-- Per-worker state --//

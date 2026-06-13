@@ -80,10 +80,10 @@ static void testTrainWithDropout()
   CHECK(result.exitCode == 0, " dropout training exits 0");
   CHECK(QFile::exists(outputPath), " dropout model file created");
 
-  // Verify the model JSON contains dropoutRate in trainingConfig
+  // Verify the model JSON contains dropoutRate in trainConfig
   QJsonObject json = readModelJsonFromPackage(outputPath);
 
-  auto tc = json["training"].toObject();
+  auto tc = json["train"].toObject();
   CHECK(tc.contains("dropoutRate"), "dropoutRate saved in model JSON");
   CHECK(std::abs(tc["dropoutRate"].toDouble() - 0.3) < 0.01, "dropoutRate value is 0.3");
 
@@ -133,7 +133,7 @@ static void testDropoutRateParsing()
 
   QJsonObject json = readModelJsonFromPackage(outputPath);
 
-  auto tc = json["training"].toObject();
+  auto tc = json["train"].toObject();
   CHECK(tc.contains("dropoutRate"), "dropoutRate always saved for complete snapshot");
 
   std::cout << std::endl;

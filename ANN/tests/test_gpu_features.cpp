@@ -10,8 +10,8 @@ static void testGPUTrainingCallback()
   config.modeType = Common::ModeType::TRAIN;
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 5;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 5;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 1;
   config.numGPUs = 1;
   config.logLevel = Common::LogLevel::ERROR;
@@ -39,8 +39,8 @@ static void testGPUParametersDuringTraining()
   config.modeType = Common::ModeType::TRAIN;
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 50;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
   config.logLevel = Common::LogLevel::ERROR;
@@ -85,8 +85,8 @@ static void testGPUDifferentActivations()
     config.modeType = Common::ModeType::TRAIN;
     config.deviceType = Common::DeviceType::GPU;
     config.layersConfig = makeLayersConfig({{2, actvType}, {1, ANN::ActvFuncType::SIGMOID}});
-    config.trainingConfig.numEpochs = 100;
-    config.trainingConfig.learningRate = 0.1f;
+    config.trainConfig.numEpochs = 100;
+    config.trainConfig.learningRate = 0.1f;
     config.progressReports = 0;
     config.numGPUs = 1;
     config.logLevel = Common::LogLevel::ERROR;
@@ -114,8 +114,8 @@ static void testGPUMultiLayerNetwork()
                                           {8, ANN::ActvFuncType::RELU},
                                           {4, ANN::ActvFuncType::RELU},
                                           {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
   config.logLevel = Common::LogLevel::ERROR;
@@ -142,8 +142,8 @@ static void testGPUMultiOutput()
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
   config.logLevel = Common::LogLevel::ERROR;
@@ -173,8 +173,8 @@ static void testGPUWeightedLossAffectsTraining()
     config.layersConfig = makeLayersConfig(
       {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {2, ANN::ActvFuncType::SIGMOID}});
     config.costFunctionConfig.weights = weights;
-    config.trainingConfig.numEpochs = 200;
-    config.trainingConfig.learningRate = 0.1f;
+    config.trainConfig.numEpochs = 200;
+    config.trainConfig.learningRate = 0.1f;
     config.progressReports = 0;
     config.numGPUs = 1;
     config.logLevel = Common::LogLevel::ERROR;
@@ -207,9 +207,9 @@ static void testGPUShuffleSamplesNoShuffle()
   config.modeType = Common::ModeType::TRAIN;
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 50;
-  config.trainingConfig.learningRate = 0.1f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.1f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
   config.numGPUs = 1;
   config.logLevel = Common::LogLevel::ERROR;
@@ -261,9 +261,9 @@ static void testGPUSoftmaxTrain()
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.1f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.1f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 1;
   config.logLevel = Common::LogLevel::ERROR;
@@ -311,9 +311,9 @@ static void testGPUDropoutTraining()
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {8, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.1f;
-  config.trainingConfig.dropoutRate = 0.3f;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.1f;
+  config.trainConfig.dropoutRate = 0.3f;
   config.progressReports = 0;
   config.numGPUs = 1;
   config.logLevel = Common::LogLevel::ERROR;
@@ -340,8 +340,8 @@ static void testGPUCrossEntropyLossDecreases()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.numEpochs = 50;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 1;
   config.logLevel = Common::LogLevel::ERROR;
@@ -354,7 +354,7 @@ static void testGPUCrossEntropyLossDecreases()
   ANN::TestResult<float> result1 = core->test(samples.size(), ANN::makeSampleProvider(samples));
 
   // Train 200 more epochs from same params
-  config.trainingConfig.numEpochs = 200;
+  config.trainConfig.numEpochs = 200;
   config.parameters = core->getParameters();
   auto core2 = ANN::Core<float>::makeCore(config);
   core2->train(samples.size(), ANN::makeSampleProvider(samples));

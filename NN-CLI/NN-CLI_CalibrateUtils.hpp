@@ -6,7 +6,7 @@
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_Utils.hpp"
 
-#include "Common/Common_CalibrationConfig.hpp"
+#include "Common/Common_CalibrateConfig.hpp"
 
 #include <ANN_Core.hpp>
 #include <CNN_Core.hpp>
@@ -33,9 +33,9 @@
 namespace NN_CLI
 {
 
-  //-- CalibrationConfig compatibility alias -----------------------------------//
+  //-- CalibrateConfig compatibility alias -----------------------------------//
 
-  using CalibrationConfig = Common::CalibrationConfig;
+  using CalibrateConfig = Common::CalibrateConfig;
 
   //===================================================================================================================//
 

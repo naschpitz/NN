@@ -11,13 +11,13 @@ using namespace Common;
 
 template <typename T>
 GPUKernelBuilder<T>::GPUKernelBuilder(OpenCLWrapper::Core* core, const LayersConfig& layersConfig,
-                                      const Parameters<T>& parameters, const TrainingConfig<T>& trainingConfig,
+                                      const Parameters<T>& parameters, const TrainConfig<T>& trainConfig,
                                       const CostFunctionConfig<T>& costFunctionConfig,
                                       GPUBufferManager<T>& bufferManager, LogLevel logLevel)
   : core(core),
     layersConfig(layersConfig),
     parameters(parameters),
-    trainingConfig(trainingConfig),
+    trainConfig(trainConfig),
     costFunctionConfig(costFunctionConfig),
     bufferManager(bufferManager),
     logLevel(logLevel)
@@ -104,8 +104,8 @@ void GPUKernelBuilder<T>::addUpdateKernels(ulong numSamples)
   ulong numBiases = Utils<T>::count(this->parameters.biases);
   ulong numWeights = Utils<T>::count(this->parameters.weights);
 
-  if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
-    const auto& opt = this->trainingConfig.optimizer;
+  if (this->trainConfig.optimizer.type == OptimizerType::ADAM) {
+    const auto& opt = this->trainConfig.optimizer;
     this->adam_t++;
 
     // Precompute bias corrections on CPU for numerical stability
@@ -118,7 +118,7 @@ void GPUKernelBuilder<T>::addUpdateKernels(ulong numSamples)
     this->core->template addArgument<T>("update_biases_adam", "adam_m_biases");
     this->core->template addArgument<T>("update_biases_adam", "adam_v_biases");
     this->core->template addArgument<ulong>("update_biases_adam", numSamples);
-    this->core->template addArgument<float>("update_biases_adam", this->trainingConfig.learningRate);
+    this->core->template addArgument<float>("update_biases_adam", this->trainConfig.learningRate);
     this->core->template addArgument<float>("update_biases_adam", static_cast<float>(opt.beta1));
     this->core->template addArgument<float>("update_biases_adam", static_cast<float>(opt.beta2));
     this->core->template addArgument<float>("update_biases_adam", static_cast<float>(opt.epsilon));
@@ -132,7 +132,7 @@ void GPUKernelBuilder<T>::addUpdateKernels(ulong numSamples)
     this->core->template addArgument<T>("update_weights_adam", "adam_m_weights");
     this->core->template addArgument<T>("update_weights_adam", "adam_v_weights");
     this->core->template addArgument<ulong>("update_weights_adam", numSamples);
-    this->core->template addArgument<float>("update_weights_adam", this->trainingConfig.learningRate);
+    this->core->template addArgument<float>("update_weights_adam", this->trainConfig.learningRate);
     this->core->template addArgument<float>("update_weights_adam", static_cast<float>(opt.beta1));
     this->core->template addArgument<float>("update_weights_adam", static_cast<float>(opt.beta2));
     this->core->template addArgument<float>("update_weights_adam", static_cast<float>(opt.epsilon));
@@ -145,14 +145,14 @@ void GPUKernelBuilder<T>::addUpdateKernels(ulong numSamples)
     this->core->template addArgument<T>("update_biases", "biases");
     this->core->template addArgument<T>("update_biases", "accum_dCost_dBiases");
     this->core->template addArgument<ulong>("update_biases", numSamples);
-    this->core->template addArgument<float>("update_biases", this->trainingConfig.learningRate);
+    this->core->template addArgument<float>("update_biases", this->trainConfig.learningRate);
     this->core->template addArgument<ulong>("update_biases", numBiases);
 
     this->core->addKernel("update_weights", numWeights, 0);
     this->core->template addArgument<T>("update_weights", "weights");
     this->core->template addArgument<T>("update_weights", "accum_dCost_dWeights");
     this->core->template addArgument<ulong>("update_weights", numSamples);
-    this->core->template addArgument<float>("update_weights", this->trainingConfig.learningRate);
+    this->core->template addArgument<float>("update_weights", this->trainConfig.learningRate);
     this->core->template addArgument<ulong>("update_weights", numWeights);
   }
 }

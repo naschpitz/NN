@@ -19,7 +19,7 @@
     { "numNeurons": 256, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "softmax" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 10,
     "batchSize": 512,
     "learningRate": 0.001,

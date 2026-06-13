@@ -37,7 +37,7 @@ Core<T>::Core(const CoreConfig<T>& coreConfig) : coreConfig(coreConfig)
   this->numGPUs = coreConfig.numGPUs;
   this->inputShape = coreConfig.inputShape;
   this->layersConfig = coreConfig.layersConfig;
-  this->trainingConfig = coreConfig.trainingConfig;
+  this->trainConfig = coreConfig.trainConfig;
   this->testConfig = coreConfig.testConfig;
   this->parameters = coreConfig.parameters;
   this->progressReports = coreConfig.progressReports;
@@ -64,11 +64,11 @@ void Core<T>::sanityCheck(const CoreConfig<T>& coreConfig)
 
   // Validate training config if in training mode
   if (coreConfig.modeType == Common::ModeType::TRAIN) {
-    if (coreConfig.trainingConfig.numEpochs == 0) {
+    if (coreConfig.trainConfig.numEpochs == 0) {
       throw std::runtime_error("Number of epochs must be > 0 for training mode");
     }
 
-    if (coreConfig.trainingConfig.learningRate <= 0) {
+    if (coreConfig.trainConfig.learningRate <= 0) {
       throw std::runtime_error("Learning rate must be > 0 for training mode");
     }
   }
@@ -80,23 +80,23 @@ template <typename T>
 void Core<T>::trainingStart(ulong numSamples)
 {
   this->trainingStartTime = std::chrono::system_clock::now();
-  this->trainingMetadata.startTime = Common::Utils::formatISO8601();
-  this->trainingMetadata.numSamples = numSamples;
+  this->trainMetadata.startTime = Common::Utils::formatISO8601();
+  this->trainMetadata.numSamples = numSamples;
 }
 
 //===================================================================================================================//
 
 template <typename T>
-TrainingMetadata<T> Core<T>::trainingEnd()
+TrainMetadata<T> Core<T>::trainingEnd()
 {
   auto endTime = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed = endTime - this->trainingStartTime;
 
-  this->trainingMetadata.endTime = Common::Utils::formatISO8601();
-  this->trainingMetadata.durationSeconds = elapsed.count();
-  this->trainingMetadata.durationFormatted = Common::Utils::formatDuration(elapsed.count());
+  this->trainMetadata.endTime = Common::Utils::formatISO8601();
+  this->trainMetadata.durationSeconds = elapsed.count();
+  this->trainMetadata.durationFormatted = Common::Utils::formatDuration(elapsed.count());
 
-  return this->trainingMetadata;
+  return this->trainMetadata;
 }
 
 //===================================================================================================================//

@@ -64,7 +64,7 @@ static QString writeISICLikeConfig(const QString& path, const QString& device)
   "costFunction": {
     "type": "crossEntropy"
   },
-  "training": {
+  "train": {
     "numEpochs": 100,
     "batchSize": 2,
     "learningRate": 0.005,

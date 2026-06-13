@@ -12,7 +12,7 @@
   "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 5,
     "learningRate": 0.1
   }

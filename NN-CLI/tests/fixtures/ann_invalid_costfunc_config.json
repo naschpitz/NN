@@ -8,7 +8,7 @@
   "costFunction": {
     "type": "banana"
   },
-  "training": {
+  "train": {
     "numEpochs": 1,
     "learningRate": 0.1
   }

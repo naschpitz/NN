@@ -87,7 +87,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& config) : Core<T>(config)
       this->accumDResidualBiases[i].resize(this->parameters.residualParams[i].biases.size(), static_cast<T>(0));
     }
 
-    if (this->trainingConfig.optimizer.type == Common::OptimizerType::ADAM) {
+    if (this->trainConfig.optimizer.type == Common::OptimizerType::ADAM) {
       this->allocateAdamState();
     }
   }
@@ -343,11 +343,11 @@ void CoreCPU<T>::allocateAdamState()
 template <typename T>
 void CoreCPU<T>::updateCNNParameters(ulong numSamples)
 {
-  T lr = static_cast<T>(this->trainingConfig.learningRate);
+  T lr = static_cast<T>(this->trainConfig.learningRate);
   T n = static_cast<T>(numSamples);
 
-  if (this->trainingConfig.optimizer.type == Common::OptimizerType::ADAM) {
-    const auto& opt = this->trainingConfig.optimizer;
+  if (this->trainConfig.optimizer.type == Common::OptimizerType::ADAM) {
+    const auto& opt = this->trainConfig.optimizer;
     T beta1 = opt.beta1;
     T beta2 = opt.beta2;
     T epsilon = opt.epsilon;
@@ -468,14 +468,14 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     return;
   }
 
-  ulong numEpochs = this->trainingConfig.numEpochs;
+  ulong numEpochs = this->trainConfig.numEpochs;
 
   int numThreads = this->numThreads;
 
   if (numThreads <= 0)
     numThreads = QThreadPool::globalInstance()->maxThreadCount();
 
-  ulong batchSize = this->trainingConfig.batchSize;
+  ulong batchSize = this->trainConfig.batchSize;
   this->trainingStart(numSamples);
 
   if (this->logLevel >= Common::LogLevel::INFO)
@@ -494,22 +494,22 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   // Sample index indirection for shuffling
   std::vector<ulong> sampleIndices(numSamples);
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
-  // Reproducible when trainingConfig.shuffleSeed != 0; non-deterministic otherwise.
-  std::mt19937 rng(this->trainingConfig.shuffleSeed != 0 ? this->trainingConfig.shuffleSeed : std::random_device{}());
+  // Reproducible when trainConfig.shuffleSeed != 0; non-deterministic otherwise.
+  std::mt19937 rng(this->trainConfig.shuffleSeed != 0 ? this->trainConfig.shuffleSeed : std::random_device{}());
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainingConfig.monitoringConfig;
+  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
   std::unique_ptr<TrainingMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
     monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
   }
 
-  for (ulong e = this->trainingConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
+  for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = static_cast<T>(0);
     std::atomic<ulong> completedSamples{0};
 
-    if (this->trainingConfig.shuffleSamples) {
+    if (this->trainConfig.shuffleSamples) {
       std::shuffle(sampleIndices.begin(), sampleIndices.end(), rng);
     }
 
@@ -626,7 +626,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     this->parameters.denseParams = this->stepWorker->getCore()->getParameters();
 
     T avgLoss = epochLoss / static_cast<T>(numSamples);
-    this->trainingMetadata.finalLoss = avgLoss;
+    this->trainMetadata.finalLoss = avgLoss;
 
     if (this->logLevel >= Common::LogLevel::INFO)
       qDebug() << "Epoch " << (e + 1) << "/" << numEpochs << " - Loss: " << avgLoss;
@@ -640,7 +640,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
     // Always track the 0-based index of the last completed epoch (matches
     // EpochRecord::epoch), regardless of monitoring
-    this->trainingMetadata.lastEpoch = e;
+    this->trainMetadata.lastEpoch = e;
 
     if (this->trainingCallback) {
       TrainingProgressEvent<T> progress;
@@ -671,7 +671,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     epochRecord.isBest = monitor ? monitor->isNewBest() : false;
     epochRecord.completionTime =
       static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-    this->trainingMetadata.epochHistory.push_back(epochRecord);
+    this->trainMetadata.epochHistory.push_back(epochRecord);
 
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
@@ -692,9 +692,9 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
   // Populate monitoring metadata
   if (monitor) {
-    this->trainingMetadata.stopReason = monitor->getStopReason();
-    this->trainingMetadata.bestEpoch = monitor->getBestEpoch();
-    this->trainingMetadata.bestLoss = monitor->getBestLoss();
+    this->trainMetadata.stopReason = monitor->getStopReason();
+    this->trainMetadata.bestEpoch = monitor->getBestEpoch();
+    this->trainMetadata.bestLoss = monitor->getBestLoss();
   }
 
   this->trainingEnd();
@@ -802,8 +802,8 @@ TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
 template <typename T>
 void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
-  ulong numEpochs = this->trainingConfig.numEpochs;
-  ulong batchSize = this->trainingConfig.batchSize;
+  ulong numEpochs = this->trainConfig.numEpochs;
+  ulong batchSize = this->trainConfig.batchSize;
 
   int numThreads = this->numThreads;
 
@@ -828,26 +828,26 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
   // Sample index indirection for shuffling
   std::vector<ulong> sampleIndices(numSamples);
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
-  // Reproducible when trainingConfig.shuffleSeed != 0; non-deterministic otherwise.
-  std::mt19937 rng(this->trainingConfig.shuffleSeed != 0 ? this->trainingConfig.shuffleSeed : std::random_device{}());
+  // Reproducible when trainConfig.shuffleSeed != 0; non-deterministic otherwise.
+  std::mt19937 rng(this->trainConfig.shuffleSeed != 0 ? this->trainConfig.shuffleSeed : std::random_device{}());
 
   // Precompute CNN output shape
   Shape3D cnnOutputShape = this->layersConfig.validateShapes(this->inputShape);
   ulong flattenSize = cnnOutputShape.size();
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainingConfig.monitoringConfig;
+  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
   std::unique_ptr<TrainingMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
     monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
   }
 
-  for (ulong e = this->trainingConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
+  for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = static_cast<T>(0);
     std::atomic<ulong> completedSamples{0};
 
-    if (this->trainingConfig.shuffleSamples) {
+    if (this->trainConfig.shuffleSamples) {
       std::shuffle(sampleIndices.begin(), sampleIndices.end(), rng);
     }
 
@@ -1339,7 +1339,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     this->parameters.denseParams = this->stepWorker->getCore()->getParameters();
 
     T avgLoss = epochLoss / static_cast<T>(numSamples);
-    this->trainingMetadata.finalLoss = avgLoss;
+    this->trainMetadata.finalLoss = avgLoss;
 
     if (this->logLevel >= Common::LogLevel::INFO)
       qDebug() << "Epoch " << (e + 1) << "/" << numEpochs << " - Loss: " << avgLoss;
@@ -1353,7 +1353,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
 
     // Always track the 0-based index of the last completed epoch (matches
     // EpochRecord::epoch), regardless of monitoring
-    this->trainingMetadata.lastEpoch = e;
+    this->trainMetadata.lastEpoch = e;
 
     if (this->trainingCallback) {
       TrainingProgressEvent<T> progress;
@@ -1384,7 +1384,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     epochRecord.isBest = monitor ? monitor->isNewBest() : false;
     epochRecord.completionTime =
       static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-    this->trainingMetadata.epochHistory.push_back(epochRecord);
+    this->trainMetadata.epochHistory.push_back(epochRecord);
 
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
@@ -1405,9 +1405,9 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
 
   // Populate monitoring metadata
   if (monitor) {
-    this->trainingMetadata.stopReason = monitor->getStopReason();
-    this->trainingMetadata.bestEpoch = monitor->getBestEpoch();
-    this->trainingMetadata.bestLoss = monitor->getBestLoss();
+    this->trainMetadata.stopReason = monitor->getStopReason();
+    this->trainMetadata.bestEpoch = monitor->getBestEpoch();
+    this->trainMetadata.bestLoss = monitor->getBestLoss();
   }
 
   this->trainingEnd();

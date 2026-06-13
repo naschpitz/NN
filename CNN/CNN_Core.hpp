@@ -8,7 +8,7 @@
 #include "CNN_SampleProvider.hpp"
 #include "Common/Common_EpochRecord.hpp"
 #include "Common/Common_TrainingProgressEvent.hpp"
-#include "Common/Common_TrainingMetadata.hpp"
+#include "Common/Common_TrainMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
 #include "Common/Common_PredictResult.hpp"
 #include "Common/Common_ProgressCallback.hpp"
@@ -79,9 +79,9 @@ namespace CNN
         return layersConfig;
       }
 
-      const Common::TrainingConfig<T>& getTrainingConfig() const
+      const Common::TrainConfig<T>& getTrainConfig() const
       {
-        return trainingConfig;
+        return trainConfig;
       }
 
       const Common::PredictMetadata<T>& getPredictMetadata() const
@@ -89,14 +89,14 @@ namespace CNN
         return predictMetadata;
       }
 
-      const Common::TrainingMetadata<T>& getTrainingMetadata() const
+      const Common::TrainMetadata<T>& getTrainMetadata() const
       {
-        return trainingMetadata;
+        return trainMetadata;
       }
 
-      Common::TrainingMetadata<T>& getTrainingMetadata()
+      Common::TrainMetadata<T>& getTrainMetadata()
       {
-        return trainingMetadata;
+        return trainMetadata;
       }
 
       const Parameters<T>& getParameters() const
@@ -176,9 +176,9 @@ namespace CNN
       void prependEpochHistory(const std::vector<Common::EpochRecord<T>>& history)
       {
         std::vector<Common::EpochRecord<T>> merged = history;
-        merged.insert(merged.end(), this->trainingMetadata.epochHistory.begin(),
-                      this->trainingMetadata.epochHistory.end());
-        this->trainingMetadata.epochHistory = std::move(merged);
+        merged.insert(merged.end(), this->trainMetadata.epochHistory.begin(),
+                      this->trainMetadata.epochHistory.end());
+        this->trainMetadata.epochHistory = std::move(merged);
       }
 
     protected:
@@ -188,7 +188,7 @@ namespace CNN
 
       //-- Training timing --//
       void trainingStart(ulong numSamples);
-      Common::TrainingMetadata<T> trainingEnd();
+      Common::TrainMetadata<T> trainingEnd();
 
       //-- Predict timing --//
       void predictStart();
@@ -202,9 +202,9 @@ namespace CNN
       int numGPUs = 0;
       Shape3D inputShape;
       LayersConfig layersConfig;
-      Common::TrainingConfig<T> trainingConfig;
+      Common::TrainConfig<T> trainConfig;
       Common::TestConfig testConfig;
-      Common::TrainingMetadata<T> trainingMetadata;
+      Common::TrainMetadata<T> trainMetadata;
       Common::PredictMetadata<T> predictMetadata;
       Parameters<T> parameters;
       ulong progressReports = 1000;

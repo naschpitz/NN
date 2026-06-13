@@ -269,7 +269,7 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainingProgress(const Common::Tr
 template <typename CoreT, typename CoreConfigT>
 int NN_CLI::Runner<CoreT, CoreConfigT>::getTotalEpochs() const
 {
-  return static_cast<int>(this->coreConfig.trainingConfig.numEpochs);
+  return static_cast<int>(this->coreConfig.trainConfig.numEpochs);
 }
 
 //===================================================================================================================//
@@ -463,7 +463,7 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
   rows.push_back({"", ""});
 
   //-- Training config --//
-  const auto& tc = this->coreConfig.trainingConfig;
+  const auto& tc = this->coreConfig.trainConfig;
   rows.push_back({"Epochs", std::to_string(tc.numEpochs)});
   rows.push_back({"Batch size", std::to_string(tc.batchSize)});
 
@@ -525,13 +525,13 @@ int NN_CLI::Runner<CoreT, CoreConfigT>::finishTraining(const QString& inputFileP
   // callback (validation, best-model save, history record), so there is no
   // end-of-run fix-up to do here; just persist the final model.
 
-  const auto& trainingMetadata = this->core->getTrainingMetadata();
-  ulong numEpochs = trainingMetadata.epochHistory.empty() ? this->coreConfig.trainingConfig.numEpochs
-                                                          : trainingMetadata.epochHistory.back().epoch + 1;
+  const auto& trainMetadata = this->core->getTrainMetadata();
+  ulong numEpochs = trainMetadata.epochHistory.empty() ? this->coreConfig.trainConfig.numEpochs
+                                                        : trainMetadata.epochHistory.back().epoch + 1;
 
   std::string summary = "Epochs: " + std::to_string(numEpochs) +
-                        " | Samples: " + std::to_string(trainingMetadata.numSamples) +
-                        " | Final loss: " + std::to_string(trainingMetadata.finalLoss);
+                        " | Samples: " + std::to_string(trainMetadata.numSamples) +
+                        " | Final loss: " + std::to_string(trainMetadata.finalLoss);
 
   this->notifyTrainingFinished(true, summary);
 

@@ -37,7 +37,7 @@ static void testCNNSaveLoadPredictConsistency()
   "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 20,
     "learningRate": 0.1
   }

@@ -41,8 +41,8 @@ static void testGlobalAvgPoolEndToEnd()
   initConv.biases.assign(2, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);
@@ -119,8 +119,8 @@ static void testGlobalAvgPoolWithNorm()
   initConv.biases.assign(2, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 150;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 150;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);
@@ -192,8 +192,8 @@ static void testGlobalAvgPoolAfterPool()
   initConv.biases.assign(4, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);
@@ -258,8 +258,8 @@ static void testBatchPredict()
   initConv.biases.assign(1, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5;
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5;
   config.progressReports = 0;
 
   // "bright" → 1, "dark" → 0
@@ -350,8 +350,8 @@ static void testGlobalDualPoolEndToEnd()
   initConv1.biases.assign(2, 0.0);
 
   config.parameters.convParams = {initConv1};
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.5;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.5;
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);

@@ -134,8 +134,8 @@ namespace NN_CLI
   {
     AugmentationConfig config;
 
-    if (json.contains("training")) {
-      const auto& tc = json.at("training");
+    if (json.contains("train")) {
+      const auto& tc = json.at("train");
 
       if (tc.contains("augmentationFactor"))
         config.augmentationFactor = tc.at("augmentationFactor").get<ulong>();

@@ -32,7 +32,7 @@ static void testANNSaveLoadPredictConsistency()
 
   if (!modelJson.isEmpty()) {
     CHECK(modelJson.contains("layers"), "ANN save/load predict: model.json has 'layers'");
-    CHECK(modelJson.contains("training"), "ANN save/load predict: model.json has 'training'");
+    CHECK(modelJson.contains("train"), "ANN save/load predict: model.json has 'train'");
   }
 
   // Step 3: Create a predict input compatible with the XOR model (2 inputs)

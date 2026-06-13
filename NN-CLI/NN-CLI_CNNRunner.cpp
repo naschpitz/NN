@@ -143,7 +143,7 @@ int CNNRunner::train()
                             static_cast<int>(this->ioConfig.outputC), static_cast<int>(this->ioConfig.outputH),
                             static_cast<int>(this->ioConfig.outputW));
   } else {
-    auto [samples, success] = this->loadSamplesFromOptions("training", inputFilePath);
+    auto [samples, success] = this->loadSamplesFromOptions("train", inputFilePath);
 
     if (!success)
       return 1;
@@ -214,10 +214,10 @@ int CNNRunner::train()
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
   std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
 
-  if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
+  if (validationConfig.enabled && this->coreConfig.trainConfig.monitoringConfig.enabled) {
     trainingMonitor =
-      std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
-    this->coreConfig.trainingConfig.monitoringConfig.enabled = false;
+      std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainConfig.monitoringConfig);
+    this->coreConfig.trainConfig.monitoringConfig.enabled = false;
     this->core = CNN::Core<float>::makeCore(this->coreConfig);
   }
 
@@ -403,7 +403,7 @@ int CNNRunner::predict()
 
 int CNNRunner::calibrate()
 {
-  //-- CLI-only config (not in CalibrationConfig) ----------------------------
+  //-- CLI-only config (not in CalibrateConfig) ----------------------------
   const std::string& idImagesDir = this->parser.value("id-images").toStdString();
   const std::string oodDir = this->parser.isSet("ood-dir")
                                ? this->parser.value("ood-dir").toStdString()
@@ -423,7 +423,7 @@ int CNNRunner::calibrate()
   }
 
   //-- Fetch OOD if needed ---------------------------------------------------
-  if (this->coreConfig.calibrationConfig.fetchIfMissing && !NN_CLI::dirHasImages(oodDir)) {
+  if (this->coreConfig.calibrateConfig.fetchIfMissing && !NN_CLI::dirHasImages(oodDir)) {
     if (this->logLevel > LogLevel::QUIET) {
       std::string msg = "OOD dir is empty \u2014 fetching DTD + Places365 + synthetic.\n";
       std::cout << msg;
@@ -457,8 +457,8 @@ int CNNRunner::calibrate()
     return 1;
   }
 
-  std::vector<std::string> idSample = NN_CLI::sampleImages(idAll, this->coreConfig.calibrationConfig.idSampleCount, 42);
-  std::vector<std::string> oodSample = NN_CLI::sampleImages(oodAll, this->coreConfig.calibrationConfig.oodSampleCount, 42);
+  std::vector<std::string> idSample = NN_CLI::sampleImages(idAll, this->coreConfig.calibrateConfig.idSampleCount, 42);
+  std::vector<std::string> oodSample = NN_CLI::sampleImages(oodAll, this->coreConfig.calibrateConfig.oodSampleCount, 42);
 
   if (this->logLevel > LogLevel::QUIET) {
     std::string msg = "Sampled " + std::to_string(idSample.size()) + " ID images (of " + std::to_string(idAll.size()) +
@@ -569,7 +569,7 @@ int CNNRunner::calibrate()
       std::cout << doc.dump(2) << "\n";
   };
 
-  writeThreshold(outputPath, idEnergies, oodEnergies, this->coreConfig.calibrationConfig.idPercentile);
+  writeThreshold(outputPath, idEnergies, oodEnergies, this->coreConfig.calibrateConfig.idPercentile);
 
   auto t1 = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed = t1 - t0;
@@ -619,8 +619,8 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 {
   this->lastEpochLoss = 0.0f;
 
-  ulong batchSize = this->coreConfig.trainingConfig.batchSize;
-  int totalEpochs = static_cast<int>(this->coreConfig.trainingConfig.numEpochs);
+  ulong batchSize = this->coreConfig.trainConfig.batchSize;
+  int totalEpochs = static_cast<int>(this->coreConfig.trainConfig.numEpochs);
 
   // Wire the per-phase timing profiler to the CNN library's timing callback.
   this->profiler.reset();
@@ -718,7 +718,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     // The core's internal monitor is disabled (NN-CLI monitors externally), so
     // it recorded isBest=false / hasValLoss=false. The just-completed epoch is
     // epochHistory.back() (the core appended it immediately before this call).
-    auto& epochHistory = this->core->getTrainingMetadata().epochHistory;
+    auto& epochHistory = this->core->getTrainMetadata().epochHistory;
 
     if (!epochHistory.empty()) {
       auto& lastRecord = epochHistory.back();
@@ -751,7 +751,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     }
 
     if (completion.stoppedEarly) {
-      std::string stopMsg = "[Monitor] Training stopped: " + this->core->getTrainingMetadata().stopReason;
+      std::string stopMsg = "[Monitor] Training stopped: " + this->core->getTrainMetadata().stopReason;
 
       this->notifyLogMessage(stopMsg, false);
       this->core->requestStop();

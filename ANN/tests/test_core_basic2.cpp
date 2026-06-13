@@ -49,10 +49,10 @@ static void testMultiLayerNetwork()
                                           {8, ANN::ActvFuncType::RELU},
                                           {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 1000;
-  config.trainingConfig.learningRate = 0.05;
-  config.trainingConfig.optimizer.type = Common::OptimizerType::ADAM;
-  config.trainingConfig.shuffleSeed = 42;
+  config.trainConfig.numEpochs = 1000;
+  config.trainConfig.learningRate = 0.05;
+  config.trainConfig.optimizer.type = Common::OptimizerType::ADAM;
+  config.trainConfig.shuffleSeed = 42;
   config.numThreads = 1;
   config.progressReports = 0;
 
@@ -81,10 +81,10 @@ static void testMultiOutput()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {3, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5;
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5;
   config.numThreads = 1;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0, 0.0, 1.0}}, {{0.0, 1.0}, {0.0, 1.0, 0.0}}};
@@ -113,8 +113,8 @@ static void testStepByStepAPI()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 0.5;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 0.5;
   config.progressReports = 0;
 
   auto core = ANN::Core<double>::makeCore(config);
@@ -155,10 +155,10 @@ static void testTrainWithTanh()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::TANH}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 500;
+  config.trainConfig.numEpochs = 500;
   config.numThreads = 1;
-  config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.learningRate = 0.1;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
@@ -185,8 +185,8 @@ static void testGettersAfterConstruction()
   config.layersConfig =
     makeLayersConfig({{3, ANN::ActvFuncType::RELU}, {5, ANN::ActvFuncType::SIGMOID}, {2, ANN::ActvFuncType::TANH}});
 
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.05;
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.05;
   config.logLevel = Common::LogLevel::INFO;
 
   auto core = ANN::Core<double>::makeCore(config);
@@ -197,8 +197,8 @@ static void testGettersAfterConstruction()
   CHECK(core->getLayersConfig()[0].numNeurons == 3, "layer 0: 3 neurons");
   CHECK(core->getLayersConfig()[1].numNeurons == 5, "layer 1: 5 neurons");
   CHECK(core->getLayersConfig()[2].numNeurons == 2, "layer 2: 2 neurons");
-  CHECK(core->getTrainingConfig().numEpochs == 100, "numEpochs = 100");
-  CHECK_NEAR(core->getTrainingConfig().learningRate, 0.05f, 1e-6f, "learningRate = 0.05");
+   CHECK(core->getTrainConfig().numEpochs == 100, "numEpochs = 100");
+   CHECK_NEAR(core->getTrainConfig().learningRate, 0.05f, 1e-6f, "learningRate = 0.05");
   CHECK(core->getLogLevel() == Common::LogLevel::INFO, "logLevel = INFO");
 
   core->setLogLevel(Common::LogLevel::ERROR);

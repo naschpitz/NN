@@ -47,8 +47,8 @@ static void testResidualIdentityEndToEnd()
 
   config.layersConfig.cnnLayers = {conv1, relu, resStart, conv2, relu, resEnd, gapLayer, flattenLayer};
   config.layersConfig.denseLayers = {{1, ANN::ActvFuncType::SIGMOID}};
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.5;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.5;
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);
@@ -114,8 +114,8 @@ static void testResidualParametersEndToEnd()
 
   config.layersConfig.cnnLayers = {resStart, conv1, relu, resEnd, gapLayer, flattenLayer};
   config.layersConfig.denseLayers = {{1, ANN::ActvFuncType::SIGMOID}};
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.5;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.5;
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);
@@ -194,8 +194,8 @@ static void testResidualMixedIdentityProjectionEndToEnd()
   config.layersConfig.cnnLayers = {stem,     relu,  resStart, conv4,  relu,     resEnd,      pool,
                                    resStart, conv8, relu,     resEnd, gapLayer, flattenLayer};
   config.layersConfig.denseLayers = {{1, ANN::ActvFuncType::SIGMOID}};
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.5;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.5;
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);

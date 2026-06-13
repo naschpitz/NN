@@ -49,7 +49,7 @@ static void testExactForwardBackwardSquaredDifference()
   config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.learningRate = 1.0;
+  config.trainConfig.learningRate = 1.0;
   config.logLevel = Common::LogLevel::ERROR;
 
   // weights[layer][neuron][input]: layer 0 = empty (input), layer 1 = hidden, layer 2 = output
@@ -66,8 +66,8 @@ static void testExactForwardBackwardSquaredDifference()
 
   // --- Verify backward pass via train (1 epoch, 1 sample, SGD lr=1.0, no shuffle) ---
   // Must use train() because the step-by-step API only works for CNN-embedded .
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
   ANN::Samples<double> samples = {{{1.0, 0.5}, {1.0}}};
   auto trainCore = ANN::Core<double>::makeCore(config);
@@ -120,7 +120,7 @@ static void testExactForwardBackwardCrossEntropy()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.learningRate = 1.0;
+  config.trainConfig.learningRate = 1.0;
   config.logLevel = Common::LogLevel::ERROR;
 
   config.parameters.weights = {{}, {{0.1, 0.2}, {0.3, 0.4}}, {{0.5, -0.3}, {-0.2, 0.6}}};
@@ -136,8 +136,8 @@ static void testExactForwardBackwardCrossEntropy()
   CHECK_NEAR(out[0] + out[1], 1.0, 1e-14, "CE forward: softmax sums to 1");
 
   // --- Verify backward pass via train (1 epoch, 1 sample, SGD lr=1.0) ---
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
   ANN::Samples<double> samples = {{{1.0, 0.5}, {1.0, 0.0}}};
   auto trainCore = ANN::Core<double>::makeCore(config);
@@ -183,7 +183,7 @@ static void testExactForwardBackwardWeightedCrossEntropy()
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0, 0.5};
-  config.trainingConfig.learningRate = 1.0;
+  config.trainConfig.learningRate = 1.0;
   config.logLevel = Common::LogLevel::ERROR;
 
   config.parameters.weights = {{}, {{0.1, 0.2}, {0.3, 0.4}}, {{0.5, -0.3}, {-0.2, 0.6}}};
@@ -198,8 +198,8 @@ static void testExactForwardBackwardWeightedCrossEntropy()
 
   // Backward with per-class weights [3.0, 0.5]
   // dL/da = [-3/a2[0], 0], dot = -3, dL/dz2 = [3*(a2[0]-1), 3*a2[1]]
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
   ANN::Samples<double> samples = {{{1.0, 0.5}, {1.0, 0.0}}};
   auto trainCore = ANN::Core<double>::makeCore(config);
