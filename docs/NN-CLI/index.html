@@ -27,7 +27,7 @@
 <main class="main">
 
 <h1>NN-CLI — Neural Network Command Line Interface</h1>
-<p>A unified command-line tool for training, testing, predicting, and calibrating with both <strong>ANN</strong> (Artificial Neural Networks) and <strong>CNN</strong> (Convolutional Neural Networks). NN-CLI auto-detects the network type from your configuration file and delegates to the appropriate library. The architecture follows an MVC pattern (App → Controller → {Model, View}), though calibrate mode bypasses the Controller layer entirely.</p>
+<p>A unified command-line tool for training, testing, predicting, and calibrating with both <strong>ANN</strong> (Artificial Neural Networks) and <strong>CNN</strong> (Convolutional Neural Networks). NN-CLI auto-detects the network type from your configuration file and delegates to the appropriate library. The architecture follows an MVC pattern (App → Controller → {Model, View}).</p>
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:2rem 0">
   <div class="card" style="text-align:center">
@@ -68,8 +68,8 @@ NN-CLI --config mnist_cnn_config.json \
        --idx-data train-images.idx3 \
        --idx-labels train-labels.idx1
 
-<span class="comment"># Predict with the trained model</span>
-NN-CLI --config trained_model.json \
+<span class="comment"># Predict with the trained model (.nnmodel package)</span>
+NN-CLI --config trained_model.nnmodel \
        --mode predict \
        --input digit.json
  </code></pre>
@@ -101,10 +101,10 @@ NN-CLI --config trained_model.json \
 <h2>Dependencies</h2>
 <table>
   <tr><th>Dependency</th><th>Purpose</th><th>Included</th></tr>
-  <tr><td><a href="../CNN/index.html">CNN</a></td><td>Convolutional network implementation</td><td>Local (monorepo)</td></tr>
-  <tr><td><a href="../ANN/index.html">ANN</a></td><td>Dense network implementation</td><td>Transitive (via CNN)</td></tr>
-  <tr><td><a href="https://github.com/naschpitz/openCLWrapper">OpenCLWrapper</a></td><td>OpenCL GPU abstraction</td><td>Transitive (via CNN→ANN)</td></tr>
-  <tr><td>Qt 5/6 Core + Concurrent</td><td>CLI parsing, threading, file I/O</td><td>System</td></tr>
+  <tr><td><a href="../CNN/index.html">CNN</a></td><td>Convolutional network implementation</td><td>Monorepo sibling</td></tr>
+  <tr><td><a href="../ANN/index.html">ANN</a></td><td>Dense network implementation</td><td>Monorepo sibling (transitive via CNN)</td></tr>
+  <tr><td><a href="https://github.com/naschpitz/openCLWrapper">OpenCLWrapper</a></td><td>OpenCL GPU abstraction</td><td>Git submodule (via CNN→ANN)</td></tr>
+  <tr><td>Qt 6 Core + Concurrent</td><td>CLI parsing, threading, file I/O</td><td>System</td></tr>
   <tr><td><a href="https://github.com/nlohmann/json">nlohmann/json</a></td><td>JSON parsing</td><td>Header-only (bundled)</td></tr>
   <tr><td><a href="https://github.com/nothings/stb">stb</a></td><td>Image loading, writing, resizing</td><td>Header-only (libs/stb/)</td></tr>
 </table>

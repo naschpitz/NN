@@ -31,29 +31,33 @@
 <h2>Prerequisites</h2>
 <table>
   <tr><th>Requirement</th><th>Minimum</th><th>Notes</th></tr>
-  <tr><td>C++ Compiler</td><td>C++17</td><td>GCC 7+, Clang 5+, MSVC 2017+</td></tr>
+    <tr><td>C++ Compiler</td><td>C++17</td><td>GCC 9+, Clang 10+</td></tr>
   <tr><td>CMake</td><td>3.14</td><td></td></tr>
-  <tr><td>Qt</td><td>5 or 6</td><td>Core + Network + Concurrent modules</td></tr>
+    <tr><td>Qt</td><td>6</td><td>Core + Network + Concurrent modules</td></tr>
   <tr><td>OpenCL</td><td>1.2</td><td>Optional — required only for GPU-trained models</td></tr>
   <tr><td>A trained model</td><td>—</td><td>JSON output from <a href="../NN-CLI/index.html">NN-CLI</a> training</td></tr>
 </table>
 
 <h2>Clone &amp; Build</h2>
-<pre><code><span class="comment"># Clone with all submodules (CNN → ANN → OpenCLWrapper)</span>
-git clone --recursive https://github.com/naschpitz/NN-Server.git
-<span class="keyword">cd</span> NN-Server
+<pre><code><span class="comment"># Clone the monorepo with all submodules</span>
+git clone --recursive https://github.com/naschpitz/NN.git
+<span class="keyword">cd</span> NN
 
-<span class="comment"># Build</span>
+<span class="comment"># Build NN-Server (requires CMakeUserPresets.json at repo root)</span>
+<span class="keyword">cd</span> NN-Server
 mkdir build &amp;&amp; <span class="keyword">cd</span> build
-cmake ..
-make -j$(nproc)
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . -j$(nproc)
+
+<span class="comment"># Or build all components from the repo root:</span>
+<span class="comment"># ./build.sh</span>
 
 <span class="comment"># The NN-Server executable is ready</span>
 ls -la NN-Server
 </code></pre>
 
 <div class="info-box">
-  <strong>Submodule chain:</strong> NN-Server includes <strong>CNN</strong> under <code>extern/CNN</code>, which in turn includes <strong>ANN</strong> under <code>extern/ANN</code>, which includes <strong>OpenCLWrapper</strong> under <code>extern/openCLWrapper</code>. The <code>--recursive</code> flag clones all of them.
+  <strong>Monorepo structure:</strong> NN-Server links <strong>CNN</strong> and <strong>ANN</strong> as sibling directories, with <strong>OpenCLWrapper</strong> under <code>ANN/extern/OpenCLWrapper</code> and <code>CNN/extern/OpenCLWrapper</code>. The <code>--recursive</code> flag clones all submodules.
 </div>
 
 <h2>Verify Installation</h2>
@@ -75,7 +79,7 @@ EOF
 <span class="comment">#   Pool size: 8</span>
 <span class="comment">#   Output:    vector (JSON)</span>
 <span class="comment">#</span>
-<span class="comment"># Server listening on port 8080</span>
+<span class="comment"># Listening on port 8080</span>
 <span class="comment"># Ready to accept requests.</span>
 
 <span class="comment"># In another terminal, check the health endpoint:</span>
@@ -86,8 +90,6 @@ curl http://localhost:<span class="number">8080</span>/health
 <h2>Run Tests</h2>
 <p>Integration tests are included. They start the server automatically with a bundled test model and send concurrent HTTP requests.</p>
 <pre><code><span class="keyword">cd</span> build
-cmake ..
-make test_endpoints -j$(nproc)
 ./test_endpoints
 
 <span class="comment"># Expected output:</span>
@@ -106,6 +108,11 @@ make test_endpoints -j$(nproc)
 <span class="comment"># === Results: 44 passed, 0 failed ===</span>
 </code></pre>
 
+<p>A separate unit-test binary covers the logger:</p>
+<pre><code>./test_logger
+<span class="comment"># All logger tests passed.</span>
+</code></pre>
+
 <h2>Project Structure</h2>
 <pre><code>NN-Server/
 ├── main.cpp                      <span class="comment"># Entry point, config.json parsing</span>
@@ -113,6 +120,7 @@ make test_endpoints -j$(nproc)
 ├── NN-Server_CorePool.hpp/cpp    <span class="comment"># Thread-safe pool of ANN/CNN Cores</span>
 ├── NN-Server_Loader.hpp/cpp      <span class="comment"># Model loading &amp; network detection</span>
 ├── NN-Server_ImageLoader.hpp/cpp <span class="comment"># Image decode/encode via stb</span>
+├── NN-Server_Logger.hpp/cpp      <span class="comment"># Request logging with circular write</span>
 ├── NN-Server_NetworkType.hpp     <span class="comment"># NetworkType enum (ANN/CNN)</span>
 ├── libs/
 │   ├── nlohmann/                 <span class="comment"># JSON header-only library</span>
@@ -122,6 +130,7 @@ make test_endpoints -j$(nproc)
 ├── tests/
 │   ├── test_main.cpp             <span class="comment"># Test entry point</span>
 │   ├── test_endpoints.cpp        <span class="comment"># Integration tests</span>
+│   ├── test_logger.cpp           <span class="comment"># Logger unit tests</span>
 │   ├── test_helpers.hpp          <span class="comment"># Test utilities (CHECK, HTTP helpers)</span>
 │   └── fixtures/                 <span class="comment"># Test model &amp; sample images</span>
 └── docs/                         <span class="comment"># This documentation</span>

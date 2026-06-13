@@ -89,7 +89,7 @@
 <p>ReLU zeroes out approximately half of the activations. The factor of 2 compensates for this, keeping the variance of activations stable across layers. Without it, the signal would shrink by half at each layer, leading to vanishing gradients in deep networks.</p>
 
 <div class="tip-box">
-<strong>Code:</strong> <code>Worker&lt;T&gt;::initializeConvParams()</code> in <code>CNN_Worker.cpp</code> uses <code>std::normal_distribution&lt;T&gt;(0, std::sqrt(2.0 / fanIn))</code> to initialise filter weights. Biases are initialised to zero.
+<strong>Code:</strong> <code>Worker&lt;T&gt;::initializeConvParams(layersConfig, inputShape, parameters)</code> in <code>CNN_Worker.hpp/cpp</code> uses <code>std::normal_distribution&lt;T&gt;(0, std::sqrt(2.0 / fanIn))</code> to initialise filter weights. Biases are initialised to zero.
 </div>
 
 </main>

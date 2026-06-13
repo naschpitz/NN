@@ -139,7 +139,7 @@
   std::function&lt;Inputs&lt;T&gt;(<span class="type">ulong</span> batchSize, <span class="type">ulong</span> batchIndex)&gt;;
 </code></pre>
 
-<h3>PredictResult&lt;T&gt; <span class="badge badge-blue">CNN_PredictResult.hpp</span></h3>
+<h3>PredictResult&lt;T&gt; <span class="badge badge-blue">Common/Common_PredictResult.hpp</span></h3>
 <p>Returned by <code>predict()</code>. Carries both the post-activation output and the pre-activation (z) values of the ANN dense head's last layer. Logits enable calibration / out-of-distribution detection scores (max-logit, logit-norm, free-energy <code>−log Σ exp(zᵢ)</code>) that softmax discards because softmax is shift-invariant: <code>softmax(z) = softmax(z + c)</code>.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
@@ -166,6 +166,7 @@
   <tr><td><code>TRAIN</code></td><td>Training mode (propagation + backpropagation + update)</td></tr>
   <tr><td><code>PREDICT</code></td><td>Inference mode (propagation only)</td></tr>
   <tr><td><code>TEST</code></td><td>Evaluation mode (propagation + loss calculation)</td></tr>
+  <tr><td><code>CALIBRATE</code></td><td>Calibration mode (collect logit statistics for OOD detection)</td></tr>
 </table>
 
 <h3>LayerType</h3>
@@ -198,7 +199,7 @@
   <tr><td><code>AVG</code></td><td>Average pooling (distributes gradient evenly)</td></tr>
 </table>
 
-<h3>CostFunctionType <span class="badge badge-blue">CNN_CostFunctionConfig.hpp</span></h3>
+<h3>CostFunctionType <span class="badge badge-blue">Common/Common_CostFunctionConfig.hpp</span></h3>
 <table>
   <tr><th>Value</th><th>String</th><th>Description</th></tr>
   <tr><td><code>SQUARED_DIFFERENCE</code></td><td><code>"squaredDifference"</code></td><td>Standard squared error: Σ(predicted − expected)²</td></tr>
@@ -207,7 +208,7 @@
 </table>
 <p>Helpers: <code>CostFunction::nameToType(str)</code>, <code>CostFunction::typeToName(type)</code></p>
 
-<h3>OptimizerType <span class="badge badge-blue">CNN_Optimizer.hpp</span></h3>
+<h3>OptimizerType <span class="badge badge-blue">Common/Common_Optimizer.hpp</span></h3>
 <table>
   <tr><th>Value</th><th>Int</th><th>Description</th></tr>
   <tr><td><code>SGD</code></td><td>0</td><td>Stochastic Gradient Descent (default)</td></tr>
@@ -215,7 +216,7 @@
 </table>
 <p>Helpers: <code>Optimizer::nameToType(str)</code>, <code>Optimizer::typeToName(type)</code></p>
 
-<h3>LogLevel <span class="badge badge-blue">CNN_LogLevel.hpp</span></h3>
+<h3>LogLevel <span class="badge badge-blue">Common/Common_LogLevel.hpp</span></h3>
 <table>
   <tr><th>Value</th><th>Int</th><th>Description</th></tr>
   <tr><td><code>QUIET</code></td><td>0</td><td>No output</td></tr>
@@ -231,40 +232,45 @@
 <p>Top-level configuration struct. Contains all settings needed to create and run a CNN.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
-  <tr><td><code>modeType</code></td><td><code>ModeType</code></td><td>TRAIN, PREDICT, or TEST</td></tr>
+  <tr><td><code>modeType</code></td><td><code>ModeType</code></td><td>TRAIN, PREDICT, TEST, or CALIBRATE</td></tr>
   <tr><td><code>deviceType</code></td><td><code>DeviceType</code></td><td>CPU or GPU</td></tr>
   <tr><td><code>numThreads</code></td><td><code>int</code></td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>numGPUs</code></td><td><code>int</code></td><td>GPUs to use (0 = all available)</td></tr>
   <tr><td><code>inputShape</code></td><td><code>Shape3D</code></td><td>Input tensor shape (channels, height, width)</td></tr>
   <tr><td><code>layersConfig</code></td><td><code>LayersConfig</code></td><td>CNN + dense layer architecture</td></tr>
   <tr><td><code>costFunctionConfig</code></td><td><code>CostFunctionConfig&lt;T&gt;</code></td><td>Cost function type and optional weights</td></tr>
-  <tr><td><code>trainingConfig</code></td><td><code>TrainingConfig&lt;T&gt;</code></td><td>Training hyperparameters (epochs, learning rate, batch size)</td></tr>
+  <tr><td><code>trainConfig</code></td><td><code>TrainConfig&lt;T&gt;</code></td><td>Training hyperparameters (epochs, learning rate, batch size)</td></tr>
   <tr><td><code>testConfig</code></td><td><code>TestConfig</code></td><td>Test evaluation settings (batch size)</td></tr>
+  <tr><td><code>calibrateConfig</code></td><td><code>CalibrateConfig</code></td><td>Calibration pipeline settings (sample counts, OOD threshold)</td></tr>
   <tr><td><code>parameters</code></td><td><code>Parameters&lt;T&gt;</code></td><td>Pre-trained parameters (optional)</td></tr>
   <tr><td><code>progressReports</code></td><td><code>ulong</code></td><td>Progress callback frequency for all modes (default 1000)</td></tr>
   <tr><td><code>logLevel</code></td><td><code>LogLevel</code></td><td>Log verbosity level (default ERROR)</td></tr>
+  <tr><td><code>loadedEpochHistory</code></td><td><code>vector&lt;EpochRecord&lt;T&gt;&gt;</code></td><td>Epoch history loaded from saved model (for resume)</td></tr>
 </table>
 
-<h3>TrainingConfig&lt;T&gt; <span class="badge badge-blue">CNN_TrainingConfig.hpp</span></h3>
+<h3>TrainConfig&lt;T&gt; <span class="badge badge-blue">Common/Common_TrainConfig.hpp</span></h3>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>numEpochs</code></td><td><code>ulong</code></td><td>Total training epochs (default 0)</td></tr>
+  <tr><td><code>startingEpoch</code></td><td><code>ulong</code></td><td>Epoch index to start training from (0 = fresh start; &gt;0 = resume)</td></tr>
   <tr><td><code>learningRate</code></td><td><code>float</code></td><td>Learning rate (default 0.01). Used as the base learning rate α for both SGD and Adam.</td></tr>
   <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size (default 64)</td></tr>
   <tr><td><code>shuffleSamples</code></td><td><code>bool</code></td><td>Shuffle sample order each epoch (default true)</td></tr>
   <tr><td><code>shuffleSeed</code></td><td><code>uint32_t</code></td><td>RNG seed for the per-epoch shuffle. Default <code>0</code> means seed from <code>std::random_device</code> — non-deterministic, what production wants. Set to a non-zero value (e.g. tests use <code>42</code>) and the whole training run reproduces bit-for-bit, including the shuffle order. Only meaningful when <code>shuffleSamples</code> is true.</td></tr>
   <tr><td><code>dropoutRate</code></td><td><code>float</code></td><td>Dropout probability for dense hidden layers during training (default 0.0 = disabled). Uses inverted dropout: activations are scaled by 1/(1−p) during training so no adjustment is needed at inference. Applied only to the dense (fully-connected) layers, not convolutional layers.</td></tr>
   <tr><td><code>optimizer</code></td><td><code>Optimizer&lt;T&gt;</code></td><td>Optimizer configuration (default: SGD)</td></tr>
+  <tr><td><code>validationDataset</code></td><td><code>ValidationConfig</code></td><td>Validation split configuration (enabled, auto-size, size, check interval)</td></tr>
+  <tr><td><code>monitoringConfig</code></td><td><code>MonitoringConfig</code></td><td>Training health monitoring (enabled, check interval, patience, metrics)</td></tr>
 </table>
 
-<h3>TestConfig <span class="badge badge-blue">CNN_TestConfig.hpp</span></h3>
-<p>Configuration for test evaluation. Separate from <code>TrainingConfig</code> to allow independent batch sizing.</p>
+<h3>TestConfig <span class="badge badge-blue">Common/Common_TestConfig.hpp</span></h3>
+<p>Configuration for test evaluation. Separate from <code>TrainConfig</code> to allow independent batch sizing.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size for test evaluation (default 64). Controls how many samples are loaded into memory at once during testing.</td></tr>
 </table>
 
-<h3>Optimizer&lt;T&gt; <span class="badge badge-blue">CNN_Optimizer.hpp</span></h3>
+<h3>Optimizer&lt;T&gt; <span class="badge badge-blue">Common/Common_Optimizer.hpp</span></h3>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>type</code></td><td><code>OptimizerType</code></td><td>Optimizer algorithm: <code>SGD</code> (default) or <code>ADAM</code></td></tr>
@@ -273,7 +279,7 @@
   <tr><td><code>epsilon</code></td><td><code>T</code></td><td>Small constant for numerical stability (default 10⁻⁸). Only used by Adam.</td></tr>
 </table>
 
-<h3>CostFunctionConfig&lt;T&gt; <span class="badge badge-blue">CNN_CostFunctionConfig.hpp</span></h3>
+<h3>CostFunctionConfig&lt;T&gt; <span class="badge badge-blue">Common/Common_CostFunctionConfig.hpp</span></h3>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>type</code></td><td><code>CostFunctionType</code></td><td>Cost function type (default SQUARED_DIFFERENCE)</td></tr>
@@ -367,10 +373,39 @@
   <tr><td><code>predict(input)</code></td><td><code>PredictResult&lt;T&gt;</code></td><td>Single-input convenience. Delegates to the streaming overload with a one-shot provider. The underlying ANN sub-core uses the step worker directly (no threading) to avoid deadlocks when called from within CNN's thread pool.</td></tr>
   <tr><td><code>train(numSamples, sampleProvider)</code></td><td><code>void</code></td><td>Full training loop with SGD</td></tr>
   <tr><td><code>test(numSamples, sampleProvider)</code></td><td><code>TestResult&lt;T&gt;</code></td><td>Evaluate loss on a test set using on-demand sample loading</td></tr>
-  <tr><td><code>setTrainingCallback(cb)</code></td><td><code>void</code></td><td>Attach progress callback</td></tr>
-  <tr><td><code>getParameters()</code></td><td><code>const Parameters&lt;T&gt;&amp;</code></td><td>Get current conv + dense parameters</td></tr>
-  <tr><td><code>getTrainingMetadata()</code></td><td><code>TrainingMetadata&lt;T&gt;</code></td><td>Timing and loss from last train()</td></tr>
-  <tr><td><code>getPredictMetadata()</code></td><td><code>PredictMetadata&lt;T&gt;</code></td><td>Timing from last predict()</td></tr>
+</table>
+
+<h4>Getters</h4>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>getModeType()</code></td><td><code>ModeType</code></td><td>Current operating mode (TRAIN, PREDICT, TEST, or CALIBRATE)</td></tr>
+  <tr><td><code>getDeviceType()</code></td><td><code>DeviceType</code></td><td>Current device (CPU or GPU)</td></tr>
+  <tr><td><code>getNumThreads()</code></td><td><code>int</code></td><td>Number of CPU threads used</td></tr>
+  <tr><td><code>getNumGPUs()</code></td><td><code>int</code></td><td>Number of GPUs used</td></tr>
+  <tr><td><code>getInputShape()</code></td><td><code>const Shape3D&amp;</code></td><td>Input tensor shape (channels, height, width)</td></tr>
+  <tr><td><code>getLayersConfig()</code></td><td><code>const LayersConfig&amp;</code></td><td>CNN + dense layer architecture</td></tr>
+  <tr><td><code>getTrainConfig()</code></td><td><code>const TrainConfig&lt;T&gt;&amp;</code></td><td>Training hyperparameters</td></tr>
+  <tr><td><code>getTrainMetadata()</code></td><td><code>const TrainMetadata&lt;T&gt;&amp;</code></td><td>Timing and loss from last train()</td></tr>
+  <tr><td><code>getPredictMetadata()</code></td><td><code>const PredictMetadata&lt;T&gt;&amp;</code></td><td>Timing from last predict()</td></tr>
+  <tr><td><code>getParameters()</code></td><td><code>const Parameters&lt;T&gt;&amp;</code></td><td>Current conv + dense parameters</td></tr>
+  <tr><td><code>getCostFunctionConfig()</code></td><td><code>const CostFunctionConfig&lt;T&gt;&amp;</code></td><td>Cost function type and optional weights</td></tr>
+</table>
+
+<h4>Setters &amp; Callback Registration</h4>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>setParameters(params)</code></td><td><code>void</code></td><td>Set conv + dense parameters (e.g. from a loaded model)</td></tr>
+  <tr><td><code>syncParametersToGPU()</code></td><td><code>void</code></td><td>Upload host-side parameters to GPU buffers. No-op on CPU cores.</td></tr>
+  <tr><td><code>setTrainingCallback(cb)</code></td><td><code>void</code></td><td>Attach per-sample training progress callback</td></tr>
+  <tr><td><code>setEpochCompletedCallback(cb)</code></td><td><code>void</code></td><td>Attach per-epoch completion callback (validation, checkpointing)</td></tr>
+  <tr><td><code>setProgressCallback(cb)</code></td><td><code>void</code></td><td>Attach progress callback for predict/test modes</td></tr>
+  <tr><td><code>setTimingCallback(cb)</code></td><td><code>void</code></td><td>Attach timing instrumentation callback (phase begin/end notifications)</td></tr>
+  <tr><td><code>setGpuProfileCallback(cb)</code></td><td><code>void</code></td><td>Attach GPU kernel profiling callback (per-kernel execution times)</td></tr>
+  <tr><td><code>setLogLevel(level)</code></td><td><code>void</code></td><td>Set log verbosity (QUIET, ERROR, WARNING, INFO, DEBUG)</td></tr>
+  <tr><td><code>getLogLevel()</code></td><td><code>LogLevel</code></td><td>Get current log verbosity level</td></tr>
+  <tr><td><code>requestStop()</code></td><td><code>void</code></td><td>Request early training termination (checked at epoch boundaries)</td></tr>
+  <tr><td><code>isStopRequested()</code></td><td><code>bool</code></td><td>Whether early stop has been requested</td></tr>
+  <tr><td><code>prependEpochHistory(history)</code></td><td><code>void</code></td><td>Prepend loaded epoch history from a resumed model</td></tr>
 </table>
 
 <h2 id="corecpu">5. CoreCPU&lt;T&gt;</h2>

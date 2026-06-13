@@ -81,10 +81,10 @@
   <text x="525" y="210" text-anchor="middle" font-weight="700" fill="#c5221f">CoreGPUWorker&lt;T&gt;</text>
   <text x="525" y="228" text-anchor="middle" font-size="11" fill="#5f6368">One per physical GPU</text>
 
-  <!-- SampleWorker -->
+  <!-- CoreCPUWorker -->
   <line x1="175" y1="150" x2="175" y2="190" stroke="#dadce0" stroke-width="2"/>
   <rect x="50" y="190" width="250" height="50" rx="8" fill="#f1f3f4" stroke="#dadce0" stroke-width="2"/>
-  <text x="175" y="210" text-anchor="middle" font-weight="600" fill="#202124">SampleWorker&lt;T&gt;</text>
+  <text x="175" y="210" text-anchor="middle" font-weight="600" fill="#202124">CoreCPUWorker&lt;T&gt;</text>
   <text x="175" y="228" text-anchor="middle" font-size="11" fill="#5f6368">Thread-local state (struct)</text>
 
   <!-- Helpers -->
@@ -118,7 +118,7 @@
 
 <div class="card">
 <h3>Callback Pattern</h3>
-<p>Training progress is reported via <code>TrainingCallback&lt;T&gt;</code> — a <code>std::function</code> that receives a <code>TrainingProgress&lt;T&gt;</code> struct. The CLI and GUI can attach their own handlers.</p>
+<p>Training progress is reported via <code>TrainingCallback&lt;T&gt;</code> — a <code>std::function</code> that receives a <code>TrainingProgressEvent&lt;T&gt;</code> struct. The CLI and GUI can attach their own handlers.</p>
 </div>
 
 <h2 id="dataflow">3. Data Flow</h2>
@@ -234,10 +234,10 @@
   <rect x="250" y="170" width="200" height="36" rx="6" fill="#fef7e0" stroke="#f9ab00" stroke-width="1.5"/>
   <text x="350" y="193" text-anchor="middle" font-weight="600" fill="#b06000">Merge &amp; Update</text>
 </svg>
-<figcaption>Figure 3 — CPU training uses <code>QtConcurrent::blockingMap</code> to fan out samples to thread-local workers, then merges accumulators.</figcaption>
+<figcaption>Figure 3 — CPU training uses <code>runWorkers()</code> to fan out samples to thread-local workers, then merges accumulators.</figcaption>
 </figure>
 
-<p>Each <code>SampleWorker&lt;T&gt;</code> contains:</p>
+<p>Each <code>CoreCPUWorker&lt;T&gt;</code> contains:</p>
 <ul>
   <li>Private copies of <code>actvs</code> and <code>zs</code> (activations and pre-activations)</li>
   <li>Private gradient tensors (<code>dCost_dWeights</code>, <code>dCost_dBiases</code>, <code>dCost_dActvs</code>)</li>

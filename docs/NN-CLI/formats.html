@@ -60,7 +60,7 @@
     <span class="string">"type"</span>: <span class="string">"weightedSquaredDifference"</span>,
     <span class="string">"weights"</span>: [<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">5.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>]
   },
-  <span class="string">"training"</span>: {
+  <span class="string">"train"</span>: {
     <span class="string">"numEpochs"</span>: <span class="number">100</span>,
     <span class="string">"batchSize"</span>: <span class="number">64</span>,
     <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
@@ -120,7 +120,7 @@
 
 <table>
   <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
-  <tr><td><code>mode</code></td><td>string</td><td>No</td><td><code>train</code>, <code>predict</code>, or <code>test</code></td></tr>
+  <tr><td><code>mode</code></td><td>string</td><td>No</td><td><code>train</code>, <code>predict</code>, <code>test</code>, or <code>calibrate</code></td></tr>
   <tr><td><code>device</code></td><td>string</td><td>No</td><td><code>cpu</code> or <code>gpu</code></td></tr>
   <tr><td><code>progressReports</code></td><td>int</td><td>No</td><td>Progress update frequency for all modes (default 1000)</td></tr>
   <tr><td><code>saveModelInterval</code></td><td>int</td><td>No</td><td>Save a checkpoint every N epochs during training (default 10; 0 = disabled)</td></tr>
@@ -134,48 +134,48 @@
   <tr><td><code>costFunction</code></td><td>object</td><td>No</td><td>Cost function configuration (default: squared difference)</td></tr>
   <tr><td><code>costFunction.type</code></td><td>string</td><td>No</td><td><code>squaredDifference</code> (default), <code>weightedSquaredDifference</code>, or <code>crossEntropy</code></td></tr>
   <tr><td><code>costFunction.weights</code></td><td>array</td><td>Weighted</td><td>Per-output-neuron weights (required when type is <code>weightedSquaredDifference</code>)</td></tr>
-  <tr><td><code>training.numEpochs</code></td><td>int</td><td>Train</td><td>Number of epochs</td></tr>
-  <tr><td><code>training.batchSize</code></td><td>int</td><td>No</td><td>Mini-batch size (default 64)</td></tr>
-  <tr><td><code>training.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate (base α for both SGD and Adam)</td></tr>
-  <tr><td><code>training.shuffleSamples</code></td><td>bool</td><td>No</td><td>Shuffle sample order each epoch (default true)</td></tr>
-  <tr><td><code>training.shuffleSeed</code></td><td>uint32_t</td><td>No</td><td>RNG seed for the per-epoch shuffle. Default <code>0</code> seeds from <code>std::random_device</code> (non-deterministic, what production wants). Set to a non-zero value to make the whole training run reproduce bit-for-bit — useful for tests and debugging. Only meaningful when <code>shuffleSamples</code> is true.</td></tr>
-  <tr><td><code>training.dropoutRate</code></td><td>float</td><td>No</td><td>Dropout probability for hidden layers (default 0.0 = disabled). Inverted dropout scales activations by 1/(1−p) during training</td></tr>
-  <tr><td><code>training.optimizer</code></td><td>object</td><td>No</td><td>Optimizer configuration (default: SGD)</td></tr>
-  <tr><td><code>training.optimizer.type</code></td><td>string</td><td>No</td><td><code>"sgd"</code> (default) or <code>"adam"</code></td></tr>
-  <tr><td><code>training.optimizer.beta1</code></td><td>float</td><td>No</td><td>Adam first moment decay rate (default 0.9)</td></tr>
-  <tr><td><code>training.optimizer.beta2</code></td><td>float</td><td>No</td><td>Adam second moment decay rate (default 0.999)</td></tr>
-  <tr><td><code>training.optimizer.epsilon</code></td><td>float</td><td>No</td><td>Adam numerical stability constant (default 1e-8)</td></tr>
-  <tr><td><code>training.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>
-  <tr><td><code>training.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false). Only the oversampled copies are augmented; originals are kept as-is</td></tr>
-  <tr><td><code>training.fullAugmentation</code></td><td>bool</td><td>No</td><td>Augment <em>all</em> training samples every epoch (not just the oversampled copies), for stronger regularisation (default false). Composable with balanceAugmentation/augmentationFactor; validation samples are never augmented</td></tr>
-  <tr><td><code>training.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false)</td></tr>
-  <tr><td><code>training.augmentationProbability</code></td><td>float</td><td>No</td><td>Probability of applying each enabled transform per sample (default 0.5 = 50%)</td></tr>
-  <tr><td><code>training.augmentationTransforms</code></td><td>object</td><td>No</td><td>Control augmentation transform intensities (0 = disabled; defaults shown)</td></tr>
-  <tr><td><code>training.augmentationTransforms.horizontalFlip</code></td><td>bool</td><td>No</td><td>Mirror along vertical axis (default true; false = disabled)</td></tr>
-  <tr><td><code>training.augmentationTransforms.rotation</code></td><td>float</td><td>No</td><td>Max rotation in degrees (default 15.0 = ±15°; 0 = disabled)</td></tr>
-  <tr><td><code>training.augmentationTransforms.translation</code></td><td>float</td><td>No</td><td>Max shift as fraction of image size (default 0.1 = ±10%; 0 = disabled)</td></tr>
-  <tr><td><code>training.augmentationTransforms.brightness</code></td><td>float</td><td>No</td><td>Max brightness delta (default 0.1 = ±0.1; 0 = disabled)</td></tr>
-  <tr><td><code>training.augmentationTransforms.contrast</code></td><td>float</td><td>No</td><td>Max contrast delta from 1.0 (default 0.2 = range 0.8–1.2×; 0 = disabled)</td></tr>
-  <tr><td><code>training.augmentationTransforms.gaussianNoise</code></td><td>float</td><td>No</td><td>Noise standard deviation (default 0.02 = σ=0.02; 0 = disabled)</td></tr>
-  <tr><td><code>training.augmentationTransforms.randomErasing</code></td><td>float</td><td>No</td><td>Max area fraction to erase/cutout (default 0.0 = disabled). Masks a random rectangle with zeros</td></tr>
-  <tr><td><code>training.augmentationTransforms.hueShift</code></td><td>float</td><td>No</td><td>Max hue shift as fraction of 360 degrees (default 0.0 = disabled). Shifts image color hue</td></tr>
-  <tr><td><code>training.augmentationTransforms.scaling</code></td><td>float</td><td>No</td><td>Max zoom deviation from 1.0x (default 0.0 = disabled). Randomly zooms in/out</td></tr>
-  <tr><td><code>training.augmentationTransforms.elasticDeformation</code></td><td>object</td><td>No</td><td>Elastic deformation config (disabled when alpha = 0)</td></tr>
-  <tr><td><code>training.augmentationTransforms.elasticDeformation.alpha</code></td><td>float</td><td>No</td><td>Deformation intensity (default 0.0 = disabled)</td></tr>
-  <tr><td><code>training.augmentationTransforms.elasticDeformation.sigma</code></td><td>float</td><td>No</td><td>Deformation field smoothness (default 5.0)</td></tr>
-  <tr><td><code>training.validation</code></td><td>object</td><td>No</td><td>Validation dataset split configuration (see below)</td></tr>
-  <tr><td><code>training.validation.enabled</code></td><td>bool</td><td>No</td><td>Enable validation split (default true)</td></tr>
-  <tr><td><code>training.validation.autoSize</code></td><td>bool</td><td>No</td><td>Auto-select split ratio based on dataset size (default true). Ratios: &lt;1k samples = 20%, 1k-10k = 15%, 10k-100k = 10%, 100k-1M = 2%, &gt;1M = 1%</td></tr>
-  <tr><td><code>training.validation.size</code></td><td>float</td><td>No</td><td>Fixed validation fraction, range 0.0-1.0 (default 0.15). Used when <code>autoSize</code> is false</td></tr>
-  <tr><td><code>training.validation.checkInterval</code></td><td>int</td><td>No</td><td>Run validation every N epochs (default 1)</td></tr>
-  <tr><td><code>training.monitoring</code></td><td>object</td><td>No</td><td>Training monitoring and early stopping configuration</td></tr>
-  <tr><td><code>training.monitoring.enabled</code></td><td>bool</td><td>No</td><td>Enable training monitoring (default false)</td></tr>
-  <tr><td><code>training.monitoring.checkInterval</code></td><td>int</td><td>No</td><td>Evaluate metrics every N epochs (default 5)</td></tr>
-  <tr><td><code>training.monitoring.patience</code></td><td>int</td><td>No</td><td>Stop after this many check intervals without improvement (default 20)</td></tr>
-  <tr><td><code>training.monitoring.metrics.lossStagnation.enabled</code></td><td>bool</td><td>No</td><td>Track loss improvement (default true)</td></tr>
-  <tr><td><code>training.monitoring.metrics.lossStagnation.minDelta</code></td><td>float</td><td>No</td><td>Minimum improvement threshold (default 0.0001)</td></tr>
-  <tr><td><code>training.monitoring.metrics.lossExplosion.enabled</code></td><td>bool</td><td>No</td><td>Detect loss explosion (default true)</td></tr>
-  <tr><td><code>training.monitoring.metrics.lossExplosion.threshold</code></td><td>float</td><td>No</td><td>Stop if loss exceeds threshold x best loss (default 10.0)</td></tr>
+  <tr><td><code>train.numEpochs</code></td><td>int</td><td>Train</td><td>Number of epochs</td></tr>
+  <tr><td><code>train.batchSize</code></td><td>int</td><td>No</td><td>Mini-batch size (default 64)</td></tr>
+  <tr><td><code>train.learningRate</code></td><td>float</td><td>Train</td><td>Learning rate (base α for both SGD and Adam)</td></tr>
+  <tr><td><code>train.shuffleSamples</code></td><td>bool</td><td>No</td><td>Shuffle sample order each epoch (default true)</td></tr>
+  <tr><td><code>train.shuffleSeed</code></td><td>uint32_t</td><td>No</td><td>RNG seed for the per-epoch shuffle. Default <code>0</code> seeds from <code>std::random_device</code> (non-deterministic, what production wants). Set to a non-zero value to make the whole training run reproduce bit-for-bit — useful for tests and debugging. Only meaningful when <code>shuffleSamples</code> is true.</td></tr>
+  <tr><td><code>train.dropoutRate</code></td><td>float</td><td>No</td><td>Dropout probability for hidden layers (default 0.0 = disabled). Inverted dropout scales activations by 1/(1−p) during training</td></tr>
+  <tr><td><code>train.optimizer</code></td><td>object</td><td>No</td><td>Optimizer configuration (default: SGD)</td></tr>
+  <tr><td><code>train.optimizer.type</code></td><td>string</td><td>No</td><td><code>"sgd"</code> (default) or <code>"adam"</code></td></tr>
+  <tr><td><code>train.optimizer.beta1</code></td><td>float</td><td>No</td><td>Adam first moment decay rate (default 0.9)</td></tr>
+  <tr><td><code>train.optimizer.beta2</code></td><td>float</td><td>No</td><td>Adam second moment decay rate (default 0.999)</td></tr>
+  <tr><td><code>train.optimizer.epsilon</code></td><td>float</td><td>No</td><td>Adam numerical stability constant (default 1e-8)</td></tr>
+  <tr><td><code>train.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>
+  <tr><td><code>train.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false). Only the oversampled copies are augmented; originals are kept as-is</td></tr>
+  <tr><td><code>train.fullAugmentation</code></td><td>bool</td><td>No</td><td>Augment <em>all</em> training samples every epoch (not just the oversampled copies), for stronger regularisation (default false). Composable with balanceAugmentation/augmentationFactor; validation samples are never augmented</td></tr>
+  <tr><td><code>train.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false)</td></tr>
+  <tr><td><code>train.augmentationProbability</code></td><td>float</td><td>No</td><td>Probability of applying each enabled transform per sample (default 0.5 = 50%)</td></tr>
+  <tr><td><code>train.augmentationTransforms</code></td><td>object</td><td>No</td><td>Control augmentation transform intensities (0 = disabled; defaults shown)</td></tr>
+  <tr><td><code>train.augmentationTransforms.horizontalFlip</code></td><td>bool</td><td>No</td><td>Mirror along vertical axis (default true; false = disabled)</td></tr>
+  <tr><td><code>train.augmentationTransforms.rotation</code></td><td>float</td><td>No</td><td>Max rotation in degrees (default 15.0 = ±15°; 0 = disabled)</td></tr>
+  <tr><td><code>train.augmentationTransforms.translation</code></td><td>float</td><td>No</td><td>Max shift as fraction of image size (default 0.1 = ±10%; 0 = disabled)</td></tr>
+  <tr><td><code>train.augmentationTransforms.brightness</code></td><td>float</td><td>No</td><td>Max brightness delta (default 0.1 = ±0.1; 0 = disabled)</td></tr>
+  <tr><td><code>train.augmentationTransforms.contrast</code></td><td>float</td><td>No</td><td>Max contrast delta from 1.0 (default 0.2 = range 0.8–1.2×; 0 = disabled)</td></tr>
+  <tr><td><code>train.augmentationTransforms.gaussianNoise</code></td><td>float</td><td>No</td><td>Noise standard deviation (default 0.02 = σ=0.02; 0 = disabled)</td></tr>
+  <tr><td><code>train.augmentationTransforms.randomErasing</code></td><td>float</td><td>No</td><td>Max area fraction to erase/cutout (default 0.0 = disabled). Masks a random rectangle with zeros</td></tr>
+  <tr><td><code>train.augmentationTransforms.hueShift</code></td><td>float</td><td>No</td><td>Max hue shift as fraction of 360 degrees (default 0.0 = disabled). Shifts image color hue</td></tr>
+  <tr><td><code>train.augmentationTransforms.scaling</code></td><td>float</td><td>No</td><td>Max zoom deviation from 1.0x (default 0.0 = disabled). Randomly zooms in/out</td></tr>
+  <tr><td><code>train.augmentationTransforms.elasticDeformation</code></td><td>object</td><td>No</td><td>Elastic deformation config (disabled when alpha = 0)</td></tr>
+  <tr><td><code>train.augmentationTransforms.elasticDeformation.alpha</code></td><td>float</td><td>No</td><td>Deformation intensity (default 0.0 = disabled)</td></tr>
+  <tr><td><code>train.augmentationTransforms.elasticDeformation.sigma</code></td><td>float</td><td>No</td><td>Deformation field smoothness (default 5.0)</td></tr>
+  <tr><td><code>train.validation</code></td><td>object</td><td>No</td><td>Validation dataset split configuration (see below)</td></tr>
+  <tr><td><code>train.validation.enabled</code></td><td>bool</td><td>No</td><td>Enable validation split (default true)</td></tr>
+  <tr><td><code>train.validation.autoSize</code></td><td>bool</td><td>No</td><td>Auto-select split ratio based on dataset size (default true). Ratios: &lt;1k samples = 20%, 1k-10k = 15%, 10k-100k = 10%, 100k-1M = 2%, &gt;1M = 1%</td></tr>
+  <tr><td><code>train.validation.size</code></td><td>float</td><td>No</td><td>Fixed validation fraction, range 0.0-1.0 (default 0.15). Used when <code>autoSize</code> is false</td></tr>
+  <tr><td><code>train.validation.checkInterval</code></td><td>int</td><td>No</td><td>Run validation every N epochs (default 1)</td></tr>
+  <tr><td><code>train.monitoring</code></td><td>object</td><td>No</td><td>Training monitoring and early stopping configuration</td></tr>
+  <tr><td><code>train.monitoring.enabled</code></td><td>bool</td><td>No</td><td>Enable training monitoring (default false)</td></tr>
+  <tr><td><code>train.monitoring.checkInterval</code></td><td>int</td><td>No</td><td>Evaluate metrics every N epochs (default 5)</td></tr>
+  <tr><td><code>train.monitoring.patience</code></td><td>int</td><td>No</td><td>Stop after this many check intervals without improvement (default 20)</td></tr>
+  <tr><td><code>train.monitoring.metrics.lossStagnation.enabled</code></td><td>bool</td><td>No</td><td>Track loss improvement (default true)</td></tr>
+  <tr><td><code>train.monitoring.metrics.lossStagnation.minDelta</code></td><td>float</td><td>No</td><td>Minimum improvement threshold (default 0.0001)</td></tr>
+  <tr><td><code>train.monitoring.metrics.lossExplosion.enabled</code></td><td>bool</td><td>No</td><td>Detect loss explosion (default true)</td></tr>
+  <tr><td><code>train.monitoring.metrics.lossExplosion.threshold</code></td><td>float</td><td>No</td><td>Stop if loss exceeds threshold x best loss (default 10.0)</td></tr>
   <tr><td><code>numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>numGPUs</code></td><td>int</td><td>No</td><td>Number of GPUs to use (0 = all available)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Deprecated — parameters are now stored in <code>params.bin</code> inside the <code>.nnmodel</code> package</td></tr>
@@ -234,7 +234,7 @@
     <span class="string">"type"</span>: <span class="string">"weightedSquaredDifference"</span>,
     <span class="string">"weights"</span>: [<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">5.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">1.0</span>]
   },
-  <span class="string">"training"</span>: {
+  <span class="string">"train"</span>: {
     <span class="string">"numEpochs"</span>: <span class="number">10</span>,
     <span class="string">"batchSize"</span>: <span class="number">64</span>,
     <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
@@ -263,10 +263,10 @@
 <p>CNN configs also support <code>inputType</code>, <code>outputType</code>, and <code>outputShape</code>. The <code>inputShape</code> is always required for CNN (used by the network itself). When <code>outputType</code> is <code>"image"</code>, <code>outputShape</code> must be provided for image reconstruction.</p>
 
 <div class="info-box">
-  <strong>Detection rule:</strong> If the JSON contains a <code>"layers"</code> key, NN-CLI treats it as an ANN config. Otherwise it's a CNN.
+    <strong>Detection rule:</strong> If the JSON contains a <code>"layers"</code> key, NN-CLI treats it as an ANN config. Otherwise it's a CNN (using <code>"convolutionalLayers"</code> and <code>"denseLayers"</code>).
 </div>
 
-<p>The <code>training</code> fields (including <code>validation</code>, <code>monitoring</code>, augmentation, optimizer, dropout, etc.) are identical for both ANN and CNN. See the <a href="#ann-config">ANN Configuration</a> field table above for the full reference.</p>
+<p>The <code>train</code> fields (including <code>validation</code>, <code>monitoring</code>, augmentation, optimizer, dropout, etc.) are identical for both ANN and CNN. See the <a href="#ann-config">ANN Configuration</a> field table above for the full reference.</p>
 
 <h3>CNN Layer Type Fields</h3>
 <table>
@@ -431,7 +431,7 @@
   <span class="string">"costFunction"</span>: {
     <span class="string">"type"</span>: <span class="string">"squaredDifference"</span>
   },
-  <span class="string">"training"</span>: {...},
+  <span class="string">"train"</span>: {...},
   <span class="string">"trainMetadata"</span>: {
     <span class="string">"startTime"</span>: <span class="string">"..."</span>, <span class="string">"endTime"</span>: <span class="string">"..."</span>,
     <span class="string">"durationSeconds"</span>: <span class="number">123.4</span>,

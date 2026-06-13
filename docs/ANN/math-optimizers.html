@@ -102,7 +102,7 @@ w \leftarrow w - \alpha \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \varepsilon}
 <p>Adam adapts the learning rate per parameter — parameters with consistently large gradients get smaller effective learning rates, and vice versa. This makes it much less sensitive to the choice of learning rate than SGD.</p>
 
 <h2 id="config">Configuration</h2>
-<p><span class="badge badge-blue">ANN_Optimizer.hpp</span></p>
+<p><span class="badge badge-blue">Common/Common_Optimizer.hpp</span></p>
 <table>
   <thead>
     <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
@@ -116,7 +116,7 @@ w \leftarrow w - \alpha \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \varepsilon}
 </table>
 
 <div class="info-box">
-<strong>Learning rate</strong> is configured separately in <code>trainingConfig.learningRate</code> (default: <code>0.01</code>). It applies to both SGD and Adam.
+<strong>Learning rate</strong> is configured separately in <code>trainConfig.learningRate</code> (default: <code>0.01</code>). It applies to both SGD and Adam.
 </div>
 
 </main>

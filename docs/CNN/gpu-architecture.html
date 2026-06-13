@@ -175,23 +175,43 @@
   </tr>
   <tr>
     <td><code>opencl/CNN_Propagate.cpp.cl</code></td>
-    <td>Forward propagation kernels for all CNN layer types</td>
-    <td><code>calculate_conv2d</code>, <code>calculate_relu</code>, <code>calculate_maxpool</code>, <code>calculate_avgpool</code>, <code>calculate_globalavgpool</code>, <code>calculate_globaldualpool</code></td>
+    <td>Forward propagation kernels for ReLU and pooling layers</td>
+    <td><code>calculate_relu</code>, <code>calculate_maxpool</code>, <code>calculate_avgpool</code></td>
   </tr>
   <tr>
     <td><code>opencl/CNN_Backpropagate.cpp.cl</code></td>
-    <td>Gradient computation kernels for all CNN layer types</td>
-    <td><code>calculate_dCost_dFilters</code>, <code>calculate_dCost_dBiases</code>, <code>calculate_dCost_dInput</code>, <code>calculate_dCost_dRelu</code>, <code>calculate_dCost_dMaxpool</code></td>
+    <td>Gradient computation kernels for ReLU, pooling, and bias gradients</td>
+    <td><code>calculate_dCost_dRelu</code>, <code>calculate_dCost_dMaxpool</code>, <code>calculate_dCost_dAvgpool</code>, <code>calculate_dCost_dBiases</code></td>
+  </tr>
+  <tr>
+    <td><code>opencl/CNN_GEMM.cpp.cl</code></td>
+    <td>Tiled GEMM kernels — convolution forward and backward passes via matrix multiply</td>
+    <td><code>gemm</code>, <code>gemm_transA</code>, <code>gemm_transB</code></td>
+  </tr>
+  <tr>
+    <td><code>opencl/CNN_Im2Col.cpp.cl</code></td>
+    <td>im2col (image-to-column) transformation for GEMM-based convolution</td>
+    <td><code>im2col</code>, <code>col2im</code></td>
   </tr>
   <tr>
     <td><code>opencl/CNN_Update.cpp.cl</code></td>
-    <td>Parameter update and utility kernels</td>
-    <td><code>accumulate_gradients</code>, <code>update_parameters</code>, <code>update_parameters_adam</code>, <code>zero_buffer</code></td>
+    <td>Parameter update, gradient accumulation, and buffer zeroing</td>
+    <td><code>zero_buffer</code>, <code>accumulate_gradients</code>, <code>update_parameters</code>, <code>update_parameters_adam</code></td>
   </tr>
   <tr>
-    <td><code>opencl/CNN_InstanceNorm.cpp.cl</code></td>
-    <td>Normalization kernels (InstanceNorm and BatchNorm)</td>
-    <td><code>calculate_norm_mean</code>, <code>calculate_norm_var</code>, <code>calculate_norm_propagate</code>, <code>calculate_norm_dGamma</code>, <code>calculate_norm_dBeta</code>, <code>calculate_norm_dInput</code></td>
+    <td><code>opencl/CNN_Normalization.cpp.cl</code></td>
+    <td>Normalization kernels (InstanceNorm and BatchNorm, unified via N and sampleStride params)</td>
+    <td><code>norm_compute_mean</code>, <code>norm_compute_var</code>, <code>norm_normalize</code>, <code>norm_dGammaBeta</code>, <code>norm_dInput</code>, <code>norm_update_running_stats</code></td>
+  </tr>
+  <tr>
+    <td><code>opencl/CNN_GlobalAvgPool.cpp.cl</code></td>
+    <td>Global average pooling kernels</td>
+    <td><code>gap_propagate</code>, <code>gap_backpropagate</code></td>
+  </tr>
+  <tr>
+    <td><code>opencl/CNN_GlobalDualPool.cpp.cl</code></td>
+    <td>Global dual pooling kernels (max + avg concatenated)</td>
+    <td><code>gdp_propagate</code>, <code>gdp_backpropagate</code></td>
   </tr>
   <tr>
     <td><code>opencl/CNN_Bridge.cpp.cl</code></td>

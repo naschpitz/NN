@@ -123,7 +123,7 @@ Both modes are implemented by the unified <code>Normalization&lt;T&gt;</code> cl
 <p>where \(\epsilon\) is a small constant (default \(10^{-5}\)) for numerical stability, and \(\gamma_c\), \(\beta_c\) are learnable parameters initialised to 1 and 0 respectively.</p>
 
 <div class="tip-box">
-<strong>Code:</strong> <code>Normalization&lt;T&gt;::propagate(batch, shape, params, config, layerType, training)</code> in <code>CNN_Normalization.cpp</code>.
+<strong>Code:</strong> <code>Normalization&lt;T&gt;::propagate(batch, shape, params, config, layerType, training)</code> in <code>CNN_Normalization.hpp/cpp</code>.
 On GPU: <code>norm_compute_mean</code>, <code>norm_compute_var</code>, and <code>norm_normalize</code> kernels in <code>opencl/CNN_Normalization.cpp.cl</code>.
 </div>
 
@@ -146,8 +146,8 @@ On GPU: <code>norm_compute_mean</code>, <code>norm_compute_var</code>, and <code
 </div>
 
 <div class="tip-box">
-<strong>Code:</strong> <code>Normalization&lt;T&gt;::backpropagate(dBatch, shape, params, config, layerType, ...)</code> in <code>CNN_Normalization.cpp</code>.
-On GPU: <code>norm_dGammaBeta</code> and <code>norm_dInput</code> kernels.
+<strong>Code:</strong> <code>Normalization&lt;T&gt;::backpropagate(dBatch, shape, params, config, layerType, ...)</code> in <code>CNN_Normalization.hpp/cpp</code>.
+On GPU: <code>norm_dGammaBeta</code> and <code>norm_dInput</code> kernels in <code>opencl/CNN_Normalization.cpp.cl</code>.
 </div>
 
 <h2 id="running-stats">Running Statistics &amp; Inference</h2>

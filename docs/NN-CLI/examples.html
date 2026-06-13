@@ -46,7 +46,7 @@
     { <span class="keyword">"numNeurons"</span>: <span class="number">4</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">1</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="keyword">"training"</span>: {
+  <span class="keyword">"train"</span>: {
     <span class="keyword">"numEpochs"</span>: <span class="number">1000</span>,
     <span class="keyword">"learningRate"</span>: <span class="number">0.1</span>
   }
@@ -69,8 +69,8 @@
 
 <div class="card">
 <h3>Training</h3>
-<pre><code><span class="func">NN-CLI</span> -c xor_config.json -m train -s xor_samples.json -o trained_xor.json -l info</code></pre>
-<p><strong>Output:</strong> A trained model saved to <code>trained_xor.json</code> with updated weights and mode set to "predict".</p>
+<pre><code><span class="func">NN-CLI</span> -c xor_config.json -m train -s xor_samples.json -o trained_xor.nnmodel -l info</code></pre>
+<p><strong>Output:</strong> A trained model package saved to <code>trained_xor.nnmodel</code> (tar archive with <code>model.json</code> + <code>params.bin</code>).</p>
 </div>
 
 <div class="card">
@@ -78,7 +78,7 @@
 <p>Create <code>input.json</code>:</p>
 <pre><code>{ <span class="keyword">"inputs"</span>: [[<span class="number">1</span>, <span class="number">0</span>]] }</code></pre>
 <p>Run prediction:</p>
-<pre><code><span class="func">NN-CLI</span> -c trained_xor.json -m predict -i input.json -o prediction.json</code></pre>
+<pre><code><span class="func">NN-CLI</span> -c trained_xor.nnmodel -m predict -i input.json -o prediction.json</code></pre>
 <p><strong>Expected output in <code>prediction.json</code>:</strong></p>
 <pre><code>{
   <span class="keyword">"outputs"</span>: [[<span class="number">0.95</span>]],
@@ -107,7 +107,7 @@
     { <span class="keyword">"numNeurons"</span>: <span class="number">16</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">2</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="keyword">"training"</span>: {
+  <span class="keyword">"train"</span>: {
     <span class="keyword">"numEpochs"</span>: <span class="number">100</span>,
     <span class="keyword">"batchSize"</span>: <span class="number">64</span>,
     <span class="keyword">"learningRate"</span>: <span class="number">0.01</span>
@@ -117,13 +117,13 @@
 
 <div class="card">
 <h3>Training</h3>
-<pre><code><span class="func">NN-CLI</span> -c cnn_config.json -m train -s cnn_samples.json -o trained_cnn.json -l info</code></pre>
+<pre><code><span class="func">NN-CLI</span> -c cnn_config.json -m train -s cnn_samples.json -o trained_cnn.nnmodel -l info</code></pre>
 </div>
 
 <div class="card">
 <h3>Testing</h3>
-<pre><code><span class="func">NN-CLI</span> -c trained_cnn.json -m test -s test_samples.json</code></pre>
-<p><strong>Output:</strong> Accuracy, precision, recall, and F1 score metrics.</p>
+<pre><code><span class="func">NN-CLI</span> -c trained_cnn.nnmodel -m test -s test_samples.json</code></pre>
+<p><strong>Output:</strong> Test results including sample count, average loss, and accuracy.</p>
 </div>
 
 <h2 id="image-workflow">3. Image Classification with Image Files (CNN)</h2>
@@ -150,7 +150,7 @@
     { <span class="keyword">"numNeurons"</span>: <span class="number">64</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">2</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="keyword">"training"</span>: { <span class="keyword">"numEpochs"</span>: <span class="number">50</span>, <span class="keyword">"learningRate"</span>: <span class="number">0.01</span> }
+  <span class="keyword">"train"</span>: { <span class="keyword">"numEpochs"</span>: <span class="number">50</span>, <span class="keyword">"learningRate"</span>: <span class="number">0.01</span> }
 }</code></pre>
 </div>
 
@@ -170,11 +170,10 @@
 
 <div class="card">
 <h3>Training &amp; Prediction</h3>
-<pre><code><span class="comment"># Train with image input</span>
-<span class="func">NN-CLI</span> -c image_config.json -m train -s samples.json -o trained_model.json -l info
+<pre><code><span class="func">NN-CLI</span> -c image_config.json -m train -s samples.json -o trained_model.nnmodel -l info
 
 <span class="comment"># Predict — input.json contains: { "inputs": ["test_photo.png"] }</span>
-<span class="func">NN-CLI</span> -c trained_model.json -m predict -i input.json -o result.json</code></pre>
+<span class="func">NN-CLI</span> -c trained_model.nnmodel -m predict -i input.json -o result.json</code></pre>
 </div>
 
 <div class="info-box">
@@ -198,7 +197,7 @@
     { <span class="keyword">"numNeurons"</span>: <span class="number">64</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">10</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="keyword">"training"</span>: {
+  <span class="keyword">"train"</span>: {
     <span class="keyword">"numEpochs"</span>: <span class="number">1000</span>,
     <span class="keyword">"batchSize"</span>: <span class="number">64</span>,
     <span class="keyword">"learningRate"</span>: <span class="number">0.01</span>
@@ -215,7 +214,7 @@
 
 <div class="card">
 <h3>Testing</h3>
-<pre><code><span class="func">NN-CLI</span> -c trained_mnist.json -m test \
+<pre><code><span class="func">NN-CLI</span> -c trained_mnist.nnmodel -m test \
        --idx-data t10k-images.idx3-ubyte \
        --idx-labels t10k-labels.idx1-ubyte</code></pre>
 </div>
@@ -243,7 +242,7 @@
     { <span class="keyword">"numNeurons"</span>: <span class="number">128</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="keyword">"numNeurons"</span>: <span class="number">10</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="keyword">"training"</span>: {
+  <span class="keyword">"train"</span>: {
     <span class="keyword">"numEpochs"</span>: <span class="number">10</span>,
     <span class="keyword">"batchSize"</span>: <span class="number">64</span>,
     <span class="keyword">"learningRate"</span>: <span class="number">0.01</span>

@@ -61,7 +61,7 @@
 <main class="main">
 
 <h1>Optimizers</h1>
-<p>Optimizers update the network parameters using the computed gradients. Different optimizers use different strategies to control the step size and direction.</p>
+<p>Optimizers update the network parameters using the computed gradients. Different optimizers use different strategies to control the step size and direction. Optimizer configuration is shared across ANN and CNN via <code>Common/Common_Optimizer.hpp</code>.</p>
 
 <div class="toc">
   <h4>On this page</h4>
@@ -81,7 +81,7 @@
 <p>where \(\eta\) is the learning rate.</p>
 
 <div class="tip-box">
-<strong>Code:</strong> The SGD update is applied in <code>CoreCPU&lt;T&gt;::update()</code> in <code>CNN_CoreCPU.cpp</code> when <code>optimizer.type == SGD</code>.
+<strong>Code:</strong> The SGD update is applied in <code>CoreCPU&lt;T&gt;::update()</code> in <code>CNN_CoreCPU.cpp</code> when <code>optimizer.type == OptimizerType::SGD</code>. Optimizer type is defined in <code>Common/Common_Optimizer.hpp</code>.
 On GPU: <code>update_parameters</code> kernel in <code>opencl/CNN_Update.cpp.cl</code>.
 </div>
 
@@ -107,7 +107,7 @@ On GPU: <code>update_parameters</code> kernel in <code>opencl/CNN_Update.cpp.cl<
 <p>Default hyperparameters: \(\beta_1 = 0.9\), \(\beta_2 = 0.999\), \(\epsilon = 10^{-8}\).</p>
 
 <div class="tip-box">
-<strong>Code:</strong> <code>CoreCPU&lt;T&gt;::update()</code> in <code>CNN_CoreCPU.cpp</code> when <code>optimizer.type == ADAM</code>. The Adam state (m, v vectors and timestep t) is stored in <code>Parameters&lt;T&gt;::adamState</code>.
+<strong>Code:</strong> <code>CoreCPU&lt;T&gt;::update()</code> in <code>CNN_CoreCPU.cpp</code> when <code>optimizer.type == OptimizerType::ADAM</code>. The Adam state (m, v vectors and timestep t) is stored in the optimizer's per-parameter accumulators.
 On GPU: <code>update_parameters_adam</code> kernel in <code>opencl/CNN_Update.cpp.cl</code>.
 </div>
 
