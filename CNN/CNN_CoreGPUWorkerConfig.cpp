@@ -11,7 +11,7 @@ namespace CNN
   CoreGPUWorkerConfig<T>::CoreGPUWorkerConfig(const CoreConfig<T>& config)
     : inputShape(config.inputShape),
       layersConfig(config.layersConfig),
-      trainingConfig(config.trainingConfig),
+      trainConfig(config.trainConfig),
       costFunctionConfig(config.costFunctionConfig),
       parameters(config.parameters),
       batchSize(1),

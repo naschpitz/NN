@@ -1,6 +1,8 @@
 #ifndef NN_CLI_APP_HPP
 #define NN_CLI_APP_HPP
 
+#include "Common/Common_Mode.hpp"
+
 #include "NN-CLI_AugmentationConfig.hpp"
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
@@ -44,8 +46,7 @@ namespace NN_CLI
       const QCommandLineParser& parser;
       LogLevel logLevel;
       NetworkType networkType;
-      std::string mode; // "train", "test", "predict"
-      bool isCalibrateMode = false; // true when --mode calibrate; runs as predict internally
+      Common::ModeType mode = Common::ModeType::PREDICT;
       IOConfig ioConfig;
       AugmentationConfig augConfig;
 

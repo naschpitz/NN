@@ -34,8 +34,8 @@ static void testParameterRoundTrip()
   initConv.biases.assign(1, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 50;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   auto core = CNN::Core<double>::makeCore(config);
@@ -122,8 +122,8 @@ static void testParametersDuringTraining()
   initConv.biases.assign(1, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 10;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 10;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   auto core = CNN::Core<double>::makeCore(config);
@@ -198,9 +198,9 @@ static void testMultipleOutputNeurons()
   initConv.biases.assign(2, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
 

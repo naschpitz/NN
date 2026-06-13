@@ -81,6 +81,9 @@ ANN::CoreConfig<T> CoreCPUWorker<T>::buildConfig(const CoreConfig<T>& cnnConfig,
   case Common::ModeType::TEST:
     annConfig.modeType = Common::ModeType::TEST;
     break;
+  case Common::ModeType::CALIBRATE:
+    annConfig.modeType = Common::ModeType::PREDICT;
+    break;
   default:
     annConfig.modeType = Common::ModeType::PREDICT;
     break;
@@ -105,13 +108,13 @@ ANN::CoreConfig<T> CoreCPUWorker<T>::buildConfig(const CoreConfig<T>& cnnConfig,
 
   annConfig.layersConfig = annLayers;
 
-  annConfig.trainingConfig.numEpochs = cnnConfig.trainingConfig.numEpochs;
-  annConfig.trainingConfig.learningRate = cnnConfig.trainingConfig.learningRate;
-  annConfig.trainingConfig.dropoutRate = cnnConfig.trainingConfig.dropoutRate;
-  annConfig.trainingConfig.optimizer.type = cnnConfig.trainingConfig.optimizer.type;
-  annConfig.trainingConfig.optimizer.beta1 = cnnConfig.trainingConfig.optimizer.beta1;
-  annConfig.trainingConfig.optimizer.beta2 = cnnConfig.trainingConfig.optimizer.beta2;
-  annConfig.trainingConfig.optimizer.epsilon = cnnConfig.trainingConfig.optimizer.epsilon;
+  annConfig.trainConfig.numEpochs = cnnConfig.trainConfig.numEpochs;
+  annConfig.trainConfig.learningRate = cnnConfig.trainConfig.learningRate;
+  annConfig.trainConfig.dropoutRate = cnnConfig.trainConfig.dropoutRate;
+  annConfig.trainConfig.optimizer.type = cnnConfig.trainConfig.optimizer.type;
+  annConfig.trainConfig.optimizer.beta1 = cnnConfig.trainConfig.optimizer.beta1;
+  annConfig.trainConfig.optimizer.beta2 = cnnConfig.trainConfig.optimizer.beta2;
+  annConfig.trainConfig.optimizer.epsilon = cnnConfig.trainConfig.optimizer.epsilon;
   annConfig.numThreads = 1; // CNN manages its own threading
 
   annConfig.costFunctionConfig.type = cnnConfig.costFunctionConfig.type;

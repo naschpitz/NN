@@ -52,9 +52,9 @@ static CNN::CoreConfig<float> makeGPUTrueBNTestConfig(ulong denseNeurons, ANN::A
   initBN.runningVar = {1.0f};
   config.parameters.normParams = {initBN};
 
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
 
   return config;
@@ -71,11 +71,11 @@ static void testGPUTrueBNvsCPUParity()
   // Create identical configs for CPU and GPU
   auto gpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::GPU);
   gpuConfig.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  gpuConfig.trainingConfig.batchSize = 3;
+  gpuConfig.trainConfig.batchSize = 3;
 
   auto cpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::CPU);
   cpuConfig.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  cpuConfig.trainingConfig.batchSize = 3;
+  cpuConfig.trainConfig.batchSize = 3;
 
   // Use same dense params for both
   ANN::Parameters<float> denseParams;
@@ -212,10 +212,10 @@ static void testGPUTrueBNNoRelu()
     initBN.runningVar = {1.0f};
     config.parameters.normParams = {initBN};
 
-    config.trainingConfig.numEpochs = 1;
-    config.trainingConfig.learningRate = 1.0f;
-    config.trainingConfig.shuffleSamples = false;
-    config.trainingConfig.batchSize = 3;
+    config.trainConfig.numEpochs = 1;
+    config.trainConfig.learningRate = 1.0f;
+    config.trainConfig.shuffleSamples = false;
+    config.trainConfig.batchSize = 3;
     config.progressReports = 0;
     config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
 
@@ -281,7 +281,7 @@ static void testGPUTrueBNBatchVsInstanceStats()
   // Train with BATCHNORM (cross-sample stats) using 3 diverse samples
   auto bnConfig = makeGPUTrueBNTestConfig(1, ANN::ActvFuncType::SIGMOID, Common::DeviceType::GPU);
   bnConfig.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
-  bnConfig.trainingConfig.batchSize = 3;
+  bnConfig.trainConfig.batchSize = 3;
 
   ANN::Parameters<float> denseParams;
   denseParams.weights.resize(2);

@@ -37,8 +37,8 @@ static void testGPUWeightedCrossEntropyTraining()
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {5.0f, 1.0f};
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   CNN::Samples<float> samples(2);
@@ -101,8 +101,8 @@ static void testGPUMultiChannelInput()
   initConv.biases.assign(2, 0.0f);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 0;
 
   CNN::Samples<float> samples(2);
@@ -167,8 +167,8 @@ static void testGPUParameterRoundTrip()
   initConv.biases.assign(1, 0.0f);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 50;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   auto core = CNN::Core<float>::makeCore(config);
@@ -250,8 +250,8 @@ static void testGPUParametersDuringTraining()
   initConv.biases.assign(1, 0.0f);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 10;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 10;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   auto core = CNN::Core<float>::makeCore(config);

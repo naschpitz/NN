@@ -52,9 +52,9 @@ static CNN::CoreConfig<float> makeGPUTrueBNTestConfig(ulong denseNeurons, ANN::A
   initBN.runningVar = {1.0f};
   config.parameters.normParams = {initBN};
 
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
 
   return config;
@@ -94,12 +94,12 @@ static void testGPUTrueBNConvergence()
 
   config.layersConfig.cnnLayers = {convLayer, bnLayer, reluLayer, flattenLayer};
   config.layersConfig.denseLayers = {{1, ANN::ActvFuncType::SIGMOID}};
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.batchSize = 4;
-  config.trainingConfig.learningRate = 0.01f;
-  config.trainingConfig.shuffleSamples = false;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
-  config.trainingConfig.optimizer.type = Common::OptimizerType::ADAM;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.batchSize = 4;
+  config.trainConfig.learningRate = 0.01f;
+  config.trainConfig.shuffleSamples = false;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.optimizer.type = Common::OptimizerType::ADAM;
   config.progressReports = 0;
   config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
 
@@ -134,11 +134,11 @@ static void testGPUTrueBNExactMultiSample()
   // Same architecture as single-sample BN test but with 2 samples
   auto gpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::GPU);
   gpuConfig.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  gpuConfig.trainingConfig.batchSize = 2;
+  gpuConfig.trainConfig.batchSize = 2;
 
   auto cpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::CPU);
   cpuConfig.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  cpuConfig.trainingConfig.batchSize = 2;
+  cpuConfig.trainConfig.batchSize = 2;
 
   ANN::Parameters<float> denseParams;
   denseParams.weights.resize(2);

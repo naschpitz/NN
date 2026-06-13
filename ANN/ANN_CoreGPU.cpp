@@ -124,10 +124,10 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 {
   this->trainingStart(numSamples);
 
-  ulong numEpochs = this->trainingConfig.numEpochs;
+  ulong numEpochs = this->trainConfig.numEpochs;
 
   // Adjust batch size to be divisible by numGPUs (round down, minimum = numGPUs)
-  ulong batchSize = this->trainingConfig.batchSize;
+  ulong batchSize = this->trainConfig.batchSize;
   batchSize = std::max(this->numGPUs, (batchSize / this->numGPUs) * this->numGPUs);
 
   if (this->logLevel >= LogLevel::INFO) {
@@ -147,22 +147,22 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   // Sample index indirection for shuffling
   std::vector<ulong> sampleIndices(numSamples);
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
-  // Reproducible when trainingConfig.shuffleSeed != 0; non-deterministic otherwise.
-  std::mt19937 rng(this->trainingConfig.shuffleSeed != 0 ? this->trainingConfig.shuffleSeed : std::random_device{}());
+  // Reproducible when trainConfig.shuffleSeed != 0; non-deterministic otherwise.
+  std::mt19937 rng(this->trainConfig.shuffleSeed != 0 ? this->trainConfig.shuffleSeed : std::random_device{}());
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainingConfig.monitoringConfig;
+  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
   std::unique_ptr<TrainingMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
     monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
   }
 
-  for (ulong e = this->trainingConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
+  for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = 0;
 
     // Shuffle sample order for this epoch
-    if (this->trainingConfig.shuffleSamples) {
+    if (this->trainConfig.shuffleSamples) {
       std::shuffle(sampleIndices.begin(), sampleIndices.end(), rng);
     }
 
@@ -245,7 +245,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     T avgEpochLoss = epochLoss / static_cast<T>(numSamples);
 
     // Store final loss from the last epoch
-    this->trainingMetadata.finalLoss = avgEpochLoss;
+    this->trainMetadata.finalLoss = avgEpochLoss;
 
     // Check training health if monitor is active
     bool shouldStop = false;
@@ -267,11 +267,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       if (shouldStop) {
         progress.stoppedEarly = true;
-        this->trainingMetadata.stopReason = monitor->getStopReason();
+        this->trainMetadata.stopReason = monitor->getStopReason();
       }
 
-      this->trainingMetadata.bestEpoch = monitor->getBestEpoch();
-      this->trainingMetadata.bestLoss = monitor->getBestLoss();
+      this->trainMetadata.bestEpoch = monitor->getBestEpoch();
+      this->trainMetadata.bestLoss = monitor->getBestLoss();
 
       if (this->trainingCallback) {
         this->trainingCallback(progress);
@@ -294,7 +294,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
     // Always track the 0-based index of the last completed epoch (matches
     // EpochRecord::epoch), regardless of monitoring
-    this->trainingMetadata.lastEpoch = e;
+    this->trainMetadata.lastEpoch = e;
 
     // Record epoch history
     EpochRecord<T> epochRecord;
@@ -305,7 +305,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     epochRecord.isBest = monitor ? monitor->isNewBest() : false;
     epochRecord.completionTime =
       static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-    this->trainingMetadata.epochHistory.push_back(epochRecord);
+    this->trainMetadata.epochHistory.push_back(epochRecord);
 
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
@@ -356,7 +356,7 @@ void CoreGPU<T>::initializeWorkers()
   // Create CoreGPUWorker instances - each will get assigned to a different GPU
   // via OpenCLWrapper's automatic device load balancing
   for (size_t i = 0; i < this->numGPUs; i++) {
-    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
+    auto worker = std::make_unique<CoreGPUWorker<T>>(this->layersConfig, this->trainConfig, this->parameters,
                                                      this->costFunctionConfig, this->progressReports, this->logLevel);
     this->gpuWorkers.push_back(std::move(worker));
   }

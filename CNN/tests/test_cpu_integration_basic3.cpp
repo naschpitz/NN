@@ -77,8 +77,8 @@ static void testWeightedLossTraining()
   initConv.biases.assign(1, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   // Apply weighted loss
@@ -115,7 +115,7 @@ static void testShuffleSamplesDefault()
 {
   std::cout << "--- testShuffleSamplesDefault ---" << std::endl;
 
-  Common::TrainingConfig<double> tc;
+   Common::TrainConfig<double> tc;
   CHECK(tc.shuffleSamples == true, "CNN shuffleSamples default is true");
 }
 
@@ -157,10 +157,10 @@ static void testShuffleSamplesTraining()
     initConv.biases.assign(1, 0.0);
     config.parameters.convParams = {initConv};
 
-    config.trainingConfig.numEpochs = 100;
-    config.trainingConfig.learningRate = 0.5f;
-    config.trainingConfig.shuffleSamples = shuffle;
-    config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+    config.trainConfig.numEpochs = 100;
+    config.trainConfig.learningRate = 0.5f;
+    config.trainConfig.shuffleSamples = shuffle;
+    config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
     config.progressReports = 0;
     return config;
   };

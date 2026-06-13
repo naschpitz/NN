@@ -190,11 +190,11 @@ static void testSampleImages()
 
 //===================================================================================================================//
 
-static void testCalibrationConfigDefaults()
+static void testCalibrateConfigDefaults()
 {
-  std::cout << "  testCalibrationConfigDefaults... ";
+  std::cout << "  testCalibrateConfigDefaults... ";
 
-  Common::CalibrationConfig config;
+  Common::CalibrateConfig config;
   CHECK(config.idSampleCount == 500, "default idSampleCount=500");
   CHECK(config.oodSampleCount == 1500, "default oodSampleCount=1500");
   CHECK(config.idPercentile == 95.0, "default idPercentile=95.0");
@@ -214,5 +214,5 @@ void runCalibrateControllerTests()
   testDirHasImages();
   testGatherImages();
   testSampleImages();
-  testCalibrationConfigDefaults();
+  testCalibrateConfigDefaults();
 }

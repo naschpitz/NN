@@ -15,9 +15,9 @@ static void testGPUTrainSimple()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 1;
   config.logLevel = Common::LogLevel::ERROR;
@@ -74,8 +74,8 @@ static void testGPUvsCPUParity()
   trainConfig.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  trainConfig.trainingConfig.numEpochs = 200;
-  trainConfig.trainingConfig.learningRate = 0.5f;
+  trainConfig.trainConfig.numEpochs = 200;
+  trainConfig.trainConfig.learningRate = 0.5f;
   trainConfig.progressReports = 0;
   trainConfig.logLevel = Common::LogLevel::ERROR;
 
@@ -134,10 +134,10 @@ static void testGPUShuffleSamples()
     config.layersConfig = makeLayersConfig(
       {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-    config.trainingConfig.numEpochs = 500;
-    config.trainingConfig.learningRate = 0.5f;
-    config.trainingConfig.shuffleSamples = shuffle;
-    config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+    config.trainConfig.numEpochs = 500;
+    config.trainConfig.learningRate = 0.5f;
+    config.trainConfig.shuffleSamples = shuffle;
+    config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
     config.progressReports = 0;
     config.numGPUs = 1;
     config.logLevel = Common::LogLevel::ERROR;

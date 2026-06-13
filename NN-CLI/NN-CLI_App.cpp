@@ -64,7 +64,7 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
   // about it, so we redirect the override to "predict" before passing
   // it down and remember locally that we're in calibrate mode.
   if (modeOverride.has_value() && modeOverride.value() == "calibrate") {
-    this->isCalibrateMode = true;
+    this->mode = Common::ModeType::CALIBRATE;
     modeOverride = std::string("predict");
   }
 
@@ -143,7 +143,9 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
     }
 
     this->annCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
-    this->mode = Common::Mode::typeToName(this->annCoreConfig.modeType);
+    if (this->mode != Common::ModeType::CALIBRATE) {
+      this->mode = this->annCoreConfig.modeType;
+    }
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
     if (isPackage) {
@@ -166,7 +168,9 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
     }
 
     this->cnnCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
-    this->mode = Common::Mode::typeToName(this->cnnCoreConfig.modeType);
+    if (this->mode != Common::ModeType::CALIBRATE) {
+      this->mode = this->cnnCoreConfig.modeType;
+    }
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
   }
 }
@@ -179,51 +183,55 @@ int App::run()
     auto runner = std::make_unique<ANNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
                                               this->annCore, this->annCoreConfig);
 
-    if (this->isCalibrateMode) {
+    switch (this->mode) {
+    case Common::ModeType::CALIBRATE: {
       CalibrateController<ANNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startCalibrate();
     }
-
-    if (this->mode == "train") {
-      TrainingController<ANNRunner> controller;
-      controller.init(std::move(runner));
-      return controller.startTraining();
+    case Common::ModeType::TRAIN: {
+      TrainingController<ANNRunner> ctrl;
+      ctrl.init(std::move(runner));
+      return ctrl.startTraining();
     }
-
-    if (this->mode == "test") {
-      TestController<ANNRunner> controller;
-      controller.init(std::move(runner));
-      return controller.startTest();
+    case Common::ModeType::TEST: {
+      TestController<ANNRunner> ctrl;
+      ctrl.init(std::move(runner));
+      return ctrl.startTest();
     }
-
-    PredictController<ANNRunner> controller;
-    controller.init(std::move(runner));
-    return controller.startPredict();
+    case Common::ModeType::PREDICT:
+    default: {
+      PredictController<ANNRunner> ctrl;
+      ctrl.init(std::move(runner));
+      return ctrl.startPredict();
+    }
+    }
   } else {
     auto runner = std::make_unique<CNNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
                                               this->cnnCore, this->cnnCoreConfig);
 
-    if (this->isCalibrateMode) {
+    switch (this->mode) {
+    case Common::ModeType::CALIBRATE: {
       CalibrateController<CNNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startCalibrate();
     }
-
-    if (this->mode == "train") {
-      TrainingController<CNNRunner> controller;
-      controller.init(std::move(runner));
-      return controller.startTraining();
+    case Common::ModeType::TRAIN: {
+      TrainingController<CNNRunner> ctrl;
+      ctrl.init(std::move(runner));
+      return ctrl.startTraining();
     }
-
-    if (this->mode == "test") {
-      TestController<CNNRunner> controller;
-      controller.init(std::move(runner));
-      return controller.startTest();
+    case Common::ModeType::TEST: {
+      TestController<CNNRunner> ctrl;
+      ctrl.init(std::move(runner));
+      return ctrl.startTest();
     }
-
-    PredictController<CNNRunner> controller;
-    controller.init(std::move(runner));
-    return controller.startPredict();
+    case Common::ModeType::PREDICT:
+    default: {
+      PredictController<CNNRunner> ctrl;
+      ctrl.init(std::move(runner));
+      return ctrl.startPredict();
+    }
+    }
   }
 }

@@ -30,7 +30,7 @@ namespace NN_CLI
                                                           ulong numValidationSamples, float validationRatio,
                                                           bool validationAuto)
   {
-    const auto& tc = cnnConfig.trainingConfig;
+    const auto& tc = cnnConfig.trainConfig;
     const auto& layers = cnnConfig.layersConfig;
     const auto& inputShape = cnnConfig.inputShape;
     const auto& costConfig = cnnConfig.costFunctionConfig;
@@ -230,7 +230,7 @@ namespace NN_CLI
                                                        ulong numValidationSamples, float validationRatio,
                                                        bool validationAuto)
   {
-    const auto& tc = annConfig.trainingConfig;
+    const auto& tc = annConfig.trainConfig;
     const auto& costConfig = annConfig.costFunctionConfig;
 
     ulong denseCount = annConfig.layersConfig.size();

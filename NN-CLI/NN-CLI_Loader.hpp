@@ -49,7 +49,7 @@ namespace NN_CLI
       // Load saveModelInterval from pre-parsed JSON.
       static ulong loadSaveModelInterval(const nlohmann::json& json);
 
-      // Load data augmentation config from trainingConfig (file-path wrapper).
+      // Load data augmentation config from trainConfig (file-path wrapper).
       static AugmentationConfig loadAugmentationConfig(const std::string& configFilePath);
 
       // Load data augmentation config from pre-parsed JSON.

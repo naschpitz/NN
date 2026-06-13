@@ -5,7 +5,7 @@
 #include "Common/Common_LogLevel.hpp"
 #include "CNN_LayersConfig.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
-#include "Common/Common_TrainingConfig.hpp"
+#include "Common/Common_TrainConfig.hpp"
 #include "CNN_Parameters.hpp"
 #include "CNN_Types.hpp"
 
@@ -28,7 +28,7 @@ namespace CNN
       LayersConfig layersConfig;
 
       //-- Training --//
-      Common::TrainingConfig<T> trainingConfig;
+      Common::TrainConfig<T> trainConfig;
       Common::CostFunctionConfig<T> costFunctionConfig;
 
       //-- Parameters (initial weights) --//
