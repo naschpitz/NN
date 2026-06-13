@@ -3,7 +3,7 @@
 
 #include "ANN_Types.hpp"
 #include "ANN_LayersConfig.hpp"
-#include "Common/Common_TrainingConfig.hpp"
+#include "Common/Common_TrainConfig.hpp"
 #include "ANN_Parameters.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
 #include "ANN_GPUBufferManager.hpp"
@@ -22,8 +22,8 @@ namespace ANN
   class GPUKernelBuilder
   {
     public:
-      GPUKernelBuilder(OpenCLWrapper::Core* core, const LayersConfig& layersConfig, const Parameters<T>& parameters,
-                       const TrainingConfig<T>& trainingConfig, const CostFunctionConfig<T>& costFunctionConfig,
+       GPUKernelBuilder(OpenCLWrapper::Core* core, const LayersConfig& layersConfig, const Parameters<T>& parameters,
+                        const TrainConfig<T>& trainConfig, const CostFunctionConfig<T>& costFunctionConfig,
                        GPUBufferManager<T>& bufferManager, LogLevel logLevel);
 
       //-- Kernel setup (clears previous kernels and rebuilds) --//
@@ -52,7 +52,7 @@ namespace ANN
       OpenCLWrapper::Core* core;
       const LayersConfig& layersConfig;
       const Parameters<T>& parameters;
-      const TrainingConfig<T>& trainingConfig;
+       const TrainConfig<T>& trainConfig;
       const CostFunctionConfig<T>& costFunctionConfig;
       GPUBufferManager<T>& bufferManager;
       LogLevel logLevel;

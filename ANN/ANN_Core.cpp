@@ -18,7 +18,7 @@ Core<T>::Core(const CoreConfig<T>& coreConfig)
 
   this->layersConfig = coreConfig.layersConfig;
   this->costFunctionConfig = coreConfig.costFunctionConfig;
-  this->trainingConfig = coreConfig.trainingConfig;
+  this->trainConfig = coreConfig.trainConfig;
   this->testConfig = coreConfig.testConfig;
   this->parameters = coreConfig.parameters;
   this->progressReports = coreConfig.progressReports;
@@ -54,23 +54,23 @@ template <typename T>
 void Core<T>::trainingStart(ulong numSamples)
 {
   this->trainingStartTime = std::chrono::system_clock::now();
-  this->trainingMetadata.startTime = Common::Utils::formatISO8601();
-  this->trainingMetadata.numSamples = numSamples;
+  this->trainMetadata.startTime = Common::Utils::formatISO8601();
+  this->trainMetadata.numSamples = numSamples;
 }
 
 //===================================================================================================================//
 
 template <typename T>
-TrainingMetadata<T> Core<T>::trainingEnd()
+TrainMetadata<T> Core<T>::trainingEnd()
 {
   auto endTime = std::chrono::system_clock::now();
-  this->trainingMetadata.endTime = Common::Utils::formatISO8601();
+  this->trainMetadata.endTime = Common::Utils::formatISO8601();
 
   std::chrono::duration<double> duration = endTime - this->trainingStartTime;
-  this->trainingMetadata.durationSeconds = duration.count();
-  this->trainingMetadata.durationFormatted = Common::Utils::formatDuration(this->trainingMetadata.durationSeconds);
+  this->trainMetadata.durationSeconds = duration.count();
+  this->trainMetadata.durationFormatted = Common::Utils::formatDuration(this->trainMetadata.durationSeconds);
 
-  return this->trainingMetadata;
+  return this->trainMetadata;
 }
 
 //===================================================================================================================//

@@ -14,9 +14,9 @@ static void testGPUExactForwardBackwardSquaredDifference()
   config.numGPUs = 1;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
   config.logLevel = Common::LogLevel::ERROR;
 
@@ -57,9 +57,9 @@ static void testGPUExactForwardBackwardCrossEntropy()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
   config.logLevel = Common::LogLevel::ERROR;
 
@@ -104,9 +104,9 @@ static void testGPUExactForwardBackwardWeightedCrossEntropy()
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0f, 0.5f};
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
   config.logLevel = Common::LogLevel::ERROR;
 

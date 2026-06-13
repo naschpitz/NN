@@ -119,10 +119,10 @@ static void testCNNGPUPredictDeepDiagnostic()
   trainConfig.layersConfig.cnnLayers = {conv1, bn1, relu1, maxpool1, conv2, bn2, relu2, avgpool1, flatten};
   trainConfig.layersConfig.denseLayers = {{4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SIGMOID}};
 
-  trainConfig.trainingConfig.numEpochs = 50;
-  trainConfig.trainingConfig.learningRate = 0.01f;
-  trainConfig.trainingConfig.batchSize = 4;
-  trainConfig.trainingConfig.shuffleSamples = false;
+  trainConfig.trainConfig.numEpochs = 50;
+  trainConfig.trainConfig.learningRate = 0.01f;
+  trainConfig.trainConfig.batchSize = 4;
+  trainConfig.trainConfig.shuffleSamples = false;
 
   // Create training samples: 1x8x8 input, 2-class output
   CNN::Samples<float> samples(4);

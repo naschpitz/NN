@@ -63,10 +63,10 @@ static void testTrainXOR()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {8, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 3000;
-  config.trainingConfig.learningRate = 0.05;
-  config.trainingConfig.optimizer.type = Common::OptimizerType::ADAM;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic.
+  config.trainConfig.numEpochs = 3000;
+  config.trainConfig.learningRate = 0.05;
+  config.trainConfig.optimizer.type = Common::OptimizerType::ADAM;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic.
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
   config.logLevel = Common::LogLevel::ERROR;
@@ -100,8 +100,8 @@ static void testTestMethod()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5;
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5;
   config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{1.0, 1.0}, {1.0}}};
@@ -121,23 +121,23 @@ static void testTestMethod()
 
 //===================================================================================================================//
 
-static void testTrainingMetadata()
+static void testTrainMetadata()
 {
-  std::cout << "--- testTrainingMetadata ---" << std::endl;
+  std::cout << "--- testTrainMetadata ---" << std::endl;
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
   config.deviceType = Common::DeviceType::CPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 10;
-  config.trainingConfig.learningRate = 0.1;
+  config.trainConfig.numEpochs = 10;
+  config.trainConfig.learningRate = 0.1;
   config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0}}};
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  const auto& meta = core->getTrainingMetadata();
+  const auto& meta = core->getTrainMetadata();
   CHECK(!meta.startTime.empty(), "startTime non-empty");
   CHECK(!meta.endTime.empty(), "endTime non-empty");
   CHECK(meta.durationSeconds >= 0.0, "durationSeconds >= 0");
@@ -175,8 +175,8 @@ static void testTrainingCallback()
   config.modeType = Common::ModeType::TRAIN;
   config.deviceType = Common::DeviceType::CPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 5;
-  config.trainingConfig.learningRate = 0.1;
+  config.trainConfig.numEpochs = 5;
+  config.trainConfig.learningRate = 0.1;
   config.progressReports = 1;
 
   ANN::Samples<double> samples = {{{1.0, 0.0}, {1.0}}, {{0.0, 1.0}, {0.0}}};
@@ -205,8 +205,8 @@ static void testParameterRoundTrip()
   trainConfig.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  trainConfig.trainingConfig.numEpochs = 200;
-  trainConfig.trainingConfig.learningRate = 0.5;
+  trainConfig.trainConfig.numEpochs = 200;
+  trainConfig.trainConfig.learningRate = 0.5;
   trainConfig.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
@@ -249,8 +249,8 @@ static void testParametersDuringTraining()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 10;
-  config.trainingConfig.learningRate = 0.5;
+  config.trainConfig.numEpochs = 10;
+  config.trainConfig.learningRate = 0.5;
   config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
@@ -359,10 +359,10 @@ static void testBatchPredictAfterTraining()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {8, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 3000;
-  config.trainingConfig.learningRate = 0.05;
-  config.trainingConfig.optimizer.type = Common::OptimizerType::ADAM;
-  config.trainingConfig.shuffleSeed = 42;
+  config.trainConfig.numEpochs = 3000;
+  config.trainConfig.learningRate = 0.05;
+  config.trainConfig.optimizer.type = Common::OptimizerType::ADAM;
+  config.trainConfig.shuffleSeed = 42;
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
   config.logLevel = Common::LogLevel::ERROR;
@@ -399,7 +399,7 @@ void runCoreBasicTests()
   testTrainXOR();
   testBatchPredictAfterTraining();
   testTestMethod();
-  testTrainingMetadata();
+  testTrainMetadata();
   testPredictMetadata();
   testTrainingCallback();
   testParameterRoundTrip();

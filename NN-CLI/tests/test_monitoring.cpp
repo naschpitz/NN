@@ -19,7 +19,7 @@ static void testMonitoringConfigParsing()
   file.write(R"({
     "mode": "train",
     "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
-    "training": {
+    "train": {
       "numEpochs": 100,
       "learningRate": 0.01,
       "monitoring": {
@@ -38,12 +38,12 @@ static void testMonitoringConfigParsing()
 
   auto config = ANNLoader::loadConfig(configPath.toStdString());
 
-  CHECK(config.trainingConfig.monitoringConfig.enabled == true, "monitoring enabled");
-  CHECK(config.trainingConfig.monitoringConfig.checkInterval == 10, "checkInterval");
-  CHECK(config.trainingConfig.monitoringConfig.patience == 30, "patience");
-  CHECK_NEAR(config.trainingConfig.monitoringConfig.metrics.lossStagnation.minDelta, 0.001f, 0.0001f, "minDelta");
-  CHECK(config.trainingConfig.monitoringConfig.metrics.lossExplosion.enabled == false, "explosion disabled");
-  CHECK_NEAR(config.trainingConfig.monitoringConfig.metrics.lossExplosion.threshold, 5.0f, 0.01f,
+  CHECK(config.trainConfig.monitoringConfig.enabled == true, "monitoring enabled");
+  CHECK(config.trainConfig.monitoringConfig.checkInterval == 10, "checkInterval");
+  CHECK(config.trainConfig.monitoringConfig.patience == 30, "patience");
+  CHECK_NEAR(config.trainConfig.monitoringConfig.metrics.lossStagnation.minDelta, 0.001f, 0.0001f, "minDelta");
+  CHECK(config.trainConfig.monitoringConfig.metrics.lossExplosion.enabled == false, "explosion disabled");
+  CHECK_NEAR(config.trainConfig.monitoringConfig.metrics.lossExplosion.threshold, 5.0f, 0.01f,
              "explosion threshold");
 
   std::cout << "PASS" << std::endl;
@@ -61,7 +61,7 @@ static void testMonitoringConfigDefaults()
   file.write(R"({
     "mode": "train",
     "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
-    "training": {
+    "train": {
       "numEpochs": 10,
       "learningRate": 0.01
     }
@@ -71,9 +71,9 @@ static void testMonitoringConfigDefaults()
 
   auto config = ANNLoader::loadConfig(configPath.toStdString());
 
-  CHECK(config.trainingConfig.monitoringConfig.enabled == false, "default disabled");
-  CHECK(config.trainingConfig.monitoringConfig.checkInterval == 5, "default checkInterval");
-  CHECK(config.trainingConfig.monitoringConfig.patience == 20, "default patience");
+  CHECK(config.trainConfig.monitoringConfig.enabled == false, "default disabled");
+  CHECK(config.trainConfig.monitoringConfig.checkInterval == 5, "default checkInterval");
+  CHECK(config.trainConfig.monitoringConfig.patience == 20, "default patience");
 
   std::cout << "PASS" << std::endl;
 }

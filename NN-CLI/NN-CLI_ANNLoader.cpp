@@ -75,43 +75,43 @@ namespace NN_CLI
       }
     }
 
-    if (json.contains("training")) {
-      const auto& tc = json.at("training");
-      coreConfig.trainingConfig.numEpochs = tc.at("numEpochs").get<ulong>();
-      coreConfig.trainingConfig.learningRate = tc.at("learningRate").get<float>();
+    if (json.contains("train")) {
+      const auto& tc = json.at("train");
+      coreConfig.trainConfig.numEpochs = tc.at("numEpochs").get<ulong>();
+      coreConfig.trainConfig.learningRate = tc.at("learningRate").get<float>();
 
       if (tc.contains("batchSize"))
-        coreConfig.trainingConfig.batchSize = tc.at("batchSize").get<ulong>();
+        coreConfig.trainConfig.batchSize = tc.at("batchSize").get<ulong>();
 
       if (tc.contains("shuffleSamples"))
-        coreConfig.trainingConfig.shuffleSamples = tc.at("shuffleSamples").get<bool>();
+        coreConfig.trainConfig.shuffleSamples = tc.at("shuffleSamples").get<bool>();
 
       if (tc.contains("shuffleSeed"))
-        coreConfig.trainingConfig.shuffleSeed = tc.at("shuffleSeed").get<uint32_t>();
+        coreConfig.trainConfig.shuffleSeed = tc.at("shuffleSeed").get<uint32_t>();
 
       if (tc.contains("dropoutRate"))
-        coreConfig.trainingConfig.dropoutRate = tc.at("dropoutRate").get<float>();
+        coreConfig.trainConfig.dropoutRate = tc.at("dropoutRate").get<float>();
 
       if (tc.contains("optimizer")) {
         const auto& opt = tc.at("optimizer");
 
         if (opt.contains("type"))
-          coreConfig.trainingConfig.optimizer.type =
+          coreConfig.trainConfig.optimizer.type =
             Common::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
 
         if (opt.contains("beta1"))
-          coreConfig.trainingConfig.optimizer.beta1 = opt.at("beta1").get<float>();
+          coreConfig.trainConfig.optimizer.beta1 = opt.at("beta1").get<float>();
 
         if (opt.contains("beta2"))
-          coreConfig.trainingConfig.optimizer.beta2 = opt.at("beta2").get<float>();
+          coreConfig.trainConfig.optimizer.beta2 = opt.at("beta2").get<float>();
 
         if (opt.contains("epsilon"))
-          coreConfig.trainingConfig.optimizer.epsilon = opt.at("epsilon").get<float>();
+          coreConfig.trainConfig.optimizer.epsilon = opt.at("epsilon").get<float>();
       }
 
       if (tc.contains("monitoring")) {
         const auto& mon = tc.at("monitoring");
-        auto& mc = coreConfig.trainingConfig.monitoringConfig;
+        auto& mc = coreConfig.trainConfig.monitoringConfig;
 
         if (mon.contains("enabled"))
           mc.enabled = mon.at("enabled").get<bool>();
@@ -155,6 +155,22 @@ namespace NN_CLI
         coreConfig.testConfig.batchSize = tc.at("batchSize").get<ulong>();
     }
 
+    if (json.contains("calibrate")) {
+      const auto& cc = json.at("calibrate");
+
+      if (cc.contains("idSampleCount"))
+        coreConfig.calibrateConfig.idSampleCount = cc.at("idSampleCount").get<std::size_t>();
+
+      if (cc.contains("oodSampleCount"))
+        coreConfig.calibrateConfig.oodSampleCount = cc.at("oodSampleCount").get<std::size_t>();
+
+      if (cc.contains("idPercentile"))
+        coreConfig.calibrateConfig.idPercentile = cc.at("idPercentile").get<double>();
+
+      if (cc.contains("fetchIfMissing"))
+        coreConfig.calibrateConfig.fetchIfMissing = cc.at("fetchIfMissing").get<bool>();
+    }
+
     if (json.contains("parameters")) {
       throw std::runtime_error("This JSON file contains embedded parameters. "
                                "The embedded-parameter format is no longer supported. "
@@ -179,15 +195,15 @@ namespace NN_CLI
     }
 
     // 3. Parse epoch history and set startingEpoch from saved training metadata
-    if (json.contains("trainingMetadata")) {
-      const auto& md = json.at("trainingMetadata");
+    if (json.contains("trainMetadata")) {
+      const auto& md = json.at("trainMetadata");
 
       // Set startingEpoch from lastEpoch: lastEpoch is the 0-based index of the
       // last completed epoch, so resume on the next one. E.g. lastEpoch=24
       // (epochs 0..24 done) resumes at startingEpoch=25 (e=25..99 = 75 more).
       if (md.contains("lastEpoch")) {
         ulong lastEpoch = md.at("lastEpoch").get<ulong>();
-        coreConfig.trainingConfig.startingEpoch = lastEpoch + 1;
+        coreConfig.trainConfig.startingEpoch = lastEpoch + 1;
       }
 
       // Parse epoch history array

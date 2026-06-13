@@ -5,11 +5,12 @@
 #include "Common/Common_Device.hpp"
 #include "Common/Common_LogLevel.hpp"
 #include "Common/Common_EpochRecord.hpp"
-#include "Common/Common_TrainingMetadata.hpp"
+#include "Common/Common_TrainMetadata.hpp"
 #include "ANN_LayersConfig.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
-#include "Common/Common_TrainingConfig.hpp"
+#include "Common/Common_TrainConfig.hpp"
 #include "Common/Common_TestConfig.hpp"
+#include "Common/Common_CalibrateConfig.hpp"
 #include "ANN_Parameters.hpp"
 
 //===================================================================================================================//
@@ -25,8 +26,9 @@ namespace ANN
       int numGPUs = 0; // 0 = use all available GPUs (for GPU mode)
       LayersConfig layersConfig;
       CostFunctionConfig<T> costFunctionConfig;
-      TrainingConfig<T> trainingConfig;
+      TrainConfig<T> trainConfig;
       TestConfig testConfig;
+       Common::CalibrateConfig calibrateConfig;
       Parameters<T> parameters;
       ulong progressReports = 1000; // Number of progress reports (0 = no reports, default = 1000)
       LogLevel logLevel = LogLevel::ERROR;

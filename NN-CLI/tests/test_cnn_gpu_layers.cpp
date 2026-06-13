@@ -34,7 +34,7 @@ static QString writeGPUTestConfig(const QString& path, const QString& convLayers
   "denseLayers": [
     { "numNeurons": 2, "actvFunc": "sigmoid" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 50,
     "learningRate": 0.01
   }

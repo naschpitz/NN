@@ -39,9 +39,9 @@ static void testGPUEndToEnd()
   initConv.biases.assign(1, 0.0f);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 1;
 
@@ -109,8 +109,8 @@ static void testGPUPredictOnly()
   initConv.biases.assign(1, 0.0f);
   cpuConfig.parameters.convParams = {initConv};
 
-  cpuConfig.trainingConfig.numEpochs = 50;
-  cpuConfig.trainingConfig.learningRate = 0.5f;
+  cpuConfig.trainConfig.numEpochs = 50;
+  cpuConfig.trainConfig.learningRate = 0.5f;
   cpuConfig.progressReports = 0;
 
   auto cpuCore = CNN::Core<float>::makeCore(cpuConfig);
@@ -207,9 +207,9 @@ static void testGPUWithPoolLayer()
   initConv2.biases.assign(1, 0.0f);
 
   config.parameters.convParams = {initConv1, initConv2};
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 1;
 

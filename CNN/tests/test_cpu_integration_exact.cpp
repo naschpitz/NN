@@ -54,9 +54,9 @@ static void testExactForwardBackwardCrossEntropy()
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
 
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
 
   // Input: 1x3x3, target: [1, 0]
@@ -143,9 +143,9 @@ static void testExactForwardBackwardSquaredDifference()
 
   config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
 
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
 
   // Input: 1x3x3, target: [1.0]
@@ -225,9 +225,9 @@ static void testExactForwardBackwardWeightedCrossEntropy()
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0, 0.5};
 
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
 
   CNN::Samples<double> samples(1);

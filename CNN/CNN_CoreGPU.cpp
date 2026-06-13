@@ -120,10 +120,10 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 {
   this->trainingStart(numSamples);
 
-  ulong numEpochs = this->trainingConfig.numEpochs;
+  ulong numEpochs = this->trainConfig.numEpochs;
 
   // Adjust batch size to be divisible by numGPUs (round down, minimum = numGPUs)
-  ulong batchSize = this->trainingConfig.batchSize;
+  ulong batchSize = this->trainConfig.batchSize;
   batchSize = std::max(this->numGPUs, (batchSize / this->numGPUs) * this->numGPUs);
 
   if (this->logLevel >= Common::LogLevel::INFO) {
@@ -143,26 +143,26 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   // Sample index indirection for shuffling
   std::vector<ulong> sampleIndices(numSamples);
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
-  // Reproducible when trainingConfig.shuffleSeed != 0; non-deterministic otherwise.
-  std::mt19937 rng(this->trainingConfig.shuffleSeed != 0 ? this->trainingConfig.shuffleSeed : std::random_device{}());
+  // Reproducible when trainConfig.shuffleSeed != 0; non-deterministic otherwise.
+  std::mt19937 rng(this->trainConfig.shuffleSeed != 0 ? this->trainConfig.shuffleSeed : std::random_device{}());
 
   // Saved training kernels per GPU — populated after first trainSubset
   std::vector<std::vector<std::vector<OpenCLWrapper::Kernel>>> savedKernels(this->numGPUs);
   bool kernelsSaved = false;
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainingConfig.monitoringConfig;
+  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
   std::unique_ptr<TrainingMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
     monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
   }
 
-  for (ulong e = this->trainingConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
+  for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = 0;
 
     // Shuffle sample order for this epoch
-    if (this->trainingConfig.shuffleSamples) {
+    if (this->trainConfig.shuffleSamples) {
       std::shuffle(sampleIndices.begin(), sampleIndices.end(), rng);
     }
 
@@ -282,7 +282,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     this->parameters = this->gpuWorkers[0]->getParameters();
 
     T avgEpochLoss = epochLoss / static_cast<T>(numSamples);
-    this->trainingMetadata.finalLoss = avgEpochLoss;
+    this->trainMetadata.finalLoss = avgEpochLoss;
 
     // Check training monitor
     bool shouldStop = false;
@@ -293,7 +293,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
     // Always track the 0-based index of the last completed epoch (matches
     // EpochRecord::epoch), regardless of monitoring
-    this->trainingMetadata.lastEpoch = e;
+    this->trainMetadata.lastEpoch = e;
 
     if (this->trainingCallback) {
       TrainingProgressEvent<T> progress;
@@ -326,7 +326,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     epochRecord.isBest = monitor ? monitor->isNewBest() : false;
     epochRecord.completionTime =
       static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-    this->trainingMetadata.epochHistory.push_back(epochRecord);
+    this->trainMetadata.epochHistory.push_back(epochRecord);
 
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
@@ -347,9 +347,9 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
   // Populate monitoring metadata
   if (monitor) {
-    this->trainingMetadata.stopReason = monitor->getStopReason();
-    this->trainingMetadata.bestEpoch = monitor->getBestEpoch();
-    this->trainingMetadata.bestLoss = monitor->getBestLoss();
+    this->trainMetadata.stopReason = monitor->getStopReason();
+    this->trainMetadata.bestEpoch = monitor->getBestEpoch();
+    this->trainMetadata.bestLoss = monitor->getBestLoss();
   }
 
   this->trainingEnd();
@@ -468,7 +468,7 @@ void CoreGPU<T>::initializeWorkers()
     // Each GPU only receives batchSize/numGPUs samples.
     // Integer ceiling division: ⌈batchSize / numGPUs⌉.
     // Ensures the buffer fits the GPU that gets the extra sample when the batch doesn't divide evenly.
-    ulong fullBatchSize = this->coreConfig.trainingConfig.batchSize;
+    ulong fullBatchSize = this->coreConfig.trainConfig.batchSize;
     workerConfig.batchSize = (fullBatchSize + this->numGPUs - 1) / this->numGPUs;
   }
 

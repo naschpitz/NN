@@ -53,9 +53,9 @@ static void testGPUExactForwardBackwardCrossEntropy()
   config.parameters.denseParams = denseParams;
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
 
   // Input: 1x3x3, target: [1, 0]
@@ -140,9 +140,9 @@ static void testGPUExactForwardBackwardSquaredDifference()
   config.parameters.denseParams = denseParams;
 
   config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
 
   CNN::Samples<float> samples(1);
@@ -221,9 +221,9 @@ static void testGPUExactForwardBackwardWeightedCrossEntropy()
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {3.0f, 0.5f};
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
 
   CNN::Samples<float> samples(1);

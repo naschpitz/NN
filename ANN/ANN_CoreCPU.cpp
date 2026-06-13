@@ -23,7 +23,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 
   // Create the step worker (used for predict and step-by-step training path)
   bool allocateTraining = (this->modeType == ModeType::TRAIN);
-  this->stepWorker = std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
+  this->stepWorker = std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainConfig, this->parameters,
                                                         this->costFunctionConfig, allocateTraining);
 
   // Note: Global accumulators and Adam state are allocated lazily in train(),
@@ -67,7 +67,7 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> extraWorkers;
 
   for (int i = 1; i < numThreads; i++) {
-    extraWorkers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig,
+    extraWorkers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainConfig,
                                                               this->parameters, this->costFunctionConfig, false));
   }
 
@@ -165,14 +165,14 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   if (this->accum_dCost_dWeights.empty()) {
     this->allocateGlobalAccumulators();
 
-    if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
+    if (this->trainConfig.optimizer.type == OptimizerType::ADAM) {
       this->allocateAdamState();
     }
   }
 
   this->trainingStart(numSamples);
 
-  ulong numEpochs = this->trainingConfig.numEpochs;
+  ulong numEpochs = this->trainConfig.numEpochs;
 
   // Use configured numThreads, or all available cores if 0
   int numThreads = this->numThreads;
@@ -182,7 +182,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   }
 
   // Adjust batch size to be divisible by numThreads (round down, minimum = numThreads)
-  ulong batchSize = this->trainingConfig.batchSize;
+  ulong batchSize = this->trainConfig.batchSize;
   ulong numWorkers = static_cast<ulong>(numThreads);
   batchSize = std::max(numWorkers, (batchSize / numWorkers) * numWorkers);
 
@@ -190,7 +190,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
 
   for (int i = 0; i < numThreads; i++) {
-    workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
+    workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainConfig, this->parameters,
                                                          this->costFunctionConfig, true));
   }
 
@@ -200,22 +200,22 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   // Sample index indirection for shuffling
   std::vector<ulong> sampleIndices(numSamples);
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
-  // Reproducible when trainingConfig.shuffleSeed != 0; non-deterministic otherwise.
-  std::mt19937 rng(this->trainingConfig.shuffleSeed != 0 ? this->trainingConfig.shuffleSeed : std::random_device{}());
+  // Reproducible when trainConfig.shuffleSeed != 0; non-deterministic otherwise.
+  std::mt19937 rng(this->trainConfig.shuffleSeed != 0 ? this->trainConfig.shuffleSeed : std::random_device{}());
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainingConfig.monitoringConfig;
+  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
   std::unique_ptr<TrainingMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
     monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
   }
 
-  for (ulong e = this->trainingConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
+  for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
     T epochLoss = 0;
 
     // Shuffle sample order for this epoch
-    if (this->trainingConfig.shuffleSamples) {
+    if (this->trainConfig.shuffleSamples) {
       std::shuffle(sampleIndices.begin(), sampleIndices.end(), rng);
     }
 
@@ -287,7 +287,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     T avgEpochLoss = epochLoss / static_cast<T>(numSamples);
 
     // Store final loss from the last epoch
-    this->trainingMetadata.finalLoss = avgEpochLoss;
+    this->trainMetadata.finalLoss = avgEpochLoss;
 
     // Check training health if monitor is active
     bool shouldStop = false;
@@ -307,11 +307,11 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       if (shouldStop) {
         progress.stoppedEarly = true;
-        this->trainingMetadata.stopReason = monitor->getStopReason();
+        this->trainMetadata.stopReason = monitor->getStopReason();
       }
 
-      this->trainingMetadata.bestEpoch = monitor->getBestEpoch();
-      this->trainingMetadata.bestLoss = monitor->getBestLoss();
+      this->trainMetadata.bestEpoch = monitor->getBestEpoch();
+      this->trainMetadata.bestLoss = monitor->getBestLoss();
 
       if (this->trainingCallback) {
         this->trainingCallback(progress);
@@ -322,7 +322,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
     // Always track the 0-based index of the last completed epoch (matches
     // EpochRecord::epoch), regardless of monitoring
-    this->trainingMetadata.lastEpoch = e;
+    this->trainMetadata.lastEpoch = e;
 
     // Record epoch history
     EpochRecord<T> epochRecord;
@@ -333,7 +333,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     epochRecord.isBest = monitor ? monitor->isNewBest() : false;
     epochRecord.completionTime =
       static_cast<ulong>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-    this->trainingMetadata.epochHistory.push_back(epochRecord);
+    this->trainMetadata.epochHistory.push_back(epochRecord);
 
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
@@ -371,7 +371,7 @@ TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;
 
   for (int i = 0; i < numThreads; i++) {
-    workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainingConfig, this->parameters,
+    workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainConfig, this->parameters,
                                                          this->costFunctionConfig, false));
   }
 
@@ -617,7 +617,7 @@ void CoreCPU<T>::mergeWorkerAccumulators(const CoreCPUWorker<T>& worker)
 template <typename T>
 void CoreCPU<T>::update(ulong numSamples)
 {
-  T learningRate = this->trainingConfig.learningRate;
+  T learningRate = this->trainConfig.learningRate;
   ulong numLayers = this->layersConfig.size();
 
   // Determine which accumulators to read from:
@@ -630,14 +630,14 @@ void CoreCPU<T>::update(ulong numSamples)
 
   T n = static_cast<T>(numSamples);
 
-  if (this->trainingConfig.optimizer.type == OptimizerType::ADAM) {
+  if (this->trainConfig.optimizer.type == OptimizerType::ADAM) {
     // Lazily allocate ADAM state on first update() call.
     // This handles the step-by-step path where train() is never called.
     if (this->adam_m_weights.empty()) {
       this->allocateAdamState();
     }
 
-    const auto& opt = this->trainingConfig.optimizer;
+    const auto& opt = this->trainConfig.optimizer;
     T beta1 = opt.beta1;
     T beta2 = opt.beta2;
     T epsilon = opt.epsilon;

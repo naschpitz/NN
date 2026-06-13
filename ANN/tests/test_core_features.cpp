@@ -86,8 +86,8 @@ static void testWeightedLossAffectsTraining()
   configDefault.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {2, ANN::ActvFuncType::SIGMOID}});
 
-  configDefault.trainingConfig.numEpochs = 200;
-  configDefault.trainingConfig.learningRate = 0.5;
+  configDefault.trainConfig.numEpochs = 200;
+  configDefault.trainConfig.learningRate = 0.5;
   configDefault.progressReports = 0;
 
   // Train with weighted loss: output 0 weighted 10x more than output 1
@@ -129,7 +129,7 @@ static void testShuffleSamplesDefault()
   std::cout << "--- testShuffleSamplesDefault ---" << std::endl;
 
   // Verify default is true
-  ANN::TrainingConfig<double> tc;
+   ANN::TrainConfig<double> tc;
   CHECK(tc.shuffleSamples == true, "shuffleSamples default is true");
 }
 
@@ -149,10 +149,10 @@ static void testShuffleSamplesTraining()
     config.layersConfig = makeLayersConfig(
       {{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-    config.trainingConfig.numEpochs = 500;
-    config.trainingConfig.learningRate = 0.5;
-    config.trainingConfig.shuffleSamples = shuffle;
-    config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+    config.trainConfig.numEpochs = 500;
+    config.trainConfig.learningRate = 0.5;
+    config.trainConfig.shuffleSamples = shuffle;
+    config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
     config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
     config.progressReports = 0;
     config.logLevel = Common::LogLevel::ERROR;
@@ -196,9 +196,9 @@ static void testShuffleSamplesNoShuffle()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 50;
-  config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.1;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
   config.logLevel = Common::LogLevel::ERROR;
 

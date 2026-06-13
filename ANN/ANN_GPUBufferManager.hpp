@@ -3,7 +3,7 @@
 
 #include "ANN_Types.hpp"
 #include "ANN_LayersConfig.hpp"
-#include "Common/Common_TrainingConfig.hpp"
+#include "Common/Common_TrainConfig.hpp"
 #include "ANN_Parameters.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
 #include "Common/Common_LogLevel.hpp"
@@ -24,8 +24,8 @@ namespace ANN
   class GPUBufferManager
   {
     public:
-      GPUBufferManager(OpenCLWrapper::Core* core, const LayersConfig& layersConfig, Parameters<T>& parameters,
-                       const TrainingConfig<T>& trainingConfig, const CostFunctionConfig<T>& costFunctionConfig,
+       GPUBufferManager(OpenCLWrapper::Core* core, const LayersConfig& layersConfig, Parameters<T>& parameters,
+                        const TrainConfig<T>& trainConfig, const CostFunctionConfig<T>& costFunctionConfig,
                        LogLevel logLevel);
 
       //-- Initialization --//
@@ -64,7 +64,7 @@ namespace ANN
       OpenCLWrapper::Core* core;
       const LayersConfig& layersConfig;
       Parameters<T>& parameters;
-      const TrainingConfig<T>& trainingConfig;
+       const TrainConfig<T>& trainConfig;
       const CostFunctionConfig<T>& costFunctionConfig;
       LogLevel logLevel;
 

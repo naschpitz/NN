@@ -13,8 +13,8 @@ static void testParameterRoundTrip()
   trainConfig.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  trainConfig.trainingConfig.numEpochs = 100;
-  trainConfig.trainingConfig.learningRate = 0.5;
+  trainConfig.trainConfig.numEpochs = 100;
+  trainConfig.trainConfig.learningRate = 0.5;
   trainConfig.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};

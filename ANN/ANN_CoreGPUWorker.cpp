@@ -14,11 +14,11 @@ using namespace Common;
 //===================================================================================================================//
 
 template <typename T>
-CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
+CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
                                 const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                                 ulong progressReports, LogLevel logLevel)
   : layersConfig(layersConfig),
-    trainingConfig(trainingConfig),
+    trainConfig(trainConfig),
     parameters(parameters),
     costFunctionConfig(costFunctionConfig),
     progressReports(progressReports),
@@ -29,10 +29,10 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
   this->core->setVerbose(this->logLevel >= LogLevel::DEBUG);
 
   this->bufferManager = std::make_unique<GPUBufferManager<T>>(
-    this->core, this->layersConfig, this->parameters, this->trainingConfig, this->costFunctionConfig, this->logLevel);
+    this->core, this->layersConfig, this->parameters, this->trainConfig, this->costFunctionConfig, this->logLevel);
 
   this->kernelBuilder =
-    std::make_unique<GPUKernelBuilder<T>>(this->core, this->layersConfig, this->parameters, this->trainingConfig,
+    std::make_unique<GPUKernelBuilder<T>>(this->core, this->layersConfig, this->parameters, this->trainConfig,
                                           this->costFunctionConfig, *this->bufferManager, this->logLevel);
 
   this->bufferManager->initializeParameters();
@@ -43,11 +43,11 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
 //===================================================================================================================//
 
 template <typename T>
-CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
+CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
                                 const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                                 OpenCLWrapper::Core& sharedCore, ulong progressReports, LogLevel logLevel)
   : layersConfig(layersConfig),
-    trainingConfig(trainingConfig),
+    trainConfig(trainConfig),
     parameters(parameters),
     costFunctionConfig(costFunctionConfig),
     progressReports(progressReports),
@@ -55,10 +55,10 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Training
     core(&sharedCore)
 {
   this->bufferManager = std::make_unique<GPUBufferManager<T>>(
-    this->core, this->layersConfig, this->parameters, this->trainingConfig, this->costFunctionConfig, this->logLevel);
+    this->core, this->layersConfig, this->parameters, this->trainConfig, this->costFunctionConfig, this->logLevel);
 
   this->kernelBuilder =
-    std::make_unique<GPUKernelBuilder<T>>(this->core, this->layersConfig, this->parameters, this->trainingConfig,
+    std::make_unique<GPUKernelBuilder<T>>(this->core, this->layersConfig, this->parameters, this->trainConfig,
                                           this->costFunctionConfig, *this->bufferManager, this->logLevel);
 
   // Shared-core mode: only initialize parameters.

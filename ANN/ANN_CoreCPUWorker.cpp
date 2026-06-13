@@ -11,11 +11,11 @@ using namespace Common;
 //===================================================================================================================//
 
 template <typename T>
-CoreCPUWorker<T>::CoreCPUWorker(const LayersConfig& layersConfig, const TrainingConfig<T>& trainingConfig,
+CoreCPUWorker<T>::CoreCPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
                                 const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
                                 bool allocateTrainingBuffers)
   : layersConfig(layersConfig),
-    trainingConfig(trainingConfig),
+    trainConfig(trainConfig),
     parameters(parameters)
 {
   this->costFunctionConfig = costFunctionConfig;
@@ -82,7 +82,7 @@ template <typename T>
 void CoreCPUWorker<T>::propagate(const Input<T>& input, bool applyDropout)
 {
   ulong numLayers = this->layersConfig.size();
-  float dropoutRate = this->trainingConfig.dropoutRate;
+  float dropoutRate = this->trainConfig.dropoutRate;
 
   this->actvs[0] = input;
 

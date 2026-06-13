@@ -11,7 +11,7 @@
   "costFunction": {
     "type": "crossEntropy"
   },
-  "training": {
+  "train": {
     "numEpochs": 20,
     "batchSize": 64,
     "learningRate": 0.001,
