@@ -53,8 +53,8 @@
 <table>
   <tr><th>Tool</th><th>Minimum Version</th><th>Notes</th></tr>
   <tr><td>CMake</td><td>3.14</td><td></td></tr>
-  <tr><td>C++ Compiler</td><td>C++17</td><td>GCC 7+, Clang 5+, MSVC 19.14+</td></tr>
-  <tr><td>Qt</td><td>5.x or 6.x</td><td>Core + Concurrent modules</td></tr>
+  <tr><td>C++ Compiler</td><td>C++17</td><td>GCC ≥ 9, Clang ≥ 10</td></tr>
+  <tr><td>Qt</td><td>6.x</td><td>Core + Concurrent modules</td></tr>
   <tr><td>Git</td><td>any</td><td>For submodule checkout</td></tr>
   <tr><td>OpenCL SDK</td><td>1.2</td><td>Only needed for GPU execution</td></tr>
 </table>
@@ -66,12 +66,9 @@
 git clone --recurse-submodules https://github.com/naschpitz/ANN.git
 cd ANN
 
-<span class="comment"># Create build directory</span>
-mkdir build &amp;&amp; cd build
-
 <span class="comment"># Configure &amp; build</span>
-cmake ..
-make -j$(nproc)
+cmake -B build
+cmake --build build -j$(nproc)
 </code></pre>
 
 <div class="info-box">
@@ -105,6 +102,7 @@ sudo make install
 <pre><code><span class="keyword">#include</span> <span class="string">"ANN_Core.hpp"</span>
 <span class="keyword">#include</span> <span class="string">"ANN_CoreConfig.hpp"</span>
 <span class="keyword">#include</span> <span class="string">"ANN_Sample.hpp"</span>
+<span class="keyword">#include</span> <span class="string">"ANN_SampleProvider.hpp"</span>
 
 <span class="type">int</span> <span class="func">main</span>() {
     <span class="comment">// Configure the network</span>
@@ -120,9 +118,17 @@ sudo make install
     config.trainConfig.batchSize    = <span class="number">64</span>;
     config.trainConfig.learningRate = <span class="number">0.01f</span>;
 
+    <span class="comment">// Create training data</span>
+    ANN::Samples&lt;<span class="type">float</span>&gt; samples = {
+        { {<span class="number">0.0f</span>, <span class="number">0.0f</span>, <span class="number">0.0f</span>}, {<span class="number">0.0f</span>} },
+        { {<span class="number">0.0f</span>, <span class="number">1.0f</span>, <span class="number">1.0f</span>}, {<span class="number">1.0f</span>} },
+        { {<span class="number">1.0f</span>, <span class="number">0.0f</span>, <span class="number">1.0f</span>}, {<span class="number">1.0f</span>} },
+        { {<span class="number">1.0f</span>, <span class="number">1.0f</span>, <span class="number">1.0f</span>}, {<span class="number">1.0f</span>} }
+    };
+
     <span class="comment">// Create and train</span>
     <span class="keyword">auto</span> core = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
-    core-&gt;<span class="func">train</span>(samples);
+    core-&gt;<span class="func">train</span>(samples.size(), ANN::makeSampleProvider(samples));
 
     <span class="comment">// Extract trained parameters (for persistence by caller)</span>
     <span class="keyword">const</span> <span class="keyword">auto</span>&amp; params = core-&gt;<span class="func">getParameters</span>();

@@ -103,7 +103,7 @@
 
 <div class="card">
 <h3>Template Method</h3>
-<p>The base class defines the high-level training algorithm (timing, metadata, callback dispatch), while subclasses (<code>CoreCPU</code>, <code>CoreGPU</code>) implement the actual computation. Protected helpers like <code>calculateLoss()</code>, <code>trainingStart()</code>, and <code>trainingEnd()</code> are shared.</p>
+<p>The base class defines the high-level training algorithm (timing, metadata, callback dispatch), while subclasses (<code>CoreCPU</code>, <code>CoreGPU</code>) implement the actual computation. Protected helpers like <code>trainingStart()</code> and <code>trainingEnd()</code> are on <code>Core&lt;T&gt;</code>; <code>calculateLoss()</code> is on the <code>Worker&lt;T&gt;</code> base class of <code>CoreCPUWorker&lt;T&gt;</code> and <code>CoreGPUWorker&lt;T&gt;</code>.</p>
 </div>
 
 <div class="card">
@@ -177,8 +177,9 @@
             <span class="comment">// 1. Propagate</span>
             output = <span class="func">predict</span>(sample.input)
 
-            <span class="comment">// 2. Compute loss (MSE)</span>
+            <span class="comment">// 2. Compute loss (MSE example — library supports three configurable cost functions)</span>
             loss = (<span class="number">1</span>/n) × Σ (output[i] − expected[i])²
+            <span class="comment">// Configurable: SQUARED_DIFFERENCE (MSE), WEIGHTED_SQUARED_DIFFERENCE, CROSS_ENTROPY</span>
 
             <span class="comment">// 3. Backpropagate — compute gradients</span>
             <span class="func">backpropagate</span>(sample.output)
@@ -256,7 +257,7 @@
   <li><strong>Weight index:</strong> <code>weight[l][j][k] → offset = Σ(n_i · n_{i-1}, i=1..l-1) + j · n_{l-1} + k</code></li>
   <li><strong>Bias index:</strong> same as activation index</li>
 </ul>
-<p>These calculations are performed by the <code>IdxHelper.cpp.cl</code> kernel helper functions on the GPU.</p>
+<p>These calculations are performed inline in the respective compute kernels, not in a separate helper kernel.</p>
 </div>
 
 </main>

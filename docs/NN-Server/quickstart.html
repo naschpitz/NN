@@ -64,7 +64,7 @@ ls -la NN-Server
 <pre><code><span class="comment"># Create a config.json file</span>
 cat &gt; config.json &lt;&lt;EOF
 {
-  "model": "/path/to/trained_model.json"
+  "model": "/path/to/trained_E-100_S-60000_L-0.123456.nnmodel.tar"
 }
 EOF
 
@@ -73,14 +73,32 @@ EOF
 
 <span class="comment"># Expected output:</span>
 <span class="comment"># NN-Server starting...</span>
-<span class="comment">#   Config:    config.json</span>
-<span class="comment">#   Model:     /path/to/trained_model.json</span>
-<span class="comment">#   Port:      8080</span>
-<span class="comment">#   Pool size: 8</span>
+<span class="comment">#   Config:       config.json</span>
+<span class="comment">#   Model:        /path/to/trained_E-100_S-60000_L-0.123456.nnmodel.tar</span>
+<span class="comment">#   Port:        8080</span>
+<span class="comment">#   Pool size:    8</span>
+<span class="comment">#   Max body:     10 MB</span>
+<span class="comment">#   Max queue:    unlimited</span>
+<span class="comment">#</span>
+<span class="comment"># Detected network type: ANN</span>
+<span class="comment"># Creating core pool with 8 instance(s)...</span>
+<span class="comment">#   Loading core 1/8... done.</span>
+<span class="comment">#   Loading core 2/8... done.</span>
+<span class="comment">#   Loading core 3/8... done.</span>
+<span class="comment">#   Loading core 4/8... done.</span>
+<span class="comment">#   Loading core 5/8... done.</span>
+<span class="comment">#   Loading core 6/8... done.</span>
+<span class="comment">#   Loading core 7/8... done.</span>
+<span class="comment">#   Loading core 8/8... done.</span>
+<span class="comment"># Core pool ready.</span>
+<span class="comment">#   Input:     vector (JSON)</span>
 <span class="comment">#   Output:    vector (JSON)</span>
 <span class="comment">#</span>
-<span class="comment"># Listening on port 8080</span>
+<span class="comment"># Listening on port 8080...</span>
+<span class="comment">#</span>
 <span class="comment"># Ready to accept requests.</span>
+<span class="comment">#   POST /predict  — run prediction (JSON body or image upload)</span>
+<span class="comment">#   GET  /health   — health check</span>
 
 <span class="comment"># In another terminal, check the health endpoint:</span>
 curl http://localhost:<span class="number">8080</span>/health
@@ -95,17 +113,27 @@ curl http://localhost:<span class="number">8080</span>/health
 <span class="comment"># Expected output:</span>
 <span class="comment"># === NN-Server Endpoint Integration Tests ===</span>
 <span class="comment">#</span>
-<span class="comment"># Starting NN-Server...</span>
+<span class="comment"># Starting NN-Server (CNN model)...</span>
 <span class="comment"># Server is ready.</span>
 <span class="comment">#   testHealth...</span>
 <span class="comment">#   testNotFound...</span>
 <span class="comment">#   testPredictBadJson...</span>
 <span class="comment">#   testPredictMissingInput...</span>
+<span class="comment">#   testPredictBodyTooLarge...</span>
+<span class="comment">#   testPredictBodyJustUnderLimit...</span>
 <span class="comment">#   testPredictImageSingle...</span>
 <span class="comment">#   testPredictImageConcurrent (5 different images)...</span>
 <span class="comment">#   testPredictImageRepeatedConcurrent (10x same image)...</span>
+<span class="comment">#   testQueueLimitReject...</span>
 <span class="comment">#</span>
-<span class="comment"># === Results: 44 passed, 0 failed ===</span>
+<span class="comment"># Restarting NN-Server ( image model)...</span>
+<span class="comment"># Server is ready.</span>
+<span class="comment">#   testImagePredict...</span>
+<span class="comment">#   testImagePredictDark...</span>
+<span class="comment">#   testImagePredictJson...</span>
+<span class="comment">#   testImageDeterministic...</span>
+<span class="comment">#</span>
+<span class="comment"># === Results: 75 passed, 0 failed ===</span>
 </code></pre>
 
 <p>A separate unit-test binary covers the logger:</p>

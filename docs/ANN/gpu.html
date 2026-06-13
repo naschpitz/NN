@@ -97,7 +97,7 @@
   <rect x="220" y="205" width="220" height="40" rx="8" fill="#e6f4ea" stroke="#34a853" stroke-width="2"/>
   <text x="330" y="230" text-anchor="middle" font-weight="600" fill="#137333">Merge Gradients &amp; Update</text>
 </svg>
-<figcaption>Figure 1 — Multi-GPU architecture. Each worker processes a subset of samples; gradients are merged after each epoch.</figcaption>
+<figcaption>Figure 1 — Multi-GPU architecture. Each worker processes a subset of samples; gradients are merged after every mini-batch.</figcaption>
 </figure>
 
 <h2 id="kernels">2. Kernel Files</h2>
@@ -125,7 +125,7 @@
   <tr><td><code>actvs</code></td><td>\(\sum_{l=0}^{L} n_l\)</td><td><code>getActvIndex(l, j)</code></td></tr>
   <tr><td><code>zs</code></td><td>\(\sum_{l=0}^{L} n_l\)</td><td><code>getZIndex(l, j)</code></td></tr>
   <tr><td><code>weights</code></td><td>\(\sum_{l=1}^{L} n_l \cdot n_{l-1}\)</td><td><code>getWeightIndex(l, j, k)</code></td></tr>
-  <tr><td><code>biases</code></td><td>\(\sum_{l=0}^{L} n_l\)</td><td><code>getBiasIndex(l, j)</code></td></tr>
+  <tr><td><code>biases</code></td><td>\(\sum_{l=1}^{L} n_l\)</td><td><code>getBiasIndex(l, j)</code></td></tr>
 </table>
 
 <p>The accumulator buffers (<code>accum_dCost_dWeights</code>, <code>accum_dCost_dBiases</code>) have the same sizes as <code>weights</code> and <code>biases</code>, respectively.</p>
@@ -143,20 +143,26 @@
 
 <div class="card">
 <h3><code>calculate_zs</code></h3>
-<p><strong>Work items:</strong> \( n_l \) (one per neuron in layer \( l \))</p>
-<pre><code><span class="comment">// Each work-item j computes:</span>
-z = biases[getBiasIndex(l, j)];
-<span class="keyword">for</span> (k = <span class="number">0</span>; k &lt; n_{l-1}; k++)
-    z += weights[getWeightIndex(l, j, k)] * actvs[getActvIndex(l-<span class="number">1</span>, k)];
-zs[getZIndex(l, j)] = z;
+<p><strong>Work items:</strong> \( \text{numNeurons} \times \text{localWorkSize} \) (one work-group of \( \text{localWorkSize} \) items per neuron, using parallel reduction)</p>
+<pre><code><span class="comment">// Each work-group computes one neuron's dot product via reduction.</span>
+<span class="comment">// Global work size = numNeurons * localWorkSize.</span>
+TYPE sum = <span class="number">0</span>;
+<span class="keyword">for</span> (k = lid; k &lt; prevNumNeurons; k += localSize)
+    sum += weights[wRow + k] * actvs[prevActvOffset + k];
+<span class="comment">// work-group tree reduction → partials[0]</span>
+<span class="keyword">if</span> (lid == <span class="number">0</span>)
+    zs[zOffset + j] = partials[<span class="number">0</span>] + biases[biasOffset + j];
 </code></pre>
 </div>
 
 <div class="card">
 <h3><code>calculate_actvs</code></h3>
-<p><strong>Work items:</strong> \( n_l \)</p>
-<pre><code><span class="comment">// Each work-item j computes:</span>
-actvs[getActvIndex(l, j)] = actvFunc_calculate(zs[getZIndex(l, j)], layers[l].actvFuncType);
+<p><strong>Work items:</strong> For element-wise activations (ReLU, Sigmoid, Tanh), work items = \( n_l \). For softmax, work items = 1 (the kernel iterates internally over all neurons).</p>
+<pre><code><span class="comment">// Element-wise: one work-item per neuron.</span>
+actvs[idx] = actvFunc_calculate(zs[idx], layers[l].actvFuncType);
+
+<span class="comment">// Softmax: single work-item, iterates over all neurons.</span>
+<span class="comment">// actvFunc_softmax finds maxZ, computes exp(z - maxZ), normalizes.</span>
 </code></pre>
 </div>
 
@@ -165,7 +171,13 @@ actvs[getActvIndex(l, j)] = actvFunc_calculate(zs[getZIndex(l, j)], layers[l].ac
 <div class="card">
 <h3><code>calculate_dCost_dActv_last_layer</code></h3>
 <p><strong>Work items:</strong> \( n_L \) (output layer neurons)</p>
-<pre><code>dCost_dActvs[j] = <span class="number">2.0</span> * (actvs[j] - outputs[j]);
+<pre><code><span class="comment">// MSE: dL/da_j = 2 * w_j * (a_j - y_j)</span>
+dCost_dActvs[idx] = <span class="number">2.0f</span> * lossWeights[j] * (actvs[idx] - outputs[j]);
+
+<span class="comment">// Cross-entropy: dL/da_j = -w_j * y_j / max(a_j, epsilon)</span>
+TYPE epsilon = <span class="number">1e-7</span>;
+TYPE pred = max(actvs[idx], epsilon);
+dCost_dActvs[idx] = -lossWeights[j] * outputs[j] / pred;
 </code></pre>
 </div>
 
@@ -212,7 +224,7 @@ dBias[l][j] = derivative(z[l][j]) * dCost_dActvs[l][j];
 <ol>
   <li><strong>Distribution:</strong> Each GPU processes <code>totalSamples / numGPUs</code> samples per epoch</li>
   <li><strong>Parallel execution:</strong> <code>QtConcurrent::blockingMap()</code> runs all GPU workers simultaneously</li>
-  <li><strong>Gradient merging:</strong> After the epoch, <code>mergeGradients()</code> reads accumulators from each GPU, sums them, and writes the combined result back to all GPUs</li>
+  <li><strong>Gradient merging:</strong> After every mini-batch, <code>mergeGradients()</code> reads accumulators from each GPU, sums them, and writes the combined result back to all GPUs</li>
   <li><strong>Update:</strong> Each GPU applies the same update, keeping parameters synchronised</li>
 </ol>
 
@@ -234,6 +246,7 @@ totalWeightGrads = <span class="number">0</span>;  totalBiasGrads = <span class=
   <li><code>trainingKernelsSetup</code> — propagation + backpropagation + accumulate</li>
   <li><code>backpropagateKernelsSetup</code> — for step-by-step API</li>
   <li><code>accumulateKernelsSetup</code> — accumulate-only pipeline</li>
+  <li><code>updateKernelsSetup</code> — update-only pipeline (SGD, Adam)</li>
 </ul>
 <p>Each setup method calls <code>OpenCLWrapper::addSourceFile()</code> and <code>addKernel()</code>, then sets the flag to prevent recompilation.</p>
 

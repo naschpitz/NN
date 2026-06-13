@@ -135,11 +135,12 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 
 <h3>Training Output</h3>
 <p>If <code>--output</code> is not specified, the trained model is saved to:</p>
-<pre><code>output/trained_model_&lt;epochs&gt;_&lt;samples&gt;_&lt;loss&gt;.nnmodel.tar
+<pre><code>output/trained_E-&lt;epochs&gt;_S-&lt;samples&gt;_L-&lt;loss&gt;.nnmodel.tar
 </code></pre>
 <p>The <code>output/</code> directory is created automatically relative to the input file's location. The output is a <code>.nnmodel.tar</code> package containing <code>model.json</code> and <code>params.bin</code>.</p>
 
 <h3>Predict Output</h3>
+<p>If <code>--output</code> is not specified, the result is saved to <code>output/predict_&lt;input_basename&gt;.json</code> (or a folder for image output). The <code>output/</code> directory is created automatically relative to the input file's location.</p>
 <p>When <code>outputType</code> is <code>"vector"</code> (default), the result is JSON with prediction metadata, an <code>outputs</code> array (post-activation values, one per input) and a <code>logits</code> array (pre-activation z of the last layer, one per input). When <code>outputType</code> is <code>"image"</code>, the output vector is saved as a PNG/JPEG/BMP image file instead.</p>
 <pre><code>{
   <span class="string">"predictMetadata"</span>: {

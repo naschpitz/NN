@@ -159,7 +159,7 @@ Content-Length: 32451
   <tr><td><code>400</code></td><td>Malformed HTTP request</td><td><code>{"error":"Malformed HTTP request"}</code></td></tr>
   <tr><td><code>400</code></td><td>Invalid JSON body</td><td><code>{"error":"Invalid JSON: ..."}</code></td></tr>
   <tr><td><code>400</code></td><td>Missing <code>"input"</code> array</td><td><code>{"error":"Request must contain an 'input' array"}</code></td></tr>
-  <tr><td><code>400</code></td><td>Missing request body</td><td><code>{"error":"Missing request body"}</code></td></tr>
+  <tr><td><code>400</code></td><td>No HTTP headers received (malformed request — missing <code>\r\n\r\n</code>)</td><td><code>{"error":"Missing request body"}</code></td></tr>
   <tr><td><code>404</code></td><td>Unknown endpoint</td><td><code>{"error":"Not found. Use POST /predict"}</code></td></tr>
   <tr><td><code>413</code></td><td>Request body exceeds <code>maxBodySize</code></td><td><code>{"error":"Request body too large. Maximum allowed: N bytes"}</code></td></tr>
   <tr><td><code>500</code></td><td>Input size mismatch</td><td><code>{"error":"Prediction failed: Input size (N) does not match expected shape size (M)"}</code></td></tr>

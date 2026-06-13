@@ -97,7 +97,7 @@
 
 <p>The output <strong>doubles the channel count</strong>: if the input has 128 channels, the output has 256 elements. This must be accounted for in the subsequent flatten and dense layer sizing — the first dense layer must accept \(2C\) inputs.</p>
 
-<p>Internally, the implementation also records the <strong>position of the maximum</strong> for each channel (the argmax index). This is needed during backpropagation to route the max gradient correctly.</p>
+<p>During backpropagation, the argmax position is <strong>recomputed from the saved input tensor</strong> (the forward pass passes the input through unchanged). The forward pass only stores the output values (averages and maximums); the backward pass scans the original input to find which element held the maximum, then routes the max-gradient to that position.</p>
 
 <h2 id="example">Numeric Example</h2>
 <p>Consider a tensor with 2 channels and spatial size 2×2:</p>

@@ -70,6 +70,10 @@ C = \frac{1}{N} \sum_{i=1}^{N} w_i \cdot (a_i - y_i)^2
 
 <p>Where \(a_j\) is the predicted output, \(y_j\) is the expected output, and \(w_j\) is the per-output weight (defaults to 1). Suitable for regression tasks.</p>
 
+<div class="info-box">
+  <strong>Normalization note:</strong> The factor \(1/N\) divides by the number of <em>outputs</em> (output neurons), not the number of samples in a batch. This produces a <em>per-sample</em> loss. The total batch loss is the sum of per-sample losses across all samples. Both the CPU <code>calculateLoss()</code> and the GPU <code>calculate_sample_loss</code> kernel divide by <code>numOutputs</code> (the size of the output vector).
+</div>
+
 <h2 id="cross-entropy">Cross-Entropy</h2>
 <p><span class="badge badge-blue">ANN_Worker.cpp</span> — <code>calculateLoss()</code></p>
 

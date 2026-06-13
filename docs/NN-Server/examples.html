@@ -49,7 +49,7 @@
 
 <h3>Step 2 — Create config.json</h3>
 <pre><code>{
-  <span class="string">"model"</span>: <span class="string">"train/output/checkpoint_E-150_L-0.029486.json"</span>,
+  <span class="string">"model"</span>: <span class="string">"train/output/checkpoint_E-150_L-0.029486.nnmodel.tar"</span>,
   <span class="string">"port"</span>: <span class="number">8080</span>,
   <span class="string">"poolSize"</span>: <span class="number">4</span>
 }
@@ -60,18 +60,28 @@
 
 <span class="comment"># Output:</span>
 <span class="comment"># NN-Server starting...</span>
-<span class="comment">#   Config:    config.json</span>
-<span class="comment">#   Model:     train/output/checkpoint_E-150_L-0.029486.json</span>
-<span class="comment">#   Port:      8080</span>
-<span class="comment">#   Pool size: 4</span>
+<span class="comment">#   Config:       config.json</span>
+<span class="comment">#   Model:        train/output/checkpoint_E-150_L-0.029486.nnmodel.tar</span>
+<span class="comment">#   Port:        8080</span>
+<span class="comment">#   Pool size:    4</span>
+<span class="comment">#   Max body:     10 MB</span>
+<span class="comment">#   Max queue:    unlimited</span>
+<span class="comment">#</span>
+<span class="comment"># Detected network type: CNN</span>
+<span class="comment"># Creating core pool with 4 instance(s)...</span>
+<span class="comment">#   Loading core 1/4... done.</span>
+<span class="comment">#   Loading core 2/4... done.</span>
+<span class="comment">#   Loading core 3/4... done.</span>
+<span class="comment">#   Loading core 4/4... done.</span>
+<span class="comment"># Core pool ready.</span>
+<span class="comment">#   Input:     image (3x450x600)</span>
 <span class="comment">#   Output:    vector (JSON)</span>
 <span class="comment">#</span>
-<span class="comment"># Loading core 1/4...</span>
-<span class="comment"># Loading core 2/4...</span>
-<span class="comment"># Loading core 3/4...</span>
-<span class="comment"># Loading core 4/4...</span>
-<span class="comment"># Listening on port 8080</span>
+<span class="comment"># Listening on port 8080...</span>
+<span class="comment">#</span>
 <span class="comment"># Ready to accept requests.</span>
+<span class="comment">#   POST /predict  — run prediction (JSON body or image upload)</span>
+<span class="comment">#   GET  /health   — health check</span>
 </code></pre>
 
 <h3>Step 4 — Classify an image</h3>
@@ -109,7 +119,7 @@
 
 <h3>config.json</h3>
 <pre><code>{
-  <span class="string">"model"</span>: <span class="string">"ann_model.json"</span>
+  <span class="string">"model"</span>: <span class="string">"ann_model.nnmodel.tar"</span>
 }
 </code></pre>
 
@@ -161,7 +171,7 @@ wait
 
 <h3>config.json</h3>
 <pre><code>{
-  <span class="string">"model"</span>: <span class="string">"segmentation_model.json"</span>
+  <span class="string">"model"</span>: <span class="string">"segmentation_model.nnmodel.tar"</span>
 }
 </code></pre>
 

@@ -60,12 +60,12 @@
 <main class="main">
 
 <h1>GPU Architecture &amp; Kernel Files</h1>
-<p>The CNN library accelerates convolutional, activation, and pooling operations on the GPU using OpenCL. Dense (fully-connected) layers remain on the CPU, handled by the ANN library. This page explains the overall GPU architecture, the worker model, and how kernel source files are organized.</p>
+<p>The CNN library accelerates all operations — convolutional, activation, pooling, and dense (fully-connected) layers — on the GPU using OpenCL. This page explains the overall GPU architecture, the worker model, and how kernel source files are organized.</p>
 
 <div class="toc">
   <h4>On this page</h4>
   <ol>
-    <li><a href="#hybrid-design">Hybrid GPU/CPU Design</a></li>
+    <li><a href="#hybrid-design">Unified GPU Architecture</a></li>
     <li><a href="#worker-model">Worker Model</a></li>
     <li><a href="#kernel-files">Kernel Source Files</a></li>
     <li><a href="#type-system">Type System &amp; Precision</a></li>
@@ -73,22 +73,21 @@
   </ol>
 </div>
 
-<h2 id="hybrid-design">Hybrid GPU/CPU Design</h2>
-<p>The CNN library uses a <strong>hybrid execution model</strong> where different parts of the neural network run on different hardware:</p>
+<h2 id="hybrid-design">Unified GPU Architecture</h2>
+<p>The CNN library uses a <strong>unified GPU execution model</strong> where all layers run on OpenCL devices:</p>
 
 <ul>
-  <li><strong>GPU (OpenCL):</strong> All CNN layers — Conv2D, ReLU, Pool, InstanceNorm, BatchNorm, GlobalAvgPool, GlobalDualPool, Residual, and Flatten. These operations are highly parallel and benefit enormously from GPU throughput.</li>
-  <li><strong>CPU (ANN library):</strong> Dense (fully-connected) layers. After the CNN layers produce a flattened 1D vector, the data is transferred back to CPU memory where the ANN library handles dense layer propagation and backpropagation.</li>
+  <li><strong>GPU (OpenCL):</strong> All layers — CNN layers (Conv2D, ReLU, Pool, InstanceNorm, BatchNorm, GlobalAvgPool, GlobalDualPool, Residual, Flatten) and dense (fully-connected) layers via <code>ANN::CoreGPUWorker&lt;T&gt;</code>. Bridge kernels copy data between CNN and ANN GPU buffers directly.</li>
 </ul>
 
-<p>This split is motivated by two observations:</p>
+<p>This unified GPU execution model is motivated by two observations:</p>
 <ol>
   <li><strong>Spatial operations are massively parallel</strong> — a single Conv2D layer may have millions of independent multiply-accumulate operations. GPUs excel at this.</li>
-  <li><strong>Dense layers are already optimized in ANN</strong> — rather than re-implementing dense layer logic in OpenCL, the library delegates to the existing, well-tested ANN library. This avoids code duplication and ensures consistency.</li>
+  <li><strong>Dense layers are already optimized in ANN</strong> — rather than re-implementing dense layer logic in OpenCL, the library delegates to the existing, well-tested ANN library. A <code>CoreGPUWorker</code> creates an <code>ANN::CoreGPUWorker&lt;T&gt;</code> that runs dense layers on the same GPU device, with bridge kernels copying data between CNN and ANN GPU buffers directly.</li>
 </ol>
 
 <div class="info-box">
-  <strong>Data transfer overhead:</strong> After the CNN layers complete (including flatten), the flattened activation vector is copied from GPU memory to CPU memory for ANN processing. During training, the ANN gradient is copied back to GPU memory for CNN backpropagation. These transfers are small (the flattened vector is typically a few hundred to a few thousand elements) compared to the computation savings from running convolutions on GPU.
+  <strong>Bridge kernels:</strong> After the CNN layers complete (including flatten), the <code>copy_cnn_to_ann</code> kernel copies the flattened activation vector from the CNN activation buffer into the ANN activation buffer on the same GPU. During training, the <code>copy_ann_grad_to_cnn</code> kernel copies the ANN input gradients back into the CNN gradient buffer. No CPU transfer is involved.
 </div>
 
 <h2 id="worker-model">Worker Model</h2>
@@ -115,7 +114,7 @@
     <rect x="50" y="215" width="180" height="25" fill="#fef7e0" stroke="#f9ab00" stroke-width="1" rx="3"/>
     <text x="140" y="233" text-anchor="middle" font-size="10">OpenCL Buffers &amp; Kernels</text>
     <rect x="50" y="248" width="180" height="25" fill="#fce8e6" stroke="#c5221f" stroke-width="1" rx="3"/>
-    <text x="140" y="266" text-anchor="middle" font-size="10">ANN::Core&lt;T&gt; (CPU dense)</text>
+    <text x="140" y="266" text-anchor="middle" font-size="10">ANN::CoreGPUWorker&lt;T&gt; (GPU dense)</text>
     <rect x="50" y="281" width="180" height="25" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1" rx="3"/>
     <text x="140" y="299" text-anchor="middle" font-size="10">GPUBufferManager + KernelBuilder</text>
 
@@ -126,7 +125,7 @@
     <rect x="310" y="215" width="180" height="25" fill="#fef7e0" stroke="#f9ab00" stroke-width="1" rx="3"/>
     <text x="400" y="233" text-anchor="middle" font-size="10">OpenCL Buffers &amp; Kernels</text>
     <rect x="310" y="248" width="180" height="25" fill="#fce8e6" stroke="#c5221f" stroke-width="1" rx="3"/>
-    <text x="400" y="266" text-anchor="middle" font-size="10">ANN::Core&lt;T&gt; (CPU dense)</text>
+    <text x="400" y="266" text-anchor="middle" font-size="10">ANN::CoreGPUWorker&lt;T&gt; (GPU dense)</text>
     <rect x="310" y="281" width="180" height="25" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1" rx="3"/>
     <text x="400" y="299" text-anchor="middle" font-size="10">GPUBufferManager + KernelBuilder</text>
 
@@ -137,7 +136,7 @@
     <rect x="570" y="215" width="180" height="25" fill="#fef7e0" stroke="#f9ab00" stroke-width="1" rx="3"/>
     <text x="660" y="233" text-anchor="middle" font-size="10">OpenCL Buffers &amp; Kernels</text>
     <rect x="570" y="248" width="180" height="25" fill="#fce8e6" stroke="#c5221f" stroke-width="1" rx="3"/>
-    <text x="660" y="266" text-anchor="middle" font-size="10">ANN::Core&lt;T&gt; (CPU dense)</text>
+    <text x="660" y="266" text-anchor="middle" font-size="10">ANN::CoreGPUWorker&lt;T&gt; (GPU dense)</text>
     <rect x="570" y="281" width="180" height="25" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1" rx="3"/>
     <text x="660" y="299" text-anchor="middle" font-size="10">GPUBufferManager + KernelBuilder</text>
 
@@ -146,7 +145,7 @@
     <path d="M 400 100 L 400 160" stroke="#1a73e8" stroke-width="2" fill="none" marker-end="url(#arrow-gpu)"/>
     <path d="M 480 100 L 660 160" stroke="#1a73e8" stroke-width="2" fill="none" marker-end="url(#arrow-gpu)"/>
   </svg>
-  <figcaption>CoreGPU creates one CoreGPUWorker per GPU device. Each worker owns its own OpenCL context, buffers, and ANN core.</figcaption>
+  <figcaption>CoreGPU creates one CoreGPUWorker per GPU device. Each worker owns its own OpenCL context, buffers, and an ANN GPU worker for dense layers.</figcaption>
 </div>
 
 <ul>
@@ -156,7 +155,7 @@
       <li>An <code>OpenCLWrapper::Core</code> instance bound to one GPU device</li>
       <li>A <code>GPUBufferManager</code> that allocates and manages all OpenCL buffers</li>
       <li>A <code>GPUKernelBuilder</code> that generates and registers OpenCL kernels</li>
-      <li>An <code>ANN::Core&lt;T&gt;</code> instance for dense layer computation on CPU</li>
+      <li>An <code>ANN::CoreGPUWorker&lt;T&gt;</code> instance for dense layer computation on the same GPU device</li>
     </ul>
   </li>
 </ul>
@@ -170,8 +169,8 @@
   <tr><th>File</th><th>Purpose</th><th>Key Kernels</th></tr>
   <tr>
     <td><code>opencl/CNN_Defines.hpp.cl</code></td>
-    <td>Type definitions — sets <code>#define TYPE float</code> (or double/int) so all kernels use the correct numeric precision</td>
-    <td><code>TYPE</code> macro</td>
+    <td>Static header — defines <code>TYPE</code> as <code>float</code>, <code>TILE_SIZE</code>, and ANN types for all kernels</td>
+    <td><code>TYPE</code> macro, <code>ActvFuncType</code>, <code>Layer</code></td>
   </tr>
   <tr>
     <td><code>opencl/CNN_Propagate.cpp.cl</code></td>
@@ -215,8 +214,8 @@
   </tr>
   <tr>
     <td><code>opencl/CNN_Bridge.cpp.cl</code></td>
-    <td>Data transfer between CNN GPU buffers and ANN CPU buffers</td>
-    <td><code>bridge_cnn_to_ann</code>, <code>bridge_ann_to_cnn</code></td>
+    <td>Bridge kernels — copy data between CNN and ANN GPU buffers on the same OpenCL core</td>
+    <td><code>copy_cnn_to_ann</code>, <code>copy_ann_grad_to_cnn</code></td>
   </tr>
   <tr>
     <td><code>opencl/CNN_Residual.cpp.cl</code></td>
@@ -226,16 +225,24 @@
 </table>
 
 <h2 id="type-system">Type System &amp; Precision</h2>
-<p>All OpenCL kernels use the <code>TYPE</code> macro defined in <code>CNN_Defines.hpp.cl</code>. This allows the same kernel source to work with different numeric types:</p>
+<p>All OpenCL kernels use the <code>TYPE</code> macro defined in <code>CNN_Defines.hpp.cl</code>. This file is a static header included by all kernel sources:</p>
 
-<pre><code><span class="comment">// CNN_Defines.hpp.cl — generated at runtime based on template parameter T</span>
-<span class="keyword">#define</span> TYPE <span class="type">float</span>    <span class="comment">// For Core&lt;float&gt;</span>
-<span class="keyword">#define</span> TYPE <span class="type">double</span>   <span class="comment">// For Core&lt;double&gt;</span></code></pre>
+<pre><code><span class="comment">// CNN_Defines.hpp.cl — static header file included by all kernels</span>
+<span class="keyword">#define</span> TYPE <span class="type">float</span>
+<span class="keyword">#define</span> TILE_SIZE <span class="number">16</span> <span class="comment">// Work-group tile dimension for GEMM kernels</span>
 
-<p>The <code>CoreGPUWorker</code> constructor writes this file dynamically based on the template parameter <code>T</code> before compiling kernels. This ensures type safety — if you instantiate <code>Core&lt;double&gt;</code>, all GPU computations use double precision automatically.</p>
+<span class="comment">// ANN types (must match C++ ANN::ActvFuncType and ANN::Layer)</span>
+<span class="keyword">typedef</span> <span class="keyword">enum</span> { ACTV_RELU = 0, ACTV_SIGMOID = 1, ACTV_TANH = 2, ACTV_SOFTMAX = 3, ACTV_UNKNOWN = 4 } ActvFuncType;
+
+<span class="keyword">typedef</span> <span class="keyword">struct</span> {
+    ulong numNeurons;
+    ActvFuncType actvFuncType;
+} Layer;</code></pre>
+
+<p><code>CNN_Defines.hpp.cl</code> is loaded once via <code>addSourceFile()</code> during kernel compilation. It defines <code>TYPE</code> as <code>float</code> and is included by all other kernel source files. The library currently supports only <code>float</code> precision; <code>double</code> and <code>int</code> instantiations of <code>Core&lt;T&gt;</code> are not supported for GPU mode.</p>
 
 <div class="warn-box">
-  <strong>Double precision on GPU:</strong> Not all GPUs support <code>cl_khr_fp64</code> (double precision). The library checks for this extension at runtime. If unavailable, GPU mode falls back to an error. For maximum compatibility, use <code>float</code>.
+  <strong>Double precision on GPU:</strong> Not all GPUs support <code>cl_khr_fp64</code> (double precision). The library currently only supports <code>float</code> for GPU mode. For maximum compatibility, use <code>float</code>.
 </div>
 
 <h2 id="kernel-builder">Kernel Builder Pattern</h2>

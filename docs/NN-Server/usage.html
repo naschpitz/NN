@@ -50,7 +50,7 @@
 
 <table class="options-table">
   <tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr>
-  <tr><td><code>"model"</code></td><td>string</td><td>Yes</td><td>—</td><td>Path to the trained model JSON file</td></tr>
+  <tr><td><code>"model"</code></td><td>string</td><td>Yes</td><td>—</td><td>Path to the trained model package (.nnmodel.tar)</td></tr>
   <tr><td><code>"port"</code></td><td>integer</td><td>No</td><td><code>8080</code></td><td>TCP port to listen on (1–65535)</td></tr>
   <tr><td><code>"poolSize"</code></td><td>integer</td><td>No</td><td>CPU cores</td><td>Number of Core instances in the pool</td></tr>
   <tr><td><code>"maxBodySize"</code></td><td>integer</td><td>No</td><td><code>10</code></td><td>Maximum request body size in megabytes. Requests exceeding this limit are rejected with HTTP 413. Set to <code>0</code> for unlimited</td></tr>
@@ -65,13 +65,13 @@
 
 <h3>Minimal config.json</h3>
 <pre><code>{
-  <span class="string">"model"</span>: <span class="string">"trained_model.json"</span>
+  <span class="string">"model"</span>: <span class="string">"trained_E-100_S-60000_L-0.123456.nnmodel.tar"</span>
 }
 </code></pre>
 
 <h3>Full config.json</h3>
 <pre><code>{
-  <span class="string">"model"</span>: <span class="string">"/models/isic_checkpoint.json"</span>,
+  <span class="string">"model"</span>: <span class="string">"/models/isic_checkpoint.nnmodel.tar"</span>,
   <span class="string">"port"</span>: <span class="number">9090</span>,
   <span class="string">"poolSize"</span>: <span class="number">4</span>,
   <span class="string">"maxBodySize"</span>: <span class="number">20</span>,
@@ -82,9 +82,9 @@
 
 <h3>Log format</h3>
 <p>Each request is logged as a single line:</p>
-<pre><code>[2026-03-23 14:30:05.123 -05:00] 192.168.1.10 POST /predict 200 45.2ms
-[2026-03-23 14:30:06.456 -05:00] 192.168.1.10 GET /health 200 0.3ms
-[2026-03-23 14:30:07.789 -05:00] 10.0.0.5 POST /predict 413 0.1ms
+<pre><code>[2026-03-23 14:30:05.123 EST] 192.168.1.10 POST /predict 200 45.2ms
+[2026-03-23 14:30:06.456 EST] 192.168.1.10 GET /health 200 0.3ms
+[2026-03-23 14:30:07.789 EST] 10.0.0.5 POST /predict 413 0.1ms
 </code></pre>
 
 <h2 id="endpoints">2. HTTP Endpoints</h2>
@@ -203,7 +203,7 @@ Content-Length: 32451
   <tr><td><code>400</code></td><td>Malformed HTTP request</td><td><code>{"error":"Malformed HTTP request"}</code></td></tr>
   <tr><td><code>400</code></td><td>Invalid JSON body</td><td><code>{"error":"Invalid JSON: ..."}</code></td></tr>
   <tr><td><code>400</code></td><td>Missing <code>"input"</code> array</td><td><code>{"error":"Request must contain an 'input' array"}</code></td></tr>
-  <tr><td><code>400</code></td><td>Missing request body</td><td><code>{"error":"Missing request body"}</code></td></tr>
+  <tr><td><code>400</code></td><td>No HTTP headers received (malformed request — missing <code>\r\n\r\n</code>)</td><td><code>{"error":"Missing request body"}</code></td></tr>
   <tr><td><code>404</code></td><td>Unknown endpoint</td><td><code>{"error":"Not found. Use POST /predict"}</code></td></tr>
   <tr><td><code>413</code></td><td>Request body exceeds <code>maxBodySize</code></td><td><code>{"error":"Request body too large. Maximum allowed: N bytes"}</code></td></tr>
   <tr><td><code>503</code></td><td>Queue full (<code>maxQueueSize</code> exceeded)</td><td><code>{"error":"Server busy. Too many queued requests"}</code></td></tr>
@@ -212,6 +212,16 @@ Content-Length: 32451
 </table>
 
 <p>Startup errors (missing <code>"model"</code> field in config, invalid model file, etc.) are printed to <code>stderr</code> and the process exits with code 1.</p>
+
+<h2 id="network">8. Network Behavior Details</h2>
+
+<table class="options-table">
+  <tr><th>Behavior</th><th>Description</th></tr>
+  <tr><td>Bind address</td><td>The server listens on <code>QHostAddress::Any</code> (all network interfaces — <code>0.0.0.0</code> for IPv4 and <code>::</code> for IPv6).</td></tr>
+  <tr><td>Connection handling</td><td>Every HTTP response includes <code>Connection: close</code>. HTTP keep-alive is not supported; each request opens a new TCP connection.</td></tr>
+  <tr><td>IPv6 normalization</td><td>IPv4-mapped IPv6 addresses (e.g. <code>::ffff:192.168.1.3</code>) are normalized to plain IPv4 for logging and error reporting. Native IPv6 addresses are left unchanged.</td></tr>
+  <tr><td>Reverse proxy support</td><td>When behind a reverse proxy (Caddy, Nginx, FRP, etc.), the server respects <code>X-Forwarded-For</code> and <code>X-Real-IP</code> headers for client IP detection. If both are absent, <code>QTcpSocket::peerAddress()</code> is used directly.</td></tr>
+</table>
 
 </main>
 </div>
