@@ -96,7 +96,9 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 <p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files. The config must include pre-trained <code>parameters</code>. Prints test metrics (sample count, average loss).</p>
 <pre><code>NN-CLI -c trained_model.json -m test -s test_samples.json
 </code></pre>
+</div>
 
+<div class="card">
 <h3><span class="badge-blue">calibrate</span></h3>
 <p>Picks a free-energy out-of-distribution threshold for the trained model. Runs predict on a random subsample of in-distribution images (<code>--id-images</code>) and a random subsample of OOD images (<code>--ood-dir</code>), computes the free-energy <code>E(x) = −log Σᵢ exp(zᵢ)</code> for each, and writes a <code>threshold.json</code> to <code>--output</code> (default: next to the model config). The threshold is taken at the chosen ID percentile (default 95th) — by construction at most that fraction of real in-distribution scans will trip the warning at runtime.</p>
 <pre><code>NN-CLI -c best_model.json -m calibrate \
