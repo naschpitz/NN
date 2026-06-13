@@ -36,6 +36,7 @@ add_executable(NN-CLI
   NN-CLI_TrainingController.cpp
   NN-CLI_PredictController.cpp
   NN-CLI_TestController.cpp
+  NN-CLI_CalibrateController.cpp
   NN-CLI_Utils.cpp
 )
 
@@ -55,6 +56,7 @@ endif()
 # Without this, 10 .cpp files are compiled twice (once per target), wasting build time.
 add_library(nncli_common OBJECT
     NN-CLI_ANNLoader.cpp
+    NN-CLI_CalibrateUtils.cpp
     NN-CLI_DataLoader.cpp
     NN-CLI_GpuAugmenter.cpp
     NN-CLI_DataSplitter.cpp
@@ -155,6 +157,7 @@ add_executable(test_nncli
   tests/test_monitoring.cpp
   tests/test_gpu_augment.cpp
   tests/test_terminal_ui.cpp
+  tests/test_calibrate_controller.cpp
   # TerminalUI sources needed for unit tests (panel, table, window, training window).
   # Compiled separately from nncli_common to keep the shared object library lean.
   ${CMAKE_CURRENT_SOURCE_DIR}/NN-CLI_TerminalUI_Panel.cpp

@@ -2,6 +2,7 @@
 #define NN_CLI_CALIBRATERUNNER_HPP
 
 #include "NN-CLI_AugmentationConfig.hpp"
+#include "NN-CLI_CalibrateUtils.hpp"
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_NetworkType.hpp"
@@ -42,7 +43,7 @@ namespace NN_CLI
  * The runner consumes a Core that the parent App created in PREDICT
  * mode — calibrate is a CLI-level mode, not a model-level one.
  */
-  class CalibrateRunner
+  class CalibrateRunner : public IRunnerObserver
   {
     public:
       //-- Ctors / Dtors --//
@@ -55,6 +56,16 @@ namespace NN_CLI
       //-- Observer management --//
       void addObserver(IRunnerObserver* observer);
       void removeObserver(IRunnerObserver* observer);
+
+      //-- IRunnerObserver overrides (no-op — used when CalibrateRunner acts as observer on itself) --//
+      void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
+                           const std::vector<float>& fractions) override;
+      void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
+                            const std::string& summary) override;
+      void onTrainingFinished(bool success, const std::string& finalSummary) override;
+      void onModelInfoUpdated(const std::string& property, const std::string& value) override;
+      void onLogMessage(const std::string& message, bool isError) override;
+      void onTimingUpdated(const std::string& metric, float value) override;
 
       //-- Lifecycle --//
 
@@ -80,30 +91,6 @@ namespace NN_CLI
 
       //-- Observer list --//
       std::vector<IRunnerObserver*> observers;
-
-      //-- Phases --//
-      // Ensure --ood-dir contains DTD/Places365/synthetic; download/generate if missing.
-      void ensureOODDataset(const std::string& oodDir);
-
-      // Gather all image paths under root recursively (jpg/jpeg/png/bmp).
-      static std::vector<std::string> gatherImages(const std::string& rootDir);
-
-      // Random subsample (seeded), absolute paths.
-      static std::vector<std::string> sampleImages(const std::vector<std::string>& all, std::size_t count,
-                                                   uint32_t seed);
-
-      // Run predict over the sampled images and return per-sample logits (length = numClasses).
-      std::vector<std::vector<float>> runPredict(const std::vector<std::string>& imagePaths,
-                                                 const std::string& progressLabel);
-
-      //-- OOD dataset providers --//
-      void fetchDTD(const std::string& destDir);
-      void fetchPlaces365Val(const std::string& destDir);
-      void generateSynthetic(const std::string& destDir);
-
-      //-- Output --//
-      void writeThresholdJson(const std::string& outputPath, const std::vector<float>& idEnergies,
-                              const std::vector<float>& oodEnergies, double idPercentile);
   };
 } // namespace NN_CLI
 
