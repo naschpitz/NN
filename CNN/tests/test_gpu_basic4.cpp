@@ -35,9 +35,9 @@ static void testGPUMultipleOutputNeurons()
   initConv.biases.assign(2, 0.0f);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   CNN::Samples<float> samples(2);
@@ -136,8 +136,8 @@ static void testGPUWeightedLossTraining()
 
   config.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
   config.costFunctionConfig.weights = {5.0f, 1.0f};
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   CNN::Samples<float> samples(2);

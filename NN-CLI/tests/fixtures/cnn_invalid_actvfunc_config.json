@@ -9,7 +9,7 @@
   "denseLayers": [
     { "numNeurons": 2, "actvFunc": "banana" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 1,
     "learningRate": 0.1
   }

@@ -1046,8 +1046,8 @@ void GPUKernelBuilder<T>::addCNNAccumulateKernels(ulong sampleIdx, ulong layerSt
 template <typename T>
 void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunningStats)
 {
-  if (this->workerConfig.trainingConfig.optimizer.type == Common::OptimizerType::ADAM) {
-    const auto& opt = this->workerConfig.trainingConfig.optimizer;
+  if (this->workerConfig.trainConfig.optimizer.type == Common::OptimizerType::ADAM) {
+    const auto& opt = this->workerConfig.trainConfig.optimizer;
     this->adam_t++;
 
     float bc1 = 1.0f - std::pow(static_cast<float>(opt.beta1), static_cast<float>(this->adam_t));
@@ -1064,7 +1064,7 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_filters", this->bufferManager.totalFilterSize);
       this->core->template addArgument<ulong>("update_parameters_filters", numSamples);
       this->core->template addArgument<float>("update_parameters_filters",
-                                              static_cast<float>(this->workerConfig.trainingConfig.learningRate));
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
       this->core->template addArgument<float>("update_parameters_filters", static_cast<float>(opt.beta1));
       this->core->template addArgument<float>("update_parameters_filters", static_cast<float>(opt.beta2));
       this->core->template addArgument<float>("update_parameters_filters", static_cast<float>(opt.epsilon));
@@ -1082,7 +1082,7 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_biases", this->bufferManager.totalBiasSize);
       this->core->template addArgument<ulong>("update_parameters_biases", numSamples);
       this->core->template addArgument<float>("update_parameters_biases",
-                                              static_cast<float>(this->workerConfig.trainingConfig.learningRate));
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
       this->core->template addArgument<float>("update_parameters_biases", static_cast<float>(opt.beta1));
       this->core->template addArgument<float>("update_parameters_biases", static_cast<float>(opt.beta2));
       this->core->template addArgument<float>("update_parameters_biases", static_cast<float>(opt.epsilon));
@@ -1101,7 +1101,7 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_norm_gamma", this->bufferManager.totalNormParamSize);
       this->core->template addArgument<ulong>("update_parameters_norm_gamma", numSamples);
       this->core->template addArgument<float>("update_parameters_norm_gamma",
-                                              static_cast<float>(this->workerConfig.trainingConfig.learningRate));
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
       this->core->template addArgument<float>("update_parameters_norm_gamma", static_cast<float>(opt.beta1));
       this->core->template addArgument<float>("update_parameters_norm_gamma", static_cast<float>(opt.beta2));
       this->core->template addArgument<float>("update_parameters_norm_gamma", static_cast<float>(opt.epsilon));
@@ -1118,7 +1118,7 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_norm_beta", this->bufferManager.totalNormParamSize);
       this->core->template addArgument<ulong>("update_parameters_norm_beta", numSamples);
       this->core->template addArgument<float>("update_parameters_norm_beta",
-                                              static_cast<float>(this->workerConfig.trainingConfig.learningRate));
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
       this->core->template addArgument<float>("update_parameters_norm_beta", static_cast<float>(opt.beta1));
       this->core->template addArgument<float>("update_parameters_norm_beta", static_cast<float>(opt.beta2));
       this->core->template addArgument<float>("update_parameters_norm_beta", static_cast<float>(opt.epsilon));
@@ -1135,7 +1135,7 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_filters", this->bufferManager.totalFilterSize);
       this->core->template addArgument<ulong>("update_parameters_filters", numSamples);
       this->core->template addArgument<float>("update_parameters_filters",
-                                              static_cast<float>(this->workerConfig.trainingConfig.learningRate));
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
     }
 
     if (this->bufferManager.totalBiasSize > 0) {
@@ -1146,7 +1146,7 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_biases", this->bufferManager.totalBiasSize);
       this->core->template addArgument<ulong>("update_parameters_biases", numSamples);
       this->core->template addArgument<float>("update_parameters_biases",
-                                              static_cast<float>(this->workerConfig.trainingConfig.learningRate));
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
     }
 
     if (this->bufferManager.totalNormParamSize > 0) {
@@ -1158,7 +1158,7 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_norm_gamma", this->bufferManager.totalNormParamSize);
       this->core->template addArgument<ulong>("update_parameters_norm_gamma", numSamples);
       this->core->template addArgument<float>("update_parameters_norm_gamma",
-                                              static_cast<float>(this->workerConfig.trainingConfig.learningRate));
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
 
       this->core->addKernel("update_parameters_norm_beta", "update_parameters", this->bufferManager.totalNormParamSize,
                             0);
@@ -1168,7 +1168,7 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_norm_beta", this->bufferManager.totalNormParamSize);
       this->core->template addArgument<ulong>("update_parameters_norm_beta", numSamples);
       this->core->template addArgument<float>("update_parameters_norm_beta",
-                                              static_cast<float>(this->workerConfig.trainingConfig.learningRate));
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
     }
   }
 

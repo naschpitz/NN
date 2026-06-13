@@ -107,8 +107,8 @@ static void testCrossEntropyLossDecreases()
   config.parameters.convParams = {initConv};
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.numEpochs = 50;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 0;
 
   // Both samples have non-zero inputs so conv produces meaningful features
@@ -124,7 +124,7 @@ static void testCrossEntropyLossDecreases()
   Common::TestResult<double> result1 = core->test(samples.size(), CNN::makeSampleProvider(samples));
 
   // Train 200 more epochs from same params
-  config.trainingConfig.numEpochs = 200;
+  config.trainConfig.numEpochs = 200;
   config.parameters = core->getParameters();
   auto core2 = CNN::Core<double>::makeCore(config);
   core2->train(samples.size(), CNN::makeSampleProvider(samples));
@@ -180,9 +180,9 @@ static void testCrossEntropyTraining()
   config.parameters.convParams = {initConv};
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.numEpochs = 300;
-  config.trainingConfig.learningRate = 0.003f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 300;
+  config.trainConfig.learningRate = 0.003f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   // 3-class classification with truly distinct spatial patterns (not just
@@ -259,8 +259,8 @@ static void testWeightedCrossEntropyTraining()
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {5.0, 1.0};
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);

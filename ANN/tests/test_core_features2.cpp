@@ -41,9 +41,9 @@ static void testSoftmaxTrain()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
 
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no flaky shuffle order.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.1;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no flaky shuffle order.
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
 
@@ -86,8 +86,8 @@ static void testSoftmaxHiddenLayer()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SOFTMAX}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.1;
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.1;
   config.progressReports = 0;
 
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};
@@ -115,9 +115,9 @@ static void testDropoutTraining()
   config.deviceType = Common::DeviceType::CPU;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {16, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 10000;
-  config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.dropoutRate = 0.2f;
+  config.trainConfig.numEpochs = 10000;
+  config.trainConfig.learningRate = 0.1;
+  config.trainConfig.dropoutRate = 0.2f;
 
   auto core = ANN::Core<double>::makeCore(config);
 
@@ -148,7 +148,7 @@ static void testDropoutDisabledByDefault()
   config.deviceType = Common::DeviceType::CPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
 
-  CHECK(config.trainingConfig.dropoutRate == 0.0f, "dropoutRate defaults to 0.0");
+  CHECK(config.trainConfig.dropoutRate == 0.0f, "dropoutRate defaults to 0.0");
 }
 
 //===================================================================================================================//

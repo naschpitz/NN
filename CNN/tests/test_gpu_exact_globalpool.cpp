@@ -52,8 +52,8 @@ static void testGPUGlobalAvgPoolCPUGPUParity()
     config.parameters.denseParams.biases.resize(2);
     config.parameters.denseParams.biases[1] = {0.0f};
 
-    config.trainingConfig.numEpochs = 20;
-    config.trainingConfig.learningRate = 0.1f;
+    config.trainConfig.numEpochs = 20;
+    config.trainConfig.learningRate = 0.1f;
     config.progressReports = 0;
 
     return config;
@@ -136,8 +136,8 @@ static void testGPUGlobalDualPoolCPUGPUParity()
     config.parameters.denseParams.biases.resize(2);
     config.parameters.denseParams.biases[1] = {0.0f};
 
-    config.trainingConfig.numEpochs = 20;
-    config.trainingConfig.learningRate = 0.1f;
+    config.trainConfig.numEpochs = 20;
+    config.trainConfig.learningRate = 0.1f;
     config.progressReports = 0;
 
     return config;

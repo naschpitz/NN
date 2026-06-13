@@ -46,9 +46,9 @@ static CNN::CoreConfig<float> makeGPUBNTestConfig(ulong denseNeurons, ANN::ActvF
   initBN.runningVar = {1.0f};
   config.parameters.normParams = {initBN};
 
-  config.trainingConfig.numEpochs = 1;
-  config.trainingConfig.learningRate = 1.0f;
-  config.trainingConfig.shuffleSamples = false;
+  config.trainConfig.numEpochs = 1;
+  config.trainConfig.learningRate = 1.0f;
+  config.trainConfig.shuffleSamples = false;
   config.progressReports = 0;
 
   return config;

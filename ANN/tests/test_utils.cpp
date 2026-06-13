@@ -33,6 +33,7 @@ static void testModeNameToType()
   CHECK(Common::Mode::nameToType("train") == Common::ModeType::TRAIN, "train → TRAIN");
   CHECK(Common::Mode::nameToType("predict") == Common::ModeType::PREDICT, "predict → PREDICT");
   CHECK(Common::Mode::nameToType("test") == Common::ModeType::TEST, "test → TEST");
+  CHECK(Common::Mode::nameToType("calibrate") == Common::ModeType::CALIBRATE, "calibrate → CALIBRATE");
 
   CHECK_THROWS(Common::Mode::nameToType("nonexistent"), "nonexistent throws");
 }
@@ -46,6 +47,7 @@ static void testModeTypeToName()
   CHECK(Common::Mode::typeToName(Common::ModeType::TRAIN) == "train", "TRAIN → train");
   CHECK(Common::Mode::typeToName(Common::ModeType::PREDICT) == "predict", "PREDICT → predict");
   CHECK(Common::Mode::typeToName(Common::ModeType::TEST) == "test", "TEST → test");
+  CHECK(Common::Mode::typeToName(Common::ModeType::CALIBRATE) == "calibrate", "CALIBRATE → calibrate");
 }
 
 //===================================================================================================================//

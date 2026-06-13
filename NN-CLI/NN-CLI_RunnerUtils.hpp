@@ -33,7 +33,7 @@ namespace NN_CLI
   /// @param logLevel      Current log level.
   /// @param parser        CLI parser (for --output).
   /// @param inputFilePath Path to the input samples file (used for default output path).
-  /// @param core          The trained core (ANN or CNN) — must support getTrainingConfig() and getTrainingMetadata().
+   /// @param core          The trained core (ANN or CNN) — must support getTrainConfig() and getTrainMetadata().
   /// @param saveFn        Callable that takes (const std::string& outputPath) and persists the model.
   template <typename CoreT, typename SaveFn>
   int finishTrainingCommon(LogLevel logLevel, const QCommandLineParser& parser, const QString& inputFilePath,
@@ -42,12 +42,12 @@ namespace NN_CLI
     if (logLevel > LogLevel::QUIET)
       std::cout << "\nTraining completed.\n";
 
-    const auto& trainingConfig = core.getTrainingConfig();
-    const auto& trainingMetadata = core.getTrainingMetadata();
+    const auto& trainConfig = core.getTrainConfig();
+    const auto& trainMetadata = core.getTrainMetadata();
     // lastEpoch is a 0-based index, so the count of epochs trained is index + 1.
     // Fall back to the configured numEpochs when no epoch completed.
     ulong actualEpochs =
-      trainingMetadata.epochHistory.empty() ? trainingConfig.numEpochs : trainingMetadata.epochHistory.back().epoch + 1;
+      trainMetadata.epochHistory.empty() ? trainConfig.numEpochs : trainMetadata.epochHistory.back().epoch + 1;
 
     std::string outputPathStr;
 
@@ -55,7 +55,7 @@ namespace NN_CLI
       outputPathStr = parser.value("output").toStdString();
     } else {
       outputPathStr = ModelSerializer::generateDefaultOutputPath(
-        inputFilePath, actualEpochs, trainingMetadata.numSamples, trainingMetadata.finalLoss);
+        inputFilePath, actualEpochs, trainMetadata.numSamples, trainMetadata.finalLoss);
     }
 
     saveFn(outputPathStr);
@@ -192,7 +192,7 @@ namespace NN_CLI
   /// @param parser             CLI parser (for --samples, --idx-data, --idx-labels).
   /// @param logLevel           Current log level.
   /// @param ioConfig           I/O configuration.
-  /// @param modeName           Human-readable mode name ("training", "test").
+  /// @param modeName           Human-readable mode name ("train", "test").
   /// @param inputFilePath      [out] Set to the resolved file path.
   /// @param loadJsonSamples    Callable: (std::string path, ulong progressReports) → SamplesT
   /// @param loadIdxSamples     Callable: (std::string dataPath, std::string labelsPath, ulong progressReports) → SamplesT

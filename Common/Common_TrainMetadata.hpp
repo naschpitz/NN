@@ -1,5 +1,5 @@
-#ifndef COMMON_TRAININGMETADATA_HPP
-#define COMMON_TRAININGMETADATA_HPP
+#ifndef COMMON_TRAINMETADATA_HPP
+#define COMMON_TRAINMETADATA_HPP
 
 #include "Common/Common_EpochRecord.hpp"
 
@@ -12,9 +12,9 @@
 
 namespace Common
 {
-  // Training metadata (captured at runtime, saved with the model)
+  // Train metadata (captured at runtime, saved with the model)
   template <typename T>
-  struct TrainingMetadata {
+  struct TrainMetadata {
       std::string startTime; // ISO 8601 format (e.g., "2026-02-19T10:30:00")
       std::string endTime; // ISO 8601 format
       double durationSeconds; // Total training duration in seconds
@@ -35,4 +35,4 @@ namespace Common
 
 //===================================================================================================================//
 
-#endif // COMMON_TRAININGMETADATA_HPP
+#endif // COMMON_TRAINMETADATA_HPP

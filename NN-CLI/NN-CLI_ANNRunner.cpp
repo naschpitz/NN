@@ -1,6 +1,7 @@
 #include "NN-CLI_ANNRunner.hpp"
 #include "NN-CLI_ANNLoader.hpp"
 
+#include "NN-CLI_CalibrateUtils.hpp"
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_DataLoader.hpp"
 #include "NN-CLI_DataSplitter.hpp"
@@ -20,10 +21,14 @@
 
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <QMutex>
 #include <numeric>
+
+namespace fs = std::filesystem;
 
 using namespace NN_CLI;
 
@@ -122,7 +127,7 @@ int ANNRunner::train()
     dataLoader.loadManifest(inputFilePath.toStdString(), this->ioConfig, inputC, inputH, inputW, outputC, outputH,
                             outputW);
   } else {
-    auto [samples, success] = this->loadSamplesFromOptions("training", inputFilePath);
+    auto [samples, success] = this->loadSamplesFromOptions("train", inputFilePath);
 
     if (!success)
       return 1;
@@ -190,10 +195,10 @@ int ANNRunner::train()
 
   std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
 
-  if (validationConfig.enabled && this->coreConfig.trainingConfig.monitoringConfig.enabled) {
+  if (validationConfig.enabled && this->coreConfig.trainConfig.monitoringConfig.enabled) {
     trainingMonitor =
-      std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainingConfig.monitoringConfig);
-    this->coreConfig.trainingConfig.monitoringConfig.enabled = false;
+      std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainConfig.monitoringConfig);
+    this->coreConfig.trainConfig.monitoringConfig.enabled = false;
     this->core = ANN::Core<float>::makeCore(this->coreConfig);
   }
 
@@ -349,6 +354,191 @@ int ANNRunner::predict()
 }
 
 //===================================================================================================================//
+//  Calibration
+//===================================================================================================================//
+
+int ANNRunner::calibrate()
+{
+  //-- CLI-only config (not in CalibrateConfig) ----------------------------
+  const std::string& idImagesDir = this->parser.value("id-images").toStdString();
+  const std::string oodDir = this->parser.isSet("ood-dir")
+                               ? this->parser.value("ood-dir").toStdString()
+                               : (fs::current_path() / "extern-datasets" / "ood").string();
+  const std::string outputPath = this->parser.isSet("output")
+                                   ? this->parser.value("output").toStdString()
+                                   : (fs::path(this->parser.value("config").toStdString()).parent_path() /
+                                      "threshold.json").string();
+  const ulong progressReports = this->ioConfig.progressReports;
+
+  //-- Validate ID images directory ------------------------------------------
+  if (!fs::exists(idImagesDir) || !fs::is_directory(idImagesDir)) {
+    std::string errMsg = "Error: --id-images " + idImagesDir + " does not exist or is not a directory.";
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
+    return 1;
+  }
+
+  //-- Fetch OOD if needed ---------------------------------------------------
+  if (this->coreConfig.calibrateConfig.fetchIfMissing && !NN_CLI::dirHasImages(oodDir)) {
+    if (this->logLevel > LogLevel::QUIET) {
+      std::string msg = "OOD dir is empty \u2014 fetching DTD + Places365 + synthetic.\n";
+      std::cout << msg;
+      this->notifyLogMessage(msg, false);
+    }
+    NN_CLI::ensureOODDataset(oodDir, this->logLevel, [this](const std::string& m, bool err) {
+      this->notifyLogMessage(m, err);
+    });
+  } else if (!NN_CLI::dirHasImages(oodDir)) {
+    std::string errMsg = "Error: --ood-dir " + oodDir + " has no images and --no-fetch was set.";
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
+    return 1;
+  }
+
+  //-- Gather + sample -------------------------------------------------------
+  std::vector<std::string> idAll = NN_CLI::gatherImages(idImagesDir);
+  std::vector<std::string> oodAll = NN_CLI::gatherImages(oodDir);
+
+  if (idAll.empty()) {
+    std::string errMsg = "Error: no images found under --id-images " + idImagesDir;
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
+    return 1;
+  }
+
+  if (oodAll.empty()) {
+    std::string errMsg = "Error: no images found under --ood-dir " + oodDir;
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
+    return 1;
+  }
+
+  std::vector<std::string> idSample = NN_CLI::sampleImages(idAll, this->coreConfig.calibrateConfig.idSampleCount, 42);
+  std::vector<std::string> oodSample = NN_CLI::sampleImages(oodAll, this->coreConfig.calibrateConfig.oodSampleCount, 42);
+
+  if (this->logLevel > LogLevel::QUIET) {
+    std::string msg = "Sampled " + std::to_string(idSample.size()) + " ID images (of " + std::to_string(idAll.size()) +
+                      " available)\n"
+                      "Sampled " +
+                      std::to_string(oodSample.size()) + " OOD images (of " + std::to_string(oodAll.size()) +
+                      " available)\n\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
+  }
+
+  //-- Predict + free-energy -------------------------------------------------
+  auto t0 = std::chrono::system_clock::now();
+
+  int targetC = static_cast<int>(this->ioConfig.inputC);
+  int targetH = static_cast<int>(this->ioConfig.inputH);
+  int targetW = static_cast<int>(this->ioConfig.inputW);
+
+  auto wrapFn = [](std::vector<float>&& flat) { return std::move(flat); };
+
+  std::vector<std::vector<float>> idLogits =
+    NN_CLI::runPredictImpl<ANN::Inputs<float>>(*this->core, idSample, "Predicting ID", targetC, targetH, targetW,
+                                                progressReports, this->logLevel, wrapFn);
+  std::vector<std::vector<float>> oodLogits =
+    NN_CLI::runPredictImpl<ANN::Inputs<float>>(*this->core, oodSample, "Predicting OOD", targetC, targetH, targetW,
+                                                progressReports, this->logLevel, wrapFn);
+
+  std::vector<float> idEnergies, oodEnergies;
+  idEnergies.reserve(idLogits.size());
+  oodEnergies.reserve(oodLogits.size());
+
+  for (const auto& l : idLogits)
+    idEnergies.push_back(NN_CLI::computeFreeEnergy(l));
+
+  for (const auto& l : oodLogits)
+    oodEnergies.push_back(NN_CLI::computeFreeEnergy(l));
+
+  std::sort(idEnergies.begin(), idEnergies.end());
+  std::sort(oodEnergies.begin(), oodEnergies.end());
+
+  //-- Write threshold.json --------------------------------------------------
+  auto writeThreshold = [this](const std::string& outputPath, const std::vector<float>& idSorted,
+                               const std::vector<float>& oodSorted, double idPercentile) {
+    auto stats = [](const std::vector<float>& sorted, const std::vector<double>& ps) {
+      nlohmann::ordered_json out;
+      out["n"] = sorted.size();
+      if (!sorted.empty()) {
+        out["min"] = NN_CLI::roundTo(sorted.front(), 4);
+        out["max"] = NN_CLI::roundTo(sorted.back(), 4);
+      }
+      double mean = 0.0;
+      for (float v : sorted)
+        mean += v;
+      if (!sorted.empty())
+        mean /= sorted.size();
+      out["mean"] = NN_CLI::roundTo(mean, 4);
+      for (double p : ps) {
+        char key[16];
+        std::snprintf(key, sizeof(key), "p%g", p);
+        out[key] = NN_CLI::roundTo(NN_CLI::computePercentile(sorted, p), 4);
+      }
+      return out;
+    };
+
+    float threshold = NN_CLI::computePercentile(idSorted, idPercentile);
+
+    std::size_t idAccepted = 0;
+    for (float e : idSorted) {
+      if (e <= threshold)
+        idAccepted++;
+    }
+
+    std::size_t oodRejected = 0;
+    for (float e : oodSorted) {
+      if (e > threshold)
+        oodRejected++;
+    }
+
+    nlohmann::ordered_json doc;
+    doc["freeEnergyThreshold"] = NN_CLI::roundTo(threshold, 4);
+    doc["idPercentileUsed"] = idPercentile;
+    doc["rule"] = "predicted_ood = (free_energy > freeEnergyThreshold)";
+    doc["idStats"] = stats(idSorted, {1, 5, 50, 90, 95, 99});
+    doc["oodStats"] = stats(oodSorted, {1, 5, 50, 95, 99});
+
+    nlohmann::ordered_json conf;
+    conf["idAccepted"] = idAccepted;
+    conf["idRejected"] = idSorted.size() - idAccepted;
+    conf["oodAccepted"] = oodSorted.size() - oodRejected;
+    conf["oodRejected"] = oodRejected;
+    conf["idAcceptanceRate"] = NN_CLI::roundTo(static_cast<double>(idAccepted) / idSorted.size(), 4);
+    conf["oodRejectionRate"] = NN_CLI::roundTo(static_cast<double>(oodRejected) / oodSorted.size(), 4);
+    doc["confusion"] = conf;
+
+    std::ofstream f(outputPath);
+    if (!f)
+      throw std::runtime_error("Cannot write " + outputPath);
+
+    f << doc.dump(2) << "\n";
+
+    if (this->logLevel > LogLevel::QUIET)
+      std::cout << doc.dump(2) << "\n";
+  };
+
+  writeThreshold(outputPath, idEnergies, oodEnergies, this->coreConfig.calibrateConfig.idPercentile);
+
+  auto t1 = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed = t1 - t0;
+
+  if (this->logLevel > LogLevel::QUIET) {
+    std::string doneMsg = "\nCalibration done in " + Common::Utils::formatDuration(elapsed.count()) +
+                          "\nThreshold written to: " + outputPath + "\n";
+    std::cout << doneMsg;
+    this->notifyLogMessage(doneMsg, false);
+  }
+
+  std::string summary = "Calibration completed | ID: " + std::to_string(idEnergies.size()) +
+                        " | OOD: " + std::to_string(oodEnergies.size()) + " | Output: " + outputPath;
+  this->notifyTrainingFinished(true, summary);
+
+  return 0;
+}
+
+//===================================================================================================================//
 //  Sample loading
 //===================================================================================================================//
 
@@ -377,8 +567,8 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 {
   this->lastEpochLoss = 0.0f;
 
-  ulong batchSize = this->coreConfig.trainingConfig.batchSize;
-  int totalEpochs = static_cast<int>(this->coreConfig.trainingConfig.numEpochs);
+  ulong batchSize = this->coreConfig.trainConfig.batchSize;
+  int totalEpochs = static_cast<int>(this->coreConfig.trainConfig.numEpochs);
 
   std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr;
 
@@ -462,7 +652,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     // The core's internal monitor is disabled (NN-CLI monitors externally), so
     // it recorded isBest=false / hasValLoss=false. The just-completed epoch is
     // epochHistory.back() (the core appended it immediately before this call).
-    auto& epochHistory = this->core->getTrainingMetadata().epochHistory;
+    auto& epochHistory = this->core->getTrainMetadata().epochHistory;
 
     if (!epochHistory.empty()) {
       auto& lastRecord = epochHistory.back();
@@ -493,7 +683,7 @@ void ANNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
     }
 
     if (completion.stoppedEarly) {
-      std::string stopMsg = "[Monitor] Training stopped: " + this->core->getTrainingMetadata().stopReason;
+      std::string stopMsg = "[Monitor] Training stopped: " + this->core->getTrainMetadata().stopReason;
 
       this->notifyLogMessage(stopMsg, false);
       this->core->requestStop();

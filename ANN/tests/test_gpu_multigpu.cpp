@@ -14,9 +14,9 @@ static void testMultiGPUTrainSimple()
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 2;
   config.logLevel = Common::LogLevel::ERROR;
@@ -44,8 +44,8 @@ static void testMultiGPUTestMethod()
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::SIGMOID}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5f;
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5f;
   config.progressReports = 0;
   config.numGPUs = 2;
   config.logLevel = Common::LogLevel::ERROR;
@@ -72,8 +72,8 @@ static void testMultiGPUCallback()
   config.modeType = Common::ModeType::TRAIN;
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 5;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 5;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 1;
   config.numGPUs = 2;
   config.logLevel = Common::LogLevel::ERROR;
@@ -119,9 +119,9 @@ static void testMultiGPUCrossEntropyTraining()
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.1f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.1f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
   config.numGPUs = 2;
   config.logLevel = Common::LogLevel::ERROR;
@@ -153,8 +153,8 @@ static void testMultiGPUDifferentActivations()
     config.modeType = Common::ModeType::TRAIN;
     config.deviceType = Common::DeviceType::GPU;
     config.layersConfig = makeLayersConfig({{2, actvType}, {1, ANN::ActvFuncType::SIGMOID}});
-    config.trainingConfig.numEpochs = 100;
-    config.trainingConfig.learningRate = 0.1f;
+    config.trainConfig.numEpochs = 100;
+    config.trainConfig.learningRate = 0.1f;
     config.progressReports = 0;
     config.numGPUs = 2;
     config.logLevel = Common::LogLevel::ERROR;
@@ -180,8 +180,8 @@ static void testMultiGPUMultiOutput()
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 2;
   config.logLevel = Common::LogLevel::ERROR;
@@ -209,9 +209,9 @@ static void testMultiGPUDropoutTraining()
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig =
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {8, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.1f;
-  config.trainingConfig.dropoutRate = 0.3f;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.1f;
+  config.trainConfig.dropoutRate = 0.3f;
   config.progressReports = 0;
   config.numGPUs = 2;
   config.logLevel = Common::LogLevel::ERROR;
@@ -236,8 +236,8 @@ static void testMultiGPUParametersDuringTraining()
   config.modeType = Common::ModeType::TRAIN;
   config.deviceType = Common::DeviceType::GPU;
   config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
-  config.trainingConfig.numEpochs = 50;
-  config.trainingConfig.learningRate = 0.1f;
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.1f;
   config.progressReports = 0;
   config.numGPUs = 2;
   config.logLevel = Common::LogLevel::ERROR;

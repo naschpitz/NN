@@ -9,7 +9,7 @@
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
   ],
-  "training": {
+  "train": {
     "numEpochs": 30,
     "batchSize": 512,
     "learningRate": 0.01,

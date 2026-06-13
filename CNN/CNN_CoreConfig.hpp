@@ -5,11 +5,12 @@
 #include "Common/Common_Device.hpp"
 #include "Common/Common_LogLevel.hpp"
 #include "Common/Common_EpochRecord.hpp"
-#include "Common/Common_TrainingMetadata.hpp"
+#include "Common/Common_TrainMetadata.hpp"
 #include "CNN_LayersConfig.hpp"
 #include "Common/Common_CostFunctionConfig.hpp"
-#include "Common/Common_TrainingConfig.hpp"
+#include "Common/Common_TrainConfig.hpp"
 #include "Common/Common_TestConfig.hpp"
+#include "Common/Common_CalibrateConfig.hpp"
 #include "CNN_Parameters.hpp"
 #include "CNN_Types.hpp"
 
@@ -27,8 +28,9 @@ namespace CNN
       Shape3D inputShape; // Input tensor shape (C, H, W)
       LayersConfig layersConfig;
       Common::CostFunctionConfig<T> costFunctionConfig;
-      Common::TrainingConfig<T> trainingConfig;
+      Common::TrainConfig<T> trainConfig;
       Common::TestConfig testConfig;
+       Common::CalibrateConfig calibrateConfig;
       Parameters<T> parameters;
       ulong progressReports = 1000; // Number of progress reports (0 = no reports, default = 1000)
       Common::LogLevel logLevel = Common::LogLevel::ERROR;

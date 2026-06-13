@@ -77,7 +77,7 @@ namespace NN_CLI
   template <typename CoreT>
   static void serializeMonitoringConfig(nlohmann::ordered_json& tcJson, const CoreT& core)
   {
-    const auto& mc = core.getTrainingConfig().monitoringConfig;
+    const auto& mc = core.getTrainConfig().monitoringConfig;
     nlohmann::ordered_json mcJson;
     mcJson["enabled"] = mc.enabled;
     mcJson["checkInterval"] = mc.checkInterval;
@@ -117,8 +117,8 @@ namespace NN_CLI
   //-- Helper: serialize training config --//
   //===================================================================================================================//
 
-  template <typename TrainingConfigT>
-  static void serializeTrainingConfig(nlohmann::ordered_json& tcJson, const TrainingConfigT& tc)
+  template <typename TrainConfigT>
+  static void serializeTrainConfig(nlohmann::ordered_json& tcJson, const TrainConfigT& tc)
   {
     tcJson["numEpochs"] = tc.numEpochs;
     tcJson["learningRate"] = tc.learningRate;
@@ -151,7 +151,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename MetadataT>
-  static void serializeTrainingMetadata(nlohmann::ordered_json& mdJson, const MetadataT& md)
+  static void serializeTrainMetadata(nlohmann::ordered_json& mdJson, const MetadataT& md)
   {
     mdJson["startTime"] = md.startTime;
     mdJson["endTime"] = md.endTime;
@@ -1055,11 +1055,11 @@ namespace NN_CLI
 
     // Training config
     nlohmann::ordered_json tcJson;
-    serializeTrainingConfig(tcJson, core.getTrainingConfig());
+    serializeTrainConfig(tcJson, core.getTrainConfig());
     serializeAugConfig(tcJson, augConfig);
     serializeValidationConfig(tcJson, augConfig);
     serializeMonitoringConfig(tcJson, core);
-    json["training"] = tcJson;
+    json["train"] = tcJson;
 
     // Test config
     nlohmann::ordered_json testJson;
@@ -1067,11 +1067,11 @@ namespace NN_CLI
     json["test"] = testJson;
 
     // Training metadata
-    const auto& md = core.getTrainingMetadata();
+    const auto& md = core.getTrainMetadata();
     nlohmann::ordered_json mdJson;
-    serializeTrainingMetadata(mdJson, md);
+    serializeTrainMetadata(mdJson, md);
     serializeValidationMeta(mdJson, validationMeta);
-    json["trainingMetadata"] = mdJson;
+    json["trainMetadata"] = mdJson;
 
     return json;
   }
@@ -1219,11 +1219,11 @@ namespace NN_CLI
 
     // Training config
     nlohmann::ordered_json tcJson;
-    serializeTrainingConfig(tcJson, core.getTrainingConfig());
+    serializeTrainConfig(tcJson, core.getTrainConfig());
     serializeAugConfig(tcJson, augConfig);
     serializeValidationConfig(tcJson, augConfig);
     serializeMonitoringConfig(tcJson, core);
-    json["training"] = tcJson;
+    json["train"] = tcJson;
 
     // Test config
     nlohmann::ordered_json testJson;
@@ -1231,11 +1231,11 @@ namespace NN_CLI
     json["test"] = testJson;
 
     // Training metadata
-    const auto& md = core.getTrainingMetadata();
+    const auto& md = core.getTrainMetadata();
     nlohmann::ordered_json mdJson;
-    serializeTrainingMetadata(mdJson, md);
+    serializeTrainMetadata(mdJson, md);
     serializeValidationMeta(mdJson, validationMeta);
-    json["trainingMetadata"] = mdJson;
+    json["trainMetadata"] = mdJson;
 
     return json;
   }

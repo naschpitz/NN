@@ -38,9 +38,9 @@ static void testEndToEnd()
   initConv.biases.assign(1, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   // "bright" (gradient-fill) → 1, "dark" (all 0s) → 0
@@ -124,9 +124,9 @@ static void testMultiConvStack()
   initConv2.biases.assign(1, 0.0);
 
   config.parameters.convParams = {initConv1, initConv2};
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);
@@ -199,9 +199,9 @@ static void testConvPoolConv()
   initConv2.biases.assign(1, 0.0);
 
   config.parameters.convParams = {initConv1, initConv2};
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.5f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);
@@ -256,9 +256,9 @@ static void testMultiChannelInput()
   initConv.biases.assign(2, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.1f;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.1f;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   CNN::Samples<double> samples(2);
@@ -315,9 +315,9 @@ static void testBatchPredict()
   initConv.biases.assign(1, 0.0);
   config.parameters.convParams = {initConv};
 
-  config.trainingConfig.numEpochs = 100;
-  config.trainingConfig.learningRate = 0.5;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 100;
+  config.trainConfig.learningRate = 0.5;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.progressReports = 0;
 
   // "bright" → 1, "dark" → 0

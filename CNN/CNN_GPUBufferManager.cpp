@@ -411,7 +411,7 @@ void GPUBufferManager<T>::allocateBuffers(ulong batchSize)
   }
 
   // Adam optimizer buffers
-  if (this->workerConfig.trainingConfig.optimizer.type == Common::OptimizerType::ADAM) {
+  if (this->workerConfig.trainConfig.optimizer.type == Common::OptimizerType::ADAM) {
     T zero = static_cast<T>(0);
 
     if (this->totalFilterSize > 0) {
@@ -539,14 +539,14 @@ void GPUBufferManager<T>::buildWorker()
   }
 
   // Training config
-  const auto& annTrainingConfig = this->workerConfig.trainingConfig;
+  const auto& annTrainConfig = this->workerConfig.trainConfig;
 
   // Cost function config
   const auto& annCostFunctionConfig = this->workerConfig.costFunctionConfig;
 
   // Create  GPU worker on the shared core
   this->annGPUWorker = std::make_unique<ANN::CoreGPUWorker<T>>(
-    annLayers, annTrainingConfig, this->workerConfig.parameters.denseParams, annCostFunctionConfig, *this->core,
+    annLayers, annTrainConfig, this->workerConfig.parameters.denseParams, annCostFunctionConfig, *this->core,
     this->workerConfig.progressReports, this->workerConfig.logLevel);
 
   // Load ANN sources (skip defines — CNN_Defines.hpp.cl already defined TYPE, ActvFuncType, Layer)

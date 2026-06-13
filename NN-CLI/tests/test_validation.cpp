@@ -200,7 +200,7 @@ static void testValidationConfigParsing()
   file.open(QIODevice::WriteOnly);
   file.write(R"({
     "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
-    "training": {
+    "train": {
       "numEpochs": 10,
       "learningRate": 0.01,
       "validation": {
@@ -236,7 +236,7 @@ static void testValidationConfigDefaults()
   file.open(QIODevice::WriteOnly);
   file.write(R"({
     "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
-    "training": {
+    "train": {
       "numEpochs": 10,
       "learningRate": 0.01
     }

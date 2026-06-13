@@ -16,7 +16,7 @@
     "type": "weightedSquaredDifference",
     "weights": [5.0, 1.0]
   },
-  "training": {
+  "train": {
     "numEpochs": 5,
     "learningRate": 0.1
   }

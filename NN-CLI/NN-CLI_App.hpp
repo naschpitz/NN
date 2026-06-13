@@ -1,6 +1,8 @@
 #ifndef NN_CLI_APP_HPP
 #define NN_CLI_APP_HPP
 
+#include "Common/Common_Mode.hpp"
+
 #include "NN-CLI_AugmentationConfig.hpp"
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
@@ -24,18 +26,14 @@ namespace NN_CLI
    *
    * Handles initial config loading, network type detection, and delegates
    * to the appropriate Controller (TrainingController, PredictController,
-   * or TestController) based on the selected mode.  Each Controller bridges
-   * a concrete Runner (Model) and a View through the IRunnerObserver
-   * interface.
+   * TestController, or CalibrateController) based on the selected mode.
+   * Each Controller bridges a concrete Runner (Model) and a View through
+   * the IRunnerObserver interface.
    *
    * Architecture:
    *   App -> Controller -> {Model (Runner), View (Window)}
    *   Model -> Controller (via Observer notifications)
    *   Controller -> View (via API updates)
-   *
-   * Calibrate mode is a special case that bypasses the Controller layer
-   * and invokes CalibrateRunner directly (it is a CLI-level mode, not a
-   * model-level one).
    */
   class App
   {
@@ -48,8 +46,7 @@ namespace NN_CLI
       const QCommandLineParser& parser;
       LogLevel logLevel;
       NetworkType networkType;
-      std::string mode; // "train", "test", "predict"
-      bool isCalibrateMode = false; // true when --mode calibrate; runs as predict internally
+      Common::ModeType mode = Common::ModeType::PREDICT;
       IOConfig ioConfig;
       AugmentationConfig augConfig;
 

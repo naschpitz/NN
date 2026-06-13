@@ -57,7 +57,7 @@ auto testResult = core->test(testSamples.size(), ANN::makeSampleProvider(testSam
 // testResult.accuracy, testResult.averageLoss, testResult.numCorrect, ...
 
 const auto& params = core->getParameters();   // weights & biases
-const auto& meta   = core->getTrainingMetadata();
+const auto& meta   = core->getTrainMetadata();
 ```
 
 ## Activation Functions

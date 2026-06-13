@@ -80,9 +80,9 @@ static void testCrossEntropyTraining()
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {3, ANN::ActvFuncType::SOFTMAX}});
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.numEpochs = 500;
-  config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
+  config.trainConfig.numEpochs = 500;
+  config.trainConfig.learningRate = 0.1;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no retry loop.
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
   config.logLevel = Common::LogLevel::ERROR;
@@ -126,9 +126,9 @@ static void testCrossEntropyLossDecreases()
     makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {4, ANN::ActvFuncType::RELU}, {2, ANN::ActvFuncType::SOFTMAX}});
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
-  config.trainingConfig.numEpochs = 50;
-  config.trainingConfig.learningRate = 0.1;
-  config.trainingConfig.shuffleSeed = 42; // Fully deterministic — no flaky shuffle order.
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.1;
+  config.trainConfig.shuffleSeed = 42; // Fully deterministic — no flaky shuffle order.
   config.numThreads = 1; // Single-threaded — parallel batch reduction order is FP-non-deterministic.
   config.progressReports = 0;
   config.logLevel = Common::LogLevel::ERROR;
@@ -140,7 +140,7 @@ static void testCrossEntropyLossDecreases()
   core->train(samples.size(), ANN::makeSampleProvider(samples));
   ANN::TestResult<double> result1 = core->test(samples.size(), ANN::makeSampleProvider(samples));
 
-  config.trainingConfig.numEpochs = 200;
+  config.trainConfig.numEpochs = 200;
   config.parameters = core->getParameters();
   auto core2 = ANN::Core<double>::makeCore(config);
   core2->train(samples.size(), ANN::makeSampleProvider(samples));
@@ -171,8 +171,8 @@ static void testWeightedCrossEntropyTraining()
 
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
   config.costFunctionConfig.weights = {5.0, 1.0};
-  config.trainingConfig.numEpochs = 200;
-  config.trainingConfig.learningRate = 0.1;
+  config.trainConfig.numEpochs = 200;
+  config.trainConfig.learningRate = 0.1;
   config.progressReports = 0;
   config.logLevel = Common::LogLevel::ERROR;
 

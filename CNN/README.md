@@ -71,7 +71,7 @@ auto testResult = core->test(testSamples.size(), CNN::makeSampleProvider(testSam
 // testResult.accuracy, testResult.averageLoss, testResult.numCorrect, ...
 
 const auto& params = core->getParameters();   // conv + dense params
-const auto& meta   = core->getTrainingMetadata();
+const auto& meta   = core->getTrainMetadata();
 ```
 
 ## CNN Layer Types
