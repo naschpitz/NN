@@ -114,6 +114,15 @@
         }
       }
     }
+  },
+  <span class="string">"test"</span>: {
+    <span class="string">"batchSize"</span>: <span class="number">64</span>
+  },
+  <span class="string">"calibrate"</span>: {
+    <span class="string">"idSampleCount"</span>: <span class="number">500</span>,
+    <span class="string">"oodSampleCount"</span>: <span class="number">1500</span>,
+    <span class="string">"idPercentile"</span>: <span class="number">95.0</span>,
+    <span class="string">"fetchIfMissing"</span>: <span class="keyword">true</span>
   }
 }
 </code></pre>
@@ -179,6 +188,13 @@
   <tr><td><code>numThreads</code></td><td>int</td><td>No</td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>numGPUs</code></td><td>int</td><td>No</td><td>Number of GPUs to use (0 = all available)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Deprecated — parameters are now stored in <code>params.bin</code> inside the <code>.nnmodel</code> package</td></tr>
+  <tr><td><code>test</code></td><td>object</td><td>No</td><td>Test mode configuration</td></tr>
+  <tr><td><code>test.batchSize</code></td><td>int</td><td>No</td><td>Mini-batch size for test/evaluation (default 64)</td></tr>
+  <tr><td><code>calibrate</code></td><td>object</td><td>No</td><td>Calibration parameters for OOD detection threshold</td></tr>
+  <tr><td><code>calibrate.idSampleCount</code></td><td>int</td><td>No</td><td>Number of in-distribution samples to use (default 500)</td></tr>
+  <tr><td><code>calibrate.oodSampleCount</code></td><td>int</td><td>No</td><td>Number of out-of-distribution samples to use (default 1500)</td></tr>
+  <tr><td><code>calibrate.idPercentile</code></td><td>float</td><td>No</td><td>Percentile threshold for OOD detection (default 95.0)</td></tr>
+  <tr><td><code>calibrate.fetchIfMissing</code></td><td>bool</td><td>No</td><td>Auto-download OOD datasets if not found locally (default true)</td></tr>
 </table>
 
 <p>Example — only rotation (strong) and translation, everything else disabled:</p>
@@ -256,6 +272,15 @@
       <span class="string">"checkInterval"</span>: <span class="number">5</span>,
       <span class="string">"patience"</span>: <span class="number">20</span>
     }
+  },
+  <span class="string">"test"</span>: {
+    <span class="string">"batchSize"</span>: <span class="number">64</span>
+  },
+  <span class="string">"calibrate"</span>: {
+    <span class="string">"idSampleCount"</span>: <span class="number">500</span>,
+    <span class="string">"oodSampleCount"</span>: <span class="number">1500</span>,
+    <span class="string">"idPercentile"</span>: <span class="number">95.0</span>,
+    <span class="string">"fetchIfMissing"</span>: <span class="keyword">true</span>
   }
 }
 </code></pre>
@@ -267,6 +292,8 @@
 </div>
 
 <p>The <code>train</code> fields (including <code>validation</code>, <code>monitoring</code>, augmentation, optimizer, dropout, etc.) are identical for both ANN and CNN. See the <a href="#ann-config">ANN Configuration</a> field table above for the full reference.</p>
+
+<p>The <code>test</code> and <code>calibrate</code> sections are also identical for both ANN and CNN.</p>
 
 <h3>CNN Layer Type Fields</h3>
 <table>
