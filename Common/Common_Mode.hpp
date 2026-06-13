@@ -9,12 +9,13 @@
 
 namespace Common
 {
-  enum class ModeType { TRAIN, PREDICT, TEST };
+  enum class ModeType { TRAIN, PREDICT, TEST, CALIBRATE };
 
   const std::unordered_map<std::string, ModeType> modeMap = {
     {"train", ModeType::TRAIN},
     {"predict", ModeType::PREDICT},
     {"test", ModeType::TEST},
+    {"calibrate", ModeType::CALIBRATE},
   };
 
   class Mode
