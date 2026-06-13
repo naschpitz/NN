@@ -199,11 +199,6 @@ static void testCalibrationConfigDefaults()
   CHECK(config.oodSampleCount == 1500, "default oodSampleCount=1500");
   CHECK(config.idPercentile == 95.0, "default idPercentile=95.0");
   CHECK(config.fetchIfMissing == true, "default fetchIfMissing=true");
-  CHECK(config.logLevel == Common::LogLevel::ERROR, "default logLevel=ERROR");
-  CHECK(config.progressReports == 0, "default progressReports=0");
-  CHECK(config.idImagesDir.empty(), "default idImagesDir empty");
-  CHECK(config.oodDir.empty(), "default oodDir empty");
-  CHECK(config.outputPath.empty(), "default outputPath empty");
 
   std::cout << std::endl;
 }

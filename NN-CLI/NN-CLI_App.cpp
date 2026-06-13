@@ -180,25 +180,6 @@ int App::run()
                                               this->annCore, this->annCoreConfig);
 
     if (this->isCalibrateMode) {
-      // Merge CLI overrides into coreConfig.calibrationConfig
-      this->annCoreConfig.calibrationConfig.idImagesDir = this->parser.value("id-images").toStdString();
-      this->annCoreConfig.calibrationConfig.oodDir = this->parser.isSet("ood-dir")
-                                                        ? this->parser.value("ood-dir").toStdString()
-                                                        : (fs::current_path() / "extern-datasets" / "ood").string();
-      this->annCoreConfig.calibrationConfig.idSampleCount =
-          this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong() : 500;
-      this->annCoreConfig.calibrationConfig.oodSampleCount =
-          this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong() : 1500;
-      this->annCoreConfig.calibrationConfig.idPercentile =
-          this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0;
-      this->annCoreConfig.calibrationConfig.fetchIfMissing = !this->parser.isSet("no-fetch");
-      this->annCoreConfig.calibrationConfig.outputPath = this->parser.isSet("output")
-                                                            ? this->parser.value("output").toStdString()
-                                                            : (fs::path(this->parser.value("config").toStdString()).parent_path() /
-                                                               "threshold.json").string();
-      this->annCoreConfig.calibrationConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
-      this->annCoreConfig.calibrationConfig.progressReports = this->ioConfig.progressReports;
-
       CalibrateController<ANNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startCalibrate();
@@ -224,25 +205,6 @@ int App::run()
                                               this->cnnCore, this->cnnCoreConfig);
 
     if (this->isCalibrateMode) {
-      // Merge CLI overrides into coreConfig.calibrationConfig
-      this->cnnCoreConfig.calibrationConfig.idImagesDir = this->parser.value("id-images").toStdString();
-      this->cnnCoreConfig.calibrationConfig.oodDir = this->parser.isSet("ood-dir")
-                                                       ? this->parser.value("ood-dir").toStdString()
-                                                       : (fs::current_path() / "extern-datasets" / "ood").string();
-      this->cnnCoreConfig.calibrationConfig.idSampleCount =
-          this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong() : 500;
-      this->cnnCoreConfig.calibrationConfig.oodSampleCount =
-          this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong() : 1500;
-      this->cnnCoreConfig.calibrationConfig.idPercentile =
-          this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0;
-      this->cnnCoreConfig.calibrationConfig.fetchIfMissing = !this->parser.isSet("no-fetch");
-      this->cnnCoreConfig.calibrationConfig.outputPath = this->parser.isSet("output")
-                                                            ? this->parser.value("output").toStdString()
-                                                            : (fs::path(this->parser.value("config").toStdString()).parent_path() /
-                                                               "threshold.json").string();
-      this->cnnCoreConfig.calibrationConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
-      this->cnnCoreConfig.calibrationConfig.progressReports = this->ioConfig.progressReports;
-
       CalibrateController<CNNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startCalibrate();
