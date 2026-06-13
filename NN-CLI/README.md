@@ -39,8 +39,14 @@ NN-CLI --config <model_file.nnmodel> --mode test --samples <samples_file> [optio
 | `--idx-labels` | | Path to IDX1 labels file (requires `--idx-data`) |
 | `--output` | `-o` | Output file for saving trained model or prediction result |
 | `--output-type` | | Output data type: `vector` or `image` (overrides config file) |
-| `--num-epochs` | | Number of training epochs (overrides config file) |
 | `--log-level` | `-l` | Log level: `quiet`, `error`, `warning`, `info`, `debug` (default: `error`) |
+| `--gpu-profile` | | Enable OpenCL GPU kernel profiling (adds ~12% overhead) |
+| `--id-images` | | Path to directory of in-distribution images (calibrate mode, required) |
+| `--ood-dir` | | Path to out-of-distribution images directory (calibrate mode, optional) |
+| `--id-sample-count` | | Number of ID samples for calibration (default: 500) |
+| `--ood-sample-count` | | Number of OOD samples for calibration (default: 1500) |
+| `--id-percentile` | | ID percentile for threshold (default: 95) |
+| `--no-fetch` | | Disable auto-download of OOD datasets (calibrate mode) |
 | `--help` | `-h` | Show help message |
 
 ### Modes
@@ -48,7 +54,7 @@ NN-CLI --config <model_file.nnmodel> --mode test --samples <samples_file> [optio
 - **train**: Train a neural network using `--config` and samples, outputs a trained model file.
 - **predict**: Run predict using `--config` (trained model) with one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Output order matches input order.
 - **test**: Evaluate a trained model (`--config`) on test samples and report the loss.
-- **calibrate**: Pick a free-energy out-of-distribution threshold. Requires `--id-images` and optionally `--ood-dir`. Options: `--id-images` (required, directory of ID images), `--ood-dir` (OOD root, auto-populated if empty), `--id-sample-count` (default 500), `--ood-sample-count` (default 1500), `--id-percentile` (default 95), `--no-fetch` (disable auto-download), `--output` (default: `<config_dir>/threshold.json`)
+- **calibrate**: Pick a free-energy out-of-distribution threshold. Requires `--id-images` and optionally `--ood-dir`. Options: `--id-images` (required, directory of ID images), `--ood-dir` (OOD root, auto-populated if empty), `--id-sample-count` (default 500), `--ood-sample-count` (default 1500), `--id-percentile` (default 95), `--no-fetch` (disable auto-download), `--output` (default: `<config_dir>/threshold.json`). Requires `--config` pointing to a trained `.nnmodel` package.
 
 ## ANN Configuration
 
@@ -65,7 +71,7 @@ NN-CLI --config <model_file.nnmodel> --mode test --samples <samples_file> [optio
   "inputType": "vector",
   "outputType": "vector",
   "layers": [
-    { "numNeurons": 784, "actvFunc": "none" },
+    { "numNeurons": 784, "actvFunc": "relu" },
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
@@ -74,11 +80,13 @@ NN-CLI --config <model_file.nnmodel> --mode test --samples <samples_file> [optio
     "type": "weightedSquaredDifference",
     "weights": [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   },
-  "training": {
+  "train": {
     "numEpochs": 100,
     "batchSize": 64,
     "learningRate": 0.01,
     "dropoutRate": 0.3,
+    "shuffleSeed": 0,
+    "optimizer": { "type": "sgd" },
     "augmentationFactor": 2,
     "balanceAugmentation": true,
     "fullAugmentation": true,
@@ -92,6 +100,12 @@ NN-CLI --config <model_file.nnmodel> --mode test --samples <samples_file> [optio
       "contrast": 0.2,
       "gaussianNoise": 0.02
     }
+  },
+  "calibrate": {
+    "idSampleCount": 500,
+    "oodSampleCount": 1500,
+    "idPercentile": 95,
+    "fetchIfMissing": true
   },
   "test": {
     "batchSize": 64
@@ -108,17 +122,15 @@ NN-CLI --config <model_file.nnmodel> --mode test --samples <samples_file> [optio
   "inputType": "vector",
   "outputType": "vector",
   "layers": [
-    { "numNeurons": 784, "actvFunc": "none" },
+    { "numNeurons": 784, "actvFunc": "relu" },
     { "numNeurons": 128, "actvFunc": "relu" },
     { "numNeurons": 64, "actvFunc": "relu" },
     { "numNeurons": 10, "actvFunc": "sigmoid" }
-  ],
-  "parameters": {
-    "weights": [...],
-    "biases": [...]
-  }
+  ]
 }
 ```
+
+For predict/test/calibrate modes, use a `.nnmodel` package (see Model Package Format section below). Plain JSON configs without embedded parameters are used as architecture templates when loading from `.nnmodel`.
 
 #### ANN Top-Level Fields
 
@@ -135,9 +147,9 @@ NN-CLI --config <model_file.nnmodel> --mode test --samples <samples_file> [optio
 
 #### ANN Cost Function Configuration (`costFunction`)
 
-Optional object placed between `layers` and `training`. Controls the cost function used during training:
+Optional object placed between `layers` and `train`. Controls the cost function used during training:
 
-- `type`: `"squaredDifference"` (default) or `"weightedSquaredDifference"`
+- `type`: `"squaredDifference"` (default), `"weightedSquaredDifference"`, or `"crossEntropy"`
 - `weights`: Array of per-output-neuron weights (required when type is `"weightedSquaredDifference"`). Each weight multiplies the squared difference for the corresponding output neuron, allowing rare classes to receive higher penalty.
 
 If omitted, the default `squaredDifference` loss is used (equivalent to standard MSE).
@@ -145,15 +157,21 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 #### ANN Layers Configuration
 
 - `numNeurons`: Number of neurons in the layer
-- `actvFunc`: Activation function (`none`, `relu`, `sigmoid`, `tanh`)
+- `actvFunc`: Activation function (`relu`, `sigmoid`, `tanh`, `softmax`)
 
-#### ANN Model Configuration
+#### ANN Training Configuration
 
 - `numEpochs`: Number of training epochs
 - `batchSize`: Mini-batch size (default: 64)
 - `learningRate`: Learning rate for gradient descent
 - `shuffleSamples`: Shuffle sample order each epoch (default: `true`)
+- `shuffleSeed`: RNG seed for per-epoch sample shuffling (default: `0` = non-deterministic). Set to a fixed value for reproducible training runs.
 - `dropoutRate`: Dropout probability for hidden layers (default: `0.0` = disabled). Uses inverted dropout — activations are scaled by 1/(1−p) during training, no adjustment at inference
+- `optimizer`: Object controlling the optimizer (default: SGD).
+  - `type`: `"sgd"` (default) or `"adam"`
+  - `beta1`: Adam beta1 (default: `0.9`)
+  - `beta2`: Adam beta2 (default: `0.999`)
+  - `epsilon`: Adam epsilon (default: `1e-8`)
 - `augmentationFactor`: Multiply each class by N× using random transforms (default: `0` = disabled). NN-CLI applies transforms before passing samples to the library
 - `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). When combined with `augmentationFactor`, the balanced count is also multiplied. Only the oversampled (extra) copies are augmented; the original samples are kept as-is
 - `fullAugmentation`: Apply augmentation transforms to **all** training samples every epoch — not just the oversampled copies — for stronger regularisation (default: `false`). Independent of, and composable with, `balanceAugmentation`/`augmentationFactor` (validation samples are never augmented)
@@ -254,11 +272,13 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
     "type": "weightedSquaredDifference",
     "weights": [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
   },
-  "training": {
+  "train": {
     "numEpochs": 10,
     "batchSize": 64,
     "learningRate": 0.01,
     "dropoutRate": 0.3,
+    "shuffleSeed": 0,
+    "optimizer": { "type": "sgd" },
     "augmentationFactor": 2,
     "balanceAugmentation": true,
     "fullAugmentation": true,
@@ -268,6 +288,12 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
       "horizontalFlip": true,
       "rotation": 15.0
     }
+  },
+  "calibrate": {
+    "idSampleCount": 500,
+    "oodSampleCount": 1500,
+    "idPercentile": 95,
+    "fetchIfMissing": true
   },
   "test": {
     "batchSize": 64
@@ -290,9 +316,9 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 
 #### CNN Cost Function Configuration (`costFunction`)
 
-Same as ANN — optional object placed between `denseLayers` and `training`:
+Same as ANN — optional object placed between `denseLayers` and `train`:
 
-- `type`: `"squaredDifference"` (default) or `"weightedSquaredDifference"`
+- `type`: `"squaredDifference"` (default), `"weightedSquaredDifference"`, or `"crossEntropy"`
 - `weights`: Array of per-output-neuron weights (required when type is `"weightedSquaredDifference"`)
 
 #### CNN Layers Configuration (`convolutionalLayers`)
@@ -305,19 +331,33 @@ Each layer has a `type` field:
 - **pool**: Pooling layer
   - `poolType` (`max` or `avg`), `poolH`, `poolW`, `strideY`, `strideX`
 - **flatten**: Flatten 3D feature maps to 1D vector
+- **globalavgpool**: Global average pooling layer (no additional fields)
+- **globaldualpool**: Global dual pooling (max + avg) layer (no additional fields)
+- **instancenorm**: Instance normalization layer
+  - `epsilon`: Epsilon for numerical stability (default: `1e-5`)
+  - `momentum`: Momentum for running statistics (default: `0.1`)
+- **batchnorm**: Batch normalization layer (same fields as instancenorm)
+- **residual_start**: Start of a residual block (no additional fields)
+- **residual_end**: End of a residual block (no additional fields)
 
 #### Dense Layers Configuration (`denseLayers`)
 
 - `numNeurons`: Number of neurons in the layer
-- `actvFunc`: Activation function (`relu`, `sigmoid`, `tanh`)
+- `actvFunc`: Activation function (`relu`, `sigmoid`, `tanh`, `softmax`)
 
-#### CNN Model Configuration
+#### CNN Training Configuration
 
 - `numEpochs`: Number of training epochs
 - `batchSize`: Mini-batch size (default: 64)
 - `learningRate`: Learning rate for gradient descent
 - `shuffleSamples`: Shuffle sample order each epoch (default: `true`)
+- `shuffleSeed`: RNG seed for per-epoch sample shuffling (default: `0` = non-deterministic). Set to a fixed value for reproducible training runs.
 - `dropoutRate`: Dropout probability for dense hidden layers (default: `0.0` = disabled). Convolutional layers are not affected
+- `optimizer`: Object controlling the optimizer (default: SGD).
+  - `type`: `"sgd"` (default) or `"adam"`
+  - `beta1`: Adam beta1 (default: `0.9`)
+  - `beta2`: Adam beta2 (default: `0.999`)
+  - `epsilon`: Adam epsilon (default: `1e-8`)
 - `augmentationFactor`: Multiply each class by N× using random image transforms (default: `0` = disabled)
 - `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). Only the oversampled copies are augmented; originals are kept as-is
 - `fullAugmentation`: Apply augmentation to all training samples every epoch (not just the oversampled copies), for stronger regularisation (default: `false`). Composable with `balanceAugmentation`/`augmentationFactor`
@@ -338,6 +378,17 @@ Training produces a `.nnmodel` package (tar archive containing `model.json` + `p
 ```bash
 tar -cf model.nnmodel model.json params.bin
 ```
+
+The saved model JSON also includes `trainMetadata` with training history:
+
+- `startTime`, `endTime`, `durationSeconds`, `durationFormatted`: Training timing
+- `numSamples`: Total training samples processed
+- `finalLoss`: Final training loss
+- `lastEpoch`: 0-based index of last completed epoch
+- `stopReason`: Reason training stopped (empty if completed normally)
+- `bestEpoch`, `bestLoss`: Epoch and loss of the best model
+- `epochs`: Array of per-epoch records with `epoch`, `loss`, `valLoss` (if validation enabled), `hasValLoss`, `isBest`, `completionTime`
+- `numValidationSamples`, `finalValidationLoss`, `bestValidationLoss`, `bestValidationEpoch`: Validation metrics (if validation enabled)
 
 ## Model Package Format (.nnmodel)
 
@@ -456,7 +507,7 @@ The data is automatically normalized to 0-1 range and labels are one-hot encoded
 ### ANN: Training with JSON samples
 
 ```bash
-NN-CLI --config ann_config.json --mode train --samples training_data.json --output trained_model.json
+NN-CLI --config ann_config.json --mode train --samples train_samples.json --output trained_model.json
 ```
 
 ### ANN: Training with IDX files (MNIST)
@@ -474,7 +525,13 @@ NN-CLI --config examples/MNIST/mnist_cnn_config.json --mode train --idx-data tra
 ### Training on GPU
 
 ```bash
-NN-CLI --config config.json --mode train --device gpu --samples training_data.json
+NN-CLI --config config.json --mode train --device gpu --samples train_samples.json
+```
+
+### Calibrating OOD threshold
+
+```bash
+NN-CLI --config trained_model.nnmodel --mode calibrate --device cpu --id-images /path/to/id/images --output threshold.json
 ```
 
 ### Running predict
