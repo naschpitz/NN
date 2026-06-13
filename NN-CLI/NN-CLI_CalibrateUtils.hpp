@@ -151,7 +151,7 @@ namespace NN_CLI
         ulong done = ++loadedCount;
 
         if (logLevel > LogLevel::QUIET)
-          printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
+          NN_CLI::Utils<>::printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
       });
 
       InputsT inputs;
@@ -168,9 +168,9 @@ namespace NN_CLI
     };
 
     if (logLevel > LogLevel::QUIET) {
-      printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
+      NN_CLI::Utils<>::printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
       core.setProgressCallback([progressReports, &progressLabel](ulong current, ulong totalCb) {
-        printLoadingProgress(progressLabel, current, totalCb, progressReports);
+        NN_CLI::Utils<>::printLoadingProgress(progressLabel, current, totalCb, progressReports);
       });
     }
 

@@ -26,18 +26,53 @@ namespace NN_CLI
 {
 
   //===================================================================================================================//
-  //  finishTrainingCommon
+  //-- RunnerUtils class --//
   //===================================================================================================================//
 
-  /// Common finish-training logic shared by ANN and CNN runners.
-  /// @param logLevel      Current log level.
-  /// @param parser        CLI parser (for --output).
-  /// @param inputFilePath Path to the input samples file (used for default output path).
-   /// @param core          The trained core (ANN or CNN) — must support getTrainConfig() and getTrainMetadata().
-  /// @param saveFn        Callable that takes (const std::string& outputPath) and persists the model.
+  class RunnerUtils
+  {
+    public:
+
+      //-- finishTrainingCommon --//
+      template <typename CoreT, typename SaveFn>
+      static int finishTrainingCommon(LogLevel logLevel, const QCommandLineParser& parser,
+                                      const QString& inputFilePath, const CoreT& core,
+                                      const SaveFn& saveFn);
+
+      //-- resolvePredictOutputPath --//
+      static QString resolvePredictOutputPath(const QCommandLineParser& parser, const IOConfig& ioConfig);
+
+      //-- writePredictOutput --//
+      template <typename ResultsT>
+      static int writePredictOutput(const ResultsT& results, const QString& outputPath,
+                                    const IOConfig& ioConfig, LogLevel logLevel,
+                                    const std::string& startTimeStr, const std::string& endTimeStr,
+                                    double durationSeconds, const std::string& durationFormatted,
+                                    size_t numInputs);
+
+      //-- loadSamplesFromOptionsCommon --//
+      template <typename SamplesT, typename LoadJsonFn, typename LoadIdxFn>
+      static std::pair<SamplesT, bool> loadSamplesFromOptionsCommon(const QCommandLineParser& parser,
+                                                                    LogLevel logLevel, const IOConfig& ioConfig,
+                                                                    const std::string& modeName,
+                                                                    QString& inputFilePath,
+                                                                    LoadJsonFn&& loadJsonSamples,
+                                                                    LoadIdxFn&& loadIdxSamples);
+  };
+
+} // namespace NN_CLI
+
+//===================================================================================================================//
+//  Template method implementations — must be in header for instantiation
+//===================================================================================================================//
+
+namespace NN_CLI
+{
+
   template <typename CoreT, typename SaveFn>
-  int finishTrainingCommon(LogLevel logLevel, const QCommandLineParser& parser, const QString& inputFilePath,
-                           const CoreT& core, const SaveFn& saveFn)
+  int RunnerUtils::finishTrainingCommon(LogLevel logLevel, const QCommandLineParser& parser,
+                                        const QString& inputFilePath, const CoreT& core,
+                                        const SaveFn& saveFn)
   {
     if (logLevel > LogLevel::QUIET)
       std::cout << "\nTraining completed.\n";
@@ -66,11 +101,8 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //  resolvePredictOutputPath
-  //===================================================================================================================//
 
-  /// Resolve the output path for predict mode.  If --output is not set, derives from input path.
-  inline QString resolvePredictOutputPath(const QCommandLineParser& parser, const IOConfig& ioConfig)
+  inline QString RunnerUtils::resolvePredictOutputPath(const QCommandLineParser& parser, const IOConfig& ioConfig)
   {
     QString inputPath = parser.value("input");
     QString outputPath;
@@ -96,23 +128,11 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //  writePredictOutput
-  //===================================================================================================================//
 
-  /// Write predict results to disk (images or JSON).
-  /// @param results            Container of prediction results — each element must have .output and .logits members.
-  /// @param outputPath         File/directory path for output.
-  /// @param ioConfig           I/O configuration (output type, shape).
-  /// @param logLevel           Current log level.
-  /// @param startTimeStr       ISO-8601 start timestamp.
-  /// @param endTimeStr         ISO-8601 end timestamp.
-  /// @param durationSeconds    Elapsed wall time in seconds.
-  /// @param durationFormatted  Human-readable duration string.
-  /// @param numInputs          Total number of inputs that were predicted.
   template <typename ResultsT>
-  int writePredictOutput(const ResultsT& results, const QString& outputPath, const IOConfig& ioConfig,
-                         LogLevel logLevel, const std::string& startTimeStr, const std::string& endTimeStr,
-                         double durationSeconds, const std::string& durationFormatted, size_t numInputs)
+  int RunnerUtils::writePredictOutput(const ResultsT& results, const QString& outputPath, const IOConfig& ioConfig,
+                                      LogLevel logLevel, const std::string& startTimeStr, const std::string& endTimeStr,
+                                      double durationSeconds, const std::string& durationFormatted, size_t numInputs)
   {
     // When outputType is IMAGE, save images to a folder
     if (ioConfig.outputType == DataType::IMAGE) {
@@ -185,22 +205,14 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //  loadSamplesFromOptionsCommon
-  //===================================================================================================================//
 
-  /// Common sample loading logic for ANN and CNN runners.
-  /// @param parser             CLI parser (for --samples, --idx-data, --idx-labels).
-  /// @param logLevel           Current log level.
-  /// @param ioConfig           I/O configuration.
-  /// @param modeName           Human-readable mode name ("train", "test").
-  /// @param inputFilePath      [out] Set to the resolved file path.
-  /// @param loadJsonSamples    Callable: (std::string path, ulong progressReports) → SamplesT
-  /// @param loadIdxSamples     Callable: (std::string dataPath, std::string labelsPath, ulong progressReports) → SamplesT
   template <typename SamplesT, typename LoadJsonFn, typename LoadIdxFn>
-  std::pair<SamplesT, bool> loadSamplesFromOptionsCommon(const QCommandLineParser& parser, LogLevel logLevel,
-                                                         const IOConfig& ioConfig, const std::string& modeName,
-                                                         QString& inputFilePath, LoadJsonFn&& loadJsonSamples,
-                                                         LoadIdxFn&& loadIdxSamples)
+  std::pair<SamplesT, bool> RunnerUtils::loadSamplesFromOptionsCommon(const QCommandLineParser& parser,
+                                                                      LogLevel logLevel, const IOConfig& ioConfig,
+                                                                      const std::string& modeName,
+                                                                      QString& inputFilePath,
+                                                                      LoadJsonFn&& loadJsonSamples,
+                                                                      LoadIdxFn&& loadIdxSamples)
   {
     SamplesT samples;
 
@@ -208,7 +220,7 @@ namespace NN_CLI
     bool hasIdxData = parser.isSet("idx-data");
     bool hasIdxLabels = parser.isSet("idx-labels");
 
-    if (checkSamplesIdxDataConflict(parser))
+    if (Utils<float>::checkSamplesIdxDataConflict(parser))
       return {samples, false};
 
     ulong displayProgressReports = (logLevel > LogLevel::QUIET) ? ioConfig.progressReports : 0;

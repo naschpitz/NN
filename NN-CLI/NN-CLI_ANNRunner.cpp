@@ -109,7 +109,7 @@ ulong ANNRunner::getNumDenseLayers() const
 
 int ANNRunner::train()
 {
-  if (checkSamplesIdxDataConflict(this->parser))
+  if (NN_CLI::Utils<float>::checkSamplesIdxDataConflict(this->parser))
     return 1;
 
   QString inputFilePath;
@@ -174,7 +174,7 @@ int ANNRunner::train()
       trainingOutputs = std::move(allOutputs);
     }
 
-    std::vector<float> weights = computeClassWeightsFromOutputs(trainingOutputs);
+    std::vector<float> weights = NN_CLI::Utils<float>::computeClassWeightsFromOutputs(trainingOutputs);
     this->coreConfig.costFunctionConfig.type = Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
     this->coreConfig.costFunctionConfig.weights = weights;
     this->core = ANN::Core<float>::makeCore(this->coreConfig);
@@ -215,7 +215,7 @@ int ANNRunner::train()
     for (ulong idx : split.validationIndices)
       validationOutputs.push_back(allOutputs[idx]);
 
-    std::vector<float> validationWeights = computeClassWeightsFromOutputs(validationOutputs);
+    std::vector<float> validationWeights = NN_CLI::Utils<float>::computeClassWeightsFromOutputs(validationOutputs);
     validationCoreConfig.costFunctionConfig.weights = validationWeights;
 
     validationCore = ANN::Core<float>::makeCore(validationCoreConfig);
@@ -259,7 +259,7 @@ int ANNRunner::train()
 
 int ANNRunner::test()
 {
-  if (checkSamplesIdxDataConflict(this->parser))
+  if (NN_CLI::Utils<float>::checkSamplesIdxDataConflict(this->parser))
     return 1;
 
   QString inputFilePath;
@@ -287,7 +287,7 @@ int ANNRunner::test()
   if (this->logLevel > LogLevel::QUIET)
     TestSummary::print(this->coreConfig, dataLoader.numSamples());
 
-  setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Testing",
+  NN_CLI::Utils<float>::setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Testing",
                             dataLoader.numSamples());
 
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
@@ -316,7 +316,7 @@ int ANNRunner::predict()
   }
 
   QString inputPath = this->parser.value("input");
-  QString outputPath = resolvePredictOutputPath(this->parser, this->ioConfig);
+  QString outputPath = NN_CLI::RunnerUtils::resolvePredictOutputPath(this->parser, this->ioConfig);
 
   ulong displayProgressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
   std::vector<ANN::Input<float>> inputs =
@@ -328,7 +328,7 @@ int ANNRunner::predict()
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = Common::Utils::formatISO8601();
 
-  setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Predicting", inputs.size());
+  NN_CLI::Utils<float>::setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Predicting", inputs.size());
 
   // The streaming predict API takes a provider that yields one batch at a
   // time. The batch JSON is already loaded into `inputs`, so we just slice it.
@@ -349,7 +349,7 @@ int ANNRunner::predict()
   double batchDurationSeconds = batchElapsed.count();
   std::string batchDurationFormatted = Common::Utils::formatDuration(batchDurationSeconds);
 
-  return writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
+  return NN_CLI::RunnerUtils::writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
                             batchDurationSeconds, batchDurationFormatted, inputs.size());
 }
 
@@ -545,7 +545,7 @@ int ANNRunner::calibrate()
 std::pair<ANN::Samples<float>, bool> ANNRunner::loadSamplesFromOptions(const std::string& modeName,
                                                                        QString& inputFilePath)
 {
-  return loadSamplesFromOptionsCommon<ANN::Samples<float>>(
+  return NN_CLI::RunnerUtils::loadSamplesFromOptionsCommon<ANN::Samples<float>>(
     this->parser, this->logLevel, this->ioConfig, modeName, inputFilePath,
     [this](const std::string& path, ulong progressReports) {
       return ANNLoader::loadSamples(path, this->ioConfig, progressReports);
