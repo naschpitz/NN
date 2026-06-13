@@ -809,16 +809,6 @@
     "ast_hash": "1e480c93b906e37b14aab33c25bb0cb4",
     "semantic_hash": "1e480c93b906e37b14aab33c25bb0cb4"
   },
-  "Common/Common_TrainingConfig.hpp": {
-    "mtime": 1781034016.6983457,
-    "ast_hash": "93ac224d0a5051283d379e99cd6b584f",
-    "semantic_hash": "93ac224d0a5051283d379e99cd6b584f"
-  },
-  "Common/Common_TrainingMetadata.hpp": {
-    "mtime": 1781036381.89859,
-    "ast_hash": "38a6de6971fdcba3e087f232060582ab",
-    "semantic_hash": "38a6de6971fdcba3e087f232060582ab"
-  },
   "Common/Common_TrainingMonitor.hpp": {
     "mtime": 1780893900.7649643,
     "ast_hash": "4db8bef821e670295d27b243865626a3",
@@ -1949,11 +1939,6 @@
     "ast_hash": "313ffd4a1019a5af965ab63b81110afb",
     "semantic_hash": "313ffd4a1019a5af965ab63b81110afb"
   },
-  "todo/model-file-split-refactor.md": {
-    "mtime": 1780964491.2187252,
-    "ast_hash": "23209b0efa13c32ec2b57783c5361131",
-    "semantic_hash": "23209b0efa13c32ec2b57783c5361131"
-  },
   "NN-CLI/NN-CLI_TerminalUI_Panel.cpp": {
     "mtime": 1781071130.4676058,
     "ast_hash": "bb2d04cf10b5beb9e41004397f5ca36b",
@@ -1975,167 +1960,167 @@
     "semantic_hash": ""
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_ActvFunc.cpp": {
-    "mtime": 1780893502.0879335,
+    "mtime": 1781339172.253278,
     "ast_hash": "48fec58e8e5f4e0db6c845d01ad57df9",
     "semantic_hash": "48fec58e8e5f4e0db6c845d01ad57df9"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_ActvFunc.hpp": {
-    "mtime": 1780893501.5579128,
+    "mtime": 1781339172.256278,
     "ast_hash": "6be1ab13a9f5b3acf6c6bc89dbc1b6cc",
     "semantic_hash": "6be1ab13a9f5b3acf6c6bc89dbc1b6cc"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Core.cpp": {
-    "mtime": 1781243976.2123797,
-    "ast_hash": "dfad67849525126802b7982f5d94992b",
-    "semantic_hash": "dfad67849525126802b7982f5d94992b"
+    "mtime": 1781341457.7810144,
+    "ast_hash": "3064ffd4dbe87720359218460aec57d0",
+    "semantic_hash": "3064ffd4dbe87720359218460aec57d0"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Core.hpp": {
-    "mtime": 1781112110.8213878,
-    "ast_hash": "cff537bec903549a5eb9338337c0d1ee",
-    "semantic_hash": "cff537bec903549a5eb9338337c0d1ee"
+    "mtime": 1781341457.7810144,
+    "ast_hash": "7f5a3bcf7ac783c9e2a6f8767e94d9b0",
+    "semantic_hash": "7f5a3bcf7ac783c9e2a6f8767e94d9b0"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_CoreCPU.cpp": {
-    "mtime": 1781111859.9862702,
-    "ast_hash": "770accbcfb64e13630482cd197c199f2",
-    "semantic_hash": "770accbcfb64e13630482cd197c199f2"
+    "mtime": 1781341457.7810144,
+    "ast_hash": "99e19ba75f1666ccd388959289e304f6",
+    "semantic_hash": "99e19ba75f1666ccd388959289e304f6"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_CoreCPU.hpp": {
-    "mtime": 1781085445.2501264,
+    "mtime": 1781339172.2572782,
     "ast_hash": "ddbcc9ca01b1914b58169c567f855407",
     "semantic_hash": "ddbcc9ca01b1914b58169c567f855407"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_CoreCPUWorker.cpp": {
-    "mtime": 1780893300.395736,
-    "ast_hash": "0bae495a51d8368e1c0dfe5977fd828f",
-    "semantic_hash": "0bae495a51d8368e1c0dfe5977fd828f"
+    "mtime": 1781341457.7810144,
+    "ast_hash": "f4500db5757837b53a7ec20353998331",
+    "semantic_hash": "f4500db5757837b53a7ec20353998331"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_CoreCPUWorker.hpp": {
-    "mtime": 1780893318.242484,
-    "ast_hash": "8abd163dacf09788a2e1c51f358cf5b3",
-    "semantic_hash": "8abd163dacf09788a2e1c51f358cf5b3"
+    "mtime": 1781341457.7810144,
+    "ast_hash": "be24f56d9c35df08c9181bfbf5478dd1",
+    "semantic_hash": "be24f56d9c35df08c9181bfbf5478dd1"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_CoreConfig.hpp": {
-    "mtime": 1781036388.5077658,
-    "ast_hash": "32ac7456fbcf4d93716a891ea8d217d6",
-    "semantic_hash": "32ac7456fbcf4d93716a891ea8d217d6"
+    "mtime": 1781341457.7810144,
+    "ast_hash": "eef4e9848cd2a159ea5b429b0906f40f",
+    "semantic_hash": "eef4e9848cd2a159ea5b429b0906f40f"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_CoreGPU.cpp": {
-    "mtime": 1781111859.9862702,
-    "ast_hash": "8975a6d1c2383bff6421cf078452a604",
-    "semantic_hash": "8975a6d1c2383bff6421cf078452a604"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "c3792d1ecfddba30dbe13151e4471511",
+    "semantic_hash": "c3792d1ecfddba30dbe13151e4471511"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_CoreGPU.hpp": {
-    "mtime": 1781085445.2501264,
+    "mtime": 1781339172.256278,
     "ast_hash": "bfe5265e889fc394e61231e7d1715c34",
     "semantic_hash": "bfe5265e889fc394e61231e7d1715c34"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_CoreGPUWorker.cpp": {
-    "mtime": 1781111850.617043,
-    "ast_hash": "d1603fbb60d21a8b33294fb61fbc6965",
-    "semantic_hash": "d1603fbb60d21a8b33294fb61fbc6965"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "882e4c2e106f896fc886bfb887aeb4c2",
+    "semantic_hash": "882e4c2e106f896fc886bfb887aeb4c2"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_CoreGPUWorker.hpp": {
-    "mtime": 1780893318.2414842,
-    "ast_hash": "a6be098c59c6c4974b53dfd177c092f5",
-    "semantic_hash": "a6be098c59c6c4974b53dfd177c092f5"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "4a2da5d4efcfb4faad16c311a9ad2805",
+    "semantic_hash": "4a2da5d4efcfb4faad16c311a9ad2805"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Device.cpp": {
-    "mtime": 1780893300.3927357,
+    "mtime": 1781339172.254278,
     "ast_hash": "4ad48e326afc8bba163c33c377325568",
     "semantic_hash": "4ad48e326afc8bba163c33c377325568"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_GPUBufferManager.cpp": {
-    "mtime": 1780926025.6862218,
-    "ast_hash": "daae072f18f7ad78ec4a9252eafe4836",
-    "semantic_hash": "daae072f18f7ad78ec4a9252eafe4836"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "1c14cb8f5bd1fa4f76e0ed99cd15caf4",
+    "semantic_hash": "1c14cb8f5bd1fa4f76e0ed99cd15caf4"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_GPUBufferManager.hpp": {
-    "mtime": 1780893318.2414842,
-    "ast_hash": "fb63bf7dec327f5843a57b289313727c",
-    "semantic_hash": "fb63bf7dec327f5843a57b289313727c"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "a40b8feddb22d83c57d53c08234e9318",
+    "semantic_hash": "a40b8feddb22d83c57d53c08234e9318"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_GPUKernelBuilder.cpp": {
-    "mtime": 1780893300.396736,
-    "ast_hash": "bbbc0ed3e4ba400db92e26fa07f9ba5a",
-    "semantic_hash": "bbbc0ed3e4ba400db92e26fa07f9ba5a"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "a909e6715c21c71d1183146fa188677d",
+    "semantic_hash": "a909e6715c21c71d1183146fa188677d"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_GPUKernelBuilder.hpp": {
-    "mtime": 1780893318.2414842,
-    "ast_hash": "d744de8dd9f8e357d8fadb477515c5b0",
-    "semantic_hash": "d744de8dd9f8e357d8fadb477515c5b0"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "f02a7c3a66a43a1864aa4b23a75fd831",
+    "semantic_hash": "f02a7c3a66a43a1864aa4b23a75fd831"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_InputProvider.hpp": {
-    "mtime": 1780893318.2414842,
+    "mtime": 1781339172.254278,
     "ast_hash": "0a62597e71738f211ad1a33706a0b4a7",
     "semantic_hash": "0a62597e71738f211ad1a33706a0b4a7"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_LayersConfig.cpp": {
-    "mtime": 1780893503.950007,
+    "mtime": 1781339172.2572782,
     "ast_hash": "5c86e56806b6d9a585cd25aecb30c050",
     "semantic_hash": "5c86e56806b6d9a585cd25aecb30c050"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_LayersConfig.hpp": {
-    "mtime": 1780893503.4549875,
+    "mtime": 1781339172.254278,
     "ast_hash": "0ebca937b319ace8b42f484a58e32f73",
     "semantic_hash": "0ebca937b319ace8b42f484a58e32f73"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Mode.cpp": {
-    "mtime": 1780893300.3927357,
+    "mtime": 1781339172.254278,
     "ast_hash": "b6970e888ad8655fb7a3e9b1a5158026",
     "semantic_hash": "b6970e888ad8655fb7a3e9b1a5158026"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Optimizer.cpp": {
-    "mtime": 1780893300.393736,
+    "mtime": 1781339172.254278,
     "ast_hash": "b853fe950167588d71c771e76eb43282",
     "semantic_hash": "b853fe950167588d71c771e76eb43282"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Parameters.hpp": {
-    "mtime": 1780893712.2830043,
+    "mtime": 1781339172.256278,
     "ast_hash": "ac25cd28d46df3de034d8c8978b289bb",
     "semantic_hash": "ac25cd28d46df3de034d8c8978b289bb"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Sample.hpp": {
-    "mtime": 1780894058.8016598,
+    "mtime": 1781339172.2572782,
     "ast_hash": "a40c9cae5d386696883693b3121a87a8",
     "semantic_hash": "a40c9cae5d386696883693b3121a87a8"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_SampleProvider.hpp": {
-    "mtime": 1780894059.3036778,
+    "mtime": 1781339172.2572782,
     "ast_hash": "64407506d4c29185ceecf9d6e9a08699",
     "semantic_hash": "64407506d4c29185ceecf9d6e9a08699"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_TrainingMonitor.cpp": {
-    "mtime": 1781085445.2501264,
+    "mtime": 1781339172.2572782,
     "ast_hash": "bb8e2fe05983b8cd6015bba0e09d5eab",
     "semantic_hash": "bb8e2fe05983b8cd6015bba0e09d5eab"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Types.hpp": {
-    "mtime": 1780893500.9158874,
+    "mtime": 1781339172.256278,
     "ast_hash": "1ba2f2c90b259106289a1f672ccd0b07",
     "semantic_hash": "1ba2f2c90b259106289a1f672ccd0b07"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Utils.cpp": {
-    "mtime": 1781243976.2123797,
+    "mtime": 1781339172.2572782,
     "ast_hash": "04ab9ac3501b1500dc6367b2d8c4520c",
     "semantic_hash": "04ab9ac3501b1500dc6367b2d8c4520c"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Utils.hpp": {
-    "mtime": 1781243976.2123797,
+    "mtime": 1781339172.254278,
     "ast_hash": "36d63a6348416934d1c333327cd3f06a",
     "semantic_hash": "36d63a6348416934d1c333327cd3f06a"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Worker.cpp": {
-    "mtime": 1780893300.393736,
+    "mtime": 1781339172.254278,
     "ast_hash": "f0c822a99de61c4e0c27588357eea66d",
     "semantic_hash": "f0c822a99de61c4e0c27588357eea66d"
   },
   "/home/naschpitz/Projects/NN/ANN/ANN_Worker.hpp": {
-    "mtime": 1780893318.2414842,
+    "mtime": 1781339172.253278,
     "ast_hash": "850ab5fecbd654f1d1327c2ede22234f",
     "semantic_hash": "850ab5fecbd654f1d1327c2ede22234f"
   },
   "/home/naschpitz/Projects/NN/ANN/CMakeUserPresets.json": {
-    "mtime": 1781239530.859683,
+    "mtime": 1781342295.9223833,
     "ast_hash": "de10a02366b1246937cd8804ea6e74fc",
     "semantic_hash": "de10a02366b1246937cd8804ea6e74fc"
   },
@@ -2180,84 +2165,84 @@
     "semantic_hash": "719587ed220fce62ca3d57747e40e2a9"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_actvfunc.cpp": {
-    "mtime": 1780893710.9989562,
+    "mtime": 1781339172.256278,
     "ast_hash": "de828c53bf4a9db9b5126f83657f6f6a",
     "semantic_hash": "de828c53bf4a9db9b5126f83657f6f6a"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_core_basic.cpp": {
-    "mtime": 1781111852.4570875,
-    "ast_hash": "5c26031b8214a5ae577fc6ef739d76c3",
-    "semantic_hash": "5c26031b8214a5ae577fc6ef739d76c3"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "3a8e244db54f99373b6c2343dca1fa2f",
+    "semantic_hash": "3a8e244db54f99373b6c2343dca1fa2f"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_core_basic2.cpp": {
-    "mtime": 1780893710.9989562,
-    "ast_hash": "db71ecbdfe7353244920c40c44280d98",
-    "semantic_hash": "db71ecbdfe7353244920c40c44280d98"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "92019b3d25371ba0da100987dbedb1a6",
+    "semantic_hash": "92019b3d25371ba0da100987dbedb1a6"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_core_exact.cpp": {
-    "mtime": 1780893710.9999561,
-    "ast_hash": "3c0feb65c29120f6a8e1e383d208a748",
-    "semantic_hash": "3c0feb65c29120f6a8e1e383d208a748"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "0b5e957ecec3a16b5f192dec0fcc25d5",
+    "semantic_hash": "0b5e957ecec3a16b5f192dec0fcc25d5"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_core_exact2.cpp": {
-    "mtime": 1780893710.9989562,
-    "ast_hash": "239dac32c2ac5ed273a7633927275e01",
-    "semantic_hash": "239dac32c2ac5ed273a7633927275e01"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "f01de2c617c00bb0ab2d3ada18d3e7c0",
+    "semantic_hash": "f01de2c617c00bb0ab2d3ada18d3e7c0"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_core_features.cpp": {
-    "mtime": 1780893710.9999561,
-    "ast_hash": "2569743968ab39a76c0ce741ab5d651d",
-    "semantic_hash": "2569743968ab39a76c0ce741ab5d651d"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "f593121f1eef0f4604c0a25dcc5c92d3",
+    "semantic_hash": "f593121f1eef0f4604c0a25dcc5c92d3"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_core_features2.cpp": {
-    "mtime": 1780893710.9999561,
-    "ast_hash": "72b89d3237bd21ceb03e2128b4434e88",
-    "semantic_hash": "72b89d3237bd21ceb03e2128b4434e88"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "93a84c29be507e5e3efd3cf0f664aa31",
+    "semantic_hash": "93a84c29be507e5e3efd3cf0f664aa31"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_gpu_basic.cpp": {
-    "mtime": 1780893710.9999561,
-    "ast_hash": "3b2d8f6e16df816cea673c0ad5423e71",
-    "semantic_hash": "3b2d8f6e16df816cea673c0ad5423e71"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "f4585b72320de06e11467e60158e5e01",
+    "semantic_hash": "f4585b72320de06e11467e60158e5e01"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_gpu_basic2.cpp": {
-    "mtime": 1780893710.9999561,
-    "ast_hash": "fd52380ea4db546749c9db10f09826ee",
-    "semantic_hash": "fd52380ea4db546749c9db10f09826ee"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "81e96ce5c1feb57bf74af8dc3edcc423",
+    "semantic_hash": "81e96ce5c1feb57bf74af8dc3edcc423"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_gpu_exact.cpp": {
-    "mtime": 1780893710.9999561,
-    "ast_hash": "cfb05c2c697930159f5ad144faede456",
-    "semantic_hash": "cfb05c2c697930159f5ad144faede456"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "7e11425b1b487ecfb07844cb482e3cb8",
+    "semantic_hash": "7e11425b1b487ecfb07844cb482e3cb8"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_gpu_features.cpp": {
-    "mtime": 1781111852.4570875,
-    "ast_hash": "10870a9eed91d93b5a612b76f0ad7e9a",
-    "semantic_hash": "10870a9eed91d93b5a612b76f0ad7e9a"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "cdd22490f56372da2dc71c6338ae40c6",
+    "semantic_hash": "cdd22490f56372da2dc71c6338ae40c6"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_gpu_multigpu.cpp": {
-    "mtime": 1781111852.4580877,
-    "ast_hash": "1c9dc559c243b28d216647a7f8e8495d",
-    "semantic_hash": "1c9dc559c243b28d216647a7f8e8495d"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "9224187067c7c2dd6dd70908e04d455f",
+    "semantic_hash": "9224187067c7c2dd6dd70908e04d455f"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_helpers.hpp": {
-    "mtime": 1781112112.3234246,
-    "ast_hash": "5cbba3ce105f1691ed8e4748856c4a9c",
-    "semantic_hash": "5cbba3ce105f1691ed8e4748856c4a9c"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "4e8db9dbd48ecb9da2d927aaf0261816",
+    "semantic_hash": "4e8db9dbd48ecb9da2d927aaf0261816"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_main.cpp": {
-    "mtime": 1780893710.9999561,
+    "mtime": 1781339172.255278,
     "ast_hash": "ca533961e8c08adacce54c3f9c0a5c55",
     "semantic_hash": "ca533961e8c08adacce54c3f9c0a5c55"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_serialization.cpp": {
-    "mtime": 1780893710.9999561,
-    "ast_hash": "fb5df68dc42362fba4f8b46f64589536",
-    "semantic_hash": "fb5df68dc42362fba4f8b46f64589536"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "5f1b1f300004d5c1db741d99fcba186f",
+    "semantic_hash": "5f1b1f300004d5c1db741d99fcba186f"
   },
   "/home/naschpitz/Projects/NN/ANN/tests/test_utils.cpp": {
-    "mtime": 1781243976.2123797,
-    "ast_hash": "322735ccab8308a0ca035db1cb4b9f5f",
-    "semantic_hash": "322735ccab8308a0ca035db1cb4b9f5f"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "cb6e998305f08556fece4c19fd774091",
+    "semantic_hash": "cb6e998305f08556fece4c19fd774091"
   },
   "/home/naschpitz/Projects/NN/CMakeUserPresets.json": {
     "mtime": 1780899168.8766296,
@@ -2265,277 +2250,277 @@
     "semantic_hash": "de10a02366b1246937cd8804ea6e74fc"
   },
   "/home/naschpitz/Projects/NN/CNN/CMakeUserPresets.json": {
-    "mtime": 1781239531.1256893,
+    "mtime": 1781342296.197389,
     "ast_hash": "de10a02366b1246937cd8804ea6e74fc",
     "semantic_hash": "de10a02366b1246937cd8804ea6e74fc"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Conv2D.cpp": {
-    "mtime": 1780893670.9674478,
+    "mtime": 1781339172.245278,
     "ast_hash": "051e55a20cfeafba427c01ecba7f4e9d",
     "semantic_hash": "051e55a20cfeafba427c01ecba7f4e9d"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Conv2D.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2422776,
     "ast_hash": "7f996655c910a95becfde7da9b10bb8b",
     "semantic_hash": "7f996655c910a95becfde7da9b10bb8b"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Conv2DParameters.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2412777,
     "ast_hash": "1a37a25d822a2c1c5e82c5bae31636c8",
     "semantic_hash": "1a37a25d822a2c1c5e82c5bae31636c8"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Core.cpp": {
-    "mtime": 1781243976.2123797,
-    "ast_hash": "49608a55c463806ae53c4eb78568727a",
-    "semantic_hash": "49608a55c463806ae53c4eb78568727a"
+    "mtime": 1781341457.7830143,
+    "ast_hash": "60c79db91ec2655fc8ac05987023c545",
+    "semantic_hash": "60c79db91ec2655fc8ac05987023c545"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Core.hpp": {
-    "mtime": 1781112111.5984068,
-    "ast_hash": "7fc4f2ce029d4abb9b006b2b1f5158ea",
-    "semantic_hash": "7fc4f2ce029d4abb9b006b2b1f5158ea"
+    "mtime": 1781341457.7840145,
+    "ast_hash": "b2d0b778841ae9f982f3d29623ab67fb",
+    "semantic_hash": "b2d0b778841ae9f982f3d29623ab67fb"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreCPU.cpp": {
-    "mtime": 1781111859.9862702,
-    "ast_hash": "c881e21b95c456a440cddb7e5cdad965",
-    "semantic_hash": "c881e21b95c456a440cddb7e5cdad965"
+    "mtime": 1781341457.7840145,
+    "ast_hash": "5ebd740a4861655d48111bc3336d0e66",
+    "semantic_hash": "5ebd740a4861655d48111bc3336d0e66"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreCPU.hpp": {
-    "mtime": 1781085445.2501264,
+    "mtime": 1781339172.2432778,
     "ast_hash": "08b90b899fbe8e966115c1ae88ac7f63",
     "semantic_hash": "08b90b899fbe8e966115c1ae88ac7f63"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreCPUWorker.cpp": {
-    "mtime": 1780893384.3112128,
-    "ast_hash": "ec03f6d0870e6a953b6c961cc8c8bb06",
-    "semantic_hash": "ec03f6d0870e6a953b6c961cc8c8bb06"
+    "mtime": 1781341457.7840145,
+    "ast_hash": "bd46ce8e871d4d76b7ba27af16437313",
+    "semantic_hash": "bd46ce8e871d4d76b7ba27af16437313"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreCPUWorker.hpp": {
-    "mtime": 1780893384.3092127,
+    "mtime": 1781339172.2422776,
     "ast_hash": "5bcedab35d86c2b11a3cbef3f3b4e9ec",
     "semantic_hash": "5bcedab35d86c2b11a3cbef3f3b4e9ec"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreConfig.hpp": {
-    "mtime": 1781036388.5077658,
-    "ast_hash": "4612c605644edc6e4b32383f6cd59941",
-    "semantic_hash": "4612c605644edc6e4b32383f6cd59941"
+    "mtime": 1781341457.7840145,
+    "ast_hash": "e37bf2a08b9de2c860f3f9ba372c83a4",
+    "semantic_hash": "e37bf2a08b9de2c860f3f9ba372c83a4"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreGPU.cpp": {
-    "mtime": 1781111859.9862702,
-    "ast_hash": "f926d616611f97d1e21526e3edaacfce",
-    "semantic_hash": "f926d616611f97d1e21526e3edaacfce"
+    "mtime": 1781341457.7840145,
+    "ast_hash": "3ecd6bb20c8bb10f05508254b6045bce",
+    "semantic_hash": "3ecd6bb20c8bb10f05508254b6045bce"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreGPU.hpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.2402778,
     "ast_hash": "c301f041472c328891e890069c42df86",
     "semantic_hash": "c301f041472c328891e890069c42df86"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreGPUWorker.cpp": {
-    "mtime": 1781111850.617043,
+    "mtime": 1781339172.2422776,
     "ast_hash": "b2e653a26f1a2282740b3cf363deff4a",
     "semantic_hash": "b2e653a26f1a2282740b3cf363deff4a"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreGPUWorker.hpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.250278,
     "ast_hash": "2cba6a5bebcc6a8a339f7a8c496bbea2",
     "semantic_hash": "2cba6a5bebcc6a8a339f7a8c496bbea2"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreGPUWorkerConfig.cpp": {
-    "mtime": 1780893300.3817353,
-    "ast_hash": "b4dc3c16f0b3881fc327c043eafbfb44",
-    "semantic_hash": "b4dc3c16f0b3881fc327c043eafbfb44"
+    "mtime": 1781341457.7840145,
+    "ast_hash": "0a257d9c5e236a985b36284c1507896e",
+    "semantic_hash": "0a257d9c5e236a985b36284c1507896e"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_CoreGPUWorkerConfig.hpp": {
-    "mtime": 1780893300.3807352,
-    "ast_hash": "5e6ab4c2ec4edca2a29e758110037d85",
-    "semantic_hash": "5e6ab4c2ec4edca2a29e758110037d85"
+    "mtime": 1781341457.7840145,
+    "ast_hash": "2dbc671de886669e37d07a7930db2310",
+    "semantic_hash": "2dbc671de886669e37d07a7930db2310"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Flatten.cpp": {
-    "mtime": 1780893670.9684477,
+    "mtime": 1781339172.250278,
     "ast_hash": "24505b1d3070d576d6bfbd86055e7a12",
     "semantic_hash": "24505b1d3070d576d6bfbd86055e7a12"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Flatten.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2492778,
     "ast_hash": "faf4bcf5ce7907770e210ae212cf67bf",
     "semantic_hash": "faf4bcf5ce7907770e210ae212cf67bf"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_GPUBufferManager.cpp": {
-    "mtime": 1780893597.4756448,
-    "ast_hash": "582a1c34c4524246aab964181de87484",
-    "semantic_hash": "582a1c34c4524246aab964181de87484"
+    "mtime": 1781341457.7840145,
+    "ast_hash": "45a73acf84a19552da1d607a7e6fa9e2",
+    "semantic_hash": "45a73acf84a19552da1d607a7e6fa9e2"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_GPUBufferManager.hpp": {
-    "mtime": 1780893596.1315932,
+    "mtime": 1781339172.2442777,
     "ast_hash": "89696810baec7a946a20bcccb6b6edb6",
     "semantic_hash": "89696810baec7a946a20bcccb6b6edb6"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_GPUKernelBuilder.cpp": {
-    "mtime": 1781085445.2511263,
-    "ast_hash": "7aad3a70d5e8f1cb660876d1c0153b75",
-    "semantic_hash": "7aad3a70d5e8f1cb660876d1c0153b75"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "f1a2bfb415ce6e8337c593144a21c538",
+    "semantic_hash": "f1a2bfb415ce6e8337c593144a21c538"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_GPUKernelBuilder.hpp": {
-    "mtime": 1780893300.3817353,
+    "mtime": 1781339172.2432778,
     "ast_hash": "91de7c80fe87de8e93f454653a524a73",
     "semantic_hash": "91de7c80fe87de8e93f454653a524a73"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_GlobalAvgPool.cpp": {
-    "mtime": 1780893670.9684477,
+    "mtime": 1781339172.2442777,
     "ast_hash": "7cfdc9099d20131c8b72578dcd050a0e",
     "semantic_hash": "7cfdc9099d20131c8b72578dcd050a0e"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_GlobalAvgPool.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.245278,
     "ast_hash": "f74a212b6ecb3633ff4a6ff5834f4edd",
     "semantic_hash": "f74a212b6ecb3633ff4a6ff5834f4edd"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_GlobalDualPool.cpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.250278,
     "ast_hash": "38c28acd5439b512807ede1318e6c6b5",
     "semantic_hash": "38c28acd5439b512807ede1318e6c6b5"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_GlobalDualPool.hpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.2432778,
     "ast_hash": "c19f297559bf97a2441d376ce047fd84",
     "semantic_hash": "c19f297559bf97a2441d376ce047fd84"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_InputProvider.hpp": {
-    "mtime": 1780893300.3857355,
+    "mtime": 1781339172.2492778,
     "ast_hash": "7cfb2a1d632db48abc4549f36d91a273",
     "semantic_hash": "7cfb2a1d632db48abc4549f36d91a273"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_LayersConfig.cpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.2422776,
     "ast_hash": "dce819c194781526a498539dfb71a0f4",
     "semantic_hash": "dce819c194781526a498539dfb71a0f4"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_LayersConfig.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2492778,
     "ast_hash": "da2fc28473440b3b6c53aff980fb71ac",
     "semantic_hash": "da2fc28473440b3b6c53aff980fb71ac"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_NormParameters.hpp": {
-    "mtime": 1780893712.2810042,
+    "mtime": 1781339172.2412777,
     "ast_hash": "74b084779b20ad1b1d2a0a55bddc95ec",
     "semantic_hash": "74b084779b20ad1b1d2a0a55bddc95ec"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Normalization.cpp": {
-    "mtime": 1780893712.2820044,
+    "mtime": 1781339172.2422776,
     "ast_hash": "a51e264f7a4ae7eb15d0720e2404a25c",
     "semantic_hash": "a51e264f7a4ae7eb15d0720e2404a25c"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Normalization.hpp": {
-    "mtime": 1780893712.2820044,
+    "mtime": 1781339172.2412777,
     "ast_hash": "f4a97cd297c76b4f8f81b2675fb4f488",
     "semantic_hash": "f4a97cd297c76b4f8f81b2675fb4f488"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Parameters.hpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.2492778,
     "ast_hash": "77ca15235fc199ccc1d927224ef0725e",
     "semantic_hash": "77ca15235fc199ccc1d927224ef0725e"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Pool.cpp": {
-    "mtime": 1780893670.9684477,
+    "mtime": 1781339172.2492778,
     "ast_hash": "0fa29cfc2adfc844218876303ce79497",
     "semantic_hash": "0fa29cfc2adfc844218876303ce79497"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Pool.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2432778,
     "ast_hash": "fb9d9b6d2916a7dd912990b2fe62e282",
     "semantic_hash": "fb9d9b6d2916a7dd912990b2fe62e282"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_PoolType.cpp": {
-    "mtime": 1780893670.9674478,
+    "mtime": 1781339172.2492778,
     "ast_hash": "ec25917e59e2e8355ebbd957a7aea427",
     "semantic_hash": "ec25917e59e2e8355ebbd957a7aea427"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_PoolType.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2492778,
     "ast_hash": "42ceb52eaa6af5d82a46d1064e469b38",
     "semantic_hash": "42ceb52eaa6af5d82a46d1064e469b38"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_ReLU.cpp": {
-    "mtime": 1780893670.9674478,
+    "mtime": 1781339172.250278,
     "ast_hash": "0a30920a5fdf647dd3eb1073ef07216b",
     "semantic_hash": "0a30920a5fdf647dd3eb1073ef07216b"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_ReLU.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2492778,
     "ast_hash": "0fd00a43d1bb5332af28477560ce6207",
     "semantic_hash": "0fd00a43d1bb5332af28477560ce6207"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Residual.cpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.250278,
     "ast_hash": "d8c0397e0e50b84182598b5345828b1b",
     "semantic_hash": "d8c0397e0e50b84182598b5345828b1b"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Residual.hpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.2492778,
     "ast_hash": "e253190445909e61a8eb0dd24f4c85d5",
     "semantic_hash": "e253190445909e61a8eb0dd24f4c85d5"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_ResidualParameters.hpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.250278,
     "ast_hash": "373d373073e8a69d703203b5af9e05df",
     "semantic_hash": "373d373073e8a69d703203b5af9e05df"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Sample.hpp": {
-    "mtime": 1780894059.8566976,
+    "mtime": 1781339172.2422776,
     "ast_hash": "5ad37942b5f0300329a51bcdc3f6f841",
     "semantic_hash": "5ad37942b5f0300329a51bcdc3f6f841"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_SampleProvider.hpp": {
-    "mtime": 1780894060.340715,
+    "mtime": 1781339172.2432778,
     "ast_hash": "bd76bd935025dcc593a77aa71ee8ec4f",
     "semantic_hash": "bd76bd935025dcc593a77aa71ee8ec4f"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Shape3D.cpp": {
-    "mtime": 1780893670.9674478,
+    "mtime": 1781339172.250278,
     "ast_hash": "212b5e970c78a60fd2e7aec5ba248504",
     "semantic_hash": "212b5e970c78a60fd2e7aec5ba248504"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Shape3D.hpp": {
-    "mtime": 1780893670.9654477,
+    "mtime": 1781339172.2402778,
     "ast_hash": "0a6fa23f6279bcd2b8bb8b45fae5ae01",
     "semantic_hash": "0a6fa23f6279bcd2b8bb8b45fae5ae01"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_SlidingStrategy.cpp": {
-    "mtime": 1780893670.9674478,
+    "mtime": 1781339172.2432778,
     "ast_hash": "6d6cdc21d2df503818e102edcc26656d",
     "semantic_hash": "6d6cdc21d2df503818e102edcc26656d"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_SlidingStrategy.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2432778,
     "ast_hash": "aa61dd9b1b852eb4ab3254c1a33063e7",
     "semantic_hash": "aa61dd9b1b852eb4ab3254c1a33063e7"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Tensor3D.cpp": {
-    "mtime": 1780893670.9674478,
+    "mtime": 1781339172.2412777,
     "ast_hash": "7e8bf9634587611f5e004f76d6457d61",
     "semantic_hash": "7e8bf9634587611f5e004f76d6457d61"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Tensor3D.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2412777,
     "ast_hash": "dc8109ebda1a1b6a5a1e34e378532dfa",
     "semantic_hash": "dc8109ebda1a1b6a5a1e34e378532dfa"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_TimingCallback.hpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.2432778,
     "ast_hash": "64e4fbb8d9ad5f9a22fbe7d27310a155",
     "semantic_hash": "64e4fbb8d9ad5f9a22fbe7d27310a155"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Types.hpp": {
-    "mtime": 1780893670.9664476,
+    "mtime": 1781339172.2442777,
     "ast_hash": "2bce0fbc6028710e875d48398acc000a",
     "semantic_hash": "2bce0fbc6028710e875d48398acc000a"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Worker.cpp": {
-    "mtime": 1781085445.2511263,
+    "mtime": 1781339172.2422776,
     "ast_hash": "77e7153b1a0531d4c59f920e08dffd79",
     "semantic_hash": "77e7153b1a0531d4c59f920e08dffd79"
   },
   "/home/naschpitz/Projects/NN/CNN/CNN_Worker.hpp": {
-    "mtime": 1780893712.2820044,
+    "mtime": 1781339172.2422776,
     "ast_hash": "f6aa2b932e0fd0814daeb63b5a0ec42a",
     "semantic_hash": "f6aa2b932e0fd0814daeb63b5a0ec42a"
   },
@@ -2580,247 +2565,237 @@
     "semantic_hash": "719587ed220fce62ca3d57747e40e2a9"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_conv2d.cpp": {
-    "mtime": 1780893300.3847353,
+    "mtime": 1781339172.248278,
     "ast_hash": "04b5b404787c524f493ce58fcc18dfca",
     "semantic_hash": "04b5b404787c524f493ce58fcc18dfca"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_globalavgpool.cpp": {
-    "mtime": 1781085445.2521265,
+    "mtime": 1781339172.248278,
     "ast_hash": "33bd98361dd85507d5ceffa95de9d4b6",
     "semantic_hash": "33bd98361dd85507d5ceffa95de9d4b6"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_globaldualpool.cpp": {
-    "mtime": 1781085445.2521265,
+    "mtime": 1781339172.248278,
     "ast_hash": "429b73cd30e4215d93c0f29abe34f7a0",
     "semantic_hash": "429b73cd30e4215d93c0f29abe34f7a0"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_instancenorm.cpp": {
-    "mtime": 1781085445.2521265,
+    "mtime": 1781339172.2462778,
     "ast_hash": "65b44fdaf86f0a700b0f51e459769805",
     "semantic_hash": "65b44fdaf86f0a700b0f51e459769805"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_integration_basic.cpp": {
-    "mtime": 1780893300.3847353,
-    "ast_hash": "7fc1a4410517162c03601174168bf081",
-    "semantic_hash": "7fc1a4410517162c03601174168bf081"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "4ed1ac67b1e1c163c212e119604ad0e8",
+    "semantic_hash": "4ed1ac67b1e1c163c212e119604ad0e8"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_integration_basic2.cpp": {
-    "mtime": 1781111852.4580877,
-    "ast_hash": "3a68d59248bc75a93be35f5ecb13b846",
-    "semantic_hash": "3a68d59248bc75a93be35f5ecb13b846"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "b5afc709c7fdee1370986bc6a5910a5e",
+    "semantic_hash": "b5afc709c7fdee1370986bc6a5910a5e"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_integration_basic3.cpp": {
-    "mtime": 1780893300.3847353,
-    "ast_hash": "f7b3d86eabb53ea5506f366b404ab5c3",
-    "semantic_hash": "f7b3d86eabb53ea5506f366b404ab5c3"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "67deef9026b10c44d2a95f679db609aa",
+    "semantic_hash": "67deef9026b10c44d2a95f679db609aa"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_integration_batchnorm.cpp": {
-    "mtime": 1780893300.3837354,
-    "ast_hash": "5c51ab1b90ebc6fd23ff87d7934cf619",
-    "semantic_hash": "5c51ab1b90ebc6fd23ff87d7934cf619"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "a7fea2af30207dede425e2da4b602fe7",
+    "semantic_hash": "a7fea2af30207dede425e2da4b602fe7"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_integration_costfunc.cpp": {
-    "mtime": 1780893300.3847353,
-    "ast_hash": "bf8f80daed832ae84f95cba2794e7a30",
-    "semantic_hash": "bf8f80daed832ae84f95cba2794e7a30"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "1d36f6ded02200efbe0f6f7c27b9f019",
+    "semantic_hash": "1d36f6ded02200efbe0f6f7c27b9f019"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_integration_exact.cpp": {
-    "mtime": 1780893300.3837354,
-    "ast_hash": "8577f53831c8224881783085ae1cc300",
-    "semantic_hash": "8577f53831c8224881783085ae1cc300"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "0a8b796eb049d28eb028c34c45cdd0b5",
+    "semantic_hash": "0a8b796eb049d28eb028c34c45cdd0b5"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_integration_globalpool.cpp": {
-    "mtime": 1780893300.3847353,
-    "ast_hash": "ff3660de7c3b9575b63664951fb40bac",
-    "semantic_hash": "ff3660de7c3b9575b63664951fb40bac"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "6b1d4ba26ab2d29d13b955c737eac37d",
+    "semantic_hash": "6b1d4ba26ab2d29d13b955c737eac37d"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_integration_residual.cpp": {
-    "mtime": 1780893300.3837354,
-    "ast_hash": "06c06913df8327db87b3b5ae03818af5",
-    "semantic_hash": "06c06913df8327db87b3b5ae03818af5"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "c39aaf1080a6301094d205ba2ba12f88",
+    "semantic_hash": "c39aaf1080a6301094d205ba2ba12f88"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_layers.cpp": {
-    "mtime": 1780893300.3827353,
+    "mtime": 1781339172.245278,
     "ast_hash": "23fafb3376619002e4dd8545d1ff42a5",
     "semantic_hash": "23fafb3376619002e4dd8545d1ff42a5"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_layers2.cpp": {
-    "mtime": 1780893994.826367,
+    "mtime": 1781339172.245278,
     "ast_hash": "9ad9b112a5308e7634537b2d2eedb974",
     "semantic_hash": "9ad9b112a5308e7634537b2d2eedb974"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_cpu_residual.cpp": {
-    "mtime": 1781085445.2521265,
+    "mtime": 1781339172.2462778,
     "ast_hash": "a901b417de34b522adebc110c1ad3c46",
     "semantic_hash": "a901b417de34b522adebc110c1ad3c46"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_basic.cpp": {
-    "mtime": 1780893300.3837354,
-    "ast_hash": "297f56d3500fedd62cf2e86a1806d9a4",
-    "semantic_hash": "297f56d3500fedd62cf2e86a1806d9a4"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "75e28f0b7af89a143e2b290a76a4033c",
+    "semantic_hash": "75e28f0b7af89a143e2b290a76a4033c"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_basic2.cpp": {
-    "mtime": 1780893300.3847353,
-    "ast_hash": "421a2e7bc7a521e7dfc93e02998ee92a",
-    "semantic_hash": "421a2e7bc7a521e7dfc93e02998ee92a"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "3d99415866d5de5d1f20f3bd96b1e332",
+    "semantic_hash": "3d99415866d5de5d1f20f3bd96b1e332"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_basic3.cpp": {
-    "mtime": 1781111852.4580877,
-    "ast_hash": "c675a45ade53ce2e67316a07ffc8c72a",
-    "semantic_hash": "c675a45ade53ce2e67316a07ffc8c72a"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "2372fed663cd77c7952d4e009ed0324a",
+    "semantic_hash": "2372fed663cd77c7952d4e009ed0324a"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_basic4.cpp": {
-    "mtime": 1780893300.3837354,
-    "ast_hash": "fdb55346b33221471c7fff5528f59d6d",
-    "semantic_hash": "fdb55346b33221471c7fff5528f59d6d"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "cfce3e4ae9fe813fa979f72538b4140d",
+    "semantic_hash": "cfce3e4ae9fe813fa979f72538b4140d"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_batchnorm.cpp": {
-    "mtime": 1780893300.3837354,
-    "ast_hash": "8a86b50a03fe8a164b6a2c12a6f961ea",
-    "semantic_hash": "8a86b50a03fe8a164b6a2c12a6f961ea"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "de7546565374fb9c430b3066eb6cc787",
+    "semantic_hash": "de7546565374fb9c430b3066eb6cc787"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_batchnorm2.cpp": {
-    "mtime": 1780893300.3827353,
-    "ast_hash": "2f07e371a9a052cbebba58449d472996",
-    "semantic_hash": "2f07e371a9a052cbebba58449d472996"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "5db40bf96c5a1abb3265fad84fb8c0f5",
+    "semantic_hash": "5db40bf96c5a1abb3265fad84fb8c0f5"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_exact.cpp": {
-    "mtime": 1781085445.2521265,
-    "ast_hash": "a94a81d45af5c0ac21882e6e700d0a24",
-    "semantic_hash": "a94a81d45af5c0ac21882e6e700d0a24"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "4b7d096330e263c14e59ffab86976f84",
+    "semantic_hash": "4b7d096330e263c14e59ffab86976f84"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_exact_bn.cpp": {
-    "mtime": 1780893300.3847353,
-    "ast_hash": "6c29e15a0ea1c3febd8d8910284b0f1e",
-    "semantic_hash": "6c29e15a0ea1c3febd8d8910284b0f1e"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "0b2a2ef8da8f4c42c9ed604b1152a665",
+    "semantic_hash": "0b2a2ef8da8f4c42c9ed604b1152a665"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_exact_globalpool.cpp": {
-    "mtime": 1780893300.3847353,
-    "ast_hash": "34d493bb3e2227fe1b36085e141d8273",
-    "semantic_hash": "34d493bb3e2227fe1b36085e141d8273"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "c0cea2cc721121c57347a160f37a767b",
+    "semantic_hash": "c0cea2cc721121c57347a160f37a767b"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_globalpool.cpp": {
-    "mtime": 1780893300.3827353,
-    "ast_hash": "7cdd954feef105aab0e9f52d98fd38fe",
-    "semantic_hash": "7cdd954feef105aab0e9f52d98fd38fe"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "a0c10ebac8c7e2921674b2ea1970dcd5",
+    "semantic_hash": "a0c10ebac8c7e2921674b2ea1970dcd5"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_multigpu.cpp": {
-    "mtime": 1780893300.3837354,
-    "ast_hash": "872c35ba9b2fa3ff543cfd477237123e",
-    "semantic_hash": "872c35ba9b2fa3ff543cfd477237123e"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "d96eb01937716527c92ab948414404cb",
+    "semantic_hash": "d96eb01937716527c92ab948414404cb"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_gpu_multigpu2.cpp": {
-    "mtime": 1780893300.3837354,
-    "ast_hash": "cd09dfb452d8ae2691c2858fc990b795",
-    "semantic_hash": "cd09dfb452d8ae2691c2858fc990b795"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "49460d31d3b5817d4fd1d562d3d80fac",
+    "semantic_hash": "49460d31d3b5817d4fd1d562d3d80fac"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_helpers.hpp": {
-    "mtime": 1780893300.3857355,
+    "mtime": 1781339172.248278,
     "ast_hash": "afbaca6fa94ccaf9b8e78b91bd874406",
     "semantic_hash": "afbaca6fa94ccaf9b8e78b91bd874406"
   },
   "/home/naschpitz/Projects/NN/CNN/tests/test_main.cpp": {
-    "mtime": 1780893300.3837354,
+    "mtime": 1781339172.2472777,
     "ast_hash": "012e584e0ba89fc73d34a51096066dce",
     "semantic_hash": "012e584e0ba89fc73d34a51096066dce"
   },
   "/home/naschpitz/Projects/NN/Common/Common_CostFunctionConfig.hpp": {
-    "mtime": 1780889697.101619,
+    "mtime": 1781339172.2382777,
     "ast_hash": "dc32067949d9680f1104b04c36a18b3c",
     "semantic_hash": "dc32067949d9680f1104b04c36a18b3c"
   },
   "/home/naschpitz/Projects/NN/Common/Common_Device.hpp": {
-    "mtime": 1780893877.078101,
+    "mtime": 1781339172.2402778,
     "ast_hash": "0cf7a042fedcdf75179385bc3a795f05",
     "semantic_hash": "0cf7a042fedcdf75179385bc3a795f05"
   },
   "/home/naschpitz/Projects/NN/Common/Common_EpochCompletionEvent.hpp": {
-    "mtime": 1781111883.701846,
+    "mtime": 1781339172.2402778,
     "ast_hash": "db4556cd2342a790cd27b4f38771b044",
     "semantic_hash": "db4556cd2342a790cd27b4f38771b044"
   },
   "/home/naschpitz/Projects/NN/Common/Common_EpochRecord.hpp": {
-    "mtime": 1781085445.2521265,
+    "mtime": 1781339172.2392776,
     "ast_hash": "c01cb53d4f28b672715584934896c854",
     "semantic_hash": "c01cb53d4f28b672715584934896c854"
   },
   "/home/naschpitz/Projects/NN/Common/Common_GPUWorkDistributor.hpp": {
-    "mtime": 1780896921.408644,
+    "mtime": 1781339172.2392776,
     "ast_hash": "5d5e8f07c0aa95b24104978def325b1f",
     "semantic_hash": "5d5e8f07c0aa95b24104978def325b1f"
   },
   "/home/naschpitz/Projects/NN/Common/Common_LogLevel.hpp": {
-    "mtime": 1780889697.101619,
+    "mtime": 1781339172.2402778,
     "ast_hash": "a3567bb985935cc2e286a8f2a9547870",
     "semantic_hash": "a3567bb985935cc2e286a8f2a9547870"
   },
   "/home/naschpitz/Projects/NN/Common/Common_Mode.hpp": {
-    "mtime": 1780893877.078101,
-    "ast_hash": "34833c0505c3d42908552893e3442fb0",
-    "semantic_hash": "34833c0505c3d42908552893e3442fb0"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "e76f2cb108a54fcd918c7735dfb0f00f",
+    "semantic_hash": "e76f2cb108a54fcd918c7735dfb0f00f"
   },
   "/home/naschpitz/Projects/NN/Common/Common_MonitoringConfig.hpp": {
-    "mtime": 1780889697.101619,
+    "mtime": 1781339172.2402778,
     "ast_hash": "d507b0c5ac8a038c78244046538fcff0",
     "semantic_hash": "d507b0c5ac8a038c78244046538fcff0"
   },
   "/home/naschpitz/Projects/NN/Common/Common_Optimizer.hpp": {
-    "mtime": 1780889697.101619,
+    "mtime": 1781339172.2402778,
     "ast_hash": "85cdedce9f7d632dbf9d5ef3e58b7200",
     "semantic_hash": "85cdedce9f7d632dbf9d5ef3e58b7200"
   },
   "/home/naschpitz/Projects/NN/Common/Common_PredictMetadata.hpp": {
-    "mtime": 1780889697.101619,
+    "mtime": 1781339172.2382777,
     "ast_hash": "8e0978121a0ecf8b10bbcf64ed75bf85",
     "semantic_hash": "8e0978121a0ecf8b10bbcf64ed75bf85"
   },
   "/home/naschpitz/Projects/NN/Common/Common_PredictResult.hpp": {
-    "mtime": 1780893504.7270374,
+    "mtime": 1781339172.2392776,
     "ast_hash": "53121c5bae20a3a2dd7d7db99e724a10",
     "semantic_hash": "53121c5bae20a3a2dd7d7db99e724a10"
   },
   "/home/naschpitz/Projects/NN/Common/Common_ProgressCallback.hpp": {
-    "mtime": 1780889697.101619,
+    "mtime": 1781339172.2392776,
     "ast_hash": "4bc06dd0c2f65d11fc1dcc2e74467a17",
     "semantic_hash": "4bc06dd0c2f65d11fc1dcc2e74467a17"
   },
   "/home/naschpitz/Projects/NN/Common/Common_TestConfig.hpp": {
-    "mtime": 1780889697.101619,
+    "mtime": 1781339172.2392776,
     "ast_hash": "2e2647eeb0d1bf7a31994ce6201d7ec2",
     "semantic_hash": "2e2647eeb0d1bf7a31994ce6201d7ec2"
   },
   "/home/naschpitz/Projects/NN/Common/Common_TestResult.hpp": {
-    "mtime": 1780889697.102619,
+    "mtime": 1781339172.2392776,
     "ast_hash": "1e480c93b906e37b14aab33c25bb0cb4",
     "semantic_hash": "1e480c93b906e37b14aab33c25bb0cb4"
   },
-  "/home/naschpitz/Projects/NN/Common/Common_TrainingConfig.hpp": {
-    "mtime": 1781034016.6983457,
-    "ast_hash": "93ac224d0a5051283d379e99cd6b584f",
-    "semantic_hash": "93ac224d0a5051283d379e99cd6b584f"
-  },
-  "/home/naschpitz/Projects/NN/Common/Common_TrainingMetadata.hpp": {
-    "mtime": 1781111336.9578192,
-    "ast_hash": "67452452cf45e254d6bc5520be1ee8e9",
-    "semantic_hash": "67452452cf45e254d6bc5520be1ee8e9"
-  },
   "/home/naschpitz/Projects/NN/Common/Common_TrainingMonitor.hpp": {
-    "mtime": 1781085445.2521265,
+    "mtime": 1781339172.2402778,
     "ast_hash": "7f945b5c7da2ab7eee056df7a061fd22",
     "semantic_hash": "7f945b5c7da2ab7eee056df7a061fd22"
   },
   "/home/naschpitz/Projects/NN/Common/Common_TrainingProgressEvent.hpp": {
-    "mtime": 1781112110.0213683,
+    "mtime": 1781339172.2392776,
     "ast_hash": "0e0c9d098d57b715baa2c59cae17efcf",
     "semantic_hash": "0e0c9d098d57b715baa2c59cae17efcf"
   },
   "/home/naschpitz/Projects/NN/Common/Common_Utils.hpp": {
-    "mtime": 1781243976.2123797,
+    "mtime": 1781339172.2402778,
     "ast_hash": "834b908e786e2f4335a93d133d9e9ec0",
     "semantic_hash": "834b908e786e2f4335a93d133d9e9ec0"
   },
   "/home/naschpitz/Projects/NN/Common/Common_ValidationConfig.hpp": {
-    "mtime": 1780889697.102619,
+    "mtime": 1781339172.2402778,
     "ast_hash": "4e626f503514a04eca13263fd8acabc4",
     "semantic_hash": "4e626f503514a04eca13263fd8acabc4"
   },
@@ -2830,362 +2805,362 @@
     "semantic_hash": "ba31a0269fd7a06b641d5ad5d9c2d2cb"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/CMakeUserPresets.json": {
-    "mtime": 1781239531.4716976,
+    "mtime": 1781342349.3724587,
     "ast_hash": "de10a02366b1246937cd8804ea6e74fc",
     "semantic_hash": "de10a02366b1246937cd8804ea6e74fc"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ANNLoader.cpp": {
-    "mtime": 1781134814.176877,
-    "ast_hash": "b5029978b75890f04e633fc678af2ec8",
-    "semantic_hash": "b5029978b75890f04e633fc678af2ec8"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "10e05740c4bc710bbd3525f772b5eae9",
+    "semantic_hash": "10e05740c4bc710bbd3525f772b5eae9"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ANNLoader.hpp": {
-    "mtime": 1781085445.2521265,
-    "ast_hash": "463eaa50299e3e6b3398d4f2a23e7cbc",
-    "semantic_hash": "463eaa50299e3e6b3398d4f2a23e7cbc"
+    "mtime": 1781339172.2602782,
+    "ast_hash": "dff6ef452f50ce837addc450c44c48ae",
+    "semantic_hash": "dff6ef452f50ce837addc450c44c48ae"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ANNRunner.cpp": {
-    "mtime": 1781243976.2123797,
-    "ast_hash": "152997d2606d39b8b0e177467565ffde",
-    "semantic_hash": "152997d2606d39b8b0e177467565ffde"
+    "mtime": 1781342293.812342,
+    "ast_hash": "8e09c795c4aba330c1ce0b386169a036",
+    "semantic_hash": "8e09c795c4aba330c1ce0b386169a036"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ANNRunner.hpp": {
-    "mtime": 1781243976.2123797,
-    "ast_hash": "d0264051fb8f61bb324fb040d37126a8",
-    "semantic_hash": "d0264051fb8f61bb324fb040d37126a8"
+    "mtime": 1781341457.7870145,
+    "ast_hash": "91d0ffc81dc248b908c66584568678e4",
+    "semantic_hash": "91d0ffc81dc248b908c66584568678e4"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_App.cpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "b2a3c113c4ee5195bfd270153ae7c0c5",
-    "semantic_hash": "b2a3c113c4ee5195bfd270153ae7c0c5"
+    "mtime": 1781341457.7870145,
+    "ast_hash": "89800562e091973d365107000f7e1156",
+    "semantic_hash": "89800562e091973d365107000f7e1156"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_App.hpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "d01a683c254de2ba83bc1cbba7ffbdcb",
-    "semantic_hash": "d01a683c254de2ba83bc1cbba7ffbdcb"
+    "mtime": 1781341457.7870145,
+    "ast_hash": "20a437c082d979832b534d850c7a652a",
+    "semantic_hash": "20a437c082d979832b534d850c7a652a"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_AugmentationConfig.hpp": {
-    "mtime": 1780893300.401736,
+    "mtime": 1781339172.2622783,
     "ast_hash": "fd805d648b5e0179278e2569662b16ac",
     "semantic_hash": "fd805d648b5e0179278e2569662b16ac"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_AugmentationTransforms.hpp": {
-    "mtime": 1780893300.4047363,
+    "mtime": 1781339172.2662783,
     "ast_hash": "e93b8318d538f963ddaf91ece28373e9",
     "semantic_hash": "e93b8318d538f963ddaf91ece28373e9"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CNNLoader.cpp": {
-    "mtime": 1781134819.2841456,
-    "ast_hash": "b030160e10fb31b1c37b6345db2e00f9",
-    "semantic_hash": "b030160e10fb31b1c37b6345db2e00f9"
+    "mtime": 1781341457.7870145,
+    "ast_hash": "b76abd252ff30ee79469b771aad3068b",
+    "semantic_hash": "b76abd252ff30ee79469b771aad3068b"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CNNLoader.hpp": {
-    "mtime": 1781125568.9282045,
-    "ast_hash": "06534d7a0f29e031fcb60ecd9d24357e",
-    "semantic_hash": "06534d7a0f29e031fcb60ecd9d24357e"
+    "mtime": 1781339172.2682784,
+    "ast_hash": "85b34b2adb8c6265bb51b395942300f1",
+    "semantic_hash": "85b34b2adb8c6265bb51b395942300f1"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CNNRunner.cpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "9cd0d47faeb9841bbcda99144bbc4323",
-    "semantic_hash": "9cd0d47faeb9841bbcda99144bbc4323"
+    "mtime": 1781342294.9073634,
+    "ast_hash": "d01f326747d91c5f4034292ab515a9a4",
+    "semantic_hash": "d01f326747d91c5f4034292ab515a9a4"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CNNRunner.hpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "40ea879f1945fb1a8f8d99bf1fe62c88",
-    "semantic_hash": "40ea879f1945fb1a8f8d99bf1fe62c88"
+    "mtime": 1781341457.7870145,
+    "ast_hash": "ebb4667e389599588ec2fb0176e398c9",
+    "semantic_hash": "ebb4667e389599588ec2fb0176e398c9"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CalibrateRunner.cpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "fc91ce3cd4b17fa79966b770363a5e7a",
-    "semantic_hash": "fc91ce3cd4b17fa79966b770363a5e7a"
+    "mtime": 1781341457.7870145,
+    "ast_hash": "282db5f37e896b408baa3933130b368e",
+    "semantic_hash": "282db5f37e896b408baa3933130b368e"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CalibrateRunner.hpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "ba729943bfd96623476afa1d8dbb1b9a",
-    "semantic_hash": "ba729943bfd96623476afa1d8dbb1b9a"
+    "mtime": 1781341457.7870145,
+    "ast_hash": "b229f4a8f34784ba66d73fd43d12346b",
+    "semantic_hash": "b229f4a8f34784ba66d73fd43d12346b"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_DataLoader.cpp": {
-    "mtime": 1780957532.3226073,
+    "mtime": 1781339172.259278,
     "ast_hash": "53f7771f81abe3088b67745ffd2dd1fe",
     "semantic_hash": "53f7771f81abe3088b67745ffd2dd1fe"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_DataLoader.hpp": {
-    "mtime": 1780893300.400736,
+    "mtime": 1781339172.2612782,
     "ast_hash": "70f19164dff0fcf0af5423a93e8d2dc8",
     "semantic_hash": "70f19164dff0fcf0af5423a93e8d2dc8"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_DataSplitter.cpp": {
-    "mtime": 1780893300.400736,
+    "mtime": 1781339172.2602782,
     "ast_hash": "6813b49d9982df4142cc2423ac5f1f52",
     "semantic_hash": "6813b49d9982df4142cc2423ac5f1f52"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_DataSplitter.hpp": {
-    "mtime": 1780893300.4047363,
+    "mtime": 1781339172.2672784,
     "ast_hash": "d23000800153434f99f29b36288f20cb",
     "semantic_hash": "d23000800153434f99f29b36288f20cb"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_DataType.cpp": {
-    "mtime": 1780893300.4047363,
+    "mtime": 1781339172.2652783,
     "ast_hash": "1776b0400d7c807a03211549bb38861d",
     "semantic_hash": "1776b0400d7c807a03211549bb38861d"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_DataType.hpp": {
-    "mtime": 1780893300.399736,
+    "mtime": 1781339172.259278,
     "ast_hash": "665e042cc592f666b37b0bed5c3048ca",
     "semantic_hash": "665e042cc592f666b37b0bed5c3048ca"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_GpuAugmenter.cpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "839a3166fe2349474665323f4feee570",
-    "semantic_hash": "839a3166fe2349474665323f4feee570"
+    "mtime": 1781339172.2602782,
+    "ast_hash": "68b2ec21c7d46335a8dfe78ee7458060",
+    "semantic_hash": "68b2ec21c7d46335a8dfe78ee7458060"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_GpuAugmenter.hpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "fa6d7adf6c80a26c6c20ccf5789eec23",
-    "semantic_hash": "fa6d7adf6c80a26c6c20ccf5789eec23"
+    "mtime": 1781339172.2682784,
+    "ast_hash": "6dffdca99f3b84334e668c0d7395a5ca",
+    "semantic_hash": "6dffdca99f3b84334e668c0d7395a5ca"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_IOConfig.hpp": {
-    "mtime": 1780893300.401736,
-    "ast_hash": "e44825c654bac53494b7115398ab4040",
-    "semantic_hash": "e44825c654bac53494b7115398ab4040"
+    "mtime": 1781339172.2622783,
+    "ast_hash": "86e868752e64fc96b3f8bb3dbcc97efb",
+    "semantic_hash": "86e868752e64fc96b3f8bb3dbcc97efb"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ImageLoader.cpp": {
-    "mtime": 1780893300.4027362,
+    "mtime": 1781339172.2632782,
     "ast_hash": "2295c739e84b67e912b50f2a0fa21b91",
     "semantic_hash": "2295c739e84b67e912b50f2a0fa21b91"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ImageLoader.hpp": {
-    "mtime": 1780893300.401736,
+    "mtime": 1781339172.2622783,
     "ast_hash": "0e4cbfd8ddfbdbbe27f9af29e9549955",
     "semantic_hash": "0e4cbfd8ddfbdbbe27f9af29e9549955"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_Loader.cpp": {
-    "mtime": 1780957532.3226073,
-    "ast_hash": "379259089e6761a2d228527229dc1e05",
-    "semantic_hash": "379259089e6761a2d228527229dc1e05"
+    "mtime": 1781341457.7880147,
+    "ast_hash": "72a85563b88ffe21dba64a6bb6d5041a",
+    "semantic_hash": "72a85563b88ffe21dba64a6bb6d5041a"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_Loader.hpp": {
-    "mtime": 1780957532.3226073,
-    "ast_hash": "3b9f26761cabe37b17d918aada6bb16b",
-    "semantic_hash": "3b9f26761cabe37b17d918aada6bb16b"
+    "mtime": 1781341457.7880147,
+    "ast_hash": "8bb82538fb6ab499599e1507ae408974",
+    "semantic_hash": "8bb82538fb6ab499599e1507ae408974"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_LogLevel.hpp": {
-    "mtime": 1780893300.4057362,
-    "ast_hash": "2f78c79b6c9d71eae30eaee2e40e41c9",
-    "semantic_hash": "2f78c79b6c9d71eae30eaee2e40e41c9"
+    "mtime": 1781341457.7880147,
+    "ast_hash": "14da9ddcfdc2ccc53154e38b7355a3af",
+    "semantic_hash": "14da9ddcfdc2ccc53154e38b7355a3af"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_LossReferenceTable.cpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "1225e9f5a94d03ca5d3c927a4c4750b8",
-    "semantic_hash": "1225e9f5a94d03ca5d3c927a4c4750b8"
+    "mtime": 1781339172.2662783,
+    "ast_hash": "0dc8434ad74997b6c2c0645389506029",
+    "semantic_hash": "0dc8434ad74997b6c2c0645389506029"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_LossReferenceTable.hpp": {
-    "mtime": 1781243976.2133796,
+    "mtime": 1781339172.2682784,
     "ast_hash": "38eefbfa709958245ae6e06eabea3de9",
     "semantic_hash": "38eefbfa709958245ae6e06eabea3de9"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ModelPackage.cpp": {
-    "mtime": 1781085445.2531264,
+    "mtime": 1781339172.2622783,
     "ast_hash": "d8330205c2d60ebce42b951363817c58",
     "semantic_hash": "d8330205c2d60ebce42b951363817c58"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ModelPackage.hpp": {
-    "mtime": 1781085445.2531264,
+    "mtime": 1781339172.2612782,
     "ast_hash": "f289ce30e544e909c65a9868b3124ad8",
     "semantic_hash": "f289ce30e544e909c65a9868b3124ad8"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ModelSerializer.cpp": {
-    "mtime": 1781111336.9588194,
-    "ast_hash": "580ca80192cca03283db11a606ec151c",
-    "semantic_hash": "580ca80192cca03283db11a606ec151c"
+    "mtime": 1781342267.3948302,
+    "ast_hash": "50005f47f3a28b6890713d39e724f851",
+    "semantic_hash": "50005f47f3a28b6890713d39e724f851"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ModelSerializer.hpp": {
-    "mtime": 1781085445.2531264,
+    "mtime": 1781339172.2662783,
     "ast_hash": "390ba507a79a4d4a4d543012c9ae3772",
     "semantic_hash": "390ba507a79a4d4a4d543012c9ae3772"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_NetworkType.hpp": {
-    "mtime": 1780893300.4057362,
+    "mtime": 1781339172.2682784,
     "ast_hash": "61b13c4ec55081f2dff3a967822d839a",
     "semantic_hash": "61b13c4ec55081f2dff3a967822d839a"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_PredictController.cpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "b537133f76f49556cc7547f74e8aba15",
-    "semantic_hash": "b537133f76f49556cc7547f74e8aba15"
+    "mtime": 1781339172.2632782,
+    "ast_hash": "7b261d72c1999765ef6da7d50a30b85f",
+    "semantic_hash": "7b261d72c1999765ef6da7d50a30b85f"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_PredictController.hpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "5c13cccb1f7a08ad655707428b6a8adb",
-    "semantic_hash": "5c13cccb1f7a08ad655707428b6a8adb"
+    "mtime": 1781339172.2602782,
+    "ast_hash": "797ba772fe788b602700b7b0eec38e53",
+    "semantic_hash": "797ba772fe788b602700b7b0eec38e53"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_PredictSummary.cpp": {
-    "mtime": 1781085445.2531264,
+    "mtime": 1781339172.2612782,
     "ast_hash": "f594cf8e04a1a8b2117f9f228b2b4484",
     "semantic_hash": "f594cf8e04a1a8b2117f9f228b2b4484"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_PredictSummary.hpp": {
-    "mtime": 1781085445.2531264,
+    "mtime": 1781339172.2682784,
     "ast_hash": "6f5f9e03eb0586a4b698d7269681a17e",
     "semantic_hash": "6f5f9e03eb0586a4b698d7269681a17e"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_Runner.cpp": {
-    "mtime": 1781243976.2133796,
-    "ast_hash": "26ee88adb7bca07d4b7cd210b02df98c",
-    "semantic_hash": "26ee88adb7bca07d4b7cd210b02df98c"
+    "mtime": 1781342160.432902,
+    "ast_hash": "9db2e1ebcbeee38dfbbb3a08462e932e",
+    "semantic_hash": "9db2e1ebcbeee38dfbbb3a08462e932e"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_Runner.hpp": {
-    "mtime": 1781243976.2143798,
+    "mtime": 1781339172.2672784,
     "ast_hash": "3c1cce2942981115b270c035d99ec541",
     "semantic_hash": "3c1cce2942981115b270c035d99ec541"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_RunnerObserver.hpp": {
-    "mtime": 1781243976.2143798,
+    "mtime": 1781339172.2672784,
     "ast_hash": "b8f15d83ce12c1410407825ff40e1e2f",
     "semantic_hash": "b8f15d83ce12c1410407825ff40e1e2f"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_RunnerUtils.hpp": {
-    "mtime": 1781243976.2143798,
-    "ast_hash": "fa975d6314e860d731579a611ec7fa24",
-    "semantic_hash": "fa975d6314e860d731579a611ec7fa24"
+    "mtime": 1781342292.17831,
+    "ast_hash": "8e283afee739e621fb5c2b8fa0974965",
+    "semantic_hash": "8e283afee739e621fb5c2b8fa0974965"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_SummaryTable.cpp": {
-    "mtime": 1781085445.2531264,
-    "ast_hash": "bd564190b08c01644a3ed5970a7eeb86",
-    "semantic_hash": "bd564190b08c01644a3ed5970a7eeb86"
+    "mtime": 1781339172.2602782,
+    "ast_hash": "1196e831fa831ca17e90ce24172723db",
+    "semantic_hash": "1196e831fa831ca17e90ce24172723db"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_SummaryTable.hpp": {
-    "mtime": 1780893300.401736,
-    "ast_hash": "532fff41a5056d27ba702cce21287d9c",
-    "semantic_hash": "532fff41a5056d27ba702cce21287d9c"
+    "mtime": 1781339172.2612782,
+    "ast_hash": "c531e1d10ad0bc51dfbfd6ae4a348ea8",
+    "semantic_hash": "c531e1d10ad0bc51dfbfd6ae4a348ea8"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_Panel.cpp": {
-    "mtime": 1781243976.2143798,
-    "ast_hash": "f31d8b18bae0296b010ea2859cecad5f",
-    "semantic_hash": "f31d8b18bae0296b010ea2859cecad5f"
+    "mtime": 1781339172.2652783,
+    "ast_hash": "3cfc3f6dde9fecda9214806403e05c8d",
+    "semantic_hash": "3cfc3f6dde9fecda9214806403e05c8d"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_Panel.hpp": {
-    "mtime": 1781243976.2143798,
+    "mtime": 1781339172.2612782,
     "ast_hash": "d2580ff755202d413173ef2814b079ad",
     "semantic_hash": "d2580ff755202d413173ef2814b079ad"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_ProgressBar.cpp": {
-    "mtime": 1781243976.2143798,
-    "ast_hash": "e946c83425f885e78416a73632f4f42d",
-    "semantic_hash": "e946c83425f885e78416a73632f4f42d"
+    "mtime": 1781339172.2672784,
+    "ast_hash": "0351ef639abc44d0a6d587cd3e474a40",
+    "semantic_hash": "0351ef639abc44d0a6d587cd3e474a40"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_ProgressBar.hpp": {
-    "mtime": 1781243976.2143798,
+    "mtime": 1781339172.2632782,
     "ast_hash": "26172a1b1014054cd921bf29a359b2c2",
     "semantic_hash": "26172a1b1014054cd921bf29a359b2c2"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_Table.cpp": {
-    "mtime": 1781243976.2143798,
+    "mtime": 1781339172.2662783,
     "ast_hash": "ca52ac678f7de0bfc5b19275e1124f5c",
     "semantic_hash": "ca52ac678f7de0bfc5b19275e1124f5c"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_Table.hpp": {
-    "mtime": 1781243976.2143798,
+    "mtime": 1781339172.2622783,
     "ast_hash": "3a7214b058fc56f36edc315c475fc36e",
     "semantic_hash": "3a7214b058fc56f36edc315c475fc36e"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_TrainingWindow.cpp": {
-    "mtime": 1781243976.2143798,
+    "mtime": 1781339172.2682784,
     "ast_hash": "e6b96c0b710f9d0f60774a0b94c4f9c5",
     "semantic_hash": "e6b96c0b710f9d0f60774a0b94c4f9c5"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_TrainingWindow.hpp": {
-    "mtime": 1781243976.2143798,
+    "mtime": 1781339172.2582781,
     "ast_hash": "1b83c6fccb98bd8a83e222aee0514243",
     "semantic_hash": "1b83c6fccb98bd8a83e222aee0514243"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_Widget.cpp": {
-    "mtime": 1781243976.2143798,
-    "ast_hash": "b25c19abe525eb6bc025a3aa3facc54c",
-    "semantic_hash": "b25c19abe525eb6bc025a3aa3facc54c"
+    "mtime": 1781339172.2682784,
+    "ast_hash": "62cb3ccb758707ccbfe85dc811aa6b0b",
+    "semantic_hash": "62cb3ccb758707ccbfe85dc811aa6b0b"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_Widget.hpp": {
-    "mtime": 1781243976.2143798,
+    "mtime": 1781339172.259278,
     "ast_hash": "e663069692961995b0ca49f54070a7eb",
     "semantic_hash": "e663069692961995b0ca49f54070a7eb"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_Window.cpp": {
-    "mtime": 1781243976.2143798,
-    "ast_hash": "14f66f9975157d6155518ca453a18eb2",
-    "semantic_hash": "14f66f9975157d6155518ca453a18eb2"
+    "mtime": 1781339172.2612782,
+    "ast_hash": "8d67b36b471812dffdcf56d9df8e23bf",
+    "semantic_hash": "8d67b36b471812dffdcf56d9df8e23bf"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TerminalUI_Window.hpp": {
-    "mtime": 1781243976.2153797,
+    "mtime": 1781339172.2612782,
     "ast_hash": "6054e5dd46df6e70db576535c40d0bbc",
     "semantic_hash": "6054e5dd46df6e70db576535c40d0bbc"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TestController.cpp": {
-    "mtime": 1781243976.2153797,
-    "ast_hash": "13b980104a230ddffa820339a653a116",
-    "semantic_hash": "13b980104a230ddffa820339a653a116"
+    "mtime": 1781339172.2622783,
+    "ast_hash": "bd30c2a0887c63efd49b6306da03ccd4",
+    "semantic_hash": "bd30c2a0887c63efd49b6306da03ccd4"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TestController.hpp": {
-    "mtime": 1781243976.2153797,
-    "ast_hash": "25e22fafb2cc717f57af458146cbe4a5",
-    "semantic_hash": "25e22fafb2cc717f57af458146cbe4a5"
+    "mtime": 1781339172.2672784,
+    "ast_hash": "dc7b9c3f3dd742882e334af1074ec2a1",
+    "semantic_hash": "dc7b9c3f3dd742882e334af1074ec2a1"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TestSummary.cpp": {
-    "mtime": 1780893300.4047363,
+    "mtime": 1781339172.2662783,
     "ast_hash": "92c43c907ad8d4f1c2d892f428341f20",
     "semantic_hash": "92c43c907ad8d4f1c2d892f428341f20"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TestSummary.hpp": {
-    "mtime": 1780893300.396736,
+    "mtime": 1781339172.259278,
     "ast_hash": "881dfb26778f6afcdfac14353f2a6f66",
     "semantic_hash": "881dfb26778f6afcdfac14353f2a6f66"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TrainingController.cpp": {
-    "mtime": 1781243976.2153797,
-    "ast_hash": "6746bba12c28ee186324523ef1cf37e1",
-    "semantic_hash": "6746bba12c28ee186324523ef1cf37e1"
+    "mtime": 1781339172.2582781,
+    "ast_hash": "10aa418f58980010b0fe0d9128d40b64",
+    "semantic_hash": "10aa418f58980010b0fe0d9128d40b64"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TrainingController.hpp": {
-    "mtime": 1781243976.2153797,
-    "ast_hash": "acac562e51e17d59187aa45c56cf37f4",
-    "semantic_hash": "acac562e51e17d59187aa45c56cf37f4"
+    "mtime": 1781339172.2602782,
+    "ast_hash": "be2360ce026137d3e405f5ecbdc8008a",
+    "semantic_hash": "be2360ce026137d3e405f5ecbdc8008a"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TrainingProfiler.cpp": {
-    "mtime": 1781243976.2153797,
-    "ast_hash": "027d6db7859f7b2f432f2fed1f81494d",
-    "semantic_hash": "027d6db7859f7b2f432f2fed1f81494d"
+    "mtime": 1781339172.2622783,
+    "ast_hash": "3cffb6e2973e74488a5b83dd8260edad",
+    "semantic_hash": "3cffb6e2973e74488a5b83dd8260edad"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TrainingProfiler.hpp": {
-    "mtime": 1781243976.2153797,
+    "mtime": 1781339172.2662783,
     "ast_hash": "ee21a7e58a4184729c5656336adc2b36",
     "semantic_hash": "ee21a7e58a4184729c5656336adc2b36"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TrainingSummary.cpp": {
-    "mtime": 1781085445.2541265,
-    "ast_hash": "4bb39934aa4b78daa37e56ac96164463",
-    "semantic_hash": "4bb39934aa4b78daa37e56ac96164463"
+    "mtime": 1781341457.7880147,
+    "ast_hash": "39ff39062160f5bb78bf335c35bf40c5",
+    "semantic_hash": "39ff39062160f5bb78bf335c35bf40c5"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_TrainingSummary.hpp": {
-    "mtime": 1781085445.2541265,
+    "mtime": 1781339172.2662783,
     "ast_hash": "532ac6551dcb4258c832bd1f215dc246",
     "semantic_hash": "532ac6551dcb4258c832bd1f215dc246"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_Types.hpp": {
-    "mtime": 1780893300.400736,
+    "mtime": 1781339172.2602782,
     "ast_hash": "73b7215e6e20c2c9018a049dfe9846f2",
     "semantic_hash": "73b7215e6e20c2c9018a049dfe9846f2"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_Utils.cpp": {
-    "mtime": 1781243976.2153797,
-    "ast_hash": "2f91b9bae2ff1a9430657ba27cf24dc9",
-    "semantic_hash": "2f91b9bae2ff1a9430657ba27cf24dc9"
+    "mtime": 1781342087.1737337,
+    "ast_hash": "afa521d253d901262427a57ec9724b8e",
+    "semantic_hash": "afa521d253d901262427a57ec9724b8e"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_Utils.hpp": {
-    "mtime": 1781243976.2153797,
-    "ast_hash": "dbc064c853e5a4eb0521c45981b0a0fa",
-    "semantic_hash": "dbc064c853e5a4eb0521c45981b0a0fa"
+    "mtime": 1781342020.1637926,
+    "ast_hash": "fbd1526d1531b5856c8600854d3f57a5",
+    "semantic_hash": "fbd1526d1531b5856c8600854d3f57a5"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_ValidationDatasetConfig.hpp": {
-    "mtime": 1780893300.401736,
+    "mtime": 1781339172.2622783,
     "ast_hash": "b606ce2e5906a2d704b28182dce1bb80",
     "semantic_hash": "b606ce2e5906a2d704b28182dce1bb80"
   },
@@ -3215,14 +3190,14 @@
     "semantic_hash": "845b8b43d7d941890a57a477455558ad"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/main.cpp": {
-    "mtime": 1781243976.2153797,
+    "mtime": 1781339172.2682784,
     "ast_hash": "05b5f55da47274ffd869548ef81e4423",
     "semantic_hash": "05b5f55da47274ffd869548ef81e4423"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_image_train_config.json": {
-    "mtime": 1780883266.4532566,
-    "ast_hash": "0f4ded313a575b254f3cec0db6e0cdea",
-    "semantic_hash": "0f4ded313a575b254f3cec0db6e0cdea"
+    "mtime": 1781341457.7880147,
+    "ast_hash": "07cf0d1db882b985f72b680e5af2cdc0",
+    "semantic_hash": "07cf0d1db882b985f72b680e5af2cdc0"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_image_train_samples.json": {
     "mtime": 1780883266.4532566,
@@ -3230,29 +3205,29 @@
     "semantic_hash": "6cae66d62c525861bd62fe03a67f2ec6"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_invalid_actvfunc_config.json": {
-    "mtime": 1780883266.4532566,
-    "ast_hash": "073a1a7afcc047d8718567c930d9bdd6",
-    "semantic_hash": "073a1a7afcc047d8718567c930d9bdd6"
+    "mtime": 1781341457.7880147,
+    "ast_hash": "26ed92fe4dae2d0a1edb239172893cdd",
+    "semantic_hash": "26ed92fe4dae2d0a1edb239172893cdd"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_invalid_costfunc_config.json": {
-    "mtime": 1780883266.4532566,
-    "ast_hash": "1141b96b358042e3534a3c535a8b30c5",
-    "semantic_hash": "1141b96b358042e3534a3c535a8b30c5"
+    "mtime": 1781341457.7880147,
+    "ast_hash": "2d9bff6274e5cf8f6e56e4d26b4c7267",
+    "semantic_hash": "2d9bff6274e5cf8f6e56e4d26b4c7267"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_train_augment_config.json": {
-    "mtime": 1780883266.4532566,
-    "ast_hash": "86ac3aaa68f1de494a843d8841b5a261",
-    "semantic_hash": "86ac3aaa68f1de494a843d8841b5a261"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "f95b74d18b898d4b962c3a4276e488d4",
+    "semantic_hash": "f95b74d18b898d4b962c3a4276e488d4"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_train_config.json": {
-    "mtime": 1780883266.4532566,
-    "ast_hash": "cda452658597f2a8270244bac4149e50",
-    "semantic_hash": "cda452658597f2a8270244bac4149e50"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "02b6d28328f93a85c35ba2fb3dd96404",
+    "semantic_hash": "02b6d28328f93a85c35ba2fb3dd96404"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_train_dropout_config.json": {
-    "mtime": 1780883266.4532566,
-    "ast_hash": "298087e4992de640486847cadb4be808",
-    "semantic_hash": "298087e4992de640486847cadb4be808"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "c4ec1874459b1ca5c8df38f8d2f054ff",
+    "semantic_hash": "c4ec1874459b1ca5c8df38f8d2f054ff"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_train_samples.json": {
     "mtime": 1780883266.4532566,
@@ -3260,14 +3235,14 @@
     "semantic_hash": "e2c1c2b96a724f14c5e6dbd9d1e57b99"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_train_weighted_config.json": {
-    "mtime": 1780883266.4532566,
-    "ast_hash": "e81ed61c13d64e4ff463e13bbeb82b60",
-    "semantic_hash": "e81ed61c13d64e4ff463e13bbeb82b60"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "bd6763c656ff9496a886fd496b7049da",
+    "semantic_hash": "bd6763c656ff9496a886fd496b7049da"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_validation_config.json": {
-    "mtime": 1780883266.4532566,
-    "ast_hash": "6eeccd7ec9f91eb9af6f716c7bb23f81",
-    "semantic_hash": "6eeccd7ec9f91eb9af6f716c7bb23f81"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "8efe66bf7611fc0418441b59620ef47a",
+    "semantic_hash": "8efe66bf7611fc0418441b59620ef47a"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/ann_validation_samples.json": {
     "mtime": 1780883266.4532566,
@@ -3275,9 +3250,9 @@
     "semantic_hash": "8d2cdb0bf993b51501cf01ff096e155f"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/cnn_invalid_actvfunc_config.json": {
-    "mtime": 1780883266.4542568,
-    "ast_hash": "6da143e928b63d6b2cf8e073ffd5e7d7",
-    "semantic_hash": "6da143e928b63d6b2cf8e073ffd5e7d7"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "7885c8ae00aa2e1dbbc268aac7cff83b",
+    "semantic_hash": "7885c8ae00aa2e1dbbc268aac7cff83b"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/cnn_predict_input.json": {
     "mtime": 1780883266.4542568,
@@ -3285,9 +3260,9 @@
     "semantic_hash": "7a5fc8f2bc45fdf01f64f54e7e6b352d"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/cnn_train_config.json": {
-    "mtime": 1780883266.4542568,
-    "ast_hash": "c516b47bf91726541e4cffbb7f6ff27c",
-    "semantic_hash": "c516b47bf91726541e4cffbb7f6ff27c"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "cda90d45ed051d49d1b7aadf8fb49818",
+    "semantic_hash": "cda90d45ed051d49d1b7aadf8fb49818"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/cnn_train_samples.json": {
     "mtime": 1780883266.4542568,
@@ -3295,14 +3270,14 @@
     "semantic_hash": "8d9199c754acbe88a786d6b03d7fa5c7"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/cnn_train_weighted_config.json": {
-    "mtime": 1780883266.4542568,
-    "ast_hash": "43dca37b1ecc12dbcd22b1f7cefc8449",
-    "semantic_hash": "43dca37b1ecc12dbcd22b1f7cefc8449"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "bc179fe9145dbdf9b7b0030e301fd360",
+    "semantic_hash": "bc179fe9145dbdf9b7b0030e301fd360"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/cnn_validation_config.json": {
-    "mtime": 1780883266.4542568,
-    "ast_hash": "1e8fc23614ca5d823ec4b9da7b406c25",
-    "semantic_hash": "1e8fc23614ca5d823ec4b9da7b406c25"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "0bc3779ca8e6612aa6bb0aadbbb6fef2",
+    "semantic_hash": "0bc3779ca8e6612aa6bb0aadbbb6fef2"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/cnn_validation_samples.json": {
     "mtime": 1780883266.4542568,
@@ -3310,207 +3285,207 @@
     "semantic_hash": "8d2cdb0bf993b51501cf01ff096e155f"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/mnist_ann_train_config.json": {
-    "mtime": 1780883266.4542568,
-    "ast_hash": "941c92a094236016935ff29e5f3a42a5",
-    "semantic_hash": "941c92a094236016935ff29e5f3a42a5"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "809e4d5907e57ba68ed63decfd48bcc5",
+    "semantic_hash": "809e4d5907e57ba68ed63decfd48bcc5"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/mnist_cnn_residual_config.json": {
-    "mtime": 1780883266.4542568,
-    "ast_hash": "a97d46cc12aa21db82486e1d7959becd",
-    "semantic_hash": "a97d46cc12aa21db82486e1d7959becd"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "67f6653bf8613cf5913f35d71b324f73",
+    "semantic_hash": "67f6653bf8613cf5913f35d71b324f73"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/fixtures/mnist_cnn_train_config.json": {
-    "mtime": 1780883266.4542568,
-    "ast_hash": "b7953f62c8711496fc6350a284c24477",
-    "semantic_hash": "b7953f62c8711496fc6350a284c24477"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "3971be92367ce5fd55810556eadcd3eb",
+    "semantic_hash": "3971be92367ce5fd55810556eadcd3eb"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_ann_cpu_basic.cpp": {
-    "mtime": 1781028574.91873,
+    "mtime": 1781339172.2642782,
     "ast_hash": "d356f99a5461af93cf7759897ed10dee",
     "semantic_hash": "d356f99a5461af93cf7759897ed10dee"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_ann_cpu_features.cpp": {
-    "mtime": 1781028574.91873,
-    "ast_hash": "2d0dfee88de8a927f83fa2ac061b3a0a",
-    "semantic_hash": "2d0dfee88de8a927f83fa2ac061b3a0a"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "c0a71b47a05022e4e647039201c09f63",
+    "semantic_hash": "c0a71b47a05022e4e647039201c09f63"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_ann_cpu_mnist.cpp": {
-    "mtime": 1781085445.2541265,
+    "mtime": 1781339172.2652783,
     "ast_hash": "da7fe51433a1cd432b3189800451551b",
     "semantic_hash": "da7fe51433a1cd432b3189800451551b"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_ann_cpu_saveload.cpp": {
-    "mtime": 1781028574.91873,
-    "ast_hash": "313ffd4a1019a5af965ab63b81110afb",
-    "semantic_hash": "313ffd4a1019a5af965ab63b81110afb"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "75ccf9641281243bc96b1838186d5dd0",
+    "semantic_hash": "75ccf9641281243bc96b1838186d5dd0"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_ann_gpu_mnist.cpp": {
-    "mtime": 1781028574.91873,
+    "mtime": 1781339172.2652783,
     "ast_hash": "30dbc8fa2b294961a66d14cbdcb53e66",
     "semantic_hash": "30dbc8fa2b294961a66d14cbdcb53e66"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_cnn_cpu_basic.cpp": {
-    "mtime": 1781085445.2541265,
+    "mtime": 1781339172.2632782,
     "ast_hash": "3058e2b27f3cbec0fb751c017f606a55",
     "semantic_hash": "3058e2b27f3cbec0fb751c017f606a55"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_cnn_cpu_features.cpp": {
-    "mtime": 1781085445.2541265,
-    "ast_hash": "dd65e32d92301f233e5d1a028a75cb77",
-    "semantic_hash": "dd65e32d92301f233e5d1a028a75cb77"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "50f41599892c4b7d55c9ffbb8575813c",
+    "semantic_hash": "50f41599892c4b7d55c9ffbb8575813c"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_cnn_cpu_predict.cpp": {
-    "mtime": 1781028574.91873,
-    "ast_hash": "37293349a666aa29ee65676571e98073",
-    "semantic_hash": "37293349a666aa29ee65676571e98073"
+    "mtime": 1781341457.7890146,
+    "ast_hash": "9869aab9516e71d890d1f7a024ff4575",
+    "semantic_hash": "9869aab9516e71d890d1f7a024ff4575"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_cnn_cpu_saveload.cpp": {
-    "mtime": 1781028574.91873,
-    "ast_hash": "86644a5290847f2e82cbd01cb223b414",
-    "semantic_hash": "86644a5290847f2e82cbd01cb223b414"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "b2d68966ac2452bd0dcb79dba114b288",
+    "semantic_hash": "b2d68966ac2452bd0dcb79dba114b288"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_cnn_gpu_diagnostic.cpp": {
-    "mtime": 1781085445.2541265,
-    "ast_hash": "e95e34d337636110065f5742445cf2c2",
-    "semantic_hash": "e95e34d337636110065f5742445cf2c2"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "bfeb6099d2511300949e7f5db8ff8b97",
+    "semantic_hash": "bfeb6099d2511300949e7f5db8ff8b97"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_cnn_gpu_isic.cpp": {
-    "mtime": 1781028574.91873,
-    "ast_hash": "b6191145adc06688b61d88104c155920",
-    "semantic_hash": "b6191145adc06688b61d88104c155920"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "42e98adcf4a2bd25c1fe642f67a0f584",
+    "semantic_hash": "42e98adcf4a2bd25c1fe642f67a0f584"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_cnn_gpu_layers.cpp": {
-    "mtime": 1781028574.91873,
-    "ast_hash": "f2c64b328271dc81f83e6e01388b4933",
-    "semantic_hash": "f2c64b328271dc81f83e6e01388b4933"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "9707c8478949f0e00764d0c68d8cdd1f",
+    "semantic_hash": "9707c8478949f0e00764d0c68d8cdd1f"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_cnn_gpu_mnist.cpp": {
-    "mtime": 1781028574.9197302,
+    "mtime": 1781339172.2652783,
     "ast_hash": "5cd98ab35cc6bc21e4852ae91a8d50c5",
     "semantic_hash": "5cd98ab35cc6bc21e4852ae91a8d50c5"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_cnn_gpu_saveload.cpp": {
-    "mtime": 1781028574.9197302,
-    "ast_hash": "51701f558ab5c723b1360d05228abe30",
-    "semantic_hash": "51701f558ab5c723b1360d05228abe30"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "9ee1f11834daa90f4d25b804d8b7984b",
+    "semantic_hash": "9ee1f11834daa90f4d25b804d8b7984b"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_dataloader.cpp": {
-    "mtime": 1780893300.4027362,
+    "mtime": 1781339172.2632782,
     "ast_hash": "76012308967bc40caafbb8361bec885e",
     "semantic_hash": "76012308967bc40caafbb8361bec885e"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_errors.cpp": {
-    "mtime": 1780893300.403736,
+    "mtime": 1781339172.2652783,
     "ast_hash": "3db5e93dc7cd7e408dbd63949ba8c6eb",
     "semantic_hash": "3db5e93dc7cd7e408dbd63949ba8c6eb"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_gpu_augment.cpp": {
-    "mtime": 1780893300.403736,
+    "mtime": 1781339172.2642782,
     "ast_hash": "19d5c1645ae313d1b3977cf07f57b37c",
     "semantic_hash": "19d5c1645ae313d1b3977cf07f57b37c"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_helpers.hpp": {
-    "mtime": 1781028574.9197302,
+    "mtime": 1781339172.2652783,
     "ast_hash": "c80be9dd316497988f68bf0429f72c1a",
     "semantic_hash": "c80be9dd316497988f68bf0429f72c1a"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_main.cpp": {
-    "mtime": 1781243976.2153797,
-    "ast_hash": "ca8e6dab6c011686fa643ce8e18546e2",
-    "semantic_hash": "ca8e6dab6c011686fa643ce8e18546e2"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "ea68e280a14d2e5667da14d6f6f243b1",
+    "semantic_hash": "ea68e280a14d2e5667da14d6f6f243b1"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_monitoring.cpp": {
-    "mtime": 1781085445.2551265,
-    "ast_hash": "cc0c795985d9dba8215c3e72aaa53982",
-    "semantic_hash": "cc0c795985d9dba8215c3e72aaa53982"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "f7db1615af27a0398c63ce3c2f2affce",
+    "semantic_hash": "f7db1615af27a0398c63ce3c2f2affce"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_terminal_ui.cpp": {
-    "mtime": 1781243976.2153797,
+    "mtime": 1781339172.2642782,
     "ast_hash": "1fd0ab2383e965da537bb29b9dc88c9f",
     "semantic_hash": "1fd0ab2383e965da537bb29b9dc88c9f"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/tests/test_validation.cpp": {
-    "mtime": 1780893300.403736,
-    "ast_hash": "61001e21fd2c361a222701fece3fbc60",
-    "semantic_hash": "61001e21fd2c361a222701fece3fbc60"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "b69943f35204c8105da99d1768c250a4",
+    "semantic_hash": "b69943f35204c8105da99d1768c250a4"
   },
   "/home/naschpitz/Projects/NN/NN-Server/CMakeUserPresets.json": {
-    "mtime": 1781239538.8488736,
+    "mtime": 1781342302.7415178,
     "ast_hash": "de10a02366b1246937cd8804ea6e74fc",
     "semantic_hash": "de10a02366b1246937cd8804ea6e74fc"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_CoreHandle.hpp": {
-    "mtime": 1780893300.3907356,
+    "mtime": 1781339172.251278,
     "ast_hash": "235f15def433314a59e22bd99783cf80",
     "semantic_hash": "235f15def433314a59e22bd99783cf80"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_CorePool.cpp": {
-    "mtime": 1780893300.3927357,
+    "mtime": 1781339172.253278,
     "ast_hash": "c466e172d10ffe6e61be21e5737d60cc",
     "semantic_hash": "c466e172d10ffe6e61be21e5737d60cc"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_CorePool.hpp": {
-    "mtime": 1780893300.3907356,
+    "mtime": 1781339172.251278,
     "ast_hash": "693caa5a74af6e2f2619e11d4cb66e02",
     "semantic_hash": "693caa5a74af6e2f2619e11d4cb66e02"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_HttpServer.cpp": {
-    "mtime": 1781085445.2551265,
+    "mtime": 1781339172.252278,
     "ast_hash": "8b649ef9511c851e44651e1d623c2db5",
     "semantic_hash": "8b649ef9511c851e44651e1d623c2db5"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_HttpServer.hpp": {
-    "mtime": 1780893300.3927357,
+    "mtime": 1781339172.253278,
     "ast_hash": "d726d16d43697a9445a9484a3747c13b",
     "semantic_hash": "d726d16d43697a9445a9484a3747c13b"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_IOConfig.hpp": {
-    "mtime": 1780893300.3907356,
+    "mtime": 1781339172.252278,
     "ast_hash": "2894a1fde0bb2face81694aa4174b975",
     "semantic_hash": "2894a1fde0bb2face81694aa4174b975"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_ImageLoader.cpp": {
-    "mtime": 1780893300.3877356,
+    "mtime": 1781339172.250278,
     "ast_hash": "68265a2cd4e0215fb7d9fb9d3af996d9",
     "semantic_hash": "68265a2cd4e0215fb7d9fb9d3af996d9"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_ImageLoader.hpp": {
-    "mtime": 1780893300.3907356,
+    "mtime": 1781339172.251278,
     "ast_hash": "57b937de59b4c8e00b5fc209d8ec45f2",
     "semantic_hash": "57b937de59b4c8e00b5fc209d8ec45f2"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_Loader.cpp": {
-    "mtime": 1781085445.2551265,
+    "mtime": 1781339172.251278,
     "ast_hash": "b28ef9c6ddc2ff2e235e584abcd80956",
     "semantic_hash": "b28ef9c6ddc2ff2e235e584abcd80956"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_Loader.hpp": {
-    "mtime": 1781085445.2551265,
+    "mtime": 1781339172.251278,
     "ast_hash": "4427acba4d6354083bfd658723afbf7c",
     "semantic_hash": "4427acba4d6354083bfd658723afbf7c"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_Logger.cpp": {
-    "mtime": 1780893300.3917358,
+    "mtime": 1781339172.252278,
     "ast_hash": "469cd7653cb82f7c8eca5b53191e741d",
     "semantic_hash": "469cd7653cb82f7c8eca5b53191e741d"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_Logger.hpp": {
-    "mtime": 1780893300.3907356,
+    "mtime": 1781339172.251278,
     "ast_hash": "031b182d4dde5e5cef5036a80dcf9e18",
     "semantic_hash": "031b182d4dde5e5cef5036a80dcf9e18"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_NetworkType.hpp": {
-    "mtime": 1780893300.3907356,
+    "mtime": 1781339172.251278,
     "ast_hash": "c8e59e69a76aedfd8370830a6121c454",
     "semantic_hash": "c8e59e69a76aedfd8370830a6121c454"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_RequestHandler.cpp": {
-    "mtime": 1780957532.3256075,
+    "mtime": 1781339172.252278,
     "ast_hash": "47d8b2195da026c02d9301f705726ccc",
     "semantic_hash": "47d8b2195da026c02d9301f705726ccc"
   },
   "/home/naschpitz/Projects/NN/NN-Server/NN-Server_RequestHandler.hpp": {
-    "mtime": 1781085445.2551265,
+    "mtime": 1781339172.253278,
     "ast_hash": "283ed3467b2bef781eb2fef0962c5194",
     "semantic_hash": "283ed3467b2bef781eb2fef0962c5194"
   },
@@ -3545,32 +3520,32 @@
     "semantic_hash": "845b8b43d7d941890a57a477455558ad"
   },
   "/home/naschpitz/Projects/NN/NN-Server/main.cpp": {
-    "mtime": 1781085445.2551265,
+    "mtime": 1781339172.253278,
     "ast_hash": "c13facf9850bc68bb956b5d2c138687d",
     "semantic_hash": "c13facf9850bc68bb956b5d2c138687d"
   },
   "/home/naschpitz/Projects/NN/NN-Server/tests/test_endpoints.cpp": {
-    "mtime": 1781028574.9347303,
+    "mtime": 1781339172.252278,
     "ast_hash": "5f8b132cb0f0b164ae32d8e8f5cf8d09",
     "semantic_hash": "5f8b132cb0f0b164ae32d8e8f5cf8d09"
   },
   "/home/naschpitz/Projects/NN/NN-Server/tests/test_helpers.hpp": {
-    "mtime": 1780893300.3917358,
+    "mtime": 1781339172.252278,
     "ast_hash": "8964b765da59036558fc06215c997143",
     "semantic_hash": "8964b765da59036558fc06215c997143"
   },
   "/home/naschpitz/Projects/NN/NN-Server/tests/test_logger.cpp": {
-    "mtime": 1781085445.2551265,
+    "mtime": 1781339172.252278,
     "ast_hash": "212f28cf36d7490f827d77a119f7faa7",
     "semantic_hash": "212f28cf36d7490f827d77a119f7faa7"
   },
   "/home/naschpitz/Projects/NN/NN-Server/tests/test_logger_main.cpp": {
-    "mtime": 1781085445.2551265,
+    "mtime": 1781339172.252278,
     "ast_hash": "88d9eb362186c5e3a3006157f7bcb133",
     "semantic_hash": "88d9eb362186c5e3a3006157f7bcb133"
   },
   "/home/naschpitz/Projects/NN/NN-Server/tests/test_main.cpp": {
-    "mtime": 1780893300.3917358,
+    "mtime": 1781339172.252278,
     "ast_hash": "34c354360c7f29d028d45286ce0566ce",
     "semantic_hash": "34c354360c7f29d028d45286ce0566ce"
   },
@@ -3578,11 +3553,6 @@
     "mtime": 1780899182.9037097,
     "ast_hash": "625d51dc42ccddf81bf7f09f46351ba2",
     "semantic_hash": "625d51dc42ccddf81bf7f09f46351ba2"
-  },
-  "/home/naschpitz/Projects/NN/build_test/CMakeFiles/3.28.3/CompilerIdCXX/CMakeCXXCompilerId.cpp": {
-    "mtime": 1781113312.6069994,
-    "ast_hash": "2158f47fcbe8ab9f8af9e8d824405249",
-    "semantic_hash": "2158f47fcbe8ab9f8af9e8d824405249"
   },
   "/home/naschpitz/Projects/NN/scripts/ensure-blank-lines.py": {
     "mtime": 1781085445.2751272,
@@ -3595,9 +3565,9 @@
     "semantic_hash": "23e57fa4b13c0df49bda0a088e3bb986"
   },
   "/home/naschpitz/Projects/NN/AGENTS.md": {
-    "mtime": 1781023890.6572044,
-    "ast_hash": "d513879cc0bd40163e9cbf309724d4f9",
-    "semantic_hash": "d513879cc0bd40163e9cbf309724d4f9"
+    "mtime": 1781341457.7530134,
+    "ast_hash": "275a8c78a45605a0927959920d0c12b5",
+    "semantic_hash": "275a8c78a45605a0927959920d0c12b5"
   },
   "/home/naschpitz/Projects/NN/ANN/CMakeLists.txt": {
     "mtime": 1781019141.2942424,
@@ -3610,9 +3580,9 @@
     "semantic_hash": "7d560b65dbc7dd7fb86ddc69e40dbcdb"
   },
   "/home/naschpitz/Projects/NN/ANN/README.md": {
-    "mtime": 1780883261.1961174,
-    "ast_hash": "27084e4f9735fe93393116db079d2d70",
-    "semantic_hash": "27084e4f9735fe93393116db079d2d70"
+    "mtime": 1781341457.7820144,
+    "ast_hash": "31493b22384f22a242164eb17a0e8c1f",
+    "semantic_hash": "31493b22384f22a242164eb17a0e8c1f"
   },
   "/home/naschpitz/Projects/NN/ANN/extern/OpenCLWrapper/.pre-commit-config.yaml": {
     "mtime": 1780897755.601109,
@@ -3640,9 +3610,9 @@
     "semantic_hash": "45780a90eef37a4dec8163bfb03a0ef0"
   },
   "/home/naschpitz/Projects/NN/CNN/README.md": {
-    "mtime": 1780883263.6071813,
-    "ast_hash": "45d18f847ee2476d9f1f342718a81539",
-    "semantic_hash": "45d18f847ee2476d9f1f342718a81539"
+    "mtime": 1781341457.7850144,
+    "ast_hash": "afee680dde1897ca86567b6f6ad7353f",
+    "semantic_hash": "afee680dde1897ca86567b6f6ad7353f"
   },
   "/home/naschpitz/Projects/NN/CNN/extern/OpenCLWrapper/.pre-commit-config.yaml": {
     "mtime": 1780897756.3731086,
@@ -3660,9 +3630,9 @@
     "semantic_hash": "7d560b65dbc7dd7fb86ddc69e40dbcdb"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/CMakeLists.txt": {
-    "mtime": 1781243976.2123797,
-    "ast_hash": "c050db987f7ef15d167cd5adeba5f3cd",
-    "semantic_hash": "c050db987f7ef15d167cd5adeba5f3cd"
+    "mtime": 1781341457.7860146,
+    "ast_hash": "be308472602e13d442d7068376a46d35",
+    "semantic_hash": "be308472602e13d442d7068376a46d35"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/LICENSE.md": {
     "mtime": 1780883266.2962525,
@@ -3670,9 +3640,9 @@
     "semantic_hash": "1e479ff95487bf8747c105617b8ae8dc"
   },
   "/home/naschpitz/Projects/NN/NN-CLI/README.md": {
-    "mtime": 1780883266.2982526,
-    "ast_hash": "0863699ae0e632dad693aece90709940",
-    "semantic_hash": "0863699ae0e632dad693aece90709940"
+    "mtime": 1781368474.4168818,
+    "ast_hash": "e4a1b26bdc73b54a8a70574391f60c52",
+    "semantic_hash": "e4a1b26bdc73b54a8a70574391f60c52"
   },
   "/home/naschpitz/Projects/NN/NN-Server/CMakeLists.txt": {
     "mtime": 1781028574.9197302,
@@ -3685,19 +3655,9 @@
     "semantic_hash": "fb55e196d2fbd1c3257c21b367ff232b"
   },
   "/home/naschpitz/Projects/NN/README.md": {
-    "mtime": 1780899377.5628335,
-    "ast_hash": "08ab3851c28b2e20f9f5353ad0be39d9",
-    "semantic_hash": "08ab3851c28b2e20f9f5353ad0be39d9"
-  },
-  "/home/naschpitz/Projects/NN/build_test/CMakeCache.txt": {
-    "mtime": 1781113312.7300024,
-    "ast_hash": "f8fd9753fb4f4921c021f0aa66c1af7b",
-    "semantic_hash": "f8fd9753fb4f4921c021f0aa66c1af7b"
-  },
-  "/home/naschpitz/Projects/NN/build_test/CMakeFiles/CMakeConfigureLog.yaml": {
-    "mtime": 1781113312.7300024,
-    "ast_hash": "72c84944ebabfa0c66c78c774c6d4159",
-    "semantic_hash": "72c84944ebabfa0c66c78c774c6d4159"
+    "mtime": 1781282567.2967105,
+    "ast_hash": "812d2b0f3a885fbaa78423cadfd8261d",
+    "semantic_hash": "812d2b0f3a885fbaa78423cadfd8261d"
   },
   "/home/naschpitz/Projects/NN/docs/ANN/api.html": {
     "mtime": 1780917318.7126608,
@@ -3835,9 +3795,9 @@
     "semantic_hash": "04c3625fd5a9bd58b38736ede1086c3c"
   },
   "/home/naschpitz/Projects/NN/docs/CNN/index.html": {
-    "mtime": 1780917318.7136607,
-    "ast_hash": "2c2cfa6a1ef5f9d284aec534cda2cbc5",
-    "semantic_hash": "2c2cfa6a1ef5f9d284aec534cda2cbc5"
+    "mtime": 1781282709.5158179,
+    "ast_hash": "41ae8723d98b868b9f37823018dde688",
+    "semantic_hash": "41ae8723d98b868b9f37823018dde688"
   },
   "/home/naschpitz/Projects/NN/docs/CNN/layers-conv2d.html": {
     "mtime": 1780917318.716661,
@@ -3935,14 +3895,14 @@
     "semantic_hash": "2c7f4ccee80b6c49ff5343fef33b52af"
   },
   "/home/naschpitz/Projects/NN/docs/NN-CLI/examples.html": {
-    "mtime": 1780917318.716661,
-    "ast_hash": "bc85990b29f7fcfb01e248a64fec9757",
-    "semantic_hash": "bc85990b29f7fcfb01e248a64fec9757"
+    "mtime": 1781280335.975544,
+    "ast_hash": "ba7f0ae9a571ac7a5e8a5542923d7f91",
+    "semantic_hash": "ba7f0ae9a571ac7a5e8a5542923d7f91"
   },
   "/home/naschpitz/Projects/NN/docs/NN-CLI/formats.html": {
-    "mtime": 1780917318.716661,
-    "ast_hash": "cd2612c62874f738fa638140db2a41f4",
-    "semantic_hash": "cd2612c62874f738fa638140db2a41f4"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "2c991447c24c617d4f343a0481ee3d95",
+    "semantic_hash": "2c991447c24c617d4f343a0481ee3d95"
   },
   "/home/naschpitz/Projects/NN/docs/NN-CLI/gpu-compute-optimization-plan.md": {
     "mtime": 1780916192.407986,
@@ -3950,9 +3910,9 @@
     "semantic_hash": "7d96f7b485a772e28a418555a033fce1"
   },
   "/home/naschpitz/Projects/NN/docs/NN-CLI/index.html": {
-    "mtime": 1780917318.716661,
-    "ast_hash": "22d147b8703c86fc8087ff819577d13a",
-    "semantic_hash": "22d147b8703c86fc8087ff819577d13a"
+    "mtime": 1781282605.9066153,
+    "ast_hash": "aabc816dc428071e5517550d4071b13c",
+    "semantic_hash": "aabc816dc428071e5517550d4071b13c"
   },
   "/home/naschpitz/Projects/NN/docs/NN-CLI/micro-batch-implementation-plan.md": {
     "mtime": 1780916192.407986,
@@ -3965,24 +3925,24 @@
     "semantic_hash": "14612104605ad19902fcc066d3ba8f43"
   },
   "/home/naschpitz/Projects/NN/docs/NN-CLI/usage.html": {
-    "mtime": 1780917318.716661,
-    "ast_hash": "62dba97f53b078134c089d2f38a127cc",
-    "semantic_hash": "62dba97f53b078134c089d2f38a127cc"
+    "mtime": 1781341457.7900147,
+    "ast_hash": "9cbd308aba2dbe789048241085935c8a",
+    "semantic_hash": "9cbd308aba2dbe789048241085935c8a"
   },
   "/home/naschpitz/Projects/NN/docs/NN-Server/endpoints.html": {
-    "mtime": 1780917318.716661,
-    "ast_hash": "c4be475037f21d815659fd7195bda9ec",
-    "semantic_hash": "c4be475037f21d815659fd7195bda9ec"
+    "mtime": 1781282653.3260128,
+    "ast_hash": "95c5fd12a500bc2954f0777edf388078",
+    "semantic_hash": "95c5fd12a500bc2954f0777edf388078"
   },
   "/home/naschpitz/Projects/NN/docs/NN-Server/examples.html": {
-    "mtime": 1780917318.717661,
-    "ast_hash": "c7cc9cbe26ebcc333d1078cdbeab36bf",
-    "semantic_hash": "c7cc9cbe26ebcc333d1078cdbeab36bf"
+    "mtime": 1781282708.5197525,
+    "ast_hash": "49febdf3c03ca24687ece6fcb5563984",
+    "semantic_hash": "49febdf3c03ca24687ece6fcb5563984"
   },
   "/home/naschpitz/Projects/NN/docs/NN-Server/index.html": {
-    "mtime": 1780917318.716661,
-    "ast_hash": "4ba664a2d2b970c890000cd560a90d09",
-    "semantic_hash": "4ba664a2d2b970c890000cd560a90d09"
+    "mtime": 1781280325.4517074,
+    "ast_hash": "4511dbdd9141d11fb85e5937c0c4e0bd",
+    "semantic_hash": "4511dbdd9141d11fb85e5937c0c4e0bd"
   },
   "/home/naschpitz/Projects/NN/docs/NN-Server/quickstart.html": {
     "mtime": 1780917318.716661,
@@ -3990,19 +3950,14 @@
     "semantic_hash": "c8c1baaad0fc8921f5d538bfb45c1c7d"
   },
   "/home/naschpitz/Projects/NN/docs/NN-Server/usage.html": {
-    "mtime": 1780917318.716661,
-    "ast_hash": "f0d68c61ee87c4b015240e25163da2bf",
-    "semantic_hash": "f0d68c61ee87c4b015240e25163da2bf"
+    "mtime": 1781282708.9637816,
+    "ast_hash": "811d154813b4551ee48206ba688fb75b",
+    "semantic_hash": "811d154813b4551ee48206ba688fb75b"
   },
   "/home/naschpitz/Projects/NN/docs/index.html": {
-    "mtime": 1780918445.5557094,
-    "ast_hash": "f3fae96afb4ef9811dd00ae1ffabd30d",
-    "semantic_hash": "f3fae96afb4ef9811dd00ae1ffabd30d"
-  },
-  "/home/naschpitz/Projects/NN/todo/model-file-split-refactor.md": {
-    "mtime": 1780964491.2187252,
-    "ast_hash": "23209b0efa13c32ec2b57783c5361131",
-    "semantic_hash": "23209b0efa13c32ec2b57783c5361131"
+    "mtime": 1781280320.5813181,
+    "ast_hash": "fbb39f77cb87d0025f7f10105b6f40cc",
+    "semantic_hash": "fbb39f77cb87d0025f7f10105b6f40cc"
   },
   "/home/naschpitz/Projects/NN/todo/qt-signal-slot-refactor.md": {
     "mtime": 1781239279.6048737,
@@ -4083,5 +4038,70 @@
     "mtime": 1780883269.8383465,
     "ast_hash": "c6b22b2dac68f352669cc753c99eb897",
     "semantic_hash": "c6b22b2dac68f352669cc753c99eb897"
+  },
+  "/home/naschpitz/Projects/NN/Common/Common_CalibrateConfig.hpp": {
+    "mtime": 1781341457.7860146,
+    "ast_hash": "5b6b5735fc733623afba83b8269bbc13",
+    "semantic_hash": "5b6b5735fc733623afba83b8269bbc13"
+  },
+  "/home/naschpitz/Projects/NN/Common/Common_TrainConfig.hpp": {
+    "mtime": 1781341457.7860146,
+    "ast_hash": "8da6d5c4e3a9736b17d574754f0b5bb1",
+    "semantic_hash": "8da6d5c4e3a9736b17d574754f0b5bb1"
+  },
+  "/home/naschpitz/Projects/NN/Common/Common_TrainMetadata.hpp": {
+    "mtime": 1781341457.7860146,
+    "ast_hash": "89aa67910c3d2821112220c3bcba1774",
+    "semantic_hash": "89aa67910c3d2821112220c3bcba1774"
+  },
+  "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CalibrateController.cpp": {
+    "mtime": 1781341457.7870145,
+    "ast_hash": "bb31b4995c3c6d231c9c5e432162e318",
+    "semantic_hash": "bb31b4995c3c6d231c9c5e432162e318"
+  },
+  "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CalibrateController.hpp": {
+    "mtime": 1781341457.7870145,
+    "ast_hash": "d9d8df6f10f4202f82568adb99714fcc",
+    "semantic_hash": "d9d8df6f10f4202f82568adb99714fcc"
+  },
+  "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CalibrateUtils.cpp": {
+    "mtime": 1781341457.7870145,
+    "ast_hash": "215f23cd32bd6351b9644abd88107cbc",
+    "semantic_hash": "215f23cd32bd6351b9644abd88107cbc"
+  },
+  "/home/naschpitz/Projects/NN/NN-CLI/NN-CLI_CalibrateUtils.hpp": {
+    "mtime": 1781342263.3727534,
+    "ast_hash": "fdc663389578485d06d017e6201897ef",
+    "semantic_hash": "fdc663389578485d06d017e6201897ef"
+  },
+  "/home/naschpitz/Projects/NN/NN-CLI/tests/test_calibrate_controller.cpp": {
+    "mtime": 1781341457.7890146,
+    "ast_hash": "b9e75ec21d771894871dff47d33f78bb",
+    "semantic_hash": "b9e75ec21d771894871dff47d33f78bb"
+  },
+  "/home/naschpitz/Projects/NN/ANN/AGENTS.md": {
+    "mtime": 1781341457.7530134,
+    "ast_hash": "2748b2b56633b37998b67c7e14f4495a",
+    "semantic_hash": "2748b2b56633b37998b67c7e14f4495a"
+  },
+  "/home/naschpitz/Projects/NN/CNN/AGENTS.md": {
+    "mtime": 1781341457.7550135,
+    "ast_hash": "3e293a7c3c37a7c676d84dac33c765ff",
+    "semantic_hash": "3e293a7c3c37a7c676d84dac33c765ff"
+  },
+  "/home/naschpitz/Projects/NN/NN-CLI/AGENTS.md": {
+    "mtime": 1781341457.7580135,
+    "ast_hash": "dbe5590ef0e2192725fa972db1826a18",
+    "semantic_hash": "dbe5590ef0e2192725fa972db1826a18"
+  },
+  "/home/naschpitz/Projects/NN/NN-Server/AGENTS.md": {
+    "mtime": 1781341457.7620137,
+    "ast_hash": "94d60a3dd8e037f09bb7466eee2d9623",
+    "semantic_hash": "94d60a3dd8e037f09bb7466eee2d9623"
+  },
+  "/home/naschpitz/Projects/NN/NN-Server/README.md": {
+    "mtime": 1781280303.096908,
+    "ast_hash": "11457f7b8294c5d9cd41ef4e99b377bf",
+    "semantic_hash": "11457f7b8294c5d9cd41ef4e99b377bf"
   }
 }
