@@ -1,5 +1,6 @@
 #include "NN-CLI_CNNRunner.hpp"
 
+#include "NN-CLI_CalibrateUtils.hpp"
 #include "NN-CLI_CNNLoader.hpp"
 #include "NN-CLI_DataLoader.hpp"
 #include "NN-CLI_GpuAugmenter.hpp"
@@ -23,10 +24,14 @@
 
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <QMutex>
 #include <numeric>
+
+namespace fs = std::filesystem;
 
 using namespace NN_CLI;
 
@@ -390,6 +395,186 @@ int CNNRunner::predict()
 
   return writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
                             batchDurationSeconds, batchDurationFormatted, inputs.size());
+}
+
+//===================================================================================================================//
+//  Calibration
+//===================================================================================================================//
+
+int CNNRunner::calibrate(const NN_CLI::CalibrationConfig& config)
+{
+  //-- Validate ID images directory ------------------------------------------
+  if (!fs::exists(config.idImagesDir) || !fs::is_directory(config.idImagesDir)) {
+    std::string errMsg = "Error: --id-images " + config.idImagesDir + " does not exist or is not a directory.";
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
+    return 1;
+  }
+
+  //-- Fetch OOD if needed ---------------------------------------------------
+  if (config.fetchIfMissing && !NN_CLI::dirHasImages(config.oodDir)) {
+    if (this->logLevel > LogLevel::QUIET) {
+      std::string msg = "OOD dir is empty \u2014 fetching DTD + Places365 + synthetic.\n";
+      std::cout << msg;
+      this->notifyLogMessage(msg, false);
+    }
+    NN_CLI::ensureOODDataset(config.oodDir, this->logLevel, [this](const std::string& m, bool err) {
+      this->notifyLogMessage(m, err);
+    });
+  } else if (!NN_CLI::dirHasImages(config.oodDir)) {
+    std::string errMsg = "Error: --ood-dir " + config.oodDir + " has no images and --no-fetch was set.";
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
+    return 1;
+  }
+
+  //-- Gather + sample -------------------------------------------------------
+  std::vector<std::string> idAll = NN_CLI::gatherImages(config.idImagesDir);
+  std::vector<std::string> oodAll = NN_CLI::gatherImages(config.oodDir);
+
+  if (idAll.empty()) {
+    std::string errMsg = "Error: no images found under --id-images " + config.idImagesDir;
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
+    return 1;
+  }
+
+  if (oodAll.empty()) {
+    std::string errMsg = "Error: no images found under --ood-dir " + config.oodDir;
+    std::cerr << errMsg << "\n";
+    this->notifyLogMessage(errMsg, true);
+    return 1;
+  }
+
+  std::vector<std::string> idSample = NN_CLI::sampleImages(idAll, config.idSampleCount, 42);
+  std::vector<std::string> oodSample = NN_CLI::sampleImages(oodAll, config.oodSampleCount, 42);
+
+  if (this->logLevel > LogLevel::QUIET) {
+    std::string msg = "Sampled " + std::to_string(idSample.size()) + " ID images (of " + std::to_string(idAll.size()) +
+                      " available)\n"
+                      "Sampled " +
+                      std::to_string(oodSample.size()) + " OOD images (of " + std::to_string(oodAll.size()) +
+                      " available)\n\n";
+    std::cout << msg;
+    this->notifyLogMessage(msg, false);
+  }
+
+  //-- Predict + free-energy -------------------------------------------------
+  auto t0 = std::chrono::system_clock::now();
+
+  const auto& inputShape = this->coreConfig.inputShape;
+  int targetC = static_cast<int>(inputShape.c);
+  int targetH = static_cast<int>(inputShape.h);
+  int targetW = static_cast<int>(inputShape.w);
+
+  auto shape = inputShape;
+  auto wrapFn = [shape](std::vector<float>&& flat) {
+    CNN::Input<float> input(shape);
+    input.data = std::move(flat);
+    return input;
+  };
+
+  std::vector<std::vector<float>> idLogits =
+    NN_CLI::runPredictImpl<CNN::Inputs<float>>(*this->core, idSample, "Predicting ID", targetC, targetH, targetW,
+                                               config.progressReports, this->logLevel, wrapFn);
+  std::vector<std::vector<float>> oodLogits =
+    NN_CLI::runPredictImpl<CNN::Inputs<float>>(*this->core, oodSample, "Predicting OOD", targetC, targetH, targetW,
+                                               config.progressReports, this->logLevel, wrapFn);
+
+  std::vector<float> idEnergies, oodEnergies;
+  idEnergies.reserve(idLogits.size());
+  oodEnergies.reserve(oodLogits.size());
+
+  for (const auto& l : idLogits)
+    idEnergies.push_back(NN_CLI::computeFreeEnergy(l));
+
+  for (const auto& l : oodLogits)
+    oodEnergies.push_back(NN_CLI::computeFreeEnergy(l));
+
+  std::sort(idEnergies.begin(), idEnergies.end());
+  std::sort(oodEnergies.begin(), oodEnergies.end());
+
+  //-- Write threshold.json --------------------------------------------------
+  auto writeThreshold = [this](const std::string& outputPath, const std::vector<float>& idSorted,
+                               const std::vector<float>& oodSorted, double idPercentile) {
+    auto stats = [](const std::vector<float>& sorted, const std::vector<double>& ps) {
+      nlohmann::ordered_json out;
+      out["n"] = sorted.size();
+      if (!sorted.empty()) {
+        out["min"] = NN_CLI::roundTo(sorted.front(), 4);
+        out["max"] = NN_CLI::roundTo(sorted.back(), 4);
+      }
+      double mean = 0.0;
+      for (float v : sorted)
+        mean += v;
+      if (!sorted.empty())
+        mean /= sorted.size();
+      out["mean"] = NN_CLI::roundTo(mean, 4);
+      for (double p : ps) {
+        char key[16];
+        std::snprintf(key, sizeof(key), "p%g", p);
+        out[key] = NN_CLI::roundTo(NN_CLI::computePercentile(sorted, p), 4);
+      }
+      return out;
+    };
+
+    float threshold = NN_CLI::computePercentile(idSorted, idPercentile);
+
+    std::size_t idAccepted = 0;
+    for (float e : idSorted) {
+      if (e <= threshold)
+        idAccepted++;
+    }
+
+    std::size_t oodRejected = 0;
+    for (float e : oodSorted) {
+      if (e > threshold)
+        oodRejected++;
+    }
+
+    nlohmann::ordered_json doc;
+    doc["freeEnergyThreshold"] = NN_CLI::roundTo(threshold, 4);
+    doc["idPercentileUsed"] = idPercentile;
+    doc["rule"] = "predicted_ood = (free_energy > freeEnergyThreshold)";
+    doc["idStats"] = stats(idSorted, {1, 5, 50, 90, 95, 99});
+    doc["oodStats"] = stats(oodSorted, {1, 5, 50, 95, 99});
+
+    nlohmann::ordered_json conf;
+    conf["idAccepted"] = idAccepted;
+    conf["idRejected"] = idSorted.size() - idAccepted;
+    conf["oodAccepted"] = oodSorted.size() - oodRejected;
+    conf["oodRejected"] = oodRejected;
+    conf["idAcceptanceRate"] = NN_CLI::roundTo(static_cast<double>(idAccepted) / idSorted.size(), 4);
+    conf["oodRejectionRate"] = NN_CLI::roundTo(static_cast<double>(oodRejected) / oodSorted.size(), 4);
+    doc["confusion"] = conf;
+
+    std::ofstream f(outputPath);
+    if (!f)
+      throw std::runtime_error("Cannot write " + outputPath);
+
+    f << doc.dump(2) << "\n";
+
+    if (this->logLevel > LogLevel::QUIET)
+      std::cout << doc.dump(2) << "\n";
+  };
+
+  writeThreshold(config.outputPath, idEnergies, oodEnergies, config.idPercentile);
+
+  auto t1 = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed = t1 - t0;
+
+  if (this->logLevel > LogLevel::QUIET) {
+    std::string doneMsg = "\nCalibration done in " + Common::Utils::formatDuration(elapsed.count()) +
+                          "\nThreshold written to: " + config.outputPath + "\n";
+    std::cout << doneMsg;
+    this->notifyLogMessage(doneMsg, false);
+  }
+
+  std::string summary = "Calibration completed | ID: " + std::to_string(idEnergies.size()) +
+                        " | OOD: " + std::to_string(oodEnergies.size()) + " | Output: " + config.outputPath;
+  this->notifyTrainingFinished(true, summary);
+
+  return 0;
 }
 
 //===================================================================================================================//

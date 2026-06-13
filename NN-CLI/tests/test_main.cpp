@@ -33,6 +33,7 @@ void runValidationTests();
 void runMonitoringTests();
 void runGpuAugmentTests();
 void runTerminalUITests();
+void runCalibrateControllerTests();
 
 int main(int argc, char* argv[])
 {
@@ -103,6 +104,10 @@ int main(int argc, char* argv[])
   std::cout << std::endl;
   std::cout << "=== Terminal UI Tests ===" << std::endl;
   runTerminalUITests();
+
+  std::cout << std::endl;
+  std::cout << "=== Calibrate Controller Tests ===" << std::endl;
+  runCalibrateControllerTests();
 
   // Cleanup temp files
   cleanupTemp();

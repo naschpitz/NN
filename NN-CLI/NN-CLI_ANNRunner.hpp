@@ -1,6 +1,7 @@
 #ifndef NN_CLI_ANNRUNNER_HPP
 #define NN_CLI_ANNRUNNER_HPP
 
+#include "NN-CLI_CalibrateUtils.hpp"
 #include "NN-CLI_Runner.hpp"
 
 #include "NN-CLI_DataLoader.hpp"
@@ -26,6 +27,9 @@ namespace NN_CLI
       int train();
       int test();
       int predict();
+
+      //-- Calibration --//
+      int calibrate(const NN_CLI::CalibrationConfig& config);
 
       //-- Accessors --//
       std::vector<std::string> getTimingLines(int maxWidth = 0) const override;
