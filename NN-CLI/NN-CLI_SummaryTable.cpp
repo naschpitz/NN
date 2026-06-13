@@ -11,6 +11,8 @@
 namespace NN_CLI
 {
 
+  //===================================================================================================================//
+
   namespace
   {
     ulong detectTerminalWidth()
@@ -92,21 +94,6 @@ namespace NN_CLI
 
       return lines;
     }
-  }
-
-  //===================================================================================================================//
-
-  std::string SummaryTable::formatWithCommas(ulong value)
-  {
-    std::string str = std::to_string(value);
-    int insertPos = static_cast<int>(str.length()) - 3;
-
-    while (insertPos > 0) {
-      str.insert(insertPos, ",");
-      insertPos -= 3;
-    }
-
-    return str;
   }
 
   //===================================================================================================================//
@@ -244,6 +231,21 @@ namespace NN_CLI
     }
 
     return allLines;
+  }
+
+  //===================================================================================================================//
+
+  std::string SummaryTable::formatWithCommas(ulong value)
+  {
+    std::string str = std::to_string(value);
+    int insertPos = static_cast<int>(str.length()) - 3;
+
+    while (insertPos > 0) {
+      str.insert(insertPos, ",");
+      insertPos -= 3;
+    }
+
+    return str;
   }
 
 } // namespace NN_CLI

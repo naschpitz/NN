@@ -24,12 +24,15 @@ namespace NN_CLI
   class GpuAugmenter
   {
     public:
+      //-- Constructors --//
       GpuAugmenter(int deviceIndex, ulong c, ulong h, ulong w, LogLevel logLevel);
 
+      //-- Methods --//
       void augment(std::vector<float>& batch, ulong count, const AugmentationTransforms& transforms, float probability,
                    std::mt19937& rng);
 
     private:
+      //-- Core members --//
       OpenCLWrapper::Core core;
       ulong C;
       ulong H;
@@ -51,13 +54,15 @@ namespace NN_CLI
   class GpuAugmenterPool
   {
     public:
+      //-- Constructors --//
       GpuAugmenterPool(const std::vector<int>& deviceIndices, ulong c, ulong h, ulong w, LogLevel logLevel);
 
+      //-- Methods --//
       void augment(std::vector<float>& batch, ulong count, const AugmentationTransforms& transforms, float probability);
 
       void setTimingCallback(std::function<void(bool)> callback)
       {
-        timingCallback = std::move(callback);
+        this->timingCallback = std::move(callback);
       }
 
       bool empty() const
@@ -66,11 +71,16 @@ namespace NN_CLI
       }
 
     private:
+      //-- Core members --//
       std::vector<std::unique_ptr<GpuAugmenter>> augmenters;
       std::vector<std::unique_ptr<std::mt19937>> rngs;
       std::vector<int> freeList;
+
+      //-- Synchronization --//
       QMutex mutex;
       QWaitCondition cv;
+
+      //-- Callbacks --//
       std::function<void(bool)> timingCallback;
   };
 }

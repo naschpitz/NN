@@ -28,8 +28,6 @@
 
 namespace fs = std::filesystem;
 
-using namespace NN_CLI;
-
 //===================================================================================================================//
 //-- Helpers (file-local) --//
 //===================================================================================================================//
@@ -172,8 +170,7 @@ namespace
         ulong done = ++loadedCount;
 
         if (logLevel > LogLevel::QUIET)
-          printLoadingProgress(std::string("Loading ") + progressLabel, done, total,
-                                                       progressReports);
+          printLoadingProgress(std::string("Loading ") + progressLabel, done, total, progressReports);
       });
 
       InputsT inputs;
@@ -210,12 +207,12 @@ namespace
 //-- Constructor --//
 //===================================================================================================================//
 
-CalibrateRunner::CalibrateRunner(const QCommandLineParser& parser, LogLevel logLevel, NetworkType networkType,
-                                 const IOConfig& ioConfig, const AugmentationConfig& augConfig,
-                                 std::unique_ptr<ANN::Core<float>>& annCore,
-                                 const ANN::CoreConfig<float>& annCoreConfig,
-                                 std::unique_ptr<CNN::Core<float>>& cnnCore,
-                                 const CNN::CoreConfig<float>& cnnCoreConfig)
+NN_CLI::CalibrateRunner::CalibrateRunner(const QCommandLineParser& parser, LogLevel logLevel, NetworkType networkType,
+                                         const IOConfig& ioConfig, const AugmentationConfig& augConfig,
+                                         std::unique_ptr<ANN::Core<float>>& annCore,
+                                         const ANN::CoreConfig<float>& annCoreConfig,
+                                         std::unique_ptr<CNN::Core<float>>& cnnCore,
+                                         const CNN::CoreConfig<float>& cnnCoreConfig)
   : parser(parser),
     logLevel(logLevel),
     networkType(networkType),
@@ -232,7 +229,7 @@ CalibrateRunner::CalibrateRunner(const QCommandLineParser& parser, LogLevel logL
 //-- Observer management --//
 //===================================================================================================================//
 
-void CalibrateRunner::addObserver(NN_CLI::IRunnerObserver* observer)
+void NN_CLI::CalibrateRunner::addObserver(NN_CLI::IRunnerObserver* observer)
 {
   if (observer == nullptr)
     return;
@@ -247,7 +244,7 @@ void CalibrateRunner::addObserver(NN_CLI::IRunnerObserver* observer)
 
 //===================================================================================================================//
 
-void CalibrateRunner::removeObserver(NN_CLI::IRunnerObserver* observer)
+void NN_CLI::CalibrateRunner::removeObserver(NN_CLI::IRunnerObserver* observer)
 {
   if (observer == nullptr)
     return;
@@ -262,7 +259,7 @@ void CalibrateRunner::removeObserver(NN_CLI::IRunnerObserver* observer)
 //-- Observer notifications --//
 //===================================================================================================================//
 
-void CalibrateRunner::notifyLogMessage(const std::string& message, bool isError)
+void NN_CLI::CalibrateRunner::notifyLogMessage(const std::string& message, bool isError)
 {
   for (auto* observer : this->observers)
     observer->onLogMessage(message, isError);
@@ -270,7 +267,7 @@ void CalibrateRunner::notifyLogMessage(const std::string& message, bool isError)
 
 //===================================================================================================================//
 
-void CalibrateRunner::notifyTrainingFinished(bool success, const std::string& finalSummary)
+void NN_CLI::CalibrateRunner::notifyTrainingFinished(bool success, const std::string& finalSummary)
 {
   for (auto* observer : this->observers)
     observer->onTrainingFinished(success, finalSummary);
@@ -280,7 +277,7 @@ void CalibrateRunner::notifyTrainingFinished(bool success, const std::string& fi
 //-- run --//
 //===================================================================================================================//
 
-int CalibrateRunner::run()
+int NN_CLI::CalibrateRunner::run()
 {
   // ---- args --------------------------------------------------------------
   if (!this->parser.isSet("id-images")) {
@@ -450,7 +447,7 @@ int CalibrateRunner::run()
 //-- ensureOODDataset --//
 //===================================================================================================================//
 
-void CalibrateRunner::ensureOODDataset(const std::string& oodDir)
+void NN_CLI::CalibrateRunner::ensureOODDataset(const std::string& oodDir)
 {
   fs::create_directories(oodDir);
 
@@ -487,7 +484,7 @@ void CalibrateRunner::ensureOODDataset(const std::string& oodDir)
 //-- fetchDTD --//
 //===================================================================================================================//
 
-void CalibrateRunner::fetchDTD(const std::string& destDir)
+void NN_CLI::CalibrateRunner::fetchDTD(const std::string& destDir)
 {
   fs::create_directories(destDir);
   fs::path tgz = fs::path(destDir).parent_path() / "dtd-r1.0.1.tar.gz";
@@ -513,7 +510,7 @@ void CalibrateRunner::fetchDTD(const std::string& destDir)
 //-- fetchPlaces365Val --//
 //===================================================================================================================//
 
-void CalibrateRunner::fetchPlaces365Val(const std::string& destDir)
+void NN_CLI::CalibrateRunner::fetchPlaces365Val(const std::string& destDir)
 {
   fs::create_directories(destDir);
   fs::path tarPath = fs::path(destDir).parent_path() / "val_256.tar";
@@ -537,7 +534,7 @@ void CalibrateRunner::fetchPlaces365Val(const std::string& destDir)
 //-- generateSynthetic --//
 //===================================================================================================================//
 
-void CalibrateRunner::generateSynthetic(const std::string& destDir)
+void NN_CLI::CalibrateRunner::generateSynthetic(const std::string& destDir)
 {
   fs::create_directories(destDir);
 
@@ -661,7 +658,7 @@ void CalibrateRunner::generateSynthetic(const std::string& destDir)
 //-- gatherImages --//
 //===================================================================================================================//
 
-std::vector<std::string> CalibrateRunner::gatherImages(const std::string& rootDir)
+std::vector<std::string> NN_CLI::CalibrateRunner::gatherImages(const std::string& rootDir)
 {
   std::vector<std::string> result;
 
@@ -681,8 +678,8 @@ std::vector<std::string> CalibrateRunner::gatherImages(const std::string& rootDi
 //-- sampleImages --//
 //===================================================================================================================//
 
-std::vector<std::string> CalibrateRunner::sampleImages(const std::vector<std::string>& all, std::size_t count,
-                                                       uint32_t seed)
+std::vector<std::string> NN_CLI::CalibrateRunner::sampleImages(const std::vector<std::string>& all, std::size_t count,
+                                                               uint32_t seed)
 {
   if (count >= all.size())
     return all;
@@ -698,8 +695,8 @@ std::vector<std::string> CalibrateRunner::sampleImages(const std::vector<std::st
 //-- runPredict --//
 //===================================================================================================================//
 
-std::vector<std::vector<float>> CalibrateRunner::runPredict(const std::vector<std::string>& imagePaths,
-                                                            const std::string& progressLabel)
+std::vector<std::vector<float>> NN_CLI::CalibrateRunner::runPredict(const std::vector<std::string>& imagePaths,
+                                                                    const std::string& progressLabel)
 {
   ulong total = imagePaths.size();
   ulong progressReports = (this->logLevel > LogLevel::QUIET) ? this->ioConfig.progressReports : 0;
@@ -744,8 +741,8 @@ std::vector<std::vector<float>> CalibrateRunner::runPredict(const std::vector<st
 //-- writeThresholdJson --//
 //===================================================================================================================//
 
-void CalibrateRunner::writeThresholdJson(const std::string& outputPath, const std::vector<float>& idSorted,
-                                         const std::vector<float>& oodSorted, double idPercentile)
+void NN_CLI::CalibrateRunner::writeThresholdJson(const std::string& outputPath, const std::vector<float>& idSorted,
+                                                 const std::vector<float>& oodSorted, double idPercentile)
 {
   auto stats = [](const std::vector<float>& sorted, const std::vector<double>& ps) {
     nlohmann::ordered_json out;

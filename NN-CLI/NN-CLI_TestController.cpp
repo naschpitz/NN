@@ -61,25 +61,24 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TestController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                  float samplesPerSec, float etaSeconds,
-                                                  const std::vector<float>& fractions)
+  void TestController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
+                                                float etaSeconds, const std::vector<float>& fractions)
   {
     // Test mode: batch progress maps to batch evaluation progress with loss.
     (void)samplesPerSec;
     (void)etaSeconds;
 
     float fraction = fractions.empty() ? 0.0f : fractions[0];
-    std::cout << "\r  Progress: " << (batchIdx + 1) << "/" << totalBatches << " ("
-              << std::fixed << std::setprecision(1) << (fraction * 100.0f) << "%)"
-              << "  Loss: " << std::fixed << std::setprecision(6) << currentLoss << std::flush;
+    std::cout << "\r  Progress: " << (batchIdx + 1) << "/" << totalBatches << " (" << std::fixed << std::setprecision(1)
+              << (fraction * 100.0f) << "%)" << "  Loss: " << std::fixed << std::setprecision(6) << currentLoss
+              << std::flush;
   }
 
   //===================================================================================================================//
 
   template <typename RunnerT>
   void TestController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                  float valLoss, const std::string& summary)
+                                                 float valLoss, const std::string& summary)
   {
     // Test mode does not use epoch events, but print the summary for
     // interface completeness in case the runner fires one.

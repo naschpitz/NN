@@ -59,8 +59,8 @@ namespace NN_CLI
     protected:
       //-- IRunnerObserver overrides --//
 
-      void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
-                           float etaSeconds, const std::vector<float>& fractions) override;
+      void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
+                           const std::vector<float>& fractions) override;
 
       void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                             const std::string& summary) override;

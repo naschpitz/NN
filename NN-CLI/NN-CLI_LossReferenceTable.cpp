@@ -9,6 +9,8 @@
 namespace NN_CLI
 {
 
+  //===================================================================================================================//
+
   std::vector<SummaryRow> LossReferenceTable::collectRows(ulong numClasses)
   {
     if (numClasses < 2)

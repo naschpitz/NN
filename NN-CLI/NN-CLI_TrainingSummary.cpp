@@ -11,84 +11,6 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ulong TrainingSummary::countCNNParameters(const CNN::CoreConfig<float>& config)
-  {
-    ulong total = 0;
-    const auto& layers = config.layersConfig.cnnLayers;
-    const auto& denseLayers = config.layersConfig.denseLayers;
-    const CNN::Shape3D& inputShape = config.inputShape;
-
-    ulong currentChannels = inputShape.c;
-    ulong currentH = inputShape.h;
-    ulong currentW = inputShape.w;
-    ulong residualStartChannels = 0;
-
-    for (const auto& layer : layers) {
-      switch (layer.type) {
-      case CNN::LayerType::CONV: {
-        const auto& c = std::get<CNN::ConvLayerConfig>(layer.config);
-        total += c.numFilters * (currentChannels * c.filterH * c.filterW) + c.numFilters;
-        currentChannels = c.numFilters;
-
-        if (c.slidingStrategy == CNN::SlidingStrategyType::SAME) {
-          currentH = (currentH + c.strideY - 1) / c.strideY;
-          currentW = (currentW + c.strideX - 1) / c.strideX;
-        } else {
-          currentH = (currentH - c.filterH) / c.strideY + 1;
-          currentW = (currentW - c.filterW) / c.strideX + 1;
-        }
-
-        break;
-      }
-
-      case CNN::LayerType::INSTANCENORM:
-      case CNN::LayerType::BATCHNORM:
-        total += 2 * currentChannels; // gamma + beta
-        break;
-      case CNN::LayerType::POOL: {
-        const auto& p = std::get<CNN::PoolLayerConfig>(layer.config);
-        currentH = (currentH - p.poolH) / p.strideY + 1;
-        currentW = (currentW - p.poolW) / p.strideX + 1;
-        break;
-      }
-
-      case CNN::LayerType::GLOBALAVGPOOL:
-        currentH = 1;
-        currentW = 1;
-        break;
-      case CNN::LayerType::GLOBALDUALPOOL:
-        currentH = 1;
-        currentW = 1;
-        currentChannels *= 2; // avg + max concatenated
-        break;
-      case CNN::LayerType::RESIDUAL_START:
-        residualStartChannels = currentChannels;
-        break;
-      case CNN::LayerType::RESIDUAL_END:
-
-        if (currentChannels != residualStartChannels) {
-          total += currentChannels * residualStartChannels; // 1x1 projection
-        }
-
-        break;
-      default:
-        break;
-      }
-    }
-
-    // Dense layers
-    ulong annInputSize = currentChannels * currentH * currentW;
-
-    for (const auto& dl : denseLayers) {
-      total += dl.numNeurons * annInputSize + dl.numNeurons;
-      annInputSize = dl.numNeurons;
-    }
-
-    return total;
-  }
-
-  //===================================================================================================================//
-
   std::vector<std::string> TrainingSummary::collectCNN(const CNN::CoreConfig<float>& cnnConfig,
                                                        const AugmentationConfig& augConfig,
                                                        ulong numOriginalTrainSamples, ulong numTrainSamples,
@@ -290,6 +212,18 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
+  std::vector<std::string> TrainingSummary::collect(const ANN::CoreConfig<float>& annConfig,
+                                                    const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
+                                                    ulong numTrainSamples, ulong numValidationSamples,
+                                                    float validationRatio, bool validationAuto, ulong maxWidth)
+  {
+    auto rows = collectRows(annConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
+                            validationRatio, validationAuto);
+    return SummaryTable::collect("Model Configuration", rows, maxWidth);
+  }
+
+  //===================================================================================================================//
+
   std::vector<SummaryRow> TrainingSummary::collectRows(const ANN::CoreConfig<float>& annConfig,
                                                        const AugmentationConfig& augConfig,
                                                        ulong numOriginalTrainSamples, ulong numTrainSamples,
@@ -373,14 +307,80 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<std::string> TrainingSummary::collect(const ANN::CoreConfig<float>& annConfig,
-                                                    const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
-                                                    ulong numTrainSamples, ulong numValidationSamples,
-                                                    float validationRatio, bool validationAuto, ulong maxWidth)
+  ulong TrainingSummary::countCNNParameters(const CNN::CoreConfig<float>& config)
   {
-    auto rows = collectRows(annConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
-                            validationRatio, validationAuto);
-    return SummaryTable::collect("Model Configuration", rows, maxWidth);
+    ulong total = 0;
+    const auto& layers = config.layersConfig.cnnLayers;
+    const auto& denseLayers = config.layersConfig.denseLayers;
+    const CNN::Shape3D& inputShape = config.inputShape;
+
+    ulong currentChannels = inputShape.c;
+    ulong currentH = inputShape.h;
+    ulong currentW = inputShape.w;
+    ulong residualStartChannels = 0;
+
+    for (const auto& layer : layers) {
+      switch (layer.type) {
+      case CNN::LayerType::CONV: {
+        const auto& c = std::get<CNN::ConvLayerConfig>(layer.config);
+        total += c.numFilters * (currentChannels * c.filterH * c.filterW) + c.numFilters;
+        currentChannels = c.numFilters;
+
+        if (c.slidingStrategy == CNN::SlidingStrategyType::SAME) {
+          currentH = (currentH + c.strideY - 1) / c.strideY;
+          currentW = (currentW + c.strideX - 1) / c.strideX;
+        } else {
+          currentH = (currentH - c.filterH) / c.strideY + 1;
+          currentW = (currentW - c.filterW) / c.strideX + 1;
+        }
+
+        break;
+      }
+
+      case CNN::LayerType::INSTANCENORM:
+      case CNN::LayerType::BATCHNORM:
+        total += 2 * currentChannels; // gamma + beta
+        break;
+      case CNN::LayerType::POOL: {
+        const auto& p = std::get<CNN::PoolLayerConfig>(layer.config);
+        currentH = (currentH - p.poolH) / p.strideY + 1;
+        currentW = (currentW - p.poolW) / p.strideX + 1;
+        break;
+      }
+
+      case CNN::LayerType::GLOBALAVGPOOL:
+        currentH = 1;
+        currentW = 1;
+        break;
+      case CNN::LayerType::GLOBALDUALPOOL:
+        currentH = 1;
+        currentW = 1;
+        currentChannels *= 2; // avg + max concatenated
+        break;
+      case CNN::LayerType::RESIDUAL_START:
+        residualStartChannels = currentChannels;
+        break;
+      case CNN::LayerType::RESIDUAL_END:
+
+        if (currentChannels != residualStartChannels) {
+          total += currentChannels * residualStartChannels; // 1x1 projection
+        }
+
+        break;
+      default:
+        break;
+      }
+    }
+
+    // Dense layers
+    ulong annInputSize = currentChannels * currentH * currentW;
+
+    for (const auto& dl : denseLayers) {
+      total += dl.numNeurons * annInputSize + dl.numNeurons;
+      annInputSize = dl.numNeurons;
+    }
+
+    return total;
   }
 
 } // namespace NN_CLI

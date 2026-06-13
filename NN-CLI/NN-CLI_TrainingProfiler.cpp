@@ -10,6 +10,9 @@
 
 namespace NN_CLI
 {
+
+  //===================================================================================================================//
+
   using Phase = CNN::TimingPhase;
   using Event = CNN::TimingEvent;
 
@@ -39,31 +42,6 @@ namespace NN_CLI
   TrainingProfiler::TrainingProfiler()
   {
     this->reset();
-  }
-
-  void TrainingProfiler::reset()
-  {
-    QMutexLocker<QMutex> lock(&this->mutex);
-
-    std::memset(this->stepMs, 0, sizeof(this->stepMs));
-    std::memset(this->stepRuns, 0, sizeof(this->stepRuns));
-    this->epochMs.fill(0.0);
-    this->totalMs.fill(0.0);
-    this->epochRuns = 0;
-    this->totalRuns = 0;
-    this->stepCount = 0;
-    this->totalStepCount = 0;
-    this->currentEpoch = 0;
-    this->stepInProgress = false;
-    this->lastStep = StepView{};
-    this->lastRenderedBatchNumber = static_cast<ulong>(-1);
-    this->numGpus = 1;
-
-    std::memset(this->stepGpuProfile, 0, sizeof(this->stepGpuProfile));
-    this->epochGpuProfile.fill(0.0);
-    this->totalGpuProfile.fill(0.0);
-    this->epochGpuProfileKernelCalls = 0;
-    this->totalGpuProfileKernelCalls = 0;
   }
 
   //===================================================================================================================//
@@ -97,97 +75,6 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- Step finalize --//
-  //===================================================================================================================//
-
-  void TrainingProfiler::finalizeStep()
-  {
-    double h2dSum = 0.0;
-    double computeSum = 0.0;
-    ulong runs = 0;
-    std::array<double, kNumPhases> gpuProfileSum{};
-    ulong gpuProfileKernelCallsSum = 0;
-
-    for (int g = 1; g <= this->numGpus && g < kMaxRows; g++) {
-      h2dSum += this->stepMs[g][static_cast<int>(Phase::H2DUpload)];
-      computeSum += this->stepMs[g][static_cast<int>(Phase::GpuCompute)];
-      runs += this->stepRuns[g];
-
-      for (Phase ph : kGpuSubPhases)
-        gpuProfileSum[static_cast<int>(ph)] += this->stepGpuProfile[g].ms[static_cast<int>(ph)];
-
-      gpuProfileKernelCallsSum += this->stepGpuProfile[g].kernelCalls;
-    }
-
-    StepView view;
-    double orchTotal = 0.0;
-
-    for (Phase ph : kOrchPhases) {
-      const int p = static_cast<int>(ph);
-      view.orch[p] = this->stepMs[0][p];
-      orchTotal += this->stepMs[0][p];
-    }
-
-    view.orchTotal = orchTotal;
-    view.h2dPerGpu = h2dSum / this->numGpus;
-    view.computePerGpu = computeSum / this->numGpus;
-    view.runs = runs;
-    view.batchNumber = this->stepCount;
-    view.valid = true;
-
-    // gpuProfileSum is the total across all GPUs, but view.gpuProfile must be per-GPU
-    // to be directly comparable with view.computePerGpu (which is also per-GPU).
-    // epoch/total accumulators continue to store the raw sum (divided at display time).
-    {
-      std::array<double, kNumPhases> perGpu{};
-
-      for (Phase ph : kGpuSubPhases) {
-        const int p = static_cast<int>(ph);
-        perGpu[p] = gpuProfileSum[p] / this->numGpus;
-      }
-
-      view.gpuProfile = perGpu;
-    }
-
-    view.gpuProfileKernelCalls = gpuProfileKernelCallsSum / this->numGpus;
-
-    for (Phase ph : kOrchPhases) {
-      const int p = static_cast<int>(ph);
-      this->epochMs[p] += this->stepMs[0][p];
-      this->totalMs[p] += this->stepMs[0][p];
-    }
-
-    const int hp = static_cast<int>(Phase::H2DUpload);
-    const int cp = static_cast<int>(Phase::GpuCompute);
-    this->epochMs[hp] += h2dSum;
-    this->totalMs[hp] += h2dSum;
-    this->epochMs[cp] += computeSum;
-    this->totalMs[cp] += computeSum;
-    this->epochRuns += runs;
-    this->totalRuns += runs;
-    this->stepCount++;
-    this->totalStepCount++;
-
-    std::memset(this->stepMs, 0, sizeof(this->stepMs));
-    std::memset(this->stepRuns, 0, sizeof(this->stepRuns));
-    std::memset(this->stepGpuProfile, 0, sizeof(this->stepGpuProfile));
-
-    for (Phase ph : kGpuSubPhases) {
-      const int p = static_cast<int>(ph);
-      this->epochGpuProfile[p] += gpuProfileSum[p];
-      this->totalGpuProfile[p] += gpuProfileSum[p];
-    }
-
-    this->epochGpuProfileKernelCalls += gpuProfileKernelCallsSum;
-    this->totalGpuProfileKernelCalls += gpuProfileKernelCallsSum;
-
-    {
-      QMutexLocker<QMutex> lock(&this->mutex);
-      this->lastStep = view;
-    }
-  }
-
-  //===================================================================================================================//
   //-- GPU profile data (per-sample, lock-free per-row accumulation) --//
   //===================================================================================================================//
 
@@ -205,11 +92,6 @@ namespace NN_CLI
     }
   }
 
-  void TrainingProfiler::resetRenderState()
-  {
-    this->lastRenderedBatchNumber = static_cast<ulong>(-1);
-  }
-
   //===================================================================================================================//
   //-- Epoch boundary --//
   //===================================================================================================================//
@@ -218,10 +100,10 @@ namespace NN_CLI
   {
     if (epoch == this->currentEpoch)
       return;
- 
+
     if (this->stepInProgress)
       this->finalizeStep();
- 
+
     this->currentEpoch = epoch;
     this->epochMs.fill(0.0);
     this->epochRuns = 0;
@@ -229,51 +111,16 @@ namespace NN_CLI
     this->epochGpuProfile.fill(0.0);
     this->epochGpuProfileKernelCalls = 0;
     this->stepInProgress = false;
- 
+
     QMutexLocker<QMutex> lock(&this->mutex);
     this->lastStep.valid = false;
   }
 
   //===================================================================================================================//
-  //-- Phase labels / formatting --//
-  //===================================================================================================================//
 
-  const char* TrainingProfiler::phaseLabel(Phase phase)
+  void TrainingProfiler::resetRenderState()
   {
-    switch (phase) {
-    case Phase::DataFetch:
-      return "data_fetch";
-    case Phase::GpuTrain:
-      return "gpu_train";
-    case Phase::GradMerge:
-      return "grad_merge";
-    case Phase::WeightUpdate:
-      return "weight_update";
-    case Phase::KernelRestore:
-      return "kernel_restore";
-    case Phase::H2DUpload:
-      return "h2d_upload";
-    case Phase::GpuCompute:
-      return "gpu_compute";
-    case Phase::Augmentation:
-      return "augmentation";
-    case Phase::CnnForward:
-      return "cnn_forward";
-    case Phase::AnnForward:
-      return "ann_forward";
-    case Phase::AnnBackward:
-      return "ann_backward";
-    case Phase::CnnBackward:
-      return "cnn_backward";
-    case Phase::CNNAccumulate:
-      return "cnn_accumulate";
-    case Phase::Accumulate:
-      return "ann_accumulate";
-    case Phase::LossCompute:
-      return "loss";
-    default:
-      return "?";
-    }
+    this->lastRenderedBatchNumber = static_cast<ulong>(-1);
   }
 
   //===================================================================================================================//
@@ -428,6 +275,166 @@ namespace NN_CLI
     }
 
     return lines;
+  }
+
+  //===================================================================================================================//
+
+  void TrainingProfiler::reset()
+  {
+    QMutexLocker<QMutex> lock(&this->mutex);
+
+    std::memset(this->stepMs, 0, sizeof(this->stepMs));
+    std::memset(this->stepRuns, 0, sizeof(this->stepRuns));
+    this->epochMs.fill(0.0);
+    this->totalMs.fill(0.0);
+    this->epochRuns = 0;
+    this->totalRuns = 0;
+    this->stepCount = 0;
+    this->totalStepCount = 0;
+    this->currentEpoch = 0;
+    this->stepInProgress = false;
+    this->lastStep = StepView{};
+    this->lastRenderedBatchNumber = static_cast<ulong>(-1);
+    this->numGpus = 1;
+
+    std::memset(this->stepGpuProfile, 0, sizeof(this->stepGpuProfile));
+    this->epochGpuProfile.fill(0.0);
+    this->totalGpuProfile.fill(0.0);
+    this->epochGpuProfileKernelCalls = 0;
+    this->totalGpuProfileKernelCalls = 0;
+  }
+
+  //===================================================================================================================//
+  //-- Step finalize --//
+  //===================================================================================================================//
+
+  void TrainingProfiler::finalizeStep()
+  {
+    double h2dSum = 0.0;
+    double computeSum = 0.0;
+    ulong runs = 0;
+    std::array<double, kNumPhases> gpuProfileSum{};
+    ulong gpuProfileKernelCallsSum = 0;
+
+    for (int g = 1; g <= this->numGpus && g < kMaxRows; g++) {
+      h2dSum += this->stepMs[g][static_cast<int>(Phase::H2DUpload)];
+      computeSum += this->stepMs[g][static_cast<int>(Phase::GpuCompute)];
+      runs += this->stepRuns[g];
+
+      for (Phase ph : kGpuSubPhases)
+        gpuProfileSum[static_cast<int>(ph)] += this->stepGpuProfile[g].ms[static_cast<int>(ph)];
+
+      gpuProfileKernelCallsSum += this->stepGpuProfile[g].kernelCalls;
+    }
+
+    StepView view;
+    double orchTotal = 0.0;
+
+    for (Phase ph : kOrchPhases) {
+      const int p = static_cast<int>(ph);
+      view.orch[p] = this->stepMs[0][p];
+      orchTotal += this->stepMs[0][p];
+    }
+
+    view.orchTotal = orchTotal;
+    view.h2dPerGpu = h2dSum / this->numGpus;
+    view.computePerGpu = computeSum / this->numGpus;
+    view.runs = runs;
+    view.batchNumber = this->stepCount;
+    view.valid = true;
+
+    // gpuProfileSum is the total across all GPUs, but view.gpuProfile must be per-GPU
+    // to be directly comparable with view.computePerGpu (which is also per-GPU).
+    // epoch/total accumulators continue to store the raw sum (divided at display time).
+    {
+      std::array<double, kNumPhases> perGpu{};
+
+      for (Phase ph : kGpuSubPhases) {
+        const int p = static_cast<int>(ph);
+        perGpu[p] = gpuProfileSum[p] / this->numGpus;
+      }
+
+      view.gpuProfile = perGpu;
+    }
+
+    view.gpuProfileKernelCalls = gpuProfileKernelCallsSum / this->numGpus;
+
+    for (Phase ph : kOrchPhases) {
+      const int p = static_cast<int>(ph);
+      this->epochMs[p] += this->stepMs[0][p];
+      this->totalMs[p] += this->stepMs[0][p];
+    }
+
+    const int hp = static_cast<int>(Phase::H2DUpload);
+    const int cp = static_cast<int>(Phase::GpuCompute);
+    this->epochMs[hp] += h2dSum;
+    this->totalMs[hp] += h2dSum;
+    this->epochMs[cp] += computeSum;
+    this->totalMs[cp] += computeSum;
+    this->epochRuns += runs;
+    this->totalRuns += runs;
+    this->stepCount++;
+    this->totalStepCount++;
+
+    std::memset(this->stepMs, 0, sizeof(this->stepMs));
+    std::memset(this->stepRuns, 0, sizeof(this->stepRuns));
+    std::memset(this->stepGpuProfile, 0, sizeof(this->stepGpuProfile));
+
+    for (Phase ph : kGpuSubPhases) {
+      const int p = static_cast<int>(ph);
+      this->epochGpuProfile[p] += gpuProfileSum[p];
+      this->totalGpuProfile[p] += gpuProfileSum[p];
+    }
+
+    this->epochGpuProfileKernelCalls += gpuProfileKernelCallsSum;
+    this->totalGpuProfileKernelCalls += gpuProfileKernelCallsSum;
+
+    {
+      QMutexLocker<QMutex> lock(&this->mutex);
+      this->lastStep = view;
+    }
+  }
+
+  //===================================================================================================================//
+  //-- Phase labels / formatting --//
+  //===================================================================================================================//
+
+  const char* TrainingProfiler::phaseLabel(Phase phase)
+  {
+    switch (phase) {
+    case Phase::DataFetch:
+      return "data_fetch";
+    case Phase::GpuTrain:
+      return "gpu_train";
+    case Phase::GradMerge:
+      return "grad_merge";
+    case Phase::WeightUpdate:
+      return "weight_update";
+    case Phase::KernelRestore:
+      return "kernel_restore";
+    case Phase::H2DUpload:
+      return "h2d_upload";
+    case Phase::GpuCompute:
+      return "gpu_compute";
+    case Phase::Augmentation:
+      return "augmentation";
+    case Phase::CnnForward:
+      return "cnn_forward";
+    case Phase::AnnForward:
+      return "ann_forward";
+    case Phase::AnnBackward:
+      return "ann_backward";
+    case Phase::CnnBackward:
+      return "cnn_backward";
+    case Phase::CNNAccumulate:
+      return "cnn_accumulate";
+    case Phase::Accumulate:
+      return "ann_accumulate";
+    case Phase::LossCompute:
+      return "loss";
+    default:
+      return "?";
+    }
   }
 
 } // namespace NN_CLI

@@ -45,6 +45,8 @@ namespace NN_CLI
   class CalibrateRunner
   {
     public:
+      //-- Ctors / Dtors --//
+
       CalibrateRunner(const QCommandLineParser& parser, LogLevel logLevel, NetworkType networkType,
                       const IOConfig& ioConfig, const AugmentationConfig& augConfig,
                       std::unique_ptr<ANN::Core<float>>& annCore, const ANN::CoreConfig<float>& annCoreConfig,
@@ -53,6 +55,8 @@ namespace NN_CLI
       //-- Observer management --//
       void addObserver(IRunnerObserver* observer);
       void removeObserver(IRunnerObserver* observer);
+
+      //-- Lifecycle --//
 
       int run();
 
