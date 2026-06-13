@@ -40,7 +40,7 @@
     <li><a href="#training-summary">Training Summary</a></li>
     <li><a href="#validation">Validation Dataset</a></li>
     <li><a href="#monitoring">Training Monitoring</a></li>
-    <li><a href="#progress">Progress Bar</a></li>
+    <li><a href="#terminal-ui">Terminal UI</a></li>
     <li><a href="#errors">Error Handling</a></li>
   </ol>
 </div>
@@ -75,7 +75,7 @@
 
 <div class="card">
 <h3><span class="badge-blue">train</span></h3>
-<p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model <code>.nnmodel.tar</code> package to <code>--output</code> (or auto-generated path). Before training begins, a <a href="#training-summary">training summary table</a> is printed showing the full configuration. If <a href="#validation">validation</a> is enabled (the default), a stratified validation split is created and validation loss is reported during training.</p>
+<p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model <code>.nnmodel.tar</code> package to <code>--output</code> (or auto-generated path). Before training begins, a <a href="#training-summary">training summary</a> is displayed in the Model Info panel showing the full configuration. If <a href="#validation">validation</a> is enabled (the default), a stratified validation split is created and validation loss is reported during training.</p>
 <pre><code>NN-CLI -c config.json -m train -s samples.json
 NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 </code></pre>
@@ -157,7 +157,7 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 <p><code>logits</code> are the raw values that feed the final activation. Use them to compute calibration / out-of-distribution scores (max-logit, logit-norm, free-energy <code>−log Σ exp(zᵢ)</code>) that softmax discards because softmax is shift-invariant.</p>
 
 <h2 id="training-summary">7. Training Summary</h2>
-<p>Before training begins, NN-CLI prints a summary table showing the full training configuration at a glance. This helps verify that all settings are correct before committing to a potentially long training run.</p>
+<p>Before training begins, NN-CLI populates the <strong>Model Info panel</strong> (top-left quadrant of the TUI) with a summary of the full training configuration. This lets you verify that all settings are correct before committing to a potentially long training run.</p>
 <p>The summary includes:</p>
 <ul>
   <li><strong>Device</strong> -- CPU or GPU, with thread/GPU count</li>
@@ -172,6 +172,7 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
   <li><strong>Cost function</strong> -- type and configuration</li>
   <li><strong>Shuffle</strong> -- whether sample shuffling is enabled</li>
 </ul>
+<p>The Model Info panel also shows a <strong>Loss Reference</strong> section with per-class loss reference values (log loss targets based on <code>numClasses</code>).</p>
 
 <h2 id="validation">8. Validation Dataset</h2>
 <p>NN-CLI supports automatic validation dataset splitting. When enabled (the default), a portion of the training samples is held out for validation. After each epoch (or every N epochs, controlled by <code>checkInterval</code>), the model is evaluated on the validation set and the validation loss is reported.</p>
@@ -192,9 +193,11 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 <p>The split is stratified, meaning it preserves the class distribution from the original dataset in both the training and validation subsets. The split is also deterministic -- the same dataset and configuration always produce the same split.</p>
 
 <h3>Output</h3>
-<p>Validation loss is reported after the epoch progress line:</p>
-<pre><code>Epoch    5/100 [...] 100.0% - Loss: 0.045678
-Validation Loss: 0.052341
+<p>Validation loss appears as a <strong>column</strong> in the Epochs table (bottom-left panel). Each epoch row shows the epoch loss, validation loss (or <code>-</code> if validation was not performed for that epoch), a <code>✓</code> marker in the <strong>Best</strong> column if it is a new best epoch, and the completion timestamp. The table auto-scrolls to the newest row as training progresses.</p>
+<pre><code>Epoch    Loss      Val Loss  Best  Completed At
+1     0.234567   0.245678         14:30:05
+2     0.123456   0.134567         14:30:35
+3     0.056789   0.067890   ✓   14:31:05
 </code></pre>
 
 <p>See <a href="formats.html#ann-config">Data Formats</a> for the full <code>validation</code> configuration reference.</p>
@@ -215,26 +218,88 @@ Validation Loss: 0.052341
 <p>When validation is enabled, the monitor uses the validation loss to evaluate metrics. Otherwise, it uses the training loss. This ensures the monitor tracks generalisation performance when a validation set is available.</p>
 
 <h3>Output indicators</h3>
-<p>During training, the epoch line shows a <code>[best]</code> marker when a new best loss is recorded:</p>
-<pre><code>Epoch   10/1000 [...] 100.0% - Loss: 0.034521 [best]
+<p>During training, a <code>✓</code> symbol appears in the <strong>Best</strong> column of the Epochs table row whenever a new best loss is recorded:</p>
+<pre><code>Epoch    Loss      Val Loss  Best  Completed At
+10    0.034521   0.041234   ✓   15:02:14
 </code></pre>
-<p>When early stopping triggers, a <code>[Monitor]</code> message is printed explaining the reason:</p>
+<p>When early stopping triggers, a <code>[Monitor]</code> message is displayed <strong>below the epoch table</strong> in the Epochs panel, explaining the reason:</p>
 <pre><code>[Monitor] Early stopping: loss stagnation (no improvement for 20 checks)
 [Monitor] Early stopping: loss explosion (current: 5.234, best: 0.034, threshold: 10.0x)
 [Monitor] Early stopping: loss is NaN
 </code></pre>
+<p>Training completion and error messages also appear below the table in the same area.</p>
 
 <p>See <a href="formats.html#ann-config">Data Formats</a> for the full <code>monitoring</code> configuration reference.</p>
 
-<h2 id="progress">10. Progress Bar</h2>
-<p>During training, NN-CLI displays a real-time progress bar:</p>
-<pre><code><span class="comment">Single GPU/CPU:</span>
-Epoch    1/1000 [████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░] 50.0% - Loss: 0.234567
+<h2 id="terminal-ui">10. Terminal UI</h2>
+<p>During training, NN-CLI launches a full-screen ncurses-based Terminal User Interface (TUI) called <code>TerminalUI_TrainingWindow</code>. It divides the terminal into four panels that display configuration, training progress, epoch history, and timing data simultaneously.</p>
 
-<span class="comment">Multi-GPU:</span>
-Epoch    1/1000 [████████░░░░│████████░░░░│████████░░░░] 50.0% (0: 50% | 1: 50% | 2: 50%)
+<h3>Layout</h3>
+<p>The panels are arranged in a responsive grid. When the terminal is wide enough (≥ 88 columns), a right-hand timing column appears:</p>
+<pre><code>+-------------------------------------------+------------------+
+|         Model Info (top-left)             |                  |
+|   ┌─ Model Configuration ─────────────┐   |    Timing        |
+|   │ Device: GPU (2 devices)           │   |   (right column) |
+|   │ Network: CNN                       │   |                  |
+|   │ Layers: 4 conv + 2 dense           │   |   Data fetch     |
+|   │ Parameters: 1,234,567              │   |   0.123s         |
+|   │ Samples: 54,000 (train)            │   |   GPU train      |
+|   │ Epochs: 100  Batch: 64             │   |   1.234s         |
+|   │ Optimizer: Adam  LR: 0.001         │   |   Grad merge     |
+|   └────────────────────────────────────┘   |   0.012s         |
+|   ┌─ Loss Reference ───────────────────┐   |   Weight update  |
+|   │ Class 0: 0.000  Class 1: 2.302    │   |   0.045s         |
+|   │ Class 2: 2.995  Class 3: 2.995    │   |                  |
+|   └────────────────────────────────────┘   |                  |
++-------------------------------------------+                  |
+|         Epochs (bottom-left)              |                  |
+|   Epoch    Loss      Val Loss  Best  Completed At |            |
+|   1     0.234567   0.245678       14:30:05|                  |
+|   2     0.123456   0.134567       14:30:35|                  |
+|   3     0.056789   0.067890   ✓   14:31:05|                  |
+|   ...                                      |                  |
+|   [Monitor] Early stopping: loss stagnation|                  |
++-------------------------------------------+------------------+
+|         Progress (bottom, full width)                        |
+|   Samples 27,000/54,000 [████████████░░░░░░] 50.000%         |
+|   Epoch    5/100 [████████████████░░░░░░░░] 75.000%          |
+|   Loss: 0.056789   12345 img/s  ETA 04:32                    |
++--------------------------------------------------------------+
 </code></pre>
-<p>Updates are throttled: prints on epoch completion, epoch change, every 500 samples, and on the first sample.</p>
+
+<h3>Panel descriptions</h3>
+
+<h4>Model Info panel (top-left)</h4>
+<p>Shows two sections:</p>
+<ul>
+  <li><strong>Model Configuration</strong> — device, network type, input shape, layer counts, total parameters, sample counts (training/validation), augmentation settings, class weights, hyperparameters (epochs, batch size, learning rate, optimizer, dropout), cost function, and shuffle setting.</li>
+  <li><strong>Loss Reference</strong> — per-class loss reference values (log loss targets based on <code>numClasses</code>).</li>
+</ul>
+
+<h4>Timing panel (right column)</h4>
+<p>Displayed only when the terminal width is ≥ 88 columns. Shows per-phase timing data from the Runner's profiler: data fetch time, GPU training time, gradient merge time, weight update time, etc. The panel width adapts to roughly 35% of the available width (min 20 columns).</p>
+
+<h4>Epochs panel (bottom-left)</h4>
+<p>A scrollable table with auto-scroll showing completed epochs. Columns are <code>Epoch | Loss | Validation Loss | Best | Completed At</code>. Each completed epoch adds a row with the epoch loss (6 decimal places), validation loss (or <code>-</code> if none), a <code>✓</code> marker in the Best column for new best epochs, and a human-readable timestamp. Monitor messages, training completion messages, and error messages appear below the table.</p>
+
+<h4>Progress panel (bottom, full width)</h4>
+<p>Contains two stacked progress bars:</p>
+<ul>
+  <li><strong>Loading bar</strong> (top, hidden until samples are loaded): <code>Samples X/Y [████████░░░░░░] XX.XXX%</code></li>
+  <li><strong>Training bar</strong> (bottom):
+    <ul>
+      <li>Single GPU/CPU: <code>Epoch    N/M [████████████████░░░░░░░░] XX.XXX%</code></li>
+      <li>Multi-GPU: <code>Epoch    N/M [████░░│████████░░│████████░░] XX.XXX% (0: XX% | 1: XX% | 2: XX%)</code></li>
+    </ul>
+  </li>
+</ul>
+<p>Below the training bar is a sub-line showing <code>Loss: 0.056789   12345 img/s  ETA 04:32</code> (running average loss, ingestion rate in images per second, and estimated time to completion). During validation, the training bar label changes to <code>Validating</code>.</p>
+
+<h3>Navigation</h3>
+<p><strong>Tab</strong> cycles the active (highlighted) panel through Model Info → Epochs → Timing → back to Model Info. Inactive panels use a cyan color scheme; the active panel is highlighted in yellow. Scroll keys (up/down arrows, Page Up/Down, k/j, Home/End) scroll within the active panel. The Progress panel is always visible and not scrollable.</p>
+
+<h3>Console fallback</h3>
+<p>If ncurses initialization fails (e.g. no TTY attached, piped output), the TUI gracefully degrades — the UI thread is never started and training proceeds with console-only output from the Runner. No user action is required; the fallback is automatic.</p>
 
 <h2 id="errors">11. Error Handling</h2>
 <p>NN-CLI validates all inputs and provides clear error messages:</p>
