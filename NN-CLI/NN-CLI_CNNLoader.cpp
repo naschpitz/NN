@@ -242,12 +242,6 @@ namespace NN_CLI
     if (json.contains("calibrate")) {
       const auto& cc = json.at("calibrate");
 
-      if (cc.contains("idImagesDir"))
-        coreConfig.calibrationConfig.idImagesDir = cc.at("idImagesDir").get<std::string>();
-
-      if (cc.contains("oodDir"))
-        coreConfig.calibrationConfig.oodDir = cc.at("oodDir").get<std::string>();
-
       if (cc.contains("idSampleCount"))
         coreConfig.calibrationConfig.idSampleCount = cc.at("idSampleCount").get<std::size_t>();
 
@@ -256,9 +250,6 @@ namespace NN_CLI
 
       if (cc.contains("idPercentile"))
         coreConfig.calibrationConfig.idPercentile = cc.at("idPercentile").get<double>();
-
-      if (cc.contains("outputPath"))
-        coreConfig.calibrationConfig.outputPath = cc.at("outputPath").get<std::string>();
 
       if (cc.contains("fetchIfMissing"))
         coreConfig.calibrationConfig.fetchIfMissing = cc.at("fetchIfMissing").get<bool>();

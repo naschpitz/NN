@@ -359,44 +359,55 @@ int ANNRunner::predict()
 
 int ANNRunner::calibrate()
 {
+  //-- CLI-only config (not in CalibrationConfig) ----------------------------
+  const std::string& idImagesDir = this->parser.value("id-images").toStdString();
+  const std::string oodDir = this->parser.isSet("ood-dir")
+                               ? this->parser.value("ood-dir").toStdString()
+                               : (fs::current_path() / "extern-datasets" / "ood").string();
+  const std::string outputPath = this->parser.isSet("output")
+                                   ? this->parser.value("output").toStdString()
+                                   : (fs::path(this->parser.value("config").toStdString()).parent_path() /
+                                      "threshold.json").string();
+  const ulong progressReports = this->ioConfig.progressReports;
+
   //-- Validate ID images directory ------------------------------------------
-  if (!fs::exists(this->coreConfig.calibrationConfig.idImagesDir) || !fs::is_directory(this->coreConfig.calibrationConfig.idImagesDir)) {
-    std::string errMsg = "Error: --id-images " + this->coreConfig.calibrationConfig.idImagesDir + " does not exist or is not a directory.";
+  if (!fs::exists(idImagesDir) || !fs::is_directory(idImagesDir)) {
+    std::string errMsg = "Error: --id-images " + idImagesDir + " does not exist or is not a directory.";
     std::cerr << errMsg << "\n";
     this->notifyLogMessage(errMsg, true);
     return 1;
   }
 
   //-- Fetch OOD if needed ---------------------------------------------------
-  if (this->coreConfig.calibrationConfig.fetchIfMissing && !NN_CLI::dirHasImages(this->coreConfig.calibrationConfig.oodDir)) {
+  if (this->coreConfig.calibrationConfig.fetchIfMissing && !NN_CLI::dirHasImages(oodDir)) {
     if (this->logLevel > LogLevel::QUIET) {
       std::string msg = "OOD dir is empty \u2014 fetching DTD + Places365 + synthetic.\n";
       std::cout << msg;
       this->notifyLogMessage(msg, false);
     }
-    NN_CLI::ensureOODDataset(this->coreConfig.calibrationConfig.oodDir, this->logLevel, [this](const std::string& m, bool err) {
+    NN_CLI::ensureOODDataset(oodDir, this->logLevel, [this](const std::string& m, bool err) {
       this->notifyLogMessage(m, err);
     });
-  } else if (!NN_CLI::dirHasImages(this->coreConfig.calibrationConfig.oodDir)) {
-    std::string errMsg = "Error: --ood-dir " + this->coreConfig.calibrationConfig.oodDir + " has no images and --no-fetch was set.";
+  } else if (!NN_CLI::dirHasImages(oodDir)) {
+    std::string errMsg = "Error: --ood-dir " + oodDir + " has no images and --no-fetch was set.";
     std::cerr << errMsg << "\n";
     this->notifyLogMessage(errMsg, true);
     return 1;
   }
 
   //-- Gather + sample -------------------------------------------------------
-  std::vector<std::string> idAll = NN_CLI::gatherImages(this->coreConfig.calibrationConfig.idImagesDir);
-  std::vector<std::string> oodAll = NN_CLI::gatherImages(this->coreConfig.calibrationConfig.oodDir);
+  std::vector<std::string> idAll = NN_CLI::gatherImages(idImagesDir);
+  std::vector<std::string> oodAll = NN_CLI::gatherImages(oodDir);
 
   if (idAll.empty()) {
-    std::string errMsg = "Error: no images found under --id-images " + this->coreConfig.calibrationConfig.idImagesDir;
+    std::string errMsg = "Error: no images found under --id-images " + idImagesDir;
     std::cerr << errMsg << "\n";
     this->notifyLogMessage(errMsg, true);
     return 1;
   }
 
   if (oodAll.empty()) {
-    std::string errMsg = "Error: no images found under --ood-dir " + this->coreConfig.calibrationConfig.oodDir;
+    std::string errMsg = "Error: no images found under --ood-dir " + oodDir;
     std::cerr << errMsg << "\n";
     this->notifyLogMessage(errMsg, true);
     return 1;
@@ -426,10 +437,10 @@ int ANNRunner::calibrate()
 
   std::vector<std::vector<float>> idLogits =
     NN_CLI::runPredictImpl<ANN::Inputs<float>>(*this->core, idSample, "Predicting ID", targetC, targetH, targetW,
-                                               this->coreConfig.calibrationConfig.progressReports, this->logLevel, wrapFn);
+                                                progressReports, this->logLevel, wrapFn);
   std::vector<std::vector<float>> oodLogits =
     NN_CLI::runPredictImpl<ANN::Inputs<float>>(*this->core, oodSample, "Predicting OOD", targetC, targetH, targetW,
-                                               this->coreConfig.calibrationConfig.progressReports, this->logLevel, wrapFn);
+                                                progressReports, this->logLevel, wrapFn);
 
   std::vector<float> idEnergies, oodEnergies;
   idEnergies.reserve(idLogits.size());
@@ -508,20 +519,20 @@ int ANNRunner::calibrate()
       std::cout << doc.dump(2) << "\n";
   };
 
-  writeThreshold(this->coreConfig.calibrationConfig.outputPath, idEnergies, oodEnergies, this->coreConfig.calibrationConfig.idPercentile);
+  writeThreshold(outputPath, idEnergies, oodEnergies, this->coreConfig.calibrationConfig.idPercentile);
 
   auto t1 = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed = t1 - t0;
 
   if (this->logLevel > LogLevel::QUIET) {
     std::string doneMsg = "\nCalibration done in " + Common::Utils::formatDuration(elapsed.count()) +
-                          "\nThreshold written to: " + this->coreConfig.calibrationConfig.outputPath + "\n";
+                          "\nThreshold written to: " + outputPath + "\n";
     std::cout << doneMsg;
     this->notifyLogMessage(doneMsg, false);
   }
 
   std::string summary = "Calibration completed | ID: " + std::to_string(idEnergies.size()) +
-                        " | OOD: " + std::to_string(oodEnergies.size()) + " | Output: " + this->coreConfig.calibrationConfig.outputPath;
+                        " | OOD: " + std::to_string(oodEnergies.size()) + " | Output: " + outputPath;
   this->notifyTrainingFinished(true, summary);
 
   return 0;

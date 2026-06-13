@@ -109,58 +109,30 @@ int NN_CLI::CalibrateRunner::run()
     return 1;
   }
 
-  // ---- merge CLI args into coreConfig.calibrationConfig ---------------------
-  this->annCoreConfig.calibrationConfig.idImagesDir = this->parser.value("id-images").toStdString();
-  this->annCoreConfig.calibrationConfig.oodDir = this->parser.isSet("ood-dir")
-                                                   ? this->parser.value("ood-dir").toStdString()
-                                                   : (fs::current_path() / "extern-datasets" / "ood").string();
-  this->annCoreConfig.calibrationConfig.idSampleCount = this->parser.isSet("id-sample-count")
-                                                           ? this->parser.value("id-sample-count").toULongLong()
-                                                           : 500;
-  this->annCoreConfig.calibrationConfig.oodSampleCount = this->parser.isSet("ood-sample-count")
-                                                           ? this->parser.value("ood-sample-count").toULongLong()
-                                                           : 1500;
-  this->annCoreConfig.calibrationConfig.idPercentile = this->parser.isSet("id-percentile")
-                                                          ? this->parser.value("id-percentile").toDouble()
-                                                          : 95.0;
-  this->annCoreConfig.calibrationConfig.fetchIfMissing = !this->parser.isSet("no-fetch");
-  if (this->parser.isSet("output")) {
-    this->annCoreConfig.calibrationConfig.outputPath = this->parser.value("output").toStdString();
-  } else {
-    fs::path configPath = this->parser.value("config").toStdString();
-    this->annCoreConfig.calibrationConfig.outputPath =
-        (configPath.parent_path() / "threshold.json").string();
-  }
-  this->annCoreConfig.calibrationConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
-  this->annCoreConfig.calibrationConfig.progressReports = this->ioConfig.progressReports;
-
   if (this->logLevel > LogLevel::QUIET) {
     std::string msg = "Calibrate mode\n"
                       "  Model:           " +
                       this->parser.value("config").toStdString() +
                       "\n"
                       "  ID images:       " +
-                      this->annCoreConfig.calibrationConfig.idImagesDir +
-                      "  (sample " + std::to_string(this->annCoreConfig.calibrationConfig.idSampleCount) +
+                      this->parser.value("id-images").toStdString() +
+                      "  (sample " + std::to_string(this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong() : 500ULL) +
                       ")\n"
                       "  OOD dir:         " +
-                      this->annCoreConfig.calibrationConfig.oodDir +
-                      "  (sample " + std::to_string(this->annCoreConfig.calibrationConfig.oodSampleCount) +
+                      (this->parser.isSet("ood-dir") ? this->parser.value("ood-dir").toStdString() : (fs::current_path() / "extern-datasets" / "ood").string()) +
+                      "  (sample " + std::to_string(this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong() : 1500ULL) +
                       ")\n"
                       "  ID percentile:   " +
-                      std::to_string(this->annCoreConfig.calibrationConfig.idPercentile) +
+                      std::to_string(this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0) +
                       "\n"
                       "  Output:          " +
-                      this->annCoreConfig.calibrationConfig.outputPath + "\n\n";
+                      (this->parser.isSet("output") ? this->parser.value("output").toStdString() : (fs::path(this->parser.value("config").toStdString()).parent_path() / "threshold.json").string()) + "\n\n";
     std::cout << msg;
     this->notifyLogMessage(msg, false);
   }
 
   // ---- create temp runner and delegate -------------------------------------
   if (this->networkType == NetworkType::CNN) {
-    // Mirror ANN calibration config to CNN config (same params for both arch types)
-    this->cnnCoreConfig.calibrationConfig = this->annCoreConfig.calibrationConfig;
-
     CNNRunner runner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->cnnCore,
                      this->cnnCoreConfig);
     runner.addObserver(this);
