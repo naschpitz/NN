@@ -49,10 +49,8 @@
 <pre><code>NN-CLI --config &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&gt;]
        [--input &lt;file&gt;] [--input-type &lt;type&gt;]
        [--samples &lt;file&gt;] [--idx-data &lt;file&gt; --idx-labels &lt;file&gt;]
-       [--num-epochs &lt;n&gt;]
-       [--shuffle-samples &lt;bool&gt;]
        [--output &lt;file&gt;] [--output-type &lt;type&gt;]
-       [--log-level &lt;level&gt;]
+       [--log-level &lt;level&gt;] [--gpu-profile]
 </code></pre>
 
 <h2 id="options">2. All Options</h2>
@@ -66,11 +64,10 @@
   <tr><td><code>--samples</code></td><td><code>-s</code></td><td>file</td><td>—</td><td>Training/test samples (JSON)</td></tr>
   <tr><td><code>--idx-data</code></td><td>—</td><td>file</td><td>—</td><td>IDX3 data file (e.g. MNIST images)</td></tr>
   <tr><td><code>--idx-labels</code></td><td>—</td><td>file</td><td>—</td><td>IDX1 labels file (requires <code>--idx-data</code>)</td></tr>
-  <tr><td><code>--num-epochs</code></td><td>—</td><td>integer</td><td>from config</td><td>Number of training epochs (overrides config)</td></tr>
-  <tr><td><code>--shuffle-samples</code></td><td>—</td><td>string</td><td>from config</td><td><code>true</code> or <code>false</code> — shuffle sample order each epoch (overrides config)</td></tr>
   <tr><td><code>--output</code></td><td><code>-o</code></td><td>file</td><td>auto</td><td>Output file path</td></tr>
   <tr><td><code>--output-type</code></td><td>—</td><td>string</td><td><code>vector</code></td><td><code>vector</code> or <code>image</code> (overrides config)</td></tr>
-  <tr><td><code>--log-level</code></td><td><code>-l</code></td><td>string</td><td><code>error</code></td><td>Log level: <code>quiet</code>, <code>error</code>, <code>warning</code>, <code>info</code>, <code>debug</code>. Progress bars shown for all levels except <code>quiet</code>.</td></tr>
+  <tr><td><code>--log-level</code></td><td><code>-l</code></td><td>string</td><td><code>error</code></td><td>Log level: <code>quiet</code>, <code>error</code>, <code>warning</code>, <code>info</code>, <code>debug</code></td></tr>
+  <tr><td><code>--gpu-profile</code></td><td>—</td><td>flag</td><td>—</td><td>Enable OpenCL GPU kernel profiling (adds ~12% overhead)</td></tr>
   <tr><td><code>--help</code></td><td><code>-h</code></td><td>flag</td><td>—</td><td>Show help message</td></tr>
 </table>
 
@@ -78,7 +75,7 @@
 
 <div class="card">
 <h3><span class="badge-blue">train</span></h3>
-<p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model JSON to <code>--output</code> (or auto-generated path). Before training begins, a <a href="#training-summary">training summary table</a> is printed showing the full configuration. If <a href="#validation">validation</a> is enabled (the default), a stratified validation split is created and validation loss is reported during training.</p>
+<p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model <code>.nnmodel.tar</code> package to <code>--output</code> (or auto-generated path). Before training begins, a <a href="#training-summary">training summary table</a> is printed showing the full configuration. If <a href="#validation">validation</a> is enabled (the default), a stratified validation split is created and validation loss is reported during training.</p>
 <pre><code>NN-CLI -c config.json -m train -s samples.json
 NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 </code></pre>
@@ -86,22 +83,22 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 
 <div class="card">
 <h3><span class="badge-green">predict</span></h3>
-<p>Runs inference on one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Requires <code>--input</code>. The config must include pre-trained <code>parameters</code>. Outputs prediction + metadata JSON. Output order matches input order.</p>
-<pre><code>NN-CLI -c trained_model.json -m predict -i input.json -o result.json
+<p>Runs inference on one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Requires <code>--input</code> and a <code>.nnmodel</code> package (plain JSON configs are rejected). Outputs prediction + metadata JSON. Output order matches input order.</p>
+<pre><code>NN-CLI -c trained_model.nnmodel -m predict -i input.json -o result.json
 </code></pre>
 </div>
 
 <div class="card">
 <h3><span class="badge-orange">test</span></h3>
-<p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files. The config must include pre-trained <code>parameters</code>. Prints test metrics (sample count, average loss).</p>
-<pre><code>NN-CLI -c trained_model.json -m test -s test_samples.json
+<p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files and a <code>.nnmodel</code> package (plain JSON configs are rejected). Prints test metrics (sample count, average loss).</p>
+<pre><code>NN-CLI -c trained_model.nnmodel -m test -s test_samples.json
 </code></pre>
 </div>
 
 <div class="card">
 <h3><span class="badge-blue">calibrate</span></h3>
 <p>Picks a free-energy out-of-distribution threshold for the trained model. Runs predict on a random subsample of in-distribution images (<code>--id-images</code>) and a random subsample of OOD images (<code>--ood-dir</code>), computes the free-energy <code>E(x) = −log Σᵢ exp(zᵢ)</code> for each, and writes a <code>threshold.json</code> to <code>--output</code> (default: next to the model config). The threshold is taken at the chosen ID percentile (default 95th) — by construction at most that fraction of real in-distribution scans will trip the warning at runtime.</p>
-<pre><code>NN-CLI -c best_model.json -m calibrate \
+<pre><code>NN-CLI -c best_model.nnmodel -m calibrate \
        --id-images train-datasets/isicMILK10k/input \
        --ood-dir extern-datasets/ood
 </code></pre>
@@ -130,7 +127,7 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 <p>NN-CLI automatically identifies whether a config defines an ANN or CNN:</p>
 <ul>
   <li><strong>ANN</strong> — config contains a <code>"layers"</code> key</li>
-  <li><strong>CNN</strong> — otherwise (config lacks <code>"layers"</code> and uses <code>"convolutionalLayers"</code>/<code>"denseLayers"</code>)</li>
+  <li><strong>CNN</strong> — otherwise (config lacks <code>"layers"</code> and uses <code>"convolutionalLayers"</code> / <code>"denseLayers"</code>)</li>
 </ul>
 <p>No command-line flag is needed — the detection is transparent.</p>
 
@@ -138,9 +135,9 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 
 <h3>Training Output</h3>
 <p>If <code>--output</code> is not specified, the trained model is saved to:</p>
-<pre><code>output/trained_model_&lt;epochs&gt;_&lt;samples&gt;_&lt;loss&gt;.json
+<pre><code>output/trained_model_&lt;epochs&gt;_&lt;samples&gt;_&lt;loss&gt;.nnmodel.tar
 </code></pre>
-<p>The <code>output/</code> directory is created automatically relative to the input file's location.</p>
+<p>The <code>output/</code> directory is created automatically relative to the input file's location. The output is a <code>.nnmodel.tar</code> package containing <code>model.json</code> and <code>params.bin</code>.</p>
 
 <h3>Predict Output</h3>
 <p>When <code>outputType</code> is <code>"vector"</code> (default), the result is JSON with prediction metadata, an <code>outputs</code> array (post-activation values, one per input) and a <code>logits</code> array (pre-activation z of the last layer, one per input). When <code>outputType</code> is <code>"image"</code>, the output vector is saved as a PNG/JPEG/BMP image file instead.</p>
@@ -211,7 +208,7 @@ Validation Loss: 0.052341
 <p>Detects when training has become unstable. Training is stopped immediately if the current loss exceeds <code>threshold</code> times the best recorded loss, or if the loss becomes NaN. For example, with <code>threshold: 10.0</code>, training stops if the loss grows to more than 10x the best loss seen so far.</p>
 
 <h3>Best model</h3>
-<p>Whenever a new best loss is recorded, the model is saved to <code>output/best_model.json</code> (relative to the input file's location). This file is overwritten each time a new best is found, so it always contains the best model seen during training.</p>
+<p>Whenever a new best loss is recorded, the model is saved to <code>output/best_model.nnmodel.tar</code> (relative to the input file's location). This file is overwritten each time a new best is found, so it always contains the best model seen during training.</p>
 
 <h3>Loss source</h3>
 <p>When validation is enabled, the monitor uses the validation loss to evaluate metrics. Otherwise, it uses the training loss. This ensures the monitor tracks generalisation performance when a validation set is available.</p>
@@ -242,13 +239,16 @@ Epoch    1/1000 [████████░░░░│████████
 <p>NN-CLI validates all inputs and provides clear error messages:</p>
 <table>
   <tr><th>Condition</th><th>Error</th></tr>
-  <tr><td>Missing <code>--config</code></td><td>"Config file is required"</td></tr>
-  <tr><td>Invalid JSON</td><td>"Failed to parse config file"</td></tr>
-  <tr><td>Predict without <code>--input</code></td><td>"Input file is required for predict mode"</td></tr>
-  <tr><td>Both <code>--samples</code> and <code>--idx-data</code></td><td>"Cannot use both --samples and --idx-data"</td></tr>
+  <tr><td>Missing <code>--config</code></td><td>"Error: --config is required."</td></tr>
+  <tr><td>Invalid JSON</td><td>"Failed to open config file" or parse exception</td></tr>
+  <tr><td>Invalid mode</td><td>"Error: Mode must be 'train', 'predict', 'test', or 'calibrate'."</td></tr>
+  <tr><td>Non-train mode without .nnmodel</td><td>"Error: <em>mode</em> mode requires a .nnmodel package (not a plain .json)."</td></tr>
+  <tr><td>Invalid device</td><td>"Error: Device must be 'cpu' or 'gpu'."</td></tr>
+  <tr><td>Predict without <code>--input</code></td><td>(validated at runtime — input file must be provided)</td></tr>
+  <tr><td>Both <code>--samples</code> and <code>--idx-data</code></td><td>(validated at runtime — cannot use both)</td></tr>
   <tr><td>Invalid IDX magic number</td><td>"Invalid IDX file format"</td></tr>
-  <tr><td>CNN input size mismatch</td><td>"Input size does not match inputShape"</td></tr>
-  <tr><td>Predict/test without parameters</td><td>"Parameters required for predict/test mode"</td></tr>
+  <tr><td>Input size mismatch (CNN)</td><td>"Input size does not match expected input shape size"</td></tr>
+  <tr><td>Embedded parameters in JSON</td><td>"The embedded-parameter format is no longer supported."</td></tr>
 </table>
 <p>All errors print to <code>stderr</code> and exit with code 1.</p>
 

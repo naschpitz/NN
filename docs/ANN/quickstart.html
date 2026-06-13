@@ -111,14 +111,14 @@ sudo make install
     ANN::CoreConfig&lt;<span class="type">float</span>&gt; config;
     config.modeType    = ANN::ModeType::TRAIN;
     config.deviceType  = ANN::DeviceType::CPU;
-    config.layersConfig = makeLayersConfig({
-        {<span class="number">3</span>, ANN::ActvFuncType::NONE},
+    config.layersConfig = ANN::LayersConfig{{
+        {<span class="number">3</span>, ANN::ActvFuncType::RELU},
         {<span class="number">4</span>, ANN::ActvFuncType::RELU},
         {<span class="number">1</span>, ANN::ActvFuncType::SIGMOID}
-    });
-    config.trainingConfig.numEpochs    = <span class="number">100</span>;
-    config.trainingConfig.batchSize    = <span class="number">64</span>;
-    config.trainingConfig.learningRate = <span class="number">0.01f</span>;
+    }};
+    config.trainConfig.numEpochs    = <span class="number">100</span>;
+    config.trainConfig.batchSize    = <span class="number">64</span>;
+    config.trainConfig.learningRate = <span class="number">0.01f</span>;
 
     <span class="comment">// Create and train</span>
     <span class="keyword">auto</span> core = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);

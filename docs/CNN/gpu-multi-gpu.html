@@ -154,7 +154,7 @@
 <p>For ANN (dense layer) parameters, a different approach is used:</p>
 <ol>
   <li>Each worker's ANN core independently updates its own dense parameters during training.</li>
-  <li>After each epoch, <code>CoreGPU::mergeANNParameters()</code> <strong>averages</strong> the dense layer weights and biases across all workers.</li>
+  <li>After each epoch, <code>CoreGPU::mergeGradients()</code> <strong>averages</strong> the dense layer weights and biases across all workers.</li>
   <li>The averaged parameters are written back to every worker's ANN core.</li>
 </ol>
 
@@ -189,8 +189,8 @@
     worker.setAccumulators()
     worker.update(totalSamples)
 
-  <span class="comment">// 5. Average ANN parameters across all workers</span>
-  mergeANNParameters()
+  <span class="comment">// 5. Merge ANN parameters across all workers</span>
+  mergeGradients()
 
   <span class="comment">// 6. Sync updated parameters to all workers</span>
   <span class="comment">// (done implicitly via shared parameter references)</span></code></pre>

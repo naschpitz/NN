@@ -207,7 +207,7 @@ Same data, different indexing, zero extra memory or kernel launches.
 <h3>col2im</h3>
 <p>Inverse of im2col — scatters column matrix back to input tensor shape, accumulating overlapping contributions. Used during backpropagation to convert dInput from column layout back to tensor layout. One work-item per <em>input element</em> (avoids float atomics). Dispatch: 1D, <code>nElements = C × H × W</code>.</p>
 
-<div class="warning-box">
+<div class="warn-box">
 The gradient buffer must be <strong>zeroed</strong> before calling <code>col2im</code>, since it accumulates contributions from overlapping patches.
 </div>
 

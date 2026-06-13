@@ -31,16 +31,16 @@
 <h2>Prerequisites</h2>
 <table>
   <tr><th>Requirement</th><th>Minimum</th><th>Notes</th></tr>
-  <tr><td>C++ Compiler</td><td>C++17</td><td>GCC 7+, Clang 5+, MSVC 2017+</td></tr>
+  <tr><td>C++ Compiler</td><td>C++17</td><td>GCC 9+, Clang 10+, MSVC 2017+</td></tr>
   <tr><td>CMake</td><td>3.14</td><td></td></tr>
-  <tr><td>Qt</td><td>5 or 6</td><td>Core + Concurrent modules</td></tr>
+  <tr><td>Qt</td><td>6</td><td>Core + Concurrent modules</td></tr>
   <tr><td>OpenCL</td><td>1.2</td><td>Optional — required only for <code>--device gpu</code></td></tr>
 </table>
 
 <h2>Clone &amp; Build</h2>
-<pre><code><span class="comment"># Clone with all submodules (CNN → ANN → OpenCLWrapper)</span>
-git clone --recursive https://github.com/naschpitz/NN-CLI.git
-<span class="keyword">cd</span> NN-CLI
+<pre><code><span class="comment"># Clone the monorepo with all submodules</span>
+git clone --recursive https://github.com/naschpitz/NN.git
+<span class="keyword">cd</span> NN/NN-CLI
 
 <span class="comment"># Build</span>
 mkdir build &amp;&amp; <span class="keyword">cd</span> build
@@ -55,7 +55,7 @@ make -j$(nproc)
 </code></pre>
 
 <div class="info-box">
-  <strong>Submodule chain:</strong> NN-CLI includes <strong>CNN</strong> under <code>extern/CNN</code>, which in turn includes <strong>ANN</strong> under <code>extern/ANN</code>, which includes <strong>OpenCLWrapper</strong> under <code>extern/openCLWrapper</code>. The <code>--recursive</code> flag clones all of them.
+  <strong>Monorepo structure:</strong> NN-CLI is part of the NN monorepo. CNN and ANN are sibling directories, not submodules. OpenCLWrapper is a git submodule under both <code>ANN/extern/OpenCLWrapper</code> and <code>CNN/extern/OpenCLWrapper</code>. The <code>--recursive</code> flag clones the submodules.
 </div>
 
 <h2>Verify Installation</h2>
@@ -69,7 +69,7 @@ make -j$(nproc)
 <span class="comment"># Options:</span>
 <span class="comment">#   -h, --help          Displays help</span>
 <span class="comment">#   -c, --config &lt;file&gt; Path to JSON configuration file</span>
-<span class="comment">#   -m, --mode &lt;mode&gt;   Mode: 'train', 'predict', 'test'</span>
+<span class="comment">#   -m, --mode &lt;mode&gt;   Mode: 'train', 'predict', 'test', or 'calibrate'</span>
 <span class="comment">#   ...</span>
 </code></pre>
 
@@ -84,7 +84,7 @@ cat &gt; tiny_config.json &lt;&lt; <span class="string">'EOF'</span>
     { <span class="string">"numNeurons"</span>: <span class="number">4</span>, <span class="string">"actvFunc"</span>: <span class="string">"relu"</span> },
     { <span class="string">"numNeurons"</span>: <span class="number">1</span>, <span class="string">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
   ],
-  <span class="string">"training"</span>: {
+  <span class="string">"train"</span>: {
     <span class="string">"numEpochs"</span>: <span class="number">100</span>,
     <span class="string">"batchSize"</span>: <span class="number">64</span>,
     <span class="string">"learningRate"</span>: <span class="number">0.1</span>
@@ -105,27 +105,52 @@ cat &gt; xor_samples.json &lt;&lt; <span class="string">'EOF'</span>
 <span class="string">EOF</span>
 
 <span class="comment"># 3. Train!</span>
-./build/NN-CLI -c tiny_config.json -m train -s xor_samples.json -v
+./build/NN-CLI -c tiny_config.json -m train -s xor_samples.json -l info
 </code></pre>
 
 <h2>Project Structure</h2>
 <pre><code>NN-CLI/
-├── main.cpp                   <span class="comment"># Entry point, CLI argument parsing</span>
-├── NN-CLI_Runner.hpp/cpp      <span class="comment"># Core execution logic</span>
-├── NN-CLI_Loader.hpp/cpp      <span class="comment"># Config loading, network detection</span>
-├── NN-CLI_NetworkType.hpp     <span class="comment"># NetworkType enum (ANN/CNN)</span>
-├── NN-CLI_DataType.hpp/cpp    <span class="comment"># DataType enum (VECTOR/IMAGE)</span>
-├── NN-CLI_IOConfig.hpp        <span class="comment"># IOConfig struct (input/output types &amp; shapes)</span>
-├── NN-CLI_ImageLoader.hpp/cpp <span class="comment"># Image loading/saving via stb</span>
-├── NN-CLI_Utils.hpp/cpp       <span class="comment"># IDX file format loading</span>
-├── NN-CLI_ProgressBar.hpp/cpp <span class="comment"># Training progress display</span>
+├── main.cpp                     <span class="comment"># Entry point, CLI argument parsing</span>
+├── NN-CLI_App.hpp/cpp           <span class="comment"># MVC App entry point, config loading, mode dispatch</span>
+├── NN-CLI_Loader.hpp/cpp        <span class="comment"># Config parsing, network detection</span>
+├── NN-CLI_ANNLoader.hpp/cpp     <span class="comment"># ANN-specific config & sample loading</span>
+├── NN-CLI_CNNLoader.hpp/cpp     <span class="comment"># CNN-specific config & sample loading</span>
+├── NN-CLI_DataSplitter.hpp/cpp  <span class="comment"># Stratified validation splitter</span>
+├── NN-CLI_Runner.hpp/cpp        <span class="comment"># Core runner base class</span>
+├── NN-CLI_ANNRunner.hpp/cpp     <span class="comment"># ANN training/predict/test runner</span>
+├── NN-CLI_CNNRunner.hpp/cpp     <span class="comment"># CNN training/predict/test runner</span>
+├── NN-CLI_CalibrateRunner.hpp/cpp <span class="comment"># Calibrate runner</span>
+├── NN-CLI_TrainingController.*  <span class="comment"># Training flow controller</span>
+├── NN-CLI_PredictController.*   <span class="comment"># Predict flow controller</span>
+├── NN-CLI_TestController.*      <span class="comment"># Test flow controller</span>
+├── NN-CLI_CalibrateController.* <span class="comment"># Calibrate flow controller</span>
+├── NN-CLI_ModelSerializer.*     <span class="comment"># Serialize/deserialize models to .nnmodel packages</span>
+├── NN-CLI_ModelPackage.*        <span class="comment"># .nnmodel tar archive handling</span>
+├── NN-CLI_NetworkType.hpp       <span class="comment"># NetworkType enum (ANN/CNN)</span>
+├── NN-CLI_DataType.hpp/cpp      <span class="comment"># DataType enum (VECTOR/IMAGE)</span>
+├── NN-CLI_IOConfig.hpp          <span class="comment"># IOConfig struct (I/O types &amp; shapes)</span>
+├── NN-CLI_ImageLoader.hpp/cpp   <span class="comment"># Image loading/saving via stb</span>
+├── NN-CLI_LogLevel.hpp          <span class="comment"># LogLevel enum</span>
+├── NN-CLI_AugmentationConfig.hpp <span class="comment"># Augmentation config struct</span>
+├── NN-CLI_AugmentationTransforms.hpp <span class="comment"># Augmentation transforms struct</span>
+├── NN-CLI_ValidationDatasetConfig.hpp <span class="comment"># Validation dataset config</span>
+├── NN-CLI_TrainingSummary.*     <span class="comment"># Training summary table</span>
+├── NN-CLI_SummaryTable.*        <span class="comment"># Summary table formatting</span>
+├── NN-CLI_LossReferenceTable.*  <span class="comment"># Loss / confidence reference table</span>
+├── NN-CLI_TerminalUI_*          <span class="comment"># Terminal UI (Window, Panel, Table, ProgressBar)</span>
+├── NN-CLI_GpuAugmenter.*        <span class="comment"># GPU-side data augmentation</span>
+├── NN-CLI_TrainingProfiler.*    <span class="comment"># Training profiler</span>
+├── NN-CLI_Utils.hpp/cpp         <span class="comment"># IDX file format loading</span>
+├── NN-CLI_RunnerUtils.hpp       <span class="comment"># Runner utility helpers</span>
+├── NN-CLI_RunnerObserver.hpp    <span class="comment"># Runner observer interface</span>
+├── NN-CLI_CalibrateUtils.*      <span class="comment"># Calibration utilities</span>
 ├── libs/
-│   └── stb/                   <span class="comment"># stb image headers (read/write/resize)</span>
-├── extern/
-│   └── CNN/                   <span class="comment"># CNN submodule (includes ANN)</span>
+│   ├── nlohmann/                <span class="comment"># nlohmann/json header-only</span>
+│   └── stb/                     <span class="comment"># stb image headers (read/write/resize)</span>
 ├── examples/
-│   └── MNIST/                 <span class="comment"># ANN &amp; CNN MNIST example configs</span>
-└── tests/                     <span class="comment"># Integration tests</span>
+│   ├── MNIST/                   <span class="comment"># ANN &amp; CNN MNIST example configs</span>
+│   └── ISIC-MILK10k/            <span class="comment"># ISIC skin lesion example</span>
+└── tests/                       <span class="comment"># Integration tests</span>
 </code></pre>
 
 </main>

@@ -198,30 +198,30 @@
 
 <h3>Example: Complete ResNet-style Architecture</h3>
 <pre><code><span class="comment">// Initial feature extraction (no residual)</span>
-{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">32</span>, <span class="string">"filterSize"</span>: <span class="number">3</span>, <span class="string">"padding"</span>: <span class="string">"same"</span> }
+{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">32</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"same"</span> }
 { <span class="string">"type"</span>: <span class="string">"instancenorm"</span> }
 { <span class="string">"type"</span>: <span class="string">"relu"</span> }
 
 <span class="comment">// Identity residual block (32 → 32 channels, no projection needed)</span>
 { <span class="string">"type"</span>: <span class="string">"residual_start"</span> }
-{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">32</span>, <span class="string">"filterSize"</span>: <span class="number">3</span>, <span class="string">"padding"</span>: <span class="string">"same"</span> }
+{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">32</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"same"</span> }
 { <span class="string">"type"</span>: <span class="string">"instancenorm"</span> }
 { <span class="string">"type"</span>: <span class="string">"relu"</span> }
 { <span class="string">"type"</span>: <span class="string">"residual_end"</span> }
 
 <span class="comment">// Projection residual block (32 → 64 channels, projection auto-created)</span>
 { <span class="string">"type"</span>: <span class="string">"residual_start"</span> }
-{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">64</span>, <span class="string">"filterSize"</span>: <span class="number">3</span>, <span class="string">"padding"</span>: <span class="string">"same"</span> }
+{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">64</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"same"</span> }
 { <span class="string">"type"</span>: <span class="string">"instancenorm"</span> }
 { <span class="string">"type"</span>: <span class="string">"relu"</span> }
 { <span class="string">"type"</span>: <span class="string">"residual_end"</span> }
 
 <span class="comment">// Downsample OUTSIDE the residual block</span>
-{ <span class="string">"type"</span>: <span class="string">"maxpool"</span>, <span class="string">"size"</span>: <span class="number">2</span>, <span class="string">"stride"</span>: <span class="number">2</span> }
+{ <span class="string">"type"</span>: <span class="string">"pool"</span>, <span class="string">"poolType"</span>: <span class="string">"max"</span>, <span class="string">"poolH"</span>: <span class="number">2</span>, <span class="string">"poolW"</span>: <span class="number">2</span>, <span class="string">"strideY"</span>: <span class="number">2</span>, <span class="string">"strideX"</span>: <span class="number">2</span> }
 
 <span class="comment">// Another identity block at 64 channels</span>
 { <span class="string">"type"</span>: <span class="string">"residual_start"</span> }
-{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">64</span>, <span class="string">"filterSize"</span>: <span class="number">3</span>, <span class="string">"padding"</span>: <span class="string">"same"</span> }
+{ <span class="string">"type"</span>: <span class="string">"conv"</span>, <span class="string">"numFilters"</span>: <span class="number">64</span>, <span class="string">"filterH"</span>: <span class="number">3</span>, <span class="string">"filterW"</span>: <span class="number">3</span>, <span class="string">"slidingStrategy"</span>: <span class="string">"same"</span> }
 { <span class="string">"type"</span>: <span class="string">"instancenorm"</span> }
 { <span class="string">"type"</span>: <span class="string">"relu"</span> }
 { <span class="string">"type"</span>: <span class="string">"residual_end"</span> }

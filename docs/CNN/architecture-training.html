@@ -218,7 +218,7 @@ Tensor3D&lt;<span class="type">T</span>&gt; dCurrent = dCNNOut;
   <h4>7. Parameter Update (SGD)</h4>
   <p>After processing all samples in a mini-batch, accumulated gradients are used to update parameters via Stochastic Gradient Descent.</p>
   <pre><code><span class="keyword">void</span> updateCNNParameters(<span class="type">ulong</span> numSamples) {
-  <span class="type">T</span> learningRate = trainingConfig.learningRate;
+  <span class="type">T</span> learningRate = trainConfig.learningRate;
   <span class="keyword">for</span> (<span class="type">ulong</span> i = 0; i &lt; parameters.convParams.size(); i++) {
     <span class="keyword">for</span> (<span class="type">ulong</span> j = 0; j &lt; parameters.convParams[i].filters.size(); j++) {
       parameters.convParams[i].filters[j] -=

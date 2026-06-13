@@ -117,7 +117,7 @@ ANN::Output&lt;<span class="type">T</span>&gt; annOutput = annCore-&gt;predict(a
 <div class="card">
   <p><strong>Problem:</strong> Traditional OOP would make each layer an object with internal state (weights, activations, gradients). This creates ownership issues, makes threading harder, and tightly couples layers to specific positions in the network.</p>
 
-  <p><strong>Solution:</strong> All CNN layer classes (Conv2D, ReLU, Pool, InstanceNorm, Flatten, GlobalAvgPool, GlobalDualPool, Residual) contain <strong>only static methods</strong>. They have no instance state. Everything needed — input tensor, configuration, parameters — is passed as function arguments.</p>
+  <p><strong>Solution:</strong> All CNN layer classes (Conv2D, ReLU, Pool, Normalization, Flatten, GlobalAvgPool, GlobalDualPool, Residual) contain <strong>only static methods</strong>. They have no instance state. Everything needed — input tensor, configuration, parameters — is passed as function arguments.</p>
 
   <pre><code><span class="comment">// No object creation needed — just call the static method</span>
 <span class="keyword">static</span> Tensor3D&lt;<span class="type">T</span>&gt; Conv2D&lt;<span class="type">T</span>&gt;::propagate(

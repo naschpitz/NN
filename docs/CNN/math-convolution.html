@@ -102,7 +102,7 @@ The input is padded with zeros before convolution. The term <code>o_h · s_y + k
 </div>
 
 <div class="tip-box">
-<strong>Code:</strong> <code>Conv2D&lt;T&gt;::propagate(input, config, params)</code> in <code>CNN_Conv2D.cpp</code> implements the full 6-nested-loop convolution (CPU path).
+<strong>Code:</strong> <code>Conv2D&lt;T&gt;::propagate(input, config, params)</code> in <code>CNN_Conv2D.hpp/cpp</code> implements the full 6-nested-loop convolution (CPU path).
 On GPU: convolution is computed via <a href="#im2col-gemm">im2col + GEMM</a> — the <code>im2col</code> kernel in <code>opencl/CNN_Im2Col.cpp.cl</code> rearranges input patches, then the <code>gemm</code> kernel in <code>opencl/CNN_GEMM.cpp.cl</code> performs the matrix multiply.
 </div>
 
@@ -144,7 +144,7 @@ O_H = \left\lfloor \frac{H + 2P_Y - K_H}{S_Y} \right\rfloor + 1
 </div>
 
 <div class="tip-box">
-<strong>Code:</strong> Inside <code>Conv2D&lt;T&gt;::backpropagate()</code> in <code>CNN_Conv2D.cpp</code> — the line <code>dFilters[filterIdx] += dOutVal * input.at(c, ih, iw)</code>.
+<strong>Code:</strong> Inside <code>Conv2D&lt;T&gt;::backpropagate()</code> in <code>CNN_Conv2D.hpp/cpp</code> — the line <code>dFilters[filterIdx] += dOutVal * input.at(c, ih, iw)</code>.
 On GPU: <code>im2col</code> + <code>gemm_transB</code> — computes dFilters = dOut × im2col(input)<sup>T</sup>.
 </div>
 
@@ -154,8 +154,8 @@ On GPU: <code>im2col</code> + <code>gemm_transB</code> — computes dFilters = d
 </div>
 
 <div class="tip-box">
-<strong>Code:</strong> Inside <code>Conv2D&lt;T&gt;::backpropagate()</code> — the line <code>dBiases[f] += dOutVal</code>.
-On GPU: <code>calculate_dCost_dBiases</code> kernel.
+<strong>Code:</strong> Inside <code>Conv2D&lt;T&gt;::backpropagate()</code> in <code>CNN_Conv2D.hpp/cpp</code> — the line <code>dBiases[f] += dOutVal</code>.
+On GPU: <code>calculate_dCost_dBiases</code> kernel in <code>opencl/CNN_Backpropagate.cpp.cl</code>.
 </div>
 
 <h3>Input Gradient</h3>
@@ -165,7 +165,7 @@ On GPU: <code>calculate_dCost_dBiases</code> kernel.
 <p>where \(o_h = \frac{i_h + p_y - k_h}{s_y}\) (only when evenly divisible).</p>
 
 <div class="tip-box">
-<strong>Code:</strong> Inside <code>Conv2D&lt;T&gt;::backpropagate()</code> — the line <code>dInput.at(c, ih, iw) += dOutVal * params.filterAt(f, c, kh, kw)</code>.
+<strong>Code:</strong> Inside <code>Conv2D&lt;T&gt;::backpropagate()</code> in <code>CNN_Conv2D.hpp/cpp</code> — the line <code>dInput.at(c, ih, iw) += dOutVal * params.filterAt(f, c, kh, kw)</code>.
 On GPU: <code>gemm_transA</code> + <code>col2im</code> — computes dInput = col2im(Filters<sup>T</sup> × dOut).
 </div>
 
@@ -256,19 +256,19 @@ The tiled approach loads each element from global memory once and reuses it 16 t
       <td><strong>dFilters</strong></td>
       <td>How much each filter weight contributed to the error</td>
       <td>\(\nabla W = \text{dOut} \times \text{im2col(Input)}^T\)</td>
-      <td><code>gemm_transB</code></td>
+      <td><code>gemm_transB</code> (in <code>opencl/CNN_GEMM.cpp.cl</code>)</td>
     </tr>
     <tr>
       <td><strong>dInput</strong></td>
       <td>How to distribute the error back to the previous layer</td>
       <td>\(\nabla X = \text{col2im}(\text{Filters}^T \times \text{dOut})\)</td>
-      <td><code>gemm_transA</code> + <code>col2im</code></td>
+      <td><code>gemm_transA</code> + <code>col2im</code> (in <code>opencl/CNN_GEMM.cpp.cl</code> and <code>opencl/CNN_Im2Col.cpp.cl</code>)</td>
     </tr>
     <tr>
       <td><strong>dBiases</strong></td>
       <td>How much each bias contributed to the error</td>
       <td>\(\nabla b[f] = \sum_{o_h, o_w} \text{dOut}[f, o_h, o_w]\)</td>
-      <td><code>calculate_dCost_dBiases</code></td>
+      <td><code>calculate_dCost_dBiases</code> (in <code>opencl/CNN_Backpropagate.cpp.cl</code>)</td>
     </tr>
   </tbody>
 </table>
@@ -291,7 +291,7 @@ The result is in im2col layout, so <code>col2im</code> scatters it back to the a
 <p>To avoid float atomics (not reliably available in OpenCL), <code>col2im</code> uses one work-item per <em>input element</em> \((c, i_h, i_w)\). Each work-item iterates over all output positions whose receptive field includes that input element and sums the corresponding column values.</p>
 
 <div class="tip-box">
-<strong>Code:</strong> The GEMM kernels are in <code>opencl/CNN_GEMM.cpp.cl</code>, im2col/col2im in <code>opencl/CNN_Im2Col.cpp.cl</code>. The kernel wiring is in <code>CNN_GPUKernelBuilder.cpp</code> — see the CONV cases in <code>addPropagateKernels()</code> and <code>addBackpropagateKernels()</code>. The im2col workspace buffer (<code>cnn_im2col</code>) is allocated in <code>CNN_GPUBufferManager.cpp</code>.
+<strong>Code:</strong> The GEMM kernels are in <code>opencl/CNN_GEMM.cpp.cl</code>, im2col/col2im in <code>opencl/CNN_Im2Col.cpp.cl</code>. The kernel wiring is in <code>CNN_GPUKernelBuilder.hpp/cpp</code> — see <code>addPropagateKernels()</code> and <code>addBackpropagateKernels()</code>. The im2col workspace buffer (<code>cnn_im2col</code>) is allocated in <code>CNN_GPUBufferManager.hpp/cpp</code>.
 </div>
 
 <h2 id="perf-comparison">Performance: CNN Library vs PyTorch</h2>

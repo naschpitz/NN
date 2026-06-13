@@ -61,12 +61,15 @@
 <main class="main">
 
 <h1>Activation Functions</h1>
-<p>Activation functions introduce non-linearity into the network. Without them, stacking multiple layers would be equivalent to a single linear transformation.</p>
+<p>Activation functions introduce non-linearity into the network. Without them, stacking multiple layers would be equivalent to a single linear transformation. The library supports four activation types via <code>ANN::ActvFuncType</code>: RELU, SIGMOID, TANH, and SOFTMAX.</p>
 
 <div class="toc">
   <h4>On this page</h4>
   <ol>
     <li><a href="#relu">ReLU</a></li>
+    <li><a href="#sigmoid">Sigmoid</a></li>
+    <li><a href="#tanh">Tanh</a></li>
+    <li><a href="#softmax">Softmax</a></li>
   </ol>
 </div>
 
@@ -82,12 +85,69 @@
 <p>This can be written compactly as: \(\frac{\partial C}{\partial X_i} = \mathbb{1}_{X_i > 0} \cdot \frac{\partial C}{\partial Y_i}\), where \(\mathbb{1}\) is the indicator function.</p>
 
 <div class="tip-box">
-<strong>Code:</strong> <code>ReLU&lt;T&gt;::propagate(input)</code> and <code>ReLU&lt;T&gt;::backpropagate(dOut, input)</code> in <code>CNN_ReLU.cpp</code>. Backpropagation uses the original input to determine where the gradient passes through (<code>input.data[i] &gt; 0</code>).
+<strong>Code:</strong> <code>ReLU&lt;T&gt;::propagate(input)</code> and <code>ReLU&lt;T&gt;::backpropagate(dOut, input)</code> in <code>CNN_ReLU.hpp</code>. Backpropagation uses the original input to determine where the gradient passes through (<code>input.data[i] &gt; 0</code>).
 On GPU: <code>calculate_relu</code> kernel in <code>opencl/CNN_Propagate.cpp.cl</code>, <code>calculate_dCost_dRelu</code> in <code>opencl/CNN_Backpropagate.cpp.cl</code>.
 </div>
 
 <div class="info-box">
 ReLU is computationally efficient and helps mitigate the vanishing gradient problem compared to sigmoid or tanh activations. The gradient is either 0 or 1, making the backpropagation straightforward.
+</div>
+
+<h2 id="sigmoid">Sigmoid</h2>
+<p>The sigmoid activation squashes values into the range \((0, 1)\):</p>
+
+<div class="math-block">
+\[
+\text{forward: } \sigma(x) = \frac{1}{1 + e^{-x}}
+\]
+\[
+\text{backward: } \frac{\partial \sigma}{\partial x} = \sigma(x) \cdot (1 - \sigma(x))
+\]
+</div>
+
+<div class="tip-box">
+<strong>Code:</strong> <code>ANN::ActvFunc::calculate(x, ActvFuncType::SIGMOID)</code> in <code>ANN_ActvFunc.hpp</code>. Uses the stored activation value to compute the derivative efficiently.
+</div>
+
+<h2 id="tanh">Tanh</h2>
+<p>The hyperbolic tangent activation squashes values into \((-1, 1)\):</p>
+
+<div class="math-block">
+\[
+\text{forward: } \tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}
+\]
+\[
+\text{backward: } \frac{\partial \tanh}{\partial x} = 1 - \tanh^2(x)
+\]
+</div>
+
+<div class="tip-box">
+<strong>Code:</strong> <code>ANN::ActvFunc::calculate(x, ActvFuncType::TANH)</code> in <code>ANN_ActvFunc.hpp</code>. Zero-centered output helps with gradient flow in some architectures.
+</div>
+
+<h2 id="softmax">Softmax</h2>
+<p>Softmax converts a vector of logits into a probability distribution, used in the output layer for classification:</p>
+
+<div class="math-block">
+\[
+\text{forward: } s_i = \frac{e^{z_i}}{\sum_j e^{z_j}}
+\]
+</div>
+
+<p>The backward pass involves the full Jacobian matrix. For efficiency, the code computes the gradient directly:</p>
+
+<div class="math-block">
+\[
+\frac{\partial C}{\partial z_i} = s_i \cdot \left( \frac{\partial C}{\partial a_i} - \sum_j s_j \cdot \frac{\partial C}{\partial a_j} \right)
+\]
+</div>
+
+<div class="info-box">
+For numerical stability, the forward pass first subtracts \(\max(z)\) from all logits before exponentiation. Softmax is a layer-wide activation (applied across all output neurons jointly), unlike ReLU/sigmoid/tanh which operate on individual neurons.
+</div>
+
+<div class="tip-box">
+<strong>Code:</strong> <code>ANN::ActvFunc::calculate(zs, actvs, numNeurons, ActvFuncType::SOFTMAX, ...)</code> in <code>ANN_ActvFunc.hpp</code>. The forward pass computes \(s_i = e^{z_i - \max(z)} / \sum e^{z_j - \max(z)}\). The backward pass computes the Jacobian product \(\partial C/\partial z_i = s_i(\partial C/\partial a_i - \sum_j s_j \cdot \partial C/\partial a_j)\).
 </div>
 
 </main>

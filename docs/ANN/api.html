@@ -96,22 +96,21 @@
 <!-- ========== ENUMS ========== -->
 <h2 id="enums">2. Enumerations</h2>
 
-<h3>DeviceType <span class="badge badge-blue">ANN_Device.hpp</span></h3>
+<h3>DeviceType <span class="badge badge-blue">Common/Common_Device.hpp</span></h3>
 <table>
   <tr><th>Value</th><th>String</th><th>Meaning</th></tr>
   <tr><td><code>CPU</code></td><td><code>"cpu"</code></td><td>Multi-threaded CPU execution</td></tr>
   <tr><td><code>GPU</code></td><td><code>"gpu"</code></td><td>OpenCL GPU execution</td></tr>
-  <tr><td><code>UNKNOWN</code></td><td>—</td><td>Invalid / unset</td></tr>
 </table>
 <p>Helpers: <code>Device::nameToType(str)</code>, <code>Device::typeToName(type)</code></p>
 
-<h3>ModeType <span class="badge badge-blue">ANN_Mode.hpp</span></h3>
+<h3>ModeType <span class="badge badge-blue">Common/Common_Mode.hpp</span></h3>
 <table>
   <tr><th>Value</th><th>String</th><th>Meaning</th></tr>
   <tr><td><code>TRAIN</code></td><td><code>"train"</code></td><td>Training mode — runs propagation + backpropagation</td></tr>
   <tr><td><code>PREDICT</code></td><td><code>"predict"</code></td><td>Inference only — runs propagation</td></tr>
   <tr><td><code>TEST</code></td><td><code>"test"</code></td><td>Evaluation — propagation + loss calculation</td></tr>
-  <tr><td><code>UNKNOWN</code></td><td>—</td><td>Invalid / unset</td></tr>
+  <tr><td><code>CALIBRATE</code></td><td><code>"calibrate"</code></td><td>Calibration mode — computes OOD thresholds from ID samples</td></tr>
 </table>
 <p>Helpers: <code>Mode::nameToType(str)</code>, <code>Mode::typeToName(type)</code></p>
 
@@ -124,7 +123,7 @@
   <tr><td><code>SOFTMAX</code></td><td><code>"softmax"</code></td><td>eˣⁱ / Σeˣʲ</td><td>δᵢⱼ · σᵢ − σᵢ · σⱼ</td></tr>
 </table>
 
-<h3>CostFunctionType <span class="badge badge-blue">ANN_CostFunctionConfig.hpp</span></h3>
+<h3>CostFunctionType <span class="badge badge-blue">Common/Common_CostFunctionConfig.hpp</span></h3>
 <table>
   <tr><th>Value</th><th>String</th><th>Description</th></tr>
   <tr><td><code>SQUARED_DIFFERENCE</code></td><td><code>"squaredDifference"</code></td><td>Standard squared error: Σ(predicted − expected)²</td></tr>
@@ -133,7 +132,7 @@
 </table>
 <p>Helpers: <code>CostFunction::nameToType(str)</code>, <code>CostFunction::typeToName(type)</code></p>
 
-<h3>OptimizerType <span class="badge badge-blue">ANN_Optimizer.hpp</span></h3>
+<h3>OptimizerType <span class="badge badge-blue">Common/Common_Optimizer.hpp</span></h3>
 <table>
   <tr><th>Value</th><th>Int</th><th>Description</th></tr>
   <tr><td><code>SGD</code></td><td>0</td><td>Stochastic Gradient Descent (default)</td></tr>
@@ -141,7 +140,7 @@
 </table>
 <p>Helpers: <code>Optimizer::nameToType(str)</code>, <code>Optimizer::typeToName(type)</code></p>
 
-<h3>LogLevel <span class="badge badge-blue">ANN_LogLevel.hpp</span></h3>
+<h3>LogLevel <span class="badge badge-blue">Common/Common_LogLevel.hpp</span></h3>
 <table>
   <tr><th>Value</th><th>Int</th><th>Description</th></tr>
   <tr><td><code>QUIET</code></td><td>0</td><td>No output</td></tr>
@@ -158,39 +157,44 @@
 <p>Top-level configuration struct. Contains all settings needed to create and run a network.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
-  <tr><td><code>modeType</code></td><td><code>ModeType</code></td><td>TRAIN, PREDICT, or TEST</td></tr>
+  <tr><td><code>modeType</code></td><td><code>ModeType</code></td><td>TRAIN, PREDICT, TEST, or CALIBRATE</td></tr>
   <tr><td><code>deviceType</code></td><td><code>DeviceType</code></td><td>CPU or GPU</td></tr>
   <tr><td><code>numThreads</code></td><td><code>int</code></td><td>CPU threads (0 = all cores)</td></tr>
   <tr><td><code>numGPUs</code></td><td><code>int</code></td><td>GPUs to use (0 = all available)</td></tr>
   <tr><td><code>layersConfig</code></td><td><code>LayersConfig</code></td><td>Network architecture (layers and activation functions)</td></tr>
   <tr><td><code>costFunctionConfig</code></td><td><code>CostFunctionConfig&lt;T&gt;</code></td><td>Cost function type and optional weights</td></tr>
-  <tr><td><code>trainingConfig</code></td><td><code>TrainingConfig&lt;T&gt;</code></td><td>Training hyperparameters (epochs, learning rate, batch size)</td></tr>
+  <tr><td><code>trainConfig</code></td><td><code>TrainConfig&lt;T&gt;</code></td><td>Training hyperparameters (epochs, learning rate, batch size)</td></tr>
   <tr><td><code>testConfig</code></td><td><code>TestConfig</code></td><td>Test evaluation settings (batch size)</td></tr>
+  <tr><td><code>calibrateConfig</code></td><td><code>CalibrateConfig</code></td><td>Calibration settings (ID/OOD sample counts, percentile threshold)</td></tr>
   <tr><td><code>parameters</code></td><td><code>Parameters&lt;T&gt;</code></td><td>Pre-trained weights and biases (optional)</td></tr>
   <tr><td><code>progressReports</code></td><td><code>ulong</code></td><td>Progress callback frequency for all modes (default 1000)</td></tr>
   <tr><td><code>logLevel</code></td><td><code>LogLevel</code></td><td>Log verbosity level (default ERROR)</td></tr>
+  <tr><td><code>loadedEpochHistory</code></td><td><code>std::vector&lt;EpochRecord&lt;T&gt;&gt;</code></td><td>Epoch history loaded from a saved model (for resuming training)</td></tr>
 </table>
 
-<h3>TrainingConfig&lt;T&gt; <span class="badge badge-blue">ANN_TrainingConfig.hpp</span></h3>
+<h3>TrainConfig&lt;T&gt; <span class="badge badge-blue">Common/Common_TrainConfig.hpp</span></h3>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>numEpochs</code></td><td><code>ulong</code></td><td>Total training epochs (default 0)</td></tr>
+  <tr><td><code>startingEpoch</code></td><td><code>ulong</code></td><td>Epoch index to start training from (0 = fresh start; &gt;0 = resume)</td></tr>
   <tr><td><code>learningRate</code></td><td><code>float</code></td><td>Learning rate (default 0.01). Used as the base learning rate α for both SGD and Adam.</td></tr>
   <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size (default 64)</td></tr>
   <tr><td><code>shuffleSamples</code></td><td><code>bool</code></td><td>Shuffle sample order each epoch (default true)</td></tr>
   <tr><td><code>shuffleSeed</code></td><td><code>uint32_t</code></td><td>RNG seed for the per-epoch shuffle. Default <code>0</code> means seed from <code>std::random_device</code> — non-deterministic, what production wants. Set to a non-zero value (e.g. tests use <code>42</code>) and the whole training run reproduces bit-for-bit, including the shuffle order. Only meaningful when <code>shuffleSamples</code> is true.</td></tr>
   <tr><td><code>dropoutRate</code></td><td><code>float</code></td><td>Dropout probability for hidden layers during training (default 0.0 = disabled). Uses inverted dropout: activations are scaled by 1/(1−p) during training so no adjustment is needed at inference.</td></tr>
   <tr><td><code>optimizer</code></td><td><code>Optimizer&lt;T&gt;</code></td><td>Optimizer configuration (default: SGD)</td></tr>
+  <tr><td><code>validationDataset</code></td><td><code>ValidationConfig&lt;T&gt;</code></td><td>Validation split configuration (default: enabled, auto-size)</td></tr>
+  <tr><td><code>monitoringConfig</code></td><td><code>MonitoringConfig</code></td><td>Training health monitoring (default: disabled)</td></tr>
 </table>
 
-<h3>TestConfig <span class="badge badge-blue">ANN_TestConfig.hpp</span></h3>
-<p>Configuration for test evaluation. Separate from <code>TrainingConfig</code> to allow independent batch sizing.</p>
+<h3>TestConfig <span class="badge badge-blue">Common/Common_TestConfig.hpp</span></h3>
+<p>Configuration for test evaluation. Separate from <code>TrainConfig</code> to allow independent batch sizing.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size for test evaluation (default 64). Controls how many samples are loaded into memory at once during testing.</td></tr>
 </table>
 
-<h3>Optimizer&lt;T&gt; <span class="badge badge-blue">ANN_Optimizer.hpp</span></h3>
+<h3>Optimizer&lt;T&gt; <span class="badge badge-blue">Common/Common_Optimizer.hpp</span></h3>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>type</code></td><td><code>OptimizerType</code></td><td>Optimizer algorithm: <code>SGD</code> (default) or <code>ADAM</code></td></tr>
@@ -199,7 +203,7 @@
   <tr><td><code>epsilon</code></td><td><code>T</code></td><td>Small constant for numerical stability (default 10⁻⁸). Only used by Adam.</td></tr>
 </table>
 
-<h3>CostFunctionConfig&lt;T&gt; <span class="badge badge-blue">ANN_CostFunctionConfig.hpp</span></h3>
+<h3>CostFunctionConfig&lt;T&gt; <span class="badge badge-blue">Common/Common_CostFunctionConfig.hpp</span></h3>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>type</code></td><td><code>CostFunctionType</code></td><td>Cost function type (default SQUARED_DIFFERENCE)</td></tr>
@@ -227,7 +231,7 @@
   <tr><td><code>biases</code></td><td><code>Tensor2D&lt;T&gt;</code></td><td>Neuron biases — indexed as biases[layer][neuron]</td></tr>
 </table>
 
-<h3>TrainingProgress&lt;T&gt; <span class="badge badge-blue">ANN_TrainingProgress.hpp</span></h3>
+<h3>TrainingProgressEvent&lt;T&gt; <span class="badge badge-blue">Common/Common_TrainingProgressEvent.hpp</span></h3>
 <p>Passed to the training callback at every progress report interval.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
@@ -237,24 +241,31 @@
   <tr><td><code>totalSamples</code></td><td><code>ulong</code></td><td>Total number of samples per epoch</td></tr>
   <tr><td><code>epochLoss</code></td><td><code>T</code></td><td>Running average loss for the current epoch</td></tr>
   <tr><td><code>sampleLoss</code></td><td><code>T</code></td><td>Loss of the current sample</td></tr>
+  <tr><td><code>isNewBest</code></td><td><code>bool</code></td><td>Monitor found a new best loss — caller should save</td></tr>
+  <tr><td><code>stoppedEarly</code></td><td><code>bool</code></td><td>Monitor decided to stop training</td></tr>
   <tr><td><code>gpuIndex</code></td><td><code>int</code></td><td>GPU index (−1 = CPU or combined, ≥0 = specific GPU)</td></tr>
-  <tr><td><code>totalGPUs</code></td><td><code>int</code></td><td>Total number of GPUs in use (default 1)</td></tr>
+  <tr><td><code>totalGPUs</code></td><td><code>int</code></td><td>Total number of GPUs in use</td></tr>
 </table>
-<p>Callback type alias: <code>TrainingCallback&lt;T&gt; = std::function&lt;void(const TrainingProgress&lt;T&gt;&amp;)&gt;</code></p>
+<p>Callback type alias: <code>TrainingCallback&lt;T&gt; = std::function&lt;void(const TrainingProgressEvent&lt;T&gt;&amp;)&gt;</code></p>
 
-<h3>TrainingMetadata&lt;T&gt; <span class="badge badge-blue">ANN_TrainingMetadata.hpp</span></h3>
-<p>Returned by <code>getTrainingMetadata()</code> after training completes.</p>
+<h3>TrainMetadata&lt;T&gt; <span class="badge badge-blue">Common/Common_TrainMetadata.hpp</span></h3>
+<p>Returned by <code>getTrainMetadata()</code> after training completes.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>startTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when training started</td></tr>
   <tr><td><code>endTime</code></td><td><code>std::string</code></td><td>ISO 8601 timestamp when training ended</td></tr>
   <tr><td><code>durationSeconds</code></td><td><code>double</code></td><td>Total training duration in seconds</td></tr>
-  <tr><td><code>durationFormatted</code></td><td><code>std::string</code></td><td>Human-readable duration (e.g. "1h 23m 45s")</td></tr>
+  <tr><td><code>durationFormatted</code></td><td><code>std::string</code></td><td>Human-readable duration (e.g. "1y 2mo 3d 4h 5m 6s")</td></tr>
   <tr><td><code>numSamples</code></td><td><code>ulong</code></td><td>Number of samples trained on</td></tr>
   <tr><td><code>finalLoss</code></td><td><code>T</code></td><td>Loss at the end of training</td></tr>
+  <tr><td><code>lastEpoch</code></td><td><code>ulong</code></td><td>0-based index of the last completed epoch</td></tr>
+  <tr><td><code>stopReason</code></td><td><code>std::string</code></td><td>Why training stopped (empty = completed all epochs)</td></tr>
+  <tr><td><code>bestEpoch</code></td><td><code>ulong</code></td><td>Epoch with best loss</td></tr>
+  <tr><td><code>bestLoss</code></td><td><code>T</code></td><td>Best loss value</td></tr>
+  <tr><td><code>epochHistory</code></td><td><code>std::vector&lt;EpochRecord&lt;T&gt;&gt;</code></td><td>Per-epoch training history</td></tr>
 </table>
 
-<h3>PredictMetadata&lt;T&gt; <span class="badge badge-blue">ANN_PredictMetadata.hpp</span></h3>
+<h3>PredictMetadata&lt;T&gt; <span class="badge badge-blue">Common/Common_PredictMetadata.hpp</span></h3>
 <p>Returned by <code>getPredictMetadata()</code> after prediction completes.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
@@ -264,7 +275,7 @@
   <tr><td><code>durationFormatted</code></td><td><code>std::string</code></td><td>Human-readable duration</td></tr>
 </table>
 
-<h3>PredictResult&lt;T&gt; <span class="badge badge-blue">ANN_PredictResult.hpp</span></h3>
+<h3>PredictResult&lt;T&gt; <span class="badge badge-blue">Common/Common_PredictResult.hpp</span></h3>
 <p>Returned by <code>predict()</code>. Carries both the post-activation output and the pre-activation (z) values of the last layer. Logits enable calibration / out-of-distribution detection scores (max-logit, logit-norm, free-energy <code>−log Σ exp(zᵢ)</code>) that softmax discards because softmax is shift-invariant: <code>softmax(z) = softmax(z + c)</code>.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
@@ -272,13 +283,15 @@
   <tr><td><code>logits</code></td><td><code>Logits&lt;T&gt;</code></td><td>Pre-activation values (z) of the last layer — input to the final activation function</td></tr>
 </table>
 
-<h3>TestResult&lt;T&gt; <span class="badge badge-blue">ANN_TestResult.hpp</span></h3>
+<h3>TestResult&lt;T&gt; <span class="badge badge-blue">Common/Common_TestResult.hpp</span></h3>
 <p>Returned by <code>test()</code> after evaluation completes.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>numSamples</code></td><td><code>ulong</code></td><td>Number of test samples evaluated</td></tr>
   <tr><td><code>totalLoss</code></td><td><code>T</code></td><td>Sum of losses across all samples</td></tr>
   <tr><td><code>averageLoss</code></td><td><code>T</code></td><td>Mean loss per sample</td></tr>
+  <tr><td><code>numCorrect</code></td><td><code>ulong</code></td><td>Number of correctly classified samples (argmax match)</td></tr>
+  <tr><td><code>accuracy</code></td><td><code>T</code></td><td>Percentage of correct classifications (0–100)</td></tr>
 </table>
 
 <!-- ========== CORE ========== -->
@@ -308,8 +321,8 @@
   <tr><td><code>getNumThreads()</code></td><td><code>int</code></td></tr>
   <tr><td><code>getNumGPUs()</code></td><td><code>int</code></td></tr>
   <tr><td><code>getLayersConfig()</code></td><td><code>const LayersConfig&amp;</code></td></tr>
-  <tr><td><code>getTrainingConfig()</code></td><td><code>const TrainingConfig&lt;T&gt;&amp;</code></td></tr>
-  <tr><td><code>getTrainingMetadata()</code></td><td><code>const TrainingMetadata&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getTrainConfig()</code></td><td><code>const TrainConfig&lt;T&gt;&amp;</code></td></tr>
+  <tr><td><code>getTrainMetadata()</code></td><td><code>const TrainMetadata&lt;T&gt;&amp;</code></td></tr>
   <tr><td><code>getPredictMetadata()</code></td><td><code>const PredictMetadata&lt;T&gt;&amp;</code></td></tr>
   <tr><td><code>getParameters()</code></td><td><code>const Parameters&lt;T&gt;&amp;</code></td></tr>
   <tr><td><code>setTrainingCallback(TrainingCallback&lt;T&gt;)</code></td><td><code>void</code></td></tr>
@@ -319,7 +332,7 @@
 <h2 id="corecpu">5. CoreCPU&lt;T&gt; <span class="badge badge-green">ANN_CoreCPU.hpp</span></h2>
 <p>Multi-threaded CPU implementation. See <a href="architecture.html">Architecture</a> for the internal worker structure.</p>
 <div class="info-box">
-  <strong>Thread model:</strong> Each thread has its own <code>SampleWorker&lt;T&gt;</code> struct containing private copies of activations, gradients, and accumulators. After processing its sample subset, the main thread merges worker accumulators into the global accumulators.
+  <strong>Thread model:</strong> Each thread has its own <code>CoreCPUWorker&lt;T&gt;</code> struct containing private copies of activations, gradients, and accumulators. After processing its sample subset, the main thread merges worker accumulators into the global accumulators.
 </div>
 
 <h3>Key Internal Functions (called from <code>train</code>)</h3>
@@ -381,8 +394,6 @@
 <p>Pure helper utilities — no file I/O. Serialisation is handled by the calling application (e.g. <a href="../NN-CLI/index.html">NN-CLI</a>).</p>
 <table>
   <tr><th>Method</th><th>Description</th></tr>
-  <tr><td><code>static string formatISO8601()</code></td><td>Current time as ISO 8601 string</td></tr>
-  <tr><td><code>static string formatDuration(double seconds)</code></td><td>Human-readable duration (e.g. "2h 15m 3s")</td></tr>
   <tr><td><code>static ulong count(const V&amp; nested)</code></td><td>Count total elements in nested vector</td></tr>
   <tr><td><code>static Tensor1D&lt;T&gt; flatten(const V&amp; nested)</code></td><td>Flatten nested vector to 1D</td></tr>
   <tr><td><code>static void unflatten(const Tensor1D&lt;T&gt;&amp;, Tensor2D&lt;T&gt;&amp;)</code></td><td>Reshape 1D → 2D</td></tr>

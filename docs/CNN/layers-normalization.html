@@ -60,12 +60,13 @@
 <main class="main">
 
 <h1>Normalization Layers</h1>
-<p>Instance Normalization is a technique that normalizes activations independently for each channel of each sample, computing statistics over the spatial dimensions (H × W). It stabilizes training by preventing activations from growing or shrinking uncontrollably across layers, allows the use of higher learning rates, and acts as a mild regularizer. It is typically placed between Conv2D and ReLU in the network architecture.</p>
+<p>The CNN library provides a unified <code>Normalization</code> class that handles both <strong>Instance Normalization</strong> and <strong>Batch Normalization</strong> via a <code>normType</code> parameter. InstanceNorm normalizes activations independently for each channel of each sample, computing statistics over the spatial dimensions (H × W). BatchNorm normalizes activations across the entire mini-batch, computing statistics over the batch and spatial dimensions (N × H × W) per channel. Both share the same learnable parameters (gamma, beta) and configuration (epsilon, momentum). They stabilize training by preventing activations from growing or shrinking uncontrollably across layers, allow the use of higher learning rates, and act as mild regularizers. They are typically placed between Conv2D and ReLU in the network architecture.</p>
 
 <div class="toc">
   <h4>On this page</h4>
   <ol>
     <li><a href="#purpose">Why Normalization Matters</a></li>
+    <li><a href="#instance-vs-batch">InstanceNorm vs. BatchNorm</a></li>
     <li><a href="#how-it-works">How It Works (Step by Step)</a></li>
     <li><a href="#propagation-training">Propagation (Training)</a></li>
     <li><a href="#propagation-inference">Propagation (Inference)</a></li>
@@ -88,27 +89,47 @@
   <li><strong>Better gradient flow</strong> — normalized activations produce gradients that are neither too large nor too small, enabling effective learning even in deep networks.</li>
 </ul>
 
+<h2 id="instance-vs-batch">InstanceNorm vs. BatchNorm</h2>
+<p>The library uses a single <code>Normalization</code> class for both types, distinguished by the <code>LayerType</code> enum (<code>INSTANCENORM</code> vs. <code>BATCHNORM</code>). The key difference is the scope over which statistics are computed:</p>
+
+<table>
+  <tr><th>Aspect</th><th>InstanceNorm</th><th>BatchNorm</th></tr>
+  <tr><td><strong>Statistic scope</strong></td><td>Per sample, per channel, over (H × W)</td><td>Across all samples in batch, per channel, over (N × H × W)</td></tr>
+  <tr><td><strong>Running stats</strong></td><td>Typically not used (each sample normalized independently)</td><td>Maintained and used at inference for deterministic behavior</td></tr>
+  <tr><td><strong>Training dependence</strong></td><td>Each sample is independent — same output regardless of batch composition</td><td>Output depends on other samples in the batch (creates stochasticity)</td></tr>
+  <tr><td><strong>Inference</strong></td><td>Uses the sample's own spatial statistics</td><td>Uses running mean/variance accumulated during training</td></tr>
+  <tr><td><strong>Best for</strong></td><td>Style transfer, image generation, small batch sizes</td><td>Classification, large batch sizes, when batch statistics are stable</td></tr>
+  <tr><td><strong>JSON type</strong></td><td><code>"instancenorm"</code></td><td><code>"batchnorm"</code></td></tr>
+</table>
+
+<div class="info-box">
+  <strong>Unified implementation:</strong> Both InstanceNorm and BatchNorm share the same <code>Normalization</code> class, <code>NormParameters</code> (gamma, beta, runningMean, runningVar), and <code>NormLayerConfig</code> (epsilon, momentum). The only difference is the <code>normType</code> parameter passed to propagate/backpropagate, which controls the scope of the mean/variance computation. For InstanceNorm, stats are computed independently per-sample (each sample uses its own (H × W) mean/variance). For BatchNorm, stats are computed jointly across all samples in the mini-batch (all N samples contribute to a single per-channel mean/variance).
+</div>
+
 <h2 id="how-it-works">How It Works (Step by Step)</h2>
-<p>For each channel independently, InstanceNorm performs four operations:</p>
+<p>For each channel, both InstanceNorm and BatchNorm perform four operations. The only difference is which values are included when computing the mean and variance:</p>
 <ol>
-  <li><strong>Compute mean</strong> (\(\mu\)) — average all spatial values (H×W elements) in that channel</li>
+  <li><strong>Compute mean</strong> (\(\mu\)) — for InstanceNorm: average over H×W spatial positions in this sample. For BatchNorm: average over N samples × H×W spatial positions across the batch</li>
   <li><strong>Compute variance</strong> (\(\sigma^2\)) — measure how spread out the values are from the mean</li>
   <li><strong>Normalize</strong> (\(\hat{x}\)) — subtract the mean and divide by the standard deviation, producing values with approximately zero mean and unit variance</li>
   <li><strong>Scale and shift</strong> (\(y\)) — multiply by a learned scale factor \(\gamma\) and add a learned offset \(\beta\). This allows the network to undo the normalization if that's beneficial — it learns the optimal distribution for each channel.</li>
 </ol>
 
 <h2 id="propagation-training">Propagation (Training)</h2>
-<p>For each channel \(c\), the complete forward pass computes:</p>
+<p>For InstanceNorm, statistics are computed per-sample, per-channel over (H, W). For BatchNorm, statistics are computed across all N samples in the batch, per-channel over (N, H, W). The normalization formula itself is identical; the only difference is the dataset over which \(\mu\) and \(\sigma^2\) are computed:</p>
 <div class="math-block">
 \[
-\mu_c = \frac{1}{HW} \sum_{h,w} x_{c,h,w}
+\mu_c = \frac{1}{M} \sum_{i} x_i
 \qquad
-\sigma^2_c = \frac{1}{HW} \sum_{h,w} (x_{c,h,w} - \mu_c)^2
+\sigma^2_c = \frac{1}{M} \sum_{i} (x_i - \mu_c)^2
 \]
+</div>
+<p>where \(M = H \times W\) for InstanceNorm (per sample) and \(M = N \times H \times W\) for BatchNorm (across batch). Then:</p>
+<div class="math-block">
 \[
-\hat{x}_{c,h,w} = \frac{x_{c,h,w} - \mu_c}{\sqrt{\sigma^2_c + \epsilon}}
+\hat{x}_{i} = \frac{x_i - \mu_c}{\sqrt{\sigma^2_c + \epsilon}}
 \qquad
-y_{c,h,w} = \gamma_c \, \hat{x}_{c,h,w} + \beta_c
+y_{i} = \gamma_c \, \hat{x}_{i} + \beta_c
 \]
 </div>
 
@@ -122,7 +143,13 @@ y_{c,h,w} = \gamma_c \, \hat{x}_{c,h,w} + \beta_c
 </div>
 
 <h2 id="propagation-inference">Propagation (Inference)</h2>
-<p>During inference (prediction), the network must produce deterministic outputs — the same input should always give the same output. Therefore, instead of computing fresh statistics from the current input, the layer uses the <strong>running averages</strong> accumulated during training:</p>
+<p>During inference (prediction), the network must produce deterministic outputs — the same input should always give the same output. The behavior differs between the two normalization types:</p>
+
+<ul>
+  <li><strong>BatchNorm:</strong> Instead of computing fresh statistics from the current input, the layer uses the <strong>running averages</strong> accumulated during training. This ensures consistent, deterministic behavior regardless of batch composition.</li>
+  <li><strong>InstanceNorm:</strong> Since each sample is normalized independently using its own spatial statistics, inference behavior is identical to training — no running statistics are needed. However, the library maintains running statistics for InstanceNorm as well (for consistency).</li>
+</ul>
+
 <div class="math-block">
 \[
 y_{c,h,w} = \gamma_c \, \frac{x_{c,h,w} - \bar{\mu}_c}{\sqrt{\bar{\sigma}^2_c + \epsilon}} + \beta_c
@@ -155,7 +182,7 @@ y_{c,h,w} = \gamma_c \, \frac{x_{c,h,w} - \bar{\mu}_c}{\sqrt{\bar{\sigma}^2_c + 
 <p>The values now have mean ≈ 0 and variance ≈ 1, regardless of their original scale. Whether the input values were in the range [2, 8] or [200, 800], the normalized values would have the same distribution.</p>
 
 <h2 id="backpropagation">Backpropagation</h2>
-<p>Backpropagation through InstanceNorm computes three sets of gradients:</p>
+<p>Backpropagation through normalization computes three sets of gradients. The formulas are identical for both InstanceNorm and BatchNorm — the only difference is the value of \(N\) (the number of elements over which statistics were computed):</p>
 
 <h3>Gradients for learnable parameters</h3>
 <p>The scale (\(\gamma\)) and shift (\(\beta\)) parameters each get a gradient accumulated over all spatial positions:</p>
@@ -168,7 +195,7 @@ y_{c,h,w} = \gamma_c \, \frac{x_{c,h,w} - \bar{\mu}_c}{\sqrt{\bar{\sigma}^2_c + 
 </div>
 
 <h3>Input gradient</h3>
-<p>The gradient with respect to the input is the most complex part. It accounts for the fact that each input element affects the output not only directly but also through the mean and variance computations. With \(N = H \times W\):</p>
+<p>The gradient with respect to the input is the most complex part. It accounts for the fact that each input element affects the output not only directly but also through the mean and variance computations. With \(N = H \times W\) for InstanceNorm (or \(N = N_{batch} \times H \times W\) for BatchNorm):</p>
 <div class="math-block">
 \[
 \frac{\partial L}{\partial x_{c,i}} = \frac{\gamma_c}{N \sqrt{\sigma^2_c + \epsilon}} \left( N \, \frac{\partial L}{\partial y_{c,i}} - \frac{\partial L}{\partial \beta_c} - \hat{x}_{c,i} \, \frac{\partial L}{\partial \gamma_c} \right)
@@ -183,7 +210,7 @@ y_{c,h,w} = \gamma_c \, \frac{x_{c,h,w} - \bar{\mu}_c}{\sqrt{\bar{\sigma}^2_c + 
 </ul>
 
 <div class="info-box">
-  <strong>Why so complex?</strong> Unlike ReLU or pooling where each output depends on just one (or a few) inputs, InstanceNorm's output at every position depends on <em>all</em> positions in that channel (through the mean and variance). This coupling makes the gradient computation significantly more involved.
+  <strong>Why so complex?</strong> Unlike ReLU or pooling where each output depends on just one (or a few) inputs, normalization output at every position depends on <em>all</em> positions in that channel (through the mean and variance). This coupling makes the gradient computation significantly more involved.
 </div>
 
 <h2 id="configuration">Configuration</h2>
@@ -194,14 +221,17 @@ y_{c,h,w} = \gamma_c \, \frac{x_{c,h,w} - \bar{\mu}_c}{\sqrt{\bar{\sigma}^2_c + 
 </table>
 
 <h3>JSON Configuration</h3>
-<pre><code><span class="comment">// With default settings (most common)</span>
+<pre><code><span class="comment">// InstanceNorm (most common for CNNs)</span>
 { <span class="string">"type"</span>: <span class="string">"instancenorm"</span> }
 
-<span class="comment">// With explicit settings</span>
+<span class="comment">// BatchNorm</span>
+{ <span class="string">"type"</span>: <span class="string">"batchnorm"</span> }
+
+<span class="comment">// With explicit epsilon and momentum (both types support these)</span>
 { <span class="string">"type"</span>: <span class="string">"instancenorm"</span>, <span class="string">"epsilon"</span>: <span class="number">1e-5</span>, <span class="string">"momentum"</span>: <span class="number">0.1</span> }</code></pre>
 
 <h2 id="parameters">Parameters</h2>
-<p>An InstanceNorm layer with \(C\) input channels has two types of stored values:</p>
+<p>Both InstanceNorm and BatchNorm share the same parameter structure (<code>NormParameters</code>). For a layer with \(C\) input channels, there are two types of stored values:</p>
 
 <table>
   <tr><th>Type</th><th>Count</th><th>Description</th></tr>
@@ -213,10 +243,10 @@ y_{c,h,w} = \gamma_c \, \frac{x_{c,h,w} - \bar{\mu}_c}{\sqrt{\bar{\sigma}^2_c + 
 \[ \text{Total stored values} = 4C \qquad \text{(only } 2C \text{ are trainable)} \]
 </div>
 
-<p>The output shape is identical to the input shape — InstanceNorm does not change spatial dimensions or channel count. It is purely a per-element transformation.</p>
+<p>The output shape is identical to the input shape — normalization does not change spatial dimensions or channel count. It is purely a per-element transformation.</p>
 
 <div class="tip-box">
-  <strong>Typical placement:</strong> Conv2D → <strong>InstanceNorm</strong> → ReLU. Placing InstanceNorm before the activation ensures the normalized distribution is passed to ReLU, which improves gradient flow. The combination Conv2D + InstanceNorm + ReLU forms the fundamental building block of modern CNN architectures.
+  <strong>Typical placement:</strong> Conv2D → <strong>Normalization</strong> → ReLU. Both InstanceNorm and BatchNorm follow the same placement rules. Placing normalization before the activation ensures the normalized distribution is passed to ReLU, which improves gradient flow. The combination Conv2D + Normalization + ReLU forms the fundamental building block of modern CNN architectures. For CNNs, InstanceNorm is generally preferred since it works well with small batch sizes and is independent of batch composition. BatchNorm is more common in architectures that use large batch sizes.
 </div>
 
 </main>

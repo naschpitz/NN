@@ -52,7 +52,7 @@
 <h2 id="health">2. <span class="badge badge-green">GET</span> <code>/health</code></h2>
 
 <div class="card">
-<p>Returns a simple health check confirming the server is running and the model is loaded. No request body is required.</p>
+<p>Returns a simple health check confirming the server is running. No request body is required.</p>
 
 <h4>Request</h4>
 <pre><code>GET /health HTTP/1.1
@@ -143,7 +143,7 @@ Content-Length: 32451
 <h2 id="not-found">4. Other Routes (404)</h2>
 
 <div class="card">
-<p>Requests to paths other than <code>/health</code> and <code>/predict</code> return a <code>404</code> error. Note that only <code>POST</code> to <code>/predict</code> is handled — other methods to <code>/predict</code> are not explicitly rejected.</p>
+<p>Any request that is not <code>GET /health</code> or <code>POST /predict</code> returns a <code>404</code> error — including <code>GET /predict</code>, <code>POST /health</code>, and all other method/path combinations.</p>
 <pre><code>Content-Type: application/json
 
 {

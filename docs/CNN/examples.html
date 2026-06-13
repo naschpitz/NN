@@ -110,9 +110,9 @@
     config.modeType = CNN::ModeType::TRAIN;
     config.inputShape = {<span class="number">1</span>, <span class="number">28</span>, <span class="number">28</span>};  <span class="comment">// 1-channel 28×28 image</span>
     config.layersConfig = layers;
-    config.trainingConfig.numEpochs = <span class="number">10</span>;
-    config.trainingConfig.batchSize = <span class="number">64</span>;
-    config.trainingConfig.learningRate = <span class="number">0.01f</span>;
+    config.trainConfig.numEpochs = <span class="number">10</span>;
+    config.trainConfig.batchSize = <span class="number">64</span>;
+    config.trainConfig.learningRate = <span class="number">0.01f</span>;
     
     <span class="comment">// Create the core</span>
     <span class="keyword">auto</span> core = CNN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
@@ -151,16 +151,16 @@ CNN::Samples&lt;<span class="type">float</span>&gt; samples;
 }
 
 <span class="comment">// Configure training</span>
-config.trainingConfig.numEpochs = <span class="number">10</span>;
-config.trainingConfig.batchSize = <span class="number">64</span>;
-config.trainingConfig.learningRate = <span class="number">0.01f</span>;
+config.trainConfig.numEpochs = <span class="number">10</span>;
+config.trainConfig.batchSize = <span class="number">64</span>;
+config.trainConfig.learningRate = <span class="number">0.01f</span>;
 config.progressReports = <span class="number">1000</span>;  <span class="comment">// Progress frequency (all modes)</span>
 
 <span class="comment">// Train the network</span>
 core-&gt;<span class="func">train</span>(samples);
 
 <span class="comment">// Access training metadata</span>
-<span class="keyword">auto</span> metadata = core-&gt;trainingMetadata;
+<span class="keyword">auto</span> metadata = core-&gt;<span class="func">getTrainMetadata</span>();
 std::cout &lt;&lt; <span class="string">"Training duration: "</span> &lt;&lt; metadata.durationFormatted &lt;&lt; std::endl;
 std::cout &lt;&lt; <span class="string">"Final loss: "</span> &lt;&lt; metadata.finalLoss &lt;&lt; std::endl;
 </code></pre>
@@ -224,8 +224,8 @@ config.layersConfig = layers;
 
 <span class="comment">// Configure GPU training</span>
 config.numGPUs = <span class="number">0</span>;  <span class="comment">// 0 = use all available GPUs</span>
-config.trainingConfig.numEpochs = <span class="number">10</span>;
-config.trainingConfig.learningRate = <span class="number">0.01f</span>;
+config.trainConfig.numEpochs = <span class="number">10</span>;
+config.trainConfig.learningRate = <span class="number">0.01f</span>;
 
 <span class="comment">// Create and train (everything else is identical)</span>
 <span class="keyword">auto</span> core = CNN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
@@ -241,14 +241,14 @@ core-&gt;<span class="func">train</span>(samples);
 <p>Manual epoch loop with custom callbacks:</p>
 
 <pre><code><span class="comment">// Configure for manual control</span>
-config.trainingConfig.numEpochs = <span class="number">1</span>;  <span class="comment">// Train one epoch at a time</span>
+config.trainConfig.numEpochs = <span class="number">1</span>;  <span class="comment">// Train one epoch at a time</span>
 
 <span class="keyword">for</span> (<span class="type">int</span> epoch = <span class="number">0</span>; epoch &lt; <span class="number">10</span>; ++epoch) {
     <span class="comment">// Train one epoch</span>
     core-&gt;<span class="func">train</span>(samples);
     
     <span class="comment">// Access training metadata after each epoch</span>
-    <span class="keyword">auto</span> metadata = core-&gt;trainingMetadata;
+    <span class="keyword">auto</span> metadata = core-&gt;<span class="func">getTrainMetadata</span>();
     std::cout &lt;&lt; <span class="string">"Epoch "</span> &lt;&lt; epoch &lt;&lt; <span class="string">": loss = "</span> 
               &lt;&lt; metadata.finalLoss &lt;&lt; std::endl;
     
