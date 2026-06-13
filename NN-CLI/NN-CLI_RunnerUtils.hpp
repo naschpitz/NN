@@ -25,19 +25,19 @@
 namespace NN_CLI
 {
 
-  //-------------------------------------------------------------------------------------------------------------------//
+  //===================================================================================================================//
   //  finishTrainingCommon
-  //-------------------------------------------------------------------------------------------------------------------//
+  //===================================================================================================================//
 
-  /// Common finish-training logic shared by  and CNN runners.
+  /// Common finish-training logic shared by ANN and CNN runners.
   /// @param logLevel      Current log level.
   /// @param parser        CLI parser (for --output).
   /// @param inputFilePath Path to the input samples file (used for default output path).
-  /// @param core          The trained core ( or CNN) — must support getTrainingConfig() and getTrainingMetadata().
+  /// @param core          The trained core (ANN or CNN) — must support getTrainingConfig() and getTrainingMetadata().
   /// @param saveFn        Callable that takes (const std::string& outputPath) and persists the model.
   template <typename CoreT, typename SaveFn>
-  int finishTrainingCommon(LogLevel logLevel, const QCommandLineParser& parser,
-                           const QString& inputFilePath, const CoreT& core, const SaveFn& saveFn)
+  int finishTrainingCommon(LogLevel logLevel, const QCommandLineParser& parser, const QString& inputFilePath,
+                           const CoreT& core, const SaveFn& saveFn)
   {
     if (logLevel > LogLevel::QUIET)
       std::cout << "\nTraining completed.\n";
@@ -46,9 +46,8 @@ namespace NN_CLI
     const auto& trainingMetadata = core.getTrainingMetadata();
     // lastEpoch is a 0-based index, so the count of epochs trained is index + 1.
     // Fall back to the configured numEpochs when no epoch completed.
-    ulong actualEpochs = trainingMetadata.epochHistory.empty()
-                           ? trainingConfig.numEpochs
-                           : trainingMetadata.epochHistory.back().epoch + 1;
+    ulong actualEpochs =
+      trainingMetadata.epochHistory.empty() ? trainingConfig.numEpochs : trainingMetadata.epochHistory.back().epoch + 1;
 
     std::string outputPathStr;
 
@@ -66,9 +65,9 @@ namespace NN_CLI
     return 0;
   }
 
-  //-------------------------------------------------------------------------------------------------------------------//
+  //===================================================================================================================//
   //  resolvePredictOutputPath
-  //-------------------------------------------------------------------------------------------------------------------//
+  //===================================================================================================================//
 
   /// Resolve the output path for predict mode.  If --output is not set, derives from input path.
   inline QString resolvePredictOutputPath(const QCommandLineParser& parser, const IOConfig& ioConfig)
@@ -96,9 +95,9 @@ namespace NN_CLI
     return outputPath;
   }
 
-  //-------------------------------------------------------------------------------------------------------------------//
+  //===================================================================================================================//
   //  writePredictOutput
-  //-------------------------------------------------------------------------------------------------------------------//
+  //===================================================================================================================//
 
   /// Write predict results to disk (images or JSON).
   /// @param results            Container of prediction results — each element must have .output and .logits members.
@@ -185,11 +184,11 @@ namespace NN_CLI
     return 0;
   }
 
-  //-------------------------------------------------------------------------------------------------------------------//
+  //===================================================================================================================//
   //  loadSamplesFromOptionsCommon
-  //-------------------------------------------------------------------------------------------------------------------//
+  //===================================================================================================================//
 
-  /// Common sample loading logic for  and CNN runners.
+  /// Common sample loading logic for ANN and CNN runners.
   /// @param parser             CLI parser (for --samples, --idx-data, --idx-labels).
   /// @param logLevel           Current log level.
   /// @param ioConfig           I/O configuration.

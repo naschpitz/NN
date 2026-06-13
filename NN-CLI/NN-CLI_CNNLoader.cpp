@@ -14,8 +14,6 @@ namespace NN_CLI
 {
 
   //===================================================================================================================//
-  // CNN config loading
-  //===================================================================================================================//
 
   CNN::CoreConfig<float> CNNLoader::loadConfig(const std::string& configFilePath,
                                                std::optional<std::string> modeOverride,

@@ -130,7 +130,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TrainingController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex,
-                                                           ulong totalBatches, bool isValidation)
+                                                         ulong totalBatches, bool isValidation)
   {
     (void)batchIndex;
     (void)totalBatches;
@@ -143,8 +143,8 @@ namespace NN_CLI
 
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
-    std::string label = "Samples " + SummaryTable::formatWithCommas(current) + "/" +
-                        SummaryTable::formatWithCommas(total);
+    std::string label =
+      "Samples " + SummaryTable::formatWithCommas(current) + "/" + SummaryTable::formatWithCommas(total);
 
     this->window->setLoadingProgress(label, fraction);
   }
@@ -169,8 +169,8 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TrainingController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                       float samplesPerSec, float etaSeconds,
-                                                       const std::vector<float>& fractions)
+                                                    float samplesPerSec, float etaSeconds,
+                                                    const std::vector<float>& fractions)
   {
     (void)batchIdx;
     (void)totalBatches;
@@ -198,7 +198,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TrainingController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                       float valLoss, const std::string& summary)
+                                                     float valLoss, const std::string& summary)
   {
     if (!this->window)
       return;

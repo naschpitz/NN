@@ -9,8 +9,6 @@ namespace NN_CLI
 {
 
   //===================================================================================================================//
-  // parseConfigFile
-  //===================================================================================================================//
 
   nlohmann::json Loader::parseConfigFile(const std::string& configFilePath)
   {
@@ -24,8 +22,6 @@ namespace NN_CLI
     return nlohmann::json::parse(fileData.toStdString());
   }
 
-  //===================================================================================================================//
-  // Network type detection
   //===================================================================================================================//
 
   NetworkType Loader::detectNetworkType(const std::string& configFilePath)
@@ -45,8 +41,6 @@ namespace NN_CLI
     return NetworkType::CNN;
   }
 
-  //===================================================================================================================//
-  // I/O config loading
   //===================================================================================================================//
 
   IOConfig Loader::loadIOConfig(const std::string& configFilePath, std::optional<std::string> inputTypeOverride,
@@ -98,8 +92,6 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  // progressReports loading
-  //===================================================================================================================//
 
   ulong Loader::loadProgressReports(const std::string& configFilePath)
   {
@@ -116,8 +108,6 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  // saveModelInterval loading
-  //===================================================================================================================//
 
   ulong Loader::loadSaveModelInterval(const std::string& configFilePath)
   {
@@ -133,8 +123,6 @@ namespace NN_CLI
     return 10; // default: save every 10 epochs
   }
 
-  //===================================================================================================================//
-  // Augmentation config loading
   //===================================================================================================================//
 
   AugmentationConfig Loader::loadAugmentationConfig(const std::string& configFilePath)

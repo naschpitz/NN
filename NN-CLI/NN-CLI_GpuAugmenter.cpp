@@ -455,6 +455,8 @@ namespace NN_CLI
     }
   }
 
+  //===================================================================================================================//
+
   void GpuAugmenterPool::augment(std::vector<float>& batch, ulong count, const AugmentationTransforms& transforms,
                                  float probability)
   {

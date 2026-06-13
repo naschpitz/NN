@@ -23,6 +23,8 @@ namespace NN_CLI
   class CNNLoader
   {
     public:
+      //-- Methods --//
+
       // Load CNN configuration with optional CLI overrides (file-path convenience wrapper).
       static CNN::CoreConfig<float> loadConfig(const std::string& configFilePath,
                                                std::optional<std::string> modeOverride = std::nullopt,
@@ -40,7 +42,7 @@ namespace NN_CLI
 
       // Load CNN samples from JSON (supports image paths when ioConfig.inputType/outputType is IMAGE)
       static CNN::Samples<float> loadSamples(const std::string& samplesFilePath, const CNN::Shape3D& inputShape,
-                                             const IOConfig& ioConfig, ulong progressReports = 1000);
+                                            const IOConfig& ioConfig, ulong progressReports = 1000);
 
       // Load CNN inputs from JSON (batch: "inputs" array; supports image paths when ioConfig.inputType is IMAGE)
       static std::vector<CNN::Input<float>> loadInputs(const std::string& inputFilePath, const CNN::Shape3D& inputShape,

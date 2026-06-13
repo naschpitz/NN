@@ -11,6 +11,18 @@ namespace NN_CLI
   // I/O configuration: how input and output data should be interpreted.
   // This is an NN-CLI concept only — the underlying libraries (, CNN) never see it.
   struct IOConfig {
+      //-- Methods --//
+      bool hasInputShape() const
+      {
+        return this->inputC > 0 && this->inputH > 0 && this->inputW > 0;
+      }
+
+      bool hasOutputShape() const
+      {
+        return this->outputC > 0 && this->outputH > 0 && this->outputW > 0;
+      }
+
+      //-- Members --//
       DataType inputType = DataType::VECTOR;
       DataType outputType = DataType::VECTOR;
 
@@ -23,16 +35,6 @@ namespace NN_CLI
       // Progress/checkpoint settings (NN-CLI display & persistence)
       ulong progressReports = 1000;
       ulong saveModelInterval = 10; // 0 = disabled
-
-      bool hasInputShape() const
-      {
-        return inputC > 0 && inputH > 0 && inputW > 0;
-      }
-
-      bool hasOutputShape() const
-      {
-        return outputC > 0 && outputH > 0 && outputW > 0;
-      }
   };
 
 } // namespace NN_CLI

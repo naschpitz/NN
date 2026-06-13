@@ -119,8 +119,7 @@ namespace
   // segment per fraction separated by "│".  Segments share barWidth minus the
   // separator columns; the last segment absorbs the division remainder so the
   // bar fills barWidth exactly.
-  void emitSegmentedBarStdscr(int row, int startCol, const std::vector<float>& fractions, int numSegments,
-                              int barWidth)
+  void emitSegmentedBarStdscr(int row, int startCol, const std::vector<float>& fractions, int numSegments, int barWidth)
   {
     int separators = numSegments - 1;
     int segmentWidth = (barWidth - separators) / numSegments;
@@ -372,6 +371,8 @@ namespace NN_CLI
     ::wnoutrefresh(win);
   }
 
+  //===================================================================================================================//
+  //-- ncurses Rendering (legacy) --//
   //===================================================================================================================//
 
   void TerminalUI_ProgressBar::renderMultiBar(WINDOW* win, const std::string& label,

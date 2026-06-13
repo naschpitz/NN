@@ -62,8 +62,8 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void PredictController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                      float samplesPerSec, float etaSeconds,
-                                                      const std::vector<float>& fractions)
+                                                   float samplesPerSec, float etaSeconds,
+                                                   const std::vector<float>& fractions)
   {
     // Predict mode: batch progress maps to sample processing progress.
     (void)currentLoss;
@@ -71,15 +71,15 @@ namespace NN_CLI
     (void)etaSeconds;
 
     float fraction = fractions.empty() ? 0.0f : fractions[0];
-    std::cout << "\r  Progress: " << (batchIdx + 1) << "/" << totalBatches << " ("
-              << std::fixed << std::setprecision(1) << (fraction * 100.0f) << "%)" << std::flush;
+    std::cout << "\r  Progress: " << (batchIdx + 1) << "/" << totalBatches << " (" << std::fixed << std::setprecision(1)
+              << (fraction * 100.0f) << "%)" << std::flush;
   }
 
   //===================================================================================================================//
 
   template <typename RunnerT>
   void PredictController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                     float valLoss, const std::string& summary)
+                                                    float valLoss, const std::string& summary)
   {
     // Predict mode does not use epoch events, but print the summary for
     // interface completeness in case the runner fires one.
