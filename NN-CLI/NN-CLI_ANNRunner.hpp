@@ -29,7 +29,7 @@ namespace NN_CLI
       int predict();
 
       //-- Calibration --//
-      int calibrate(const NN_CLI::CalibrationConfig& config);
+      int calibrate();
 
       //-- Accessors --//
       std::vector<std::string> getTimingLines(int maxWidth = 0) const override;

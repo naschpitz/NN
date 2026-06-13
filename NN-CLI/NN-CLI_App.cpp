@@ -175,55 +175,34 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
 
 int App::run()
 {
-  //-- Calibrate mode: uses CalibrateController<ANNRunner/CNNRunner> --//
-  if (this->isCalibrateMode) {
-    // Build CalibrationConfig from CLI args
-    NN_CLI::CalibrationConfig calConfig;
-    calConfig.idImagesDir = this->parser.value("id-images").toStdString();
-    calConfig.oodDir = this->parser.isSet("ood-dir")
-                         ? this->parser.value("ood-dir").toStdString()
-                         : (fs::current_path() / "extern-datasets" / "ood").string();
-    calConfig.idSampleCount =
-      this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong() : 500;
-    calConfig.oodSampleCount =
-      this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong() : 1500;
-    calConfig.idPercentile =
-      this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0;
-    calConfig.fetchIfMissing = !this->parser.isSet("no-fetch");
-    calConfig.logLevel = this->logLevel;
-    calConfig.progressReports = this->ioConfig.progressReports;
-
-    if (this->parser.isSet("output")) {
-      calConfig.outputPath = this->parser.value("output").toStdString();
-    } else {
-      fs::path configPath = this->parser.value("config").toStdString();
-      calConfig.outputPath = (configPath.parent_path() / "threshold.json").string();
-    }
-
-    if (this->networkType == NetworkType::ANN) {
-      auto runner = std::make_unique<ANNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
-                                                this->annCore, this->annCoreConfig);
-      CalibrateController<ANNRunner> ctrl;
-      ctrl.init(std::move(runner));
-      return ctrl.startCalibrate(calConfig);
-    } else {
-      auto runner = std::make_unique<CNNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
-                                                this->cnnCore, this->cnnCoreConfig);
-      CalibrateController<CNNRunner> ctrl;
-      ctrl.init(std::move(runner));
-      return ctrl.startCalibrate(calConfig);
-    }
-  }
-
-  //-- Create the appropriate Controller based on mode and network type --//
-  // The Controller takes ownership of the Runner, registers itself as an
-  // IRunnerObserver, and bridges Runner events to the View.  The Runner
-  // holds references back to this App's core/coreConfig/ioConfig/augConfig
-  // members, which remain valid for the duration of run().
-
   if (this->networkType == NetworkType::ANN) {
     auto runner = std::make_unique<ANNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
                                               this->annCore, this->annCoreConfig);
+
+    if (this->isCalibrateMode) {
+      // Merge CLI overrides into coreConfig.calibrationConfig
+      this->annCoreConfig.calibrationConfig.idImagesDir = this->parser.value("id-images").toStdString();
+      this->annCoreConfig.calibrationConfig.oodDir = this->parser.isSet("ood-dir")
+                                                        ? this->parser.value("ood-dir").toStdString()
+                                                        : (fs::current_path() / "extern-datasets" / "ood").string();
+      this->annCoreConfig.calibrationConfig.idSampleCount =
+          this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong() : 500;
+      this->annCoreConfig.calibrationConfig.oodSampleCount =
+          this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong() : 1500;
+      this->annCoreConfig.calibrationConfig.idPercentile =
+          this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0;
+      this->annCoreConfig.calibrationConfig.fetchIfMissing = !this->parser.isSet("no-fetch");
+      this->annCoreConfig.calibrationConfig.outputPath = this->parser.isSet("output")
+                                                            ? this->parser.value("output").toStdString()
+                                                            : (fs::path(this->parser.value("config").toStdString()).parent_path() /
+                                                               "threshold.json").string();
+      this->annCoreConfig.calibrationConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
+      this->annCoreConfig.calibrationConfig.progressReports = this->ioConfig.progressReports;
+
+      CalibrateController<ANNRunner> ctrl;
+      ctrl.init(std::move(runner));
+      return ctrl.startCalibrate();
+    }
 
     if (this->mode == "train") {
       TrainingController<ANNRunner> controller;
@@ -243,6 +222,31 @@ int App::run()
   } else {
     auto runner = std::make_unique<CNNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
                                               this->cnnCore, this->cnnCoreConfig);
+
+    if (this->isCalibrateMode) {
+      // Merge CLI overrides into coreConfig.calibrationConfig
+      this->cnnCoreConfig.calibrationConfig.idImagesDir = this->parser.value("id-images").toStdString();
+      this->cnnCoreConfig.calibrationConfig.oodDir = this->parser.isSet("ood-dir")
+                                                       ? this->parser.value("ood-dir").toStdString()
+                                                       : (fs::current_path() / "extern-datasets" / "ood").string();
+      this->cnnCoreConfig.calibrationConfig.idSampleCount =
+          this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong() : 500;
+      this->cnnCoreConfig.calibrationConfig.oodSampleCount =
+          this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong() : 1500;
+      this->cnnCoreConfig.calibrationConfig.idPercentile =
+          this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0;
+      this->cnnCoreConfig.calibrationConfig.fetchIfMissing = !this->parser.isSet("no-fetch");
+      this->cnnCoreConfig.calibrationConfig.outputPath = this->parser.isSet("output")
+                                                            ? this->parser.value("output").toStdString()
+                                                            : (fs::path(this->parser.value("config").toStdString()).parent_path() /
+                                                               "threshold.json").string();
+      this->cnnCoreConfig.calibrationConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
+      this->cnnCoreConfig.calibrationConfig.progressReports = this->ioConfig.progressReports;
+
+      CalibrateController<CNNRunner> ctrl;
+      ctrl.init(std::move(runner));
+      return ctrl.startCalibrate();
+    }
 
     if (this->mode == "train") {
       TrainingController<CNNRunner> controller;

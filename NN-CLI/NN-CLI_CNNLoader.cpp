@@ -239,6 +239,31 @@ namespace NN_CLI
         coreConfig.testConfig.batchSize = tc.at("batchSize").get<ulong>();
     }
 
+    if (json.contains("calibrate")) {
+      const auto& cc = json.at("calibrate");
+
+      if (cc.contains("idImagesDir"))
+        coreConfig.calibrationConfig.idImagesDir = cc.at("idImagesDir").get<std::string>();
+
+      if (cc.contains("oodDir"))
+        coreConfig.calibrationConfig.oodDir = cc.at("oodDir").get<std::string>();
+
+      if (cc.contains("idSampleCount"))
+        coreConfig.calibrationConfig.idSampleCount = cc.at("idSampleCount").get<std::size_t>();
+
+      if (cc.contains("oodSampleCount"))
+        coreConfig.calibrationConfig.oodSampleCount = cc.at("oodSampleCount").get<std::size_t>();
+
+      if (cc.contains("idPercentile"))
+        coreConfig.calibrationConfig.idPercentile = cc.at("idPercentile").get<double>();
+
+      if (cc.contains("outputPath"))
+        coreConfig.calibrationConfig.outputPath = cc.at("outputPath").get<std::string>();
+
+      if (cc.contains("fetchIfMissing"))
+        coreConfig.calibrationConfig.fetchIfMissing = cc.at("fetchIfMissing").get<bool>();
+    }
+
     if (json.contains("parameters")) {
       throw std::runtime_error("This JSON file contains embedded parameters. "
                                "The embedded-parameter format is no longer supported. "

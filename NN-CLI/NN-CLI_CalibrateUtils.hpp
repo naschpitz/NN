@@ -6,6 +6,8 @@
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_Utils.hpp"
 
+#include "Common/Common_CalibrationConfig.hpp"
+
 #include <ANN_Core.hpp>
 #include <CNN_Core.hpp>
 
@@ -31,26 +33,9 @@
 namespace NN_CLI
 {
 
-  //---- CalibrationConfig ------------------------------------------------------//
+  //-- CalibrationConfig compatibility alias -----------------------------------//
 
-  /**
-   * Configuration for the calibration pipeline.
-   *
-   * Controls which image directories are used, how many samples are drawn,
-   * which ID percentile becomes the OOD threshold, and where the result
-   * JSON is written.
-   */
-  struct CalibrationConfig {
-    std::string idImagesDir;
-    std::string oodDir;
-    std::size_t idSampleCount = 500;
-    std::size_t oodSampleCount = 1500;
-    double idPercentile = 95.0;
-    std::string outputPath;
-    bool fetchIfMissing = true;
-    LogLevel logLevel = LogLevel::ERROR;
-    ulong progressReports = 0;
-  };
+  using CalibrationConfig = Common::CalibrationConfig;
 
   //===================================================================================================================//
 

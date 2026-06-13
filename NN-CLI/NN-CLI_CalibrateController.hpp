@@ -21,14 +21,14 @@ namespace NN_CLI
    * runner events to stdout/stderr.
    *
    * Template parameter RunnerT is the concrete runner type (e.g. ANNRunner or
-   * CNNRunner).  The controller calls RunnerT::calibrate(config) and prints
+    * CNNRunner).  The controller calls RunnerT::calibrate() and prints
    * progress and results to the console.
    *
    * Usage:
    *   auto runner = std::make_unique<ANNRunner>(...);
    *   CalibrateController<ANNRunner> ctrl;
    *   ctrl.init(std::move(runner));
-   *   int result = ctrl.startCalibrate(config);
+    *   int result = ctrl.startCalibrate();
    */
   template <typename RunnerT>
   class CalibrateController : public IRunnerObserver
@@ -52,7 +52,7 @@ namespace NN_CLI
 
       // Trigger the Runner's calibration process.  Returns the exit code from
       // RunnerT::calibrate().
-      int startCalibrate(const CalibrationConfig& config);
+      int startCalibrate();
 
       //-- Accessors --//
 
