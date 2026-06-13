@@ -278,7 +278,43 @@
 <pre><code><span class="func">NN-CLI</span> -c config.json -m train -s samples.json -d cpu -l info</code></pre>
 </div>
 
-<h2 id="tips">7. Tips &amp; Best Practices</h2>
+<h2 id="calibrate">7. OOD Detection &amp; Calibration</h2>
+<p>Calibrate mode computes a free-energy threshold for out-of-distribution (OOD) detection using a trained model.</p>
+
+<div class="card">
+<h3>Configuration</h3>
+<p>A calibrate configuration extends a standard training config with a <code>"calibrate"</code> section:</p>
+<pre><code>{
+  <span class="keyword">"mode"</span>: <span class="string">"predict"</span>,
+  <span class="keyword">"device"</span>: <span class="string">"cpu"</span>,
+  <span class="keyword">"layers"</span>: [
+    { <span class="keyword">"numNeurons"</span>: <span class="number">784</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">128</span>, <span class="keyword">"actvFunc"</span>: <span class="string">"relu"</span> },
+    { <span class="keyword">"numNeurons"</span>: <span class="number">10</span>,  <span class="keyword">"actvFunc"</span>: <span class="string">"sigmoid"</span> }
+  ],
+  <span class="keyword">"calibrate"</span>: {
+    <span class="keyword">"idSampleCount"</span>: <span class="number">500</span>,
+    <span class="keyword">"oodSampleCount"</span>: <span class="number">1500</span>,
+    <span class="keyword">"idPercentile"</span>: <span class="number">95.0</span>,
+    <span class="keyword">"fetchIfMissing"</span>: <span class="keyword">true</span>
+  }
+}</code></pre>
+<p>The <code>"calibrate"</code> config section is optional; if omitted, defaults apply. Use with an already-trained <code>.nnmodel</code> package.</p>
+</div>
+
+<div class="card">
+<h3>Running Calibration</h3>
+<pre><code><span class="func">NN-CLI</span> -c trained_model.nnmodel -m calibrate \
+       --id-images mnist_png/training/ \
+       --ood-dir datasets/ood_samples/ -o threshold.json</code></pre>
+<p><strong>Output:</strong> A <code>threshold.json</code> file containing the free-energy threshold and diagnostic statistics (see <a href="formats.html#output-format">Output Formats</a>).</p>
+</div>
+
+<div class="tip-box">
+<strong>Calibration workflow:</strong> Train → calibrate → deploy. The threshold is specific to the trained checkpoint — retrain the model, rerun calibration. Use <code>--no-fetch</code> to skip auto-downloading OOD datasets.
+</div>
+
+<h2 id="tips">8. Tips &amp; Best Practices</h2>
 
 <div class="tip-box">
 <strong>Learning Rate:</strong> Start with small values (0.001–0.1) and adjust based on training loss. Too high causes divergence; too low causes slow convergence.
