@@ -1,0 +1,1 @@
+{"nodes": [{"id": "cnn_nchw_layout", "label": "NCHW Channels-First Memory Layout", "file_type": "concept", "source_file": "docs/CNN/architecture-memory.html"}], "edges": [], "hyperedges": []}

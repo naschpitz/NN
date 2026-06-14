@@ -1,0 +1,1 @@
+{"nodes": [{"id": "todo_replace_nlohmann_json_plan", "label": "Replace nlohmann/json with Qt JSON Plan", "file_type": "rationale", "source_file": "todo/replace-nlohmann-json.md"}, {"id": "todo_replace_nlohmann_json_qt_json_api", "label": "Qt JSON API (QJsonDocument)", "file_type": "concept", "source_file": "todo/replace-nlohmann-json.md"}], "edges": [], "hyperedges": []}

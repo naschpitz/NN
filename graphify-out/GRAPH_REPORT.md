@@ -1,1748 +1,1639 @@
-# Graph Report - .  (2026-06-13)
+# Graph Report - /home/naschpitz/Projects/NN  (2026-06-14)
 
 ## Corpus Check
-- 153 files · ~604,986 words
-- Verdict: corpus is large enough that graph structure adds value.
+- cluster-only mode — file stats not available
 
 ## Summary
-- 6710 nodes · 12443 edges · 367 communities (333 shown, 34 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 259 edges (avg confidence: 0.8)
+- 5710 nodes · 10760 edges · 391 communities (300 shown, 91 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 269 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
+## Graph Freshness
+- Built from commit: `653b16e4`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
+
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ClassAnn Component|Class:Ann Component]]
-- [[_COMMUNITY_Concept`Nn-Cli Component|Concept:`Nn-Cli Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ClassBuild Component|Class:Build Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ConceptGet  Component|Concept:Get  Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_ClassCnn Component|Class:Cnn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ClassCnn Component|Class:Cnn Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Root Component|Root Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_ClassRand Component|Class:Rand Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ClassAnn Component|Class:Ann Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ClassCnn Component|Class:Cnn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Root Component|Root Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ClassCli Component|Class:Cli Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_ClassCli Component|Class:Cli Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Concept2. Get  Component|Concept:2. Get  Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_ClassAnn Component|Class:Ann Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_ClassCli Component|Class:Cli Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_ClassResidual Component|Class:Residual Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_Root Component|Root Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Agents Component|Agents Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Build Component|Build Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Root Component|Root Component]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Qt Component|Qt Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_ImageIsic Component|Image:Isic Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Root Component|Root Component]]
-- [[_COMMUNITY_Cmakeuserpresets Component|Cmakeuserpresets Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Readme Component|Readme Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Build Scripts|Build Scripts]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Concept Component|Concept Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Tests|Tests]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_Agents Component|Agents Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Build Configuration|Build Configuration]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Common Config Structs|Common Config Structs]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_Todo Component|Todo Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_Nn Component|Nn Component]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_ANN Feedforward Layer|ANN Feedforward Layer]]
-- [[_COMMUNITY_Home Component|Home Component]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_CNN Convolutional Layer|CNN Convolutional Layer]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Fixtures Component|Fixtures Component]]
-- [[_COMMUNITY_Home Component|Home Component]]
-- [[_COMMUNITY_Home Component|Home Component]]
-- [[_COMMUNITY_Home Component|Home Component]]
-- [[_COMMUNITY_Vscode Component|Vscode Component]]
-- [[_COMMUNITY_ImageDocumentation Component|Image:Documentation Component]]
-- [[_COMMUNITY_Nncli Component|Nncli Component]]
-- [[_COMMUNITY_Nnserver Component|Nnserver Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
-- [[_COMMUNITY_Test Component|Test Component]]
+- [[_COMMUNITY_Community 0|Community 0]]
+- [[_COMMUNITY_Community 1|Community 1]]
+- [[_COMMUNITY_Community 2|Community 2]]
+- [[_COMMUNITY_Community 3|Community 3]]
+- [[_COMMUNITY_Community 4|Community 4]]
+- [[_COMMUNITY_Community 5|Community 5]]
+- [[_COMMUNITY_Community 6|Community 6]]
+- [[_COMMUNITY_Community 7|Community 7]]
+- [[_COMMUNITY_Community 8|Community 8]]
+- [[_COMMUNITY_Community 9|Community 9]]
+- [[_COMMUNITY_Community 10|Community 10]]
+- [[_COMMUNITY_Community 11|Community 11]]
+- [[_COMMUNITY_Community 12|Community 12]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
+- [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 19|Community 19]]
+- [[_COMMUNITY_Community 20|Community 20]]
+- [[_COMMUNITY_Community 21|Community 21]]
+- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
+- [[_COMMUNITY_Community 31|Community 31]]
+- [[_COMMUNITY_Community 32|Community 32]]
+- [[_COMMUNITY_Community 33|Community 33]]
+- [[_COMMUNITY_Community 34|Community 34]]
+- [[_COMMUNITY_Community 35|Community 35]]
+- [[_COMMUNITY_Community 36|Community 36]]
+- [[_COMMUNITY_Community 37|Community 37]]
+- [[_COMMUNITY_Community 38|Community 38]]
+- [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 40|Community 40]]
+- [[_COMMUNITY_Community 41|Community 41]]
+- [[_COMMUNITY_Community 42|Community 42]]
+- [[_COMMUNITY_Community 43|Community 43]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 50|Community 50]]
+- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
+- [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
+- [[_COMMUNITY_Community 55|Community 55]]
+- [[_COMMUNITY_Community 56|Community 56]]
+- [[_COMMUNITY_Community 57|Community 57]]
+- [[_COMMUNITY_Community 58|Community 58]]
+- [[_COMMUNITY_Community 59|Community 59]]
+- [[_COMMUNITY_Community 60|Community 60]]
+- [[_COMMUNITY_Community 61|Community 61]]
+- [[_COMMUNITY_Community 62|Community 62]]
+- [[_COMMUNITY_Community 63|Community 63]]
+- [[_COMMUNITY_Community 64|Community 64]]
+- [[_COMMUNITY_Community 65|Community 65]]
+- [[_COMMUNITY_Community 66|Community 66]]
+- [[_COMMUNITY_Community 67|Community 67]]
+- [[_COMMUNITY_Community 68|Community 68]]
+- [[_COMMUNITY_Community 69|Community 69]]
+- [[_COMMUNITY_Community 70|Community 70]]
+- [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 72|Community 72]]
+- [[_COMMUNITY_Community 73|Community 73]]
+- [[_COMMUNITY_Community 74|Community 74]]
+- [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 88|Community 88]]
+- [[_COMMUNITY_Community 89|Community 89]]
+- [[_COMMUNITY_Community 90|Community 90]]
+- [[_COMMUNITY_Community 91|Community 91]]
+- [[_COMMUNITY_Community 92|Community 92]]
+- [[_COMMUNITY_Community 93|Community 93]]
+- [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 96|Community 96]]
+- [[_COMMUNITY_Community 97|Community 97]]
+- [[_COMMUNITY_Community 98|Community 98]]
+- [[_COMMUNITY_Community 99|Community 99]]
+- [[_COMMUNITY_Community 100|Community 100]]
+- [[_COMMUNITY_Community 101|Community 101]]
+- [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 103|Community 103]]
+- [[_COMMUNITY_Community 104|Community 104]]
+- [[_COMMUNITY_Community 105|Community 105]]
+- [[_COMMUNITY_Community 106|Community 106]]
+- [[_COMMUNITY_Community 107|Community 107]]
+- [[_COMMUNITY_Community 108|Community 108]]
+- [[_COMMUNITY_Community 109|Community 109]]
+- [[_COMMUNITY_Community 110|Community 110]]
+- [[_COMMUNITY_Community 111|Community 111]]
+- [[_COMMUNITY_Community 112|Community 112]]
+- [[_COMMUNITY_Community 113|Community 113]]
+- [[_COMMUNITY_Community 114|Community 114]]
+- [[_COMMUNITY_Community 115|Community 115]]
+- [[_COMMUNITY_Community 116|Community 116]]
+- [[_COMMUNITY_Community 117|Community 117]]
+- [[_COMMUNITY_Community 118|Community 118]]
+- [[_COMMUNITY_Community 119|Community 119]]
+- [[_COMMUNITY_Community 120|Community 120]]
+- [[_COMMUNITY_Community 121|Community 121]]
+- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 124|Community 124]]
+- [[_COMMUNITY_Community 125|Community 125]]
+- [[_COMMUNITY_Community 126|Community 126]]
+- [[_COMMUNITY_Community 127|Community 127]]
+- [[_COMMUNITY_Community 128|Community 128]]
+- [[_COMMUNITY_Community 129|Community 129]]
+- [[_COMMUNITY_Community 130|Community 130]]
+- [[_COMMUNITY_Community 131|Community 131]]
+- [[_COMMUNITY_Community 132|Community 132]]
+- [[_COMMUNITY_Community 133|Community 133]]
+- [[_COMMUNITY_Community 134|Community 134]]
+- [[_COMMUNITY_Community 135|Community 135]]
+- [[_COMMUNITY_Community 136|Community 136]]
+- [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 138|Community 138]]
+- [[_COMMUNITY_Community 139|Community 139]]
+- [[_COMMUNITY_Community 140|Community 140]]
+- [[_COMMUNITY_Community 141|Community 141]]
+- [[_COMMUNITY_Community 142|Community 142]]
+- [[_COMMUNITY_Community 143|Community 143]]
+- [[_COMMUNITY_Community 144|Community 144]]
+- [[_COMMUNITY_Community 145|Community 145]]
+- [[_COMMUNITY_Community 146|Community 146]]
+- [[_COMMUNITY_Community 147|Community 147]]
+- [[_COMMUNITY_Community 148|Community 148]]
+- [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
+- [[_COMMUNITY_Community 152|Community 152]]
+- [[_COMMUNITY_Community 153|Community 153]]
+- [[_COMMUNITY_Community 154|Community 154]]
+- [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 156|Community 156]]
+- [[_COMMUNITY_Community 157|Community 157]]
+- [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 159|Community 159]]
+- [[_COMMUNITY_Community 160|Community 160]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
+- [[_COMMUNITY_Community 164|Community 164]]
+- [[_COMMUNITY_Community 165|Community 165]]
+- [[_COMMUNITY_Community 166|Community 166]]
+- [[_COMMUNITY_Community 167|Community 167]]
+- [[_COMMUNITY_Community 168|Community 168]]
+- [[_COMMUNITY_Community 169|Community 169]]
+- [[_COMMUNITY_Community 170|Community 170]]
+- [[_COMMUNITY_Community 171|Community 171]]
+- [[_COMMUNITY_Community 172|Community 172]]
+- [[_COMMUNITY_Community 173|Community 173]]
+- [[_COMMUNITY_Community 174|Community 174]]
+- [[_COMMUNITY_Community 175|Community 175]]
+- [[_COMMUNITY_Community 176|Community 176]]
+- [[_COMMUNITY_Community 177|Community 177]]
+- [[_COMMUNITY_Community 178|Community 178]]
+- [[_COMMUNITY_Community 179|Community 179]]
+- [[_COMMUNITY_Community 180|Community 180]]
+- [[_COMMUNITY_Community 181|Community 181]]
+- [[_COMMUNITY_Community 182|Community 182]]
+- [[_COMMUNITY_Community 183|Community 183]]
+- [[_COMMUNITY_Community 184|Community 184]]
+- [[_COMMUNITY_Community 185|Community 185]]
+- [[_COMMUNITY_Community 186|Community 186]]
+- [[_COMMUNITY_Community 187|Community 187]]
+- [[_COMMUNITY_Community 188|Community 188]]
+- [[_COMMUNITY_Community 189|Community 189]]
+- [[_COMMUNITY_Community 190|Community 190]]
+- [[_COMMUNITY_Community 191|Community 191]]
+- [[_COMMUNITY_Community 192|Community 192]]
+- [[_COMMUNITY_Community 193|Community 193]]
+- [[_COMMUNITY_Community 194|Community 194]]
+- [[_COMMUNITY_Community 195|Community 195]]
+- [[_COMMUNITY_Community 196|Community 196]]
+- [[_COMMUNITY_Community 197|Community 197]]
+- [[_COMMUNITY_Community 198|Community 198]]
+- [[_COMMUNITY_Community 199|Community 199]]
+- [[_COMMUNITY_Community 200|Community 200]]
+- [[_COMMUNITY_Community 201|Community 201]]
+- [[_COMMUNITY_Community 202|Community 202]]
+- [[_COMMUNITY_Community 203|Community 203]]
+- [[_COMMUNITY_Community 204|Community 204]]
+- [[_COMMUNITY_Community 205|Community 205]]
+- [[_COMMUNITY_Community 206|Community 206]]
+- [[_COMMUNITY_Community 207|Community 207]]
+- [[_COMMUNITY_Community 208|Community 208]]
+- [[_COMMUNITY_Community 209|Community 209]]
+- [[_COMMUNITY_Community 210|Community 210]]
+- [[_COMMUNITY_Community 211|Community 211]]
+- [[_COMMUNITY_Community 212|Community 212]]
+- [[_COMMUNITY_Community 213|Community 213]]
+- [[_COMMUNITY_Community 214|Community 214]]
+- [[_COMMUNITY_Community 215|Community 215]]
+- [[_COMMUNITY_Community 216|Community 216]]
+- [[_COMMUNITY_Community 217|Community 217]]
+- [[_COMMUNITY_Community 218|Community 218]]
+- [[_COMMUNITY_Community 219|Community 219]]
+- [[_COMMUNITY_Community 220|Community 220]]
+- [[_COMMUNITY_Community 221|Community 221]]
+- [[_COMMUNITY_Community 222|Community 222]]
+- [[_COMMUNITY_Community 223|Community 223]]
+- [[_COMMUNITY_Community 224|Community 224]]
+- [[_COMMUNITY_Community 225|Community 225]]
+- [[_COMMUNITY_Community 226|Community 226]]
+- [[_COMMUNITY_Community 227|Community 227]]
+- [[_COMMUNITY_Community 228|Community 228]]
+- [[_COMMUNITY_Community 229|Community 229]]
+- [[_COMMUNITY_Community 230|Community 230]]
+- [[_COMMUNITY_Community 231|Community 231]]
+- [[_COMMUNITY_Community 232|Community 232]]
+- [[_COMMUNITY_Community 233|Community 233]]
+- [[_COMMUNITY_Community 234|Community 234]]
+- [[_COMMUNITY_Community 235|Community 235]]
+- [[_COMMUNITY_Community 236|Community 236]]
+- [[_COMMUNITY_Community 237|Community 237]]
+- [[_COMMUNITY_Community 238|Community 238]]
+- [[_COMMUNITY_Community 239|Community 239]]
+- [[_COMMUNITY_Community 240|Community 240]]
+- [[_COMMUNITY_Community 241|Community 241]]
+- [[_COMMUNITY_Community 242|Community 242]]
+- [[_COMMUNITY_Community 243|Community 243]]
+- [[_COMMUNITY_Community 244|Community 244]]
+- [[_COMMUNITY_Community 245|Community 245]]
+- [[_COMMUNITY_Community 246|Community 246]]
+- [[_COMMUNITY_Community 247|Community 247]]
+- [[_COMMUNITY_Community 248|Community 248]]
+- [[_COMMUNITY_Community 249|Community 249]]
+- [[_COMMUNITY_Community 250|Community 250]]
+- [[_COMMUNITY_Community 251|Community 251]]
+- [[_COMMUNITY_Community 252|Community 252]]
+- [[_COMMUNITY_Community 253|Community 253]]
+- [[_COMMUNITY_Community 254|Community 254]]
+- [[_COMMUNITY_Community 255|Community 255]]
+- [[_COMMUNITY_Community 256|Community 256]]
+- [[_COMMUNITY_Community 257|Community 257]]
+- [[_COMMUNITY_Community 258|Community 258]]
+- [[_COMMUNITY_Community 259|Community 259]]
+- [[_COMMUNITY_Community 260|Community 260]]
+- [[_COMMUNITY_Community 261|Community 261]]
+- [[_COMMUNITY_Community 262|Community 262]]
+- [[_COMMUNITY_Community 263|Community 263]]
+- [[_COMMUNITY_Community 264|Community 264]]
+- [[_COMMUNITY_Community 265|Community 265]]
+- [[_COMMUNITY_Community 266|Community 266]]
+- [[_COMMUNITY_Community 267|Community 267]]
+- [[_COMMUNITY_Community 268|Community 268]]
+- [[_COMMUNITY_Community 269|Community 269]]
+- [[_COMMUNITY_Community 270|Community 270]]
+- [[_COMMUNITY_Community 271|Community 271]]
+- [[_COMMUNITY_Community 272|Community 272]]
+- [[_COMMUNITY_Community 273|Community 273]]
+- [[_COMMUNITY_Community 274|Community 274]]
+- [[_COMMUNITY_Community 275|Community 275]]
+- [[_COMMUNITY_Community 276|Community 276]]
+- [[_COMMUNITY_Community 277|Community 277]]
+- [[_COMMUNITY_Community 278|Community 278]]
+- [[_COMMUNITY_Community 279|Community 279]]
+- [[_COMMUNITY_Community 280|Community 280]]
+- [[_COMMUNITY_Community 281|Community 281]]
+- [[_COMMUNITY_Community 282|Community 282]]
+- [[_COMMUNITY_Community 283|Community 283]]
+- [[_COMMUNITY_Community 284|Community 284]]
+- [[_COMMUNITY_Community 285|Community 285]]
+- [[_COMMUNITY_Community 286|Community 286]]
+- [[_COMMUNITY_Community 287|Community 287]]
+- [[_COMMUNITY_Community 288|Community 288]]
+- [[_COMMUNITY_Community 289|Community 289]]
+- [[_COMMUNITY_Community 290|Community 290]]
+- [[_COMMUNITY_Community 291|Community 291]]
+- [[_COMMUNITY_Community 292|Community 292]]
+- [[_COMMUNITY_Community 293|Community 293]]
+- [[_COMMUNITY_Community 294|Community 294]]
+- [[_COMMUNITY_Community 295|Community 295]]
+- [[_COMMUNITY_Community 296|Community 296]]
+- [[_COMMUNITY_Community 297|Community 297]]
+- [[_COMMUNITY_Community 298|Community 298]]
+- [[_COMMUNITY_Community 300|Community 300]]
+- [[_COMMUNITY_Community 301|Community 301]]
+- [[_COMMUNITY_Community 302|Community 302]]
+- [[_COMMUNITY_Community 303|Community 303]]
+- [[_COMMUNITY_Community 304|Community 304]]
+- [[_COMMUNITY_Community 305|Community 305]]
+- [[_COMMUNITY_Community 306|Community 306]]
+- [[_COMMUNITY_Community 307|Community 307]]
+- [[_COMMUNITY_Community 308|Community 308]]
+- [[_COMMUNITY_Community 309|Community 309]]
+- [[_COMMUNITY_Community 310|Community 310]]
+- [[_COMMUNITY_Community 311|Community 311]]
+- [[_COMMUNITY_Community 312|Community 312]]
+- [[_COMMUNITY_Community 313|Community 313]]
+- [[_COMMUNITY_Community 314|Community 314]]
+- [[_COMMUNITY_Community 315|Community 315]]
+- [[_COMMUNITY_Community 316|Community 316]]
+- [[_COMMUNITY_Community 318|Community 318]]
+- [[_COMMUNITY_Community 319|Community 319]]
+- [[_COMMUNITY_Community 320|Community 320]]
+- [[_COMMUNITY_Community 321|Community 321]]
+- [[_COMMUNITY_Community 322|Community 322]]
+- [[_COMMUNITY_Community 323|Community 323]]
+- [[_COMMUNITY_Community 324|Community 324]]
+- [[_COMMUNITY_Community 325|Community 325]]
+- [[_COMMUNITY_Community 326|Community 326]]
+- [[_COMMUNITY_Community 327|Community 327]]
+- [[_COMMUNITY_Community 328|Community 328]]
+- [[_COMMUNITY_Community 329|Community 329]]
+- [[_COMMUNITY_Community 330|Community 330]]
+- [[_COMMUNITY_Community 331|Community 331]]
+- [[_COMMUNITY_Community 332|Community 332]]
+- [[_COMMUNITY_Community 333|Community 333]]
+- [[_COMMUNITY_Community 334|Community 334]]
+- [[_COMMUNITY_Community 335|Community 335]]
+- [[_COMMUNITY_Community 336|Community 336]]
+- [[_COMMUNITY_Community 337|Community 337]]
+- [[_COMMUNITY_Community 339|Community 339]]
+- [[_COMMUNITY_Community 340|Community 340]]
+- [[_COMMUNITY_Community 341|Community 341]]
+- [[_COMMUNITY_Community 342|Community 342]]
+- [[_COMMUNITY_Community 343|Community 343]]
+- [[_COMMUNITY_Community 344|Community 344]]
+- [[_COMMUNITY_Community 345|Community 345]]
+- [[_COMMUNITY_Community 346|Community 346]]
+- [[_COMMUNITY_Community 347|Community 347]]
+- [[_COMMUNITY_Community 348|Community 348]]
+- [[_COMMUNITY_Community 349|Community 349]]
+- [[_COMMUNITY_Community 350|Community 350]]
+- [[_COMMUNITY_Community 351|Community 351]]
+- [[_COMMUNITY_Community 352|Community 352]]
+- [[_COMMUNITY_Community 353|Community 353]]
+- [[_COMMUNITY_Community 354|Community 354]]
+- [[_COMMUNITY_Community 355|Community 355]]
+- [[_COMMUNITY_Community 356|Community 356]]
+- [[_COMMUNITY_Community 357|Community 357]]
+- [[_COMMUNITY_Community 358|Community 358]]
+- [[_COMMUNITY_Community 359|Community 359]]
+- [[_COMMUNITY_Community 360|Community 360]]
+- [[_COMMUNITY_Community 361|Community 361]]
+- [[_COMMUNITY_Community 362|Community 362]]
+- [[_COMMUNITY_Community 363|Community 363]]
+- [[_COMMUNITY_Community 364|Community 364]]
+- [[_COMMUNITY_Community 366|Community 366]]
+- [[_COMMUNITY_Community 367|Community 367]]
+- [[_COMMUNITY_Community 368|Community 368]]
+- [[_COMMUNITY_Community 369|Community 369]]
+- [[_COMMUNITY_Community 370|Community 370]]
+- [[_COMMUNITY_Community 371|Community 371]]
+- [[_COMMUNITY_Community 372|Community 372]]
+- [[_COMMUNITY_Community 373|Community 373]]
+- [[_COMMUNITY_Community 374|Community 374]]
+- [[_COMMUNITY_Community 375|Community 375]]
+- [[_COMMUNITY_Community 376|Community 376]]
+- [[_COMMUNITY_Community 377|Community 377]]
+- [[_COMMUNITY_Community 378|Community 378]]
+- [[_COMMUNITY_Community 379|Community 379]]
+- [[_COMMUNITY_Community 380|Community 380]]
+- [[_COMMUNITY_Community 381|Community 381]]
+- [[_COMMUNITY_Community 382|Community 382]]
+- [[_COMMUNITY_Community 383|Community 383]]
+- [[_COMMUNITY_Community 384|Community 384]]
+- [[_COMMUNITY_Community 385|Community 385]]
+- [[_COMMUNITY_Community 386|Community 386]]
+- [[_COMMUNITY_Community 387|Community 387]]
+- [[_COMMUNITY_Community 388|Community 388]]
+- [[_COMMUNITY_Community 389|Community 389]]
+- [[_COMMUNITY_Community 390|Community 390]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `ANN::CoreCPUWorker` - 97 edges
-2. `Runner` - 72 edges
+1. `makeLayersConfig()` - 73 edges
+2. `Core` - 71 edges
 3. `stbi__context` - 70 edges
-4. `makeLayersConfig()` - 66 edges
-5. `stbi__context` - 66 edges
-6. `TerminalUI` - 59 edges
+4. `stbi__context` - 70 edges
+5. `Core` - 64 edges
+6. `Runner` - 63 edges
 7. `TerminalUI_TrainingWindow` - 59 edges
-8. `Core` - 56 edges
-9. `ComputeUnit` - 50 edges
-10. `CNNRunner` - 49 edges
+8. `runNNCLI()` - 51 edges
+9. `GPUBufferManager` - 49 edges
+10. `ComputeUnit` - 47 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `ANN::CoreCPUWorker` --references--> `GPUKernelBuilder`  [EXTRACTED]
-  ANN/AGENTS.md → CNN/CNN_CoreGPUWorker.hpp
-- `NN-CLI::Runner (ANN/CNN variants)` --semantically_similar_to--> `NN-Server::Loader`  [INFERRED] [semantically similar]
-  NN-CLI/AGENTS.md → NN-Server/AGENTS.md
-- `NN Monorepo AGENTS.md` --conceptually_related_to--> `build.sh build script`  [EXTRACTED]
-  AGENTS.md → build.sh
-- `TrainingCallback` --references--> `TrainingCallback`  [EXTRACTED]
-  ANN/ANN_Core.hpp → CNN/CNN_Core.hpp
-- `TrainingCallback` --calls--> `setupValidationProgressCallback()`  [INFERRED]
-  ANN/ANN_Core.hpp → NN-CLI/NN-CLI_Utils.hpp
+- `augment()` --calls--> `rng`  [INFERRED]
+  NN-CLI/NN-CLI_GpuAugmenter.cpp → ANN/ANN_CoreCPUWorker.hpp
+- `runWorkers()` --calls--> `body`  [INFERRED]
+  ANN/ANN_CoreCPU.cpp → NN-Server/tests/test_helpers.hpp
+- `runWorkers()` --calls--> `body`  [INFERRED]
+  CNN/CNN_CoreCPU.cpp → NN-Server/tests/test_helpers.hpp
+- `NN-CLI Bright Test Image 1` --semantically_similar_to--> `NN-Server Bright Test Image 1`  [EXTRACTED] [semantically similar]
+  NN-CLI/tests/fixtures/images/bright_1.png → NN-Server/tests/fixtures/images/bright_1.png
+- `NN-CLI Dark Test Image 1` --semantically_similar_to--> `NN-Server Dark Test Image 1`  [EXTRACTED] [semantically similar]
+  NN-CLI/tests/fixtures/images/dark_1.png → NN-Server/tests/fixtures/images/dark_1.png
 
 ## Import Cycles
 - None detected.
 
-## Hyperedges (group relationships)
-- **Core/CPU/GPU backend abstraction pattern** — ann_core, ann_corecpu, ann_coregpu, cnn_core, cnn_corecpu, cnn_coregpu, ann_corecpumanager, ann_coregpumanager, cnn_corecpumanager, cnn_coregpumanager [EXTRACTED 0.95]
-- **NN-Server HTTP request handling flow** — nnserver_httpserver, nnserver_requesthandler, nnserver_corepool, ann_core, cnn_core [EXTRACTED 1.00]
-- **NN-CLI MVC architecture pattern** — nncli_app, nncli_trainingcontroller, nncli_predictcontroller, nncli_testcontroller, nncli_calibratecontroller, nncli_runner [EXTRACTED 1.00]
+## Communities (391 total, 91 thin omitted)
 
-## Communities (367 total, 34 thin omitted)
+### Community 0 - "Community 0"
+Cohesion: 0.08
+Nodes (58): FILE, stbi__bitcount(), stbi__convert_8_to_16(), stbi_convert_iphone_png_to_rgb(), stbi_convert_iphone_png_to_rgb_thread(), stbi_convert_wchar_to_utf8(), stbi__cpuid3(), stbi__do_zlib() (+50 more)
 
-### Community 0 - "Nn Component"
-Cohesion: 0.06
-Nodes (129): stbi__malloc_mad2(), stbi__resample_row_v_2(), load_jpeg_image(), resample_row_1(), stbi__at_eof(), stbi__bitcount(), stbi__blinn_8x8(), stbi__bmp_info() (+121 more)
-
-### Community 1 - "Nn Component"
-Cohesion: 0.06
-Nodes (86): stbi_convert_wchar_to_utf8(), wchar_t, FILE, stbi__end_write_file(), stbi_flip_vertically_on_write(), stbi__start_write_callbacks(), stbi__start_write_file(), stbi_write_bmp() (+78 more)
-
-### Community 2 - "Nn Component"
-Cohesion: 0.06
-Nodes (77): FILE, resample_row_1(), stbi__addsizes_valid(), stbi__bitcount(), stbi__blinn_8x8(), stbi__clamp(), stbi__compute_y(), stbi__convert_16_to_8() (+69 more)
-
-### Community 3 - "Class:Ann Component"
+### Community 1 - "Community 1"
 Cohesion: 0.03
-Nodes (79): ANN_CostFunctionConfig, ANN_Device, ANN_LogLevel, ANN_Mode, ANN_PredictResult, ANN_TestConfig, ANN_TestResult, ANN_TrainingMetadata (+71 more)
+Nodes (56): coreConfig, deviceType, epochCompletedCallback, gpuProfileCallback, inputShape, layersConfig, logLevel, makeCore (+48 more)
 
-### Community 4 - "Concept:`Nn-Cli Component"
-Cohesion: 0.03
-Nodes (75): CLI_ANNLoader, CLI_ANNRunner, CLI_CNNLoader, CLI_CalibrateRunner, CLI_JsonHelpers, CLI_ModelSerializer, CLI_RunnerUtils, Common_JsonHelpers (+67 more)
-
-### Community 5 - "Nn Component"
+### Community 2 - "Community 2"
 Cohesion: 0.10
-Nodes (65): array_t, binary_t, byte_container_with_subtype, const_iterator, const_reference, difference_type, friend, iter_impl (+57 more)
+Nodes (66): stbi__at_eof(), stbi__bmp_info(), stbi__bmp_load(), stbi__bmp_parse_header(), stbi__bmp_set_mask_defaults(), stbi__bmp_test(), stbi__bmp_test_raw(), stbi__check_png_header() (+58 more)
 
-### Community 6 - "Nn Component"
+### Community 3 - "Community 3"
+Cohesion: 0.08
+Nodes (63): MetadataT, LogLevel, App(), QCommandLineParser, DataType, string, dataTypeFromString(), dataTypeToString() (+55 more)
+
+### Community 4 - "Community 4"
+Cohesion: 0.06
+Nodes (79): FILE, resample_row_1(), stbi__clamp(), stbi__convert_8_to_16(), stbi_convert_iphone_png_to_rgb(), stbi_convert_iphone_png_to_rgb_thread(), stbi_convert_wchar_to_utf8(), stbi__do_zlib() (+71 more)
+
+### Community 5 - "Community 5"
+Cohesion: 0.10
+Nodes (70): stbi__at_eof(), stbi__bitcount(), stbi__bmp_info(), stbi__bmp_load(), stbi__bmp_parse_header(), stbi__bmp_set_mask_defaults(), stbi__bmp_test(), stbi__bmp_test_raw() (+62 more)
+
+### Community 6 - "Community 6"
+Cohesion: 0.04
+Nodes (57): deque, AugmentationConfig, CoreConfigT, CoreT, IOConfig, IRunnerObserver, LogLevel, QCommandLineParser (+49 more)
+
+### Community 7 - "Community 7"
+Cohesion: 0.06
+Nodes (56): HttpServer, Logger, HttpServer(), qint64, qintptr, shared_ptr, incomingConnection(), startListening() (+48 more)
+
+### Community 8 - "Community 8"
+Cohesion: 0.07
+Nodes (56): accumulate(), allocateAdamState(), allocateGlobalAccumulators(), ANN::CoreCPU<double>, ANN::CoreCPU<float>, ANN::CoreCPU<int>, backpropagate(), CoreCPU() (+48 more)
+
+### Community 9 - "Community 9"
+Cohesion: 0.05
+Nodes (54): exception, Allocator, array_t, boolean_t, compares_unordered, const_reverse_iterator, else, friend (+46 more)
+
+### Community 10 - "Community 10"
 Cohesion: 0.11
-Nodes (65): stbi__at_eof(), stbi__bmp_info(), stbi__bmp_load(), stbi__bmp_parse_header(), stbi__bmp_set_mask_defaults(), stbi__bmp_test(), stbi__bmp_test_raw(), stbi__check_png_header() (+57 more)
+Nodes (56): byte_container_with_subtype, const_iterator, const_reference, difference_type, false_type, iter_impl, iteration_proxy, iterator (+48 more)
 
-### Community 7 - "Class:Build Component"
-Cohesion: 0.03
-Nodes (63): BUILD_ANN, BUILD_CNN, CLI_Runner, DBUILD_ANN, DBUILD_CNN, NN_Common, OCLW_CU, OCLW_Core (+55 more)
-
-### Community 8 - "Nn Component"
-Cohesion: 0.08
-Nodes (63): MetadataT, buildANNModelJson(), buildCNNModelJson(), AugmentationConfig, Core, CoreConfig, CoreT, IOConfig (+55 more)
-
-### Community 9 - "Nn Component"
-Cohesion: 0.03
-Nodes (58): AugmentationConfig, Core, CoreConfig, CoreConfigT, CoreT, IOConfig, IRunnerObserver, LogLevel (+50 more)
-
-### Community 10 - "Nn Component"
-Cohesion: 0.08
-Nodes (43): stbir_build_samplers(), stbir_build_samplers_with_splits(), stbir__calculate_region_transform(), stbir__clip(), stbir__double_to_rational(), stbir__fancy_alpha_weight_4ch(), stbir__free_internal_mem(), stbir_free_samplers() (+35 more)
-
-### Community 11 - "Nn Component"
-Cohesion: 0.05
-Nodes (56): Allocator, compares_unordered, else, false_type, initializer_list, It, JSON_HEDLEY_RETURNS_NON_NULL, json_value (+48 more)
-
-### Community 12 - "Concept:Get  Component"
-Cohesion: 0.04
-Nodes (58): 1. ANN Configuration JSON, 1. Configuration File, 1. Synopsis, 10. Progress Bar, 11. Error Handling, 2. All Options, 2. HTTP Endpoints, 3. Modes (+50 more)
-
-### Community 13 - "Nn Component"
+### Community 11 - "Community 11"
 Cohesion: 0.10
-Nodes (58): load_jpeg_image(), stbi__addints_valid(), stbi__bit_reverse(), stbi__build_fast_ac(), stbi__build_huffman(), stbi__cleanup_jpeg(), stbi__compute_huffman_codes(), stbi__decode_jpeg_header() (+50 more)
+Nodes (52): FILE, stbi__end_write_file(), stbi_flip_vertically_on_write(), stbi__start_write_callbacks(), stbi__start_write_file(), stbi_write_bmp(), stbi_write_bmp_core(), stbi_write_bmp_to_func() (+44 more)
 
-### Community 14 - "Nn Component"
-Cohesion: 0.12
-Nodes (57): byte_container_with_subtype, const_iterator, const_reference, difference_type, iter_impl, iteration_proxy, iterator, IterImpl (+49 more)
-
-### Community 15 - "Nn Component"
-Cohesion: 0.06
-Nodes (48): barWidthFor(), barWidthForStdscr(), buildSegmentSuffix(), clearSubLine(), string, ulong, vector, draw() (+40 more)
-
-### Community 16 - "CNN Convolutional Layer"
-Cohesion: 0.05
-Nodes (53): Buffer, CommandQueue, Context, Device, Kernel, map, addArgument(), allocateBuffer() (+45 more)
-
-### Community 17 - "Nn Component"
-Cohesion: 0.09
-Nodes (35): stbir_build_samplers(), stbir_build_samplers_with_splits(), stbir__free_internal_mem(), stbir_free_samplers(), stbir__init_and_set_layout(), stbir__perform_build(), stbir_quick_resize_helper(), stbir_resize_build_profile_info() (+27 more)
-
-### Community 18 - "CNN Convolutional Layer"
-Cohesion: 0.05
-Nodes (39): inputShape, makeCore, numGPUs, numThreads, predict, predictEnd, predictStart, predictStartTime (+31 more)
-
-### Community 19 - "Class:Cnn Component"
-Cohesion: 0.06
-Nodes (52): CNN_Pool, ANN, Address Computation, Average Pooling, Average Pooling Backward, CNN, Choosing Max vs. Average, End-to-End Gradient Flow (+44 more)
-
-### Community 20 - "ANN Feedforward Layer"
-Cohesion: 0.05
-Nodes (39): 📈 Progress Callbacks, accumulate, backpropagate, makeCore, numGPUs, numThreads, predict, predictEnd (+31 more)
-
-### Community 21 - "Nn Component"
-Cohesion: 0.05
-Nodes (49): Allocator, compares_unordered, const_reverse_iterator, else, false_type, It, JSON_HEDLEY_RETURNS_NON_NULL, json_value (+41 more)
-
-### Community 22 - "Nn Component"
+### Community 12 - "Community 12"
 Cohesion: 0.04
-Nodes (52): TerminalUI_TrainingWindow, SummaryRow, TerminalUI_Panel, activePanel, addEpochMessage, addEpochRow, addModelInfoEntry, clearEpochMessages (+44 more)
+Nodes (56): TerminalUI_TrainingWindow, SummaryRow, TerminalUI_Panel, activePanel, addEpochMessage, addEpochRow, addEpochRows, addModelInfoEntry (+48 more)
 
-### Community 23 - "Nn Component"
-Cohesion: 0.04
-Nodes (43): EpochRecord, function, TerminalUI, Section, uint, WINDOW, activePanel_, addEpochLine (+35 more)
+### Community 13 - "Community 13"
+Cohesion: 0.10
+Nodes (52): FILE, stbi__end_write_file(), stbi_flip_vertically_on_write(), stbi__start_write_callbacks(), stbi__start_write_file(), stbi_write_bmp(), stbi_write_bmp_core(), stbi_write_bmp_to_func() (+44 more)
 
-### Community 24 - "Class:Cnn Component"
-Cohesion: 0.04
-Nodes (47): CNN_GEMM, CNN_Im2Col, TILE_SIZE, Arguments (gemm), Backpropagation through Conv2D, Backpropagation with GEMM, Backward Pass, Backward Pass (per conv layer) (+39 more)
-
-### Community 25 - "CNN Convolutional Layer"
+### Community 14 - "Community 14"
 Cohesion: 0.06
-Nodes (46): ComputeUnit, Device, map, mutex, addArgument(), allocateBuffer(), Core, addJobToDevice (+38 more)
+Nodes (49): distributeBatchAcrossGPUs(), distributeTestAcrossGPUs(), GPUWorkItem, endIdx, gpuIdx, startIdx, ProgressCallback, QThreadPool (+41 more)
 
-### Community 26 - "Nn Component"
+### Community 15 - "Community 15"
+Cohesion: 0.06
+Nodes (51): Allocator, array_t, boolean_t, compares_unordered, const_reverse_iterator, else, friend, initializer_list (+43 more)
+
+### Community 16 - "Community 16"
+Cohesion: 0.11
+Nodes (51): byte_container_with_subtype, const_iterator, const_reference, difference_type, iter_impl, iteration_proxy, iterator, IterImpl (+43 more)
+
+### Community 17 - "Community 17"
+Cohesion: 0.06
+Nodes (30): BasicJsonType, binary_t, lexer_t, binary(), get_number_float(), get_number_unsigned(), handle_value(), json_sax_dom_callback_parser (+22 more)
+
+### Community 18 - "Community 18"
+Cohesion: 0.05
+Nodes (49): ComputeUnit, Device, map, mutex, addArgument(), allocateBuffer(), Core, addJobToDevice (+41 more)
+
+### Community 19 - "Community 19"
+Cohesion: 0.05
+Nodes (49): ComputeUnit, Device, map, mutex, addArgument(), allocateBuffer(), Core, addJobToDevice (+41 more)
+
+### Community 20 - "Community 20"
+Cohesion: 0.06
+Nodes (29): BasicJsonType, binary_t, lexer_t, binary(), get_number_float(), get_number_unsigned(), handle_value(), json_sax_dom_callback_parser (+21 more)
+
+### Community 21 - "Community 21"
+Cohesion: 0.05
+Nodes (45): AugmentedEntry, augmented, sourceIndex, DataLoader, baseDir, entries, fromMemory, getAllOutputs (+37 more)
+
+### Community 22 - "Community 22"
+Cohesion: 0.04
+Nodes (46): allocateBuffers, annGPUWorker, batchSize, buildWorker, cnnOutputShape, computeLayerOffsets, convInfos, core (+38 more)
+
+### Community 23 - "Community 23"
+Cohesion: 0.04
+Nodes (42): accumulate, backpropagate, costFunctionConfig, deviceType, epochCompletedCallback, layersConfig, logLevel, makeCore (+34 more)
+
+### Community 24 - "Community 24"
+Cohesion: 0.07
+Nodes (19): float32x4_t, STBIR__CODER_NAME(), stbir__edge_wrap(), stbir__float_to_half(), stbir__float_to_half_SIMD(), stbir__get_extents(), stbir__half_to_float(), stbir__half_to_float_SIMD() (+11 more)
+
+### Community 25 - "Community 25"
+Cohesion: 0.07
+Nodes (34): addEpochMessage(), addEpochRow(), addEpochRows(), addModelInfoEntry(), Column, pair, Row, string (+26 more)
+
+### Community 26 - "Community 26"
+Cohesion: 0.07
+Nodes (19): float32x4_t, STBIR__CODER_NAME(), stbir__edge_wrap(), stbir__float_to_half(), stbir__float_to_half_SIMD(), stbir__get_extents(), stbir__half_to_float(), stbir__half_to_float_SIMD() (+11 more)
+
+### Community 27 - "Community 27"
+Cohesion: 0.05
+Nodes (42): CommandQueue, Context, Device, Kernel, ComputeUnit, addKernel, addSource, buildContext (+34 more)
+
+### Community 28 - "Community 28"
+Cohesion: 0.05
+Nodes (41): accumDBNBeta, accumDBNGamma, accumDConvBiases, accumDConvFilters, accumDResidualBiases, accumDResidualWeights, accumNormMean, accumNormVar (+33 more)
+
+### Community 29 - "Community 29"
+Cohesion: 0.05
+Nodes (42): CommandQueue, Context, Device, Kernel, ComputeUnit, addKernel, addSource, buildContext (+34 more)
+
+### Community 30 - "Community 30"
+Cohesion: 0.06
+Nodes (34): accum_loss, accumDBNBeta, accumDBNGamma, accumDConvBiases, accumDConvFilters, accumDResidualBiases, accumDResidualWeights, accumNormMean (+26 more)
+
+### Community 31 - "Community 31"
 Cohesion: 0.14
-Nodes (38): BasicJsonType, lexer_t, NLOHM_JSON_NAMESPACE_BEGIN, NLOHM_JSON_NAMESPACE_END, back(), binary(), empty(), get_position() (+30 more)
+Nodes (37): json, QByteArray, QString, QByteArray, QString, fixturePath(), projectRoot(), main() (+29 more)
 
-### Community 27 - "Nn Component"
+### Community 32 - "Community 32"
 Cohesion: 0.05
-Nodes (45): buildValidationMetadata, cacheIsSet_, calibrate, doSaveModel, epochTransitionMutex_, finishTraining, getInputShapeString, getNetworkType (+37 more)
+Nodes (37): GpuProfileRow, kNumPhases, TrainingProfiler, time_point, ulong, currentEpoch, epochGpuProfile, epochGpuProfileKernelCalls (+29 more)
 
-### Community 28 - "Root Component"
-Cohesion: 0.04
-Nodes (45): ANN — Artificial Neural Network Library, Build everything — build.sh, CNN — Convolutional Neural Network Library, Clone &amp; Setup, Components, Dependency Order, Explore the Documentation, Key Features (+37 more)
+### Community 33 - "Community 33"
+Cohesion: 0.18
+Nodes (28): stbi__addints_valid(), stbi__bitreverse16(), stbi__build_fast_ac(), stbi__build_huffman(), stbi__decode_jpeg_header(), stbi__decode_jpeg_image(), stbi__extend_receive(), stbi__get_marker() (+20 more)
 
-### Community 29 - "Nn Component"
-Cohesion: 0.05
-Nodes (43): 📈 Progress Bar, buildValidationMetadata, cacheIsSet_, calibrate, doSaveModel, epochTransitionMutex_, finishTraining, getInputShapeString (+35 more)
+### Community 34 - "Community 34"
+Cohesion: 0.07
+Nodes (35): AugmentationConfig, CoreConfigT, CoreT, IOConfig, IRunnerObserver, LogLevel, QCommandLineParser, QString (+27 more)
 
-### Community 30 - "Fixtures Component"
+### Community 35 - "Community 35"
 Cohesion: 0.06
-Nodes (43): costFunction, device, layers, mode, type, progressReports, saveModelInterval, train (+35 more)
+Nodes (30): atomic, TerminalUI_Window, unique_ptr, vector, QThread, addChild, children, cols (+22 more)
 
-### Community 31 - "CNN Convolutional Layer"
-Cohesion: 0.05
-Nodes (42): allocateBuffers, annGPUWorker, batchSize, buildWorker, cnnOutputShape, computeLayerOffsets, convInfos, flattenSize (+34 more)
-
-### Community 32 - "CNN Convolutional Layer"
-Cohesion: 0.05
-Nodes (40): accumDBNBeta, accumDBNGamma, accumDConvBiases, accumDConvFilters, accumDResidualBiases, accumDResidualWeights, accumNormMean, accumNormVar (+32 more)
-
-### Community 33 - "Class:Rand Component"
-Cohesion: 0.05
-Nodes (40): RAND_MAX, 1. Creating a CNN, 1. Creating a Network, 1. XOR Problem (ANN), 2. Image Classification (CNN), 2. JSON Input Prediction (ANN), 2. Training, 2. Training with Samples (+32 more)
-
-### Community 34 - "Nn Component"
-Cohesion: 0.08
-Nodes (29): Align, addRow(), addRows(), computeWidths(), Column, TerminalUI_Table(), Row, string (+21 more)
-
-### Community 35 - "ANN Feedforward Layer"
-Cohesion: 0.05
-Nodes (40): ComputeUnit, Device, uint, CommandQueue, Context, Device, Kernel, addKernel (+32 more)
-
-### Community 36 - "Nn Component"
-Cohesion: 0.05
-Nodes (39): CalibrateRunner, addObserver, annCoreConfig, augConfig, cnnCoreConfig, ensureOODDataset, fetchDTD, fetchPlaces365Val (+31 more)
-
-### Community 37 - "Tests"
-Cohesion: 0.14
-Nodes (36): json, QByteArray, QString, QByteArray, QString, fixturePath(), projectRoot(), main() (+28 more)
-
-### Community 38 - "CNN Convolutional Layer"
-Cohesion: 0.06
-Nodes (33): accum_loss, accumDBNBeta, accumDBNGamma, accumDConvBiases, accumDConvFilters, accumDResidualBiases, accumDResidualWeights, accumNormMean (+25 more)
-
-### Community 39 - "Nn Component"
-Cohesion: 0.06
-Nodes (37): GpuProfileRow, kNumPhases, array, mutex, TrainingProfiler, QMutex, time_point, ulong (+29 more)
-
-### Community 40 - "ANN Feedforward Layer"
-Cohesion: 0.06
-Nodes (31): ANN::CoreCPUWorker<double>, ANN::CoreGPUWorker<double>, accumulate, backpropagate, bufferManager, kernelBuilder, ownedCore, predict (+23 more)
-
-### Community 41 - "ANN Feedforward Layer"
-Cohesion: 0.09
-Nodes (32): ANN::CoreGPU<double>, ANN::CoreGPU<float>, ANN::CoreGPU<int>, backpropagate(), CoreGPU(), CoreConfig, InputProvider, Output (+24 more)
-
-### Community 42 - "Tests"
-Cohesion: 0.12
-Nodes (29): runGPUBasicTests2(), testGPUCrossEntropyTraining(), runGPUBasicTests(), testCrossEntropyGradientNumerical(), testCrossEntropyLossDecreases(), testCrossEntropyTraining(), testWeightedCrossEntropyTraining(), runCoreExactTests() (+21 more)
-
-### Community 43 - "Nn Component"
-Cohesion: 0.15
-Nodes (29): BasicJsonType, lexer_t, binary(), empty(), get_position(), handle_diagnostic_positions_for_json_value(), handle_value(), is_discarded() (+21 more)
-
-### Community 44 - "ANN Feedforward Layer"
-Cohesion: 0.12
-Nodes (33): ANN_Core, ANN::Core<double>, ANN::Core<int>, ulong, trainingStart(), accumulate(), allocateAdamState(), allocateGlobalAccumulators() (+25 more)
-
-### Community 45 - "Class:Ann Component"
-Cohesion: 0.06
-Nodes (35): ANN_Propagate, ANN, Activation, Activation Derivative, Activation Functions, Algorithm, Backward, Bias Initialization (+27 more)
-
-### Community 46 - "Nn Component"
-Cohesion: 0.06
-Nodes (34): ANN Config File (Train Mode), ANN Configuration, ANN Top-Level Fields, ANN: Training with IDX files (MNIST), ANN Config File (Predict/Test Mode), ANN Cost Function Configuration (`costFunction`), ANN Layers Configuration, ANN Model Configuration (+26 more)
-
-### Community 47 - "Nn Component"
-Cohesion: 0.08
-Nodes (32): CoreConfigT, AugmentationConfig, CoreT, IOConfig, IRunnerObserver, LogLevel, Runner(), QCommandLineParser (+24 more)
-
-### Community 48 - "Nn Component"
-Cohesion: 0.15
-Nodes (34): addObserver(), IRunnerObserver, CalibrateRunner::addObserver(), CalibrateRunner::notifyLogMessage(), CalibrateRunner::notifyTrainingFinished(), CalibrateRunner::onBatchProgress(), CalibrateRunner::onEpochCompleted(), CalibrateRunner::onLogMessage() (+26 more)
-
-### Community 49 - "Nn Component"
-Cohesion: 0.06
-Nodes (25): TerminalUI_Panel, unique_ptr, addChild, applyScrollInput, children, contentHeight, contentWidth, draw (+17 more)
-
-### Community 50 - "Class:Cnn Component"
-Cohesion: 0.06
-Nodes (34): ANN_Optimizer, CNN_Backpropagate, CNN_Bridge, CNN_Defines, CNN_InstanceNorm, CNN_Residual, CNN_Update, OpenCL (+26 more)
-
-### Community 51 - "ANN Feedforward Layer"
+### Community 36 - "Community 36"
 Cohesion: 0.06
 Nodes (33): accum_dCost_dBiases, accum_dCost_dWeights, accumulate, accumulatorMutex, adam_m_biases, adam_m_weights, adam_t, adam_v_biases (+25 more)
 
-### Community 52 - "Common Config Structs"
+### Community 37 - "Community 37"
+Cohesion: 0.09
+Nodes (31): backpropagateSample(), CNN::CoreGPUWorker<double>, CNN::CoreGPUWorker<float>, CNN::CoreGPUWorker<int>, collectGpuProfile(), CoreGPUWorker(), Core, CoreGPUWorkerConfig (+23 more)
+
+### Community 38 - "Community 38"
+Cohesion: 0.09
+Nodes (32): calibrate(), AugmentationConfig, Core, CoreConfig, DataLoader, IOConfig, LogLevel, CNNRunner() (+24 more)
+
+### Community 39 - "Community 39"
 Cohesion: 0.07
-Nodes (33): EpochRecord, string, T, ulong, vector, TrainingMetadata, bestEpoch, bestLoss (+25 more)
+Nodes (23): atomic, Flatten, backpropagate, propagate, GlobalAvgPool, backpropagate, propagate, Pool (+15 more)
 
-### Community 53 - "ANN Feedforward Layer"
+### Community 40 - "Community 40"
 Cohesion: 0.06
-Nodes (30): accum_dCost_dBiases, accum_dCost_dWeights, accum_loss, accumulate, actvs, allocate, backpropagate, backpropagateAndReturnInputGradients (+22 more)
+Nodes (33): angleRad, applyBri, applyCon, applyElastic, applyErase, applyFlip, applyHue, applyNoise (+25 more)
 
-### Community 54 - "Root Component"
-Cohesion: 0.06
-Nodes (32): 1. Filter weight gradient (dFilters), 2. Bias gradient (dBiases), 3. Input gradient (dInput), Concrete example: how a filter weight gets updated, Conv2D Layer, How Filters Detect Patterns, Layer Documentation, Mathematical Foundations (+24 more)
-
-### Community 55 - "ANN Feedforward Layer"
-Cohesion: 0.06
-Nodes (32): Device, map, Core, addJobToDevice, addKernel, addSourceFile, buildComputeUnitForDevice, buildComputeUnits (+24 more)
-
-### Community 56 - "Class:Cli Component"
-Cohesion: 0.06
-Nodes (31): CLI_CNNRunner, CLI_DataLoader, CLI_GpuAugmenter, CLI_TrainingProfiler, CL_FALSE, 0. Measured Profiling Data (ISIC-MILK10k, train-app-12 config), 1. Root Cause: Per-Sample Kernel Launching, 2. Why Python NN-CLI (PyTorch) Is 2× Faster (+23 more)
-
-### Community 57 - "Fixtures Component"
+### Community 41 - "Community 41"
 Cohesion: 0.07
-Nodes (30): costFunction, type, weights, device, layers, mode, numThreads, progressReports (+22 more)
+Nodes (29): accum_dCost_dBiases, accum_dCost_dWeights, accum_loss, accumulate, actvs, allocate, backpropagate, backpropagateAndReturnInputGradients (+21 more)
 
-### Community 58 - "Nn Component"
+### Community 42 - "Community 42"
+Cohesion: 0.09
+Nodes (25): ANN::GPUBufferManager<double>, ANN::GPUBufferManager<float>, ANN::GPUBufferManager<int>, GPUBufferManager(), Core, CostFunctionConfig, LayersConfig, Logits (+17 more)
+
+### Community 43 - "Community 43"
+Cohesion: 0.11
+Nodes (32): stbir__alloc_internal_mem_and_build_samplers(), stbir__calculate_coefficients_for_gather_downsample(), stbir__calculate_coefficients_for_gather_upsample(), stbir__calculate_filters(), stbir__calculate_in_pixel_range(), stbir__calculate_out_pixel_range(), stbir__calculate_region_transform(), STBIR_chans() (+24 more)
+
+### Community 44 - "Community 44"
+Cohesion: 0.09
+Nodes (30): calibrate(), AugmentationConfig, Core, CoreConfig, DataLoader, IOConfig, LogLevel, ANNRunner() (+22 more)
+
+### Community 45 - "Community 45"
 Cohesion: 0.06
-Nodes (26): TerminalUI_Window, unique_ptr, addChild, children, cols, draw, getChild, handleEvent (+18 more)
+Nodes (26): TerminalUI_Panel, unique_ptr, addChild, applyScrollInput, children, colorPair, contentHeight, contentWidth (+18 more)
 
-### Community 59 - "Tests"
-Cohesion: 0.16
-Nodes (28): QString, QStringList, fixturePath(), projectRoot(), runCPUMNISTTests(), testPredictMNIST(), testTestMNIST(), testTrainAndTestMNIST() (+20 more)
+### Community 46 - "Community 46"
+Cohesion: 0.11
+Nodes (32): stbir__alloc_internal_mem_and_build_samplers(), stbir__calculate_coefficients_for_gather_downsample(), stbir__calculate_coefficients_for_gather_upsample(), stbir__calculate_filters(), stbir__calculate_in_pixel_range(), stbir__calculate_out_pixel_range(), stbir__calculate_region_transform(), STBIR_chans() (+24 more)
 
-### Community 60 - "Class:Cli Component"
+### Community 47 - "Community 47"
+Cohesion: 0.09
+Nodes (29): ANN::CoreGPUWorker<double>, ANN::CoreGPUWorker<float>, ANN::CoreGPUWorker<int>, backpropagate(), CoreGPUWorker(), Core, CostFunctionConfig, Input (+21 more)
+
+### Community 48 - "Community 48"
+Cohesion: 0.15
+Nodes (24): BasicJsonContext, json, back(), create(), end_pos(), get_token_string(), hex_bytes(), invalid_iterator (+16 more)
+
+### Community 49 - "Community 49"
+Cohesion: 0.14
+Nodes (23): barWidthFor(), barWidthForStdscr(), buildSegmentSuffix(), clearSubLine(), string, ulong, vector, draw() (+15 more)
+
+### Community 50 - "Community 50"
 Cohesion: 0.07
-Nodes (30): ANN_Sample, CLI_DataType, CLI_IOConfig, CLI_ImageLoader, CLI_NetworkType, CLI_ProgressBar, CLI_Utils, Server_CorePool (+22 more)
+Nodes (30): accumulate, backpropagate, bufferManager, core, costFunctionConfig, kernelBuilder, layersConfig, logLevel (+22 more)
 
-### Community 61 - "CNN Convolutional Layer"
-Cohesion: 0.16
-Nodes (28): CNN_Core, mergeWorkerAccumulators(), ulong, trainingStart(), allocateAdamState(), CNN::CoreCPU<double>, CNN::CoreCPU<float>, CNN::CoreCPU<int> (+20 more)
-
-### Community 62 - "CNN Convolutional Layer"
+### Community 51 - "Community 51"
 Cohesion: 0.10
 Nodes (21): Device, Kernel, KernelTiming, addJobToDevice(), addKernel(), addSourceFile(), buildComputeUnitForDevice(), buildComputeUnits() (+13 more)
 
-### Community 63 - "Nn Component"
-Cohesion: 0.11
-Nodes (30): stbir__alloc_internal_mem_and_build_samplers(), stbir__calculate_coefficients_for_gather_downsample(), stbir__calculate_coefficients_for_gather_upsample(), stbir__calculate_filters(), stbir__calculate_in_pixel_range(), STBIR_chans(), stbir__cleanup_gathered_coefficients(), stbir__get_coefficient_width() (+22 more)
-
-### Community 64 - "Nn Component"
-Cohesion: 0.07
-Nodes (30): GpuAugmenterPool, angleRad, applyBri, applyCon, applyElastic, applyErase, applyFlip, applyHue (+22 more)
-
-### Community 65 - "Concept:2. Get  Component"
-Cohesion: 0.08
-Nodes (29): CMakeLists.txt, CNN, NN-CLI, 1. Overview, 2. GET /health, 3. POST /predict, 4. Other Routes (404), 5. Status Codes Summary (+21 more)
-
-### Community 66 - "ANN Feedforward Layer"
+### Community 52 - "Community 52"
 Cohesion: 0.10
-Nodes (20): Device, Kernel, KernelTiming, addJobToDevice(), addKernel(), addSourceFile(), buildComputeUnitForDevice(), buildComputeUnits() (+12 more)
+Nodes (21): Device, Kernel, KernelTiming, addJobToDevice(), addKernel(), addSourceFile(), buildComputeUnitForDevice(), buildComputeUnits() (+13 more)
 
-### Community 67 - "Tests"
-Cohesion: 0.13
-Nodes (22): runGPUExactTests(), testGPUExactForwardBackwardSquaredDifference(), testGPUExactForwardBackwardWeightedCrossEntropy(), ActvFuncType, CoreConfig, ulong, ActvFuncType, CoreConfig (+14 more)
-
-### Community 68 - "Nn Component"
-Cohesion: 0.11
-Nodes (28): CoreType, pair, QString, Samples, finishTraining(), loadSamplesFromOptions(), test(), train() (+20 more)
-
-### Community 69 - "Nn Component"
+### Community 53 - "Community 53"
 Cohesion: 0.07
-Nodes (27): AugmentedEntry, augmented, sourceIndex, DataLoader, baseDir, entries, fromMemory, getAllOutputs (+19 more)
+Nodes (29): allocateBuffers, core, dropoutRng, generateAndUploadDropoutMask, getActvOffset, getBiasOffset, getNumOutputNeurons, getOutputActvOffset (+21 more)
 
-### Community 70 - "Nn Component"
-Cohesion: 0.13
-Nodes (29): FILE, stbi_convert_iphone_png_to_rgb(), stbi_convert_wchar_to_utf8(), stbi_failure_reason(), stbi__fopen(), stbi_hdr_to_ldr_scale(), stbi_image_free(), stbi_info() (+21 more)
+### Community 54 - "Community 54"
+Cohesion: 0.07
+Nodes (29): CoreConfig, calibrateConfig, costFunctionConfig, deviceType, inputShape, layersConfig, loadedEpochHistory, logLevel (+21 more)
 
-### Community 71 - "Nn Component"
+### Community 55 - "Community 55"
+Cohesion: 0.07
+Nodes (28): CalibrateRunner, annCoreConfig, augConfig, cnnCoreConfig, ioConfig, logLevel, networkType, observers (+20 more)
+
+### Community 56 - "Community 56"
+Cohesion: 0.07
+Nodes (28): Column, TerminalUI_Table, Row, string, vector, addRow, addRows, clearRows (+20 more)
+
+### Community 57 - "Community 57"
+Cohesion: 0.07
+Nodes (28): accumulateKernelsSetup, adam_t, addAccumulateKernels, addBackpropagateKernels, addPropagateKernels, addUpdateKernels, backpropagateKernelsSetup, core (+20 more)
+
+### Community 58 - "Community 58"
+Cohesion: 0.07
+Nodes (28): accumulate, backpropagateSample, bufferManager, collectGpuProfile, core, kernelBuilder, ownedCore, parameters (+20 more)
+
+### Community 59 - "Community 59"
 Cohesion: 0.08
-Nodes (26): deque, mutex, ProgressBar, time_point, vector, barWidth, epochStartTime, getGpuProgress (+18 more)
+Nodes (27): TerminalUI_ProgressBar, string, vector, barFractions, barLabel, clearSubLine, clearSubLineText, draw (+19 more)
 
-### Community 72 - "Nn Component"
+### Community 60 - "Community 60"
+Cohesion: 0.14
+Nodes (24): stbi__addsizes_valid(), stbi__compute_transparency(), stbi__compute_transparency16(), stbi__create_png_alpha_expand8(), stbi__create_png_image(), stbi__create_png_image_raw(), stbi__de_iphone(), stbi__expand_png_palette() (+16 more)
+
+### Community 61 - "Community 61"
 Cohesion: 0.15
-Nodes (26): TrainingCallback, buildValidationMetadata(), calibrate(), Core, DataLoader, pair, QString, Sample (+18 more)
+Nodes (37): load_jpeg_image(), stbi__addints_valid(), stbi__blinn_8x8(), stbi__build_fast_ac(), stbi__build_huffman(), stbi__cleanup_jpeg(), stbi__decode_jpeg_header(), stbi__decode_jpeg_image() (+29 more)
 
-### Community 73 - "ANN Feedforward Layer"
+### Community 62 - "Community 62"
 Cohesion: 0.07
-Nodes (25): CoreConfig, loadedEpochHistory, numGPUs, numThreads, progressReports, CalibrateConfig, CostFunctionConfig, DeviceType (+17 more)
+Nodes (27): CoreConfig, calibrateConfig, costFunctionConfig, deviceType, layersConfig, loadedEpochHistory, logLevel, modeType (+19 more)
 
-### Community 74 - "ANN Feedforward Layer"
-Cohesion: 0.07
-Nodes (27): allocateBuffers, dropoutRng, generateAndUploadDropoutMask, getActvOffset, getBiasOffset, getNumOutputNeurons, getOutputActvOffset, getWeightOffset (+19 more)
+### Community 63 - "Community 63"
+Cohesion: 0.14
+Nodes (24): allocate(), ANN::CoreCPUWorker<double>, ANN::CoreCPUWorker<float>, ANN::CoreCPUWorker<int>, backpropagate(), backpropagateAndReturnInputGradients(), calc_dCost_dActv(), calc_dCost_dBias() (+16 more)
 
-### Community 75 - "ANN Feedforward Layer"
-Cohesion: 0.07
-Nodes (27): accumulateKernelsSetup, adam_t, addAccumulateKernels, addBackpropagateKernels, addPropagateKernels, addUpdateKernels, backpropagateKernelsSetup, invalidateAllKernelFlags (+19 more)
+### Community 64 - "Community 64"
+Cohesion: 0.19
+Nodes (21): BasicJsonContext, json, NLOHM_JSON_NAMESPACE_END, back(), create(), emplace_back(), get_token_string(), hex_bytes() (+13 more)
 
-### Community 76 - "Nn Component"
-Cohesion: 0.07
-Nodes (26): 0. Measured Profiling Data (ISIC-MILK10k, train-app-12 config), 1. Root Cause: Per-Sample Kernel Launching, 2. Why Python NN-CLI (PyTorch) Is 2× Faster, 3. Current Timing Instrumentation: What It Measures, 4. Plan: Phased Approach, 5. End-to-End Optimized Pipeline (Target State), 6. Recommended First Steps, 7. File Map (+18 more)
+### Community 65 - "Community 65"
+Cohesion: 0.12
+Nodes (22): CoreGPUWorker<T> — Per-GPU Worker, Lazy GPU Kernel Compilation Flags, CNN Core<T> — Abstract Base Class, CNN CoreCPU<T> — CPU Backend Implementation, CNN CoreCPUWorker<T> — CPU Per-Sample Worker, CNN CoreGPU<T> — GPU Backend Orchestrator, CNN CoreGPUWorker<T> — GPU Per-Device Worker, CNN Core::makeCore() Factory Pattern (+14 more)
 
-### Community 77 - "Nn Component"
-Cohesion: 0.10
-Nodes (27): array_t, binary_t, boolean_t, ENUM_TYPE, friend, convert(), from_json(), get_impl() (+19 more)
-
-### Community 78 - "Nn Component"
-Cohesion: 0.13
-Nodes (27): configContentWidth(), TerminalUI(), drawAllPanels(), handleResize(), handleScrollInput(), atomic, string, vector (+19 more)
-
-### Community 79 - "Nn Component"
-Cohesion: 0.11
-Nodes (27): CompatibleType, ENUM_TYPE, InputIt, JsonRef, array(), basic_json(), decode(), flatten() (+19 more)
-
-### Community 80 - "ANN Feedforward Layer"
-Cohesion: 0.09
-Nodes (26): backpropagate(), CoreGPUWorker(), Core, CostFunctionConfig, Input, Inputs, LayersConfig, LogLevel (+18 more)
-
-### Community 81 - "CNN Convolutional Layer"
+### Community 66 - "Community 66"
 Cohesion: 0.11
 Nodes (18): Device, Kernel, KernelTiming, addKernel(), addSource(), buildContext(), buildProgram(), buildQueue() (+10 more)
 
-### Community 82 - "Nn Component"
-Cohesion: 0.08
-Nodes (26): Column, TerminalUI_Table, Row, addRow, addRows, clearRows, columnCount, columns_ (+18 more)
-
-### Community 83 - "Nn Component"
-Cohesion: 0.13
-Nodes (24): buildEpochLabel(), RunnerT, string, TerminalUI_TrainingWindow, ulong, unique_ptr, vector, formatEta() (+16 more)
-
-### Community 84 - "Nn Component"
-Cohesion: 0.08
-Nodes (24): Logger, qint64, qintptr, shared_ptr, atomic, CorePool, Logger, HttpServer (+16 more)
-
-### Community 85 - "Tests"
-Cohesion: 0.22
-Nodes (24): runCPUBasicTests(), testModeOverride(), testNetworkDetection(), testTrainValidationNoDeadlock(), testTrainWithWeightedLoss(), testTrainXOR(), runCPUFeatureTests(), testCheckpointParameters() (+16 more)
-
-### Community 86 - "Class:Ann Component"
-Cohesion: 0.08
-Nodes (25): ANN_Backpropagate, ANN_Defines, ANN_IdxHelper, ANN_Loss, ANN_Update, 1. Architecture Overview, 2. Kernel Files, 3. Buffer Layout (+17 more)
-
-### Community 87 - "CNN Convolutional Layer"
-Cohesion: 0.08
-Nodes (25): accumulate, backpropagateSample, bufferManager, collectGpuProfile, ownedCore, predict, predictSubset, profilingEnabled (+17 more)
-
-### Community 88 - "Fixtures Component"
-Cohesion: 0.09
-Nodes (24): device, layers, mode, numThreads, progressReports, saveModelInterval, train, learningRate (+16 more)
-
-### Community 89 - "Nn Component"
-Cohesion: 0.09
-Nodes (21): main(), printUsage(), annCore, annCoreConfig, augConfig, cnnCore, cnnCoreConfig, isCalibrateMode (+13 more)
-
-### Community 90 - "Nn Component"
+### Community 67 - "Community 67"
 Cohesion: 0.11
-Nodes (18): TerminalUI_Panel, cycleActivePanel(), getEpochsPanel(), getModelInfoPanel(), getProgressPanel(), getTimingPanel(), handleEvent(), string (+10 more)
+Nodes (18): Device, Kernel, KernelTiming, addKernel(), addSource(), buildContext(), buildProgram(), buildQueue() (+10 more)
 
-### Community 91 - "ANN Feedforward Layer"
-Cohesion: 0.13
-Nodes (23): ANN_ActvFunc, calculate_zs, ActvFunc, drelu, dsigmoid, dtanh, nameToType, relu (+15 more)
+### Community 68 - "Community 68"
+Cohesion: 0.10
+Nodes (21): CoreType, LogLevel, QCommandLineParser, QString, string, ulong, vector, setupModeProgressCallback() (+13 more)
 
-### Community 92 - "CNN Convolutional Layer"
+### Community 69 - "Community 69"
 Cohesion: 0.12
-Nodes (23): GlobalAvgPool Layer, GlobalDualPool Layer, ulong, getTotalNumNeurons(), CNNLayerConfig, config, type, Shape3D (+15 more)
+Nodes (26): CompatibleType, ENUM_TYPE, initializer_list_t, InputIt, JsonRef, basic_json(), decode(), flatten() (+18 more)
 
-### Community 93 - "Nn Component"
-Cohesion: 0.21
-Nodes (23): barWidthFor(), ProgressBar(), string, ulong, vector, WINDOW, emitGpuSuffix(), emitLabel() (+15 more)
+### Community 70 - "Community 70"
+Cohesion: 0.12
+Nodes (14): json_value, NLOHM_JSON_NAMESPACE_BEGIN, NLOHM_JSON_NAMESPACE_END, data, m_type, m_value, dump_integer(), is_negative_number() (+6 more)
 
-### Community 94 - "Nn Component"
+### Community 71 - "Community 71"
+Cohesion: 0.13
+Nodes (23): buildEpochLabel(), RunnerT, string, TerminalUI_TrainingWindow, ulong, unique_ptr, vector, formatEta() (+15 more)
+
+### Community 72 - "Community 72"
+Cohesion: 0.16
+Nodes (20): Align, addRow(), addRows(), computeWidths(), Column, TerminalUI_Table(), Row, string (+12 more)
+
+### Community 73 - "Community 73"
+Cohesion: 0.13
+Nodes (20): allocateBuffers(), buildWorker(), CNN::GPUBufferManager<double>, CNN::GPUBufferManager<float>, CNN::GPUBufferManager<int>, GPUBufferManager(), Core, CoreGPUWorkerConfig (+12 more)
+
+### Community 74 - "Community 74"
 Cohesion: 0.08
-Nodes (23): RunnerT, TerminalUI_TrainingWindow, unique_ptr, buildEpochLabel, currentEpoch, getRunner, getWindow, init (+15 more)
+Nodes (25): adam_t, addBackpropagateKernels, addBatchNormBackwardKernels, addBatchNormForwardKernels, addBatchNormRunningStatsUpdate, addCNNAccumulateKernels, addCNNUpdateKernels, addCopyBridgeKernels (+17 more)
 
-### Community 95 - "Tests"
+### Community 75 - "Community 75"
 Cohesion: 0.14
-Nodes (20): ANN AGENTS.md, ANN::Core (abstract backend), ANN::CoreCPU backend, ANN::CoreGPU backend, CNN::CoreCPU backend, NCHW tensor layout, Sliding strategies (VALID, SAME, FULL), Thread pool per core (no shared global) (+12 more)
+Nodes (22): addChild(), applyScrollInput(), contentHeight(), contentWidth(), TerminalUI_Panel(), string, TerminalUI_Widget, unique_ptr (+14 more)
 
-### Community 96 - "ANN Feedforward Layer"
+### Community 76 - "Community 76"
+Cohesion: 0.08
+Nodes (24): TrainingController, RunnerT, TerminalUI_TrainingWindow, unique_ptr, buildEpochLabel, currentEpoch, getRunner, getWindow (+16 more)
+
+### Community 77 - "Community 77"
+Cohesion: 0.13
+Nodes (23): addAccumulateKernels(), addBackpropagateKernels(), addPropagateKernels(), addUpdateKernels(), ANN::GPUKernelBuilder<double>, ANN::GPUKernelBuilder<float>, ANN::GPUKernelBuilder<int>, GPUKernelBuilder() (+15 more)
+
+### Community 78 - "Community 78"
+Cohesion: 0.17
+Nodes (24): stbir_build_samplers(), stbir_build_samplers_with_splits(), stbir__free_internal_mem(), stbir_free_samplers(), stbir__perform_build(), stbir_resize_extended(), stbir_resize_extended_split(), stbir_set_buffer_ptrs() (+16 more)
+
+### Community 79 - "Community 79"
 Cohesion: 0.12
-Nodes (15): Kernel, KernelTiming, addKernel(), addSource(), buildContext(), buildProgram(), buildQueue(), getKernelTimings() (+7 more)
+Nodes (23): CalibrateRunner::CalibrateRunner(), AugmentationConfig, Core, CoreConfig, IOConfig, IRunnerObserver, LogLevel, NetworkType (+15 more)
 
-### Community 97 - "Tests"
-Cohesion: 0.22
-Nodes (21): LayersConfig, Layer, testDifferentActivations(), testGettersAfterConstruction(), testMultiLayerNetwork(), testMultiOutput(), testStepByStepAPI(), testTrainWithTanh() (+13 more)
+### Community 80 - "Community 80"
+Cohesion: 0.15
+Nodes (20): QString, QStringList, fixturePath(), projectRoot(), runCPUMNISTTests(), testPredictMNIST(), testTestMNIST(), testTrainAndTestMNIST() (+12 more)
 
-### Community 98 - "CNN Convolutional Layer"
-Cohesion: 0.09
-Nodes (23): adam_t, addBackpropagateKernels, addBatchNormBackwardKernels, addBatchNormForwardKernels, addBatchNormRunningStatsUpdate, addCNNUpdateKernels, addCopyBridgeKernels, addPropagateKernels (+15 more)
+### Community 81 - "Community 81"
+Cohesion: 0.17
+Nodes (24): stbir_build_samplers(), stbir_build_samplers_with_splits(), stbir__free_internal_mem(), stbir_free_samplers(), stbir__perform_build(), stbir_resize_extended(), stbir_resize_extended_split(), stbir_set_buffer_ptrs() (+16 more)
 
-### Community 99 - "Nn Component"
+### Community 82 - "Community 82"
+Cohesion: 0.13
+Nodes (20): ANN::CoreGPU<double>, ANN::CoreGPU<float>, ANN::CoreGPU<int>, backpropagate(), CoreGPU(), CoreConfig, InputProvider, Output (+12 more)
+
+### Community 83 - "Community 83"
+Cohesion: 0.12
+Nodes (21): CNN::Core<double>, CNN::Core<float>, CNN::Core<int>, Core(), Core, CoreConfig, Input, Inputs (+13 more)
+
+### Community 84 - "Community 84"
+Cohesion: 0.10
+Nodes (14): LossReferenceTable, collectRows, PredictSummary, printANN, printCNN, TestSummary, print, printCNN (+6 more)
+
+### Community 85 - "Community 85"
+Cohesion: 0.14
+Nodes (11): ENUM_TYPE, NLOHM_JSON_NAMESPACE_BEGIN, from_json(), get_impl(), json_sax_acceptor, namespace(), noexcept(), to_json() (+3 more)
+
+### Community 86 - "Community 86"
+Cohesion: 0.18
+Nodes (19): backpropagateCNN(), buildConfig(), CNN::CoreCPUWorker<double>, CNN::CoreCPUWorker<float>, CNN::CoreCPUWorker<int>, CoreCPUWorker(), CoreConfig, Input (+11 more)
+
+### Community 87 - "Community 87"
+Cohesion: 0.10
+Nodes (14): main(), printUsage(), QCommandLineParser, CNNLoader, loadConfig, loadInputs, loadSamples, Loader (+6 more)
+
+### Community 88 - "Community 88"
 Cohesion: 0.23
-Nodes (23): Shape3D, operator==(), json, char_int_type, InputType, IteratorType, json, JSON_HEDLEY_WARN_UNUSED_RESULT (+15 more)
+Nodes (17): JSON_HEDLEY_RETURNS_NON_NULL, empty(), erase(), get_error_message(), get_position(), handle_diagnostic_positions_for_json_value(), * handle_value(Value&& v)(), is_array() (+9 more)
 
-### Community 100 - "Nn Component"
-Cohesion: 0.10
-Nodes (21): CoreEntry, CoreHandle, acquire(), acquire, condition, entries, inConfig, mutex (+13 more)
-
-### Community 101 - "Nn Component"
-Cohesion: 0.16
-Nodes (23): stbi__compute_transparency(), stbi__create_png_alpha_expand8(), stbi__create_png_image(), stbi__de_iphone(), stbi__do_png(), stbi__expand_png_palette(), stbi__paeth(), stbi__parse_png_file() (+15 more)
-
-### Community 102 - "Nn Component"
-Cohesion: 0.19
-Nodes (21): computeFreeEnergy(), computePercentile(), function, LogLevel, path, QString, size_t, string (+13 more)
-
-### Community 103 - "Nn Component"
-Cohesion: 0.13
-Nodes (23): stbir__alloc_internal_mem_and_build_samplers(), stbir__calculate_coefficients_for_gather_downsample(), stbir__calculate_coefficients_for_gather_upsample(), stbir__calculate_filters(), stbir__calculate_in_pixel_range(), stbir__calculate_region_transform(), STBIR_chans(), stbir__cleanup_gathered_coefficients() (+15 more)
-
-### Community 104 - "Nn Component"
-Cohesion: 0.16
-Nodes (21): LoadIdxFn, LoadJsonFn, predict(), predict(), finishTrainingCommon(), CoreT, IOConfig, LogLevel (+13 more)
-
-### Community 105 - "Tests"
-Cohesion: 0.19
-Nodes (19): testDropoutDisabledByDefault(), testDropoutTraining(), testSoftmaxHiddenLayer(), testSoftmaxPredict(), testSoftmaxTrain(), runCoreFeaturesTests(), testCostFunctionConfigDefault(), testCostFunctionConfigGetter() (+11 more)
-
-### Community 106 - "CNN Convolutional Layer"
-Cohesion: 0.13
-Nodes (20): CNN_ReLU, Backpropagation, Output, Tensor1D, CNN::Pool<double>, CNN::Pool<float>, CNN::Pool<int>, Shape3D (+12 more)
-
-### Community 107 - "ANN Feedforward Layer"
-Cohesion: 0.13
-Nodes (12): ulong, getActvOffset(), getBiasOffset(), getNumOutputNeurons(), getOutputActvOffset(), getWeightOffset(), ANN::GPUBufferManager, allocateBuffers() (+4 more)
-
-### Community 108 - "Nn Component"
-Cohesion: 0.15
-Nodes (18): array, Event, GpuPhaseProfile, N, getTimingLines(), string, ulong, vector (+10 more)
-
-### Community 109 - "Nn Component"
-Cohesion: 0.12
-Nodes (17): condition_variable, augment, augmenters, cv, freeList, rngs, timingCallback, function (+9 more)
-
-### Community 110 - "CNN Convolutional Layer"
-Cohesion: 0.10
-Nodes (14): atomic, Flatten, backpropagate, propagate, Pool, backpropagate, propagate, ReLU (+6 more)
-
-### Community 111 - "CNN Convolutional Layer"
-Cohesion: 0.10
-Nodes (21): CoreConfig, inputShape, loadedEpochHistory, numGPUs, numThreads, progressReports, CalibrateConfig, CostFunctionConfig (+13 more)
-
-### Community 112 - "CNN Convolutional Layer"
+### Community 89 - "Community 89"
 Cohesion: 0.14
-Nodes (21): backpropagateSample(), collectGpuProfile(), GpuProfileCallback, Input, Inputs, Output, pair, PredictResult (+13 more)
+Nodes (18): ANN::Core<double>, ANN::Core<float>, ANN::Core<int>, Core(), CoreConfig, Input, PredictMetadata, PredictResult (+10 more)
 
-### Community 113 - "Nn Component"
-Cohesion: 0.15
-Nodes (20): buildValidationMetadata(), calibrate(), DataLoader, Sample, shared_ptr, string, TrainingMonitor, ulong (+12 more)
+### Community 90 - "Community 90"
+Cohesion: 0.16
+Nodes (11): MonitoringConfig, string, T, ulong, TrainingMonitor, bestEpoch, bestLoss, config (+3 more)
 
-### Community 114 - "Nn Component"
-Cohesion: 0.25
-Nodes (20): alpha, sigma, addGaussianNoise(), applyRandomTransforms(), AugmentationTransforms, mt19937, string, vector (+12 more)
+### Community 91 - "Community 91"
+Cohesion: 0.14
+Nodes (17): Event, GpuPhaseProfile, N, array, TrainingProfiler(), string, ulong, vector (+9 more)
 
-### Community 115 - "Nn Component"
+### Community 92 - "Community 92"
+Cohesion: 0.11
+Nodes (25): resample_row_1(), stbi__float_postprocess(), stbi__hdr_convert(), stbi__idct_simd(), stbi_info_from_memory(), stbi_is_16_bit_from_memory(), stbi_is_hdr_from_memory(), stbi__ldr_to_hdr() (+17 more)
+
+### Community 93 - "Community 93"
+Cohesion: 0.17
+Nodes (18): addChild(), TerminalUI_Window(), TerminalUI_Widget, unique_ptr, draw(), getChild(), handleEvent(), init() (+10 more)
+
+### Community 94 - "Community 94"
+Cohesion: 0.12
+Nodes (18): accumulate, backpropagate, gpuWorkers, initializeWorkers, mergeGradients, numGPUs, predict, resetAccumulators (+10 more)
+
+### Community 95 - "Community 95"
+Cohesion: 0.16
+Nodes (17): CNN::CoreGPU<double>, CNN::CoreGPU<float>, CNN::CoreGPU<int>, CoreGPU(), CoreConfig, InputProvider, PredictResults, SampleProvider (+9 more)
+
+### Community 96 - "Community 96"
+Cohesion: 0.13
+Nodes (17): gpuWorkers, initializeWorkers, mergeCNNGradients, mergeGradients, numGPUs, predict, syncParametersToGPU, test (+9 more)
+
+### Community 97 - "Community 97"
+Cohesion: 0.16
+Nodes (18): CNNLayerConfig, config, type, FlattenLayerConfig, GlobalAvgPoolLayerConfig, GlobalDualPoolLayerConfig, LayerType, vector (+10 more)
+
+### Community 98 - "Community 98"
+Cohesion: 0.13
+Nodes (16): CoreEntry, acquire, condition, entries, inConfig, mutex, netType, outConfig (+8 more)
+
+### Community 99 - "Community 99"
+Cohesion: 0.18
+Nodes (18): LoadIdxFn, LoadJsonFn, finishTrainingCommon(), CoreT, IOConfig, LogLevel, pair, QCommandLineParser (+10 more)
+
+### Community 100 - "Community 100"
+Cohesion: 0.30
+Nodes (19): char_int_type, InputType, IteratorType, JSON_HEDLEY_WARN_UNUSED_RESULT, accept(), add(), array(), from_bjdata() (+11 more)
+
+### Community 101 - "Community 101"
+Cohesion: 0.11
+Nodes (19): annCore, annCoreConfig, augConfig, cnnCore, cnnCoreConfig, ioConfig, logLevel, mode (+11 more)
+
+### Community 102 - "Community 102"
+Cohesion: 0.18
+Nodes (18): AugmentationTransforms, IOConfig, mt19937, Sample, SampleT, string, ulong, vector (+10 more)
+
+### Community 103 - "Community 103"
+Cohesion: 0.30
+Nodes (18): addGaussianNoise(), applyRandomTransforms(), AugmentationTransforms, mt19937, string, vector, elasticDeformation(), horizontalFlip() (+10 more)
+
+### Community 104 - "Community 104"
+Cohesion: 0.19
+Nodes (17): Samples, ulong, runCalibrateControllerTests(), testCalibrateConfigDefaults(), testComputeFreeEnergy(), testComputePercentile(), testDirHasImages(), testGatherImages() (+9 more)
+
+### Community 105 - "Community 105"
+Cohesion: 0.16
+Nodes (15): AugmentationTransforms, main(), string, TerminalUI_Panel, allDisabled(), runGpuAugmentTests(), runMonitoringTests(), testMonitoringConfigDefaults() (+7 more)
+
+### Community 106 - "Community 106"
+Cohesion: 0.30
+Nodes (19): char_int_type, InputType, IteratorType, JSON_HEDLEY_WARN_UNUSED_RESULT, accept(), add(), array(), from_bjdata() (+11 more)
+
+### Community 107 - "Community 107"
 Cohesion: 0.27
-Nodes (21): char_int_type, InputType, IteratorType, JSON_HEDLEY_WARN_UNUSED_RESULT, accept(), add(), array(), end_pos() (+13 more)
+Nodes (18): CoreConfig, InputConfig, json, NetworkType, OutputConfig, pair, string, vector (+10 more)
 
-### Community 116 - "Nn Component"
-Cohesion: 0.14
-Nodes (21): STBIR__CODER_NAME(), stbir__float_to_half(), stbir__half_to_float(), stbir__FP16, float32x4_t, STBIR__CODER_NAME(), stbir__edge_wrap(), stbir__float_to_half() (+13 more)
-
-### Community 117 - "Tests"
-Cohesion: 0.18
-Nodes (19): testBatchNormBackpropagate(), testBatchNormInference(), testBatchNormTraining(), testBatchNormValidateShapes(), testCostFunctionNameToType(), testDeviceNameToType(), testInstanceNormOutputShape(), testInstanceNormValidateShapes() (+11 more)
-
-### Community 118 - "Class:Cli Component"
-Cohesion: 0.10
-Nodes (20): CLI_Loader, CNN_TrainingConfig, A. Config Plumbing (NN-CLI side), Acceptance Criteria, Approach: Adapt BatchNorm Path Pattern to Fast Path, B. Buffer Allocation, Baseline (current code), Current State (+12 more)
-
-### Community 119 - "CNN Convolutional Layer"
-Cohesion: 0.13
-Nodes (18): CNN_Tensor3D, CNN::Tensor3D<double>, CNN::Tensor3D<int>, Tensor3D(), Shape3D, T, ulong, fill() (+10 more)
-
-### Community 120 - "ANN Feedforward Layer"
-Cohesion: 0.11
-Nodes (19): accumulate, backpropagate, gpuWorkers, initializeWorkers, mergeGradients, numGPUs, predict, resetAccumulators (+11 more)
-
-### Community 121 - "ANN Feedforward Layer"
-Cohesion: 0.10
-Nodes (18): cl_ulong, Kernel, argsCount, localWorkSizeX, name, nElementsX, nElementsY, offset (+10 more)
-
-### Community 122 - "CNN Convolutional Layer"
-Cohesion: 0.10
-Nodes (19): CoreGPUWorker(), Core, CoreGPUWorkerConfig, batchSize, inputShape, progressReports, CoreGPUWorkerConfig(), CoreConfig (+11 more)
-
-### Community 123 - "Nn Component"
-Cohesion: 0.10
-Nodes (20): CorePool, Logger, qint64, qintptr, shared_ptr, HttpServer, RequestHandler, decodeImageInput (+12 more)
-
-### Community 124 - "Fixtures Component"
-Cohesion: 0.13
-Nodes (19): convolutionalLayers, costFunction, denseLayers, device, inputShape, c, h, w (+11 more)
-
-### Community 125 - "Fixtures Component"
-Cohesion: 0.13
-Nodes (19): convolutionalLayers, costFunction, denseLayers, device, inputShape, c, h, w (+11 more)
-
-### Community 126 - "Nn Component"
-Cohesion: 0.17
-Nodes (19): AugmentationTransforms, IOConfig, mt19937, Sample, SampleT, string, ulong, vector (+11 more)
-
-### Community 127 - "Nn Component"
-Cohesion: 0.15
-Nodes (19): CalibrateController<ANNRunner>, RunnerT, string, unique_ptr, vector, getRunner(), init(), onBatchProgress() (+11 more)
-
-### Community 128 - "Tests"
-Cohesion: 0.16
-Nodes (14): AugmentationTransforms, QFile, QJsonObject, runANNCPUSaveLoadTests(), testANNSaveLoadPredictConsistency(), runCNNCPUPredictTests(), testCNNMultiInputPredictDiversity(), runCNNCPUSaveLoadTests() (+6 more)
-
-### Community 129 - "CNN Convolutional Layer"
-Cohesion: 0.11
-Nodes (19): ANN_Worker, CROSS_ENTROPY, SQUARED_DIFFERENCE, Cost, Cross-Entropy, Gradient (for backpropagation), Weighted Variants, math-cost.html (+11 more)
-
-### Community 130 - "Class:Residual Component"
-Cohesion: 0.11
-Nodes (19): RESIDUAL_END, RESIDUAL_START, Architecture Design Guidelines, Example: Complete ResNet-style Architecture, Example: Grayscale Image → Class Prediction, Example: RGB Image → 10-Class Classification, How It Works, Identity Shortcut (+11 more)
-
-### Community 131 - "ANN Feedforward Layer"
-Cohesion: 0.16
-Nodes (17): count(), countHelper(), flatten(), flattenHelper(), T, Tensor1D, Tensor2D, Tensor3D (+9 more)
-
-### Community 132 - "CNN Convolutional Layer"
-Cohesion: 0.17
-Nodes (16): T, ulong, vector, beta, gamma, numChannels, runningMean, runningVar (+8 more)
-
-### Community 133 - "Common Config Structs"
-Cohesion: 0.14
-Nodes (15): CostFunctionConfig, type, weights, string, T, vector, CostFunctionType, type (+7 more)
-
-### Community 134 - "Common Config Structs"
-Cohesion: 0.18
-Nodes (8): MonitoringConfig, string, T, ulong, TrainingMonitor, config, epochsWithoutImprovement, newBest_
-
-### Community 135 - "Fixtures Component"
-Cohesion: 0.13
-Nodes (18): device, layers, mode, train, learningRate, numEpochs, training, convolutionalLayers (+10 more)
-
-### Community 136 - "Nn Component"
-Cohesion: 0.14
-Nodes (18): ANNLoader, loadConfig, loadInputs, loadSamples, CoreConfig, DeviceType, Input, IOConfig (+10 more)
-
-### Community 137 - "Nn Component"
-Cohesion: 0.16
-Nodes (18): draw(), handleEvent(), atomic, vector, init(), layoutChildren(), pollAndDispatchInput(), QThread (+10 more)
-
-### Community 138 - "Todo Component"
-Cohesion: 0.11
-Nodes (18): 11. Risk Assessment and Mitigations, 12. Effort Estimate, 13. Future Extensions, 1. Problem Statement, 2.1. Behavior by Mode, 2.2. Migration Path, 2. Design Overview, 5.1. `NN-CLI_Runner` Constructor Changes (+10 more)
-
-### Community 139 - "Root Component"
-Cohesion: 0.11
-Nodes (18): 1. Class Hierarchy, 2. Design Patterns, 3. Data Flow, 5. Threading Model (CPU), 6. Memory Layout, Architecture, Callback Pattern, D. Training Loop (+10 more)
-
-### Community 140 - "ANN Feedforward Layer"
-Cohesion: 0.13
-Nodes (13): atomic, Input, Output, T, Sample, SampleProvider, Samples, T (+5 more)
-
-### Community 141 - "ANN Feedforward Layer"
-Cohesion: 0.17
-Nodes (16): bestEpoch(), bestLoss(), checkEpoch(), checkLossExplosion(), checkLossStagnation(), Common::TrainingMonitor<double>, MonitoringConfig, optional (+8 more)
-
-### Community 142 - "Nn Component"
-Cohesion: 0.16
-Nodes (17): CNNLoader, loadConfig, loadInputs, loadSamples, CoreConfig, Input, IOConfig, json (+9 more)
-
-### Community 143 - "Nn Component"
-Cohesion: 0.20
-Nodes (17): applyScrollInput(), contentHeight(), contentWidth(), draw(), drawContent(), drawFrame(), drawScrollbar(), handleEvent() (+9 more)
-
-### Community 144 - "Agents Component"
-Cohesion: 0.12
-Nodes (16): Architecture & design principles, Build, Commit conventions, Component notes, `.cpp`, `.hpp` — class layout, Layout, Manual cmake (advanced) (+8 more)
-
-### Community 145 - "CNN Convolutional Layer"
-Cohesion: 0.29
-Nodes (17): addAccumulateKernels(), setupAccumulateKernels(), ANN::GPUKernelBuilder, addBackpropagateKernels(), addBatchNormBackwardKernels(), addBatchNormForwardKernels(), addBatchNormRunningStatsUpdate(), addCNNAccumulateKernels() (+9 more)
-
-### Community 146 - "Nn Component"
-Cohesion: 0.18
-Nodes (16): exception, BasicJsonContext, create(), get_ref(), get_ref_impl(), invalid_iterator, operator "" _json_pointer(), other_error (+8 more)
-
-### Community 147 - "Nn Component"
-Cohesion: 0.31
-Nodes (17): InputConfig, CoreConfig, json, NetworkType, pair, string, vector, detectNetworkType() (+9 more)
-
-### Community 148 - "Nn Component"
-Cohesion: 0.20
-Nodes (17): CompatibleType, InputIt, JsonRef, basic_json(), decode(), flatten(), patch(), to_bjdata() (+9 more)
-
-### Community 149 - "Nn Component"
-Cohesion: 0.17
-Nodes (15): RunnerT, string, unique_ptr, vector, getRunner(), init(), onBatchProgress(), onEpochCompleted() (+7 more)
-
-### Community 150 - "Nn Component"
-Cohesion: 0.12
-Nodes (15): shared_ptr, ulong, TerminalUI, TrainingTui, attach, barGpus_, batchNum_, current_ (+7 more)
-
-### Community 151 - "Nn Component"
-Cohesion: 0.15
-Nodes (16): Logger(), qint64, string, Logger, qint64, QMutex, currentPos, file (+8 more)
-
-### Community 152 - "Nn Component"
-Cohesion: 0.12
-Nodes (15): C. Kernel Builder, A. Config Plumbing (NN-CLI side), Acceptance Criteria, Approach: Adapt BatchNorm Path Pattern to Fast Path, B. Buffer Allocation, Current State, D. Training Loop, E. Optimized Variant: Merge ANN Steps (+7 more)
-
-### Community 153 - "CNN Convolutional Layer"
-Cohesion: 0.21
-Nodes (15): Normalization, backpropagate(), CNN::Normalization<double>, CNN::Normalization<int>, LayerType, NormParameters, Shape3D, T (+7 more)
-
-### Community 154 - "ANN Feedforward Layer"
+### Community 108 - "Community 108"
 Cohesion: 0.26
-Nodes (15): allocateBuffers(), Buffer, map, addArgument(), fillBuffer(), KernelTiming, callCount, kernelName (+7 more)
+Nodes (17): initializer_list, LayersConfig, Layer, runGPUFeaturesTests(), testGPUCrossEntropyLossDecreases(), testGPUDifferentActivations(), testGPUDropoutTraining(), testGPUMultiLayerNetwork() (+9 more)
 
-### Community 155 - "CNN Convolutional Layer"
-Cohesion: 0.20
-Nodes (15): ANN::Worker<double>, ANN::Worker<float>, ANN::Worker<int>, calculateLoss(), Output, T, calculateLoss(), LayersConfig (+7 more)
-
-### Community 156 - "Tests"
-Cohesion: 0.21
-Nodes (13): main(), runActvFuncTests(), testNameToType(), testReLU(), testSigmoid(), testSoftmax(), testSoftmaxBackward(), testTanh() (+5 more)
-
-### Community 157 - "Build Component"
-Cohesion: 0.21
-Nodes (16): nncli_common OBJECT library, Optional tcmalloc linking, CNN library target, ncurses/ncursesw library, nlohmann JSON library, NN-CLI executable target, NN-CLI CMakeLists.txt, Object library rationale (+8 more)
-
-### Community 158 - "CNN Convolutional Layer"
-Cohesion: 0.16
-Nodes (16): Core, CoreConfig, Input, Inputs, PredictMetadata, PredictResult, PredictResults, T (+8 more)
-
-### Community 159 - "CNN Convolutional Layer"
-Cohesion: 0.23
-Nodes (16): backpropagateCNN(), buildConfig(), CoreCPUWorker(), CoreConfig, Input, LayersConfig, Output, Parameters (+8 more)
-
-### Community 160 - "CNN Convolutional Layer"
-Cohesion: 0.14
-Nodes (15): gpuWorkers, initializeWorkers, mergeCNNGradients, mergeGradients, numGPUs, predict, syncParametersToGPU, test (+7 more)
-
-### Community 161 - "Tests"
+### Community 109 - "Community 109"
 Cohesion: 0.24
-Nodes (15): testMultiGPUTestMethod(), testMultiGPUCrossEntropyTraining(), testMultiGPUParameterRoundTrip(), testMultiGPUWithPoolLayer(), runGPUMultiGPUTests(), testMultiGPUCallback(), testMultiGPUCrossEntropyTraining(), testMultiGPUDifferentActivations() (+7 more)
+Nodes (17): addBackpropagateKernels(), addBatchNormBackwardKernels(), addBatchNormForwardKernels(), addBatchNormRunningStatsUpdate(), addCNNAccumulateKernels(), addCNNUpdateKernels(), addCopyBridgeKernels(), addPropagateKernels() (+9 more)
 
-### Community 162 - "Fixtures Component"
-Cohesion: 0.14
-Nodes (15): device, inputShape, c, h, w, inputType, layers, mode (+7 more)
+### Community 110 - "Community 110"
+Cohesion: 0.12
+Nodes (17): EpochRecord, string, T, ulong, vector, TrainMetadata, bestEpoch, bestLoss (+9 more)
 
-### Community 163 - "Nn Component"
+### Community 111 - "Community 111"
+Cohesion: 0.34
+Nodes (17): stbi__bit_reverse(), stbi__compute_huffman_codes(), stbi__err(), stbi__fill_bits(), stbi__parse_huffman_block(), stbi__parse_uncompressed_block(), stbi__parse_zlib(), stbi__parse_zlib_header() (+9 more)
+
+### Community 112 - "Community 112"
+Cohesion: 0.11
+Nodes (18): calibrate, doSaveModel, getInputShapeString, getNetworkType, getNumConvLayers, getNumDenseLayers, getNumOutputClasses, getNumResidualBlocks (+10 more)
+
+### Community 113 - "Community 113"
+Cohesion: 0.18
+Nodes (18): CompatibleType, initializer_list_t, InputIt, JsonRef, basic_json(), decode(), flatten(), patch() (+10 more)
+
+### Community 114 - "Community 114"
+Cohesion: 0.13
+Nodes (13): Logger, qint64, QMutex, currentPos, file, logRequest, maxSizeBytes, mutex (+5 more)
+
+### Community 115 - "Community 115"
+Cohesion: 0.12
+Nodes (17): atomic, CorePool, Logger, HttpServer, qint64, shared_ptr, activeRequests, corePool (+9 more)
+
+### Community 116 - "Community 116"
+Cohesion: 0.23
+Nodes (15): QJsonObject, runCPUFeatureTests(), testCheckpointParameters(), testDropoutRateParsing(), testImageNetworkDetection(), testTrainWithAugmentation(), testTrainWithDropout(), runANNCPUSaveLoadTests() (+7 more)
+
+### Community 117 - "Community 117"
+Cohesion: 0.26
+Nodes (16): runCPUBasicTests(), testModeOverride(), testNetworkDetection(), testTrainValidationNoDeadlock(), testTrainWithWeightedLoss(), testTrainXOR(), runCNNCPUBasicTests(), testCNNNetworkDetection() (+8 more)
+
+### Community 118 - "Community 118"
+Cohesion: 0.16
+Nodes (15): checkEpoch(), checkLossExplosion(), checkLossStagnation(), Common::TrainingMonitor<double>, Common::TrainingMonitor<float>, Common::TrainingMonitor<int>, MonitoringConfig, optional (+7 more)
+
+### Community 119 - "Community 119"
+Cohesion: 0.19
+Nodes (15): count(), countHelper(), flatten(), flattenHelper(), T, Tensor1D, Tensor2D, Tensor3D (+7 more)
+
+### Community 120 - "Community 120"
+Cohesion: 0.13
+Nodes (13): ConvParameters, NormParameters, ResidualParameters, T, vector, Parameters, convParams, denseParams (+5 more)
+
+### Community 121 - "Community 121"
+Cohesion: 0.12
+Nodes (17): batchSize, costFunctionConfig, inputShape, layersConfig, logLevel, parameters, progressReports, trainConfig (+9 more)
+
+### Community 122 - "Community 122"
+Cohesion: 0.25
+Nodes (13): JSON_HEDLEY_RETURNS_NON_NULL, empty(), get_error_message(), get_position(), handle_diagnostic_positions_for_json_value(), * handle_value(Value&& v)(), is_array(), is_discarded() (+5 more)
+
+### Community 123 - "Community 123"
+Cohesion: 0.17
+Nodes (14): CalibrateController<ANNRunner>, CalibrateController<CNNRunner>, RunnerT, string, unique_ptr, vector, getRunner(), init() (+6 more)
+
+### Community 124 - "Community 124"
+Cohesion: 0.15
+Nodes (14): augment, augmenters, cv, freeList, mutex, rngs, timingCallback, function (+6 more)
+
+### Community 125 - "Community 125"
+Cohesion: 0.17
+Nodes (14): RunnerT, string, unique_ptr, vector, getRunner(), init(), onBatchProgress(), onEpochCompleted() (+6 more)
+
+### Community 126 - "Community 126"
+Cohesion: 0.17
+Nodes (14): RunnerT, string, unique_ptr, vector, getRunner(), init(), onBatchProgress(), onEpochCompleted() (+6 more)
+
+### Community 127 - "Community 127"
+Cohesion: 0.25
+Nodes (20): stbi__bit_reverse(), stbi__bitreverse16(), stbi__clamp(), stbi__compute_huffman_codes(), stbi__fill_bits(), stbi__idct_block(), stbi__parse_huffman_block(), stbi__parse_uncompressed_block() (+12 more)
+
+### Community 128 - "Community 128"
+Cohesion: 0.15
+Nodes (15): ulong, LossExplosionConfig, enabled, threshold, LossStagnationConfig, enabled, minDelta, MonitoringConfig (+7 more)
+
+### Community 129 - "Community 129"
+Cohesion: 0.12
+Nodes (16): MonitoringConfig, T, ulong, TrainConfig, batchSize, dropoutRate, learningRate, monitoringConfig (+8 more)
+
+### Community 130 - "Community 130"
 Cohesion: 0.23
 Nodes (15): ifstream, Samples, Shape3D, string, T, ulong, vector, loadCNNIDX() (+7 more)
 
-### Community 164 - "Nn Component"
-Cohesion: 0.18
-Nodes (14): RunnerT, string, unique_ptr, vector, getRunner(), init(), onBatchProgress(), onEpochCompleted() (+6 more)
-
-### Community 165 - "Nn Component"
-Cohesion: 0.40
-Nodes (15): QByteArray, string, vector, decodeImageInput(), getHeader(), normalizeIp(), processImagePredict(), processJsonPredict() (+7 more)
-
-### Community 166 - "Todo Component"
-Cohesion: 0.12
-Nodes (15): 1. Overview, 3. Conversion Order (dependency-respecting), 5.1 `NN-CLI/CMakeLists.txt`, 5.2 `NN-Server/CMakeLists.txt`, 5.3 Delete vendored directories, 5. CMake & Cleanup Steps, Appendix A: Full file inventory, CMake files (2 files) (+7 more)
-
-### Community 167 - "ANN Feedforward Layer"
-Cohesion: 0.16
-Nodes (15): ANN_PredictMetadata, Core(), CoreConfig, Input, PredictMetadata, PredictResult, T, TrainingMetadata (+7 more)
-
-### Community 168 - "CNN Convolutional Layer"
-Cohesion: 0.14
-Nodes (14): CNN_Conv2D, Conv2D, backpropagate, propagate, ConvParameters, biases, filterH, filters (+6 more)
-
-### Community 169 - "ANN Feedforward Layer"
-Cohesion: 0.25
-Nodes (15): backpropagate(), backpropagateAndReturnInputGradients(), calc_dCost_dActv(), calc_dCost_dBias(), calc_dCost_dWeight(), computeLoss(), Input, Logits (+7 more)
-
-### Community 170 - "CNN Convolutional Layer"
-Cohesion: 0.15
-Nodes (15): ConvLayerConfig, filterH, filterW, numFilters, strideX, strideY, DenseLayerConfig, numNeurons (+7 more)
-
-### Community 171 - "Tests"
-Cohesion: 0.21
-Nodes (14): ActvFuncType, CoreConfig, ulong, ActvFuncType, CoreConfig, ulong, makeGPUTrueBNTestConfig(), testGPUTrueBNConvergence() (+6 more)
-
-### Community 172 - "Common Config Structs"
+### Community 131 - "Community 131"
 Cohesion: 0.19
-Nodes (13): distributeBatchAcrossGPUs(), distributeTestAcrossGPUs(), GPUWorkItem, endIdx, gpuIdx, startIdx, ProgressCallback, QThreadPool (+5 more)
+Nodes (13): stbi__compute_y_16(), stbi__convert_16_to_8(), stbi__convert_format16(), stbi__cpuid3(), stbi__jpeg_load(), stbi__jpeg_test(), stbi__ldr_to_hdr(), stbi__malloc() (+5 more)
 
-### Community 173 - "Nn Component"
+### Community 132 - "Community 132"
 Cohesion: 0.13
-Nodes (13): DataType, ulong, IOConfig, inputC, inputH, inputType, inputW, outputC (+5 more)
+Nodes (14): AugmentationTransforms, brightness, contrast, elasticDeformation, gaussianNoise, horizontalFlip, hueShift, randomErasing (+6 more)
 
-### Community 174 - "Fixtures Component"
-Cohesion: 0.19
-Nodes (14): costFunction, device, layers, mode, type, progressReports, saveModelInterval, train (+6 more)
+### Community 133 - "Community 133"
+Cohesion: 0.13
+Nodes (11): ulong, InputConfig, c, h, isImage, w, OutputConfig, c (+3 more)
 
-### Community 175 - "Nn Component"
+### Community 134 - "Community 134"
+Cohesion: 0.17
+Nodes (14): ReLU Activation Function, Sigmoid Activation Function, Softmax Activation Function, Tanh Activation Function, ActvFunc — Activation Function Dispatcher, Calibration Pipeline for OOD Detection, Forward Propagation Algorithm, He Initialization (for ReLU layers) (+6 more)
+
+### Community 135 - "Community 135"
+Cohesion: 0.20
+Nodes (5): atomic, SampleProvider, Samples, T, makeSampleProvider()
+
+### Community 136 - "Community 136"
+Cohesion: 0.13
+Nodes (12): Core<T> — Abstract Base Class, CoreCPU<T> — Multi-threaded CPU Implementation, CoreGPU<T> — Multi-GPU Orchestrator, Core<T>::makeCore() Factory Pattern, Multi-GPU Gradient Merging Strategy, Template Method Pattern in Training Algorithm, Utils<T> — Helper Utilities, CNN Template Pattern — Numeric Type Parameterization (+4 more)
+
+### Community 137 - "Community 137"
+Cohesion: 0.14
+Nodes (13): Conv2D, backpropagate, propagate, ConvParameters, biases, filterH, filters, filterW (+5 more)
+
+### Community 138 - "Community 138"
+Cohesion: 0.13
+Nodes (14): IRunnerObserver, TestController, RunnerT, unique_ptr, getRunner, init, onBatchProgress, onEpochCompleted (+6 more)
+
+### Community 139 - "Community 139"
+Cohesion: 0.12
+Nodes (28): load_jpeg_image(), stbi__addsizes_valid(), stbi__blinn_8x8(), stbi__cleanup_jpeg(), stbi__compute_transparency(), stbi__compute_transparency16(), stbi__compute_y(), stbi__create_png_alpha_expand8() (+20 more)
+
+### Community 140 - "Community 140"
 Cohesion: 0.43
 Nodes (15): stbir__decode_and_resample_for_vertical_gather_loop(), stbir__decode_scanline(), stbir__encode_first_scanline_from_scatter(), stbir__encode_scanline(), stbir__get_ring_buffer_entry(), stbir__get_ring_buffer_scanline(), stbir__horizontal_resample_and_encode_first_scanline_from_scatter(), stbir__perform_resize() (+7 more)
 
-### Community 176 - "Nn Component"
+### Community 141 - "Community 141"
+Cohesion: 0.19
+Nodes (14): CoreConfig, DeviceType, Input, IOConfig, json, ModeType, optional, Samples (+6 more)
+
+### Community 142 - "Community 142"
+Cohesion: 0.13
+Nodes (15): calibrate, doSaveModel, getInputShapeString, getNetworkType, getNumDenseLayers, getNumOutputClasses, getTimingLines, getTotalParameters (+7 more)
+
+### Community 143 - "Community 143"
 Cohesion: 0.13
 Nodes (15): ImageLoader, addGaussianNoise, applyRandomTransforms, elasticDeformation, horizontalFlip, loadImage, randomBrightness, randomContrast (+7 more)
 
-### Community 177 - "Nn Component"
-Cohesion: 0.33
-Nodes (15): stbi__compute_huffman_codes(), stbi__do_zlib(), stbi__fill_bits(), stbi__parse_huffman_block(), stbi__parse_uncompressed_block(), stbi__parse_zlib(), stbi__parse_zlib_header(), stbi__zeof() (+7 more)
+### Community 144 - "Community 144"
+Cohesion: 0.13
+Nodes (13): DataType, ulong, IOConfig, inputC, inputH, inputType, inputW, outputC (+5 more)
 
-### Community 178 - "Nn Component"
+### Community 145 - "Community 145"
 Cohesion: 0.43
 Nodes (15): stbir__decode_and_resample_for_vertical_gather_loop(), stbir__decode_scanline(), stbir__encode_first_scanline_from_scatter(), stbir__encode_scanline(), stbir__get_ring_buffer_entry(), stbir__get_ring_buffer_scanline(), stbir__horizontal_resample_and_encode_first_scanline_from_scatter(), stbir__perform_resize() (+7 more)
 
-### Community 179 - "Root Component"
+### Community 146 - "Community 146"
 Cohesion: 0.14
-Nodes (14): Common, Apache License 2.0 with Commons Clause Restriction, Commons Clause Restriction, Convergence &amp; Monitoring, Detailed Steps, Key Concepts, LICENSE, The Learning Loop (+6 more)
+Nodes (13): ActvFunc, calculate, drelu, dsigmoid, dtanh, nameToType, relu, sigmoid (+5 more)
 
-### Community 180 - "Common Config Structs"
-Cohesion: 0.20
-Nodes (13): Loss explosion, Loss stagnation, ulong, LossExplosionConfig, threshold, LossStagnationConfig, minDelta, MonitoringConfig (+5 more)
+### Community 147 - "Community 147"
+Cohesion: 0.15
+Nodes (12): Normalization, backpropagate, propagate, T, ulong, vector, NormParameters, beta (+4 more)
 
-### Community 181 - "ANN Feedforward Layer"
-Cohesion: 0.21
-Nodes (14): in_macro_body(), is_blank(), main(), process_file(), Check if line i is inside a multi-line macro (previous line ends with \\)., in_macro_body(), is_blank(), main() (+6 more)
+### Community 148 - "Community 148"
+Cohesion: 0.24
+Nodes (13): calculateLoss(), CNN::Worker<double>, CNN::Worker<float>, CNN::Worker<int>, LayersConfig, Output, Parameters, Shape3D (+5 more)
 
-### Community 182 - "Common Config Structs"
-Cohesion: 0.14
-Nodes (13): T, ulong, TrainConfig, batchSize, dropoutRate, learningRate, numEpochs, optimizer (+5 more)
-
-### Community 183 - "Common Config Structs"
-Cohesion: 0.14
-Nodes (13): T, ulong, TrainingProgress, currentEpoch, currentSample, epochLoss, gpuIndex, isNewBest (+5 more)
-
-### Community 184 - "Common Config Structs"
+### Community 149 - "Community 149"
 Cohesion: 0.14
 Nodes (13): T, ulong, TrainingProgressEvent, currentEpoch, currentSample, epochLoss, gpuIndex, isNewBest (+5 more)
 
-### Community 185 - "Fixtures Component"
-Cohesion: 0.20
-Nodes (13): device, layers, mode, numThreads, progressReports, saveModelInterval, train, augmentationFactor (+5 more)
+### Community 150 - "Community 150"
+Cohesion: 0.14
+Nodes (13): getRunner, init, onBatchProgress, onEpochCompleted, onLogMessage, onModelInfoUpdated, onTimingUpdated, onTrainingFinished (+5 more)
 
-### Community 186 - "Nn Component"
-Cohesion: 0.33
-Nodes (13): AugmentationConfig, IOConfig, json, NetworkType, optional, string, ulong, detectNetworkType() (+5 more)
+### Community 151 - "Community 151"
+Cohesion: 0.22
+Nodes (13): CoreConfig, Input, IOConfig, json, optional, Samples, Shape3D, string (+5 more)
 
-### Community 187 - "Tests"
+### Community 152 - "Community 152"
+Cohesion: 0.14
+Nodes (13): PredictController, RunnerT, unique_ptr, getRunner, init, onBatchProgress, onEpochCompleted, onLogMessage (+5 more)
+
+### Community 153 - "Community 153"
+Cohesion: 0.14
+Nodes (8): TerminalUI_Widget, draw, handleEvent, height, resize, width, x, y
+
+### Community 154 - "Community 154"
 Cohesion: 0.36
 Nodes (12): QString, main(), readFile(), runLoggerTests(), tempLogDir(), testLogAppendsOnRestart(), testLogCircularAppendsAfterRestart(), testLogCircularWrap() (+4 more)
 
-### Community 188 - "Tests"
+### Community 155 - "Community 155"
 Cohesion: 0.27
-Nodes (13): testMultipleOutputNeurons(), testParameterRoundTrip(), testParametersDuringTraining(), testCostFunctionConfigGetter(), testShuffleSamplesDefault(), testShuffleSamplesTraining(), testWeightedLossTraining(), runIntegrationBasicTests() (+5 more)
+Nodes (13): runLayerTests2(), testBatchNormBackpropagate(), testBatchNormInference(), testBatchNormTraining(), testBatchNormValidateShapes(), testCostFunctionNameToType(), testDeviceNameToType(), testInstanceNormOutputShape() (+5 more)
 
-### Community 189 - "Common Config Structs"
-Cohesion: 0.15
-Nodes (13): 8. Validation Dataset, MonitoringConfig, T, ulong, TrainingConfig, batchSize, dropoutRate, learningRate (+5 more)
+### Community 156 - "Community 156"
+Cohesion: 0.37
+Nodes (13): runErrorTests(), testBothSamplesAndIdx(), testIdxWithoutLabels(), testInvalidActvFunc(), testInvalidActvFuncCNN(), testInvalidCostFunc(), testInvalidDevice(), testInvalidMode() (+5 more)
 
-### Community 190 - "CNN Convolutional Layer"
-Cohesion: 0.15
-Nodes (13): Sliding Strategies, computePadding, nameToType, typeToName, API Overview, Building, CNN - Convolutional Neural Network Library, CNN Layer Types (+5 more)
-
-### Community 191 - "Nn Component"
-Cohesion: 0.18
-Nodes (11): Stratified splitting, DataSplit, computeAutoValSize(), ulong, vector, DataSplit, trainIndices, validationIndices (+3 more)
-
-### Community 192 - "CNN Convolutional Layer"
-Cohesion: 0.26
-Nodes (13): readAccumulatedGradients(), Core, CoreGPUWorkerConfig, Parameters, T, Tensor1D, vector, GPUBufferManager() (+5 more)
-
-### Community 193 - "Nn Component"
+### Community 157 - "Community 157"
 Cohesion: 0.19
-Nodes (13): float32x4_t, stbir__edge_wrap(), stbir__get_extents(), stbir__linear_to_srgb_uchar(), stbir_make16x2(), stbir_make8x2(), stbir__max(), stbir__min() (+5 more)
+Nodes (13): ANN Delegation Pattern — Dense Layers Delegated to ANN, CNN + ANN Inference Pipeline, CNN GPU Normalization Kernels, CNN GPU Propagation Kernels (ReLU, Pool), CNN GPU Residual (Skip Connection) Kernels, Flatten<T> — 3D to 1D Reshape, GlobalAvgPool<T> — Global Average Pooling, GlobalDualPool<T> — Concatenated Avg+Max Pooling (+5 more)
 
-### Community 194 - "Nn Component"
-Cohesion: 0.15
-Nodes (12): getRunner, init, onBatchProgress, onEpochCompleted, onLogMessage, onModelInfoUpdated, onTimingUpdated, onTrainingFinished (+4 more)
-
-### Community 195 - "Nn Component"
-Cohesion: 0.17
-Nodes (9): QCommandLineParser, vector, Loader, detectNetworkType, loadAugmentationConfig, loadIOConfig, loadProgressReports, loadSaveModelInterval (+1 more)
-
-### Community 196 - "Nn Component"
-Cohesion: 0.15
-Nodes (12): RunnerT, unique_ptr, getRunner, init, onBatchProgress, onEpochCompleted, onLogMessage, onModelInfoUpdated (+4 more)
-
-### Community 197 - "Nn Component"
+### Community 158 - "Community 158"
 Cohesion: 0.24
-Nodes (4): string, ulong, vector, IRunnerObserver
+Nodes (12): backpropagate(), CNN::Normalization<double>, CNN::Normalization<float>, CNN::Normalization<int>, LayerType, NormParameters, Shape3D, T (+4 more)
 
-### Community 198 - "Nn Component"
+### Community 159 - "Community 159"
+Cohesion: 0.31
+Nodes (13): stbir__init_and_set_layout(), stbir_quick_resize_helper(), stbir_resize(), stbir_resize_build_profile_info(), stbir_resize_extended_profile_info(), stbir_resize_float_linear(), stbir_resize_init(), stbir_resize_split_profile_info() (+5 more)
+
+### Community 160 - "Community 160"
+Cohesion: 0.15
+Nodes (13): ModelSerializer, buildANNModelJson, buildCNNModelJson, generateBestModelPath, generateCheckpointPath, generateDefaultOutputPath, generateTrainingFilename, loadANNParametersBinary (+5 more)
+
+### Community 161 - "Community 161"
 Cohesion: 0.44
 Nodes (12): collect(), collectSections(), string, SummaryRow, ulong, vector, detectTerminalWidth(), displayWidth() (+4 more)
 
-### Community 199 - "Nn Component"
-Cohesion: 0.15
-Nodes (12): RunnerT, unique_ptr, getRunner, init, onBatchProgress, onEpochCompleted, onLogMessage, onModelInfoUpdated (+4 more)
-
-### Community 200 - "Todo Component"
-Cohesion: 0.17
-Nodes (12): `NN-CLI_ANNLoader.hpp` — **SIMPLE** (signature change only), 4. Detailed File-by-File Conversion Steps, `NN-CLI_ANNLoader.cpp` — **MODERATE** (~30 nlohmann call sites), `NN-CLI_CNNLoader.cpp` — **MODERATE-COMPLEX** (~50 call sites, more types), `NN-CLI_Loader.cpp` — **MODERATE** (re-implementation of parsing + reading), `NN-CLI_Loader.hpp` — **MODERATE** (API type change, no logic change), `NN-Server_Loader.cpp` — **MODERATE-COMPLEX** (5× `nlohmann::json::parse`, tensor types), `NN-Server main.cpp` — **MODERATE** (parse config.json) (+4 more)
-
-### Community 201 - "CNN Convolutional Layer"
-Cohesion: 0.21
-Nodes (10): 🌐 GlobalDualPool, backpropagate(), Shape3D, T, Tensor3D, backpropagate, GlobalDualPool<double>, GlobalDualPool<float> (+2 more)
-
-### Community 202 - "Fixtures Component"
-Cohesion: 0.21
-Nodes (11): device, layers, mode, numThreads, progressReports, saveModelInterval, train, dropoutRate (+3 more)
-
-### Community 203 - "Nn Component"
+### Community 162 - "Community 162"
 Cohesion: 0.18
-Nodes (11): BasicJsonContext, create(), get_ref(), get_ref_impl(), invalid_iterator, other_error, out_of_range, type_error (+3 more)
+Nodes (12): false_type, json_value, data, m_type, m_value, dump_float(), dump_integer(), is_negative_number() (+4 more)
 
-### Community 204 - "Nn Component"
-Cohesion: 0.17
-Nodes (10): AugmentationTransforms, brightness, contrast, gaussianNoise, horizontalFlip, hueShift, randomErasing, rotation (+2 more)
+### Community 163 - "Community 163"
+Cohesion: 0.50
+Nodes (5): stbi__compute_y_16(), stbi__convert_16_to_8(), stbi__convert_format16(), stbi__out_gif_code(), stbi__uint16
 
-### Community 205 - "Nn Component"
-Cohesion: 0.47
-Nodes (11): collect(), collectCNN(), collectCNNRows(), collectRows(), countCNNParameters(), AugmentationConfig, CoreConfig, string (+3 more)
+### Community 164 - "Community 164"
+Cohesion: 0.31
+Nodes (13): stbir__init_and_set_layout(), stbir_quick_resize_helper(), stbir_resize(), stbir_resize_build_profile_info(), stbir_resize_extended_profile_info(), stbir_resize_float_linear(), stbir_resize_init(), stbir_resize_split_profile_info() (+5 more)
 
-### Community 206 - "Tests"
-Cohesion: 0.32
-Nodes (11): runConv2DTests(), testConv2DBackprop(), testConv2DBackpropValues(), testConv2DFullPadding(), testConv2DMultiChannel(), testConv2DMultiFilter(), testConv2DNumericalGradient(), testConv2DPropagate() (+3 more)
-
-### Community 207 - "CNN Convolutional Layer"
-Cohesion: 0.24
-Nodes (10): 🌐 GlobalAvgPool, backpropagate(), Shape3D, T, Tensor3D, backpropagate, GlobalAvgPool<double>, GlobalAvgPool<float> (+2 more)
-
-### Community 208 - "CNN Convolutional Layer"
-Cohesion: 0.25
-Nodes (10): ANN::Core<float>, backpropagate(), CNN::Conv2D<double>, CNN::Conv2D<int>, T, Tensor3D, vector, propagate() (+2 more)
-
-### Community 209 - "ANN Feedforward Layer"
-Cohesion: 0.40
-Nodes (10): mutex, addArgument(), fillBuffer(), readBuffer(), syncDevicesBuffers(), writeBuffer(), string, T (+2 more)
-
-### Community 210 - "CNN Convolutional Layer"
+### Community 165 - "Community 165"
 Cohesion: 0.29
-Nodes (10): categorizeKernel(), contains(), GpuPhaseProfile, gpuMs, kernelCalls, phase, string, TimingPhase (+2 more)
+Nodes (12): runCoreBasicTests(), testBatchPredict(), testBatchPredictAfterTraining(), testMakeCoreCPU(), testParameterRoundTrip(), testParametersDuringTraining(), testPredictMetadata(), testPredictSimple() (+4 more)
 
-### Community 211 - "Qt Component"
-Cohesion: 0.27
-Nodes (10): Qt event loop architecture, IRunnerObserver, Phase 1 — RunnerSignals hub, Phase 2 — Event loop + thread inversion, Phase 3 — Cleanup, Signal/slot refactor rationale, Qt queued connection, RunnerSignals hub (+2 more)
+### Community 166 - "Community 166"
+Cohesion: 0.33
+Nodes (11): ActvFuncType, calculate(), string, drelu(), dsigmoid(), dtanh(), nameToType(), relu() (+3 more)
 
-### Community 212 - "Nn Component"
-Cohesion: 0.18
-Nodes (11): AugmentationConfig, augmentationFactor, augmentationProbability, autoClassWeights, balanceAugmentation, fullAugmentation, transforms, validationConfig (+3 more)
+### Community 167 - "Community 167"
+Cohesion: 0.17
+Nodes (12): Backpropagation Algorithm, Cross-Entropy Cost Function, Squared Difference (MSE) Cost Function, Dropout Regularization, ANN GPU Flattened 1-D Buffer Layout, ANN GPU Propagation Kernels, ANN GPU Accumulate and Update Kernels, ANN GPU OpenCL Kernel Files (+4 more)
 
-### Community 213 - "Nn Component"
+### Community 168 - "Community 168"
+Cohesion: 0.38
+Nodes (11): Buffer, map, addArgument(), allocateBuffer(), fillBuffer(), readBuffer(), writeBuffer(), string (+3 more)
+
+### Community 169 - "Community 169"
+Cohesion: 0.17
+Nodes (11): cl_ulong, Kernel, argsCount, kernel, localWorkSizeX, localWorkSizeY, name, nElementsX (+3 more)
+
+### Community 170 - "Community 170"
+Cohesion: 0.17
+Nodes (12): DenseLayerConfig, actvFuncType, numNeurons, ActvFuncType, PoolTypeEnum, ulong, PoolLayerConfig, poolH (+4 more)
+
+### Community 171 - "Community 171"
+Cohesion: 0.24
+Nodes (11): backpropagate(), CNN::Pool<double>, CNN::Pool<float>, CNN::Pool<int>, Shape3D, T, Tensor3D, ulong (+3 more)
+
+### Community 172 - "Community 172"
+Cohesion: 0.38
+Nodes (11): Buffer, map, addArgument(), allocateBuffer(), fillBuffer(), readBuffer(), writeBuffer(), string (+3 more)
+
+### Community 173 - "Community 173"
+Cohesion: 0.17
+Nodes (11): cl_ulong, Kernel, argsCount, kernel, localWorkSizeX, localWorkSizeY, name, nElementsX (+3 more)
+
+### Community 174 - "Community 174"
+Cohesion: 0.20
+Nodes (11): DeviceTypeEnum, deviceString(), string, SummaryRow, key, value, SummaryTable, collect (+3 more)
+
+### Community 175 - "Community 175"
 Cohesion: 0.38
 Nodes (11): calculateChecksum(), string, vector, createFromMemory(), initUstarHeader(), isPackage(), readBinaryFromPackage(), readFileFromTar() (+3 more)
 
-### Community 214 - "Tests"
-Cohesion: 0.36
-Nodes (10): ulong, vector, makeImbalancedOutputs(), runValidationTests(), testAutoValSizeThresholds(), testStratifiedSplitBasic(), testStratifiedSplitDeterministic(), testStratifiedSplitPreservesClassDistribution() (+2 more)
+### Community 176 - "Community 176"
+Cohesion: 0.47
+Nodes (11): collect(), collectCNN(), collectCNNRows(), collectRows(), countCNNParameters(), AugmentationConfig, CoreConfig, string (+3 more)
 
-### Community 215 - "Tests"
+### Community 177 - "Community 177"
 Cohesion: 0.35
-Nodes (10): runUtilsTests(), testCount(), testDeviceNameToType(), testDeviceTypeToName(), testFlattenUnflattenTensor2D(), testFormatDuration(), testFormatISO8601(), testLayersConfigGetTotalNumNeurons() (+2 more)
+Nodes (11): ulong, vector, makeImbalancedOutputs(), runValidationTests(), testAutoValSizeThresholds(), testStratifiedSplitBasic(), testStratifiedSplitDeterministic(), testStratifiedSplitEdgeCases() (+3 more)
 
-### Community 216 - "Todo Component"
+### Community 178 - "Community 178"
+Cohesion: 0.32
+Nodes (11): runConv2DTests(), testConv2DBackprop(), testConv2DBackpropValues(), testConv2DFullPadding(), testConv2DMultiChannel(), testConv2DMultiFilter(), testConv2DNumericalGradient(), testConv2DPropagate() (+3 more)
+
+### Community 179 - "Community 179"
+Cohesion: 0.32
+Nodes (11): runUtilsTests(), testCount(), testDeviceNameToType(), testDeviceTypeToName(), testFlattenUnflattenTensor2D(), testFlattenUnflattenTensor3D(), testFormatDuration(), testFormatISO8601() (+3 more)
+
+### Community 180 - "Community 180"
+Cohesion: 0.25
+Nodes (10): backpropagate(), CNN::Conv2D<double>, CNN::Conv2D<float>, CNN::Conv2D<int>, ConvParameters, T, Tensor3D, vector (+2 more)
+
+### Community 181 - "Community 181"
+Cohesion: 0.25
+Nodes (10): CNN::Tensor3D<double>, CNN::Tensor3D<float>, CNN::Tensor3D<int>, Tensor3D(), Shape3D, T, ulong, fill() (+2 more)
+
+### Community 182 - "Community 182"
+Cohesion: 0.20
+Nodes (9): Tensor3D, Shape3D, T, vector, data, fill, resize, shape (+1 more)
+
+### Community 183 - "Community 183"
+Cohesion: 0.29
+Nodes (10): categorizeKernel(), contains(), GpuPhaseProfile, gpuMs, kernelCalls, phase, string, TimingPhase (+2 more)
+
+### Community 184 - "Community 184"
+Cohesion: 0.27
+Nodes (8): main(), runGPUExactGlobalPoolTests(), testGPUGlobalAvgPoolCPUGPUParity(), testGPUGlobalDualPoolCPUGPUParity(), runGPUGlobalPoolTests(), testGPUGlobalAvgPoolWithNormAndPool(), testGPUWithGlobalAvgPool(), testGPUWithGlobalDualPool()
+
+### Community 185 - "Community 185"
+Cohesion: 0.27
+Nodes (8): CostFunction, CostFunctionConfig, type, weights, string, T, vector, CostFunctionType
+
+### Community 186 - "Community 186"
 Cohesion: 0.18
-Nodes (11): 8. Detailed Implementation Steps, Step 10: Python Migration Script, Step 1: Create `NN-CLI_ModelPackage.{hpp,cpp}`, Step 2: Add Binary Parameter Serialization, Step 3: Modify the Save Path, Step 4: Modify the Load Path, Step 5: Modify Runner, Step 6: Update NN-Server Loader (+3 more)
+Nodes (11): AugmentationConfig, augmentationFactor, augmentationProbability, autoClassWeights, balanceAugmentation, fullAugmentation, transforms, validationConfig (+3 more)
 
-### Community 217 - "Todo Component"
-Cohesion: 0.18
-Nodes (11): 2.10 `nlohmann::ordered_json` → `QJsonObject`, 2.1 Parsing, 2.2 Reading values, 2.3 Type checking, 2.4 Writing values (construction), 2.5 Serialization, 2.6 Array iteration, 2.7 Error handling (+3 more)
+### Community 187 - "Community 187"
+Cohesion: 0.27
+Nodes (3): string, ulong, IRunnerObserver
 
-### Community 218 - "Image:Isic Component"
+### Community 188 - "Community 188"
+Cohesion: 0.25
+Nodes (11): ANN Feedforward Library, CNN Convolutional Library, Common Shared Config Structs, C++17, ncurses-wide, NN Monorepo, NN-CLI, NN-Server (+3 more)
+
+### Community 189 - "Community 189"
+Cohesion: 0.35
+Nodes (10): runGlobalDualPoolTests(), testGlobalDualPoolAvgOnlyGradient(), testGlobalDualPoolBackpropagate(), testGlobalDualPoolGradientCheck(), testGlobalDualPoolLargeSpatial(), testGlobalDualPoolMaxOnlyGradient(), testGlobalDualPoolNegativeValues(), testGlobalDualPoolPropagate() (+2 more)
+
+### Community 190 - "Community 190"
 Cohesion: 0.20
-Nodes (10): Test, ISIC_1498519.jpg, ISIC_2729538.jpg, ISIC_3904045.jpg, ISIC_4671410.jpg, ISIC_5186409.jpg, bright_1.png, bright_2.png (+2 more)
+Nodes (6): EpochCompletedCallback, EpochRecord, Parameters, T, TrainingCallback, vector
 
-### Community 219 - "ANN Feedforward Layer"
-Cohesion: 0.20
-Nodes (10): GPUKernelBuilder(), Core, CostFunctionConfig, GPUBufferManager, LayersConfig, LogLevel, Parameters, T (+2 more)
+### Community 191 - "Community 191"
+Cohesion: 0.29
+Nodes (9): rng, augment(), AugmentationTransforms, LogLevel, mt19937, GpuAugmenter(), GpuAugmenterPool(), ulong (+1 more)
 
-### Community 220 - "ANN Feedforward Layer"
-Cohesion: 0.20
-Nodes (9): Activation Functions, ANN - Neural Network Library, API Overview, Building, Dependencies, Documentation, Features, License (+1 more)
+### Community 192 - "Community 192"
+Cohesion: 0.38
+Nodes (9): runGPUMultiGPUTests(), testMultiGPUTestMethod(), testMultiGPUCallback(), testMultiGPUCrossEntropyTraining(), testMultiGPUDifferentActivations(), testMultiGPUDropoutTraining(), testMultiGPUMultiOutput(), testMultiGPUParametersDuringTraining() (+1 more)
 
-### Community 221 - "Root Component"
-Cohesion: 0.22
-Nodes (8): CMake build toggles (BUILD_ANN, BUILD_CNN, BUILD_NN_CLI, BUILD_NN_SERVER), Extract temporaries, NN-Server AGENTS.md, NN-Server::HttpServer (QTcpServer), NN-Server::RequestHandler (QRunnable), NN Monorepo AGENTS.md, Root CMakeLists.txt, NN README.md
-
-### Community 222 - "Cmakeuserpresets Component"
-Cohesion: 0.20
-Nodes (9): Per-component build directories, CMakeUserPresets.json Qt6 kit distribution, buildPresets, cmakeMinimumRequired, major, minor, configurePresets, version (+1 more)
-
-### Community 223 - "CNN Convolutional Layer"
+### Community 193 - "Community 193"
 Cohesion: 0.27
 Nodes (9): backpropagate(), CNN::Flatten<double>, CNN::Flatten<float>, CNN::Flatten<int>, Shape3D, T, Tensor1D, Tensor3D (+1 more)
 
-### Community 224 - "Common Config Structs"
+### Community 194 - "Community 194"
+Cohesion: 0.20
+Nodes (8): CostFunctionConfig, T, Worker, calculateLoss, costFunctionConfig, initializeConvParams, initializeNormParams, initializeResidualParams
+
+### Community 195 - "Community 195"
 Cohesion: 0.20
 Nodes (9): EpochRecord, completionTime, epoch, hasValLoss, isBest, loss, valLoss, T (+1 more)
 
-### Community 225 - "Nn Component"
-Cohesion: 0.29
-Nodes (9): collect(), collectRows(), string, SummaryRow, ulong, vector, LossReferenceTable, collect (+1 more)
-
-### Community 226 - "Nn Component"
+### Community 196 - "Community 196"
 Cohesion: 0.20
-Nodes (10): CoreT, LogLevel, ulong, runPredict(), CoreT, LogLevel, ulong, vector (+2 more)
+Nodes (9): ModelPackage, calculateChecksum, createFromMemory, initUstarHeader, isPackage, readBinaryFromPackage, readFileFromTar, readFileFromTarFile (+1 more)
 
-### Community 227 - "Nn Component"
-Cohesion: 0.20
-Nodes (10): ulong, currentEpoch, totalGPUs, ProgressInfo, currentSample, epochLoss, gpuIndex, sampleLoss (+2 more)
-
-### Community 228 - "Nn Component"
-Cohesion: 0.22
-Nodes (10): addEpochRow(), Column, pair, Row, SummaryRow, vector, setEpochColumns(), setLossReferenceRows() (+2 more)
-
-### Community 229 - "Tests"
-Cohesion: 0.38
-Nodes (9): runCalibrateControllerTests(), testCalibrateConfigDefaults(), testComputeFreeEnergy(), testComputePercentile(), testDirHasImages(), testGatherImages(), testIsImagePath(), testRoundTo() (+1 more)
-
-### Community 230 - "Tests"
+### Community 197 - "Community 197"
 Cohesion: 0.38
 Nodes (9): runGlobalAvgPoolTests(), testGlobalAvgPoolBackpropagate(), testGlobalAvgPoolGradientCheck(), testGlobalAvgPoolIdentity1x1(), testGlobalAvgPoolLargeSpatial(), testGlobalAvgPoolMultiChannelGradient(), testGlobalAvgPoolPropagate(), testGlobalAvgPoolSingleChannel() (+1 more)
 
-### Community 231 - "Todo Component"
-Cohesion: 0.20
-Nodes (10): 7.1 Type conversion: `std::vector<float>` ↔ `QJsonArray`, 7.2 `ANN::Tensor3D<float>` and `ANN::Tensor2D<float>`, 7.3 Error handling divergence, 7.4 `nlohmann::ordered_json` key ordering, 7.5 Precision loss: `float` ↔ `double`, 7.6 `qint64` values in `NN-Server/main.cpp`, 7.7 `nlohmann::ordered_json::array()` for empty arrays, 7.8 Dynamic key construction in `CalibrateRunner.cpp` (+2 more)
+### Community 198 - "Community 198"
+Cohesion: 0.22
+Nodes (8): ActvFuncType, ulong, Layer, actvFuncType, numNeurons, LayersConfig, getTotalNumNeurons, vector<Layer>
 
-### Community 232 - "Nn Component"
-Cohesion: 0.28
-Nodes (9): rng, AugmentationTransforms, augment(), LogLevel, mt19937, GpuAugmenter(), GpuAugmenterPool(), ulong (+1 more)
+### Community 199 - "Community 199"
+Cohesion: 0.31
+Nodes (8): backpropagate(), Shape3D, T, Tensor3D, GlobalAvgPool<double>, GlobalAvgPool<float>, GlobalAvgPool<int>, propagate()
 
-### Community 233 - "ANN Feedforward Layer"
-Cohesion: 0.33
-Nodes (9): addBackpropagateKernels(), addPropagateKernels(), addUpdateKernels(), ulong, invalidateAllKernelFlags(), setupBackpropagateKernels(), setupPredictKernels(), setupTrainingKernels() (+1 more)
+### Community 200 - "Community 200"
+Cohesion: 0.31
+Nodes (8): backpropagate(), Shape3D, T, Tensor3D, GlobalDualPool<double>, GlobalDualPool<float>, GlobalDualPool<int>, propagate()
 
-### Community 234 - "CNN Convolutional Layer"
+### Community 201 - "Community 201"
 Cohesion: 0.31
 Nodes (8): backpropagate(), ResidualParameters, T, Tensor3D, propagate(), Residual<double>, Residual<float>, Residual<int>
 
-### Community 235 - "CNN Convolutional Layer"
+### Community 202 - "Community 202"
 Cohesion: 0.25
 Nodes (8): T, ulong, vector, ResidualParameters, biases, inC, outC, weights
 
-### Community 236 - "Common Config Structs"
+### Community 203 - "Community 203"
+Cohesion: 0.39
+Nodes (8): ActvFuncType, CoreConfig, ulong, makeBNTestConfig(), runIntegrationBatchNormTests(), testExactBNForwardBackwardCrossEntropy(), testExactBNForwardBackwardSquaredDifference(), testExactBNForwardBackwardWeightedCrossEntropy()
+
+### Community 204 - "Community 204"
+Cohesion: 0.36
+Nodes (8): ActvFuncType, CoreConfig, ulong, makeGPUTrueBNTestConfig(), runGPUBatchNormTests(), testGPUTrueBNBatchVsInstanceStats(), testGPUTrueBNNoRelu(), testGPUTrueBNvsCPUParity()
+
+### Community 205 - "Community 205"
+Cohesion: 0.39
+Nodes (8): ActvFuncType, CoreConfig, ulong, makeGPUBNTestConfig(), runGPUExactBNTests(), testGPUExactBNForwardBackwardCrossEntropy(), testGPUExactBNForwardBackwardSquaredDifference(), testGPUExactBNForwardBackwardWeightedCrossEntropy()
+
+### Community 206 - "Community 206"
 Cohesion: 0.22
 Nodes (8): EpochCompletionEvent, epoch, epochLoss, isNewBest, stoppedEarly, totalEpochs, T, ulong
 
-### Community 237 - "Common Config Structs"
+### Community 207 - "Community 207"
 Cohesion: 0.22
 Nodes (6): ulong, ValidationConfig, autoSize, checkInterval, enabled, size
 
-### Community 238 - "Common Config Structs"
+### Community 208 - "Community 208"
 Cohesion: 0.22
 Nodes (9): OptimizerType, T, Optimizer, beta1, beta2, epsilon, nameToType, type (+1 more)
 
-### Community 239 - "Common Config Structs"
-Cohesion: 0.22
-Nodes (8): T, ulong, TestResult, accuracy, averageLoss, numCorrect, numSamples, totalLoss
-
-### Community 240 - "Nn Component"
-Cohesion: 0.25
-Nodes (6): ulong, ValidationDatasetConfig, autoSize, checkInterval, enabled, size
-
-### Community 241 - "Nn Component"
-Cohesion: 0.31
-Nodes (7): function, attach(), function, shared_ptr, TerminalUI, loadingCallback(), renderBar()
-
-### Community 242 - "Nn Component"
-Cohesion: 0.22
-Nodes (9): string, vector, SampleManifest, inputData, inputIsImage, inputPath, output, outputIsImage (+1 more)
-
-### Community 243 - "Nn Component"
-Cohesion: 0.22
-Nodes (8): ModelPackage, calculateChecksum, createFromMemory, initUstarHeader, isPackage, readBinaryFromPackage, readFileFromTar, readJsonFromPackage
-
-### Community 244 - "Nn Component"
+### Community 209 - "Community 209"
 Cohesion: 0.33
-Nodes (8): CoreConfig, string, ulong, PredictSummary, printANN, printCNN, printANN(), printCNN()
+Nodes (9): NN Monorepo, ANN Library, CNN Library, NN-CLI, OpenCLWrapper, GET /health Endpoint, POST /predict Endpoint, CorePool (+1 more)
 
-### Community 245 - "Tests"
-Cohesion: 0.44
-Nodes (8): Samples, ulong, makeSamples(), runDataLoaderTests(), testNewEpochResetsPrefetch(), testPrefetchOverlapsWithProcessing(), testProviderRespectsShuffledIndices(), testProviderReturnsCorrectBatches()
+### Community 210 - "Community 210"
+Cohesion: 0.25
+Nodes (8): DataSplit, trainIndices, validationIndices, DataSplitter, computeAutoValSize, stratifiedSplit, ulong, vector
 
-### Community 246 - "Nn Component"
-Cohesion: 0.39
-Nodes (7): ulong, InputConfig, c, h, isImage, w, OutputConfig
-
-### Community 247 - "Readme Component"
-Cohesion: 0.22
-Nodes (8): Build, Build a single component, Build everything — `./build.sh`, Layout, NN, Prerequisites, Static vs shared, and the optional unified build, Tests
-
-### Community 248 - "Tests"
+### Community 211 - "Community 211"
 Cohesion: 0.42
-Nodes (8): runGlobalDualPoolTests(), testGlobalDualPoolAvgOnlyGradient(), testGlobalDualPoolGradientCheck(), testGlobalDualPoolLargeSpatial(), testGlobalDualPoolMaxOnlyGradient(), testGlobalDualPoolNegativeValues(), testGlobalDualPoolPropagate(), testGlobalDualPoolUniformChannel()
+Nodes (8): runActvFuncTests(), testNameToType(), testReLU(), testSigmoid(), testSoftmax(), testSoftmaxBackward(), testTanh(), testTypeToName()
 
-### Community 249 - "Todo Component"
-Cohesion: 0.22
-Nodes (9): Camp α — both nlohmann and Qt active (needs nlohmann portions converted), Camp γ — Qt only, clean (no changes needed), Camp δ — dead includes from both libraries, Camp ε — no JSON at all (no changes needed), Phase 5: Test file changes, `test_ann_gpu_mnist.cpp` — **TRIVIAL**, `test_cnn_gpu_diagnostic.cpp` — **TRIVIAL**, `test_cnn_gpu_isic.cpp` — **MODERATE** (7 ordered_json sites) (+1 more)
+### Community 212 - "Community 212"
+Cohesion: 0.42
+Nodes (8): runCoreFeaturesTests(), testCostFunctionConfigDefault(), testCostFunctionConfigGetter(), testCostFunctionStringConversion(), testShuffleSamplesDefault(), testShuffleSamplesNoShuffle(), testShuffleSamplesTraining(), testWeightedLossAffectsTraining()
 
-### Community 250 - "ANN Feedforward Layer"
-Cohesion: 0.25
-Nodes (8): string, U, vector, readGPUBuffer(), string, vector, readGPUBuffer(), U
-
-### Community 251 - "ANN Feedforward Layer"
-Cohesion: 0.25
-Nodes (8): GPUBufferManager(), Core, CostFunctionConfig, LayersConfig, LogLevel, Parameters, TrainConfig, TrainingConfig
-
-### Community 252 - "ANN Feedforward Layer"
-Cohesion: 0.29
-Nodes (8): Logits, Output, T, Tensor1D, readInputGradients(), readOutput(), readOutputLogits(), setAccumulators()
-
-### Community 253 - "ANN Feedforward Layer"
+### Community 213 - "Community 213"
 Cohesion: 0.32
 Nodes (7): OptimizerType, string, nameToType(), Optimizer<double>, Optimizer<float>, Optimizer<int>, typeToName()
 
-### Community 254 - "CNN Convolutional Layer"
+### Community 214 - "Community 214"
+Cohesion: 0.46
+Nodes (7): runGPUBasicTests2(), testGPUCrossEntropyTraining(), testGPUCrossEntropyCPUParity(), testGPUPredictMetadata(), testGPUTestMethod(), testGPUTrainMetadata(), testGPUWeightedCrossEntropyTraining()
+
+### Community 215 - "Community 215"
+Cohesion: 0.25
+Nodes (8): ConvLayerConfig, filterH, filterW, numFilters, slidingStrategy, strideX, strideY, SlidingStrategyType
+
+### Community 216 - "Community 216"
+Cohesion: 0.32
+Nodes (7): backpropagate(), CNN::ReLU<double>, CNN::ReLU<float>, CNN::ReLU<int>, T, Tensor3D, propagate()
+
+### Community 217 - "Community 217"
 Cohesion: 0.25
 Nodes (7): ulong, Shape3D, c, h, operator==, size, w
 
-### Community 255 - "Nn Component"
+### Community 218 - "Community 218"
 Cohesion: 0.25
-Nodes (8): AugmentationConfig, Core, CoreConfig, IOConfig, LogLevel, CNNRunner(), QCommandLineParser, unique_ptr
+Nodes (8): CNN GPU Tiled GEMM Kernels (gemm, gemm_transA, gemm_transB), im2col + GEMM GPU Convolution Implementation, Conv2D<T> — Convolutional Layer, NCHW Channels-First Memory Layout, FULL Padding Strategy (Expand Output), SAME Padding Strategy (Preserve Spatial Size), VALID Padding Strategy (No Padding), CNN GPU Performance Comparison vs PyTorch/cuDNN
 
-### Community 256 - "Nn Component"
-Cohesion: 0.29
-Nodes (8): addEpochMessage(), addModelInfoEntry(), string, setLoadingProgress(), setModelInfoTitle(), setTimingLines(), syncProgressBarLayout(), updateProgress()
+### Community 219 - "Community 219"
+Cohesion: 0.36
+Nodes (7): ActvFuncType, CoreConfig, ulong, makeGPUTrueBNTestConfig(), runGPUBatchNormTests2(), testGPUTrueBNConvergence(), testGPUTrueBNExactMultiSample()
 
-### Community 257 - "Nn Component"
-Cohesion: 0.32
-Nodes (7): CoreConfig, ulong, print(), printCNN(), TestSummary, print, printCNN
-
-### Community 258 - "Tests"
+### Community 220 - "Community 220"
 Cohesion: 0.54
 Nodes (7): QString, runCNNGPULayerTests(), runGPUPredictTest(), testCNNGPUPredictLayerIsolation(), writeGPUTestConfig(), writeGPUTestInputs(), writeGPUTestSamples()
 
-### Community 259 - "Nn Component"
-Cohesion: 0.29
-Nodes (7): vector, ImageLoader, loadImageFromMemory, saveImageToMemory, loadImageFromMemory(), saveImageToMemory(), NN-Server::ImageLoader
-
-### Community 260 - "Nn Component"
+### Community 221 - "Community 221"
 Cohesion: 0.25
 Nodes (8): Loader, detectNetworkType, isPackage, loadCNNConfig, loadConfig, loadInputConfig, loadOutputConfig, loadPackage
 
-### Community 261 - "Tests"
+### Community 222 - "Community 222"
+Cohesion: 0.46
+Nodes (7): runCoreBasicTests2(), testDifferentActivations(), testGettersAfterConstruction(), testMultiLayerNetwork(), testMultiOutput(), testStepByStepAPI(), testTrainWithTanh()
+
+### Community 223 - "Community 223"
+Cohesion: 0.46
+Nodes (7): runLayerTests(), testAvgPool(), testFlatten(), testMaxPool(), testPoolNonSquare(), testReLU(), testTensor3D()
+
+### Community 224 - "Community 224"
 Cohesion: 0.46
 Nodes (7): runResidualTests(), testResidualGradientCheck(), testResidualIdentityBackward(), testResidualIdentityForward(), testResidualParametersBackward(), testResidualParametersForward(), testResidualShapeValidation()
 
-### Community 262 - "CNN Convolutional Layer"
+### Community 225 - "Community 225"
+Cohesion: 0.29
+Nodes (6): ANN::Worker<double>, ANN::Worker<float>, ANN::Worker<int>, calculateLoss(), Output, T
+
+### Community 226 - "Community 226"
+Cohesion: 0.29
+Nodes (5): CostFunctionConfig, T, Worker, calculateLoss, costFunctionConfig
+
+### Community 227 - "Community 227"
 Cohesion: 0.43
-Nodes (7): CNN_SlidingStrategy, computePadding(), SlidingStrategyType, string, ulong, nameToType(), typeToName()
+Nodes (5): main(), runSerializationTests(), testGettersReturnExpectedState(), testParameterRoundTrip(), testParameterRoundTripPreservesArchitecture()
 
-### Community 263 - "Todo Component"
+### Community 228 - "Community 228"
 Cohesion: 0.29
-Nodes (7): `NN-CLI_ANNRunner.cpp` — **TRIVIAL** (dead include removal), `NN-CLI_CalibrateRunner.cpp` — **MODERATE** (ordered_json in `writeThresholdJson`), `NN-CLI_DataLoader.cpp` — **MODERATE** (~4 nlohmann sites), `NN-CLI_ModelSerializer.cpp` — **COMPLEX** (~50 ordered_json sites, the heaviest file), `NN-CLI_Runner.cpp` — **SIMPLE** (transitive only), `NN-CLI_RunnerUtils.hpp` — **MODERATE** (2 ordered_json variables in `writePredictOutput`), Phase 3: NN-CLI downstream consumers
+Nodes (6): CoreGPUWorkerConfig<double>, CoreGPUWorkerConfig<float>, CoreGPUWorkerConfig<int>, CoreGPUWorkerConfig(), CoreConfig, T
 
-### Community 264 - "ANN Feedforward Layer"
+### Community 229 - "Community 229"
+Cohesion: 0.43
+Nodes (6): computePadding(), SlidingStrategyType, string, ulong, nameToType(), typeToName()
+
+### Community 230 - "Community 230"
 Cohesion: 0.29
-Nodes (7): allocate(), CoreCPUWorker(), CostFunctionConfig, LayersConfig, Parameters, TrainConfig, TrainingConfigT
+Nodes (6): CalibrateConfig, fetchIfMissing, idPercentile, idSampleCount, oodSampleCount, size_t
 
-### Community 265 - "ANN Feedforward Layer"
-Cohesion: 0.33
-Nodes (6): ANN::Utils<double>, ANN::Utils<float>, ANN::Utils<int>, string, formatDuration(), formatISO8601()
-
-### Community 266 - "ANN Feedforward Layer"
-Cohesion: 0.29
-Nodes (6): buildPresets, cmakeMinimumRequired, major, minor, configurePresets, version
-
-### Community 267 - "CNN Convolutional Layer"
-Cohesion: 0.29
-Nodes (6): buildPresets, cmakeMinimumRequired, major, minor, configurePresets, version
-
-### Community 268 - "Common Config Structs"
+### Community 231 - "Community 231"
 Cohesion: 0.33
 Nodes (6): string, PredictMetadata, durationFormatted, durationSeconds, endTime, startTime
 
-### Community 269 - "Nn Component"
+### Community 232 - "Community 232"
 Cohesion: 0.29
-Nodes (7): HttpServer, CorePool, Logger, RequestHandler(), qint64, qintptr, shared_ptr
+Nodes (6): Logits, Output, T, PredictResult, logits, output
 
-### Community 270 - "Nn Component"
+### Community 234 - "Community 234"
 Cohesion: 0.29
-Nodes (6): buildPresets, cmakeMinimumRequired, major, minor, configurePresets, version
+Nodes (7): ulong, ValidationMetadata, bestValEpoch, bestValLoss, enabled, lastValLoss, numValSamples
 
-### Community 271 - "Nn Component"
-Cohesion: 0.29
-Nodes (7): AugmentationConfig, CoreConfig, IOConfig, LogLevel, ANNRunner(), QCommandLineParser, unique_ptr
+### Community 235 - "Community 235"
+Cohesion: 0.62
+Nodes (6): QString, runCNNGPUISICTests(), testCNNISICLikeSaveLoadPredict(), testCNNISICLikeSaveLoadPredictGPU(), writeISICLikeConfig(), writeISICLikeSamples()
 
-### Community 272 - "Nn Component"
-Cohesion: 0.29
-Nodes (7): ValidationState, bestValEpoch, bestValLoss, checkInterval, enabled, lastValLoss, numValSamples
+### Community 236 - "Community 236"
+Cohesion: 0.52
+Nodes (6): runCoreFeaturesTests2(), testDropoutDisabledByDefault(), testDropoutTraining(), testSoftmaxHiddenLayer(), testSoftmaxPredict(), testSoftmaxTrain()
 
-### Community 273 - "Nn Component"
-Cohesion: 0.29
-Nodes (6): buildPresets, cmakeMinimumRequired, major, minor, configurePresets, version
+### Community 237 - "Community 237"
+Cohesion: 0.52
+Nodes (6): runIntegrationBasicTests(), testBatchPredict(), testConvPoolConv(), testEndToEnd(), testMultiChannelInput(), testMultiConvStack()
 
-### Community 274 - "Tests"
+### Community 238 - "Community 238"
 Cohesion: 0.48
 Nodes (5): runIntegrationGlobalPoolTests(), testGlobalAvgPoolAfterPool(), testGlobalAvgPoolEndToEnd(), testGlobalAvgPoolWithNorm(), testGlobalDualPoolEndToEnd()
 
-### Community 275 - "Tests"
-Cohesion: 0.52
-Nodes (6): runMonitoringTests(), testMonitoringConfigDefaults(), testMonitoringConfigParsing(), testTrainingMonitorExplosion(), testTrainingMonitorStagnation(), testTrainingMonitorWithValidationLoss()
-
-### Community 276 - "Todo Component"
+### Community 239 - "Community 239"
 Cohesion: 0.33
-Nodes (6): 6. Testing Strategy, Existing Test Updates, Integration Tests, Unit Tests, 6.1 Incremental approach: convert one file, rebuild, test, 6.2 Final verification
+Nodes (6): T, Tensor2D, Tensor3D, Parameters, biases, weights
 
-### Community 277 - "Nn Component"
+### Community 240 - "Community 240"
 Cohesion: 0.33
-Nodes (6): 7. Training Summary, collect, collectCNN, collectCNNRows, collectRows, countCNNParameters
+Nodes (6): Input, Output, T, Sample, input, output
 
-### Community 278 - "CNN Convolutional Layer"
+### Community 241 - "Community 241"
 Cohesion: 0.53
 Nodes (5): in_macro_body(), is_blank(), main(), process_file(), Check if line i is inside a multi-line macro (previous line ends with \\).
 
-### Community 279 - "CNN Convolutional Layer"
+### Community 242 - "Community 242"
+Cohesion: 0.60
+Nodes (5): runGPUBasicTests(), testGPUPredict(), testGPUShuffleSamples(), testGPUTrainSimple(), testGPUvsCPUParity()
+
+### Community 243 - "Community 243"
+Cohesion: 0.33
+Nodes (4): vector, Shape3D, validateShapes(), stack
+
+### Community 244 - "Community 244"
 Cohesion: 0.53
 Nodes (5): in_macro_body(), is_blank(), main(), process_file(), Check if line i is inside a multi-line macro (previous line ends with \\).
 
-### Community 280 - "Common Config Structs"
+### Community 245 - "Community 245"
 Cohesion: 0.53
 Nodes (3): Device, DeviceType, string
 
-### Community 281 - "Common Config Structs"
+### Community 246 - "Community 246"
 Cohesion: 0.53
 Nodes (3): ModeType, string, Mode
 
-### Community 282 - "Nn Component"
+### Community 247 - "Community 247"
+Cohesion: 0.40
+Nodes (5): CoreHandle, acquire(), CorePool(), string, release()
+
+### Community 248 - "Community 248"
+Cohesion: 0.40
+Nodes (5): DataSplit, computeAutoValSize(), ulong, vector, stratifiedSplit()
+
+### Community 249 - "Community 249"
 Cohesion: 0.33
-Nodes (6): DeviceTypeEnum, deviceString(), string, SummaryRow, key, value
+Nodes (6): ISIC 1498519 Skin Lesion Image, ISIC 2729538 Skin Lesion Image, ISIC 3904045 Skin Lesion Image, ISIC 4671410 Skin Lesion Image, ISIC 5186409 Skin Lesion Image, ISIC (International Skin Imaging Collaboration) Dataset
 
-### Community 283 - "Nn Component"
+### Community 250 - "Community 250"
+Cohesion: 0.60
+Nodes (5): CoreConfig, string, ulong, printANN(), printCNN()
+
+### Community 251 - "Community 251"
 Cohesion: 0.33
-Nodes (6): addEpochLine(), Section, string, vector, setConfigLines(), setConfigSections()
+Nodes (6): TrainingSummary, collect, collectCNN, collectCNNRows, collectRows, countCNNParameters
 
-### Community 284 - "Nn Component"
-Cohesion: 0.53
-Nodes (5): in_macro_body(), is_blank(), main(), process_file(), Check if line i is inside a multi-line macro (previous line ends with \\).
-
-### Community 285 - "Tests"
-Cohesion: 0.53
-Nodes (5): string, TerminalUI_Panel, getVisualWidth(), populateScrollablePanel(), runTerminalUITests()
-
-### Community 286 - "Nn Component"
-Cohesion: 0.53
-Nodes (6): const_reverse_iterator, crbegin(), crend(), rbegin(), rend(), reverse_iterator
-
-### Community 287 - "Nn Component"
+### Community 252 - "Community 252"
 Cohesion: 0.33
 Nodes (5): CoreHandle, annCore, cnnCore, index, Core
 
-### Community 288 - "Nn Component"
+### Community 253 - "Community 253"
+Cohesion: 0.53
+Nodes (5): Logger(), qint64, string, logRequest(), writeLine()
+
+### Community 254 - "Community 254"
 Cohesion: 0.53
 Nodes (5): in_macro_body(), is_blank(), main(), process_file(), Check if line i is inside a multi-line macro (previous line ends with \\).
 
-### Community 289 - "Build Scripts"
-Cohesion: 0.53
-Nodes (5): in_macro_body(), is_blank(), main(), process_file(), Check if line i is inside a multi-line macro (previous line ends with \\).
+### Community 255 - "Community 255"
+Cohesion: 0.60
+Nodes (5): runCoreExactTests(), testCrossEntropyStringConversion(), testExactForwardBackwardCrossEntropy(), testExactForwardBackwardSquaredDifference(), testExactForwardBackwardWeightedCrossEntropy()
 
-### Community 290 - "Tests"
+### Community 256 - "Community 256"
+Cohesion: 0.60
+Nodes (5): runCoreExactTests2(), testCrossEntropyGradientNumerical(), testCrossEntropyLossDecreases(), testCrossEntropyTraining(), testWeightedCrossEntropyTraining()
+
+### Community 257 - "Community 257"
 Cohesion: 0.60
 Nodes (5): runInstanceNormTests(), testInstanceNormBackpropagate(), testInstanceNormBackpropGradient(), testInstanceNormInference(), testInstanceNormTraining()
 
-### Community 291 - "Tests"
+### Community 258 - "Community 258"
+Cohesion: 0.60
+Nodes (5): runIntegrationBasicTests3(), testCostFunctionConfigGetter(), testShuffleSamplesDefault(), testShuffleSamplesTraining(), testWeightedLossTraining()
+
+### Community 259 - "Community 259"
 Cohesion: 0.60
 Nodes (5): runIntegrationCostFuncTests(), testCrossEntropyGradientNumerical(), testCrossEntropyLossDecreases(), testCrossEntropyTraining(), testWeightedCrossEntropyTraining()
 
-### Community 292 - "Todo Component"
-Cohesion: 0.40
-Nodes (6): Binary Parameters Format (params.bin), JSON Disk Bloat Problem, Migration Script (migrate-to-nnmodel.py), ModelPackage Utility Class, ModelSerializer Refactor, .nnmodel Package Format
+### Community 260 - "Community 260"
+Cohesion: 0.60
+Nodes (5): runGPUBasicTests3(), testGPUMultiChannelInput(), testGPUParameterRoundTrip(), testGPUParametersDuringTraining(), testGPUWeightedCrossEntropyTraining()
 
-### Community 293 - "ANN Feedforward Layer"
+### Community 261 - "Community 261"
+Cohesion: 0.40
+Nodes (4): string, U, vector, readGPUBuffer()
+
+### Community 262 - "Community 262"
 Cohesion: 0.60
 Nodes (4): DeviceType, string, nameToType(), typeToName()
 
-### Community 294 - "ANN Feedforward Layer"
+### Community 263 - "Community 263"
 Cohesion: 0.60
 Nodes (4): ModeType, string, nameToType(), typeToName()
 
-### Community 295 - "CNN Convolutional Layer"
+### Community 264 - "Community 264"
 Cohesion: 0.40
-Nodes (5): Core, CoreGPUWorkerConfig, GPUBufferManager, T, GPUKernelBuilder()
+Nodes (5): CoreConfig<T> — Top-Level Configuration, LayersConfig — Network Architecture Definition, TrainConfig<T> — Training Hyperparameters, DeviceType Enum (CPU/GPU), ModeType Enum (TRAIN/PREDICT/TEST/CALIBRATE)
 
-### Community 296 - "CNN Convolutional Layer"
+### Community 265 - "Community 265"
+Cohesion: 0.70
+Nodes (4): runGPUExactTests(), testGPUExactForwardBackwardCrossEntropy(), testGPUExactForwardBackwardSquaredDifference(), testGPUExactForwardBackwardWeightedCrossEntropy()
+
+### Community 266 - "Community 266"
+Cohesion: 0.40
+Nodes (4): string, U, vector, readGPUBuffer()
+
+### Community 267 - "Community 267"
+Cohesion: 0.40
+Nodes (5): GPUKernelBuilder(), Core, CoreGPUWorkerConfig, GPUBufferManager, T
+
+### Community 268 - "Community 268"
 Cohesion: 0.60
 Nodes (4): PoolTypeEnum, string, nameToType(), typeToName()
 
-### Community 297 - "CNN Convolutional Layer"
+### Community 269 - "Community 269"
 Cohesion: 0.40
-Nodes (4): Shape3D, T, Tensor3D, makeGradientInput()
+Nodes (4): Shape3D, ulong, operator==(), size()
 
-### Community 298 - "Common Config Structs"
+### Community 270 - "Community 270"
 Cohesion: 0.40
-Nodes (4): CalibrateConfig, fetchIfMissing, idSampleCount, size_t
+Nodes (4): SlidingStrategy, computePadding, nameToType, typeToName
 
-### Community 299 - "Common Config Structs"
-Cohesion: 0.40
-Nodes (4): Logits, Output, T, PredictResult
+### Community 271 - "Community 271"
+Cohesion: 0.70
+Nodes (4): runGPUBasicTests2(), testGPUCrossEntropyTraining(), testGPUMultiConvStack(), testGPUShuffleSamples()
 
-### Community 300 - "Common Config Structs"
+### Community 272 - "Community 272"
+Cohesion: 0.70
+Nodes (4): runGPUBasicTests(), testGPUEndToEnd(), testGPUPredictOnly(), testGPUWithPoolLayer()
+
+### Community 273 - "Community 273"
+Cohesion: 0.70
+Nodes (4): runGPUExactTests(), testGPUExactForwardBackwardCrossEntropy(), testGPUExactForwardBackwardSquaredDifference(), testGPUExactForwardBackwardWeightedCrossEntropy()
+
+### Community 274 - "Community 274"
+Cohesion: 0.70
+Nodes (4): runGPUMultiGPUTests(), testMultiGPUTestMethod(), testMultiGPUEndToEnd(), testMultiGPUMultiChannelInput()
+
+### Community 275 - "Community 275"
 Cohesion: 0.70
 Nodes (4): formatDuration(), formatHumanReadable(), formatISO8601(), string
 
-### Community 301 - "Concept Component"
-Cohesion: 0.40
-Nodes (5): Data augmentation transforms, Training monitoring and early stopping, .nnmodel package format, Train/validation split, NN-CLI README.md
+### Community 276 - "Community 276"
+Cohesion: 0.50
+Nodes (4): collectRows(), SummaryRow, ulong, vector
 
-### Community 302 - "Nn Component"
-Cohesion: 0.40
-Nodes (3): LogLevel, App(), QCommandLineParser
-
-### Community 303 - "Nn Component"
+### Community 277 - "Community 277"
 Cohesion: 0.60
-Nodes (4): DataType, string, dataTypeFromString(), dataTypeToString()
+Nodes (4): CoreConfig, ulong, print(), printCNN()
 
-### Community 304 - "Nn Component"
-Cohesion: 0.40
-Nodes (4): QCommandLineParser, QMutex, string, vector
-
-### Community 305 - "Nn Component"
-Cohesion: 0.40
-Nodes (5): SummaryTable, collect, collectSections, formatWithCommas, print
-
-### Community 306 - "Nn Component"
+### Community 278 - "Community 278"
 Cohesion: 0.50
-Nodes (5): addChild(), TerminalUI_Widget, unique_ptr, getChild(), removeChild()
+Nodes (3): vector, loadImageFromMemory(), saveImageToMemory()
 
-### Community 307 - "Nn Component"
-Cohesion: 0.40
-Nodes (5): string, vector, setLines(), setTitle(), TerminalUI_Panel()
+### Community 279 - "Community 279"
+Cohesion: 0.60
+Nodes (5): NN-CLI ANN Image Train Samples Config, NN-CLI Bright Test Image 1, NN-CLI Dark Test Image 1, NN-Server Bright Test Image 1, NN-Server Dark Test Image 1
 
-### Community 308 - "Nn Component"
-Cohesion: 0.50
-Nodes (5): addChild(), TerminalUI_Widget, unique_ptr, getChild(), removeChild()
+### Community 280 - "Community 280"
+Cohesion: 0.70
+Nodes (4): runIntegrationExactTests(), testExactForwardBackwardCrossEntropy(), testExactForwardBackwardSquaredDifference(), testExactForwardBackwardWeightedCrossEntropy()
 
-### Community 309 - "Tests"
+### Community 281 - "Community 281"
 Cohesion: 0.70
 Nodes (4): runIntegrationResidualTests(), testResidualIdentityEndToEnd(), testResidualMixedIdentityProjectionEndToEnd(), testResidualParametersEndToEnd()
 
-### Community 310 - "Tests"
+### Community 282 - "Community 282"
 Cohesion: 0.70
-Nodes (4): runGPUGlobalPoolTests(), testGPUGlobalAvgPoolWithNormAndPool(), testGPUWithGlobalAvgPool(), testGPUWithGlobalDualPool()
+Nodes (4): runGPUBasicTests4(), testGPUCostFunctionConfigGetter(), testGPUMultipleOutputNeurons(), testGPUWeightedLossTraining()
 
-### Community 311 - "Todo Component"
-Cohesion: 0.40
-Nodes (5): 7. Affected Files — Complete List, Files NOT Modified:, Files to Create:, Files to Modify:, Files to Move/Update:
+### Community 283 - "Community 283"
+Cohesion: 0.70
+Nodes (4): runIntegrationBasicTests2(), testMultipleOutputNeurons(), testParameterRoundTrip(), testParametersDuringTraining()
 
-### Community 312 - "Agents Component"
+### Community 284 - "Community 284"
+Cohesion: 0.70
+Nodes (4): runGPUMultiGPUTests2(), testMultiGPUCrossEntropyTraining(), testMultiGPUParameterRoundTrip(), testMultiGPUWithPoolLayer()
+
+### Community 285 - "Community 285"
 Cohesion: 0.50
-Nodes (4): Build System, Dependency Order, Monorepo Layout, OpenCLWrapper CMakeLists.txt
+Nodes (3): ANN::Utils<double>, ANN::Utils<float>, ANN::Utils<int>
 
-### Community 313 - "ANN Feedforward Layer"
+### Community 286 - "Community 286"
 Cohesion: 0.50
-Nodes (4): ActvFuncType, ulong, Layer, numNeurons
+Nodes (4): KernelTiming, callCount, kernelName, totalMs
 
-### Community 314 - "ANN Feedforward Layer"
+### Community 287 - "Community 287"
 Cohesion: 0.50
-Nodes (3): Apache License 2.0 with Commons Clause Restriction, Commons Clause Restriction, LICENSE
+Nodes (3): GlobalDualPool, backpropagate, propagate
 
-### Community 315 - "ANN Feedforward Layer"
-Cohesion: 0.50
-Nodes (3): Apache License 2.0 with Commons Clause Restriction, Commons Clause Restriction, LICENSE
-
-### Community 317 - "CNN Convolutional Layer"
+### Community 288 - "Community 288"
 Cohesion: 0.50
 Nodes (3): PoolType, nameToType, typeToName
 
-### Community 318 - "CNN Convolutional Layer"
+### Community 289 - "Community 289"
 Cohesion: 0.50
-Nodes (3): Apache License 2.0 with Commons Clause Restriction, Commons Clause Restriction, LICENSE
+Nodes (4): KernelTiming, callCount, kernelName, totalMs
 
-### Community 319 - "Common Config Structs"
+### Community 290 - "Community 290"
 Cohesion: 0.50
 Nodes (3): ulong, TestConfig, batchSize
 
-### Community 320 - "Nn Component"
+### Community 291 - "Community 291"
 Cohesion: 0.50
 Nodes (4): out, reg0, reg1, stbir__simdf_pack_to_8words()
 
-### Community 321 - "Nn Component"
+### Community 292 - "Community 292"
 Cohesion: 0.50
-Nodes (3): Apache License 2.0 with Commons Clause Restriction, Commons Clause Restriction, LICENSE
+Nodes (3): string, vector, _win_st
 
-### Community 322 - "Nn Component"
+### Community 293 - "Community 293"
 Cohesion: 0.50
 Nodes (4): out, reg0, reg1, stbir__simdf_pack_to_8words()
 
-### Community 323 - "Nn Component"
+### Community 294 - "Community 294"
 Cohesion: 0.50
-Nodes (3): Apache License 2.0 with Commons Clause Restriction, Commons Clause Restriction, LICENSE
+Nodes (3): ImageLoader, loadImageFromMemory, saveImageToMemory
 
-### Community 324 - "Todo Component"
-Cohesion: 0.50
-Nodes (4): 3.1. Binary Parameters Format (`params.bin`), 3.2. Package Format (`.nnmodel`), 3.3. JSON Config File Format (`.json` / within package as `model.json`), 3. File Format Specifications
-
-### Community 325 - "Todo Component"
-Cohesion: 0.50
-Nodes (4): 4.1. `ModelSerializer` Changes, 4.2. Output Filename Changes, 4.3. Checkpoint & Best Model Saving, 4. Save Path Modifications
-
-### Community 326 - "CNN Convolutional Layer"
-Cohesion: 0.67
-Nodes (3): CNN_Shape3D, ulong, size()
-
-### Community 327 - "ANN Feedforward Layer"
-Cohesion: 0.67
-Nodes (3): LayersConfig, getTotalNumNeurons, vector<Layer>
-
-### Community 328 - "Nn Component"
+### Community 297 - "Community 297"
 Cohesion: 0.67
 Nodes (3): pc, while(), STBIR_NO_UNROLL_LOOP_START
 
-### Community 329 - "Nn Component"
+### Community 301 - "Community 301"
 Cohesion: 0.67
 Nodes (3): pc, while(), STBIR_NO_UNROLL_LOOP_START
 
 ## Knowledge Gaps
-- **2424 isolated node(s):** `nameToType`, `typeToName`, `relu`, `sigmoid`, `tanh` (+2419 more)
+- **2240 isolated node(s):** `nameToType`, `typeToName`, `calculate`, `relu`, `sigmoid` (+2235 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **91 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ANN::Core (abstract backend)` connect `Tests` to `Tests`, `Nn Component`, `Nn Component`, `Nn Component`, `Nn Component`, `ANN Feedforward Layer`, `Nn Component`, `Tests`, `Nn Component`, `Nn Component`, `CNN Convolutional Layer`, `Nn Component`, `Nn Component`, `Nn Component`, `Nn Component`, `Nn Component`?**
-  _High betweenness centrality (0.119) - this node is a cross-community bridge._
-- **Why does `ANN::CoreCPUWorker` connect `ANN Feedforward Layer` to `CNN Convolutional Layer`, `CNN Convolutional Layer`, `ANN Feedforward Layer`, `ANN Feedforward Layer`, `Nn Component`, `CNN Convolutional Layer`, `CNN Convolutional Layer`, `ANN Feedforward Layer`, `Class:Ann Component`, `ANN Feedforward Layer`, `Class:Cli Component`, `CNN Convolutional Layer`, `ANN Feedforward Layer`, `ANN Feedforward Layer`, `CNN Convolutional Layer`, `Tests`, `CNN Convolutional Layer`, `CNN Convolutional Layer`, `CNN Convolutional Layer`, `CNN Convolutional Layer`, `Class:Cli Component`, `ANN Feedforward Layer`, `ANN Feedforward Layer`?**
-  _High betweenness centrality (0.109) - this node is a cross-community bridge._
-- **Why does `makeLayersConfig()` connect `Tests` to `Tests`, `ANN Feedforward Layer`, `Tests`, `Nn Component`, `Tests`, `Tests`, `Tests`?**
-  _High betweenness centrality (0.068) - this node is a cross-community bridge._
-- **What connects `nameToType`, `typeToName`, `relu` to the rest of the system?**
-  _2437 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Nn Component` be split into smaller, more focused modules?**
-  _Cohesion score 0.056846662109820006 - nodes in this community are weakly interconnected._
-- **Should `Nn Component` be split into smaller, more focused modules?**
-  _Cohesion score 0.05971173644474949 - nodes in this community are weakly interconnected._
-- **Should `Nn Component` be split into smaller, more focused modules?**
-  _Cohesion score 0.06265432098765432 - nodes in this community are weakly interconnected._
+- **Why does `Core<T> — Abstract Base Class` connect `Community 136` to `Community 34`, `Community 98`, `Community 68`, `Community 133`, `Community 8`, `Community 14`, `Community 84`, `Community 55`, `Community 86`, `Community 87`, `Community 252`, `Community 157`, `Community 30`?**
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
+- **Why does `QFile` connect `Community 114` to `Community 65`, `Community 3`, `Community 99`, `Community 38`, `Community 102`, `Community 107`, `Community 44`, `Community 141`, `Community 14`, `Community 79`, `Community 80`, `Community 235`, `Community 116`, `Community 117`, `Community 151`, `Community 154`, `Community 220`, `Community 31`?**
+  _High betweenness centrality (0.042) - this node is a cross-community bridge._
+- **Why does `CoreCPUWorker` connect `Community 41` to `Community 191`, `Community 58`, `Community 135`?**
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+- **Are the 69 inferred relationships involving `makeLayersConfig()` (e.g. with `testGPUCrossEntropyTraining()` and `testGPUExactForwardBackwardCrossEntropy()`) actually correct?**
+  _`makeLayersConfig()` has 69 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `nameToType`, `typeToName`, `calculate` to the rest of the system?**
+  _2259 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 0` be split into smaller, more focused modules?**
+  _Cohesion score 0.07985193019566367 - nodes in this community are weakly interconnected._
+- **Should `Community 1` be split into smaller, more focused modules?**
+  _Cohesion score 0.03258052573121066 - nodes in this community are weakly interconnected._

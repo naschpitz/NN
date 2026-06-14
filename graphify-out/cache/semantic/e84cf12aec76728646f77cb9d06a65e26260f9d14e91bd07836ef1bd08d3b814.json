@@ -1,0 +1,1 @@
+{"nodes": [{"id": "ann_initialization_he", "label": "He Initialization (for ReLU layers)", "file_type": "concept", "source_file": "docs/ANN/math-initialization.html"}, {"id": "ann_initialization_xavier", "label": "Xavier Initialization (for Sigmoid/Tanh layers)", "file_type": "concept", "source_file": "docs/ANN/math-initialization.html"}], "edges": [], "hyperedges": []}

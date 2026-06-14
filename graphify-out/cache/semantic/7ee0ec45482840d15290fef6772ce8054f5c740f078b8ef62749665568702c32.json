@@ -1,0 +1,1 @@
+{"nodes": [{"id": "ann_optimizer_sgd", "label": "SGD Optimizer (Stochastic Gradient Descent)", "file_type": "concept", "source_file": "docs/ANN/math-optimizers.html"}, {"id": "ann_optimizer_adam", "label": "Adam Optimizer (Adaptive Moment Estimation)", "file_type": "concept", "source_file": "docs/ANN/math-optimizers.html"}], "edges": [], "hyperedges": []}

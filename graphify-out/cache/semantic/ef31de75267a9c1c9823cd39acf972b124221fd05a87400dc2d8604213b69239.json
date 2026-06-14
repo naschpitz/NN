@@ -1,0 +1,1 @@
+{"nodes": [{"id": "ann_forward_propagation", "label": "Forward Propagation Algorithm", "file_type": "concept", "source_file": "docs/ANN/math-propagation.html"}, {"id": "ann_dropout", "label": "Dropout Regularization", "file_type": "concept", "source_file": "docs/ANN/math-propagation.html"}], "edges": [], "hyperedges": []}

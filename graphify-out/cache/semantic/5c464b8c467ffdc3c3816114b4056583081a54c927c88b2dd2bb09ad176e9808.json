@@ -1,0 +1,1 @@
+{"nodes": [{"id": "cnn_layer_globalavgpool", "label": "GlobalAvgPool<T> \u2014 Global Average Pooling", "file_type": "concept", "source_file": "docs/CNN/layers-globalavgpool.html"}], "edges": [], "hyperedges": []}
