@@ -28,7 +28,7 @@ MVC pattern: `App` → `Controller` → `{Model (Runner), View (Window)}`
 | Layer | Class | Role |
 |-------|-------|------|
 | App | `NN-CLI_App` | Entry point, config loading, mode dispatch |
-| Controller | `TrainingController`, `PredictController`, `TestController` | Orchestrate training/prediction/test flow |
+| Controller | `TrainController`, `PredictController`, `TestController` | Orchestrate training/prediction/test flow |
 | Model | `NN-CLI_Runner` (ANN/CNN variants) | Bridge to ANN::Core / CNN::Core |
 | View | `NN-CLI_TerminalUI_*` (Panel, Table, Window, ProgressBar) | ncurses terminal UI |
 | Observer | `IRunnerObserver` | Model → Controller notifications |

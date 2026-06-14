@@ -11,7 +11,7 @@
 #include "NN-CLI_ModelSerializer.hpp"
 #include "NN-CLI_PredictController.hpp"
 #include "NN-CLI_TestController.hpp"
-#include "NN-CLI_TrainingController.hpp"
+#include "NN-CLI_TrainController.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -190,7 +190,7 @@ int App::run()
       return ctrl.startCalibrate();
     }
     case Common::ModeType::TRAIN: {
-      TrainingController<ANNRunner> ctrl;
+      TrainController<ANNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTraining();
     }
@@ -217,7 +217,7 @@ int App::run()
       return ctrl.startCalibrate();
     }
     case Common::ModeType::TRAIN: {
-      TrainingController<CNNRunner> ctrl;
+      TrainController<CNNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTraining();
     }

@@ -1,8 +1,8 @@
-#ifndef NN_CLI_TRAININGCONTROLLER_HPP
-#define NN_CLI_TRAININGCONTROLLER_HPP
+#ifndef NN_CLI_TRAINCONTROLLER_HPP
+#define NN_CLI_TRAINCONTROLLER_HPP
 
 #include "NN-CLI_RunnerObserver.hpp"
-#include "NN-CLI_TerminalUI_TrainingWindow.hpp"
+#include "NN-CLI_TerminalUI_TrainWindow.hpp"
 
 #include <memory>
 #include <string>
@@ -14,7 +14,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   // MVC Controller for training sessions.  Bridges a concrete Runner (Model)
-  // and a TerminalUI_TrainingWindow (View) through the IRunnerObserver
+  // and a TerminalUI_TrainWindow (View) through the IRunnerObserver
   // interface.  Owns both components and translates training events into
   // high-level view updates — the controller itself is completely free of
   // ncurses internals.
@@ -31,32 +31,32 @@ namespace NN_CLI
   // CNNRunner).  The controller takes ownership of the runner via unique_ptr
   // and registers itself as an observer to receive batch, epoch, and model-info
   // events.  Each observer override delegates to a single high-level call on
-  // the TrainingWindow, keeping the mapping transparent and testable.
+  // the TrainWindow, keeping the mapping transparent and testable.
   //
   // Usage:
   //   auto runner = std::make_unique<ANNRunner>(...);
-  //   TrainingController<ANNRunner> ctrl;
+  //   TrainController<ANNRunner> ctrl;
   //   ctrl.init(std::move(runner));
   //   int result = ctrl.startTraining();
 
   template <typename RunnerT>
-  class TrainingController : public IRunnerObserver
+  class TrainController : public IRunnerObserver
   {
     public:
       //-- Ctors / Dtors --//
 
-      TrainingController() = default;
+      TrainController() = default;
 
-      ~TrainingController() override;
+      ~TrainController() override;
 
-      TrainingController(const TrainingController&) = delete;
-      TrainingController& operator=(const TrainingController&) = delete;
-      TrainingController(TrainingController&&) = delete;
-      TrainingController& operator=(TrainingController&&) = delete;
+      TrainController(const TrainController&) = delete;
+      TrainController& operator=(const TrainController&) = delete;
+      TrainController(TrainController&&) = delete;
+      TrainController& operator=(TrainController&&) = delete;
 
       //-- Lifecycle --//
 
-      // Create the TrainingWindow, take ownership of the Runner, and register
+      // Create the TrainWindow, take ownership of the Runner, and register
       // this controller as an IRunnerObserver on the Runner.
       void init(std::unique_ptr<RunnerT> runner);
 
@@ -66,7 +66,7 @@ namespace NN_CLI
 
       //-- Accessors --//
 
-      TerminalUI_TrainingWindow* getWindow() const;
+      TerminalUI_TrainWindow* getWindow() const;
       RunnerT* getRunner() const;
 
     protected:
@@ -106,7 +106,7 @@ namespace NN_CLI
 
       //-- Members --//
 
-      std::unique_ptr<TerminalUI_TrainingWindow> window;
+      std::unique_ptr<TerminalUI_TrainWindow> window;
       std::unique_ptr<RunnerT> runner;
 
       //-- Training state --//
@@ -120,4 +120,4 @@ namespace NN_CLI
 
 } // namespace NN_CLI
 
-#endif // NN_CLI_TRAININGCONTROLLER_HPP
+#endif // NN_CLI_TRAINCONTROLLER_HPP

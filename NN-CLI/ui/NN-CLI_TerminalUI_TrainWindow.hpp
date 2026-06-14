@@ -1,5 +1,5 @@
-#ifndef NN_CLI_TERMINALUI_TRAININGWINDOW_HPP
-#define NN_CLI_TERMINALUI_TRAININGWINDOW_HPP
+#ifndef NN_CLI_TERMINALUI_TRAINWINDOW_HPP
+#define NN_CLI_TERMINALUI_TRAINWINDOW_HPP
 
 #include "NN-CLI_SummaryTable.hpp"
 #include "NN-CLI_TerminalUI_Panel.hpp"
@@ -35,7 +35,7 @@ namespace NN_CLI
   // The public API allows the Controller to update panel data; the
   // window handles layout, drawing, and input routing.
 
-  class TerminalUI_TrainingWindow : public TerminalUI_Window
+  class TerminalUI_TrainWindow : public TerminalUI_Window
   {
     public:
       //-- Types --//
@@ -50,9 +50,9 @@ namespace NN_CLI
 
       //-- Ctors / Dtors --//
 
-      TerminalUI_TrainingWindow();
+      TerminalUI_TrainWindow();
 
-      ~TerminalUI_TrainingWindow() override;
+      ~TerminalUI_TrainWindow() override;
 
       //-- Layout --//
 
@@ -238,4 +238,4 @@ namespace NN_CLI
 
 } // namespace NN_CLI
 
-#endif // NN_CLI_TERMINALUI_TRAININGWINDOW_HPP
+#endif // NN_CLI_TERMINALUI_TRAINWINDOW_HPP

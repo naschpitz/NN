@@ -1,4 +1,4 @@
-#include "NN-CLI_TerminalUI_TrainingWindow.hpp"
+#include "NN-CLI_TerminalUI_TrainWindow.hpp"
 
 #include <algorithm>
 
@@ -9,7 +9,7 @@ namespace NN_CLI
   //-- Ctors / Dtors --//
   //===================================================================================================================//
 
-  TerminalUI_TrainingWindow::TerminalUI_TrainingWindow()
+  TerminalUI_TrainWindow::TerminalUI_TrainWindow()
   {
     //-- Create and register child panels --//
 
@@ -57,13 +57,13 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  TerminalUI_TrainingWindow::~TerminalUI_TrainingWindow() {}
+  TerminalUI_TrainWindow::~TerminalUI_TrainWindow() {}
 
   //===================================================================================================================//
   //-- Layout --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::layoutChildren()
+  void TerminalUI_TrainWindow::layoutChildren()
   {
     int W = this->width;
     int H = this->height;
@@ -142,7 +142,7 @@ namespace NN_CLI
   //-- Progress updates --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::updateProgress(const std::string& label, float fraction)
+  void TerminalUI_TrainWindow::updateProgress(const std::string& label, float fraction)
   {
     if (this->progressBarPtr)
       this->progressBarPtr->setBarData(label, fraction);
@@ -152,7 +152,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::updateProgress(const std::string& label,
+  void TerminalUI_TrainWindow::updateProgress(const std::string& label,
                                                   const std::vector<float>& fractions)
   {
     if (this->progressBarPtr)
@@ -163,7 +163,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::updateProgressSubLine(const std::string& text, int colorPair)
+  void TerminalUI_TrainWindow::updateProgressSubLine(const std::string& text, int colorPair)
   {
     if (this->progressBarPtr)
       this->progressBarPtr->setSubLineText(text, colorPair);
@@ -171,7 +171,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::clearProgressSubLine()
+  void TerminalUI_TrainWindow::clearProgressSubLine()
   {
     if (this->progressBarPtr)
       this->progressBarPtr->clearSubLineText();
@@ -179,7 +179,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::setLoadingProgress(const std::string& label, float fraction)
+  void TerminalUI_TrainWindow::setLoadingProgress(const std::string& label, float fraction)
   {
     if (this->loadingBarPtr) {
       this->loadingBarPtr->setVisible(true);
@@ -191,7 +191,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::clearLoadingProgress()
+  void TerminalUI_TrainWindow::clearLoadingProgress()
   {
     if (this->loadingBarPtr)
       this->loadingBarPtr->setVisible(false);
@@ -201,49 +201,49 @@ namespace NN_CLI
   //-- Epoch table --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::setEpochColumns(std::vector<TerminalUI_Table::Column> columns)
+  void TerminalUI_TrainWindow::setEpochColumns(std::vector<TerminalUI_Table::Column> columns)
   {
     this->epochTable.setColumns(std::move(columns));
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::addEpochRow(const TerminalUI_Table::Row& row)
+  void TerminalUI_TrainWindow::addEpochRow(const TerminalUI_Table::Row& row)
   {
     this->epochTable.addRow(row);
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::addEpochRows(const std::vector<TerminalUI_Table::Row>& rows)
+  void TerminalUI_TrainWindow::addEpochRows(const std::vector<TerminalUI_Table::Row>& rows)
   {
     this->epochTable.addRows(rows);
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::clearEpochRows()
+  void TerminalUI_TrainWindow::clearEpochRows()
   {
     this->epochTable.clearRows();
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::addEpochMessage(const std::string& message)
+  void TerminalUI_TrainWindow::addEpochMessage(const std::string& message)
   {
     this->epochMessages.push_back(message);
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::clearEpochMessages()
+  void TerminalUI_TrainWindow::clearEpochMessages()
   {
     this->epochMessages.clear();
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::refreshEpochContent()
+  void TerminalUI_TrainWindow::refreshEpochContent()
   {
     if (!this->epochsPanelPtr)
       return;
@@ -285,14 +285,14 @@ namespace NN_CLI
   //-- Model info --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::setModelInfoTitle(const std::string& title)
+  void TerminalUI_TrainWindow::setModelInfoTitle(const std::string& title)
   {
     this->modelInfoTitle = title;
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::setModelInfoEntries(
+  void TerminalUI_TrainWindow::setModelInfoEntries(
     const std::vector<std::pair<std::string, std::string>>& entries)
   {
     this->modelConfigRows.clear();
@@ -303,42 +303,42 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::addModelInfoEntry(const std::string& key, const std::string& value)
+  void TerminalUI_TrainWindow::addModelInfoEntry(const std::string& key, const std::string& value)
   {
     this->modelConfigRows.push_back({key, value});
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::setModelInfoRows(const std::vector<SummaryRow>& rows)
+  void TerminalUI_TrainWindow::setModelInfoRows(const std::vector<SummaryRow>& rows)
   {
     this->modelConfigRows = rows;
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::clearModelInfoEntries()
+  void TerminalUI_TrainWindow::clearModelInfoEntries()
   {
     this->modelConfigRows.clear();
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::setLossReferenceRows(const std::vector<SummaryRow>& rows)
+  void TerminalUI_TrainWindow::setLossReferenceRows(const std::vector<SummaryRow>& rows)
   {
     this->lossReferenceRows = rows;
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::clearLossReferenceRows()
+  void TerminalUI_TrainWindow::clearLossReferenceRows()
   {
     this->lossReferenceRows.clear();
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::refreshModelInfoContent()
+  void TerminalUI_TrainWindow::refreshModelInfoContent()
   {
     if (!this->modelInfoPanelPtr)
       return;
@@ -368,14 +368,14 @@ namespace NN_CLI
   //-- Timing --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::setTimingLines(const std::vector<std::string>& lines)
+  void TerminalUI_TrainWindow::setTimingLines(const std::vector<std::string>& lines)
   {
     this->rawTimingLines = lines;
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::refreshTimingContent()
+  void TerminalUI_TrainWindow::refreshTimingContent()
   {
     if (!this->timingPanelPtr)
       return;
@@ -397,14 +397,14 @@ namespace NN_CLI
   //-- Panel selection --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::setActivePanel(int panelIndex)
+  void TerminalUI_TrainWindow::setActivePanel(int panelIndex)
   {
     this->activePanel = panelIndex;
   }
 
   //===================================================================================================================//
 
-  int TerminalUI_TrainingWindow::getActivePanel() const
+  int TerminalUI_TrainWindow::getActivePanel() const
   {
     return this->activePanel;
   }
@@ -413,28 +413,28 @@ namespace NN_CLI
   //-- Panel access --//
   //===================================================================================================================//
 
-  TerminalUI_Panel* TerminalUI_TrainingWindow::getProgressPanel() const
+  TerminalUI_Panel* TerminalUI_TrainWindow::getProgressPanel() const
   {
     return this->progressPanelPtr;
   }
 
   //===================================================================================================================//
 
-  TerminalUI_Panel* TerminalUI_TrainingWindow::getEpochsPanel() const
+  TerminalUI_Panel* TerminalUI_TrainWindow::getEpochsPanel() const
   {
     return this->epochsPanelPtr;
   }
 
   //===================================================================================================================//
 
-  TerminalUI_Panel* TerminalUI_TrainingWindow::getModelInfoPanel() const
+  TerminalUI_Panel* TerminalUI_TrainWindow::getModelInfoPanel() const
   {
     return this->modelInfoPanelPtr;
   }
 
   //===================================================================================================================//
 
-  TerminalUI_Panel* TerminalUI_TrainingWindow::getTimingPanel() const
+  TerminalUI_Panel* TerminalUI_TrainWindow::getTimingPanel() const
   {
     return this->timingPanelPtr;
   }
@@ -443,7 +443,7 @@ namespace NN_CLI
   //-- Hooks --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::preRender()
+  void TerminalUI_TrainWindow::preRender()
   {
     this->updatePanelColors();
   }
@@ -452,7 +452,7 @@ namespace NN_CLI
   //-- Event routing --//
   //===================================================================================================================//
 
-  bool TerminalUI_TrainingWindow::cycleActivePanel(int ch)
+  bool TerminalUI_TrainWindow::cycleActivePanel(int ch)
   {
     if (ch != '\t')
       return false;
@@ -463,7 +463,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  bool TerminalUI_TrainingWindow::scrollActivePanel(int ch)
+  bool TerminalUI_TrainWindow::scrollActivePanel(int ch)
   {
     TerminalUI_Panel* scrollablePanels[] = {
       this->modelInfoPanelPtr,
@@ -485,7 +485,7 @@ namespace NN_CLI
   //-- Widget overrides --//
   //===================================================================================================================//
 
-  bool TerminalUI_TrainingWindow::handleEvent(int ch)
+  bool TerminalUI_TrainWindow::handleEvent(int ch)
   {
     if (this->cycleActivePanel(ch))
       return true;
@@ -501,7 +501,7 @@ namespace NN_CLI
   //-- Private — progress bar layout sync --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::syncProgressBarLayout()
+  void TerminalUI_TrainWindow::syncProgressBarLayout()
   {
     if (!this->loadingBarPtr || !this->progressBarPtr)
       return;
@@ -524,7 +524,7 @@ namespace NN_CLI
   //-- Protected — helpers --//
   //===================================================================================================================//
 
-  void TerminalUI_TrainingWindow::updatePanelColors()
+  void TerminalUI_TrainWindow::updatePanelColors()
   {
     // Active panel: YELLOW (3).  Inactive panels: CYAN (2).
     // The progress panel is always CYAN since it is not scrollable.

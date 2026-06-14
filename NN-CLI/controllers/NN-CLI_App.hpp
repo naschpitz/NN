@@ -25,7 +25,7 @@ namespace NN_CLI
    * Application entry point and Controller factory for the MVC architecture.
    *
    * Handles initial config loading, network type detection, and delegates
-   * to the appropriate Controller (TrainingController, PredictController,
+   * to the appropriate Controller (TrainController, PredictController,
    * TestController, or CalibrateController) based on the selected mode.
    * Each Controller bridges a concrete Runner (Model) and a View through
    * the IRunnerObserver interface.

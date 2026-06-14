@@ -1,8 +1,8 @@
-#include "NN-CLI_TrainingController.hpp"
+#include "NN-CLI_TrainController.hpp"
 
 #include "NN-CLI_ANNRunner.hpp"
 #include "NN-CLI_CNNRunner.hpp"
-#include "NN-CLI_TerminalUI_TrainingWindow.hpp"
+#include "NN-CLI_TerminalUI_TrainWindow.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
 #include "NN-CLI_SummaryTable.hpp"
 
@@ -49,7 +49,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  TrainingController<RunnerT>::~TrainingController()
+  TrainController<RunnerT>::~TrainController()
   {
     if (this->runner)
       this->runner->removeObserver(this);
@@ -60,9 +60,9 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::init(std::unique_ptr<RunnerT> runner)
+  void TrainController<RunnerT>::init(std::unique_ptr<RunnerT> runner)
   {
-    this->window = std::make_unique<TerminalUI_TrainingWindow>();
+    this->window = std::make_unique<TerminalUI_TrainWindow>();
     this->runner = std::move(runner);
 
     if (this->runner) {
@@ -98,7 +98,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  int TrainingController<RunnerT>::startTraining()
+  int TrainController<RunnerT>::startTraining()
   {
     if (!this->runner)
       return 1;
@@ -111,7 +111,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  TerminalUI_TrainingWindow* TrainingController<RunnerT>::getWindow() const
+  TerminalUI_TrainWindow* TrainController<RunnerT>::getWindow() const
   {
     return this->window.get();
   }
@@ -119,7 +119,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  RunnerT* TrainingController<RunnerT>::getRunner() const
+  RunnerT* TrainController<RunnerT>::getRunner() const
   {
     return this->runner.get();
   }
@@ -129,7 +129,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex,
+  void TrainController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex,
                                                          ulong totalBatches, bool isValidation)
   {
     (void)batchIndex;
@@ -152,7 +152,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::onValidationProgress(ulong current, ulong total)
+  void TrainController<RunnerT>::onValidationProgress(ulong current, ulong total)
   {
     if (!this->window)
       return;
@@ -168,7 +168,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
+  void TrainController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
                                                     float samplesPerSec, float etaSeconds,
                                                     const std::vector<float>& fractions)
   {
@@ -197,7 +197,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
+  void TrainController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
                                                      float valLoss, const std::string& summary)
   {
     if (!this->window)
@@ -245,7 +245,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::onTrainingFinished(bool success, const std::string& finalSummary)
+  void TrainController<RunnerT>::onTrainingFinished(bool success, const std::string& finalSummary)
   {
     if (!this->window)
       return;
@@ -262,7 +262,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::onModelInfoUpdated(const std::string& property, const std::string& value)
+  void TrainController<RunnerT>::onModelInfoUpdated(const std::string& property, const std::string& value)
   {
     (void)property;
     (void)value;
@@ -283,7 +283,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::onLogMessage(const std::string& message, bool isError)
+  void TrainController<RunnerT>::onLogMessage(const std::string& message, bool isError)
   {
     if (!this->window)
       return;
@@ -298,7 +298,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::onTimingUpdated(const std::string& metric, float value)
+  void TrainController<RunnerT>::onTimingUpdated(const std::string& metric, float value)
   {
     (void)metric;
     (void)value;
@@ -316,7 +316,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  std::string TrainingController<RunnerT>::buildEpochLabel() const
+  std::string TrainController<RunnerT>::buildEpochLabel() const
   {
     std::ostringstream oss;
     oss << "Epoch " << std::setw(4) << (this->currentEpoch + 1) << "/" << this->totalEpochs;
@@ -329,7 +329,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::refreshTimingPanel()
+  void TrainController<RunnerT>::refreshTimingPanel()
   {
     if (!this->window || !this->runner)
       return;
@@ -349,7 +349,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainingController<RunnerT>::populateModelInfo()
+  void TrainController<RunnerT>::populateModelInfo()
   {
     if (!this->window || !this->runner)
       return;
@@ -374,7 +374,7 @@ namespace NN_CLI
   //-- Explicit template instantiations --//
   //===================================================================================================================//
 
-  template class TrainingController<ANNRunner>;
-  template class TrainingController<CNNRunner>;
+  template class TrainController<ANNRunner>;
+  template class TrainController<CNNRunner>;
 
 } // namespace NN_CLI

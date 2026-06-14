@@ -1,6 +1,6 @@
 #include "test_helpers.hpp"
 
-#include "NN-CLI_TerminalUI_TrainingWindow.hpp"
+#include "NN-CLI_TerminalUI_TrainWindow.hpp"
 
 #include <cstdio>
 #include <string>
@@ -60,25 +60,25 @@ void runTerminalUITests()
   //-- cycleActivePanel --//
 
   {
-    NN_CLI::TerminalUI_TrainingWindow window;
+    NN_CLI::TerminalUI_TrainWindow window;
 
     // Default active panel is MODEL_INFO (0).
-    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainingWindow::MODEL_INFO,
+    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainWindow::MODEL_INFO,
           "Default active panel should be MODEL_INFO");
 
     // Tab should cycle: 0 -> 1.
     CHECK(window.cycleActivePanel('\t'), "Tab should be consumed");
-    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainingWindow::EPOCHS,
+    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainWindow::EPOCHS,
           "After one Tab, active panel should be EPOCHS (1)");
 
     // Tab again: 1 -> 2.
     CHECK(window.cycleActivePanel('\t'), "Second Tab should be consumed");
-    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainingWindow::TIMING,
+    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainWindow::TIMING,
           "After two Tabs, active panel should be TIMING (2)");
 
     // Tab wraps: 2 -> 0.
     CHECK(window.cycleActivePanel('\t'), "Third Tab should be consumed");
-    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainingWindow::MODEL_INFO,
+    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainWindow::MODEL_INFO,
           "After three Tabs, active panel should wrap back to MODEL_INFO (0)");
 
     // Non-Tab keys should not be consumed.
@@ -89,12 +89,12 @@ void runTerminalUITests()
   //-- scrollActivePanel --//
 
   {
-    NN_CLI::TerminalUI_TrainingWindow window;
+    NN_CLI::TerminalUI_TrainWindow window;
 
     // Populate the Model Info panel with scrollable content.
     populateScrollablePanel(window.getModelInfoPanel(), 50);
 
-    window.setActivePanel(NN_CLI::TerminalUI_TrainingWindow::MODEL_INFO);
+    window.setActivePanel(NN_CLI::TerminalUI_TrainWindow::MODEL_INFO);
 
     int initialOffset = window.getModelInfoPanel()->scrollState().offset;
     CHECK(initialOffset == 0, "Initial scroll offset should be 0");
@@ -132,7 +132,7 @@ void runTerminalUITests()
   //-- Scroll routing targets the active panel --//
 
   {
-    NN_CLI::TerminalUI_TrainingWindow window;
+    NN_CLI::TerminalUI_TrainWindow window;
 
     // Make all three panels scrollable (autoScroll disabled by populateScrollablePanel).
     populateScrollablePanel(window.getModelInfoPanel(), 50);
@@ -140,7 +140,7 @@ void runTerminalUITests()
     populateScrollablePanel(window.getTimingPanel(), 50);
 
     // Activate EPOCHS panel (index 1).
-    window.setActivePanel(NN_CLI::TerminalUI_TrainingWindow::EPOCHS);
+    window.setActivePanel(NN_CLI::TerminalUI_TrainWindow::EPOCHS);
 
     // Scroll down — should affect EPOCHS only, not MODEL_INFO or TIMING.
     CHECK(window.scrollActivePanel(TestKeys::kKeyDown), "KEY_DOWN on EPOCHS panel should be consumed");
@@ -152,7 +152,7 @@ void runTerminalUITests()
           "TIMING offset should remain 0 (not the active panel)");
 
     // Switch to TIMING panel (index 2) and scroll.
-    window.setActivePanel(NN_CLI::TerminalUI_TrainingWindow::TIMING);
+    window.setActivePanel(NN_CLI::TerminalUI_TrainWindow::TIMING);
     CHECK(window.scrollActivePanel(TestKeys::kKeyEnd), "KEY_END on TIMING panel should be consumed");
     CHECK(window.getTimingPanel()->scrollState().offset > 0,
           "TIMING offset should be non-zero after KEY_END");
@@ -165,13 +165,13 @@ void runTerminalUITests()
   //-- handleEvent delegates correctly --//
 
   {
-    NN_CLI::TerminalUI_TrainingWindow window;
+    NN_CLI::TerminalUI_TrainWindow window;
     populateScrollablePanel(window.getModelInfoPanel(), 50);
     populateScrollablePanel(window.getEpochsPanel(), 50);
 
     // handleEvent should delegate Tab to cycleActivePanel.
     CHECK(window.handleEvent('\t'), "handleEvent should consume Tab");
-    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainingWindow::EPOCHS,
+    CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainWindow::EPOCHS,
           "handleEvent Tab should cycle panel to EPOCHS");
 
     // handleEvent should delegate scroll keys to scrollActivePanel.
