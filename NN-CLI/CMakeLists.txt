@@ -16,28 +16,35 @@ if(NOT TARGET CNN)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../CNN ${CMAKE_CURRENT_BINARY_DIR}/CNN)
 endif()
 
+set(NNCLI_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/controllers
+    ${CMAKE_CURRENT_SOURCE_DIR}/models
+)
+
 add_executable(NN-CLI
   main.cpp
-  NN-CLI_ANNRunner.cpp
-  NN-CLI_CalibrateRunner.cpp
-  NN-CLI_CNNLoader.cpp
-  NN-CLI_CNNRunner.cpp
-  NN-CLI_Runner.cpp
-  NN-CLI_LossReferenceTable.cpp
-  NN-CLI_ModelSerializer.cpp
-  NN-CLI_PredictSummary.cpp
-  NN-CLI_App.cpp
-  NN-CLI_TerminalUI_Panel.cpp
-  NN-CLI_TerminalUI_Table.cpp
-  NN-CLI_TerminalUI_Window.cpp
-  NN-CLI_TerminalUI_TrainingWindow.cpp
-  NN-CLI_TestSummary.cpp
-  NN-CLI_TrainingProfiler.cpp
-  NN-CLI_TrainingController.cpp
-  NN-CLI_PredictController.cpp
-  NN-CLI_TestController.cpp
-  NN-CLI_CalibrateController.cpp
-  NN-CLI_Utils.cpp
+  models/NN-CLI_ANNRunner.cpp
+  models/NN-CLI_CalibrateRunner.cpp
+  models/NN-CLI_CNNLoader.cpp
+  models/NN-CLI_CNNRunner.cpp
+  models/NN-CLI_Runner.cpp
+  models/NN-CLI_LossReferenceTable.cpp
+  models/NN-CLI_ModelSerializer.cpp
+  models/NN-CLI_PredictSummary.cpp
+  controllers/NN-CLI_App.cpp
+  ui/NN-CLI_TerminalUI_Panel.cpp
+  ui/NN-CLI_TerminalUI_Table.cpp
+  ui/NN-CLI_TerminalUI_Window.cpp
+  ui/NN-CLI_TerminalUI_TrainingWindow.cpp
+  models/NN-CLI_TestSummary.cpp
+  models/NN-CLI_TrainingProfiler.cpp
+  controllers/NN-CLI_TrainingController.cpp
+  controllers/NN-CLI_PredictController.cpp
+  controllers/NN-CLI_TestController.cpp
+  controllers/NN-CLI_CalibrateController.cpp
+  models/NN-CLI_Utils.cpp
 )
 
 # ncurses for the training terminal UI
@@ -55,22 +62,22 @@ endif()
 # Object library for shared sources — compiled once and linked into both NN-CLI and test_nncli.
 # Without this, 10 .cpp files are compiled twice (once per target), wasting build time.
 add_library(nncli_common OBJECT
-    NN-CLI_ANNLoader.cpp
-    NN-CLI_CalibrateUtils.cpp
-    NN-CLI_DataLoader.cpp
-    NN-CLI_GpuAugmenter.cpp
-    NN-CLI_DataSplitter.cpp
-    NN-CLI_DataType.cpp
-    NN-CLI_ImageLoader.cpp
-    NN-CLI_Loader.cpp
-    NN-CLI_ModelPackage.cpp
-    NN-CLI_TerminalUI_ProgressBar.cpp
-    NN-CLI_TerminalUI_Widget.cpp
-    NN-CLI_SummaryTable.cpp
-    NN-CLI_TrainingSummary.cpp
+    models/NN-CLI_ANNLoader.cpp
+    models/NN-CLI_CalibrateUtils.cpp
+    models/NN-CLI_DataLoader.cpp
+    models/NN-CLI_GpuAugmenter.cpp
+    models/NN-CLI_DataSplitter.cpp
+    models/NN-CLI_DataType.cpp
+    models/NN-CLI_ImageLoader.cpp
+    models/NN-CLI_Loader.cpp
+    models/NN-CLI_ModelPackage.cpp
+    ui/NN-CLI_TerminalUI_ProgressBar.cpp
+    ui/NN-CLI_TerminalUI_Widget.cpp
+    models/NN-CLI_SummaryTable.cpp
+    models/NN-CLI_TrainingSummary.cpp
 )
 target_include_directories(nncli_common PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${NNCLI_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
     ${CURSES_INCLUDE_DIR}
@@ -85,6 +92,7 @@ target_link_libraries(nncli_common PRIVATE
 # nlohmann JSON library (header-only, used directly by NN-CLI for config serialisation)
 # stb image library (header-only, used for image loading/saving)
 target_include_directories(NN-CLI PRIVATE
+    ${NNCLI_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
     ${CURSES_INCLUDE_DIR}
@@ -160,13 +168,13 @@ add_executable(test_nncli
   tests/test_calibrate_controller.cpp
   # TerminalUI sources needed for unit tests (panel, table, window, training window).
   # Compiled separately from nncli_common to keep the shared object library lean.
-  ${CMAKE_CURRENT_SOURCE_DIR}/NN-CLI_TerminalUI_Panel.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/NN-CLI_TerminalUI_Table.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/NN-CLI_TerminalUI_Window.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/NN-CLI_TerminalUI_TrainingWindow.cpp
+  ui/NN-CLI_TerminalUI_Panel.cpp
+  ui/NN-CLI_TerminalUI_Table.cpp
+  ui/NN-CLI_TerminalUI_Window.cpp
+  ui/NN-CLI_TerminalUI_TrainingWindow.cpp
 )
 target_include_directories(test_nncli PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${NNCLI_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/nlohmann
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
     ${CURSES_INCLUDE_DIR}

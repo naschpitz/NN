@@ -1,5 +1,5 @@
 #include "test_helpers.hpp"
-#include "../NN-CLI_ANNLoader.hpp"
+#include "NN-CLI_ANNLoader.hpp"
 
 #include "Common/Common_TrainingMonitor.hpp"
 

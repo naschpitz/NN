@@ -1,6 +1,6 @@
 #include "test_helpers.hpp"
-#include "../NN-CLI_DataSplitter.hpp"
-#include "../NN-CLI_Loader.hpp"
+#include "NN-CLI_DataSplitter.hpp"
+#include "NN-CLI_Loader.hpp"
 
 #include <algorithm>
 #include <cmath>

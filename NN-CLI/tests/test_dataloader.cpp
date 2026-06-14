@@ -1,5 +1,5 @@
 #include "test_helpers.hpp"
-#include "../NN-CLI_DataLoader.hpp"
+#include "NN-CLI_DataLoader.hpp"
 
 #include <ANN_Sample.hpp>
 #include <CNN_Sample.hpp>
