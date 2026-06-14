@@ -85,9 +85,9 @@ static void testParameterRoundTrip()
   std::cout << "  original=" << origPred[0] << "  from_params=" << newPred[0] << std::endl;
 }
 
-static void testParametersDuringTraining()
+static void testParametersDuringTrain()
 {
-  std::cout << "--- testParametersDuringTraining ---" << std::endl;
+  std::cout << "--- testParametersDuringTrain ---" << std::endl;
 
   // Train and verify getParameters() returns populated conv AND dense params
   // during training (in the callback), not just after training ends.
@@ -140,7 +140,7 @@ static void testParametersDuringTraining()
   bool denseBiasesNonEmpty = false;
   ulong lastEpoch = 0;
 
-  core->setTrainingCallback([&](const Common::TrainingProgressEvent<double>& progress) {
+  core->setTrainCallback([&](const Common::TrainProgressEvent<double>& progress) {
     // Detect epoch transition (first callback of a new epoch)
     if (progress.currentEpoch > lastEpoch && lastEpoch > 0 && !paramsChecked) {
       const CNN::Parameters<double>& params = core->getParameters();
@@ -225,6 +225,6 @@ static void testMultipleOutputNeurons()
 void runIntegrationBasicTests2()
 {
   testParameterRoundTrip();
-  testParametersDuringTraining();
+  testParametersDuringTrain();
   testMultipleOutputNeurons();
 }

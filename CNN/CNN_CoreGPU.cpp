@@ -1,7 +1,7 @@
 #include "CNN_CoreGPU.hpp"
 #include "CNN_CoreGPUWorkerConfig.hpp"
 #include "Common/Common_GPUWorkDistributor.hpp"
-#include "Common/Common_TrainingMonitor.hpp"
+#include "Common/Common_TrainMonitor.hpp"
 #include "CNN_Worker.hpp"
 
 #include <OCLW_Core.hpp>
@@ -152,10 +152,10 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
   // Create training monitor if monitoring is enabled
   const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
-  std::unique_ptr<TrainingMonitor<T>> monitor;
+  std::unique_ptr<TrainMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
-    monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
+    monitor = std::make_unique<TrainMonitor<T>>(monitoringConfig);
   }
 
   for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
@@ -203,18 +203,18 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
           Samples<T> gpuSamples(batchSamples.begin() + item.startIdx, batchSamples.begin() + item.endIdx);
 
           // Create per-batch callback that translates indices to cumulative per-GPU counts
-          TrainingCallback<T> callback;
+          TrainCallback<T> callback;
 
-          if (this->trainingCallback) {
+          if (this->trainCallback) {
             ulong offset = gpuCumulativeSamples[item.gpuIdx];
             size_t gpuIdx = item.gpuIdx;
-            callback = [this, offset, gpuIdx, numSamples](const TrainingProgressEvent<T>& progress) {
-              TrainingProgressEvent<T> gpuProgress = progress;
+            callback = [this, offset, gpuIdx, numSamples](const TrainProgressEvent<T>& progress) {
+              TrainProgressEvent<T> gpuProgress = progress;
               gpuProgress.currentSample = offset + progress.currentSample;
               gpuProgress.totalSamples = numSamples;
               gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
               gpuProgress.totalGPUs = static_cast<int>(this->numGPUs);
-              this->trainingCallback(gpuProgress);
+              this->trainCallback(gpuProgress);
             };
           }
 
@@ -271,7 +271,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
           gpuIndices.append(i);
         QtConcurrent::blockingMap(&this->workerPool, gpuIndices, [this, &savedKernels](size_t gpuIdx) {
           this->gpuWorkers[gpuIdx]->restoreKernels(savedKernels[gpuIdx]);
-          this->gpuWorkers[gpuIdx]->setTrainingKernelsReady(true);
+          this->gpuWorkers[gpuIdx]->setTrainKernelsReady(true);
         });
         this->emitTiming(TimingPhase::KernelRestore, TimingEvent::End);
       }
@@ -295,8 +295,8 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     // EpochRecord::epoch), regardless of monitoring
     this->trainMetadata.lastEpoch = e;
 
-    if (this->trainingCallback) {
-      TrainingProgressEvent<T> progress;
+    if (this->trainCallback) {
+      TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -314,7 +314,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         }
       }
 
-      this->trainingCallback(progress);
+      this->trainCallback(progress);
     }
 
     // Record epoch history

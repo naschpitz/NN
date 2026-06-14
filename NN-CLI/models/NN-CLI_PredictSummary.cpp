@@ -1,6 +1,6 @@
 #include "NN-CLI_PredictSummary.hpp"
 #include "NN-CLI_SummaryTable.hpp"
-#include "NN-CLI_TrainingSummary.hpp"
+#include "NN-CLI_TrainSummary.hpp"
 
 #include <string>
 #include <variant>
@@ -52,7 +52,7 @@ namespace NN_CLI
     }
 
     ulong denseCount = layers.denseLayers.size();
-    ulong totalParams = TrainingSummary::countCNNParameters(cnnConfig);
+    ulong totalParams = TrainSummary::countCNNParameters(cnnConfig);
     ulong outputNeurons = layers.denseLayers.empty() ? 0 : layers.denseLayers.back().numNeurons;
 
     std::string deviceStr = SummaryTable::deviceString(cnnConfig.deviceType, cnnConfig.numGPUs, cnnConfig.numThreads);

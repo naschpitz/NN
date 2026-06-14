@@ -38,7 +38,7 @@ namespace CNN
       // notifies phase boundaries (H2DUpload / GpuCompute) tagged with its GPU index.
       // gpuProfileCallback receives GPU-profiled per-sub-phase kernel times.
       T trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                    const TrainingCallback<T>& callback, const TimingCallback& timingCallback = nullptr,
+                     const TrainCallback<T>& callback, const TimingCallback& timingCallback = nullptr,
                     int gpuIndex = -1, const GpuProfileCallback& gpuProfileCallback = nullptr);
 
       //-- Testing --//
@@ -58,7 +58,7 @@ namespace CNN
       //-- Kernel save/restore (delegates to OpenCL core) --//
       std::vector<std::vector<OpenCLWrapper::Kernel>> saveKernels();
       void restoreKernels(const std::vector<std::vector<OpenCLWrapper::Kernel>>& kernels);
-      void setTrainingKernelsReady(bool ready);
+      void setTrainKernelsReady(bool ready);
 
       //-- Parameter access --//
       const Parameters<T>& getParameters() const
@@ -91,7 +91,7 @@ namespace CNN
       bool profilingEnabled = false;
 
       //-- Per-sample progress reporting (loss delta from the GPU accumulator) --//
-      void reportSampleProgress(const TrainingCallback<T>& callback, ulong currentSample, ulong totalSamples,
+      void reportSampleProgress(const TrainCallback<T>& callback, ulong currentSample, ulong totalSamples,
                                 ulong epoch, ulong totalEpochs, T& prevAccumLoss);
   };
 }

@@ -44,9 +44,9 @@ static void testCostFunctionConfigGetter()
 
 //===================================================================================================================//
 
-static void testWeightedLossTraining()
+static void testWeightedLossTrain()
 {
-  std::cout << "--- testWeightedLossTraining ---" << std::endl;
+  std::cout << "--- testWeightedLossTrain ---" << std::endl;
 
   // 1x5x5 → Conv(1,3x3) → ReLU → Flatten(9) → Dense(2, sigmoid)
   CNN::CoreConfig<double> config;
@@ -121,9 +121,9 @@ static void testShuffleSamplesDefault()
 
 //===================================================================================================================//
 
-static void testShuffleSamplesTraining()
+static void testShuffleSamplesTrain()
 {
-  std::cout << "--- testShuffleSamplesTraining ---" << std::endl;
+  std::cout << "--- testShuffleSamplesTrain ---" << std::endl;
 
   // Train with shuffle=true and shuffle=false, both should converge
   auto makeConfig = [](bool shuffle) {
@@ -190,7 +190,7 @@ static void testShuffleSamplesTraining()
 void runIntegrationBasicTests3()
 {
   testCostFunctionConfigGetter();
-  testWeightedLossTraining();
+  testWeightedLossTrain();
   testShuffleSamplesDefault();
-  testShuffleSamplesTraining();
+  testShuffleSamplesTrain();
 }

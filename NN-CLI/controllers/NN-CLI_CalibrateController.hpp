@@ -67,7 +67,7 @@ namespace NN_CLI
       void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                             const std::string& summary) override;
 
-      void onTrainingFinished(bool success, const std::string& finalSummary) override;
+      void onTrainFinished(bool success, const std::string& finalSummary) override;
 
       void onModelInfoUpdated(const std::string& property, const std::string& value) override;
 

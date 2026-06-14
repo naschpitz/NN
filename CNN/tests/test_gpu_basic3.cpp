@@ -1,8 +1,8 @@
 #include "test_helpers.hpp"
 
-static void testGPUWeightedCrossEntropyTraining()
+static void testGPUWeightedCrossEntropyTrain()
 {
-  std::cout << "--- testGPUWeightedCrossEntropyTraining (CNN) ---" << std::endl;
+  std::cout << "--- testGPUWeightedCrossEntropyTrain (CNN) ---" << std::endl;
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -215,9 +215,9 @@ static void testGPUParameterRoundTrip()
   std::cout << "  GPU original=" << origPred[0] << "  from_params=" << newPred[0] << std::endl;
 }
 
-static void testGPUParametersDuringTraining()
+static void testGPUParametersDuringTrain()
 {
-  std::cout << "--- testGPUParametersDuringTraining ---" << std::endl;
+  std::cout << "--- testGPUParametersDuringTrain ---" << std::endl;
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -268,7 +268,7 @@ static void testGPUParametersDuringTraining()
   bool denseBiasesNonEmpty = false;
   ulong lastEpoch = 0;
 
-  core->setTrainingCallback([&](const Common::TrainingProgressEvent<float>& progress) {
+  core->setTrainCallback([&](const Common::TrainProgressEvent<float>& progress) {
     if (progress.currentEpoch > lastEpoch && lastEpoch > 0 && !paramsChecked) {
       const CNN::Parameters<float>& params = core->getParameters();
       convFiltersNonEmpty = !params.convParams.empty() && !params.convParams[0].filters.empty();
@@ -292,8 +292,8 @@ static void testGPUParametersDuringTraining()
 
 void runGPUBasicTests3()
 {
-  testGPUWeightedCrossEntropyTraining();
+  testGPUWeightedCrossEntropyTrain();
   testGPUMultiChannelInput();
   testGPUParameterRoundTrip();
-  testGPUParametersDuringTraining();
+  testGPUParametersDuringTrain();
 }

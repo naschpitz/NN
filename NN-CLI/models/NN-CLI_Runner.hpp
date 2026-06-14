@@ -10,7 +10,7 @@
 #include "NN-CLI_SummaryTable.hpp"
 #include "NN-CLI_Utils.hpp"
 
-#include "Common/Common_TrainingProgressEvent.hpp"
+#include "Common/Common_TrainProgressEvent.hpp"
 
 #include <QCommandLineParser>
 #include <QMutex>
@@ -28,7 +28,7 @@ namespace NN_CLI
 
   /**
    * Base class for ANNRunner and CNNRunner.  Holds all shared state and
-   * provides buildValidationMetadata() and finishTraining().  Derived
+    * provides buildValidationMetadata() and finishTrain().  Derived
    * classes supply the core-specific doSaveModel() implementation.
    */
   template <typename CoreT, typename CoreConfigT>
@@ -111,19 +111,19 @@ namespace NN_CLI
 
       // Build the complete set of SummaryRows describing the model
       // configuration and training setup, mirroring the order and separators
-      // used by TrainingSummary::collectCNNRows / collectRows.
+       // used by TrainSummary::collectCNNRows / collectRows.
       std::vector<SummaryRow> buildModelInfoRows() const;
 
     protected:
       //-- Methods --//
       ValidationMetadata buildValidationMetadata() const;
-      int finishTraining(const QString& inputFilePath);
+       int finishTrain(const QString& inputFilePath);
 
       // Shared per-batch training-progress handler, installed as the core's
       // training callback by both ANNRunner and CNNRunner: tracks per-GPU
       // fractions (reset at epoch boundaries) and notifies observers of
       // batch progress.  Thread-safe (locks callbackMutex).
-      void handleTrainingProgress(const Common::TrainingProgressEvent<float>& progress, ulong batchSize);
+       void handleTrainProgress(const Common::TrainProgressEvent<float>& progress, ulong batchSize);
 
       //-- Pure virtual --//
       virtual void doSaveModel(const std::string& outputPath) = 0;
@@ -136,7 +136,7 @@ namespace NN_CLI
                                float etaSeconds, const std::vector<float>& fractions);
       void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                                 const std::string& summary);
-      void notifyTrainingFinished(bool success, const std::string& finalSummary);
+       void notifyTrainFinished(bool success, const std::string& finalSummary);
       void notifyModelInfoUpdated(const std::string& property, const std::string& value);
       void notifyLogMessage(const std::string& message, bool isError);
       void notifyTimingUpdated(const std::string& metric, float value);

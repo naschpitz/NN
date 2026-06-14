@@ -62,7 +62,7 @@ namespace NN_CLI
                            const std::vector<float>& fractions) override;
       void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                             const std::string& summary) override;
-      void onTrainingFinished(bool success, const std::string& finalSummary) override;
+      void onTrainFinished(bool success, const std::string& finalSummary) override;
       void onModelInfoUpdated(const std::string& property, const std::string& value) override;
       void onLogMessage(const std::string& message, bool isError) override;
       void onTimingUpdated(const std::string& metric, float value) override;
@@ -74,7 +74,7 @@ namespace NN_CLI
     private:
       //-- Observer notifications --//
       void notifyLogMessage(const std::string& message, bool isError);
-      void notifyTrainingFinished(bool success, const std::string& finalSummary);
+      void notifyTrainFinished(bool success, const std::string& finalSummary);
 
       //-- Members --//
       const QCommandLineParser& parser;

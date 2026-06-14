@@ -39,7 +39,7 @@ add_executable(NN-CLI
   ui/NN-CLI_TerminalUI_Window.cpp
   ui/NN-CLI_TerminalUI_TrainWindow.cpp
   models/NN-CLI_TestSummary.cpp
-  models/NN-CLI_TrainingProfiler.cpp
+  models/NN-CLI_TrainProfiler.cpp
   controllers/NN-CLI_TrainController.cpp
   controllers/NN-CLI_PredictController.cpp
   controllers/NN-CLI_TestController.cpp
@@ -74,7 +74,7 @@ add_library(nncli_common OBJECT
     ui/NN-CLI_TerminalUI_ProgressBar.cpp
     ui/NN-CLI_TerminalUI_Widget.cpp
     models/NN-CLI_SummaryTable.cpp
-    models/NN-CLI_TrainingSummary.cpp
+    models/NN-CLI_TrainSummary.cpp
 )
 target_include_directories(nncli_common PRIVATE
     ${NNCLI_INCLUDE_DIRS}

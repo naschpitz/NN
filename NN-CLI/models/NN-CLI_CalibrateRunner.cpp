@@ -89,10 +89,10 @@ void NN_CLI::CalibrateRunner::notifyLogMessage(const std::string& message, bool 
 
 //===================================================================================================================//
 
-void NN_CLI::CalibrateRunner::notifyTrainingFinished(bool success, const std::string& finalSummary)
+void NN_CLI::CalibrateRunner::notifyTrainFinished(bool success, const std::string& finalSummary)
 {
   for (auto* observer : this->observers)
-    observer->onTrainingFinished(success, finalSummary);
+    observer->onTrainFinished(success, finalSummary);
 }
 
 //===================================================================================================================//
@@ -179,7 +179,7 @@ void NN_CLI::CalibrateRunner::onEpochCompleted(int epochIdx, int totalEpochs, fl
 
 //===================================================================================================================//
 
-void NN_CLI::CalibrateRunner::onTrainingFinished(bool success, const std::string& finalSummary)
+void NN_CLI::CalibrateRunner::onTrainFinished(bool success, const std::string& finalSummary)
 {
   (void)success;
   (void)finalSummary;

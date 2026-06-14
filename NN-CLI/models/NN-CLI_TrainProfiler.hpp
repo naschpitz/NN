@@ -1,5 +1,5 @@
-#ifndef NN_CLI_TRAININGPROFILER_HPP
-#define NN_CLI_TRAININGPROFILER_HPP
+#ifndef NN_CLI_TRAINPROFILER_HPP
+#define NN_CLI_TRAINPROFILER_HPP
 
 #include <CNN_TimingCallback.hpp>
 
@@ -15,10 +15,10 @@
 
 namespace NN_CLI
 {
-  class TrainingProfiler
+  class TrainProfiler
   {
     public:
-      TrainingProfiler();
+      TrainProfiler();
 
       void onEvent(CNN::TimingPhase phase, CNN::TimingEvent event, int gpuIndex);
       void onGpuProfile(const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex);
@@ -102,4 +102,4 @@ namespace NN_CLI
 
 } // namespace NN_CLI
 
-#endif // NN_CLI_TRAININGPROFILER_HPP
+#endif // NN_CLI_TRAINPROFILER_HPP

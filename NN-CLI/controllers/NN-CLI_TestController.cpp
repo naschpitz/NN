@@ -94,7 +94,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TestController<RunnerT>::onTrainingFinished(bool success, const std::string& finalSummary)
+  void TestController<RunnerT>::onTrainFinished(bool success, const std::string& finalSummary)
   {
     std::cout << "\n";
 

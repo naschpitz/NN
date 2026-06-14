@@ -1,4 +1,4 @@
-#include "NN-CLI_TrainingProfiler.hpp"
+#include "NN-CLI_TrainProfiler.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -39,7 +39,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  TrainingProfiler::TrainingProfiler()
+  TrainProfiler::TrainProfiler()
   {
     this->reset();
   }
@@ -48,7 +48,7 @@ namespace NN_CLI
   //-- Hot path: phase boundary events (lock-free) --//
   //===================================================================================================================//
 
-  void TrainingProfiler::onEvent(Phase phase, Event event, int gpuIndex)
+  void TrainProfiler::onEvent(Phase phase, Event event, int gpuIndex)
   {
     const int row = rowOf(gpuIndex);
     const int p = static_cast<int>(phase);
@@ -78,7 +78,7 @@ namespace NN_CLI
   //-- GPU profile data (per-sample, lock-free per-row accumulation) --//
   //===================================================================================================================//
 
-  void TrainingProfiler::onGpuProfile(const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex)
+  void TrainProfiler::onGpuProfile(const std::vector<CNN::GpuPhaseProfile>& profiles, int gpuIndex)
   {
     const int row = rowOf(gpuIndex);
 
@@ -96,7 +96,7 @@ namespace NN_CLI
   //-- Epoch boundary --//
   //===================================================================================================================//
 
-  void TrainingProfiler::setEpoch(ulong epoch)
+  void TrainProfiler::setEpoch(ulong epoch)
   {
     if (epoch == this->currentEpoch)
       return;
@@ -118,7 +118,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TrainingProfiler::resetRenderState()
+  void TrainProfiler::resetRenderState()
   {
     this->lastRenderedBatchNumber = static_cast<ulong>(-1);
   }
@@ -127,7 +127,7 @@ namespace NN_CLI
   //-- TUI table lines (for CDK label) --//
   //===================================================================================================================//
 
-  std::vector<std::string> TrainingProfiler::getTimingLines(int maxWidth) const
+  std::vector<std::string> TrainProfiler::getTimingLines(int maxWidth) const
   {
     StepView v;
     {
@@ -279,7 +279,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TrainingProfiler::reset()
+  void TrainProfiler::reset()
   {
     QMutexLocker<QMutex> lock(&this->mutex);
 
@@ -308,7 +308,7 @@ namespace NN_CLI
   //-- Step finalize --//
   //===================================================================================================================//
 
-  void TrainingProfiler::finalizeStep()
+  void TrainProfiler::finalizeStep()
   {
     double h2dSum = 0.0;
     double computeSum = 0.0;
@@ -399,7 +399,7 @@ namespace NN_CLI
   //-- Phase labels / formatting --//
   //===================================================================================================================//
 
-  const char* TrainingProfiler::phaseLabel(Phase phase)
+  const char* TrainProfiler::phaseLabel(Phase phase)
   {
     switch (phase) {
     case Phase::DataFetch:

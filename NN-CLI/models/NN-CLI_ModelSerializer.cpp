@@ -1274,7 +1274,7 @@ namespace NN_CLI
   //-- Output path helpers --//
   //===================================================================================================================//
 
-  std::string ModelSerializer::generateTrainingFilename(ulong epochs, ulong samples, float loss)
+  std::string ModelSerializer::generateTrainFilename(ulong epochs, ulong samples, float loss)
   {
     std::ostringstream oss;
     oss << "trained_E-" << epochs << "_S-" << samples << "_L-" << std::fixed << std::setprecision(6) << loss
@@ -1293,7 +1293,7 @@ namespace NN_CLI
 
     NN_CLI::Utils<>::ensureOutputDir(inputDir.filePath("output"));
 
-    QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainingFilename(epochs, samples, loss)));
+    QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainFilename(epochs, samples, loss)));
     return outputPath.toStdString();
   }
 

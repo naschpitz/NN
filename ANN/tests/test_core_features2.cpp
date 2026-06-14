@@ -105,9 +105,9 @@ static void testSoftmaxHiddenLayer()
 
 //===================================================================================================================//
 
-static void testDropoutTraining()
+static void testDropoutTrain()
 {
-  std::cout << "--- testDropoutTraining ---" << std::endl;
+  std::cout << "--- testDropoutTrain ---" << std::endl;
 
   // Train XOR with dropout — should still converge (dropout is regularization, not destructive)
   ANN::CoreConfig<double> config;
@@ -158,6 +158,6 @@ void runCoreFeaturesTests2()
   testSoftmaxPredict();
   testSoftmaxTrain();
   testSoftmaxHiddenLayer();
-  testDropoutTraining();
+  testDropoutTrain();
   testDropoutDisabledByDefault();
 }

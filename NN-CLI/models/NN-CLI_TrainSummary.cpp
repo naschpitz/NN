@@ -1,4 +1,4 @@
-#include "NN-CLI_TrainingSummary.hpp"
+#include "NN-CLI_TrainSummary.hpp"
 #include "NN-CLI_SummaryTable.hpp"
 
 #include <iomanip>
@@ -11,7 +11,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<std::string> TrainingSummary::collectCNN(const CNN::CoreConfig<float>& cnnConfig,
+  std::vector<std::string> TrainSummary::collectCNN(const CNN::CoreConfig<float>& cnnConfig,
                                                        const AugmentationConfig& augConfig,
                                                        ulong numOriginalTrainSamples, ulong numTrainSamples,
                                                        ulong numValidationSamples, float validationRatio,
@@ -24,7 +24,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<SummaryRow> TrainingSummary::collectCNNRows(const CNN::CoreConfig<float>& cnnConfig,
+  std::vector<SummaryRow> TrainSummary::collectCNNRows(const CNN::CoreConfig<float>& cnnConfig,
                                                           const AugmentationConfig& augConfig,
                                                           ulong numOriginalTrainSamples, ulong numTrainSamples,
                                                           ulong numValidationSamples, float validationRatio,
@@ -212,7 +212,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<std::string> TrainingSummary::collect(const ANN::CoreConfig<float>& annConfig,
+  std::vector<std::string> TrainSummary::collect(const ANN::CoreConfig<float>& annConfig,
                                                     const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
                                                     ulong numTrainSamples, ulong numValidationSamples,
                                                     float validationRatio, bool validationAuto, ulong maxWidth)
@@ -224,7 +224,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::vector<SummaryRow> TrainingSummary::collectRows(const ANN::CoreConfig<float>& annConfig,
+  std::vector<SummaryRow> TrainSummary::collectRows(const ANN::CoreConfig<float>& annConfig,
                                                        const AugmentationConfig& augConfig,
                                                        ulong numOriginalTrainSamples, ulong numTrainSamples,
                                                        ulong numValidationSamples, float validationRatio,
@@ -307,7 +307,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ulong TrainingSummary::countCNNParameters(const CNN::CoreConfig<float>& config)
+  ulong TrainSummary::countCNNParameters(const CNN::CoreConfig<float>& config)
   {
     ulong total = 0;
     const auto& layers = config.layersConfig.cnnLayers;

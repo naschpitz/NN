@@ -95,7 +95,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void CalibrateController<RunnerT>::onTrainingFinished(bool success, const std::string& finalSummary)
+  void CalibrateController<RunnerT>::onTrainFinished(bool success, const std::string& finalSummary)
   {
     std::cout << "\n";
 

@@ -28,7 +28,7 @@ namespace ANN
 
       //-- Kernel setup (clears previous kernels and rebuilds) --//
       void setupPredictKernels();
-      void setupTrainingKernels();
+      void setupTrainKernels();
       void setupBackpropagateKernels();
       void setupAccumulateKernels();
       void setupUpdateKernels(ulong numSamples);

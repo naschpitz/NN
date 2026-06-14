@@ -10,7 +10,7 @@
 #include "ANN_Parameters.hpp"
 #include "ANN_Sample.hpp"
 #include "Common/Common_TrainConfig.hpp"
-#include "Common/Common_TrainingProgressEvent.hpp"
+#include "Common/Common_TrainProgressEvent.hpp"
 #include "Common/Common_TrainMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
 #include "Common/Common_TestResult.hpp"

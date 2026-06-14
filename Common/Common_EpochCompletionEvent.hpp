@@ -11,7 +11,7 @@ namespace Common
   // Epoch-completion information passed to the epoch-completed callback.
   // Reports the just-finished epoch with a 0-based index, matching
   // EpochRecord::epoch and the serialized epochs[] history — unlike
-  // TrainingProgressEvent, whose high-frequency currentEpoch is 1-based.
+  // TrainProgressEvent, whose high-frequency currentEpoch is 1-based.
   template <typename T>
   struct EpochCompletionEvent {
       ulong epoch; // 0-based index of the completed epoch
@@ -23,7 +23,7 @@ namespace Common
 
   // Invoked exactly once per completed epoch, after the epoch's record is
   // appended to the training history. Distinct from the per-sample
-  // TrainingCallback that drives live progress display: this is the hook for
+  // TrainCallback that drives live progress display: this is the hook for
   // epoch-boundary work (validation, checkpointing, monitoring).
   template <typename T>
   using EpochCompletedCallback = std::function<void(const EpochCompletionEvent<T>&)>;

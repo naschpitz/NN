@@ -1,5 +1,5 @@
-#ifndef NN_CLI_TRAININGSUMMARY_HPP
-#define NN_CLI_TRAININGSUMMARY_HPP
+#ifndef NN_CLI_TRAINSUMMARY_HPP
+#define NN_CLI_TRAINSUMMARY_HPP
 
 #include "NN-CLI_AugmentationConfig.hpp"
 #include "NN-CLI_SummaryTable.hpp"
@@ -14,7 +14,7 @@
 namespace NN_CLI
 {
 
-  class TrainingSummary
+  class TrainSummary
   {
     public:
       // Return table lines without printing (for ncurses rendering).
@@ -43,4 +43,4 @@ namespace NN_CLI
 
 } // namespace NN_CLI
 
-#endif // NN_CLI_TRAININGSUMMARY_HPP
+#endif // NN_CLI_TRAINSUMMARY_HPP

@@ -85,7 +85,7 @@ static void testMultiGPUCallback()
   bool sawGPU1 = false;
 
   auto core = ANN::Core<float>::makeCore(config);
-  core->setTrainingCallback([&](const ANN::TrainingProgressEvent<float>& progress) {
+  core->setTrainCallback([&](const ANN::TrainProgressEvent<float>& progress) {
     callbackCount++;
 
     if (progress.gpuIndex == 0)
@@ -106,9 +106,9 @@ static void testMultiGPUCallback()
 
 //===================================================================================================================//
 
-static void testMultiGPUCrossEntropyTraining()
+static void testMultiGPUCrossEntropyTrain()
 {
-  std::cout << "--- testMultiGPUCrossEntropyTraining ---" << std::endl;
+  std::cout << "--- testMultiGPUCrossEntropyTrain ---" << std::endl;
 
   ANN::Samples<float> samples = {
     {{1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}}};
@@ -200,9 +200,9 @@ static void testMultiGPUMultiOutput()
 
 //===================================================================================================================//
 
-static void testMultiGPUDropoutTraining()
+static void testMultiGPUDropoutTrain()
 {
-  std::cout << "--- testMultiGPUDropoutTraining ---" << std::endl;
+  std::cout << "--- testMultiGPUDropoutTrain ---" << std::endl;
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -228,9 +228,9 @@ static void testMultiGPUDropoutTraining()
 
 //===================================================================================================================//
 
-static void testMultiGPUParametersDuringTraining()
+static void testMultiGPUParametersDuringTrain()
 {
-  std::cout << "--- testMultiGPUParametersDuringTraining ---" << std::endl;
+  std::cout << "--- testMultiGPUParametersDuringTrain ---" << std::endl;
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -271,9 +271,9 @@ void runGPUMultiGPUTests()
   testMultiGPUTrainSimple();
   testMultiGPUTestMethod();
   testMultiGPUCallback();
-  testMultiGPUCrossEntropyTraining();
+  testMultiGPUCrossEntropyTrain();
   testMultiGPUDifferentActivations();
   testMultiGPUMultiOutput();
-  testMultiGPUDropoutTraining();
-  testMultiGPUParametersDuringTraining();
+  testMultiGPUDropoutTrain();
+  testMultiGPUParametersDuringTrain();
 }

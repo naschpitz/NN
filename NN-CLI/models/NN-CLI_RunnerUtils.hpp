@@ -33,9 +33,9 @@ namespace NN_CLI
   {
     public:
 
-      //-- finishTrainingCommon --//
-      template <typename CoreT, typename SaveFn>
-      static int finishTrainingCommon(LogLevel logLevel, const QCommandLineParser& parser,
+       //-- finishTrainCommon --//
+       template <typename CoreT, typename SaveFn>
+       static int finishTrainCommon(LogLevel logLevel, const QCommandLineParser& parser,
                                       const QString& inputFilePath, const CoreT& core,
                                       const SaveFn& saveFn);
 
@@ -70,7 +70,7 @@ namespace NN_CLI
 {
 
   template <typename CoreT, typename SaveFn>
-  int RunnerUtils::finishTrainingCommon(LogLevel logLevel, const QCommandLineParser& parser,
+  int RunnerUtils::finishTrainCommon(LogLevel logLevel, const QCommandLineParser& parser,
                                         const QString& inputFilePath, const CoreT& core,
                                         const SaveFn& saveFn)
   {

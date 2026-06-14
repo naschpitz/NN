@@ -45,9 +45,9 @@ static void testInstanceNormInference()
 
 //===================================================================================================================//
 
-static void testInstanceNormTraining()
+static void testInstanceNormTrain()
 {
-  std::cout << "--- testInstanceNormTraining ---" << std::endl;
+  std::cout << "--- testInstanceNormTrain ---" << std::endl;
 
   CNN::Shape3D shape{2, 2, 2};
   CNN::Tensor3D<double> input(shape);
@@ -216,7 +216,7 @@ static void testInstanceNormBackpropGradient()
 void runInstanceNormTests()
 {
   testInstanceNormInference();
-  testInstanceNormTraining();
+  testInstanceNormTrain();
   testInstanceNormBackpropagate();
   testInstanceNormBackpropGradient();
 }

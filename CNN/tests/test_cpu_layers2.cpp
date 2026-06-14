@@ -97,9 +97,9 @@ static void testBatchNormInference()
 
 //===================================================================================================================//
 
-static void testBatchNormTraining()
+static void testBatchNormTrain()
 {
-  std::cout << "--- testBatchNormTraining ---" << std::endl;
+  std::cout << "--- testBatchNormTrain ---" << std::endl;
 
   // 1 channel, 1x2 spatial, 2 samples
   CNN::Shape3D shape{1, 1, 2};
@@ -390,7 +390,7 @@ void runLayerTests2()
   testInstanceNormOutputShape();
   testInstanceNormValidateShapes();
   testBatchNormInference();
-  testBatchNormTraining();
+  testBatchNormTrain();
   testBatchNormBackpropagate();
   testBatchNormValidateShapes();
   testSlidingStrategy();

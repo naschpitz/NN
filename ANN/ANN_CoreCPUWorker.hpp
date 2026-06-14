@@ -21,7 +21,7 @@ namespace ANN
     public:
       CoreCPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
                     const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
-                    bool allocateTrainingBuffers = true);
+                     bool allocateTrainBuffers = true);
 
       //-- Forward pass --//
       void propagate(const Input<T>& input, bool applyDropout = false);
@@ -106,7 +106,7 @@ namespace ANN
       T calc_dCost_dBias(ulong l, ulong j);
 
       //-- Allocation --//
-      void allocate(bool allocateTrainingBuffers);
+      void allocate(bool allocateTrainBuffers);
   };
 }
 

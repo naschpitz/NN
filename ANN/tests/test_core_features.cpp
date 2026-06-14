@@ -70,9 +70,9 @@ static void testCostFunctionStringConversion()
 
 //===================================================================================================================//
 
-static void testWeightedLossAffectsTraining()
+static void testWeightedLossAffectsTrain()
 {
-  std::cout << "--- testWeightedLossAffectsTraining ---" << std::endl;
+  std::cout << "--- testWeightedLossAffectsTrain ---" << std::endl;
 
   // Train a 2-input → 2-output network.
   // Expected outputs: [1, 0] for all samples.
@@ -135,9 +135,9 @@ static void testShuffleSamplesDefault()
 
 //===================================================================================================================//
 
-static void testShuffleSamplesTraining()
+static void testShuffleSamplesTrain()
 {
-  std::cout << "--- testShuffleSamplesTraining ---" << std::endl;
+  std::cout << "--- testShuffleSamplesTrain ---" << std::endl;
 
   // Train with shuffleSamples=true and shuffleSamples=false, both should converge
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}, {{1.0, 0.0}, {0.5}}, {{0.0, 1.0}, {0.5}}};
@@ -228,8 +228,8 @@ void runCoreFeaturesTests()
   testCostFunctionConfigDefault();
   testCostFunctionConfigGetter();
   testCostFunctionStringConversion();
-  testWeightedLossAffectsTraining();
+  testWeightedLossAffectsTrain();
   testShuffleSamplesDefault();
-  testShuffleSamplesTraining();
+  testShuffleSamplesTrain();
   testShuffleSamplesNoShuffle();
 }

@@ -105,10 +105,10 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyEpochCompleted(int epochIdx, int 
 //===================================================================================================================//
 
 template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTrainingFinished(bool success, const std::string& finalSummary)
+void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTrainFinished(bool success, const std::string& finalSummary)
 {
   for (auto* observer : this->observers)
-    observer->onTrainingFinished(success, finalSummary);
+    observer->onTrainFinished(success, finalSummary);
 }
 
 //===================================================================================================================//
@@ -143,8 +143,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTimingUpdated(const std::string& 
 //===================================================================================================================//
 
 template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainingProgress(const Common::TrainingProgressEvent<float>& progress,
-                                                                ulong batchSize)
+void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainProgress(const Common::TrainProgressEvent<float>& progress,
+                                                              ulong batchSize)
 {
   QMutexLocker<QMutex> lock(&this->callbackMutex);
 
@@ -512,7 +512,7 @@ NN_CLI::ValidationMetadata NN_CLI::Runner<CoreT, CoreConfigT>::buildValidationMe
 //===================================================================================================================//
 
 template <typename CoreT, typename CoreConfigT>
-int NN_CLI::Runner<CoreT, CoreConfigT>::finishTraining(const QString& inputFilePath)
+int NN_CLI::Runner<CoreT, CoreConfigT>::finishTrain(const QString& inputFilePath)
 {
   // Defensive: unreachable in normal flow (train() clears loadedEpochHistory after
   // prepending), kept as safety net against future refactoring.
@@ -533,9 +533,9 @@ int NN_CLI::Runner<CoreT, CoreConfigT>::finishTraining(const QString& inputFileP
                         " | Samples: " + std::to_string(trainMetadata.numSamples) +
                         " | Final loss: " + std::to_string(trainMetadata.finalLoss);
 
-  this->notifyTrainingFinished(true, summary);
+  this->notifyTrainFinished(true, summary);
 
-  return NN_CLI::RunnerUtils::finishTrainingCommon(this->logLevel, this->parser, inputFilePath, *this->core,
+  return NN_CLI::RunnerUtils::finishTrainCommon(this->logLevel, this->parser, inputFilePath, *this->core,
                               [this](const std::string& path) { this->doSaveModel(path); });
 }
 

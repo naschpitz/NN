@@ -7,7 +7,7 @@
 #include "NN-CLI_DataLoader.hpp"
 
 #include <ANN_Core.hpp>
-#include "Common/Common_TrainingMonitor.hpp"
+#include "Common/Common_TrainMonitor.hpp"
 
 #include <vector>
 
@@ -51,9 +51,9 @@ namespace NN_CLI
       std::pair<ANN::Samples<float>, bool> loadSamplesFromOptions(const std::string& modeName, QString& inputFilePath);
 
       //-- Training helpers --//
-      void setupTrainingCallback(const QString& inputFilePath,
-                                 std::shared_ptr<ANN::Core<float>> validationCore = nullptr,
-                                 std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor = nullptr,
+      void setupTrainCallback(const QString& inputFilePath,
+                              std::shared_ptr<ANN::Core<float>> validationCore = nullptr,
+                              std::shared_ptr<Common::TrainMonitor<float>> trainMonitor = nullptr,
                                  const DataLoader<ANN::Sample<float>>* validationDataLoader = nullptr,
                                  const std::vector<ulong>* validationIndices = nullptr);
   };

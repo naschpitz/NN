@@ -1,7 +1,7 @@
 #include "test_helpers.hpp"
 #include "NN-CLI_ANNLoader.hpp"
 
-#include "Common/Common_TrainingMonitor.hpp"
+#include "Common/Common_TrainMonitor.hpp"
 
 #include <optional>
 
@@ -80,9 +80,9 @@ static void testMonitoringConfigDefaults()
 
 //===================================================================================================================//
 
-static void testTrainingMonitorStagnation()
+static void testTrainMonitorStagnation()
 {
-  std::cout << "  testTrainingMonitorStagnation... ";
+  std::cout << "  testTrainMonitorStagnation... ";
 
   Common::MonitoringConfig config;
   config.enabled = true;
@@ -92,7 +92,7 @@ static void testTrainingMonitorStagnation()
   config.metrics.lossStagnation.minDelta = 0.01f;
   config.metrics.lossExplosion.enabled = false;
 
-  Common::TrainingMonitor<float> monitor(config);
+  Common::TrainMonitor<float> monitor(config);
 
   // Epoch 1: loss = 1.0 — new best
   CHECK(monitor.checkEpoch(1, 1.0f) == false, "epoch 1 no stop");
@@ -119,9 +119,9 @@ static void testTrainingMonitorStagnation()
 
 //===================================================================================================================//
 
-static void testTrainingMonitorExplosion()
+static void testTrainMonitorExplosion()
 {
-  std::cout << "  testTrainingMonitorExplosion... ";
+  std::cout << "  testTrainMonitorExplosion... ";
 
   Common::MonitoringConfig config;
   config.enabled = true;
@@ -131,7 +131,7 @@ static void testTrainingMonitorExplosion()
   config.metrics.lossExplosion.enabled = true;
   config.metrics.lossExplosion.threshold = 5.0f;
 
-  Common::TrainingMonitor<float> monitor(config);
+  Common::TrainMonitor<float> monitor(config);
 
   // Epoch 1: loss = 1.0
   CHECK(monitor.checkEpoch(1, 1.0f) == false, "epoch 1 no stop");
@@ -150,9 +150,9 @@ static void testTrainingMonitorExplosion()
 
 //===================================================================================================================//
 
-static void testTrainingMonitorWithValidationLoss()
+static void testTrainMonitorWithValidationLoss()
 {
-  std::cout << "  testTrainingMonitorWithValidationLoss... ";
+  std::cout << "  testTrainMonitorWithValidationLoss... ";
 
   Common::MonitoringConfig config;
   config.enabled = true;
@@ -162,7 +162,7 @@ static void testTrainingMonitorWithValidationLoss()
   config.metrics.lossStagnation.minDelta = 0.01f;
   config.metrics.lossExplosion.enabled = false;
 
-  Common::TrainingMonitor<float> monitor(config);
+  Common::TrainMonitor<float> monitor(config);
 
   // Training loss drops but validation loss is what matters
   CHECK(monitor.checkEpoch(1, 2.0f, std::optional<float>(1.0f)) == false, "epoch 1");
@@ -186,7 +186,7 @@ void runMonitoringTests()
 {
   testMonitoringConfigParsing();
   testMonitoringConfigDefaults();
-  testTrainingMonitorStagnation();
-  testTrainingMonitorExplosion();
-  testTrainingMonitorWithValidationLoss();
+  testTrainMonitorStagnation();
+  testTrainMonitorExplosion();
+  testTrainMonitorWithValidationLoss();
 }

@@ -167,9 +167,9 @@ static void testPredictMetadata()
 
 //===================================================================================================================//
 
-static void testTrainingCallback()
+static void testTrainCallback()
 {
-  std::cout << "--- testTrainingCallback ---" << std::endl;
+  std::cout << "--- testTrainCallback ---" << std::endl;
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -183,7 +183,7 @@ static void testTrainingCallback()
 
   int callbackCount = 0;
   auto core = ANN::Core<double>::makeCore(config);
-  core->setTrainingCallback([&callbackCount](const Common::TrainingProgressEvent<double>& progress) { callbackCount++; });
+  core->setTrainCallback([&callbackCount](const Common::TrainProgressEvent<double>& progress) { callbackCount++; });
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -237,9 +237,9 @@ static void testParameterRoundTrip()
 
 //===================================================================================================================//
 
-static void testParametersDuringTraining()
+static void testParametersDuringTrain()
 {
-  std::cout << "--- testParametersDuringTraining ---" << std::endl;
+  std::cout << "--- testParametersDuringTrain ---" << std::endl;
 
   // Train a network and verify that getParameters() returns non-empty data
   // during training (in the epoch-completion callback), not just after training ends.
@@ -261,7 +261,7 @@ static void testParametersDuringTraining()
   bool weightsNonEmpty = false;
   bool biasesNonEmpty = false;
 
-  core->setTrainingCallback([&](const Common::TrainingProgressEvent<double>& progress) {
+  core->setTrainCallback([&](const Common::TrainProgressEvent<double>& progress) {
     // Detect epoch-completion callback: epochLoss > 0 and sampleLoss == 0
     if (progress.epochLoss > 0 && progress.sampleLoss == 0 && !paramsChecked) {
       const ANN::Parameters<double>& params = core->getParameters();
@@ -345,9 +345,9 @@ static void testBatchPredict()
 
 //===================================================================================================================//
 
-static void testBatchPredictAfterTraining()
+static void testBatchPredictAfterTrain()
 {
-  std::cout << "--- testBatchPredictAfterTraining ---" << std::endl;
+  std::cout << "--- testBatchPredictAfterTrain ---" << std::endl;
 
   // Train XOR then batch predict all 4 patterns
   ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{0.0, 1.0}, {1.0}}, {{1.0, 0.0}, {1.0}}, {{1.0, 1.0}, {0.0}}};
@@ -397,11 +397,11 @@ void runCoreBasicTests()
   testPredictSimple();
   testBatchPredict();
   testTrainXOR();
-  testBatchPredictAfterTraining();
+  testBatchPredictAfterTrain();
   testTestMethod();
   testTrainMetadata();
   testPredictMetadata();
-  testTrainingCallback();
+  testTrainCallback();
   testParameterRoundTrip();
-  testParametersDuringTraining();
+  testParametersDuringTrain();
 }

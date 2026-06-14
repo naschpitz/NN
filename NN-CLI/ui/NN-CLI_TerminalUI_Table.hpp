@@ -27,7 +27,7 @@ namespace NN_CLI
   //
   // Supports three primary use cases:
   //   - Key-value two-column tables (SummaryTable style, with centered title).
-  //   - Three-column profiler tables (TrainingProfiler style, header + data).
+  //   - Three-column profiler tables (TrainProfiler style, header + data).
   //   - Multi-column epoch tables (rebuildEpochLines style, 5+ columns).
 
   class TerminalUI_Table : public TerminalUI_Widget

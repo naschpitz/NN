@@ -5,10 +5,10 @@
 #include "NN-CLI_Runner.hpp"
 
 #include "NN-CLI_DataLoader.hpp"
-#include "NN-CLI_TrainingProfiler.hpp"
+#include "NN-CLI_TrainProfiler.hpp"
 
 #include <CNN_Core.hpp>
-#include "Common/Common_TrainingMonitor.hpp"
+#include "Common/Common_TrainMonitor.hpp"
 
 #include <vector>
 
@@ -54,14 +54,14 @@ namespace NN_CLI
       std::pair<CNN::Samples<float>, bool> loadSamplesFromOptions(const std::string& modeName, QString& inputFilePath);
 
       //-- Training helpers --//
-      void setupTrainingCallback(const QString& inputFilePath,
-                                 std::shared_ptr<CNN::Core<float>> validationCore = nullptr,
-                                 std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor = nullptr,
+      void setupTrainCallback(const QString& inputFilePath,
+                              std::shared_ptr<CNN::Core<float>> validationCore = nullptr,
+                              std::shared_ptr<Common::TrainMonitor<float>> trainMonitor = nullptr,
                                  const DataLoader<CNN::Sample<float>>* validationDataLoader = nullptr,
                                  const std::vector<ulong>* validationIndices = nullptr);
 
       //-- Per-phase timing profiler (fed by CNN's timing callback) --//
-      TrainingProfiler profiler;
+      TrainProfiler profiler;
   };
 
 } // namespace NN_CLI

@@ -192,7 +192,7 @@ int App::run()
     case Common::ModeType::TRAIN: {
       TrainController<ANNRunner> ctrl;
       ctrl.init(std::move(runner));
-      return ctrl.startTraining();
+      return ctrl.startTrain();
     }
     case Common::ModeType::TEST: {
       TestController<ANNRunner> ctrl;
@@ -219,7 +219,7 @@ int App::run()
     case Common::ModeType::TRAIN: {
       TrainController<CNNRunner> ctrl;
       ctrl.init(std::move(runner));
-      return ctrl.startTraining();
+      return ctrl.startTrain();
     }
     case Common::ModeType::TEST: {
       TestController<CNNRunner> ctrl;

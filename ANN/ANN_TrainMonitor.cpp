@@ -1,4 +1,4 @@
-#include "Common/Common_TrainingMonitor.hpp"
+#include "Common/Common_TrainMonitor.hpp"
 
 #include <cmath>
 #include <limits>
@@ -9,7 +9,7 @@ using namespace Common;
 //===================================================================================================================//
 
 template <typename T>
-TrainingMonitor<T>::TrainingMonitor(const MonitoringConfig& config)
+TrainMonitor<T>::TrainMonitor(const MonitoringConfig& config)
   : config(config),
     bestLoss(std::numeric_limits<T>::max()),
     bestEpoch(0),
@@ -22,7 +22,7 @@ TrainingMonitor<T>::TrainingMonitor(const MonitoringConfig& config)
 //===================================================================================================================//
 
 template <typename T>
-bool TrainingMonitor<T>::checkEpoch(ulong epoch, T epochLoss, std::optional<T> validationLoss)
+bool TrainMonitor<T>::checkEpoch(ulong epoch, T epochLoss, std::optional<T> validationLoss)
 {
   this->newBest = false;
 
@@ -62,7 +62,7 @@ bool TrainingMonitor<T>::checkEpoch(ulong epoch, T epochLoss, std::optional<T> v
 //===================================================================================================================//
 
 template <typename T>
-bool TrainingMonitor<T>::isNewBest() const
+bool TrainMonitor<T>::isNewBest() const
 {
   return this->newBest;
 }
@@ -70,7 +70,7 @@ bool TrainingMonitor<T>::isNewBest() const
 //===================================================================================================================//
 
 template <typename T>
-std::string TrainingMonitor<T>::getStopReason() const
+std::string TrainMonitor<T>::getStopReason() const
 {
   return this->stopReason;
 }
@@ -78,7 +78,7 @@ std::string TrainingMonitor<T>::getStopReason() const
 //===================================================================================================================//
 
 template <typename T>
-ulong TrainingMonitor<T>::getBestEpoch() const
+ulong TrainMonitor<T>::getBestEpoch() const
 {
   return this->bestEpoch;
 }
@@ -86,7 +86,7 @@ ulong TrainingMonitor<T>::getBestEpoch() const
 //===================================================================================================================//
 
 template <typename T>
-T TrainingMonitor<T>::getBestLoss() const
+T TrainMonitor<T>::getBestLoss() const
 {
   return this->bestLoss;
 }
@@ -96,7 +96,7 @@ T TrainingMonitor<T>::getBestLoss() const
 //===================================================================================================================//
 
 template <typename T>
-bool TrainingMonitor<T>::checkLossStagnation(T loss)
+bool TrainMonitor<T>::checkLossStagnation(T loss)
 {
   if (!config.metrics.lossStagnation.enabled) {
     return false;
@@ -118,7 +118,7 @@ bool TrainingMonitor<T>::checkLossStagnation(T loss)
 //===================================================================================================================//
 
 template <typename T>
-bool TrainingMonitor<T>::checkLossExplosion(T loss)
+bool TrainMonitor<T>::checkLossExplosion(T loss)
 {
   if (!config.metrics.lossExplosion.enabled) {
     return false;
@@ -148,6 +148,6 @@ bool TrainingMonitor<T>::checkLossExplosion(T loss)
 //===================================================================================================================//
 
 // Explicit template instantiations
-template class Common::TrainingMonitor<int>;
-template class Common::TrainingMonitor<double>;
-template class Common::TrainingMonitor<float>;
+template class Common::TrainMonitor<int>;
+template class Common::TrainMonitor<double>;
+template class Common::TrainMonitor<float>;

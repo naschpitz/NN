@@ -18,7 +18,7 @@ using namespace Common;
 
 template <typename T>
 CoreCPUWorker<T>::CoreCPUWorker(const CoreConfig<T>& config, const LayersConfig& layersConfig,
-                                const Parameters<T>& sharedParams, bool allocateTraining)
+                                const Parameters<T>& sharedParams, bool allocateTrain)
   : layersConfig(layersConfig),
     sharedParams(sharedParams)
 {
@@ -33,7 +33,7 @@ CoreCPUWorker<T>::CoreCPUWorker(const CoreConfig<T>& config, const LayersConfig&
   this->annCore = ANN::Core<T>::makeCore(annConfig);
 
   // Allocate CNN gradient accumulators if training
-  if (allocateTraining) {
+  if (allocateTrain) {
     this->accumDConvFilters.resize(sharedParams.convParams.size());
     this->accumDConvBiases.resize(sharedParams.convParams.size());
 

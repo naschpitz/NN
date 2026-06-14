@@ -101,9 +101,9 @@ static void testGPUCostFunctionConfigGetter()
 
 //===================================================================================================================//
 
-static void testGPUWeightedLossTraining()
+static void testGPUWeightedLossTrain()
 {
-  std::cout << "--- testGPUWeightedLossTraining ---" << std::endl;
+  std::cout << "--- testGPUWeightedLossTrain ---" << std::endl;
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -165,5 +165,5 @@ void runGPUBasicTests4()
 {
   testGPUMultipleOutputNeurons();
   testGPUCostFunctionConfigGetter();
-  testGPUWeightedLossTraining();
+  testGPUWeightedLossTrain();
 }

@@ -37,7 +37,7 @@ namespace NN_CLI
   //   auto runner = std::make_unique<ANNRunner>(...);
   //   TrainController<ANNRunner> ctrl;
   //   ctrl.init(std::move(runner));
-  //   int result = ctrl.startTraining();
+  //   int result = ctrl.startTrain();
 
   template <typename RunnerT>
   class TrainController : public IRunnerObserver
@@ -62,7 +62,7 @@ namespace NN_CLI
 
       // Trigger the Runner's training process.  Returns the exit code from
       // RunnerT::train().
-      int startTraining();
+      int startTrain();
 
       //-- Accessors --//
 
@@ -83,7 +83,7 @@ namespace NN_CLI
       void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                             const std::string& summary) override;
 
-      void onTrainingFinished(bool success, const std::string& finalSummary) override;
+      void onTrainFinished(bool success, const std::string& finalSummary) override;
 
       void onModelInfoUpdated(const std::string& property, const std::string& value) override;
 

@@ -105,7 +105,7 @@ namespace NN_CLI
        * @param success        True if training completed normally.
        * @param finalSummary   Human-readable summary of the full run.
        */
-      virtual void onTrainingFinished(bool success, const std::string& finalSummary)
+       virtual void onTrainFinished(bool success, const std::string& finalSummary)
       {
         (void)success;
         (void)finalSummary;

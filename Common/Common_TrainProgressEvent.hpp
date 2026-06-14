@@ -1,5 +1,5 @@
-#ifndef COMMON_TRAININGPROGRESSEVENT_HPP
-#define COMMON_TRAININGPROGRESSEVENT_HPP
+#ifndef COMMON_TRAINPROGRESSEVENT_HPP
+#define COMMON_TRAINPROGRESSEVENT_HPP
 
 #include <functional>
 #include <sys/types.h>
@@ -12,7 +12,7 @@ namespace Common
 {
   // Training progress information passed to callbacks
   template <typename T>
-  struct TrainingProgressEvent {
+  struct TrainProgressEvent {
       ulong currentEpoch;
       ulong totalEpochs;
       ulong currentSample;
@@ -31,9 +31,9 @@ namespace Common
 
   // Callback type for training progress
   template <typename T>
-  using TrainingCallback = std::function<void(const TrainingProgressEvent<T>&)>;
+  using TrainCallback = std::function<void(const TrainProgressEvent<T>&)>;
 }
 
 //===================================================================================================================//
 
-#endif // COMMON_TRAININGPROGRESSEVENT_HPP
+#endif // COMMON_TRAINPROGRESSEVENT_HPP

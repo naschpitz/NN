@@ -68,9 +68,9 @@ static void testCrossEntropyGradientNumerical()
 
 //===================================================================================================================//
 
-static void testCrossEntropyTraining()
+static void testCrossEntropyTrain()
 {
-  std::cout << "--- testCrossEntropyTraining ---" << std::endl;
+  std::cout << "--- testCrossEntropyTrain ---" << std::endl;
 
   // Classification: 2 inputs → 3 classes with softmax + cross-entropy
   ANN::CoreConfig<double> config;
@@ -158,9 +158,9 @@ static void testCrossEntropyLossDecreases()
 
 //===================================================================================================================//
 
-static void testWeightedCrossEntropyTraining()
+static void testWeightedCrossEntropyTrain()
 {
-  std::cout << "--- testWeightedCrossEntropyTraining ---" << std::endl;
+  std::cout << "--- testWeightedCrossEntropyTrain ---" << std::endl;
 
   // Cross-entropy with per-class weights
   ANN::CoreConfig<double> config;
@@ -201,7 +201,7 @@ static void testWeightedCrossEntropyTraining()
 void runCoreExactTests2()
 {
   testCrossEntropyGradientNumerical();
-  testCrossEntropyTraining();
+  testCrossEntropyTrain();
   testCrossEntropyLossDecreases();
-  testWeightedCrossEntropyTraining();
+  testWeightedCrossEntropyTrain();
 }

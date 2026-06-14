@@ -1,5 +1,5 @@
-#ifndef COMMON_TRAININGMONITOR_HPP
-#define COMMON_TRAININGMONITOR_HPP
+#ifndef COMMON_TRAINMONITOR_HPP
+#define COMMON_TRAINMONITOR_HPP
 
 #include "Common_MonitoringConfig.hpp"
 
@@ -15,10 +15,10 @@
 namespace Common
 {
   template <typename T>
-  class TrainingMonitor
+  class TrainMonitor
   {
     public:
-      TrainingMonitor(const MonitoringConfig& config)
+      TrainMonitor(const MonitoringConfig& config)
         : config(config),
           bestLoss(std::numeric_limits<T>::max()),
           bestEpoch(0),
@@ -146,4 +146,4 @@ namespace Common
 
 //===================================================================================================================//
 
-#endif // COMMON_TRAININGMONITOR_HPP
+#endif // COMMON_TRAINMONITOR_HPP

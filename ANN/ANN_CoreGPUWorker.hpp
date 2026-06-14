@@ -37,7 +37,7 @@ namespace ANN
 
       //-- Training (called by CoreGPU orchestrator) --//
       T trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                    const TrainingCallback<T>& callback);
+                     const TrainCallback<T>& callback);
 
       //-- Testing (called by CoreGPU orchestrator) --//
       std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);

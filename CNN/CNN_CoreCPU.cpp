@@ -7,7 +7,7 @@
 #include "CNN_GlobalDualPool.hpp"
 #include "CNN_Normalization.hpp"
 #include "CNN_Residual.hpp"
-#include "Common/Common_TrainingMonitor.hpp"
+#include "Common/Common_TrainMonitor.hpp"
 
 #include <ANN_Core.hpp>
 
@@ -54,11 +54,11 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& config) : Core<T>(config)
   }
 
   // Create the step worker (used for predict and single-threaded paths)
-  bool allocateTraining = (this->modeType == Common::ModeType::TRAIN);
-  this->stepWorker = std::make_unique<CoreCPUWorker<T>>(config, this->layersConfig, this->parameters, allocateTraining);
+  bool allocateTrain = (this->modeType == Common::ModeType::TRAIN);
+  this->stepWorker = std::make_unique<CoreCPUWorker<T>>(config, this->layersConfig, this->parameters, allocateTrain);
 
   // Initialize global CNN gradient accumulators if training
-  if (allocateTraining) {
+  if (allocateTrain) {
     this->accumDConvFilters.resize(this->parameters.convParams.size());
     this->accumDConvBiases.resize(this->parameters.convParams.size());
 
@@ -499,10 +499,10 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
   // Create training monitor if monitoring is enabled
   const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
-  std::unique_ptr<TrainingMonitor<T>> monitor;
+  std::unique_ptr<TrainMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
-    monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
+    monitor = std::make_unique<TrainMonitor<T>>(monitoringConfig);
   }
 
   for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
@@ -553,16 +553,16 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
           ulong completed = ++completedSamples;
 
-          if (this->trainingCallback) {
+          if (this->trainCallback) {
             QMutexLocker locker(&callbackMutex);
-            TrainingProgressEvent<T> progress;
+            TrainProgressEvent<T> progress;
             progress.currentEpoch = e + 1;
             progress.totalEpochs = numEpochs;
             progress.currentSample = completed;
             progress.totalSamples = numSamples;
             progress.sampleLoss = sampleLoss;
             progress.epochLoss = 0;
-            this->trainingCallback(progress);
+            this->trainCallback(progress);
           }
         }
       });
@@ -642,8 +642,8 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     // EpochRecord::epoch), regardless of monitoring
     this->trainMetadata.lastEpoch = e;
 
-    if (this->trainingCallback) {
-      TrainingProgressEvent<T> progress;
+    if (this->trainCallback) {
+      TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -659,7 +659,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         }
       }
 
-      this->trainingCallback(progress);
+      this->trainCallback(progress);
     }
 
     // Record epoch history
@@ -837,10 +837,10 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
 
   // Create training monitor if monitoring is enabled
   const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
-  std::unique_ptr<TrainingMonitor<T>> monitor;
+  std::unique_ptr<TrainMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
-    monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
+    monitor = std::make_unique<TrainMonitor<T>>(monitoringConfig);
   }
 
   for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
@@ -1046,16 +1046,16 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
 
           ulong completed = ++completedSamples;
 
-          if (this->trainingCallback) {
+          if (this->trainCallback) {
             QMutexLocker locker(&callbackMutex);
-            TrainingProgressEvent<T> progress;
+            TrainProgressEvent<T> progress;
             progress.currentEpoch = e + 1;
             progress.totalEpochs = numEpochs;
             progress.currentSample = completed;
             progress.totalSamples = numSamples;
             progress.sampleLoss = sampleLosses[s];
             progress.epochLoss = 0;
-            this->trainingCallback(progress);
+            this->trainCallback(progress);
           }
         }
       });
@@ -1355,8 +1355,8 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     // EpochRecord::epoch), regardless of monitoring
     this->trainMetadata.lastEpoch = e;
 
-    if (this->trainingCallback) {
-      TrainingProgressEvent<T> progress;
+    if (this->trainCallback) {
+      TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -1372,7 +1372,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
         }
       }
 
-      this->trainingCallback(progress);
+      this->trainCallback(progress);
     }
 
     // Record epoch history

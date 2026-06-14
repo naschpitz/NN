@@ -1,5 +1,5 @@
 #include "ANN_CoreCPU.hpp"
-#include "Common/Common_TrainingMonitor.hpp"
+#include "Common/Common_TrainMonitor.hpp"
 #include "ANN_Utils.hpp"
 
 #include <QThreadPool>
@@ -22,9 +22,9 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
   this->initializeParameters();
 
   // Create the step worker (used for predict and step-by-step training path)
-  bool allocateTraining = (this->modeType == ModeType::TRAIN);
+  bool allocateTrain = (this->modeType == ModeType::TRAIN);
   this->stepWorker = std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainConfig, this->parameters,
-                                                        this->costFunctionConfig, allocateTraining);
+                                                        this->costFunctionConfig, allocateTrain);
 
   // Note: Global accumulators and Adam state are allocated lazily in train(),
   // NOT here. This ensures the step-by-step path sees empty global accumulators,
@@ -205,10 +205,10 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
   // Create training monitor if monitoring is enabled
   const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
-  std::unique_ptr<TrainingMonitor<T>> monitor;
+  std::unique_ptr<TrainMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
-    monitor = std::make_unique<TrainingMonitor<T>>(monitoringConfig);
+    monitor = std::make_unique<TrainMonitor<T>>(monitoringConfig);
   }
 
   for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
@@ -296,7 +296,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
 
       // Build epoch progress with monitoring signals
-      TrainingProgressEvent<T> progress;
+      TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -313,8 +313,8 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       this->trainMetadata.bestEpoch = monitor->getBestEpoch();
       this->trainMetadata.bestLoss = monitor->getBestLoss();
 
-      if (this->trainingCallback) {
-        this->trainingCallback(progress);
+      if (this->trainCallback) {
+        this->trainCallback(progress);
       }
     } else {
       this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss, callbackMutex);
@@ -692,13 +692,13 @@ template <typename T>
 void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
                                 T sampleLoss, T epochLoss, QMutex& callbackMutex)
 {
-  if (!this->trainingCallback) {
+  if (!this->trainCallback) {
     return;
   }
 
   QMutexLocker locker(&callbackMutex);
 
-  TrainingProgressEvent<T> progress;
+  TrainProgressEvent<T> progress;
   progress.currentEpoch = currentEpoch;
   progress.totalEpochs = totalEpochs;
   progress.currentSample = currentSample;
@@ -706,7 +706,7 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
   progress.sampleLoss = sampleLoss;
   progress.epochLoss = epochLoss;
 
-  this->trainingCallback(progress);
+  this->trainCallback(progress);
 }
 
 //===================================================================================================================//

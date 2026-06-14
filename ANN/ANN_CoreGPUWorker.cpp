@@ -97,13 +97,13 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 
 template <typename T>
 T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                                const TrainingCallback<T>& callback)
+                                const TrainCallback<T>& callback)
 {
   ulong numSamplesInSubset = batchSamples.size();
 
   // Set up training kernels if not done yet
   if (!this->kernelBuilder->trainingKernelsSetup) {
-    this->kernelBuilder->setupTrainingKernels();
+    this->kernelBuilder->setupTrainKernels();
     this->kernelBuilder->trainingKernelsSetup = true;
   }
 
@@ -134,7 +134,7 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
 
     // Report progress
     if (callback) {
-      TrainingProgressEvent<T> progress;
+      TrainProgressEvent<T> progress;
       progress.currentEpoch = epoch;
       progress.totalEpochs = totalEpochs;
       progress.currentSample = s + 1;

@@ -98,7 +98,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  int TrainController<RunnerT>::startTraining()
+  int TrainController<RunnerT>::startTrain()
   {
     if (!this->runner)
       return 1;
@@ -245,7 +245,7 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainController<RunnerT>::onTrainingFinished(bool success, const std::string& finalSummary)
+  void TrainController<RunnerT>::onTrainFinished(bool success, const std::string& finalSummary)
   {
     if (!this->window)
       return;

@@ -127,7 +127,7 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 
 template <typename T>
 T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                                const TrainingCallback<T>& callback, const TimingCallback& timingCallback, int gpuIndex,
+                                const TrainCallback<T>& callback, const TimingCallback& timingCallback, int gpuIndex,
                                 const GpuProfileCallback& gpuProfileCallback)
 {
   ulong N = batchSamples.size();
@@ -172,7 +172,7 @@ T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSampl
   if (!hasBatchNorm) {
     // ---- FAST PATH: no BN layers — pre-built kernel set, one run() per sample ----
     if (!this->kernelBuilder->trainingKernelsSetup) {
-      this->kernelBuilder->setupTrainingKernels();
+      this->kernelBuilder->setupTrainKernels();
     }
 
     T prevAccumLoss = zeroVal;
@@ -417,7 +417,7 @@ void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPUWorker<T>::reportSampleProgress(const TrainingCallback<T>& callback, ulong currentSample,
+void CoreGPUWorker<T>::reportSampleProgress(const TrainCallback<T>& callback, ulong currentSample,
                                             ulong totalSamples, ulong epoch, ulong totalEpochs, T& prevAccumLoss)
 {
   if (!callback)
@@ -430,7 +430,7 @@ void CoreGPUWorker<T>::reportSampleProgress(const TrainingCallback<T>& callback,
   T sampleLoss = currentAccumLoss - prevAccumLoss;
   prevAccumLoss = currentAccumLoss;
 
-  TrainingProgressEvent<T> progress;
+  TrainProgressEvent<T> progress;
   progress.currentEpoch = epoch;
   progress.totalEpochs = totalEpochs;
   progress.currentSample = currentSample;
@@ -502,7 +502,7 @@ void CoreGPUWorker<T>::backpropagateSample(const Input<T>& input, const Output<T
 {
   // Set up full training pipeline if needed
   if (!this->kernelBuilder->trainingKernelsSetup) {
-    this->kernelBuilder->setupTrainingKernels();
+    this->kernelBuilder->setupTrainKernels();
   }
 
   // Write CNN input to GPU
@@ -560,7 +560,7 @@ void CoreGPUWorker<T>::restoreKernels(const std::vector<std::vector<OpenCLWrappe
 }
 
 template <typename T>
-void CoreGPUWorker<T>::setTrainingKernelsReady(bool ready)
+void CoreGPUWorker<T>::setTrainKernelsReady(bool ready)
 {
   this->kernelBuilder->trainingKernelsSetup = ready;
   this->kernelBuilder->updateKernelsSetup = false;

@@ -1,8 +1,8 @@
 #include "test_helpers.hpp"
 
-static void testGPUCrossEntropyTraining()
+static void testGPUCrossEntropyTrain()
 {
-  std::cout << "--- testGPUCrossEntropyTraining ---" << std::endl;
+  std::cout << "--- testGPUCrossEntropyTrain ---" << std::endl;
 
   // Classification: 2 inputs → 3 classes with softmax + cross-entropy on GPU
   ANN::Samples<float> samples = {
@@ -100,9 +100,9 @@ static void testGPUCrossEntropyCPUParity()
 
 //===================================================================================================================//
 
-static void testGPUWeightedCrossEntropyTraining()
+static void testGPUWeightedCrossEntropyTrain()
 {
-  std::cout << "--- testGPUWeightedCrossEntropyTraining ---" << std::endl;
+  std::cout << "--- testGPUWeightedCrossEntropyTrain ---" << std::endl;
 
   // Cross-entropy with per-class weights on GPU
   ANN::CoreConfig<float> config;
@@ -221,9 +221,9 @@ static void testGPUPredictMetadata()
 
 void runGPUBasicTests2()
 {
-  testGPUCrossEntropyTraining();
+  testGPUCrossEntropyTrain();
   testGPUCrossEntropyCPUParity();
-  testGPUWeightedCrossEntropyTraining();
+  testGPUWeightedCrossEntropyTrain();
   testGPUTestMethod();
   testGPUTrainMetadata();
   testGPUPredictMetadata();

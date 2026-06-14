@@ -13,13 +13,13 @@ using namespace Common;
 template <typename T>
 CoreCPUWorker<T>::CoreCPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
                                 const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
-                                bool allocateTrainingBuffers)
+                                 bool allocateTrainBuffers)
   : layersConfig(layersConfig),
     trainConfig(trainConfig),
     parameters(parameters)
 {
   this->costFunctionConfig = costFunctionConfig;
-  this->allocate(allocateTrainingBuffers);
+  this->allocate(allocateTrainBuffers);
 }
 
 //===================================================================================================================//
@@ -27,7 +27,7 @@ CoreCPUWorker<T>::CoreCPUWorker(const LayersConfig& layersConfig, const TrainCon
 //===================================================================================================================//
 
 template <typename T>
-void CoreCPUWorker<T>::allocate(bool allocateTrainingBuffers)
+void CoreCPUWorker<T>::allocate(bool allocateTrainBuffers)
 {
   ulong numLayers = this->layersConfig.size();
 
@@ -44,7 +44,7 @@ void CoreCPUWorker<T>::allocate(bool allocateTrainingBuffers)
     this->zs[l].resize(numNeurons);
   }
 
-  if (!allocateTrainingBuffers)
+  if (!allocateTrainBuffers)
     return;
 
   this->dCost_dActvs.resize(numLayers);

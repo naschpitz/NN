@@ -19,7 +19,7 @@ namespace CNN
   {
     public:
       CoreCPUWorker(const CoreConfig<T>& config, const LayersConfig& layersConfig, const Parameters<T>& sharedParams,
-                    bool allocateTraining);
+                     bool allocateTrain);
 
       //-- Predict (inference only — no intermediates saved) --//
       // Returns post-activation output and pre-activation logits of the dense head.

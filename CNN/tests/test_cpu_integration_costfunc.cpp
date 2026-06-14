@@ -137,9 +137,9 @@ static void testCrossEntropyLossDecreases()
 
 //===================================================================================================================//
 
-static void testCrossEntropyTraining()
+static void testCrossEntropyTrain()
 {
-  std::cout << "--- testCrossEntropyTraining (CNN) ---" << std::endl;
+  std::cout << "--- testCrossEntropyTrain (CNN) ---" << std::endl;
 
   CNN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -222,9 +222,9 @@ static void testCrossEntropyTraining()
 
 //===================================================================================================================//
 
-static void testWeightedCrossEntropyTraining()
+static void testWeightedCrossEntropyTrain()
 {
-  std::cout << "--- testWeightedCrossEntropyTraining (CNN) ---" << std::endl;
+  std::cout << "--- testWeightedCrossEntropyTrain (CNN) ---" << std::endl;
 
   // Cross-entropy with per-class weights
   CNN::CoreConfig<double> config;
@@ -289,6 +289,6 @@ void runIntegrationCostFuncTests()
 {
   testCrossEntropyGradientNumerical();
   testCrossEntropyLossDecreases();
-  testCrossEntropyTraining();
-  testWeightedCrossEntropyTraining();
+  testCrossEntropyTrain();
+  testWeightedCrossEntropyTrain();
 }

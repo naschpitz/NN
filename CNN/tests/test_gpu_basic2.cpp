@@ -160,9 +160,9 @@ static void testGPUShuffleSamples()
 
 //===================================================================================================================//
 
-static void testGPUCrossEntropyTraining()
+static void testGPUCrossEntropyTrain()
 {
-  std::cout << "--- testGPUCrossEntropyTraining (CNN) ---" << std::endl;
+  std::cout << "--- testGPUCrossEntropyTrain (CNN) ---" << std::endl;
 
   // 1x5x5 → Conv → ReLU → Flatten → Dense(3, softmax) with cross-entropy on GPU
   CNN::CoreConfig<float> config;
@@ -235,5 +235,5 @@ void runGPUBasicTests2()
 {
   testGPUMultiConvStack();
   testGPUShuffleSamples();
-  testGPUCrossEntropyTraining();
+  testGPUCrossEntropyTrain();
 }

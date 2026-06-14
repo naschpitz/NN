@@ -7,7 +7,7 @@
 #include "ANN_Sample.hpp"
 #include "ANN_SampleProvider.hpp"
 #include "Common/Common_EpochRecord.hpp"
-#include "Common/Common_TrainingProgressEvent.hpp"
+#include "Common/Common_TrainProgressEvent.hpp"
 #include "Common/Common_TrainMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
 #include "Common/Common_PredictResult.hpp"
@@ -116,9 +116,9 @@ namespace ANN
         parameters = params;
       }
 
-      void setTrainingCallback(TrainingCallback<T> callback)
+      void setTrainCallback(TrainCallback<T> callback)
       {
-        trainingCallback = callback;
+        trainCallback = callback;
       }
 
       // Invoked once per completed epoch with the 0-based epoch index. The
@@ -194,7 +194,7 @@ namespace ANN
       ulong progressReports = 1000;
       LogLevel logLevel = LogLevel::ERROR;
 
-      TrainingCallback<T> trainingCallback;
+      TrainCallback<T> trainCallback;
       EpochCompletedCallback<T> epochCompletedCallback;
       ProgressCallback progressCallback;
       std::atomic<bool> stopRequested{false};

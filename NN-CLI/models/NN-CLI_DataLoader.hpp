@@ -23,7 +23,7 @@
 namespace NN_CLI
 {
 
-  enum class SampleLoadType { Training, Validation };
+  enum class SampleLoadType { Train, Validation };
 
   class GpuAugmenterPool; // GPU augmentation (defined in NN-CLI_GpuAugmenter.hpp)
 
@@ -93,12 +93,12 @@ namespace NN_CLI
       // It returns the current batch's samples and prefetches the next batch in the background
       // using a persistent worker thread.
       ProviderT makeSampleProvider(const AugmentationTransforms& transforms = {}, float augmentationProbability = 0.5f,
-                                   SampleLoadType loadType = SampleLoadType::Training) const;
+                                    SampleLoadType loadType = SampleLoadType::Train) const;
 
       // Build a SampleProvider that only serves samples from the given index subset.
       ProviderT makeSampleProvider(const std::vector<ulong>& subsetIndices,
                                    const AugmentationTransforms& transforms = {}, float augmentationProbability = 0.5f,
-                                   SampleLoadType loadType = SampleLoadType::Training) const;
+                                   SampleLoadType loadType = SampleLoadType::Train) const;
 
       // When set, image augmentation runs on the GPU (batch-level) instead of on the
       // CPU per sample. The pool is owned by the caller and must outlive this loader.
@@ -134,7 +134,7 @@ namespace NN_CLI
       // batchIndex and totalBatches are passed through to the loading callback for progress display.
       std::vector<SampleT> loadBatch(const std::vector<ulong>& entryIndices, const AugmentationTransforms& transforms,
                                      float augmentationProbability, ulong batchIndex = 1, ulong totalBatches = 1,
-                                     SampleLoadType loadType = SampleLoadType::Training) const;
+                                   SampleLoadType loadType = SampleLoadType::Train) const;
 
       // Retrieve a single sample by entry index, optionally applying augmentation.
       SampleT loadSample(ulong entryIndex, std::mt19937& rng, const AugmentationTransforms& transforms,

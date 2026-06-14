@@ -42,7 +42,7 @@ void GPUKernelBuilder<T>::setupPredictKernels()
 //===================================================================================================================//
 
 template <typename T>
-void GPUKernelBuilder<T>::setupTrainingKernels()
+void GPUKernelBuilder<T>::setupTrainKernels()
 {
   this->core->clearKernels();
   this->invalidateAllKernelFlags();

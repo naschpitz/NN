@@ -4,14 +4,14 @@
 #include "NN-CLI_CNNLoader.hpp"
 #include "NN-CLI_DataLoader.hpp"
 #include "NN-CLI_GpuAugmenter.hpp"
-#include "Common/Common_TrainingMonitor.hpp"
+#include "Common/Common_TrainMonitor.hpp"
 #include <OCLW_Core.hpp>
 #include "NN-CLI_DataSplitter.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_PredictSummary.hpp"
 #include "NN-CLI_RunnerUtils.hpp"
 #include "NN-CLI_TestSummary.hpp"
-#include "NN-CLI_TrainingSummary.hpp"
+#include "NN-CLI_TrainSummary.hpp"
 #include "NN-CLI_Utils.hpp"
 
 #include <QDir>
@@ -68,7 +68,7 @@ ulong CNNRunner::getNumOutputClasses() const
 
 ulong CNNRunner::getTotalParameters() const
 {
-  return TrainingSummary::countCNNParameters(this->coreConfig);
+  return TrainSummary::countCNNParameters(this->coreConfig);
 }
 
 //===================================================================================================================//
@@ -212,11 +212,11 @@ int CNNRunner::train()
   this->notifyModelInfoUpdated("numValidationSamples", std::to_string(numValidationSamples));
 
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
-  std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor;
+  std::shared_ptr<Common::TrainMonitor<float>> trainMonitor;
 
   if (validationConfig.enabled && this->coreConfig.trainConfig.monitoringConfig.enabled) {
-    trainingMonitor =
-      std::make_shared<Common::TrainingMonitor<float>>(this->coreConfig.trainConfig.monitoringConfig);
+    trainMonitor =
+      std::make_shared<Common::TrainMonitor<float>>(this->coreConfig.trainConfig.monitoringConfig);
     this->coreConfig.trainConfig.monitoringConfig.enabled = false;
     this->core = CNN::Core<float>::makeCore(this->coreConfig);
   }
@@ -260,7 +260,7 @@ int CNNRunner::train()
     }
   }
 
-  this->setupTrainingCallback(inputFilePath, validationCore, trainingMonitor,
+  this->setupTrainCallback(inputFilePath, validationCore, trainMonitor,
                               validationConfig.enabled ? &dataLoader : nullptr,
                               validationConfig.enabled ? &split.validationIndices : nullptr);
 
@@ -290,15 +290,15 @@ int CNNRunner::train()
   if (validationConfig.enabled) {
     auto trainProvider =
       dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
-                                    this->augConfig.augmentationProbability, SampleLoadType::Training);
+                                     this->augConfig.augmentationProbability, SampleLoadType::Train);
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
     auto sampleProvider = dataLoader.makeSampleProvider(
-      this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Training);
+      this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Train);
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
 
-  return this->finishTraining(inputFilePath);
+  return this->finishTrain(inputFilePath);
 }
 
 //===================================================================================================================//
@@ -583,7 +583,7 @@ int CNNRunner::calibrate()
 
   std::string summary = "Calibration completed | ID: " + std::to_string(idEnergies.size()) +
                          " | OOD: " + std::to_string(oodEnergies.size()) + " | Output: " + outputPath;
-  this->notifyTrainingFinished(true, summary);
+  this->notifyTrainFinished(true, summary);
 
   return 0;
 }
@@ -612,8 +612,8 @@ std::pair<CNN::Samples<float>, bool> CNNRunner::loadSamplesFromOptions(const std
 //  Training helpers
 //===================================================================================================================//
 
-void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_ptr<CNN::Core<float>> validationCore,
-                                      std::shared_ptr<Common::TrainingMonitor<float>> trainingMonitor,
+void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr<CNN::Core<float>> validationCore,
+                                   std::shared_ptr<Common::TrainMonitor<float>> trainMonitor,
                                       const DataLoader<CNN::Sample<float>>* validationDataLoader,
                                       const std::vector<ulong>* validationIndices)
 {
@@ -644,15 +644,15 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
   // Live progress callback: fires per batch from the GPU worker threads. It
   // only drives the progress/timing display — every epoch-boundary task lives
   // in the epoch-completed callback below.
-  this->core->setTrainingCallback([this, batchSize](const Common::TrainingProgressEvent<float>& progress) {
-    this->handleTrainingProgress(progress, batchSize);
+  this->core->setTrainCallback([this, batchSize](const Common::TrainProgressEvent<float>& progress) {
+    this->handleTrainProgress(progress, batchSize);
   });
 
   // Epoch-completed callback: fires once per epoch (after the epoch's record is
   // recorded) with the 0-based epoch index. The core hands us the index
   // directly, so there is no transition tracking and no off-by-one — completion.epoch
   // matches EpochRecord::epoch and the serialized bestValidationEpoch.
-  this->core->setEpochCompletedCallback([this, inputFilePath, validationCore, trainingMonitor, validationProviderPtr,
+  this->core->setEpochCompletedCallback([this, inputFilePath, validationCore, trainMonitor, validationProviderPtr,
                                          validationIndices,
                                          totalEpochs](const Common::EpochCompletionEvent<float>& completion) {
     QMutexLocker<QMutex> lock(&this->callbackMutex);
@@ -698,10 +698,10 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
         this->validationState.bestValEpoch = epoch;
       }
 
-      if (trainingMonitor) {
+      if (trainMonitor) {
         monitorShouldStop =
-          trainingMonitor->checkEpoch(epoch, this->lastEpochLoss, std::optional<float>(validationResult.averageLoss));
-        isBest = trainingMonitor->isNewBest();
+          trainMonitor->checkEpoch(epoch, this->lastEpochLoss, std::optional<float>(validationResult.averageLoss));
+        isBest = trainMonitor->isNewBest();
       }
     }
 
@@ -744,7 +744,7 @@ void CNNRunner::setupTrainingCallback(const QString& inputFilePath, std::shared_
 
     // --- Monitor stop requests ---
     if (monitorShouldStop) {
-      std::string stopMsg = "[Monitor] Training stopped: " + trainingMonitor->getStopReason();
+      std::string stopMsg = "[Monitor] Training stopped: " + trainMonitor->getStopReason();
 
       this->notifyLogMessage(stopMsg, false);
       this->core->requestStop();

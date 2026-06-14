@@ -1,8 +1,8 @@
 #include "test_helpers.hpp"
 
-static void testMultiGPUCrossEntropyTraining()
+static void testMultiGPUCrossEntropyTrain()
 {
-  std::cout << "--- testMultiGPUCrossEntropyTraining ---" << std::endl;
+  std::cout << "--- testMultiGPUCrossEntropyTrain ---" << std::endl;
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -230,7 +230,7 @@ static void testMultiGPUWithPoolLayer()
 
 void runGPUMultiGPUTests2()
 {
-  testMultiGPUCrossEntropyTraining();
+  testMultiGPUCrossEntropyTrain();
   testMultiGPUParameterRoundTrip();
   testMultiGPUWithPoolLayer();
 }

@@ -2,9 +2,9 @@
 
 //===================================================================================================================//
 
-static void testGPUTrainingCallback()
+static void testGPUTrainCallback()
 {
-  std::cout << "--- testGPUTrainingCallback ---" << std::endl;
+  std::cout << "--- testGPUTrainCallback ---" << std::endl;
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -20,7 +20,7 @@ static void testGPUTrainingCallback()
 
   int callbackCount = 0;
   auto core = ANN::Core<float>::makeCore(config);
-  core->setTrainingCallback([&callbackCount](const ANN::TrainingProgressEvent<float>& progress) { callbackCount++; });
+  core->setTrainCallback([&callbackCount](const ANN::TrainProgressEvent<float>& progress) { callbackCount++; });
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -31,9 +31,9 @@ static void testGPUTrainingCallback()
 
 //===================================================================================================================//
 
-static void testGPUParametersDuringTraining()
+static void testGPUParametersDuringTrain()
 {
-  std::cout << "--- testGPUParametersDuringTraining ---" << std::endl;
+  std::cout << "--- testGPUParametersDuringTrain ---" << std::endl;
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -162,9 +162,9 @@ static void testGPUMultiOutput()
 
 //===================================================================================================================//
 
-static void testGPUWeightedLossAffectsTraining()
+static void testGPUWeightedLossAffectsTrain()
 {
-  std::cout << "--- testGPUWeightedLossAffectsTraining ---" << std::endl;
+  std::cout << "--- testGPUWeightedLossAffectsTrain ---" << std::endl;
 
   auto makeConfig = [](std::vector<float> weights) {
     ANN::CoreConfig<float> config;
@@ -302,9 +302,9 @@ static void testGPUSoftmaxHiddenLayer()
 
 //===================================================================================================================//
 
-static void testGPUDropoutTraining()
+static void testGPUDropoutTrain()
 {
-  std::cout << "--- testGPUDropoutTraining ---" << std::endl;
+  std::cout << "--- testGPUDropoutTrain ---" << std::endl;
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -369,16 +369,16 @@ static void testGPUCrossEntropyLossDecreases()
 
 void runGPUFeaturesTests()
 {
-  testGPUTrainingCallback();
-  testGPUParametersDuringTraining();
+  testGPUTrainCallback();
+  testGPUParametersDuringTrain();
   testGPUDifferentActivations();
   testGPUMultiLayerNetwork();
   testGPUMultiOutput();
-  testGPUWeightedLossAffectsTraining();
+  testGPUWeightedLossAffectsTrain();
   testGPUShuffleSamplesNoShuffle();
   testGPUSoftmaxPredict();
   testGPUSoftmaxTrain();
   testGPUSoftmaxHiddenLayer();
-  testGPUDropoutTraining();
+  testGPUDropoutTrain();
   testGPUCrossEntropyLossDecreases();
 }

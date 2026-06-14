@@ -7,7 +7,7 @@
 #include "CNN_Sample.hpp"
 #include "CNN_SampleProvider.hpp"
 #include "Common/Common_EpochRecord.hpp"
-#include "Common/Common_TrainingProgressEvent.hpp"
+#include "Common/Common_TrainProgressEvent.hpp"
 #include "Common/Common_TrainMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
 #include "Common/Common_PredictResult.hpp"
@@ -118,9 +118,9 @@ namespace CNN
       // Upload current host-side parameters to GPU buffers (no-op for CPU cores).
       virtual void syncParametersToGPU() {}
 
-      void setTrainingCallback(Common::TrainingCallback<T> callback)
+      void setTrainCallback(Common::TrainCallback<T> callback)
       {
-        trainingCallback = callback;
+        trainCallback = callback;
       }
 
       // Invoked once per completed epoch with the 0-based epoch index. The
@@ -211,7 +211,7 @@ namespace CNN
       Common::LogLevel logLevel = Common::LogLevel::ERROR;
 
       //-- Internal state --//
-      TrainingCallback<T> trainingCallback;
+      TrainCallback<T> trainCallback;
       EpochCompletedCallback<T> epochCompletedCallback;
       ProgressCallback progressCallback;
       TimingCallback timingCallback;
