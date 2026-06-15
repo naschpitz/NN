@@ -296,7 +296,7 @@ namespace NN_Server
   // ANN config loading (predict-only)
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath)
+  ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath)
   {
     nlohmann::json json;
     std::vector<char> binData;
@@ -320,6 +320,7 @@ namespace NN_Server
                                  "The embedded-parameter format is no longer supported. "
                                  "Server requires a .nnmodel package with separate parameter files.");
       }
+
       throw std::runtime_error("Config file missing parameters. Server requires a .nnmodel package for predict mode: " +
                                configFilePath);
     }
@@ -355,6 +356,7 @@ namespace NN_Server
                                  "The embedded-parameter format is no longer supported. "
                                  "Server requires a .nnmodel package with separate parameter files.");
       }
+
       throw std::runtime_error(
         "CNN config file missing parameters. Server requires a .nnmodel package for predict mode: " + configFilePath);
     }
@@ -387,10 +389,10 @@ namespace NN_Server
   // ANN config loading with binary params (overload)
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> Loader::loadConfig(const std::string& configFilePath, const std::vector<char>& binParams)
+  ANN::CoreConfig<float> Loader::loadANNConfig(const std::string& configFilePath, const std::vector<char>& binParams)
   {
     if (binParams.empty()) {
-      return loadConfig(configFilePath);
+      return loadANNConfig(configFilePath);
     }
 
     // Read JSON from file (not a package — binary params provided separately)

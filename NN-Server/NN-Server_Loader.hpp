@@ -40,7 +40,7 @@ namespace NN_Server
       static OutputConfig loadOutputConfig(const std::string& configFilePath);
 
       // Load ANN configuration (always in PREDICT mode).
-      static ANN::CoreConfig<float> loadConfig(const std::string& configFilePath);
+      static ANN::CoreConfig<float> loadANNConfig(const std::string& configFilePath);
 
       // Load CNN configuration (always in PREDICT mode).
       static CNN::CoreConfig<float> loadCNNConfig(const std::string& configFilePath);
@@ -54,8 +54,9 @@ namespace NN_Server
       static std::pair<nlohmann::json, std::vector<char>> loadPackage(const std::string& packagePath);
 
       // Load ANN configuration with pre-extracted binary parameters.
-      // If binParams is empty, falls back to loadConfig(configFilePath).
-      static ANN::CoreConfig<float> loadConfig(const std::string& configFilePath, const std::vector<char>& binParams);
+      // If binParams is empty, falls back to loadANNConfig(configFilePath).
+      static ANN::CoreConfig<float> loadANNConfig(const std::string& configFilePath,
+                                                  const std::vector<char>& binParams);
 
       // Load CNN configuration with pre-extracted binary parameters.
       // If binParams is empty, falls back to loadCNNConfig(configFilePath).
