@@ -77,7 +77,6 @@ int main(int argc, char* argv[])
   } else {
     std::cerr << "Error: No model path specified.\n";
     std::cerr << "       Provide --model-package <path> or set \"model_package\" in config.json.\n";
-    parser.process(app);
     parser.showHelp(1);
   }
 
@@ -160,8 +159,8 @@ int main(int argc, char* argv[])
   qint64 maxLogSizeBytes = maxLogSizeGB * 1024 * 1024 * 1024; // Convert GB to bytes
 
   std::cout << "NN-Server starting...\n";
-  std::cout << "  Config:        " << configFilePath << "\n";
-  std::cout << "  Model:         " << modelPath << "\n";
+  std::cout << "  Config:       " << configFilePath << "\n";
+  std::cout << "  Model:        " << modelPath << "\n";
   std::cout << "  Port:         " << port << "\n";
   std::cout << "  Pool size:    " << poolSize << "\n";
 
