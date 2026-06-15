@@ -21,7 +21,7 @@
 
 static void testCNNSaveLoadPredictConsistencyGPU()
 {
-  std::cout << "  testCNNSaveLoadPredictConsistencyGPU... ";
+  TestScope _t("testCNNSaveLoadPredictConsistencyGPU");
 
   if (!checkGPUAvailable()) {
     std::cout << "(skipped — no GPU)" << std::endl;
@@ -61,33 +61,31 @@ static void testCNNSaveLoadPredictConsistencyGPU()
     configFile.close();
   } else {
     CHECK(false, "CNN GPU save/load predict: failed to write config file");
-    std::cout << std::endl;
     return;
   }
 
   QString modelPath = tempDir() + "/cnn_slpc_gpu_model.nnmodel.tar";
 
   // Step 1: Train on GPU
-  auto trainResult = runNNCLI({"--config", configPath, "--mode", "train", "--device", "gpu", "--samples",
+  auto trainResult = runNNCLI({"--model", configPath, "--mode", "train", "--device", "gpu", "--samples",
                                fixturePath("cnn_train_samples.json"), "--output", modelPath});
 
   CHECK(trainResult.exitCode == 0, "CNN GPU save/load predict: train exit code 0");
 
   if (trainResult.exitCode != 0) {
-    std::cout << std::endl;
     return;
   }
 
   // Step 2: Predict on GPU with the saved model
   QString predictOutput1 = tempDir() + "/cnn_slpc_gpu_predict1.json";
-  auto pred1Result = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "gpu", "--input",
+  auto pred1Result = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "gpu", "--input",
                                fixturePath("cnn_predict_input.json"), "--output", predictOutput1});
 
   CHECK(pred1Result.exitCode == 0, "CNN GPU save/load predict: predict1 exit code 0");
 
   // Step 3: Predict again (fresh load from disk)
   QString predictOutput2 = tempDir() + "/cnn_slpc_gpu_predict2.json";
-  auto pred2Result = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "gpu", "--input",
+  auto pred2Result = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "gpu", "--input",
                                fixturePath("cnn_predict_input.json"), "--output", predictOutput2});
 
   CHECK(pred2Result.exitCode == 0, "CNN GPU save/load predict: predict2 exit code 0");
@@ -133,7 +131,7 @@ static void testCNNSaveLoadPredictConsistencyGPU()
 
   // Step 5: Cross-device check — predict on CPU with GPU-trained model
   QString predictOutputCPU = tempDir() + "/cnn_slpc_gpu_predict_cpu.json";
-  auto predCPUResult = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input",
+  auto predCPUResult = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
                                  fixturePath("cnn_predict_input.json"), "--output", predictOutputCPU});
 
   CHECK(predCPUResult.exitCode == 0, "CNN GPU save/load predict: CPU predict exit code 0");
@@ -169,8 +167,6 @@ static void testCNNSaveLoadPredictConsistencyGPU()
       fCPU.close();
     }
   }
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//

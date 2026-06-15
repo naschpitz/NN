@@ -2,7 +2,7 @@
 
 static void testCostFunctionConfigGetter()
 {
-  std::cout << "--- testCostFunctionConfigGetter ---" << std::endl;
+  TestScope _t("testCostFunctionConfigGetter");
 
   // Default config
   CNN::CoreConfig<double> configDefault;
@@ -46,7 +46,7 @@ static void testCostFunctionConfigGetter()
 
 static void testWeightedLossTrain()
 {
-  std::cout << "--- testWeightedLossTrain ---" << std::endl;
+  TestScope _t("testWeightedLossTrain");
 
   // 1x5x5 → Conv(1,3x3) → ReLU → Flatten(9) → Dense(2, sigmoid)
   CNN::CoreConfig<double> config;
@@ -113,9 +113,9 @@ static void testWeightedLossTrain()
 
 static void testShuffleSamplesDefault()
 {
-  std::cout << "--- testShuffleSamplesDefault ---" << std::endl;
+  TestScope _t("testShuffleSamplesDefault");
 
-   Common::TrainConfig<double> tc;
+  Common::TrainConfig<double> tc;
   CHECK(tc.shuffleSamples == true, "CNN shuffleSamples default is true");
 }
 
@@ -123,7 +123,7 @@ static void testShuffleSamplesDefault()
 
 static void testShuffleSamplesTrain()
 {
-  std::cout << "--- testShuffleSamplesTrain ---" << std::endl;
+  TestScope _t("testShuffleSamplesTrain");
 
   // Train with shuffle=true and shuffle=false, both should converge
   auto makeConfig = [](bool shuffle) {

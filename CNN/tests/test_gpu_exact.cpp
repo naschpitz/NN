@@ -4,7 +4,7 @@
 
 static void testGPUExactForwardBackwardCrossEntropy()
 {
-  std::cout << "--- testGPUExactForwardBackwardCrossEntropy ---" << std::endl;
+  TestScope _t("testGPUExactForwardBackwardCrossEntropy");
 
   // Same hand-computed network as CPU test, but on GPU with float.
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(2, softmax)
@@ -94,7 +94,7 @@ static void testGPUExactForwardBackwardCrossEntropy()
 
 static void testGPUExactForwardBackwardSquaredDifference()
 {
-  std::cout << "--- testGPUExactForwardBackwardSquaredDifference ---" << std::endl;
+  TestScope _t("testGPUExactForwardBackwardSquaredDifference");
 
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(1, sigmoid)
   // Squared-difference cost, SGD lr=1.0, 1 epoch, 1 sample
@@ -174,7 +174,7 @@ static void testGPUExactForwardBackwardSquaredDifference()
 
 static void testGPUExactForwardBackwardWeightedCrossEntropy()
 {
-  std::cout << "--- testGPUExactForwardBackwardWeightedCrossEntropy ---" << std::endl;
+  TestScope _t("testGPUExactForwardBackwardWeightedCrossEntropy");
 
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(2, softmax)
   // Weighted cross-entropy cost [3.0, 0.5], SGD lr=1.0, 1 epoch, 1 sample

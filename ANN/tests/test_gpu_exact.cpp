@@ -4,7 +4,7 @@
 
 static void testGPUExactForwardBackwardSquaredDifference()
 {
-  std::cout << "--- testGPUExactForwardBackwardSquaredDifference ---" << std::endl;
+  TestScope _t("testGPUExactForwardBackwardSquaredDifference");
 
   // Same hand-computed network as CPU test, but on GPU with float.
   // 2 inputs → 2 hidden (ReLU) → 1 output (sigmoid), squared-difference, SGD lr=1.0
@@ -46,7 +46,7 @@ static void testGPUExactForwardBackwardSquaredDifference()
 
 static void testGPUExactForwardBackwardCrossEntropy()
 {
-  std::cout << "--- testGPUExactForwardBackwardCrossEntropy ---" << std::endl;
+  TestScope _t("testGPUExactForwardBackwardCrossEntropy");
 
   // Same hand-computed network as CPU test, but on GPU with float.
   // 2 inputs → 2 hidden (ReLU) → 2 output (softmax), cross-entropy, SGD lr=1.0
@@ -93,7 +93,7 @@ static void testGPUExactForwardBackwardCrossEntropy()
 
 static void testGPUExactForwardBackwardWeightedCrossEntropy()
 {
-  std::cout << "--- testGPUExactForwardBackwardWeightedCrossEntropy ---" << std::endl;
+  TestScope _t("testGPUExactForwardBackwardWeightedCrossEntropy");
 
   // Same as CE test but with per-class weights [3.0, 0.5]
   ANN::CoreConfig<float> config;

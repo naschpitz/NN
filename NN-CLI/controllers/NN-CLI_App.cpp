@@ -26,7 +26,15 @@ using namespace NN_CLI;
 
 App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), logLevel(logLevel)
 {
-  QString configPath = this->parser.value("config");
+  QString configPath;
+
+  if (this->parser.isSet("model")) {
+    configPath = this->parser.value("model");
+  } else {
+    configPath = this->parser.value("model-package");
+  }
+
+  this->configPath = configPath;
   std::string configStr = configPath.toStdString();
 
   // Detect if input is a .nnmodel package
@@ -143,9 +151,11 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
     }
 
     this->annCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
+
     if (this->mode != Common::ModeType::CALIBRATE) {
       this->mode = this->annCoreConfig.modeType;
     }
+
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
     if (isPackage) {
@@ -161,6 +171,7 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
                        this->cnnCoreConfig.modeType == Common::ModeType::TEST)) {
       bool hasParams = !this->cnnCoreConfig.parameters.convParams.empty() ||
                        !this->cnnCoreConfig.parameters.denseParams.weights.empty();
+
       if (!hasParams) {
         throw std::runtime_error("CNN config missing parameters required for predict/test mode. "
                                  "Use a .nnmodel package or provide 'parameters' in the JSON config.");
@@ -168,9 +179,11 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
     }
 
     this->cnnCoreConfig.logLevel = static_cast<Common::LogLevel>(this->logLevel);
+
     if (this->mode != Common::ModeType::CALIBRATE) {
       this->mode = this->cnnCoreConfig.modeType;
     }
+
     this->cnnCore = CNN::Core<float>::makeCore(this->cnnCoreConfig);
   }
 }
@@ -181,7 +194,7 @@ int App::run()
 {
   if (this->networkType == NetworkType::ANN) {
     auto runner = std::make_unique<ANNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
-                                              this->annCore, this->annCoreConfig);
+                                              this->annCore, this->annCoreConfig, this->configPath);
 
     switch (this->mode) {
     case Common::ModeType::CALIBRATE: {
@@ -189,16 +202,21 @@ int App::run()
       ctrl.init(std::move(runner));
       return ctrl.startCalibrate();
     }
+
     case Common::ModeType::TRAIN: {
+      // TODO: Support resume-training from --model-package with --mode train
+      // (load weights + optimizer state + lastEpoch from package, continue training)
       TrainController<ANNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTrain();
     }
+
     case Common::ModeType::TEST: {
       TestController<ANNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTest();
     }
+
     case Common::ModeType::PREDICT:
     default: {
       PredictController<ANNRunner> ctrl;
@@ -208,7 +226,7 @@ int App::run()
     }
   } else {
     auto runner = std::make_unique<CNNRunner>(this->parser, this->logLevel, this->ioConfig, this->augConfig,
-                                              this->cnnCore, this->cnnCoreConfig);
+                                              this->cnnCore, this->cnnCoreConfig, this->configPath);
 
     switch (this->mode) {
     case Common::ModeType::CALIBRATE: {
@@ -216,16 +234,21 @@ int App::run()
       ctrl.init(std::move(runner));
       return ctrl.startCalibrate();
     }
+
     case Common::ModeType::TRAIN: {
+      // TODO: Support resume-training from --model-package with --mode train
+      // (load weights + optimizer state + lastEpoch from package, continue training)
       TrainController<CNNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTrain();
     }
+
     case Common::ModeType::TEST: {
       TestController<CNNRunner> ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTest();
     }
+
     case Common::ModeType::PREDICT:
     default: {
       PredictController<CNNRunner> ctrl;

@@ -33,7 +33,7 @@ static ANN::Samples<float> makeSamples(ulong count, ulong numClasses = 3)
 
 static void testProviderReturnsCorrectBatches()
 {
-  std::cout << "  testProviderReturnsCorrectBatches... ";
+  TestScope _t("testProviderReturnsCorrectBatches");
 
   auto samples = makeSamples(10);
   DataLoader<ANN::Sample<float>> loader;
@@ -67,15 +67,13 @@ static void testProviderReturnsCorrectBatches()
   auto batch3 = provider(indices, batchSize, 3);
   CHECK(batch3.size() == 1, "last batch has 1 sample");
   CHECK(batch3[0].input[0] == 9.0f, "last batch sample correct");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testProviderRespectsShuffledIndices()
 {
-  std::cout << "  testProviderRespectsShuffledIndices... ";
+  TestScope _t("testProviderRespectsShuffledIndices");
 
   auto samples = makeSamples(6);
   DataLoader<ANN::Sample<float>> loader;
@@ -97,15 +95,13 @@ static void testProviderRespectsShuffledIndices()
   CHECK(batch1[0].input[0] == 2.0f, "shuffled batch 1 sample 0 = original[2]");
   CHECK(batch1[1].input[0] == 1.0f, "shuffled batch 1 sample 1 = original[1]");
   CHECK(batch1[2].input[0] == 0.0f, "shuffled batch 1 sample 2 = original[0]");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testPrefetchOverlapsWithProcessing()
 {
-  std::cout << "  testPrefetchOverlapsWithProcessing... ";
+  TestScope _t("testPrefetchOverlapsWithProcessing");
 
   // With prefetching, batch 1 should be faster than batch 0 because it was
   // loaded in the background while we "processed" batch 0.
@@ -133,15 +129,13 @@ static void testPrefetchOverlapsWithProcessing()
     // Simulate training time — prefetch of next batch happens during this sleep
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testNewEpochResetsPrefetch()
 {
-  std::cout << "  testNewEpochResetsPrefetch... ";
+  TestScope _t("testNewEpochResetsPrefetch");
 
   auto samples = makeSamples(6);
   DataLoader<ANN::Sample<float>> loader;
@@ -166,8 +160,6 @@ static void testNewEpochResetsPrefetch()
 
   auto e2b1 = provider(epoch2, batchSize, 1);
   CHECK(e2b1[0].input[0] == 2.0f, "epoch 2 batch 1 correct");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//

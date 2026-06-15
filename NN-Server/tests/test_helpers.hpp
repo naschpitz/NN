@@ -25,6 +25,12 @@ extern int testsFailed;
 } while(0)
 
 #define CHECK_NEAR(a, b, tol, msg) CHECK(std::fabs((a) - (b)) < (tol), msg)
+
+#define CHECK_THROWS(expr, msg) do { \
+  bool threw = false; \
+  try { expr; } catch (...) { threw = true; } \
+  CHECK(threw, msg); \
+} while(0)
 // clang-format on
 
 // Project root: parent of the build/ directory where binaries live
@@ -169,3 +175,23 @@ inline HttpResponse httpPostImage(const QString& path, const QByteArray& imageDa
                    imageData;
   return sendHttpRequest(req);
 }
+
+// --- TestScope: RAII per-test verdict printer (project standard) ---
+// Snapshot testsFailed in ctor; print "  <name>... PASS|FAIL" in dtor.
+// Structurally impossible to print a false PASS.
+struct TestScope {
+    const char* name;
+    int failedBefore;
+    explicit TestScope(const char* n) : name(n), failedBefore(::testsFailed)
+    {
+      std::cout << "  " << name << "... " << std::flush;
+    }
+
+    ~TestScope()
+    {
+      std::cout << (::testsFailed == failedBefore ? "PASS" : "FAIL") << std::endl;
+    }
+
+    TestScope(const TestScope&) = delete;
+    TestScope& operator=(const TestScope&) = delete;
+};

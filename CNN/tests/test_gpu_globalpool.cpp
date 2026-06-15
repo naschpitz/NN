@@ -4,7 +4,7 @@
 
 static void testGPUWithGlobalAvgPool()
 {
-  std::cout << "--- testGPUWithGlobalAvgPool (Conv→ReLU→GAP→Flatten→Dense) ---" << std::endl;
+  TestScope _t("testGPUWithGlobalAvgPool (Conv→ReLU→GAP→Flatten→Dense)");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -65,7 +65,7 @@ static void testGPUWithGlobalAvgPool()
 
 static void testGPUWithGlobalDualPool()
 {
-  std::cout << "--- testGPUWithGlobalDualPool (Conv→ReLU→GDP→Flatten→Dense) ---" << std::endl;
+  TestScope _t("testGPUWithGlobalDualPool (Conv→ReLU→GDP→Flatten→Dense)");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -127,8 +127,7 @@ static void testGPUWithGlobalDualPool()
 
 static void testGPUGlobalAvgPoolWithNormAndPool()
 {
-  std::cout << "--- testGPUGlobalAvgPoolWithNormAndPool (Conv→IN→ReLU→Pool→Conv→ReLU→GAP→Flatten→Dense) ---"
-            << std::endl;
+  TestScope _t("testGPUGlobalAvgPoolWithNormAndPool");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;

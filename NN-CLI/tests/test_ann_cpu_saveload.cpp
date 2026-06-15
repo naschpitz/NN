@@ -10,13 +10,13 @@
 
 static void testANNSaveLoadPredictConsistency()
 {
-  std::cout << "  testANNSaveLoadPredictConsistency... ";
+  TestScope _t("testANNSaveLoadPredictConsistency");
 
   // Train an ANN on XOR, predict, save, load, predict again — outputs must match
   QString modelPath = tempDir() + "/ann_slpc_model.nnmodel.tar";
 
   // Step 1: Train using the existing XOR fixtures
-  auto trainResult = runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
+  auto trainResult = runNNCLI({"--model", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
                                "--samples", fixturePath("ann_train_samples.json"), "--output", modelPath});
 
   CHECK(trainResult.exitCode == 0, "ANN save/load predict: train exit code 0");
@@ -53,14 +53,14 @@ static void testANNSaveLoadPredictConsistency()
 
   // Step 4: Predict with the saved model (first load from disk)
   QString predictOutput1 = tempDir() + "/ann_slpc_predict1.json";
-  auto pred1Result = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input",
+  auto pred1Result = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
                                predictInputPath, "--output", predictOutput1});
 
   CHECK(pred1Result.exitCode == 0, "ANN save/load predict: predict1 exit code 0");
 
   // Step 5: Predict again with the same saved model (fresh load from disk)
   QString predictOutput2 = tempDir() + "/ann_slpc_predict2.json";
-  auto pred2Result = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input",
+  auto pred2Result = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
                                predictInputPath, "--output", predictOutput2});
 
   CHECK(pred2Result.exitCode == 0, "ANN save/load predict: predict2 exit code 0");
@@ -108,8 +108,6 @@ static void testANNSaveLoadPredictConsistency()
       CHECK(false, "ANN save/load predict: failed to open predict output files");
     }
   }
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//

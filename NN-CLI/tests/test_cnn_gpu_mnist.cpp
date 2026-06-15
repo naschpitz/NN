@@ -6,15 +6,13 @@
 
 static void testCNNTrainAndTestMNISTGPU()
 {
-  std::cout << "  testCNNTrainAndTestMNISTGPU... " << std::flush;
+  TestScope _t("testCNNTrainAndTestMNISTGPU");
 
   if (!runFullTests) {
-    std::cout << "(skipped — use --full to enable)" << std::endl;
     return;
   }
 
   if (!checkGPUAvailable()) {
-    std::cout << "(skipped — no GPU available)" << std::endl;
     return;
   }
 
@@ -22,8 +20,8 @@ static void testCNNTrainAndTestMNISTGPU()
 
   // Step 1: Train on MNIST training data on GPU (10 epochs, 60k samples, Adam + crossEntropy + instancenorm)
   auto trainResult =
-    runNNCLI({"--config", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "gpu",
-              "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
+    runNNCLI({"--model", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "gpu", "--idx-data",
+              examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
               examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
              1800000); // 30 min timeout
 
@@ -31,12 +29,11 @@ static void testCNNTrainAndTestMNISTGPU()
   CHECK(QFile::exists(modelPath), "CNN MNIST GPU train+test: trained model file exists");
 
   if (trainResult.exitCode != 0 || !QFile::exists(modelPath)) {
-    std::cout << "(training failed, skipping test step)" << std::endl;
     return;
   }
 
   // Step 2: Evaluate against MNIST test data (10k samples) on GPU
-  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "gpu", "--idx-data",
+  auto testResult = runNNCLI({"--model-package", modelPath, "--mode", "test", "--device", "gpu", "--idx-data",
                               examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
                               examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
                              600000); // 10 min timeout
@@ -68,8 +65,6 @@ static void testCNNTrainAndTestMNISTGPU()
   }
 
   CHECK(accuracy > 50.0, "CNN MNIST GPU train+test: accuracy > 50%");
-
-  std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
 }
 
 //===================================================================================================================//

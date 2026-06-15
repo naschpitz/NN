@@ -31,6 +31,12 @@ extern QString trainedModelPath;
 } while(0)
 
 #define CHECK_NEAR(a, b, tol, msg) CHECK(std::fabs((a) - (b)) < (tol), msg)
+
+#define CHECK_THROWS(expr, msg) do { \
+  bool threw = false; \
+  try { expr; } catch (...) { threw = true; } \
+  CHECK(threw, msg); \
+} while(0)
 // clang-format on
 
 struct ProcessResult {
@@ -106,7 +112,7 @@ inline bool checkGPUAvailable()
   QProcess process;
   process.setWorkingDirectory(QCoreApplication::applicationDirPath() + "/..");
   process.start(QCoreApplication::applicationDirPath() + "/NN-CLI",
-                {"--config", projectRoot() + "/tests/fixtures/ann_train_config.json", "--mode", "train", "--device",
+                {"--model", projectRoot() + "/tests/fixtures/ann_train_config.json", "--mode", "train", "--device",
                  "gpu", "--samples", projectRoot() + "/tests/fixtures/ann_train_samples.json", "--output", modelPath,
                  "--log-level", "quiet"});
 
@@ -207,3 +213,23 @@ inline QJsonObject readModelJsonFromPackage(const QString& packagePath)
 
   return QJsonObject();
 }
+
+// --- TestScope: RAII per-test verdict printer (project standard) ---
+// Snapshot testsFailed in ctor; print "  <name>... PASS|FAIL" in dtor.
+// Structurally impossible to print a false PASS.
+struct TestScope {
+    const char* name;
+    int failedBefore;
+    explicit TestScope(const char* n) : name(n), failedBefore(::testsFailed)
+    {
+      std::cout << "  " << name << "... " << std::flush;
+    }
+
+    ~TestScope()
+    {
+      std::cout << (::testsFailed == failedBefore ? "PASS" : "FAIL") << std::endl;
+    }
+
+    TestScope(const TestScope&) = delete;
+    TestScope& operator=(const TestScope&) = delete;
+};

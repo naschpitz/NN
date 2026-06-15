@@ -34,7 +34,7 @@ static std::vector<std::vector<float>> makeImbalancedOutputs(ulong count, ulong 
 
 static void testAutoValSizeThresholds()
 {
-  std::cout << "  testAutoValSizeThresholds... ";
+  TestScope _t("testAutoValSizeThresholds");
 
   // Exact anchor points
   CHECK_NEAR(DataSplitter::computeAutoValSize(100), 0.20f, 0.001f, "100 → 20%");
@@ -61,15 +61,13 @@ static void testAutoValSizeThresholds()
   // Clamping at boundaries
   CHECK_NEAR(DataSplitter::computeAutoValSize(10), 0.20f, 0.001f, "tiny → clamped to 20%");
   CHECK_NEAR(DataSplitter::computeAutoValSize(10000000), 0.01f, 0.001f, "10M → clamped to 1%");
-
-  std::cout << "PASS" << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testStratifiedSplitBasic()
 {
-  std::cout << "  testStratifiedSplitBasic... ";
+  TestScope _t("testStratifiedSplitBasic");
 
   // 100 samples, 3 classes: 50 class-0, 25 class-1, 25 class-2
   auto outputs = makeImbalancedOutputs(100, 3);
@@ -90,15 +88,13 @@ static void testStratifiedSplitBasic()
   for (ulong i = 1; i < all.size(); i++) {
     CHECK(all[i] != all[i - 1], "no duplicate indices");
   }
-
-  std::cout << "PASS" << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testStratifiedSplitPreservesClassDistribution()
 {
-  std::cout << "  testStratifiedSplitPreservesClassDistribution... ";
+  TestScope _t("testStratifiedSplitPreservesClassDistribution");
 
   ulong numClasses = 4;
   ulong count = 200;
@@ -138,15 +134,13 @@ static void testStratifiedSplitPreservesClassDistribution()
     CHECK(actualVal >= expectedVal - 2 && actualVal <= expectedVal + 2,
           "val count proportional for class " + std::to_string(cls));
   }
-
-  std::cout << "PASS" << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testStratifiedSplitDeterministic()
 {
-  std::cout << "  testStratifiedSplitDeterministic... ";
+  TestScope _t("testStratifiedSplitDeterministic");
 
   auto outputs = makeImbalancedOutputs(100, 3);
 
@@ -159,15 +153,13 @@ static void testStratifiedSplitDeterministic()
   // Different seed should produce different split
   DataSplit split3 = DataSplitter::stratifiedSplit(outputs, 0.15f, 99);
   CHECK(split3.validationIndices != split1.validationIndices, "different seed → different split");
-
-  std::cout << "PASS" << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testStratifiedSplitEdgeCases()
 {
-  std::cout << "  testStratifiedSplitEdgeCases... ";
+  TestScope _t("testStratifiedSplitEdgeCases");
 
   // Single sample
   std::vector<std::vector<float>> single = {{1.0f, 0.0f}};
@@ -184,15 +176,13 @@ static void testStratifiedSplitEdgeCases()
   DataSplit splitAll = DataSplitter::stratifiedSplit(outputs, 1.0f);
   CHECK(splitAll.trainIndices.empty(), "100% ratio → no training");
   CHECK(splitAll.validationIndices.size() == 50, "100% ratio → all validation");
-
-  std::cout << "PASS" << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testValidationConfigParsing()
 {
-  std::cout << "  testValidationConfigParsing... ";
+  TestScope _t("testValidationConfigParsing");
 
   // Create a temp config file with validationConfig
   QString configPath = tempDir() + "/val_config_test.json";
@@ -220,15 +210,13 @@ static void testValidationConfigParsing()
   CHECK(config.validationConfig.autoSize == false, "autoSize parsed correctly");
   CHECK_NEAR(config.validationConfig.size, 0.25f, 0.001f, "size parsed correctly");
   CHECK(config.validationConfig.checkInterval == 5, "checkInterval parsed correctly");
-
-  std::cout << "PASS" << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testValidationConfigDefaults()
 {
-  std::cout << "  testValidationConfigDefaults... ";
+  TestScope _t("testValidationConfigDefaults");
 
   // Config without validationConfig — should use defaults
   QString configPath = tempDir() + "/val_config_defaults.json";
@@ -250,11 +238,7 @@ static void testValidationConfigDefaults()
   CHECK(config.validationConfig.autoSize == true, "default autoSize is true");
   CHECK_NEAR(config.validationConfig.size, 0.15f, 0.001f, "default size is 0.15");
   CHECK(config.validationConfig.checkInterval == 1, "default checkInterval is 1");
-
-  std::cout << "PASS" << std::endl;
 }
-
-//===================================================================================================================//
 
 void runValidationTests()
 {

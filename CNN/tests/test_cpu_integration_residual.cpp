@@ -4,7 +4,7 @@
 
 static void testResidualIdentityEndToEnd()
 {
-  std::cout << "--- testResidualIdentityEndToEnd ---" << std::endl;
+  TestScope _t("testResidualIdentityEndToEnd");
 
   // residual_start → Conv(4, same) → ReLU → Conv(4, same) → ReLU → residual_end → GAP → Flatten → Dense(1)
   CNN::CoreConfig<double> config;
@@ -78,7 +78,7 @@ static void testResidualIdentityEndToEnd()
 
 static void testResidualParametersEndToEnd()
 {
-  std::cout << "--- testResidualParametersEndToEnd ---" << std::endl;
+  TestScope _t("testResidualParametersEndToEnd");
 
   // residual_start (1ch) → Conv(4, valid) → ReLU → residual_end (4ch, projection from 1→4)
   // → GAP → Flatten → Dense(1)
@@ -145,7 +145,7 @@ static void testResidualParametersEndToEnd()
 
 static void testResidualMixedIdentityProjectionEndToEnd()
 {
-  std::cout << "--- testResidualMixedIdentityProjectionEndToEnd ---" << std::endl;
+  TestScope _t("testResidualMixedIdentityProjectionEndToEnd");
 
   // stem(4,stride2) → res_identity(4→4) → pool → res_projection(4→8) → GAP → Flatten → Dense(1)
   CNN::CoreConfig<double> config;

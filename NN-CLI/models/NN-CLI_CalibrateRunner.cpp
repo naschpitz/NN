@@ -31,7 +31,7 @@ namespace fs = std::filesystem;
 
 NN_CLI::CalibrateRunner::CalibrateRunner(const QCommandLineParser& parser, LogLevel logLevel, NetworkType networkType,
                                          const IOConfig& ioConfig, const AugmentationConfig& augConfig,
-                                         std::unique_ptr<ANN::Core<float>>& annCore,
+                                         const QString& configPath, std::unique_ptr<ANN::Core<float>>& annCore,
                                          const ANN::CoreConfig<float>& annCoreConfig,
                                          std::unique_ptr<CNN::Core<float>>& cnnCore,
                                          const CNN::CoreConfig<float>& cnnCoreConfig)
@@ -40,6 +40,7 @@ NN_CLI::CalibrateRunner::CalibrateRunner(const QCommandLineParser& parser, LogLe
     networkType(networkType),
     ioConfig(ioConfig),
     augConfig(augConfig),
+    configPath(configPath),
     annCore(annCore),
     annCoreConfig(annCoreConfig),
     cnnCore(cnnCore),
@@ -110,38 +111,46 @@ int NN_CLI::CalibrateRunner::run()
   }
 
   if (this->logLevel > LogLevel::QUIET) {
-    std::string msg = "Calibrate mode\n"
-                      "  Model:           " +
-                      this->parser.value("config").toStdString() +
-                      "\n"
-                      "  ID images:       " +
-                      this->parser.value("id-images").toStdString() +
-                      "  (sample " + std::to_string(this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong() : 500ULL) +
-                      ")\n"
-                      "  OOD dir:         " +
-                      (this->parser.isSet("ood-dir") ? this->parser.value("ood-dir").toStdString() : (fs::current_path() / "extern-datasets" / "ood").string()) +
-                      "  (sample " + std::to_string(this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong() : 1500ULL) +
-                      ")\n"
-                      "  ID percentile:   " +
-                      std::to_string(this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0) +
-                      "\n"
-                      "  Output:          " +
-                      (this->parser.isSet("output") ? this->parser.value("output").toStdString() : (fs::path(this->parser.value("config").toStdString()).parent_path() / "threshold.json").string()) + "\n\n";
+    std::string msg =
+      "Calibrate mode\n"
+      "  Model:           " +
+      this->configPath.toStdString() +
+      "\n"
+      "  ID images:       " +
+      this->parser.value("id-images").toStdString() + "  (sample " +
+      std::to_string(this->parser.isSet("id-sample-count") ? this->parser.value("id-sample-count").toULongLong()
+                                                           : 500ULL) +
+      ")\n"
+      "  OOD dir:         " +
+      (this->parser.isSet("ood-dir") ? this->parser.value("ood-dir").toStdString()
+                                     : (fs::current_path() / "extern-datasets" / "ood").string()) +
+      "  (sample " +
+      std::to_string(this->parser.isSet("ood-sample-count") ? this->parser.value("ood-sample-count").toULongLong()
+                                                            : 1500ULL) +
+      ")\n"
+      "  ID percentile:   " +
+      std::to_string(this->parser.isSet("id-percentile") ? this->parser.value("id-percentile").toDouble() : 95.0) +
+      "\n"
+      "  Output:          " +
+      (this->parser.isSet("output")
+         ? this->parser.value("output").toStdString()
+         : (fs::path(this->configPath.toStdString()).parent_path() / "threshold.json").string()) +
+      "\n\n";
     std::cout << msg;
     this->notifyLogMessage(msg, false);
   }
 
   // ---- create temp runner and delegate -------------------------------------
   if (this->networkType == NetworkType::CNN) {
-    CNNRunner runner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->cnnCore,
-                     this->cnnCoreConfig);
+    CNNRunner runner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->cnnCore, this->cnnCoreConfig,
+                     this->configPath);
     runner.addObserver(this);
     int rc = runner.calibrate();
     runner.removeObserver(this);
     return rc;
   } else {
-    ANNRunner runner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->annCore,
-                     this->annCoreConfig);
+    ANNRunner runner(this->parser, this->logLevel, this->ioConfig, this->augConfig, this->annCore, this->annCoreConfig,
+                     this->configPath);
     runner.addObserver(this);
     int rc = runner.calibrate();
     runner.removeObserver(this);

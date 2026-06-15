@@ -22,7 +22,7 @@ namespace NN_CLI
     public:
       //-- Constructors --//
       CNNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConfig& ioConfig, AugmentationConfig& augConfig,
-                std::unique_ptr<CNN::Core<float>>& core, CNN::CoreConfig<float>& coreConfig);
+                std::unique_ptr<CNN::Core<float>>& core, CNN::CoreConfig<float>& coreConfig, const QString& configPath);
 
       //-- Mode methods --//
       int train();
@@ -54,11 +54,10 @@ namespace NN_CLI
       std::pair<CNN::Samples<float>, bool> loadSamplesFromOptions(const std::string& modeName, QString& inputFilePath);
 
       //-- Training helpers --//
-      void setupTrainCallback(const QString& inputFilePath,
-                              std::shared_ptr<CNN::Core<float>> validationCore = nullptr,
+      void setupTrainCallback(const QString& inputFilePath, std::shared_ptr<CNN::Core<float>> validationCore = nullptr,
                               std::shared_ptr<Common::TrainMonitor<float>> trainMonitor = nullptr,
-                                 const DataLoader<CNN::Sample<float>>* validationDataLoader = nullptr,
-                                 const std::vector<ulong>* validationIndices = nullptr);
+                              const DataLoader<CNN::Sample<float>>* validationDataLoader = nullptr,
+                              const std::vector<ulong>* validationIndices = nullptr);
 
       //-- Per-phase timing profiler (fed by CNN's timing callback) --//
       TrainProfiler profiler;

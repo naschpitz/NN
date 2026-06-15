@@ -4,7 +4,7 @@
 
 static void testGPUGlobalAvgPoolCPUGPUParity()
 {
-  std::cout << "--- testGPUGlobalAvgPoolCPUGPUParity ---" << std::endl;
+  TestScope _t("testGPUGlobalAvgPoolCPUGPUParity");
 
   // Train the exact same GAP network on CPU and GPU and verify predictions match.
   auto makeConfig = [](Common::DeviceType device) {
@@ -89,7 +89,7 @@ static void testGPUGlobalAvgPoolCPUGPUParity()
 
 static void testGPUGlobalDualPoolCPUGPUParity()
 {
-  std::cout << "--- testGPUGlobalDualPoolCPUGPUParity ---" << std::endl;
+  TestScope _t("testGPUGlobalDualPoolCPUGPUParity");
 
   auto makeConfig = [](Common::DeviceType device) {
     CNN::CoreConfig<float> config;

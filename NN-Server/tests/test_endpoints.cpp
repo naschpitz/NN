@@ -29,7 +29,6 @@ static QTemporaryDir* tmpDir = nullptr;
 static nlohmann::json defaultConfig()
 {
   nlohmann::json config;
-  config["model"] = fixturePath("checkpoint_E-150_L-0.029486.nnmodel.tar").toStdString();
   config["port"] = SERVER_PORT;
   config["poolSize"] = POOL_SIZE;
   config["maxBodySize"] = MAX_BODY_SIZE_MB;
@@ -37,7 +36,7 @@ static nlohmann::json defaultConfig()
   return config;
 }
 
-static bool startServer(const nlohmann::json& config = nlohmann::json())
+static bool startServer(const nlohmann::json& config = nlohmann::json(), const QString& modelPackage = {})
 {
   nlohmann::json cfg = config.empty() ? defaultConfig() : config;
 
@@ -60,9 +59,17 @@ static bool startServer(const nlohmann::json& config = nlohmann::json())
   configFile.write(QByteArray::fromStdString(cfg.dump(2)));
   configFile.close();
 
+  QString modelPackageName;
+
+  if (!modelPackage.isEmpty()) {
+    modelPackageName = modelPackage;
+  } else {
+    modelPackageName = fixturePath("checkpoint_E-150_L-0.029486.nnmodel.tar");
+  }
+
   serverProcess = new QProcess();
   serverProcess->setWorkingDirectory(projectRoot());
-  serverProcess->start(serverBinPath(), QStringList() << configPath);
+  serverProcess->start(serverBinPath(), QStringList() << "--model-package" << modelPackageName << configPath);
 
   if (!serverProcess->waitForStarted(5000)) {
     std::cerr << "Failed to start server process" << std::endl;
@@ -140,7 +147,7 @@ static QByteArray readImageFile(const QString& path)
 
 static void testHealth()
 {
-  std::cout << "  testHealth... " << std::flush;
+  TestScope _t("testHealth");
 
   HttpResponse resp = httpGet("/health");
   CHECK(resp.ok, "health: got response");
@@ -148,13 +155,11 @@ static void testHealth()
 
   nlohmann::json body = nlohmann::json::parse(resp.body.toStdString());
   CHECK(body.contains("status") && body["status"] == "ok", "health: status=ok");
-
-  std::cout << std::endl;
 }
 
 static void testNotFound()
 {
-  std::cout << "  testNotFound... " << std::flush;
+  TestScope _t("testNotFound");
 
   HttpResponse resp = httpGet("/nonexistent");
   CHECK(resp.ok, "not_found: got response");
@@ -165,7 +170,7 @@ static void testNotFound()
 
 static void testPredictBadJson()
 {
-  std::cout << "  testPredictBadJson... " << std::flush;
+  TestScope _t("testPredictBadJson");
 
   HttpResponse resp = httpPostJson("/predict", "not json");
   CHECK(resp.ok, "bad_json: got response");
@@ -179,7 +184,7 @@ static void testPredictBadJson()
 
 static void testPredictMissingInput()
 {
-  std::cout << "  testPredictMissingInput... " << std::flush;
+  TestScope _t("testPredictMissingInput");
 
   HttpResponse resp = httpPostJson("/predict", R"({"foo":"bar"})");
   CHECK(resp.ok, "missing_input: got response");
@@ -190,7 +195,7 @@ static void testPredictMissingInput()
 
 static void testPredictBodyTooLarge()
 {
-  std::cout << "  testPredictBodyTooLarge... " << std::flush;
+  TestScope _t("testPredictBodyTooLarge");
 
   // Send a request with Content-Length exceeding MAX_BODY_SIZE_BYTES.
   // Include a small body so the server's waitForReadyRead triggers.
@@ -221,7 +226,7 @@ static void testPredictBodyTooLarge()
 
 static void testPredictBodyJustUnderLimit()
 {
-  std::cout << "  testPredictBodyJustUnderLimit... " << std::flush;
+  TestScope _t("testPredictBodyJustUnderLimit");
 
   // Send a request with Content-Length just under the limit (1 MB - 1 KB).
   // This verifies the config value is interpreted as megabytes:
@@ -250,13 +255,12 @@ static void testPredictBodyJustUnderLimit()
 
 static void testPredictImageSingle()
 {
-  std::cout << "  testPredictImageSingle... " << std::flush;
+  TestScope _t("testPredictImageSingle");
 
   QByteArray imgData = readImageFile(imagePath("ISIC_4671410.jpg"));
   CHECK(!imgData.isEmpty(), "image_single: loaded test image");
 
   if (imgData.isEmpty()) {
-    std::cout << std::endl;
     return;
   }
 
@@ -287,18 +291,17 @@ static void testPredictImageSingle()
   for (size_t i = 1; i < output.size(); ++i) {
     if (output[i] > output[argmaxOutput])
       argmaxOutput = i;
+
     if (logits[i] > logits[argmaxLogits])
       argmaxLogits = i;
   }
 
   CHECK(argmaxOutput == argmaxLogits, "image_single: argmax(output) == argmax(logits)");
-
-  std::cout << std::endl;
 }
 
 static void testPredictImageConcurrent()
 {
-  std::cout << "  testPredictImageConcurrent (5 different images)... " << std::flush;
+  TestScope _t("testPredictImageConcurrent");
 
   // Load all 5 test images
   QStringList imageNames = {"ISIC_1498519.jpg", "ISIC_2729538.jpg", "ISIC_3904045.jpg", "ISIC_4671410.jpg",
@@ -339,19 +342,16 @@ static void testPredictImageConcurrent()
       total += v;
     CHECK_NEAR(total, 1.0f, 0.01f, tag + ": softmax sums to ~1.0");
   }
-
-  std::cout << std::endl;
 }
 
 static void testPredictImageRepeatedConcurrent()
 {
-  std::cout << "  testPredictImageRepeatedConcurrent (10x same image)... " << std::flush;
+  TestScope _t("testPredictImageRepeatedConcurrent");
 
   QByteArray imgData = readImageFile(imagePath("ISIC_4671410.jpg"));
   CHECK(!imgData.isEmpty(), "repeated: loaded test image");
 
   if (imgData.isEmpty()) {
-    std::cout << std::endl;
     return;
   }
 
@@ -392,14 +392,12 @@ static void testPredictImageRepeatedConcurrent()
 
     CHECK(allIdentical, "repeated: all outputs identical (deterministic)");
   }
-
-  std::cout << std::endl;
 }
 
 static void testQueueLimitReject()
 {
   const int testQueueSize = 1;
-  std::cout << "  testQueueLimitReject (maxQueueSize=" << testQueueSize << ")... " << std::flush;
+  TestScope _t("testQueueLimitReject");
 
   // Restart the server with maxQueueSize=1 for this test
   stopServer();
@@ -467,8 +465,6 @@ static void testQueueLimitReject()
   CHECK(healthResp.ok, "queue_limit: server healthy after cleanup");
   CHECK(healthResp.statusCode == 200,
         "queue_limit: health returns 200 after cleanup (got " + std::to_string(healthResp.statusCode) + ")");
-
-  std::cout << std::endl;
 }
 
 // ---------------------------------------------------------------------------
@@ -480,7 +476,6 @@ constexpr int _IMG_NUM_OUTPUT = 2; // ann_image_model.nnmodel has 2 output class
 static nlohmann::json annImageConfig()
 {
   nlohmann::json config;
-  config["model"] = fixturePath("ann_image_model.nnmodel.tar").toStdString();
   config["port"] = SERVER_PORT;
   config["poolSize"] = POOL_SIZE;
   return config;
@@ -488,13 +483,12 @@ static nlohmann::json annImageConfig()
 
 static void testImagePredict()
 {
-  std::cout << "  testImagePredict... " << std::flush;
+  TestScope _t("testImagePredict");
 
   QByteArray imgData = readImageFile(imagePath("bright_1.png"));
   CHECK(!imgData.isEmpty(), "ann_image: loaded test image");
 
   if (imgData.isEmpty()) {
-    std::cout << std::endl;
     return;
   }
 
@@ -504,7 +498,6 @@ static void testImagePredict()
 
   if (resp.statusCode != 200) {
     std::cerr << "    body: " << resp.body.toStdString() << std::endl;
-    std::cout << std::endl;
     return;
   }
 
@@ -520,20 +513,17 @@ static void testImagePredict()
   for (float v : output)
     total += v;
   CHECK(total > 0.0f, "ann_image: output values are positive");
-
-  std::cout << std::endl;
 }
 
 static void testImagePredictDark()
 {
-  std::cout << "  testImagePredictDark... " << std::flush;
+  TestScope _t("testImagePredictDark");
 
   // Use a different test image — it will be resized to 4x4
   QByteArray imgData = readImageFile(imagePath("dark_1.png"));
   CHECK(!imgData.isEmpty(), "ann_image_dark: loaded test image");
 
   if (imgData.isEmpty()) {
-    std::cout << std::endl;
     return;
   }
 
@@ -543,7 +533,6 @@ static void testImagePredictDark()
 
   if (resp.statusCode != 200) {
     std::cerr << "    body: " << resp.body.toStdString() << std::endl;
-    std::cout << std::endl;
     return;
   }
 
@@ -556,13 +545,11 @@ static void testImagePredictDark()
   for (float v : output) {
     CHECK(v >= 0.0f && v <= 1.0f, "ann_image_dark: output in [0, 1]");
   }
-
-  std::cout << std::endl;
 }
 
 static void testImagePredictJson()
 {
-  std::cout << "  testImagePredictJson... " << std::flush;
+  TestScope _t("testImagePredictJson");
 
   // JSON input should also work: 16 values for 1x4x4
   std::vector<float> input(16, 0.5f);
@@ -575,7 +562,6 @@ static void testImagePredictJson()
 
   if (resp.statusCode != 200) {
     std::cerr << "    body: " << resp.body.toStdString() << std::endl;
-    std::cout << std::endl;
     return;
   }
 
@@ -589,18 +575,15 @@ static void testImagePredictJson()
   for (float v : output)
     total += v;
   CHECK(total > 0.0f, "ann_json: output values are positive");
-
-  std::cout << std::endl;
 }
 
 static void testImageDeterministic()
 {
-  std::cout << "  testImageDeterministic... " << std::flush;
+  TestScope _t("testImageDeterministic");
 
   QByteArray imgData = readImageFile(imagePath("bright_2.png"));
 
   if (imgData.isEmpty()) {
-    std::cout << "(skipped)" << std::endl;
     return;
   }
 
@@ -614,8 +597,6 @@ static void testImageDeterministic()
   if (resp1.ok && resp2.ok) {
     CHECK(resp1.body == resp2.body, "ann_determ: identical outputs (deterministic)");
   }
-
-  std::cout << std::endl;
 }
 
 // ---------------------------------------------------------------------------
@@ -628,7 +609,7 @@ void runEndpointTests()
 
   if (!startServer()) {
     std::cerr << "FATAL: Could not start NN-Server. Skipping all endpoint tests." << std::endl;
-    testsFailed++;
+    CHECK(false, "server started successfully");
     return;
   }
 
@@ -648,9 +629,9 @@ void runEndpointTests()
   std::cout << "Restarting NN-Server ( image model)..." << std::endl;
   stopServer();
 
-  if (!startServer(annImageConfig())) {
+  if (!startServer(annImageConfig(), fixturePath("ann_image_model.nnmodel.tar"))) {
     std::cerr << "FATAL: Could not start NN-Server with  image model. Skipping  image tests." << std::endl;
-    testsFailed++;
+    CHECK(false, "server started successfully with image model");
     return;
   }
 

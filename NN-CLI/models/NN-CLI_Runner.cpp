@@ -16,13 +16,15 @@
 template <typename CoreT, typename CoreConfigT>
 NN_CLI::Runner<CoreT, CoreConfigT>::Runner(const QCommandLineParser& parser, NN_CLI::LogLevel logLevel,
                                            NN_CLI::IOConfig& ioConfig, NN_CLI::AugmentationConfig& augConfig,
-                                           std::unique_ptr<CoreT>& core, CoreConfigT& coreConfig)
+                                           std::unique_ptr<CoreT>& core, CoreConfigT& coreConfig,
+                                           const QString& configPath)
   : parser(parser),
     logLevel(logLevel),
     ioConfig(ioConfig),
     augConfig(augConfig),
     core(core),
-    coreConfig(coreConfig)
+    coreConfig(coreConfig),
+    configPath(configPath)
 {
 }
 
@@ -84,8 +86,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyValidationProgress(ulong current,
 
 template <typename CoreT, typename CoreConfigT>
 void NN_CLI::Runner<CoreT, CoreConfigT>::notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                              float samplesPerSec, float etaSeconds,
-                                                              const std::vector<float>& fractions)
+                                                             float samplesPerSec, float etaSeconds,
+                                                             const std::vector<float>& fractions)
 {
   for (auto* observer : this->observers)
     observer->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
@@ -156,7 +158,7 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTimingUpdated(const std::string& 
 
 template <typename CoreT, typename CoreConfigT>
 void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainProgress(const Common::TrainProgressEvent<float>& progress,
-                                                              ulong batchSize)
+                                                             ulong batchSize)
 {
   QMutexLocker<QMutex> lock(&this->callbackMutex);
 
@@ -191,9 +193,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainProgress(const Common::Train
     // counter), and each GPU processes ~totalSamples/totalGPUs of them.
     if (progress.gpuIndex >= 0 && progress.gpuIndex < totalGPUs) {
       ulong samplesPerGPU = progress.totalSamples / totalGPUs;
-      float gpuFraction = (samplesPerGPU > 0)
-                            ? static_cast<float>(progress.currentSample) / static_cast<float>(samplesPerGPU)
-                            : 0.0f;
+      float gpuFraction =
+        (samplesPerGPU > 0) ? static_cast<float>(progress.currentSample) / static_cast<float>(samplesPerGPU) : 0.0f;
       this->gpuFractions[progress.gpuIndex] = std::min(1.0f, std::max(0.0f, gpuFraction));
     }
 
@@ -270,8 +271,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainProgress(const Common::Train
 
   int batchIdx = static_cast<int>(progress.currentSample / batchSize);
   int totalBatches = static_cast<int>((progress.totalSamples + batchSize - 1) / batchSize);
-  this->notifyBatchProgress(batchIdx, totalBatches, currentLoss, static_cast<float>(rate),
-                            static_cast<float>(eta), fractions);
+  this->notifyBatchProgress(batchIdx, totalBatches, currentLoss, static_cast<float>(rate), static_cast<float>(eta),
+                            fractions);
 }
 
 //===================================================================================================================//
@@ -321,16 +322,13 @@ std::string NN_CLI::Runner<CoreT, CoreConfigT>::getAugmentationString() const
       parts.push_back("rot " + std::to_string(static_cast<int>(this->augConfig.transforms.rotation)) + "\xC2\xB0");
 
     if (this->augConfig.transforms.translation > 0)
-      parts.push_back("trans " +
-                      std::to_string(static_cast<int>(this->augConfig.transforms.translation * 100)) + "%");
+      parts.push_back("trans " + std::to_string(static_cast<int>(this->augConfig.transforms.translation * 100)) + "%");
 
     if (this->augConfig.transforms.brightness > 0)
-      parts.push_back("bright " +
-                      std::to_string(static_cast<int>(this->augConfig.transforms.brightness * 100)) + "%");
+      parts.push_back("bright " + std::to_string(static_cast<int>(this->augConfig.transforms.brightness * 100)) + "%");
 
     if (this->augConfig.transforms.contrast > 0)
-      parts.push_back("contrast " +
-                      std::to_string(static_cast<int>(this->augConfig.transforms.contrast * 100)) + "%");
+      parts.push_back("contrast " + std::to_string(static_cast<int>(this->augConfig.transforms.contrast * 100)) + "%");
 
     if (this->augConfig.transforms.gaussianNoise > 0) {
       std::ostringstream oss;
@@ -339,8 +337,8 @@ std::string NN_CLI::Runner<CoreT, CoreConfigT>::getAugmentationString() const
     }
 
     if (this->augConfig.transforms.randomErasing > 0)
-      parts.push_back("erase " +
-                      std::to_string(static_cast<int>(this->augConfig.transforms.randomErasing * 100)) + "%");
+      parts.push_back("erase " + std::to_string(static_cast<int>(this->augConfig.transforms.randomErasing * 100)) +
+                      "%");
 
     if (this->augConfig.transforms.hueShift > 0)
       parts.push_back("hue " + std::to_string(static_cast<int>(this->augConfig.transforms.hueShift * 100)) + "%");
@@ -355,11 +353,13 @@ std::string NN_CLI::Runner<CoreT, CoreConfigT>::getAugmentationString() const
       return "None";
     } else {
       std::string augStr;
+
       for (ulong i = 0; i < parts.size(); i++) {
         if (i > 0)
           augStr += ", ";
         augStr += parts[i];
       }
+
       return augStr;
     }
   } else {
@@ -429,6 +429,7 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
 
   //-- Input shape (only when non-empty, i.e. CNN) --//
   std::string inputShapeStr = this->getInputShapeString();
+
   if (!inputShapeStr.empty())
     rows.push_back({"Input shape", inputShapeStr});
 
@@ -441,12 +442,14 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
   //-- Layer counts (conv / residual are CNN-only; omit the misleading "0"
   //   rows for plain ANN models) --//
   ulong numConvLayers = this->getNumConvLayers();
+
   if (numConvLayers > 0)
     rows.push_back({"Conv layers", std::to_string(numConvLayers)});
 
   rows.push_back({"Dense layers", std::to_string(this->getNumDenseLayers())});
 
   ulong numResidualBlocks = this->getNumResidualBlocks();
+
   if (numResidualBlocks > 0)
     rows.push_back({"Residual blocks", std::to_string(numResidualBlocks)});
 
@@ -473,6 +476,7 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
 
   //-- Augmentation (only when active) --//
   std::string augStr = this->getAugmentationString();
+
   if (augStr != "None")
     rows.push_back({"Augmentation", augStr});
 
@@ -511,6 +515,7 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
     costStr = "Weighted squared difference";
     break;
   }
+
   rows.push_back({"Cost function", costStr});
 
   rows.push_back({"Shuffle", tc.shuffleSamples ? "Yes" : "No"});
@@ -539,12 +544,14 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildPredict
   //-- Layer counts (conv / residual are CNN-only; omit the misleading "0"
   //   rows for plain ANN models) --//
   ulong numConvLayers = this->getNumConvLayers();
+
   if (numConvLayers > 0)
     rows.push_back({"Conv layers", std::to_string(numConvLayers)});
 
   rows.push_back({"Dense layers", std::to_string(this->getNumDenseLayers())});
 
   ulong numResidualBlocks = this->getNumResidualBlocks();
+
   if (numResidualBlocks > 0)
     rows.push_back({"Residual blocks", std::to_string(numResidualBlocks)});
 
@@ -582,6 +589,7 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildPredict
     costStr = "Weighted squared difference";
     break;
   }
+
   rows.push_back({"Cost function", costStr});
 
   return rows;
@@ -609,8 +617,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::setupPredictProgressCallback(ulong tota
 
       // Compute batch-level progress.
       int batchIdx = static_cast<int>(current / this->coreConfig.trainConfig.batchSize);
-      int totalBatches = static_cast<int>((total + this->coreConfig.trainConfig.batchSize - 1) /
-                                          this->coreConfig.trainConfig.batchSize);
+      int totalBatches =
+        static_cast<int>((total + this->coreConfig.trainConfig.batchSize - 1) / this->coreConfig.trainConfig.batchSize);
 
       float fraction = static_cast<float>(current) / static_cast<float>(total);
 
@@ -648,7 +656,7 @@ int NN_CLI::Runner<CoreT, CoreConfigT>::finishTrain(const QString& inputFilePath
 
   const auto& trainMetadata = this->core->getTrainMetadata();
   ulong numEpochs = trainMetadata.epochHistory.empty() ? this->coreConfig.trainConfig.numEpochs
-                                                        : trainMetadata.epochHistory.back().epoch + 1;
+                                                       : trainMetadata.epochHistory.back().epoch + 1;
 
   std::string summary = "Epochs: " + std::to_string(numEpochs) +
                         " | Samples: " + std::to_string(trainMetadata.numSamples) +
@@ -657,7 +665,7 @@ int NN_CLI::Runner<CoreT, CoreConfigT>::finishTrain(const QString& inputFilePath
   this->notifyTrainFinished(true, summary);
 
   return NN_CLI::RunnerUtils::finishTrainCommon(this->logLevel, this->parser, inputFilePath, *this->core,
-                              [this](const std::string& path) { this->doSaveModel(path); });
+                                                [this](const std::string& path) { this->doSaveModel(path); });
 }
 
 //===================================================================================================================//

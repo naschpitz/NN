@@ -11,7 +11,7 @@ static QString trainedMNISTModelPath;
 
 static void testTrainAndTestMNIST()
 {
-  std::cout << "  testTrainAndTestMNIST... " << std::flush;
+  TestScope _t("testTrainAndTestMNIST");
 
   if (!runFullTests) {
     std::cout << "(skipped — use --full to enable)" << std::endl;
@@ -21,7 +21,7 @@ static void testTrainAndTestMNIST()
   trainedMNISTModelPath = tempDir() + "/ann_mnist_trained.nnmodel.tar";
 
   // Step 1: Train on MNIST training data on CPU (10 epochs, 60k samples, Adam + crossEntropy)
-  auto trainResult = runNNCLI({"--config", fixturePath("mnist_ann_train_config.json"), "--mode", "train", "--device",
+  auto trainResult = runNNCLI({"--model", fixturePath("mnist_ann_train_config.json"), "--mode", "train", "--device",
                                "cpu", "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
                                examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", trainedMNISTModelPath,
                                "--log-level", "quiet"},
@@ -37,8 +37,8 @@ static void testTrainAndTestMNIST()
   }
 
   // Step 2: Evaluate against MNIST test data (10k samples)
-  auto testResult = runNNCLI({"--config", trainedMNISTModelPath, "--mode", "test", "--device", "cpu", "--idx-data",
-                              examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
+  auto testResult = runNNCLI({"--model-package", trainedMNISTModelPath, "--mode", "test", "--device", "cpu",
+                              "--idx-data", examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
                               examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
                              600000); // 10 min timeout
 
@@ -77,7 +77,7 @@ static void testTrainAndTestMNIST()
 
 static void testPredictMNIST()
 {
-  std::cout << "  testPredictMNIST... " << std::flush;
+  TestScope _t("testPredictMNIST");
 
   if (!runFullTests) {
     std::cout << "(skipped — use --full to enable)" << std::endl;
@@ -92,7 +92,7 @@ static void testPredictMNIST()
 
   QString outputPath = tempDir() + "/ann_predict_output.json";
 
-  auto result = runNNCLI({"--config", trainedMNISTModelPath, "--mode", "predict", "--device", "cpu", "--input",
+  auto result = runNNCLI({"--model-package", trainedMNISTModelPath, "--mode", "predict", "--device", "cpu", "--input",
                           examplePath("MNIST/predict/mnist_digit_2_input.json"), "--output", outputPath});
 
   CHECK(result.exitCode == 0, " predict MNIST: exit code 0");
@@ -139,15 +139,13 @@ static void testPredictMNIST()
   } else {
     CHECK(false, " predict MNIST: failed to open output file");
   }
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testTestMNIST()
 {
-  std::cout << "  testTestMNIST... " << std::flush;
+  TestScope _t("testTestMNIST");
 
   if (!runFullTests) {
     std::cout << "(skipped — use --full to enable)" << std::endl;
@@ -160,7 +158,7 @@ static void testTestMNIST()
     return;
   }
 
-  auto result = runNNCLI({"--config", trainedMNISTModelPath, "--mode", "test", "--device", "cpu", "--idx-data",
+  auto result = runNNCLI({"--model-package", trainedMNISTModelPath, "--mode", "test", "--device", "cpu", "--idx-data",
                           examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
                           examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
                          600000); // 10 min timeout
@@ -172,7 +170,6 @@ static void testTestMNIST()
   CHECK(result.stdOut.contains("Average loss:"), " test MNIST: 'Average loss:'");
   CHECK(result.stdOut.contains("Correct:"), " test MNIST: 'Correct:'");
   CHECK(result.stdOut.contains("Accuracy:"), " test MNIST: 'Accuracy:'");
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//

@@ -16,20 +16,21 @@ make
 
 ```bash
 # Training
-NN-CLI --config <config_file> --mode train [options]
+NN-CLI --model <config_file> --mode train [options]
 
 # Running predict
-NN-CLI --config <model_file.nnmodel> --mode predict --input <input_file> [options]
+NN-CLI --model-package <model_file.nnmodel> --mode predict --input <input_file> [options]
 
 # Testing/evaluation
-NN-CLI --config <model_file.nnmodel> --mode test --samples <samples_file> [options]
+NN-CLI --model-package <model_file.nnmodel> --mode test --samples <samples_file> [options]
 ```
 
 ### Options
 
 | Option | Short | Description |
 |--------|-------|-------------|
-| `--config` | `-c` | Path to JSON configuration/model file (required) |
+| `--model` | | Path to model architecture JSON file (required for train mode) |
+| `--model-package` | | Path to trained model package (required for predict, test, calibrate modes) |
 | `--mode` | `-m` | Mode: `train`, `predict`, `test`, or `calibrate` (overrides config file) |
 | `--device` | `-d` | Device: `cpu` or `gpu` (overrides config file) |
 | `--input` | `-i` | Path to JSON file with input values (predict mode) |
@@ -51,10 +52,10 @@ NN-CLI --config <model_file.nnmodel> --mode test --samples <samples_file> [optio
 
 ### Modes
 
-- **train**: Train a neural network using `--config` and samples, outputs a trained model file.
-- **predict**: Run predict using `--config` (trained model) with one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Output order matches input order.
-- **test**: Evaluate a trained model (`--config`) on test samples and report the loss.
-- **calibrate**: Pick a free-energy out-of-distribution threshold. Requires `--id-images` and optionally `--ood-dir`. Options: `--id-images` (required, directory of ID images), `--ood-dir` (OOD root, auto-populated if empty), `--id-sample-count` (default 500), `--ood-sample-count` (default 1500), `--id-percentile` (default 95), `--no-fetch` (disable auto-download), `--output` (default: `<config_dir>/threshold.json`). Requires `--config` pointing to a trained `.nnmodel` package.
+- **train**: Train a neural network using `--model` (architecture JSON) and samples, outputs a trained model file.
+- **predict**: Run predict using `--model-package` (trained `.nnmodel` model) with one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Output order matches input order.
+- **test**: Evaluate a trained model (`--model-package`) on test samples and report the loss.
+- **calibrate**: Pick a free-energy out-of-distribution threshold. Requires `--id-images` and optionally `--ood-dir`. Options: `--id-images` (required, directory of ID images), `--ood-dir` (OOD root, auto-populated if empty), `--id-sample-count` (default 500), `--ood-sample-count` (default 1500), `--id-percentile` (default 95), `--no-fetch` (disable auto-download), `--output` (default: `<config_dir>/threshold.json`). Requires `--model-package` pointing to a trained `.nnmodel` package.
 
 ## ANN Configuration
 
@@ -507,61 +508,61 @@ The data is automatically normalized to 0-1 range and labels are one-hot encoded
 ### ANN: Training with JSON samples
 
 ```bash
-NN-CLI --config ann_config.json --mode train --samples train_samples.json --output trained_model.json
+NN-CLI --model ann_config.json --mode train --samples train_samples.json --output trained_model.json
 ```
 
 ### ANN: Training with IDX files (MNIST)
 
 ```bash
-NN-CLI --config examples/MNIST/mnist_ann_config.json --mode train --idx-data train-images-idx3-ubyte --idx-labels train-labels-idx1-ubyte
+NN-CLI --model examples/MNIST/mnist_ann_config.json --mode train --idx-data train-images-idx3-ubyte --idx-labels train-labels-idx1-ubyte
 ```
 
 ### CNN: Training with IDX files (MNIST)
 
 ```bash
-NN-CLI --config examples/MNIST/mnist_cnn_config.json --mode train --idx-data train-images-idx3-ubyte --idx-labels train-labels-idx1-ubyte
+NN-CLI --model examples/MNIST/mnist_cnn_config.json --mode train --idx-data train-images-idx3-ubyte --idx-labels train-labels-idx1-ubyte
 ```
 
 ### Training on GPU
 
 ```bash
-NN-CLI --config config.json --mode train --device gpu --samples train_samples.json
+NN-CLI --model config.json --mode train --device gpu --samples train_samples.json
 ```
 
 ### Calibrating OOD threshold
 
 ```bash
-NN-CLI --config trained_model.nnmodel --mode calibrate --device cpu --id-images /path/to/id/images --output threshold.json
+NN-CLI --model-package trained_model.nnmodel --mode calibrate --device cpu --id-images /path/to/id/images --output threshold.json
 ```
 
 ### Running predict
 
 ```bash
-NN-CLI --config trained_model.nnmodel --mode predict --input test_input.json
+NN-CLI --model-package trained_model.nnmodel --mode predict --input test_input.json
 ```
 
 ### Testing a model
 
 ```bash
-NN-CLI --config trained_model.nnmodel --mode test --samples test_data.json
+NN-CLI --model-package trained_model.nnmodel --mode test --samples test_data.json
 ```
 
 ### Testing with IDX files
 
 ```bash
-NN-CLI --config trained_model.nnmodel --mode test --idx-data t10k-images-idx3-ubyte --idx-labels t10k-labels-idx1-ubyte
+NN-CLI --model-package trained_model.nnmodel --mode test --idx-data t10k-images-idx3-ubyte --idx-labels t10k-labels-idx1-ubyte
 ```
 
 ### Training with image files
 
 ```bash
-NN-CLI --config config.json --mode train --input-type image --samples image_samples.json
+NN-CLI --model config.json --mode train --input-type image --samples image_samples.json
 ```
 
 ### Predicting with image input and output
 
 ```bash
-NN-CLI --config trained_model.nnmodel --mode predict --input-type image --output-type image --input input.json
+NN-CLI --model-package trained_model.nnmodel --mode predict --input-type image --output-type image --input input.json
 ```
 
 ## Image Support

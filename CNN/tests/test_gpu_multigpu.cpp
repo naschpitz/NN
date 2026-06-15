@@ -7,7 +7,7 @@
 
 static void testMultiGPUEndToEnd()
 {
-  std::cout << "--- testMultiGPUEndToEnd ---" << std::endl;
+  TestScope _t("testMultiGPUEndToEnd");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -64,7 +64,7 @@ static void testMultiGPUEndToEnd()
 
 static void testMultiGPUTestMethod()
 {
-  std::cout << "--- testMultiGPUTestMethod ---" << std::endl;
+  TestScope _t("testMultiGPUTestMethod");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -119,7 +119,7 @@ static void testMultiGPUTestMethod()
 
 static void testMultiGPUMultiChannelInput()
 {
-  std::cout << "--- testMultiGPUMultiChannelInput ---" << std::endl;
+  TestScope _t("testMultiGPUMultiChannelInput");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;

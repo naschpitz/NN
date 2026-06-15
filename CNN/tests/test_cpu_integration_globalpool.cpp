@@ -4,7 +4,7 @@
 
 static void testGlobalAvgPoolEndToEnd()
 {
-  std::cout << "--- testGlobalAvgPoolEndToEnd ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolEndToEnd");
 
   // 1x5x5 → Conv(2 filters 3x3 valid) → 2x3x3 → ReLU → GlobalAvgPool → 2x1x1 → Flatten(2) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;
@@ -78,7 +78,7 @@ static void testGlobalAvgPoolEndToEnd()
 
 static void testGlobalAvgPoolWithNorm()
 {
-  std::cout << "--- testGlobalAvgPoolWithNorm ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolWithNorm");
 
   // Conv → InstanceNorm → ReLU → GlobalAvgPool → Flatten → Dense
   CNN::CoreConfig<double> config;
@@ -150,7 +150,7 @@ static void testGlobalAvgPoolWithNorm()
 
 static void testGlobalAvgPoolAfterPool()
 {
-  std::cout << "--- testGlobalAvgPoolAfterPool ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolAfterPool");
 
   // Conv → ReLU → Pool(2x2) → GlobalAvgPool → Flatten → Dense
   // This tests GAP receiving already-reduced spatial dims
@@ -225,7 +225,7 @@ static void testGlobalAvgPoolAfterPool()
 
 static void testBatchPredict()
 {
-  std::cout << "--- testBatchPredict ---" << std::endl;
+  TestScope _t("testBatchPredict");
 
   // 1x5x5 → Conv(1 filter 3x3 valid) → ReLU → Flatten(9) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;
@@ -313,7 +313,7 @@ static void testBatchPredict()
 
 static void testGlobalDualPoolEndToEnd()
 {
-  std::cout << "--- testGlobalDualPoolEndToEnd ---" << std::endl;
+  TestScope _t("testGlobalDualPoolEndToEnd");
 
   // 1x5x5 → Conv(2 filters 3x3 valid) → 2x3x3 → ReLU → GlobalDualPool → 4x1x1 → Flatten(4) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;

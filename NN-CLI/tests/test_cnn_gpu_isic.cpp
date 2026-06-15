@@ -129,7 +129,7 @@ static QString writeISICLikeSamples(const QString& path)
 
 static void testCNNISICLikeSaveLoadPredict()
 {
-  std::cout << "  testCNNISICLikeSaveLoadPredict (CPU)... " << std::flush;
+  TestScope _t("testCNNISICLikeSaveLoadPredict");
 
   QString configPath = writeISICLikeConfig(tempDir() + "/cnn_isic_config.json", "cpu");
   QString samplesPath = writeISICLikeSamples(tempDir() + "/cnn_isic_samples.json");
@@ -138,7 +138,6 @@ static void testCNNISICLikeSaveLoadPredict()
   CHECK(!samplesPath.isEmpty(), "ISIC-like CPU: samples written");
 
   if (configPath.isEmpty() || samplesPath.isEmpty()) {
-    std::cout << std::endl;
     return;
   }
 
@@ -146,13 +145,12 @@ static void testCNNISICLikeSaveLoadPredict()
 
   // Step 1: Train
   auto trainResult = runNNCLI(
-    {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath},
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath},
     300000); // 5 min timeout
 
   CHECK(trainResult.exitCode == 0, "ISIC-like CPU: train exit code 0");
 
   if (trainResult.exitCode != 0) {
-    std::cout << "(train failed)" << std::endl;
     return;
   }
 
@@ -212,15 +210,15 @@ static void testCNNISICLikeSaveLoadPredict()
   }
 
   QString predictOutput1 = tempDir() + "/cnn_isic_predict1.json";
-  auto pred1 = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictInputPath,
-                         "--output", predictOutput1});
+  auto pred1 = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
+                         predictInputPath, "--output", predictOutput1});
 
   CHECK(pred1.exitCode == 0, "ISIC-like CPU: predict1 exit code 0");
 
   // Step 4: Predict again (reload from disk) — must match
   QString predictOutput2 = tempDir() + "/cnn_isic_predict2.json";
-  auto pred2 = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictInputPath,
-                         "--output", predictOutput2});
+  auto pred2 = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
+                         predictInputPath, "--output", predictOutput2});
 
   CHECK(pred2.exitCode == 0, "ISIC-like CPU: predict2 exit code 0");
 
@@ -282,20 +280,18 @@ static void testCNNISICLikeSaveLoadPredict()
   }
 
   // Step 5: Test mode — verify it runs and produces reasonable results
-  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "cpu", "--samples", samplesPath});
+  auto testResult =
+    runNNCLI({"--model-package", modelPath, "--mode", "test", "--device", "cpu", "--samples", samplesPath});
   CHECK(testResult.exitCode == 0, "ISIC-like CPU: test exit code 0");
   CHECK(testResult.stdOut.contains("Test Results:"), "ISIC-like CPU: test produces results");
   CHECK(testResult.stdOut.contains("Samples evaluated: 6"), "ISIC-like CPU: test evaluated 6 samples");
-
-  std::cout << std::endl;
 }
 
 static void testCNNISICLikeSaveLoadPredictGPU()
 {
-  std::cout << "  testCNNISICLikeSaveLoadPredictGPU... " << std::flush;
+  TestScope _t("testCNNISICLikeSaveLoadPredictGPU");
 
   if (!checkGPUAvailable()) {
-    std::cout << "(skipped — no GPU)" << std::endl;
     return;
   }
 
@@ -312,13 +308,12 @@ static void testCNNISICLikeSaveLoadPredictGPU()
 
   // Step 1: Train on GPU
   auto trainResult = runNNCLI(
-    {"--config", configPath, "--mode", "train", "--device", "gpu", "--samples", samplesPath, "--output", modelPath},
+    {"--model", configPath, "--mode", "train", "--device", "gpu", "--samples", samplesPath, "--output", modelPath},
     300000);
 
   CHECK(trainResult.exitCode == 0, "ISIC-like GPU: train exit code 0");
 
   if (trainResult.exitCode != 0) {
-    std::cout << "(train failed)" << std::endl;
     return;
   }
 
@@ -376,15 +371,15 @@ static void testCNNISICLikeSaveLoadPredictGPU()
 
   // Step 4: Predict on GPU
   QString predictOutput1 = tempDir() + "/cnn_isic_gpu_predict1.json";
-  auto pred1 = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "gpu", "--input", predictInputPath,
-                         "--output", predictOutput1});
+  auto pred1 = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "gpu", "--input",
+                         predictInputPath, "--output", predictOutput1});
 
   CHECK(pred1.exitCode == 0, "ISIC-like GPU: predict1 exit code 0");
 
   // Step 5: Predict again (reload)
   QString predictOutput2 = tempDir() + "/cnn_isic_gpu_predict2.json";
-  auto pred2 = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "gpu", "--input", predictInputPath,
-                         "--output", predictOutput2});
+  auto pred2 = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "gpu", "--input",
+                         predictInputPath, "--output", predictOutput2});
 
   CHECK(pred2.exitCode == 0, "ISIC-like GPU: predict2 exit code 0");
 
@@ -463,11 +458,10 @@ static void testCNNISICLikeSaveLoadPredictGPU()
   }
 
   // Step 6: Test mode on GPU (should at least not crash)
-  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "gpu", "--samples", samplesPath});
+  auto testResult =
+    runNNCLI({"--model-package", modelPath, "--mode", "test", "--device", "gpu", "--samples", samplesPath});
   CHECK(testResult.exitCode == 0, "ISIC-like GPU: test exit code 0");
   CHECK(testResult.stdOut.contains("Test Results:"), "ISIC-like GPU: test produces results");
-
-  std::cout << std::endl;
 }
 
 void runCNNGPUISICTests()

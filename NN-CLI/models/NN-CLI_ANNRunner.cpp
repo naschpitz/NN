@@ -36,8 +36,8 @@ using namespace NN_CLI;
 
 ANNRunner::ANNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConfig& ioConfig,
                      AugmentationConfig& augConfig, std::unique_ptr<ANN::Core<float>>& core,
-                     ANN::CoreConfig<float>& coreConfig)
-  : Runner(parser, logLevel, ioConfig, augConfig, core, coreConfig)
+                     ANN::CoreConfig<float>& coreConfig, const QString& configPath)
+  : Runner(parser, logLevel, ioConfig, augConfig, core, coreConfig, configPath)
 {
 }
 
@@ -47,8 +47,8 @@ ANNRunner::ANNRunner(const QCommandLineParser& parser, LogLevel logLevel, IOConf
 
 std::vector<std::string> ANNRunner::getTimingLines(int maxWidth) const
 {
-    (void)maxWidth;
-    return {" Timing not available for ANN"};
+  (void)maxWidth;
+  return {" Timing not available for ANN"};
 }
 
 //===================================================================================================================//
@@ -59,7 +59,6 @@ ulong ANNRunner::getNumOutputClasses() const
     return this->coreConfig.layersConfig.back().numNeurons;
   return 0;
 }
-
 
 //===================================================================================================================//
 //  Model info overrides
@@ -75,7 +74,7 @@ ulong ANNRunner::getTotalParameters() const
     ulong numNeurons = layers[l].numNeurons;
     ulong prevNumNeurons = layers[l - 1].numNeurons;
     total += numNeurons * prevNumNeurons; // weights
-    total += numNeurons;                  // biases
+    total += numNeurons; // biases
   }
 
   return total;
@@ -188,7 +187,6 @@ int ANNRunner::train()
   this->_numTrainSamples = numTrainSamples;
   this->_numValidationSamples = numValidationSamples;
 
-
   this->notifyModelInfoUpdated("totalOriginalSamples", std::to_string(totalOriginalSamples));
   this->notifyModelInfoUpdated("numTrainSamples", std::to_string(numTrainSamples));
   this->notifyModelInfoUpdated("numValidationSamples", std::to_string(numValidationSamples));
@@ -196,8 +194,7 @@ int ANNRunner::train()
   std::shared_ptr<Common::TrainMonitor<float>> trainMonitor;
 
   if (validationConfig.enabled && this->coreConfig.trainConfig.monitoringConfig.enabled) {
-    trainMonitor =
-      std::make_shared<Common::TrainMonitor<float>>(this->coreConfig.trainConfig.monitoringConfig);
+    trainMonitor = std::make_shared<Common::TrainMonitor<float>>(this->coreConfig.trainConfig.monitoringConfig);
     this->coreConfig.trainConfig.monitoringConfig.enabled = false;
     this->core = ANN::Core<float>::makeCore(this->coreConfig);
   }
@@ -222,9 +219,8 @@ int ANNRunner::train()
   }
 
   this->setupTrainCallback(inputFilePath, validationCore, trainMonitor,
-                              validationConfig.enabled ? &dataLoader : nullptr,
-                              validationConfig.enabled ? &split.validationIndices : nullptr);
-
+                           validationConfig.enabled ? &dataLoader : nullptr,
+                           validationConfig.enabled ? &split.validationIndices : nullptr);
 
   // Prepend loaded epoch history into the core before training starts, so
   // checkpoints during training serialize the full history, not just new epochs.
@@ -237,18 +233,16 @@ int ANNRunner::train()
   // callback (from its worker threads) as each batch is loaded/augmented.
   dataLoader.setLoadingCallback(
     [this](ulong current, ulong total, ulong batchIndex, ulong totalBatches, SampleLoadType loadType) {
-      this->notifySampleLoadProgress(current, total, batchIndex, totalBatches,
-                                     loadType == SampleLoadType::Validation);
+      this->notifySampleLoadProgress(current, total, batchIndex, totalBatches, loadType == SampleLoadType::Validation);
     });
 
   if (validationConfig.enabled) {
-    auto trainProvider =
-      dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
-                                     this->augConfig.augmentationProbability, SampleLoadType::Train);
+    auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
+                                                       this->augConfig.augmentationProbability, SampleLoadType::Train);
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
-    auto sampleProvider = dataLoader.makeSampleProvider(
-      this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Train);
+    auto sampleProvider = dataLoader.makeSampleProvider(this->augConfig.transforms,
+                                                        this->augConfig.augmentationProbability, SampleLoadType::Train);
     this->core->train(dataLoader.numSamples(), sampleProvider);
   }
 
@@ -287,8 +281,8 @@ int ANNRunner::test()
   if (this->logLevel > LogLevel::QUIET)
     TestSummary::print(this->coreConfig, dataLoader.numSamples());
 
-  NN_CLI::Utils<float>::setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Testing",
-                            dataLoader.numSamples());
+  NN_CLI::Utils<float>::setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports,
+                                                  "Testing", dataLoader.numSamples());
 
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
   Common::TestResult<float> result = this->core->test(dataLoader.numSamples(), sampleProvider);
@@ -349,10 +343,12 @@ int ANNRunner::predict()
   double batchDurationSeconds = batchElapsed.count();
   std::string batchDurationFormatted = Common::Utils::formatDuration(batchDurationSeconds);
 
-  this->notifyPredictFinished(results, inputs.size(), batchDurationSeconds, batchDurationFormatted, outputPath.toStdString());
+  this->notifyPredictFinished(results, inputs.size(), batchDurationSeconds, batchDurationFormatted,
+                              outputPath.toStdString());
 
-  return NN_CLI::RunnerUtils::writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
-                            batchDurationSeconds, batchDurationFormatted, inputs.size());
+  return NN_CLI::RunnerUtils::writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr,
+                                                 endTimeStr, batchDurationSeconds, batchDurationFormatted,
+                                                 inputs.size());
 }
 
 //===================================================================================================================//
@@ -363,13 +359,11 @@ int ANNRunner::calibrate()
 {
   //-- CLI-only config (not in CalibrateConfig) ----------------------------
   const std::string& idImagesDir = this->parser.value("id-images").toStdString();
-  const std::string oodDir = this->parser.isSet("ood-dir")
-                               ? this->parser.value("ood-dir").toStdString()
-                               : (fs::current_path() / "extern-datasets" / "ood").string();
-  const std::string outputPath = this->parser.isSet("output")
-                                   ? this->parser.value("output").toStdString()
-                                   : (fs::path(this->parser.value("config").toStdString()).parent_path() /
-                                      "threshold.json").string();
+  const std::string oodDir = this->parser.isSet("ood-dir") ? this->parser.value("ood-dir").toStdString()
+                                                           : (fs::current_path() / "extern-datasets" / "ood").string();
+  const std::string outputPath =
+    this->parser.isSet("output") ? this->parser.value("output").toStdString()
+                                 : (fs::path(this->configPath.toStdString()).parent_path() / "threshold.json").string();
   const ulong progressReports = this->ioConfig.progressReports;
 
   //-- Validate ID images directory ------------------------------------------
@@ -387,9 +381,9 @@ int ANNRunner::calibrate()
       std::cout << msg;
       this->notifyLogMessage(msg, false);
     }
-    NN_CLI::ensureOODDataset(oodDir, this->logLevel, [this](const std::string& m, bool err) {
-      this->notifyLogMessage(m, err);
-    });
+
+    NN_CLI::ensureOODDataset(oodDir, this->logLevel,
+                             [this](const std::string& m, bool err) { this->notifyLogMessage(m, err); });
   } else if (!NN_CLI::dirHasImages(oodDir)) {
     std::string errMsg = "Error: --ood-dir " + oodDir + " has no images and --no-fetch was set.";
     std::cerr << errMsg << "\n";
@@ -416,7 +410,8 @@ int ANNRunner::calibrate()
   }
 
   std::vector<std::string> idSample = NN_CLI::sampleImages(idAll, this->coreConfig.calibrateConfig.idSampleCount, 42);
-  std::vector<std::string> oodSample = NN_CLI::sampleImages(oodAll, this->coreConfig.calibrateConfig.oodSampleCount, 42);
+  std::vector<std::string> oodSample =
+    NN_CLI::sampleImages(oodAll, this->coreConfig.calibrateConfig.oodSampleCount, 42);
 
   if (this->logLevel > LogLevel::QUIET) {
     std::string msg = "Sampled " + std::to_string(idSample.size()) + " ID images (of " + std::to_string(idAll.size()) +
@@ -435,14 +430,14 @@ int ANNRunner::calibrate()
   int targetH = static_cast<int>(this->ioConfig.inputH);
   int targetW = static_cast<int>(this->ioConfig.inputW);
 
-  auto wrapFn = [](std::vector<float>&& flat) { return std::move(flat); };
+  auto wrapFn = [](std::vector<float>&& flat) {
+    return std::move(flat);
+  };
 
-  std::vector<std::vector<float>> idLogits =
-    NN_CLI::runPredictImpl<ANN::Inputs<float>>(*this->core, idSample, "Predicting ID", targetC, targetH, targetW,
-                                                progressReports, this->logLevel, wrapFn);
-  std::vector<std::vector<float>> oodLogits =
-    NN_CLI::runPredictImpl<ANN::Inputs<float>>(*this->core, oodSample, "Predicting OOD", targetC, targetH, targetW,
-                                                progressReports, this->logLevel, wrapFn);
+  std::vector<std::vector<float>> idLogits = NN_CLI::runPredictImpl<ANN::Inputs<float>>(
+    *this->core, idSample, "Predicting ID", targetC, targetH, targetW, progressReports, this->logLevel, wrapFn);
+  std::vector<std::vector<float>> oodLogits = NN_CLI::runPredictImpl<ANN::Inputs<float>>(
+    *this->core, oodSample, "Predicting OOD", targetC, targetH, targetW, progressReports, this->logLevel, wrapFn);
 
   std::vector<float> idEnergies, oodEnergies;
   idEnergies.reserve(idLogits.size());
@@ -463,33 +458,41 @@ int ANNRunner::calibrate()
     auto stats = [](const std::vector<float>& sorted, const std::vector<double>& ps) {
       nlohmann::ordered_json out;
       out["n"] = sorted.size();
+
       if (!sorted.empty()) {
         out["min"] = NN_CLI::roundTo(sorted.front(), 4);
         out["max"] = NN_CLI::roundTo(sorted.back(), 4);
       }
+
       double mean = 0.0;
+
       for (float v : sorted)
         mean += v;
+
       if (!sorted.empty())
         mean /= sorted.size();
       out["mean"] = NN_CLI::roundTo(mean, 4);
+
       for (double p : ps) {
         char key[16];
         std::snprintf(key, sizeof(key), "p%g", p);
         out[key] = NN_CLI::roundTo(NN_CLI::computePercentile(sorted, p), 4);
       }
+
       return out;
     };
 
     float threshold = NN_CLI::computePercentile(idSorted, idPercentile);
 
     std::size_t idAccepted = 0;
+
     for (float e : idSorted) {
       if (e <= threshold)
         idAccepted++;
     }
 
     std::size_t oodRejected = 0;
+
     for (float e : oodSorted) {
       if (e > threshold)
         oodRejected++;
@@ -512,6 +515,7 @@ int ANNRunner::calibrate()
     doc["confusion"] = conf;
 
     std::ofstream f(outputPath);
+
     if (!f)
       throw std::runtime_error("Cannot write " + outputPath);
 
@@ -564,8 +568,8 @@ std::pair<ANN::Samples<float>, bool> ANNRunner::loadSamplesFromOptions(const std
 
 void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr<ANN::Core<float>> validationCore,
                                    std::shared_ptr<Common::TrainMonitor<float>> trainMonitor,
-                                      const DataLoader<ANN::Sample<float>>* validationDataLoader,
-                                      const std::vector<ulong>* validationIndices)
+                                   const DataLoader<ANN::Sample<float>>* validationDataLoader,
+                                   const std::vector<ulong>* validationIndices)
 {
   this->lastEpochLoss = 0.0f;
 

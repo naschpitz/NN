@@ -46,7 +46,13 @@
 </div>
 
 <h2 id="synopsis">1. Synopsis</h2>
-<pre><code>NN-CLI --config &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&gt;]
+<pre><code>NN-CLI --model &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&gt;]
+       [--input &lt;file&gt;] [--input-type &lt;type&gt;]
+       [--samples &lt;file&gt;] [--idx-data &lt;file&gt; --idx-labels &lt;file&gt;]
+       [--output &lt;file&gt;] [--output-type &lt;type&gt;]
+       [--log-level &lt;level&gt;] [--gpu-profile]
+   or
+NN-CLI --model-package &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&gt;]
        [--input &lt;file&gt;] [--input-type &lt;type&gt;]
        [--samples &lt;file&gt;] [--idx-data &lt;file&gt; --idx-labels &lt;file&gt;]
        [--output &lt;file&gt;] [--output-type &lt;type&gt;]
@@ -56,7 +62,8 @@
 <h2 id="options">2. All Options</h2>
 <table class="options-table">
   <tr><th>Option</th><th>Short</th><th>Argument</th><th>Default</th><th>Description</th></tr>
-  <tr><td><code>--config</code></td><td><code>-c</code></td><td>file</td><td><em>required</em></td><td>Path to JSON configuration file</td></tr>
+  <tr><td><code>--model</code></td><td>—</td><td>file</td><td><em>required</em></td><td>Model architecture JSON file (for train mode)</td></tr>
+  <tr><td><code>--model-package</code></td><td>—</td><td>file</td><td><em>required</em></td><td>Trained model package (for predict, test, calibrate modes)</td></tr>
   <tr><td><code>--mode</code></td><td><code>-m</code></td><td>string</td><td>from config</td><td><code>train</code>, <code>predict</code>, <code>test</code>, or <code>calibrate</code></td></tr>
   <tr><td><code>--device</code></td><td><code>-d</code></td><td>string</td><td><code>cpu</code></td><td><code>cpu</code> or <code>gpu</code></td></tr>
   <tr><td><code>--input</code></td><td><code>-i</code></td><td>file</td><td>—</td><td>Input JSON for predict mode</td></tr>
@@ -76,29 +83,29 @@
 <div class="card">
 <h3><span class="badge-blue">train</span></h3>
 <p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model <code>.nnmodel.tar</code> package to <code>--output</code> (or auto-generated path). Before training begins, a <a href="#training-summary">training summary</a> is displayed in the Model Info panel showing the full configuration. If <a href="#validation">validation</a> is enabled (the default), a stratified validation split is created and validation loss is reported during training.</p>
-<pre><code>NN-CLI -c config.json -m train -s samples.json
-NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
+<pre><code>NN-CLI --model config.json --mode train --samples samples.json
+NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labels.idx1
 </code></pre>
 </div>
 
 <div class="card">
 <h3><span class="badge-green">predict</span></h3>
 <p>Runs inference on one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Requires <code>--input</code> and a <code>.nnmodel</code> package (plain JSON configs are rejected). Outputs prediction + metadata JSON. Output order matches input order.</p>
-<pre><code>NN-CLI -c trained_model.nnmodel -m predict -i input.json -o result.json
+<pre><code>NN-CLI --model-package trained_model.nnmodel --mode predict --input input.json --output result.json
 </code></pre>
 </div>
 
 <div class="card">
 <h3><span class="badge-orange">test</span></h3>
 <p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files and a <code>.nnmodel</code> package (plain JSON configs are rejected). Prints test metrics (sample count, average loss).</p>
-<pre><code>NN-CLI -c trained_model.nnmodel -m test -s test_samples.json
+<pre><code>NN-CLI --model-package trained_model.nnmodel --mode test --samples test_samples.json
 </code></pre>
 </div>
 
 <div class="card">
 <h3><span class="badge-blue">calibrate</span></h3>
 <p>Picks a free-energy out-of-distribution threshold for the trained model. Runs predict on a random subsample of in-distribution images (<code>--id-images</code>) and a random subsample of OOD images (<code>--ood-dir</code>), computes the free-energy <code>E(x) = −log Σᵢ exp(zᵢ)</code> for each, and writes a <code>threshold.json</code> to <code>--output</code> (default: next to the model config). The threshold is taken at the chosen ID percentile (default 95th) — by construction at most that fraction of real in-distribution scans will trip the warning at runtime.</p>
-<pre><code>NN-CLI -c best_model.nnmodel -m calibrate \
+<pre><code>NN-CLI --model-package best_model.nnmodel --mode calibrate \
        --id-images train-datasets/isicMILK10k/input \
        --ood-dir extern-datasets/ood
 </code></pre>
@@ -305,7 +312,7 @@ NN-CLI -c config.json -m train --idx-data images.idx3 --idx-labels labels.idx1
 <p>NN-CLI validates all inputs and provides clear error messages:</p>
 <table>
   <tr><th>Condition</th><th>Error</th></tr>
-  <tr><td>Missing <code>--config</code></td><td>"Error: --config is required."</td></tr>
+  <tr><td>Missing <code>--model</code> and <code>--model-package</code></td><td>"Error: --model is required for train mode."</td></tr>
   <tr><td>Invalid JSON</td><td>"Failed to open config file" or parse exception</td></tr>
   <tr><td>Invalid mode</td><td>"Error: Mode must be 'train', 'predict', 'test', or 'calibrate'."</td></tr>
   <tr><td>Non-train mode without .nnmodel</td><td>"Error: <em>mode</em> mode requires a .nnmodel package (not a plain .json)."</td></tr>

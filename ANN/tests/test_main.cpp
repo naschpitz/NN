@@ -49,7 +49,7 @@ int main()
   runGPUExactTests();
 
   std::cout << "\n========================================" << std::endl;
-  std::cout << "Results: " << testsPassed << " passed, " << testsFailed << " failed" << std::endl;
+  std::cout << "=== Results: " << testsPassed << " passed, " << testsFailed << " failed ===" << std::endl;
   std::cout << "========================================" << std::endl;
 
   return testsFailed > 0 ? 1 : 0;

@@ -62,7 +62,7 @@ static CNN::CoreConfig<double> makeBNTestConfig(ulong denseNeurons, ANN::ActvFun
 
 static void testExactBNForwardBackwardCrossEntropy()
 {
-  std::cout << "--- testExactBNForwardBackwardCrossEntropy ---" << std::endl;
+  TestScope _t("testExactBNForwardBackwardCrossEntropy");
 
   auto config = makeBNTestConfig(2, ANN::ActvFuncType::SOFTMAX);
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
@@ -117,7 +117,7 @@ static void testExactBNForwardBackwardCrossEntropy()
 
 static void testExactBNForwardBackwardSquaredDifference()
 {
-  std::cout << "--- testExactBNForwardBackwardSquaredDifference ---" << std::endl;
+  TestScope _t("testExactBNForwardBackwardSquaredDifference");
 
   auto config = makeBNTestConfig(1, ANN::ActvFuncType::SIGMOID);
   config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
@@ -166,7 +166,7 @@ static void testExactBNForwardBackwardSquaredDifference()
 
 static void testExactBNForwardBackwardWeightedCrossEntropy()
 {
-  std::cout << "--- testExactBNForwardBackwardWeightedCrossEntropy ---" << std::endl;
+  TestScope _t("testExactBNForwardBackwardWeightedCrossEntropy");
 
   auto config = makeBNTestConfig(2, ANN::ActvFuncType::SOFTMAX);
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;

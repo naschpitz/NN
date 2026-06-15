@@ -2,7 +2,7 @@
 
 static void testGPUWeightedCrossEntropyTrain()
 {
-  std::cout << "--- testGPUWeightedCrossEntropyTrain (CNN) ---" << std::endl;
+  TestScope _t("testGPUWeightedCrossEntropyTrain (CNN)");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -67,7 +67,7 @@ static void testGPUWeightedCrossEntropyTrain()
 
 static void testGPUMultiChannelInput()
 {
-  std::cout << "--- testGPUMultiChannelInput ---" << std::endl;
+  TestScope _t("testGPUMultiChannelInput");
 
   // 3x6x6 → Conv(2,3x3) → ReLU → Flatten(32) → Dense(1,sigmoid)
   CNN::CoreConfig<float> config;
@@ -134,7 +134,7 @@ static void testGPUMultiChannelInput()
 
 static void testGPUParameterRoundTrip()
 {
-  std::cout << "--- testGPUParameterRoundTrip ---" << std::endl;
+  TestScope _t("testGPUParameterRoundTrip");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -217,7 +217,7 @@ static void testGPUParameterRoundTrip()
 
 static void testGPUParametersDuringTrain()
 {
-  std::cout << "--- testGPUParametersDuringTrain ---" << std::endl;
+  TestScope _t("testGPUParametersDuringTrain");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;

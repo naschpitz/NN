@@ -4,7 +4,7 @@
 
 static void testEndToEnd()
 {
-  std::cout << "--- testEndToEnd (train + predict) ---" << std::endl;
+  TestScope _t("testEndToEnd (train + predict)");
 
   // 1x5x5 → Conv(1 filter 3x3 valid) → 1x3x3 → ReLU → Flatten(9) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;
@@ -74,7 +74,7 @@ static void testEndToEnd()
 
 static void testMultiConvStack()
 {
-  std::cout << "--- testMultiConvStack (Conv→ReLU→Conv→ReLU→Flatten→Dense) ---" << std::endl;
+  TestScope _t("testMultiConvStack (Conv→ReLU→Conv→ReLU→Flatten→Dense)");
 
   // 1x8x8 → Conv(2,3x3) → 2x6x6 → ReLU → Conv(1,3x3) → 1x4x4 → ReLU → Flatten(16) → Dense(1,sigmoid)
   CNN::CoreConfig<double> config;
@@ -146,7 +146,7 @@ static void testMultiConvStack()
 
 static void testConvPoolConv()
 {
-  std::cout << "--- testConvPoolConv (Conv→ReLU→Pool→Conv→ReLU→Flatten→Dense) ---" << std::endl;
+  TestScope _t("testConvPoolConv (Conv→ReLU→Pool→Conv→ReLU→Flatten→Dense)");
 
   // 1x10x10 → Conv(2,3x3) → 2x8x8 → ReLU → MaxPool(2x2,s2) → 2x4x4 → Conv(1,3x3) → 1x2x2 → ReLU → Flatten(4) → Dense(1,sigmoid)
   CNN::CoreConfig<double> config;
@@ -223,7 +223,7 @@ static void testConvPoolConv()
 
 static void testMultiChannelInput()
 {
-  std::cout << "--- testMultiChannelInput (3-channel RGB-like) ---" << std::endl;
+  TestScope _t("testMultiChannelInput (3-channel RGB-like)");
 
   // 3x6x6 → Conv(2,3x3) → 2x4x4 → ReLU → Flatten(32) → Dense(1,sigmoid)
   CNN::CoreConfig<double> config;
@@ -282,7 +282,7 @@ static void testMultiChannelInput()
 
 static void testBatchPredict()
 {
-  std::cout << "--- testBatchPredict ---" << std::endl;
+  TestScope _t("testBatchPredict");
 
   // 1x5x5 → Conv(1 filter 3x3 valid) → ReLU → Flatten(9) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;

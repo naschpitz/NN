@@ -7,7 +7,7 @@
 
 static void testMultiGPUTrainSimple()
 {
-  std::cout << "--- testMultiGPUTrainSimple ---" << std::endl;
+  TestScope _t("testMultiGPUTrainSimple");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -37,7 +37,7 @@ static void testMultiGPUTrainSimple()
 
 static void testMultiGPUTestMethod()
 {
-  std::cout << "--- testMultiGPUTestMethod ---" << std::endl;
+  TestScope _t("testMultiGPUTestMethod");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -66,7 +66,7 @@ static void testMultiGPUTestMethod()
 
 static void testMultiGPUCallback()
 {
-  std::cout << "--- testMultiGPUCallback ---" << std::endl;
+  TestScope _t("testMultiGPUCallback");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -108,7 +108,7 @@ static void testMultiGPUCallback()
 
 static void testMultiGPUCrossEntropyTrain()
 {
-  std::cout << "--- testMultiGPUCrossEntropyTrain ---" << std::endl;
+  TestScope _t("testMultiGPUCrossEntropyTrain");
 
   ANN::Samples<float> samples = {
     {{1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}}};
@@ -140,7 +140,7 @@ static void testMultiGPUCrossEntropyTrain()
 
 static void testMultiGPUDifferentActivations()
 {
-  std::cout << "--- testMultiGPUDifferentActivations ---" << std::endl;
+  TestScope _t("testMultiGPUDifferentActivations");
 
   std::vector<ANN::ActvFuncType> activations = {ANN::ActvFuncType::SIGMOID, ANN::ActvFuncType::RELU,
                                                 ANN::ActvFuncType::TANH};
@@ -173,7 +173,7 @@ static void testMultiGPUDifferentActivations()
 
 static void testMultiGPUMultiOutput()
 {
-  std::cout << "--- testMultiGPUMultiOutput ---" << std::endl;
+  TestScope _t("testMultiGPUMultiOutput");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -202,7 +202,7 @@ static void testMultiGPUMultiOutput()
 
 static void testMultiGPUDropoutTrain()
 {
-  std::cout << "--- testMultiGPUDropoutTrain ---" << std::endl;
+  TestScope _t("testMultiGPUDropoutTrain");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -230,7 +230,7 @@ static void testMultiGPUDropoutTrain()
 
 static void testMultiGPUParametersDuringTrain()
 {
-  std::cout << "--- testMultiGPUParametersDuringTrain ---" << std::endl;
+  TestScope _t("testMultiGPUParametersDuringTrain");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;

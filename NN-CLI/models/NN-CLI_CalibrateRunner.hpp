@@ -49,7 +49,7 @@ namespace NN_CLI
       //-- Ctors / Dtors --//
 
       CalibrateRunner(const QCommandLineParser& parser, LogLevel logLevel, NetworkType networkType,
-                      const IOConfig& ioConfig, const AugmentationConfig& augConfig,
+                      const IOConfig& ioConfig, const AugmentationConfig& augConfig, const QString& configPath,
                       std::unique_ptr<ANN::Core<float>>& annCore, const ANN::CoreConfig<float>& annCoreConfig,
                       std::unique_ptr<CNN::Core<float>>& cnnCore, const CNN::CoreConfig<float>& cnnCoreConfig);
 
@@ -80,6 +80,7 @@ namespace NN_CLI
       const QCommandLineParser& parser;
       LogLevel logLevel;
       NetworkType networkType;
+      QString configPath;
       IOConfig ioConfig;
       AugmentationConfig augConfig;
 

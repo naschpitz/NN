@@ -49,18 +49,16 @@
 
 <h3>Step 2 — Create config.json</h3>
 <pre><code>{
-  <span class="string">"model"</span>: <span class="string">"train/output/checkpoint_E-150_L-0.029486.nnmodel.tar"</span>,
   <span class="string">"port"</span>: <span class="number">8080</span>,
   <span class="string">"poolSize"</span>: <span class="number">4</span>
 }
 </code></pre>
 
 <h3>Step 3 — Start NN-Server</h3>
-<pre><code>./NN-Server config.json
+<pre><code>./NN-Server --model-package train/output/checkpoint_E-150_L-0.029486.nnmodel.tar config.json
 
 <span class="comment"># Output:</span>
 <span class="comment"># NN-Server starting...</span>
-<span class="comment">#   Config:       config.json</span>
 <span class="comment">#   Model:        train/output/checkpoint_E-150_L-0.029486.nnmodel.tar</span>
 <span class="comment">#   Port:        8080</span>
 <span class="comment">#   Pool size:    4</span>
@@ -119,12 +117,12 @@
 
 <h3>config.json</h3>
 <pre><code>{
-  <span class="string">"model"</span>: <span class="string">"ann_model.nnmodel.tar"</span>
+  <span class="string">"port"</span>: <span class="number">8080</span>
 }
 </code></pre>
 
 <h3>Start the server</h3>
-<pre><code>./NN-Server config.json
+<pre><code>./NN-Server --model-package ann_model.nnmodel.tar config.json
 </code></pre>
 
 <h3>Send a prediction request</h3>
@@ -171,11 +169,11 @@ wait
 
 <h3>config.json</h3>
 <pre><code>{
-  <span class="string">"model"</span>: <span class="string">"segmentation_model.nnmodel.tar"</span>
+  <span class="string">"port"</span>: <span class="number">8080</span>
 }
 </code></pre>
 
-<pre><code>./NN-Server config.json
+<pre><code>./NN-Server --model-package segmentation_model.nnmodel.tar config.json
 </code></pre>
 
 <pre><code><span class="comment"># Send an image and save the output PNG</span>

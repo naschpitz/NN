@@ -11,7 +11,7 @@ using namespace NN_CLI;
 
 static void testMonitoringConfigParsing()
 {
-  std::cout << "  testMonitoringConfigParsing... ";
+  TestScope _t("testMonitoringConfigParsing");
 
   QString configPath = tempDir() + "/monitoring_config_test.json";
   QFile file(configPath);
@@ -43,17 +43,14 @@ static void testMonitoringConfigParsing()
   CHECK(config.trainConfig.monitoringConfig.patience == 30, "patience");
   CHECK_NEAR(config.trainConfig.monitoringConfig.metrics.lossStagnation.minDelta, 0.001f, 0.0001f, "minDelta");
   CHECK(config.trainConfig.monitoringConfig.metrics.lossExplosion.enabled == false, "explosion disabled");
-  CHECK_NEAR(config.trainConfig.monitoringConfig.metrics.lossExplosion.threshold, 5.0f, 0.01f,
-             "explosion threshold");
-
-  std::cout << "PASS" << std::endl;
+  CHECK_NEAR(config.trainConfig.monitoringConfig.metrics.lossExplosion.threshold, 5.0f, 0.01f, "explosion threshold");
 }
 
 //===================================================================================================================//
 
 static void testMonitoringConfigDefaults()
 {
-  std::cout << "  testMonitoringConfigDefaults... ";
+  TestScope _t("testMonitoringConfigDefaults");
 
   QString configPath = tempDir() + "/monitoring_defaults_test.json";
   QFile file(configPath);
@@ -74,15 +71,13 @@ static void testMonitoringConfigDefaults()
   CHECK(config.trainConfig.monitoringConfig.enabled == false, "default disabled");
   CHECK(config.trainConfig.monitoringConfig.checkInterval == 5, "default checkInterval");
   CHECK(config.trainConfig.monitoringConfig.patience == 20, "default patience");
-
-  std::cout << "PASS" << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testTrainMonitorStagnation()
 {
-  std::cout << "  testTrainMonitorStagnation... ";
+  TestScope _t("testTrainMonitorStagnation");
 
   Common::MonitoringConfig config;
   config.enabled = true;
@@ -113,15 +108,13 @@ static void testTrainMonitorStagnation()
   // Epoch 5: loss = 0.5 — no improvement (patience 3/3 → stop)
   CHECK(monitor.checkEpoch(5, 0.5f) == true, "epoch 5 stops");
   CHECK(monitor.getStopReason().find("stagnation") != std::string::npos, "stop reason mentions stagnation");
-
-  std::cout << "PASS" << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testTrainMonitorExplosion()
 {
-  std::cout << "  testTrainMonitorExplosion... ";
+  TestScope _t("testTrainMonitorExplosion");
 
   Common::MonitoringConfig config;
   config.enabled = true;
@@ -144,15 +137,13 @@ static void testTrainMonitorExplosion()
   CHECK(monitor.getStopReason().find("explosion") != std::string::npos ||
           monitor.getStopReason().find("Explosion") != std::string::npos,
         "stop reason mentions explosion");
-
-  std::cout << "PASS" << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testTrainMonitorWithValidationLoss()
 {
-  std::cout << "  testTrainMonitorWithValidationLoss... ";
+  TestScope _t("testTrainMonitorWithValidationLoss");
 
   Common::MonitoringConfig config;
   config.enabled = true;
@@ -176,11 +167,7 @@ static void testTrainMonitorWithValidationLoss()
 
   // Best should still be epoch 1
   CHECK(monitor.getBestEpoch() == 1, "best epoch is 1 (based on validation loss)");
-
-  std::cout << "PASS" << std::endl;
 }
-
-//===================================================================================================================//
 
 void runMonitoringTests()
 {

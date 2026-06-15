@@ -12,7 +12,7 @@
 
 static void testTrainAndTestMNISTGPU()
 {
-  std::cout << "  testTrainAndTestMNISTGPU... " << std::flush;
+  TestScope _t("testTrainAndTestMNISTGPU");
 
   if (!runFullTests) {
     std::cout << "(skipped — use --full to enable)" << std::endl;
@@ -28,8 +28,8 @@ static void testTrainAndTestMNISTGPU()
 
   // Step 1: Train on MNIST training data on GPU (10 epochs, 60k samples, Adam + crossEntropy)
   auto trainResult =
-    runNNCLI({"--config", fixturePath("mnist_ann_train_config.json"), "--mode", "train", "--device", "gpu",
-              "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
+    runNNCLI({"--model", fixturePath("mnist_ann_train_config.json"), "--mode", "train", "--device", "gpu", "--idx-data",
+              examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
               examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
              1800000); // 30 min timeout
 
@@ -42,7 +42,7 @@ static void testTrainAndTestMNISTGPU()
   }
 
   // Step 2: Evaluate against MNIST test data (10k samples) on GPU
-  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "gpu", "--idx-data",
+  auto testResult = runNNCLI({"--model-package", modelPath, "--mode", "test", "--device", "gpu", "--idx-data",
                               examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
                               examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
                              600000); // 10 min timeout

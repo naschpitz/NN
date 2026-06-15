@@ -66,7 +66,7 @@ static CNN::CoreConfig<float> makeGPUTrueBNTestConfig(ulong denseNeurons, ANN::A
 // If cross-sample stats are computed correctly, GPU and CPU produce identical results
 static void testGPUTrueBNvsCPUParity()
 {
-  std::cout << "--- testGPUTrueBNvsCPUParity ---" << std::endl;
+  TestScope _t("testGPUTrueBNvsCPUParity");
 
   // Create identical configs for CPU and GPU
   auto gpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::GPU);
@@ -168,7 +168,7 @@ static void testGPUTrueBNvsCPUParity()
 // Debug test: Conv → BN → Flatten (no RELU) with N=3 to isolate the issue
 static void testGPUTrueBNNoRelu()
 {
-  std::cout << "--- testGPUTrueBNNoRelu (N=3, no RELU) ---" << std::endl;
+  TestScope _t("testGPUTrueBNNoRelu (N=3, no RELU)");
 
   // Build config WITHOUT RELU: Conv → BN → Flatten
   auto makeNoReluConfig = [](Common::DeviceType device) {
@@ -276,7 +276,7 @@ static void testGPUTrueBNNoRelu()
 // Test 2: Verify batch stats differ from instance stats (proves cross-sample reduction)
 static void testGPUTrueBNBatchVsInstanceStats()
 {
-  std::cout << "--- testGPUTrueBNBatchVsInstanceStats ---" << std::endl;
+  TestScope _t("testGPUTrueBNBatchVsInstanceStats");
 
   // Train with BATCHNORM (cross-sample stats) using 3 diverse samples
   auto bnConfig = makeGPUTrueBNTestConfig(1, ANN::ActvFuncType::SIGMOID, Common::DeviceType::GPU);

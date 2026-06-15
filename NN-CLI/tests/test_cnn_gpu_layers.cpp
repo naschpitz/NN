@@ -131,7 +131,7 @@ static bool runGPUPredictTest(const QString& testName, const QString& convLayers
 
   // Step 1: Train on CPU
   auto trainResult = runNNCLI(
-    {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
 
   if (trainResult.exitCode != 0) {
     std::cerr << "    [" << testName.toStdString() << "] train failed (exit=" << trainResult.exitCode << ")"
@@ -141,8 +141,8 @@ static bool runGPUPredictTest(const QString& testName, const QString& convLayers
 
   // Step 2: Predict on CPU
   QString cpuPredPath = prefix + "_pred_cpu.json";
-  auto cpuPred = runNNCLI(
-    {"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", inputsPath, "--output", cpuPredPath});
+  auto cpuPred = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input", inputsPath,
+                           "--output", cpuPredPath});
 
   if (cpuPred.exitCode != 0) {
     std::cerr << "    [" << testName.toStdString() << "] CPU predict failed" << std::endl;
@@ -151,8 +151,8 @@ static bool runGPUPredictTest(const QString& testName, const QString& convLayers
 
   // Step 3: Predict on GPU
   QString gpuPredPath = prefix + "_pred_gpu.json";
-  auto gpuPred = runNNCLI(
-    {"--config", modelPath, "--mode", "predict", "--device", "gpu", "--input", inputsPath, "--output", gpuPredPath});
+  auto gpuPred = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "gpu", "--input", inputsPath,
+                           "--output", gpuPredPath});
 
   if (gpuPred.exitCode != 0) {
     std::cerr << "    [" << testName.toStdString() << "] GPU predict failed (exit=" << gpuPred.exitCode << ")"
@@ -245,7 +245,7 @@ static bool runGPUPredictTest(const QString& testName, const QString& convLayers
 
 static void testCNNGPUPredictLayerIsolation()
 {
-  std::cout << "  testCNNGPUPredictLayerIsolation..." << std::endl;
+  TestScope _t("testCNNGPUPredictLayerIsolation");
 
   if (!checkGPUAvailable()) {
     std::cout << "    (skipped — no GPU)" << std::endl;

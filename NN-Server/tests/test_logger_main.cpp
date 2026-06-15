@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
 {
   QCoreApplication app(argc, argv);
 
-  std::cout << "=== NN-Server Logger Unit Tests ===" << std::endl;
+  std::cout << "=== Logger Unit Tests ===" << std::endl;
   std::cout << std::endl;
 
   runLoggerTests();

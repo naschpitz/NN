@@ -8,7 +8,7 @@
 
 static void testInstanceNormInference()
 {
-  std::cout << "--- testInstanceNormInference ---" << std::endl;
+  TestScope _t("testInstanceNormInference");
 
   CNN::Shape3D shape{2, 2, 2};
   CNN::Tensor3D<double> input(shape);
@@ -47,7 +47,7 @@ static void testInstanceNormInference()
 
 static void testInstanceNormTrain()
 {
-  std::cout << "--- testInstanceNormTrain ---" << std::endl;
+  TestScope _t("testInstanceNormTrain");
 
   CNN::Shape3D shape{2, 2, 2};
   CNN::Tensor3D<double> input(shape);
@@ -94,7 +94,7 @@ static void testInstanceNormTrain()
 
 static void testInstanceNormBackpropagate()
 {
-  std::cout << "--- testInstanceNormBackpropagate ---" << std::endl;
+  TestScope _t("testInstanceNormBackpropagate");
 
   CNN::Shape3D shape{1, 1, 4};
   CNN::Tensor3D<double> input(shape);
@@ -138,7 +138,7 @@ static void testInstanceNormBackpropagate()
 
 static void testInstanceNormBackpropGradient()
 {
-  std::cout << "--- testInstanceNormBackpropGradient ---" << std::endl;
+  TestScope _t("testInstanceNormBackpropGradient");
 
   CNN::Shape3D shape{1, 1, 4};
   CNN::Tensor3D<double> inputOrig(shape);

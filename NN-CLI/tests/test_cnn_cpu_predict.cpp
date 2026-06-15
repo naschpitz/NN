@@ -19,7 +19,7 @@
 
 static void testCNNMultiInputPredictDiversity()
 {
-  std::cout << "  testCNNMultiInputPredictDiversity... ";
+  TestScope _t("testCNNMultiInputPredictDiversity");
 
   // Train a model, then predict on multiple DIFFERENT inputs and verify outputs differ
   // This catches the "all outputs identical" bug
@@ -55,7 +55,6 @@ static void testCNNMultiInputPredictDiversity()
     configFile.close();
   } else {
     CHECK(false, "CNN diversity: failed to write config file");
-    std::cout << std::endl;
     return;
   }
 
@@ -78,27 +77,25 @@ static void testCNNMultiInputPredictDiversity()
     multiInputFile.close();
   } else {
     CHECK(false, "CNN diversity: failed to write multi-input file");
-    std::cout << std::endl;
     return;
   }
 
   QString modelPath = tempDir() + "/cnn_diversity_model.nnmodel.tar";
 
   // Train
-  auto trainResult = runNNCLI({"--config", configPath, "--mode", "train", "--device", "cpu", "--samples",
+  auto trainResult = runNNCLI({"--model", configPath, "--mode", "train", "--device", "cpu", "--samples",
                                fixturePath("cnn_train_samples.json"), "--output", modelPath});
 
   CHECK(trainResult.exitCode == 0, "CNN diversity: train exit code 0");
 
   if (trainResult.exitCode != 0) {
-    std::cout << std::endl;
     return;
   }
 
   // Predict on multiple inputs
   QString predictOutput = tempDir() + "/cnn_diversity_predict.json";
-  auto predResult = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", multiInputPath,
-                              "--output", predictOutput});
+  auto predResult = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
+                              multiInputPath, "--output", predictOutput});
 
   CHECK(predResult.exitCode == 0, "CNN diversity: predict exit code 0");
 
@@ -133,8 +130,6 @@ static void testCNNMultiInputPredictDiversity()
       CHECK(false, "CNN diversity: failed to open predict output file");
     }
   }
-
-  std::cout << std::endl;
 }
 
 void runCNNCPUPredictTests()

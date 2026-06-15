@@ -61,19 +61,11 @@ ls -la NN-Server
 </div>
 
 <h2>Verify Installation</h2>
-<pre><code><span class="comment"># Create a config.json file</span>
-cat &gt; config.json &lt;&lt;EOF
-{
-  "model": "/path/to/trained_E-100_S-60000_L-0.123456.nnmodel.tar"
-}
-EOF
-
-<span class="comment"># Start the server</span>
-./NN-Server config.json
+<pre><code><span class="comment"># Start the server</span>
+./NN-Server --model-package /path/to/trained_E-100_S-60000_L-0.123456.nnmodel.tar
 
 <span class="comment"># Expected output:</span>
 <span class="comment"># NN-Server starting...</span>
-<span class="comment">#   Config:       config.json</span>
 <span class="comment">#   Model:        /path/to/trained_E-100_S-60000_L-0.123456.nnmodel.tar</span>
 <span class="comment">#   Port:        8080</span>
 <span class="comment">#   Pool size:    8</span>

@@ -61,7 +61,7 @@ static bool compareVectors(const std::string& label, const std::vector<float>& c
 
 static void testCNNGPUPredictDeepDiagnostic()
 {
-  std::cout << "  testCNNGPUPredictDeepDiagnostic..." << std::endl;
+  TestScope _t("testCNNGPUPredictDeepDiagnostic");
 
   if (!checkGPUAvailable()) {
     std::cout << "    (skipped — no GPU)" << std::endl;
@@ -169,7 +169,6 @@ static void testCNNGPUPredictDeepDiagnostic()
   CHECK(gpuCore != nullptr, "Deep diag: GPU core created");
 
   if (!gpuCore) {
-    std::cout << std::endl;
     return;
   }
 
@@ -177,7 +176,6 @@ static void testCNNGPUPredictDeepDiagnostic()
   CHECK(gpuWorker != nullptr, "Deep diag: GPU worker accessible");
 
   if (!gpuWorker) {
-    std::cout << std::endl;
     return;
   }
 
@@ -452,9 +450,6 @@ static void testCNNGPUPredictDeepDiagnostic()
       diverse = true;
 
   CHECK(diverse, "Deep diag: different inputs produce different outputs");
-
-  std::cout << "    All deep diagnostic checks complete." << std::endl;
-  std::cout << std::endl;
 }
 
 void runCNNGPUDiagnosticTests()

@@ -56,3 +56,23 @@ inline ANN::LayersConfig makeLayersConfig(std::initializer_list<ANN::Layer> laye
 
   return config;
 }
+
+// --- TestScope: RAII per-test verdict printer (project standard) ---
+// Snapshot testsFailed in ctor; print "  <name>... PASS|FAIL" in dtor.
+// Structurally impossible to print a false PASS.
+struct TestScope {
+    const char* name;
+    int failedBefore;
+    explicit TestScope(const char* n) : name(n), failedBefore(::testsFailed)
+    {
+      std::cout << "  " << name << "... " << std::flush;
+    }
+
+    ~TestScope()
+    {
+      std::cout << (::testsFailed == failedBefore ? "PASS" : "FAIL") << std::endl;
+    }
+
+    TestScope(const TestScope&) = delete;
+    TestScope& operator=(const TestScope&) = delete;
+};

@@ -7,7 +7,7 @@
 
 static void testResidualIdentityForward()
 {
-  std::cout << "--- testResidualIdentityForward ---" << std::endl;
+  TestScope _t("testResidualIdentityForward");
 
   CNN::Shape3D shape{2, 3, 3};
   CNN::Tensor3D<double> blockOutput(shape);
@@ -30,7 +30,7 @@ static void testResidualIdentityForward()
 
 static void testResidualIdentityBackward()
 {
-  std::cout << "--- testResidualIdentityBackward ---" << std::endl;
+  TestScope _t("testResidualIdentityBackward");
 
   CNN::Shape3D shape{2, 3, 3};
   CNN::Tensor3D<double> dOut(shape);
@@ -52,7 +52,7 @@ static void testResidualIdentityBackward()
 
 static void testResidualParametersForward()
 {
-  std::cout << "--- testResidualParametersForward ---" << std::endl;
+  TestScope _t("testResidualParametersForward");
 
   // Skip: 2ch, Block output: 4ch, spatial 2x2
   CNN::Shape3D skipShape{2, 2, 2};
@@ -85,7 +85,7 @@ static void testResidualParametersForward()
 
 static void testResidualParametersBackward()
 {
-  std::cout << "--- testResidualParametersBackward ---" << std::endl;
+  TestScope _t("testResidualParametersBackward");
 
   CNN::Shape3D skipShape{2, 2, 2};
   CNN::Shape3D outShape{4, 2, 2};
@@ -140,7 +140,7 @@ static void testResidualParametersBackward()
 
 static void testResidualGradientCheck()
 {
-  std::cout << "--- testResidualGradientCheck ---" << std::endl;
+  TestScope _t("testResidualGradientCheck");
 
   CNN::Shape3D skipShape{2, 2, 2};
   CNN::Shape3D outShape{3, 2, 2};
@@ -210,7 +210,7 @@ static void testResidualGradientCheck()
 
 static void testResidualShapeValidation()
 {
-  std::cout << "--- testResidualShapeValidation ---" << std::endl;
+  TestScope _t("testResidualShapeValidation");
 
   // 1. Unmatched residual_end (no start)
   {

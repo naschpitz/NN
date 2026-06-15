@@ -56,7 +56,7 @@ static CNN::CoreConfig<float> makeGPUBNTestConfig(ulong denseNeurons, ANN::ActvF
 
 static void testGPUExactBNForwardBackwardCrossEntropy()
 {
-  std::cout << "--- testGPUExactBNForwardBackwardCrossEntropy ---" << std::endl;
+  TestScope _t("testGPUExactBNForwardBackwardCrossEntropy");
 
   auto config = makeGPUBNTestConfig(2, ANN::ActvFuncType::SOFTMAX);
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
@@ -110,7 +110,7 @@ static void testGPUExactBNForwardBackwardCrossEntropy()
 
 static void testGPUExactBNForwardBackwardSquaredDifference()
 {
-  std::cout << "--- testGPUExactBNForwardBackwardSquaredDifference ---" << std::endl;
+  TestScope _t("testGPUExactBNForwardBackwardSquaredDifference");
 
   auto config = makeGPUBNTestConfig(1, ANN::ActvFuncType::SIGMOID);
   config.costFunctionConfig.type = Common::CostFunctionType::SQUARED_DIFFERENCE;
@@ -159,7 +159,7 @@ static void testGPUExactBNForwardBackwardSquaredDifference()
 
 static void testGPUExactBNForwardBackwardWeightedCrossEntropy()
 {
-  std::cout << "--- testGPUExactBNForwardBackwardWeightedCrossEntropy ---" << std::endl;
+  TestScope _t("testGPUExactBNForwardBackwardWeightedCrossEntropy");
 
   auto config = makeGPUBNTestConfig(2, ANN::ActvFuncType::SOFTMAX);
   config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;

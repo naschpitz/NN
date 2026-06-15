@@ -65,13 +65,14 @@ make -j$(nproc)
 <span class="comment"># NN-CLI - Neural Network Command Line Interface (ANN + CNN)</span>
 <span class="comment">#</span>
 <span class="comment"># Usage:</span>
-<span class="comment">#   NN-CLI --config &lt;file&gt; --mode train [options]                       # Training</span>
-<span class="comment">#   NN-CLI --config &lt;file&gt; --mode predict --input &lt;f&gt;                   # Predict (batch)</span>
-<span class="comment">#   NN-CLI --config &lt;file&gt; --mode test [options]                        # Evaluation</span>
-<span class="comment">#   NN-CLI --config &lt;file&gt; --mode calibrate --id-images &lt;dir&gt; [opts]   # OOD threshold</span>
+<span class="comment">#   NN-CLI --model &lt;file&gt; --mode train [options]                        # Training</span>
+<span class="comment">#   NN-CLI --model-package &lt;file&gt; --mode predict --input &lt;f&gt;           # Predict (batch)</span>
+<span class="comment">#   NN-CLI --model-package &lt;file&gt; --mode test [options]                 # Evaluation</span>
+<span class="comment">#   NN-CLI --model-package &lt;file&gt; --mode calibrate --id-images &lt;dir&gt;   # OOD threshold</span>
 <span class="comment">#</span>
 <span class="comment"># Options:</span>
-<span class="comment">#   --config, -c &lt;file&gt;    Path to JSON configuration file (required)</span>
+<span class="comment">#   --model &lt;file&gt;           Path to model architecture JSON file (required for train)</span>
+<span class="comment">#   --model-package &lt;file&gt;   Path to trained model package (required for predict/test/calibrate)</span>
 <span class="comment">#   --mode, -m &lt;mode&gt;      Mode: 'train', 'predict', 'test', or 'calibrate'</span>
 <span class="comment">#   --device, -d &lt;device&gt;  Device: 'cpu' or 'gpu' (overrides config file)</span>
 <span class="comment">#   --input, -i &lt;file&gt;     Path to JSON file with batch inputs (predict mode, required)</span>
@@ -126,7 +127,7 @@ cat &gt; xor_samples.json &lt;&lt; <span class="string">'EOF'</span>
 <span class="string">EOF</span>
 
 <span class="comment"># 3. Train!</span>
-./build/NN-CLI -c tiny_config.json -m train -s xor_samples.json -l info
+./build/NN-CLI --model tiny_config.json --mode train --samples xor_samples.json --log-level info
 </code></pre>
 
 <h2>Project Structure</h2>

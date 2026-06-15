@@ -2,7 +2,7 @@
 
 static void testDifferentActivations()
 {
-  std::cout << "--- testDifferentActivations ---" << std::endl;
+  TestScope _t("testDifferentActivations");
 
   // Test that different activation functions produce different outputs
   ANN::Input<double> input = {0.5, 0.5};
@@ -37,7 +37,7 @@ static void testDifferentActivations()
 
 static void testMultiLayerNetwork()
 {
-  std::cout << "--- testMultiLayerNetwork ---" << std::endl;
+  TestScope _t("testMultiLayerNetwork");
 
   // 2 → 8 → 8 → 1 network with Adam — robust convergence on the trivial
   // {(1,1)→1, (0,0)→0} task. Was 4-RELU + SGD with a 5-attempt retry loop.
@@ -72,7 +72,7 @@ static void testMultiLayerNetwork()
 
 static void testMultiOutput()
 {
-  std::cout << "--- testMultiOutput ---" << std::endl;
+  TestScope _t("testMultiOutput");
 
   // 2 inputs → 3 outputs
   ANN::CoreConfig<double> config;
@@ -104,7 +104,7 @@ static void testMultiOutput()
 
 static void testStepByStepAPI()
 {
-  std::cout << "--- testStepByStepAPI ---" << std::endl;
+  TestScope _t("testStepByStepAPI");
 
   // Test the trainStep API: trainStep(input, expected) → update(numSamples)
   ANN::CoreConfig<double> config;
@@ -147,7 +147,7 @@ static void testStepByStepAPI()
 
 static void testTrainWithTanh()
 {
-  std::cout << "--- testTrainWithTanh ---" << std::endl;
+  TestScope _t("testTrainWithTanh");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -177,7 +177,7 @@ static void testTrainWithTanh()
 
 static void testGettersAfterConstruction()
 {
-  std::cout << "--- testGettersAfterConstruction ---" << std::endl;
+  TestScope _t("testGettersAfterConstruction");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -197,8 +197,8 @@ static void testGettersAfterConstruction()
   CHECK(core->getLayersConfig()[0].numNeurons == 3, "layer 0: 3 neurons");
   CHECK(core->getLayersConfig()[1].numNeurons == 5, "layer 1: 5 neurons");
   CHECK(core->getLayersConfig()[2].numNeurons == 2, "layer 2: 2 neurons");
-   CHECK(core->getTrainConfig().numEpochs == 100, "numEpochs = 100");
-   CHECK_NEAR(core->getTrainConfig().learningRate, 0.05f, 1e-6f, "learningRate = 0.05");
+  CHECK(core->getTrainConfig().numEpochs == 100, "numEpochs = 100");
+  CHECK_NEAR(core->getTrainConfig().learningRate, 0.05f, 1e-6f, "learningRate = 0.05");
   CHECK(core->getLogLevel() == Common::LogLevel::INFO, "logLevel = INFO");
 
   core->setLogLevel(Common::LogLevel::ERROR);

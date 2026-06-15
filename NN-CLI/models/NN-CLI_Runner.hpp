@@ -37,7 +37,7 @@ namespace NN_CLI
     public:
       //-- Constructors --//
       Runner(const QCommandLineParser& parser, LogLevel logLevel, IOConfig& ioConfig, AugmentationConfig& augConfig,
-             std::unique_ptr<CoreT>& core, CoreConfigT& coreConfig);
+             std::unique_ptr<CoreT>& core, CoreConfigT& coreConfig, const QString& configPath);
 
       virtual ~Runner() = default;
 
@@ -77,24 +77,39 @@ namespace NN_CLI
       virtual std::string getInputShapeString() const = 0;
 
       // Return the number of convolutional layers (default 0 for ANN).
-      virtual ulong getNumConvLayers() const { return 0; }
+      virtual ulong getNumConvLayers() const
+      {
+        return 0;
+      }
 
       // Return the number of dense (fully-connected) layers.
       virtual ulong getNumDenseLayers() const = 0;
 
       // Return the number of residual blocks (default 0 for ANN).
-      virtual ulong getNumResidualBlocks() const { return 0; }
+      virtual ulong getNumResidualBlocks() const
+      {
+        return 0;
+      }
 
       //-- Sample-count accessors --//
 
       // Return the number of original training samples (before augmentation).
-      ulong getNumOriginalTrainSamples() const { return _numOriginalTrainSamples; }
+      ulong getNumOriginalTrainSamples() const
+      {
+        return _numOriginalTrainSamples;
+      }
 
       // Return the total number of training samples (after augmentation).
-      ulong getNumTrainSamples() const { return _numTrainSamples; }
+      ulong getNumTrainSamples() const
+      {
+        return _numTrainSamples;
+      }
 
       // Return the number of validation samples (0 if validation is disabled).
-      ulong getNumValidationSamples() const { return _numValidationSamples; }
+      ulong getNumValidationSamples() const
+      {
+        return _numValidationSamples;
+      }
 
       //-- Model info string builders --//
 
@@ -114,7 +129,7 @@ namespace NN_CLI
 
       // Build the complete set of SummaryRows describing the model
       // configuration and training setup, mirroring the order and separators
-       // used by TrainSummary::collectCNNRows / collectRows.
+      // used by TrainSummary::collectCNNRows / collectRows.
       std::vector<SummaryRow> buildModelInfoRows() const;
 
       // Build architecture-focused SummaryRows for the predict TerminalUI
@@ -125,13 +140,13 @@ namespace NN_CLI
     protected:
       //-- Methods --//
       ValidationMetadata buildValidationMetadata() const;
-       int finishTrain(const QString& inputFilePath);
+      int finishTrain(const QString& inputFilePath);
 
       // Shared per-batch training-progress handler, installed as the core's
       // training callback by both ANNRunner and CNNRunner: tracks per-GPU
       // fractions (reset at epoch boundaries) and notifies observers of
       // batch progress.  Thread-safe (locks callbackMutex).
-       void handleTrainProgress(const Common::TrainProgressEvent<float>& progress, ulong batchSize);
+      void handleTrainProgress(const Common::TrainProgressEvent<float>& progress, ulong batchSize);
 
       // Install a progress callback on the core that notifies observers of
       // batch progress during predict.  Mirrors the throttling/threshold
@@ -148,23 +163,21 @@ namespace NN_CLI
       void notifySampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
                                     bool isValidation);
       void notifyValidationProgress(ulong current, ulong total);
-      void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
-                               float etaSeconds, const std::vector<float>& fractions);
+      void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
+                               const std::vector<float>& fractions);
       void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                                 const std::string& summary);
-        void notifyTrainFinished(bool success, const std::string& finalSummary);
-       void notifyPredictFinished(const Common::PredictResults<float>& results,
-                                  size_t numInputs,
-                                  double durationSeconds,
-                                  const std::string& durationFormatted,
-                                  const std::string& outputPath);
-       void notifyModelInfoUpdated(const std::string& property, const std::string& value);
+      void notifyTrainFinished(bool success, const std::string& finalSummary);
+      void notifyPredictFinished(const Common::PredictResults<float>& results, size_t numInputs, double durationSeconds,
+                                 const std::string& durationFormatted, const std::string& outputPath);
+      void notifyModelInfoUpdated(const std::string& property, const std::string& value);
       void notifyLogMessage(const std::string& message, bool isError);
       void notifyTimingUpdated(const std::string& metric, float value);
 
       //-- Shared state --//
       const QCommandLineParser& parser;
       LogLevel logLevel;
+      QString configPath;
       IOConfig& ioConfig;
       AugmentationConfig& augConfig;
       std::unique_ptr<CoreT>& core;
@@ -197,6 +210,7 @@ namespace NN_CLI
           double samplesDone;
           std::chrono::steady_clock::time_point timestamp;
       };
+
       std::deque<RateSample> rateWindow;
       // Serializes the per-batch progress callback (fired concurrently from
       // worker threads) against the epoch-completed callback.

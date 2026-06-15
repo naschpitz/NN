@@ -4,7 +4,7 @@
 
 static void testExactForwardBackwardCrossEntropy()
 {
-  std::cout << "--- testExactForwardBackwardCrossEntropy ---" << std::endl;
+  TestScope _t("testExactForwardBackwardCrossEntropy");
 
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(2, softmax)
   // Cross-entropy cost, SGD lr=1.0, 1 epoch, 1 sample, no shuffle, 1 thread
@@ -95,7 +95,7 @@ static void testExactForwardBackwardCrossEntropy()
 
 static void testExactForwardBackwardSquaredDifference()
 {
-  std::cout << "--- testExactForwardBackwardSquaredDifference ---" << std::endl;
+  TestScope _t("testExactForwardBackwardSquaredDifference");
 
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(1, sigmoid)
   // Squared-difference cost, SGD lr=1.0, 1 epoch, 1 sample, no shuffle, 1 thread
@@ -178,7 +178,7 @@ static void testExactForwardBackwardSquaredDifference()
 
 static void testExactForwardBackwardWeightedCrossEntropy()
 {
-  std::cout << "--- testExactForwardBackwardWeightedCrossEntropy ---" << std::endl;
+  TestScope _t("testExactForwardBackwardWeightedCrossEntropy");
 
   // 1x3x3 → Conv(1 filter 2x2, stride=1, valid) → ReLU → Flatten(4) → Dense(2, softmax)
   // Weighted cross-entropy cost [3.0, 0.5], SGD lr=1.0, 1 epoch, 1 sample

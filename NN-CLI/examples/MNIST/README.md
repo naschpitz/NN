@@ -39,21 +39,21 @@ Train the neural network using the MNIST training dataset:
 
 ```bash
 # Train on GPU (recommended)
-ANN-CLI --config mnist_config.json \
+ANN-CLI --model mnist_config.json \
         --mode train \
         --device gpu \
         --idx-data train/train-images.idx3-ubyte \
         --idx-labels train/train-labels.idx1-ubyte \
-        --output train/output/trained_model.json \
+        --output train/output/trained_model.nnmodel \
         --verbose
 
 # Train on CPU
-ANN-CLI --config mnist_config.json \
+ANN-CLI --model mnist_config.json \
         --mode train \
         --device cpu \
         --idx-data train/train-images.idx3-ubyte \
         --idx-labels train/train-labels.idx1-ubyte \
-        --output train/output/trained_model.json \
+        --output train/output/trained_model.nnmodel \
         --verbose
 ```
 
@@ -68,7 +68,7 @@ Evaluate the trained model on the test dataset:
 
 ```bash
 # Test on GPU
-ANN-CLI --config train/output/trained_model.json \
+ANN-CLI --model-package train/output/trained_model.nnmodel \
         --mode test \
         --device gpu \
         --idx-data test/t10k-images.idx3-ubyte \
@@ -76,7 +76,7 @@ ANN-CLI --config train/output/trained_model.json \
         --verbose
 
 # Test on CPU
-ANN-CLI --config train/output/trained_model.json \
+ANN-CLI --model-package train/output/trained_model.nnmodel \
         --mode test \
         --device cpu \
         --idx-data test/t10k-images.idx3-ubyte \
@@ -98,7 +98,7 @@ Run predict on a single input image:
 
 ```bash
 # Predict on GPU
-ANN-CLI --config train/output/trained_model.json \
+ANN-CLI --model-package train/output/trained_model.nnmodel \
         --mode predict \
         --device gpu \
         --input predict/mnist_digit_2_input.json \
@@ -106,7 +106,7 @@ ANN-CLI --config train/output/trained_model.json \
         --verbose
 
 # Predict on CPU
-ANN-CLI --config train/output/trained_model.json \
+ANN-CLI --model-package train/output/trained_model.nnmodel \
         --mode predict \
         --device cpu \
         --input predict/mnist_digit_2_input.json \

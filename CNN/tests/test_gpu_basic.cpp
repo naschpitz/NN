@@ -4,7 +4,7 @@
 
 static void testGPUEndToEnd()
 {
-  std::cout << "--- testGPUEndToEnd (train + predict) ---" << std::endl;
+  TestScope _t("testGPUEndToEnd (train + predict)");
 
   // Same architecture as CPU test:
   // 1x5x5 → Conv(1 filter 3x3 valid) → 1x3x3 → ReLU → Flatten(9) → Dense(1, sigmoid)
@@ -76,7 +76,7 @@ static void testGPUEndToEnd()
 
 static void testGPUPredictOnly()
 {
-  std::cout << "--- testGPUPredictOnly ---" << std::endl;
+  TestScope _t("testGPUPredictOnly");
 
   // Train on CPU, then verify GPU predict gives same results
   CNN::CoreConfig<float> cpuConfig;
@@ -154,7 +154,7 @@ static void testGPUPredictOnly()
 
 static void testGPUWithPoolLayer()
 {
-  std::cout << "--- testGPUWithPoolLayer (Conv→ReLU→Pool→Conv→ReLU→Flatten→Dense) ---" << std::endl;
+  TestScope _t("testGPUWithPoolLayer (Conv→ReLU→Pool→Conv→ReLU→Flatten→Dense)");
 
   // Same architecture as testConvPoolConv but on GPU
   CNN::CoreConfig<float> config;

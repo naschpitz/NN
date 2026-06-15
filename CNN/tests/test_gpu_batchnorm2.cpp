@@ -67,7 +67,7 @@ static CNN::CoreConfig<float> makeGPUTrueBNTestConfig(ulong denseNeurons, ANN::A
 
 static void testGPUTrueBNConvergence()
 {
-  std::cout << "--- testGPUTrueBNConvergence ---" << std::endl;
+  TestScope _t("testGPUTrueBNConvergence");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -129,7 +129,7 @@ static void testGPUTrueBNConvergence()
 // Test 4: Exact forward/backward with BATCHNORM using 2 samples (deterministic check)
 static void testGPUTrueBNExactMultiSample()
 {
-  std::cout << "--- testGPUTrueBNExactMultiSample ---" << std::endl;
+  TestScope _t("testGPUTrueBNExactMultiSample");
 
   // Same architecture as single-sample BN test but with 2 samples
   auto gpuConfig = makeGPUTrueBNTestConfig(2, ANN::ActvFuncType::SOFTMAX, Common::DeviceType::GPU);

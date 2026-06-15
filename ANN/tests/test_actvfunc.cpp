@@ -4,7 +4,7 @@
 
 static void testNameToType()
 {
-  std::cout << "--- testNameToType ---" << std::endl;
+  TestScope _t("testNameToType");
 
   CHECK(ANN::ActvFunc::nameToType("relu") == ANN::ActvFuncType::RELU, "relu → RELU");
   CHECK(ANN::ActvFunc::nameToType("sigmoid") == ANN::ActvFuncType::SIGMOID, "sigmoid → SIGMOID");
@@ -19,7 +19,7 @@ static void testNameToType()
 
 static void testTypeToName()
 {
-  std::cout << "--- testTypeToName ---" << std::endl;
+  TestScope _t("testTypeToName");
 
   CHECK(ANN::ActvFunc::typeToName(ANN::ActvFuncType::RELU) == "relu", "RELU → relu");
   CHECK(ANN::ActvFunc::typeToName(ANN::ActvFuncType::SIGMOID) == "sigmoid", "SIGMOID → sigmoid");
@@ -31,7 +31,7 @@ static void testTypeToName()
 
 static void testReLU()
 {
-  std::cout << "--- testReLU ---" << std::endl;
+  TestScope _t("testReLU");
 
   // Forward
   CHECK_NEAR(ANN::ActvFunc::calculate(2.0f, ANN::ActvFuncType::RELU), 2.0f, 1e-6f, "relu(2) = 2");
@@ -49,7 +49,7 @@ static void testReLU()
 
 static void testSigmoid()
 {
-  std::cout << "--- testSigmoid ---" << std::endl;
+  TestScope _t("testSigmoid");
 
   // Forward
   CHECK_NEAR(ANN::ActvFunc::calculate(0.0f, ANN::ActvFuncType::SIGMOID), 0.5f, 1e-6f, "sigmoid(0) = 0.5");
@@ -68,7 +68,7 @@ static void testSigmoid()
 
 static void testTanh()
 {
-  std::cout << "--- testTanh ---" << std::endl;
+  TestScope _t("testTanh");
 
   // Forward
   CHECK_NEAR(ANN::ActvFunc::calculate(0.0f, ANN::ActvFuncType::TANH), 0.0f, 1e-6f, "tanh(0) = 0");
@@ -87,7 +87,7 @@ static void testTanh()
 
 static void testSoftmax()
 {
-  std::cout << "--- testSoftmax ---" << std::endl;
+  TestScope _t("testSoftmax");
 
   // Forward: softmax([1, 2, 3])
   float zs[] = {1.0f, 2.0f, 3.0f};
@@ -147,7 +147,7 @@ static void testSoftmax()
 
 static void testSoftmaxBackward()
 {
-  std::cout << "--- testSoftmaxBackward ---" << std::endl;
+  TestScope _t("testSoftmaxBackward");
 
   // Forward first to get activations
   float zs[] = {1.0f, 2.0f, 3.0f};

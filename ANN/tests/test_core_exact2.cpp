@@ -2,7 +2,7 @@
 
 static void testCrossEntropyGradientNumerical()
 {
-  std::cout << "--- testCrossEntropyGradientNumerical ---" << std::endl;
+  TestScope _t("testCrossEntropyGradientNumerical");
 
   // Verify the analytical gradient formula matches numerical finite differences.
   // This tests the MATH directly, independent of the network.
@@ -70,7 +70,7 @@ static void testCrossEntropyGradientNumerical()
 
 static void testCrossEntropyTrain()
 {
-  std::cout << "--- testCrossEntropyTrain ---" << std::endl;
+  TestScope _t("testCrossEntropyTrain");
 
   // Classification: 2 inputs → 3 classes with softmax + cross-entropy
   ANN::CoreConfig<double> config;
@@ -116,7 +116,7 @@ static void testCrossEntropyTrain()
 
 static void testCrossEntropyLossDecreases()
 {
-  std::cout << "--- testCrossEntropyLossDecreases ---" << std::endl;
+  TestScope _t("testCrossEntropyLossDecreases");
 
   // Train with cross-entropy and verify loss ACTUALLY DECREASES — not just "is finite".
   ANN::CoreConfig<double> config;
@@ -160,7 +160,7 @@ static void testCrossEntropyLossDecreases()
 
 static void testWeightedCrossEntropyTrain()
 {
-  std::cout << "--- testWeightedCrossEntropyTrain ---" << std::endl;
+  TestScope _t("testWeightedCrossEntropyTrain");
 
   // Cross-entropy with per-class weights
   ANN::CoreConfig<double> config;

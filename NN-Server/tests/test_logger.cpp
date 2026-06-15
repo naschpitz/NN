@@ -26,7 +26,7 @@ static QString readFile(const QString& path)
 
 static void testLogCreatesFile()
 {
-  std::cout << "  testLogCreatesFile... " << std::flush;
+  TestScope _t("testLogCreatesFile");
 
   QString logPath = tempLogDir() + "/test_create.log";
   QFile::remove(logPath);
@@ -45,13 +45,11 @@ static void testLogCreatesFile()
   CHECK(content.contains("/health"), "log_create: contains path");
   CHECK(content.contains("200"), "log_create: contains status code");
   CHECK(content.contains("1.5ms"), "log_create: contains duration");
-
-  std::cout << std::endl;
 }
 
 static void testLogFormat()
 {
-  std::cout << "  testLogFormat... " << std::flush;
+  TestScope _t("testLogFormat");
 
   QString logPath = tempLogDir() + "/test_format.log";
   QFile::remove(logPath);
@@ -76,13 +74,11 @@ static void testLogFormat()
   // Timestamp should have more than just "YYYY-MM-DD HH:MM:SS.mmm" (23 chars)
   CHECK(timestamp.length() > 23,
         "log_format: timestamp includes timezone (length=" + std::to_string(timestamp.length()) + ")");
-
-  std::cout << std::endl;
 }
 
 static void testLogAppendsOnRestart()
 {
-  std::cout << "  testLogAppendsOnRestart... " << std::flush;
+  TestScope _t("testLogAppendsOnRestart");
 
   QString logPath = tempLogDir() + "/test_append.log";
   QFile::remove(logPath);
@@ -106,13 +102,11 @@ static void testLogAppendsOnRestart()
   // Count lines
   int lineCount = content.count('\n');
   CHECK(lineCount == 2, "log_append: exactly 2 lines (got " + std::to_string(lineCount) + ")");
-
-  std::cout << std::endl;
 }
 
 static void testLogMultipleEntries()
 {
-  std::cout << "  testLogMultipleEntries... " << std::flush;
+  TestScope _t("testLogMultipleEntries");
 
   QString logPath = tempLogDir() + "/test_multi.log";
   QFile::remove(logPath);
@@ -131,13 +125,11 @@ static void testLogMultipleEntries()
   CHECK(content.contains("10.0.0.1") && content.contains("10.0.0.4"), "log_multi: first and last entries present");
   CHECK(content.contains("404"), "log_multi: contains 404 status");
   CHECK(content.contains("500"), "log_multi: contains 500 status");
-
-  std::cout << std::endl;
 }
 
 static void testLogCircularWrap()
 {
-  std::cout << "  testLogCircularWrap... " << std::flush;
+  TestScope _t("testLogCircularWrap");
 
   QString logPath = tempLogDir() + "/test_circular.log";
   QFile::remove(logPath);
@@ -164,13 +156,11 @@ static void testLogCircularWrap()
   // The latest entry should be present
   QString content = readFile(logPath);
   CHECK(content.contains("/third"), "log_circular: latest entry present after wrap");
-
-  std::cout << std::endl;
 }
 
 static void testLogCircularAppendsAfterRestart()
 {
-  std::cout << "  testLogCircularAppendsAfterRestart... " << std::flush;
+  TestScope _t("testLogCircularAppendsAfterRestart");
 
   QString logPath = tempLogDir() + "/test_circular_restart.log";
   QFile::remove(logPath);
@@ -204,21 +194,17 @@ static void testLogCircularAppendsAfterRestart()
   QString content = readFile(logPath);
   CHECK(content.contains("/session1"), "log_circular_restart: first session entry present");
   CHECK(content.contains("/session2"), "log_circular_restart: second session entry present");
-
-  std::cout << std::endl;
 }
 
 static void testLogDisabledWithEmptyPath()
 {
-  std::cout << "  testLogDisabledWithEmptyPath... " << std::flush;
+  TestScope _t("testLogDisabledWithEmptyPath");
 
   NN_Server::Logger logger("", 0);
   CHECK(!logger.isEnabled(), "log_disabled: logger not enabled with empty path");
 
   // Should not crash
   logger.logRequest("10.0.0.1", "GET", "/health", 200, 1.0);
-
-  std::cout << std::endl;
 }
 
 // ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 static void testMultiGPUCrossEntropyTrain()
 {
-  std::cout << "--- testMultiGPUCrossEntropyTrain ---" << std::endl;
+  TestScope _t("testMultiGPUCrossEntropyTrain");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -65,7 +65,7 @@ static void testMultiGPUCrossEntropyTrain()
 
 static void testMultiGPUParameterRoundTrip()
 {
-  std::cout << "--- testMultiGPUParameterRoundTrip ---" << std::endl;
+  TestScope _t("testMultiGPUParameterRoundTrip");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -134,7 +134,7 @@ static void testMultiGPUParameterRoundTrip()
 
 static void testMultiGPUWithPoolLayer()
 {
-  std::cout << "--- testMultiGPUWithPoolLayer ---" << std::endl;
+  TestScope _t("testMultiGPUWithPoolLayer");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;

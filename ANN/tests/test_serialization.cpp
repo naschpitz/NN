@@ -4,7 +4,7 @@
 
 static void testParameterRoundTrip()
 {
-  std::cout << "--- testParameterRoundTrip ---" << std::endl;
+  TestScope _t("testParameterRoundTrip");
 
   // Train a network
   ANN::CoreConfig<double> trainConfig;
@@ -51,7 +51,7 @@ static void testParameterRoundTrip()
 
 static void testParameterRoundTripPreservesArchitecture()
 {
-  std::cout << "--- testParameterRoundTripPreservesArchitecture ---" << std::endl;
+  TestScope _t("testParameterRoundTripPreservesArchitecture");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::PREDICT;
@@ -103,7 +103,7 @@ static void testParameterRoundTripPreservesArchitecture()
 
 static void testGettersReturnExpectedState()
 {
-  std::cout << "--- testGettersReturnExpectedState ---" << std::endl;
+  TestScope _t("testGettersReturnExpectedState");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::PREDICT;

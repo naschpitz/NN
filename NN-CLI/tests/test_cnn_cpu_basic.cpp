@@ -22,10 +22,10 @@ static QString trainedCNNModelPath;
 
 static void testCNNNetworkDetection()
 {
-  std::cout << "  testCNNNetworkDetection... ";
+  TestScope _t("testCNNNetworkDetection");
 
   // Train with tiny fixture + verbose to check detection
-  auto result = runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
+  auto result = runNNCLI({"--model", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("cnn_train_samples.json"), "--output",
                           tempDir() + "/cnn_detect_model.nnmodel.tar", "--log-level", "info"});
 
@@ -36,11 +36,11 @@ static void testCNNNetworkDetection()
 
 static void testCNNTrain()
 {
-  std::cout << "  testCNNTrain... ";
+  TestScope _t("testCNNTrain");
 
   trainedCNNModelPath = tempDir() + "/cnn_trained_model.nnmodel.tar";
 
-  auto result = runNNCLI({"--config", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
+  auto result = runNNCLI({"--model", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("cnn_train_samples.json"), "--output", trainedCNNModelPath});
 
   CHECK(result.exitCode == 0, "CNN train: exit code 0");
@@ -52,17 +52,16 @@ static void testCNNTrain()
 
 static void testCNNPredict()
 {
-  std::cout << "  testCNNPredict... ";
+  TestScope _t("testCNNPredict");
 
   if (trainedCNNModelPath.isEmpty() || !QFile::exists(trainedCNNModelPath)) {
     CHECK(false, "CNN predict: skipped — no trained model available");
-    std::cout << std::endl;
     return;
   }
 
   QString outputPath = tempDir() + "/cnn_predict_output.json";
 
-  auto result = runNNCLI({"--config", trainedCNNModelPath, "--mode", "predict", "--device", "cpu", "--input",
+  auto result = runNNCLI({"--model-package", trainedCNNModelPath, "--mode", "predict", "--device", "cpu", "--input",
                           fixturePath("cnn_predict_input.json"), "--output", outputPath});
 
   CHECK(result.exitCode == 0, "CNN predict: exit code 0");
@@ -93,21 +92,18 @@ static void testCNNPredict()
   } else {
     CHECK(false, "CNN predict: failed to open output file");
   }
-
-  std::cout << std::endl;
 }
 
 static void testCNNTest()
 {
-  std::cout << "  testCNNTest... ";
+  TestScope _t("testCNNTest");
 
   if (trainedCNNModelPath.isEmpty() || !QFile::exists(trainedCNNModelPath)) {
     CHECK(false, "CNN test: skipped — no trained model available");
-    std::cout << std::endl;
     return;
   }
 
-  auto result = runNNCLI({"--config", trainedCNNModelPath, "--mode", "test", "--device", "cpu", "--samples",
+  auto result = runNNCLI({"--model-package", trainedCNNModelPath, "--mode", "test", "--device", "cpu", "--samples",
                           fixturePath("cnn_train_samples.json")});
 
   CHECK(result.exitCode == 0, "CNN test: exit code 0");
@@ -117,16 +113,15 @@ static void testCNNTest()
   CHECK(result.stdOut.contains("Average loss:"), "CNN test: 'Average loss:'");
   CHECK(result.stdOut.contains("Correct:"), "CNN test: 'Correct:'");
   CHECK(result.stdOut.contains("Accuracy:"), "CNN test: 'Accuracy:'");
-  std::cout << std::endl;
 }
 
 static void testCNNTrainWithWeightedLoss()
 {
-  std::cout << "  testCNNTrainWithWeightedLoss... ";
+  TestScope _t("testCNNTrainWithWeightedLoss");
 
   QString modelPath = tempDir() + "/cnn_weighted_model.nnmodel.tar";
 
-  auto result = runNNCLI({"--config", fixturePath("cnn_train_weighted_config.json"), "--mode", "train", "--device",
+  auto result = runNNCLI({"--model", fixturePath("cnn_train_weighted_config.json"), "--mode", "train", "--device",
                           "cpu", "--samples", fixturePath("cnn_train_samples.json"), "--output", modelPath});
 
   CHECK(result.exitCode == 0, "CNN weighted train: exit code 0");
@@ -152,13 +147,11 @@ static void testCNNTrainWithWeightedLoss()
   } else {
     CHECK(false, "CNN weighted train: failed to read saved model package");
   }
-
-  std::cout << std::endl;
 }
 
 static void testCNNTrainAndTestMNIST()
 {
-  std::cout << "  testCNNTrainAndTestMNIST... " << std::flush;
+  TestScope _t("testCNNTrainAndTestMNIST");
 
   if (!runFullTests) {
     std::cout << "(skipped — use --full to enable)" << std::endl;
@@ -169,8 +162,8 @@ static void testCNNTrainAndTestMNIST()
 
   // Step 1: Train on MNIST training data on CPU (10 epochs, 60k samples, Adam + crossEntropy + instancenorm)
   auto trainResult =
-    runNNCLI({"--config", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "cpu",
-              "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
+    runNNCLI({"--model", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "cpu", "--idx-data",
+              examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
               examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
              3600000); // 60 min timeout
 
@@ -183,7 +176,7 @@ static void testCNNTrainAndTestMNIST()
   }
 
   // Step 2: Evaluate against MNIST test data (10k samples)
-  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "cpu", "--idx-data",
+  auto testResult = runNNCLI({"--model-package", modelPath, "--mode", "test", "--device", "cpu", "--idx-data",
                               examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
                               examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
                              600000); // 10 min timeout
@@ -215,13 +208,11 @@ static void testCNNTrainAndTestMNIST()
   }
 
   CHECK(accuracy > 25.0, "CNN MNIST train+test: accuracy > 25%");
-
-  std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
 }
 
 static void testCNNResidualMNIST()
 {
-  std::cout << "  testCNNResidualMNIST... " << std::flush;
+  TestScope _t("testCNNResidualMNIST");
 
   if (!runFullTests) {
     std::cout << "(skipped — use --full to enable)" << std::endl;
@@ -233,7 +224,7 @@ static void testCNNResidualMNIST()
   // Train ResNet-like architecture on MNIST (10 epochs, 60k samples, Adam + crossEntropy + residual blocks)
   // Residual is deeper than the plain-conv MNIST test, so the training pass is markedly slower; 60min was not enough.
   auto trainResult =
-    runNNCLI({"--config", fixturePath("mnist_cnn_residual_config.json"), "--mode", "train", "--device", "cpu",
+    runNNCLI({"--model", fixturePath("mnist_cnn_residual_config.json"), "--mode", "train", "--device", "cpu",
               "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
               examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
              7200000); // 2h timeout
@@ -273,7 +264,7 @@ static void testCNNResidualMNIST()
   }
 
   // Evaluate against MNIST test data (10k samples)
-  auto testResult = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "cpu", "--idx-data",
+  auto testResult = runNNCLI({"--model-package", modelPath, "--mode", "test", "--device", "cpu", "--idx-data",
                               examplePath("MNIST/test/t10k-images.idx3-ubyte"), "--idx-labels",
                               examplePath("MNIST/test/t10k-labels.idx1-ubyte")},
                              600000); // 10 min timeout
@@ -303,8 +294,6 @@ static void testCNNResidualMNIST()
   }
 
   CHECK(accuracy > 25.0, "CNN Residual MNIST: accuracy > 25%");
-
-  std::cout << "(loss=" << avgLoss << ", accuracy=" << accuracy << "%) " << std::endl;
 }
 
 // Regression guard for the validation deadlock. With validation enabled, the per-epoch
@@ -316,19 +305,17 @@ static void testCNNResidualMNIST()
 // Not --full gated: the legitimate train finishes in well under a second.
 static void testCNNTrainValidationNoDeadlock()
 {
-  std::cout << "  testCNNTrainValidationNoDeadlock... " << std::flush;
+  TestScope _t("testCNNTrainValidationNoDeadlock");
 
   QString modelPath = tempDir() + "/cnn_validation_nodeadlock.nnmodel.tar";
 
   auto result =
-    runNNCLI({"--config", fixturePath("cnn_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",
+    runNNCLI({"--model", fixturePath("cnn_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",
               fixturePath("cnn_validation_samples.json"), "--output", modelPath, "--log-level", "quiet"},
              60000); // 60s deadlock guard — real train takes <1s; a hang trips the timeout
 
   CHECK(result.exitCode == 0, "CNN validation no-deadlock: training exit code 0 (timeout/-2 = deadlock)");
   CHECK(QFile::exists(modelPath), "CNN validation no-deadlock: trained model file exists");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//

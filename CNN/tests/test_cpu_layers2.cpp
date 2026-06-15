@@ -7,7 +7,7 @@
 
 static void testInstanceNormOutputShape()
 {
-  std::cout << "--- testInstanceNormOutputShape ---" << std::endl;
+  TestScope _t("testInstanceNormOutputShape");
 
   // InstanceNorm should not change shape
   CNN::Shape3D shape{3, 8, 8};
@@ -33,7 +33,7 @@ static void testInstanceNormOutputShape()
 
 static void testInstanceNormValidateShapes()
 {
-  std::cout << "--- testInstanceNormValidateShapes ---" << std::endl;
+  TestScope _t("testInstanceNormValidateShapes");
 
   CNN::LayersConfig lc;
 
@@ -64,7 +64,7 @@ static void testInstanceNormValidateShapes()
 
 static void testBatchNormInference()
 {
-  std::cout << "--- testBatchNormInference ---" << std::endl;
+  TestScope _t("testBatchNormInference");
 
   // 2 channels, 2x2 spatial, 2 samples
   CNN::Shape3D shape{2, 2, 2};
@@ -99,7 +99,7 @@ static void testBatchNormInference()
 
 static void testBatchNormTrain()
 {
-  std::cout << "--- testBatchNormTrain ---" << std::endl;
+  TestScope _t("testBatchNormTrain");
 
   // 1 channel, 1x2 spatial, 2 samples
   CNN::Shape3D shape{1, 1, 2};
@@ -152,7 +152,7 @@ static void testBatchNormTrain()
 
 static void testBatchNormBackpropagate()
 {
-  std::cout << "--- testBatchNormBackpropagate ---" << std::endl;
+  TestScope _t("testBatchNormBackpropagate");
 
   // 1 channel, 1x2 spatial, 2 samples
   CNN::Shape3D shape{1, 1, 2};
@@ -208,7 +208,7 @@ static void testBatchNormBackpropagate()
 
 static void testBatchNormValidateShapes()
 {
-  std::cout << "--- testBatchNormValidateShapes ---" << std::endl;
+  TestScope _t("testBatchNormValidateShapes");
 
   CNN::LayersConfig lc;
 
@@ -238,7 +238,7 @@ static void testBatchNormValidateShapes()
 
 static void testSlidingStrategy()
 {
-  std::cout << "--- testSlidingStrategy ---" << std::endl;
+  TestScope _t("testSlidingStrategy");
 
   CHECK(CNN::SlidingStrategy::computePadding(3, CNN::SlidingStrategyType::VALID) == 0, "valid pad=0");
   CHECK(CNN::SlidingStrategy::computePadding(5, CNN::SlidingStrategyType::VALID) == 0, "valid pad=0 k5");
@@ -261,7 +261,7 @@ static void testSlidingStrategy()
 
 static void testDeviceNameToType()
 {
-  std::cout << "--- testDeviceNameToType ---" << std::endl;
+  TestScope _t("testDeviceNameToType");
 
   CHECK(Common::Device::nameToType("cpu") == Common::DeviceType::CPU, "cpu → CPU");
   CHECK(Common::Device::nameToType("gpu") == Common::DeviceType::GPU, "gpu → GPU");
@@ -277,7 +277,7 @@ static void testDeviceNameToType()
 
 static void testModeNameToType()
 {
-  std::cout << "--- testModeNameToType ---" << std::endl;
+  TestScope _t("testModeNameToType");
 
   CHECK(Common::Mode::nameToType("train") == Common::ModeType::TRAIN, "train → TRAIN");
   CHECK(Common::Mode::nameToType("predict") == Common::ModeType::PREDICT, "predict → PREDICT");
@@ -295,7 +295,7 @@ static void testModeNameToType()
 
 static void testPoolTypeNameToType()
 {
-  std::cout << "--- testPoolTypeNameToType ---" << std::endl;
+  TestScope _t("testPoolTypeNameToType");
 
   CHECK(CNN::PoolType::nameToType("max") == CNN::PoolTypeEnum::MAX, "max → MAX");
   CHECK(CNN::PoolType::nameToType("avg") == CNN::PoolTypeEnum::AVG, "avg → AVG");
@@ -311,7 +311,7 @@ static void testPoolTypeNameToType()
 
 static void testCostFunctionNameToType()
 {
-  std::cout << "--- testCostFunctionNameToType ---" << std::endl;
+  TestScope _t("testCostFunctionNameToType");
 
   CHECK(Common::CostFunction::nameToType("squaredDifference") == Common::CostFunctionType::SQUARED_DIFFERENCE,
         "squaredDifference → SQUARED_DIFFERENCE");
@@ -339,7 +339,7 @@ static void testCostFunctionNameToType()
 
 static void testValidateShapes()
 {
-  std::cout << "--- testValidateShapes ---" << std::endl;
+  TestScope _t("testValidateShapes");
 
   CNN::LayersConfig lc;
 

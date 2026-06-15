@@ -4,7 +4,7 @@
 
 static void testCrossEntropyGradientNumerical()
 {
-  std::cout << "--- testCrossEntropyGradientNumerical ---" << std::endl;
+  TestScope _t("testCrossEntropyGradientNumerical");
 
   // Verify the analytical gradient formula matches numerical finite differences.
   // Loss = -sum(w_i * y_i * log(a_i))
@@ -69,7 +69,7 @@ static void testCrossEntropyGradientNumerical()
 
 static void testCrossEntropyLossDecreases()
 {
-  std::cout << "--- testCrossEntropyLossDecreases (CNN) ---" << std::endl;
+  TestScope _t("testCrossEntropyLossDecreases (CNN)");
 
   CNN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -139,7 +139,7 @@ static void testCrossEntropyLossDecreases()
 
 static void testCrossEntropyTrain()
 {
-  std::cout << "--- testCrossEntropyTrain (CNN) ---" << std::endl;
+  TestScope _t("testCrossEntropyTrain (CNN)");
 
   CNN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -224,7 +224,7 @@ static void testCrossEntropyTrain()
 
 static void testWeightedCrossEntropyTrain()
 {
-  std::cout << "--- testWeightedCrossEntropyTrain (CNN) ---" << std::endl;
+  TestScope _t("testWeightedCrossEntropyTrain (CNN)");
 
   // Cross-entropy with per-class weights
   CNN::CoreConfig<double> config;

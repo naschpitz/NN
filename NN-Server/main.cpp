@@ -4,6 +4,8 @@
 
 #include <json.hpp>
 
+#include <QCommandLineOption>
+#include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QFile>
 #include <QThreadPool>
@@ -16,11 +18,31 @@ int main(int argc, char* argv[])
 {
   QCoreApplication app(argc, argv);
 
-  // Determine config file path: first CLI argument or default "config.json"
+  QCommandLineParser parser;
+  parser.setApplicationDescription("NN-Server — HTTP inference server");
+  parser.addHelpOption();
+  parser.addVersionOption();
+
+  const QCommandLineOption modelPackageOption("model-package", "Path to trained model package (.nnmodel) to serve",
+                                              "path");
+  parser.addOption(modelPackageOption);
+
+  const QCommandLineOption configOption("config", "Path to server settings config JSON file", "path");
+  parser.addOption(configOption);
+
+  parser.addPositionalArgument("config", "Path to server settings config JSON file (overrides --config)", "[config]");
+
+  parser.process(app);
+
+  // Determine config file path: positional arg > --config > default
   std::string configFilePath = "config.json";
 
-  if (argc > 1) {
-    configFilePath = argv[1];
+  const QStringList posArgs = parser.positionalArguments();
+
+  if (!posArgs.isEmpty()) {
+    configFilePath = posArgs.first().toStdString();
+  } else if (parser.isSet(configOption)) {
+    configFilePath = parser.value(configOption).toStdString();
   }
 
   // Read and parse config.json
@@ -28,9 +50,9 @@ int main(int argc, char* argv[])
 
   if (!configFile.open(QIODevice::ReadOnly)) {
     std::cerr << "Error: Could not open configuration file: " << configFilePath << "\n";
-    std::cerr << "       Pass the path as an argument or place a config.json in the current directory.\n";
+    std::cerr << "       Pass the path as a positional argument or via --config.\n";
     std::cerr << "\n";
-    std::cerr << "Usage: NN-Server [config.json]\n";
+    std::cerr << "Usage: NN-Server --model-package <path> [config.json]\n";
     return 1;
   }
 
@@ -45,13 +67,19 @@ int main(int argc, char* argv[])
 
   configFile.close();
 
-  // Model path (required)
-  if (!config.contains("model") || !config["model"].is_string()) {
-    std::cerr << "Error: config.json must contain a \"model\" field with the path to the model file.\n";
-    return 1;
-  }
+  // Model path: --model-package flag (preferred) → config["model_package"] fallback
+  std::string modelPath;
 
-  std::string modelPath = config["model"].get<std::string>();
+  if (parser.isSet(modelPackageOption)) {
+    modelPath = parser.value(modelPackageOption).toStdString();
+  } else if (config.contains("model_package") && config["model_package"].is_string()) {
+    modelPath = config["model_package"].get<std::string>();
+  } else {
+    std::cerr << "Error: No model path specified.\n";
+    std::cerr << "       Provide --model-package <path> or set \"model_package\" in config.json.\n";
+    parser.process(app);
+    parser.showHelp(1);
+  }
 
   // Server port (default 8080)
   quint16 port = 8080;
@@ -132,8 +160,8 @@ int main(int argc, char* argv[])
   qint64 maxLogSizeBytes = maxLogSizeGB * 1024 * 1024 * 1024; // Convert GB to bytes
 
   std::cout << "NN-Server starting...\n";
-  std::cout << "  Config:       " << configFilePath << "\n";
-  std::cout << "  Model:        " << modelPath << "\n";
+  std::cout << "  Config:        " << configFilePath << "\n";
+  std::cout << "  Model:         " << modelPath << "\n";
   std::cout << "  Port:         " << port << "\n";
   std::cout << "  Pool size:    " << poolSize << "\n";
 

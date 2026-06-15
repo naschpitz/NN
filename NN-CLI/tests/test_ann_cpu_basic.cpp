@@ -11,11 +11,11 @@ QString trainedModelPath;
 
 static void testTrainXOR()
 {
-  std::cout << "  testTrainXOR... ";
+  TestScope _t("testTrainXOR");
 
   trainedModelPath = tempDir() + "/ann_xor_model.nnmodel.tar";
 
-  auto result = runNNCLI({"--config", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
+  auto result = runNNCLI({"--model", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
                           "--samples", fixturePath("ann_train_samples.json"), "--output", trainedModelPath});
 
   CHECK(result.exitCode == 0, " train XOR: exit code 0");
@@ -27,15 +27,13 @@ static void testTrainXOR()
   if (result.exitCode != 0 || !QFile::exists(trainedModelPath)) {
     trainedModelPath.clear();
   }
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testNetworkDetection()
 {
-  std::cout << "  testNetworkDetection... ";
+  TestScope _t("testNetworkDetection");
 
   if (trainedModelPath.isEmpty() || !QFile::exists(trainedModelPath)) {
     CHECK(false, " detection: skipped — no trained model available (testTrainXOR must run first)");
@@ -52,19 +50,18 @@ static void testNetworkDetection()
     inputFile.close();
   }
 
-  auto result = runNNCLI({"--config", trainedModelPath, "--mode", "predict", "--device", "cpu", "--input",
+  auto result = runNNCLI({"--model-package", trainedModelPath, "--mode", "predict", "--device", "cpu", "--input",
                           predictInputPath, "--output", tempDir() + "/ann_detect_output.json", "--log-level", "info"});
 
   CHECK(result.exitCode == 0, " detection: exit code 0");
   CHECK(result.stdOut.contains("Network type: "), " detection: stdout contains 'Network type: '");
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testModeOverride()
 {
-  std::cout << "  testModeOverride... ";
+  TestScope _t("testModeOverride");
 
   if (trainedModelPath.isEmpty() || !QFile::exists(trainedModelPath)) {
     CHECK(false, " mode override: skipped — no trained model available (testTrainXOR must run first)");
@@ -84,23 +81,22 @@ static void testModeOverride()
   QString outputPath = tempDir() + "/ann_override_output.json";
 
   // Trained model has mode=train; override to predict via CLI
-  auto result = runNNCLI({"--config", trainedModelPath, "--mode", "predict", "--device", "cpu", "--input",
+  auto result = runNNCLI({"--model-package", trainedModelPath, "--mode", "predict", "--device", "cpu", "--input",
                           predictInputPath, "--output", outputPath, "--log-level", "info"});
 
   CHECK(result.exitCode == 0, " mode override: exit code 0");
   CHECK(result.stdOut.contains("Mode: predict (CLI)"), " mode override: 'Mode: predict (CLI)'");
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testTrainWithWeightedLoss()
 {
-  std::cout << "  testTrainWithWeightedLoss... ";
+  TestScope _t("testTrainWithWeightedLoss");
 
   QString modelPath = tempDir() + "/ann_weighted_model.nnmodel.tar";
 
-  auto result = runNNCLI({"--config", fixturePath("ann_train_weighted_config.json"), "--mode", "train", "--device",
+  auto result = runNNCLI({"--model", fixturePath("ann_train_weighted_config.json"), "--mode", "train", "--device",
                           "cpu", "--samples", fixturePath("ann_train_samples.json"), "--output", modelPath});
 
   CHECK(result.exitCode == 0, " weighted train: exit code 0");
@@ -126,8 +122,6 @@ static void testTrainWithWeightedLoss()
   } else {
     CHECK(false, " weighted train: failed to read saved model package");
   }
-
-  std::cout << std::endl;
 }
 
 // Regression guard for the validation deadlock ( side). With validation enabled, the
@@ -139,19 +133,17 @@ static void testTrainWithWeightedLoss()
 // regression surfaces as a fast failure instead of an indefinite hang. Not --full gated.
 static void testTrainValidationNoDeadlock()
 {
-  std::cout << "  testTrainValidationNoDeadlock... ";
+  TestScope _t("testTrainValidationNoDeadlock");
 
   QString modelPath = tempDir() + "/ann_validation_nodeadlock.nnmodel.tar";
 
   auto result =
-    runNNCLI({"--config", fixturePath("ann_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",
+    runNNCLI({"--model", fixturePath("ann_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",
               fixturePath("ann_validation_samples.json"), "--output", modelPath, "--log-level", "quiet"},
              60000); // 60s deadlock guard — real train takes <1s; a hang trips the timeout
 
   CHECK(result.exitCode == 0, " validation no-deadlock: training exit code 0 (timeout/-2 = deadlock)");
   CHECK(QFile::exists(modelPath), " validation no-deadlock: trained model file exists");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//

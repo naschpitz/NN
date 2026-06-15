@@ -2,7 +2,7 @@
 
 static void testGPUMultipleOutputNeurons()
 {
-  std::cout << "--- testGPUMultipleOutputNeurons ---" << std::endl;
+  TestScope _t("testGPUMultipleOutputNeurons");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -60,7 +60,7 @@ static void testGPUMultipleOutputNeurons()
 
 static void testGPUCostFunctionConfigGetter()
 {
-  std::cout << "--- testGPUCostFunctionConfigGetter ---" << std::endl;
+  TestScope _t("testGPUCostFunctionConfigGetter");
 
   CNN::CoreConfig<float> configDefault;
   configDefault.modeType = Common::ModeType::PREDICT;
@@ -103,7 +103,7 @@ static void testGPUCostFunctionConfigGetter()
 
 static void testGPUWeightedLossTrain()
 {
-  std::cout << "--- testGPUWeightedLossTrain ---" << std::endl;
+  TestScope _t("testGPUWeightedLossTrain");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;

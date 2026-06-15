@@ -4,7 +4,7 @@
 
 static void testMakeCoreCPU()
 {
-  std::cout << "--- testMakeCoreCPU ---" << std::endl;
+  TestScope _t("testMakeCoreCPU");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::PREDICT;
@@ -23,7 +23,7 @@ static void testMakeCoreCPU()
 
 static void testPredictSimple()
 {
-  std::cout << "--- testPredictSimple ---" << std::endl;
+  TestScope _t("testPredictSimple");
 
   // 2 inputs → 1 output with known weights
   ANN::CoreConfig<double> config;
@@ -50,7 +50,7 @@ static void testPredictSimple()
 
 static void testTrainXOR()
 {
-  std::cout << "--- testTrainXOR ---" << std::endl;
+  TestScope _t("testTrainXOR");
 
   ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{0.0, 1.0}, {1.0}}, {{1.0, 0.0}, {1.0}}, {{1.0, 1.0}, {0.0}}};
 
@@ -91,7 +91,7 @@ static void testTrainXOR()
 
 static void testTestMethod()
 {
-  std::cout << "--- testTestMethod ---" << std::endl;
+  TestScope _t("testTestMethod");
 
   // Train a simple network first, then test
   ANN::CoreConfig<double> config;
@@ -123,7 +123,7 @@ static void testTestMethod()
 
 static void testTrainMetadata()
 {
-  std::cout << "--- testTrainMetadata ---" << std::endl;
+  TestScope _t("testTrainMetadata");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -149,7 +149,7 @@ static void testTrainMetadata()
 
 static void testPredictMetadata()
 {
-  std::cout << "--- testPredictMetadata ---" << std::endl;
+  TestScope _t("testPredictMetadata");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::PREDICT;
@@ -169,7 +169,7 @@ static void testPredictMetadata()
 
 static void testTrainCallback()
 {
-  std::cout << "--- testTrainCallback ---" << std::endl;
+  TestScope _t("testTrainCallback");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -196,7 +196,7 @@ static void testTrainCallback()
 
 static void testParameterRoundTrip()
 {
-  std::cout << "--- testParameterRoundTrip ---" << std::endl;
+  TestScope _t("testParameterRoundTrip");
 
   // Train a network, get parameters, create new predict-mode core with those params
   ANN::CoreConfig<double> trainConfig;
@@ -239,7 +239,7 @@ static void testParameterRoundTrip()
 
 static void testParametersDuringTrain()
 {
-  std::cout << "--- testParametersDuringTrain ---" << std::endl;
+  TestScope _t("testParametersDuringTrain");
 
   // Train a network and verify that getParameters() returns non-empty data
   // during training (in the epoch-completion callback), not just after training ends.
@@ -284,7 +284,7 @@ static void testParametersDuringTrain()
 
 static void testBatchPredict()
 {
-  std::cout << "--- testBatchPredict ---" << std::endl;
+  TestScope _t("testBatchPredict");
 
   // 2 inputs → 1 output with known weights
   ANN::CoreConfig<double> config;
@@ -347,7 +347,7 @@ static void testBatchPredict()
 
 static void testBatchPredictAfterTrain()
 {
-  std::cout << "--- testBatchPredictAfterTrain ---" << std::endl;
+  TestScope _t("testBatchPredictAfterTrain");
 
   // Train XOR then batch predict all 4 patterns
   ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{0.0, 1.0}, {1.0}}, {{1.0, 0.0}, {1.0}}, {{1.0, 1.0}, {0.0}}};

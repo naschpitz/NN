@@ -63,13 +63,13 @@
 
 <h2>Quick Example</h2>
 <pre><code><span class="comment"># Train a CNN on MNIST</span>
-NN-CLI --config mnist_cnn_config.json \
+NN-CLI --model mnist_cnn_config.json \
        --mode train \
        --idx-data train-images.idx3 \
        --idx-labels train-labels.idx1
 
 <span class="comment"># Predict with the trained model (.nnmodel package)</span>
-NN-CLI --config trained_model.nnmodel \
+NN-CLI --model-package trained_model.nnmodel \
        --mode predict \
        --input digit.json
  </code></pre>

@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 
 static void testComputeFreeEnergy()
 {
-  std::cout << "  testComputeFreeEnergy... ";
+  TestScope _t("testComputeFreeEnergy");
 
   // Uniform logits: all equal → energy = -log(Σ exp(z)) = -log(N * exp(z))
   // For 3 equal logits: z = [1, 1, 1] → m = 1, sumExp = 3*exp(0) = 3, energy = -(1 + log(3)) ≈ -(1 + 1.0986) = -2.0986
@@ -40,15 +40,13 @@ static void testComputeFreeEnergy()
     float e = NN_CLI::computeFreeEnergy({2.5f});
     CHECK_NEAR(e, -2.5f, 0.001f, "freeEnergy single logit");
   }
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testComputePercentile()
 {
-  std::cout << "  testComputePercentile... ";
+  TestScope _t("testComputePercentile");
 
   // Sorted [0, 1, 2, 3, 4]
   std::vector<float> sorted = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f};
@@ -74,15 +72,13 @@ static void testComputePercentile()
 
   // Single element → that element
   CHECK_NEAR(NN_CLI::computePercentile({7.5f}, 50.0), 7.5f, 0.001f, "percentile single element");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testRoundTo()
 {
-  std::cout << "  testRoundTo... ";
+  TestScope _t("testRoundTo");
 
   CHECK_NEAR(NN_CLI::roundTo(3.14159, 2), 3.14, 1e-9, "roundTo 2 places");
   CHECK_NEAR(NN_CLI::roundTo(3.14159, 0), 3.0, 1e-9, "roundTo 0 places");
@@ -91,15 +87,13 @@ static void testRoundTo()
 
   // Negative rounding edge
   CHECK_NEAR(NN_CLI::roundTo(-1.23456, 2), -1.23, 1e-9, "roundTo negative");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testIsImagePath()
 {
-  std::cout << "  testIsImagePath... ";
+  TestScope _t("testIsImagePath");
 
   CHECK(NN_CLI::isImagePath("photo.jpg"), "isImagePath .jpg");
   CHECK(NN_CLI::isImagePath("photo.JPG"), "isImagePath .JPG (case insensitive)");
@@ -109,15 +103,13 @@ static void testIsImagePath()
   CHECK(!NN_CLI::isImagePath("photo.txt"), "isImagePath .txt -> false");
   CHECK(!NN_CLI::isImagePath("photo"), "isImagePath no ext -> false");
   CHECK(!NN_CLI::isImagePath(""), "isImagePath empty -> false");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testDirHasImages()
 {
-  std::cout << "  testDirHasImages... ";
+  TestScope _t("testDirHasImages");
 
   // A directory that doesn't exist
   CHECK(!NN_CLI::dirHasImages("/nonexistent/path/12345"), "dirHasImages nonexistent -> false");
@@ -131,15 +123,13 @@ static void testDirHasImages()
   fs::create_directories(emptyDir);
   CHECK(!NN_CLI::dirHasImages(emptyDir.string()), "dirHasImages empty dir -> false");
   fs::remove_all(emptyDir);
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testGatherImages()
 {
-  std::cout << "  testGatherImages... ";
+  TestScope _t("testGatherImages");
 
   // Nonexistent dir → empty vector, not error
   auto result = NN_CLI::gatherImages("/nonexistent/path/12345");
@@ -153,15 +143,13 @@ static void testGatherImages()
   // Results should be sorted
   for (std::size_t i = 1; i < paths.size(); i++)
     CHECK(paths[i - 1] <= paths[i], "gatherImages sorted order");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testSampleImages()
 {
-  std::cout << "  testSampleImages... ";
+  TestScope _t("testSampleImages");
 
   std::vector<std::string> all = {"a", "b", "c", "d", "e"};
 
@@ -184,23 +172,19 @@ static void testSampleImages()
   // It's possible (though extremely unlikely) to get the same order
   // with a different seed for a small set, but we verify the size at least.
   CHECK(s4.size() == 3, "sampleImages different seed -> 3 elements");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testCalibrateConfigDefaults()
 {
-  std::cout << "  testCalibrateConfigDefaults... ";
+  TestScope _t("testCalibrateConfigDefaults");
 
   Common::CalibrateConfig config;
   CHECK(config.idSampleCount == 500, "default idSampleCount=500");
   CHECK(config.oodSampleCount == 1500, "default oodSampleCount=1500");
   CHECK(config.idPercentile == 95.0, "default idPercentile=95.0");
   CHECK(config.fetchIfMissing == true, "default fetchIfMissing=true");
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//

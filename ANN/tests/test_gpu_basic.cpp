@@ -4,7 +4,7 @@
 
 static void testGPUTrainSimple()
 {
-  std::cout << "--- testGPUTrainSimple ---" << std::endl;
+  TestScope _t("testGPUTrainSimple");
 
   // Simple 2→4→1 network trained on GPU with sigmoid
   ANN::Samples<float> samples = {{{1.0f, 1.0f}, {1.0f}}, {{0.0f, 0.0f}, {0.0f}}};
@@ -37,7 +37,7 @@ static void testGPUTrainSimple()
 
 static void testGPUPredict()
 {
-  std::cout << "--- testGPUPredict ---" << std::endl;
+  TestScope _t("testGPUPredict");
 
   // Create a predict-only GPU core with known weights
   ANN::CoreConfig<float> config;
@@ -65,7 +65,7 @@ static void testGPUPredict()
 
 static void testGPUvsCPUParity()
 {
-  std::cout << "--- testGPUvsCPUParity ---" << std::endl;
+  TestScope _t("testGPUvsCPUParity");
 
   // Train on CPU, then create both CPU and GPU predict cores with same params
   ANN::CoreConfig<float> trainConfig;
@@ -121,7 +121,7 @@ static void testGPUvsCPUParity()
 
 static void testGPUShuffleSamples()
 {
-  std::cout << "--- testGPUShuffleSamples ---" << std::endl;
+  TestScope _t("testGPUShuffleSamples");
 
   // Verify GPU training works with both shuffle=true and shuffle=false
   ANN::Samples<float> samples = {

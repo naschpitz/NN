@@ -63,3 +63,23 @@ CNN::Tensor3D<T> makeGradientInput(CNN::Shape3D shape, T lo = T(0.5), T hi = T(1
 
   return t;
 }
+
+// --- TestScope: RAII per-test verdict printer (project standard) ---
+// Snapshot testsFailed in ctor; print "  <name>... PASS|FAIL" in dtor.
+// Structurally impossible to print a false PASS.
+struct TestScope {
+    const char* name;
+    int failedBefore;
+    explicit TestScope(const char* n) : name(n), failedBefore(::testsFailed)
+    {
+      std::cout << "  " << name << "... " << std::flush;
+    }
+
+    ~TestScope()
+    {
+      std::cout << (::testsFailed == failedBefore ? "PASS" : "FAIL") << std::endl;
+    }
+
+    TestScope(const TestScope&) = delete;
+    TestScope& operator=(const TestScope&) = delete;
+};

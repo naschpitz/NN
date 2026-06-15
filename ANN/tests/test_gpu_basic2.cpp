@@ -2,7 +2,7 @@
 
 static void testGPUCrossEntropyTrain()
 {
-  std::cout << "--- testGPUCrossEntropyTrain ---" << std::endl;
+  TestScope _t("testGPUCrossEntropyTrain");
 
   // Classification: 2 inputs → 3 classes with softmax + cross-entropy on GPU
   ANN::Samples<float> samples = {
@@ -44,7 +44,7 @@ static void testGPUCrossEntropyTrain()
 
 static void testGPUCrossEntropyCPUParity()
 {
-  std::cout << "--- testGPUCrossEntropyCPUParity ---" << std::endl;
+  TestScope _t("testGPUCrossEntropyCPUParity");
 
   // Train on CPU with cross-entropy, then compare predict on CPU vs GPU
   ANN::CoreConfig<float> trainConfig;
@@ -102,7 +102,7 @@ static void testGPUCrossEntropyCPUParity()
 
 static void testGPUWeightedCrossEntropyTrain()
 {
-  std::cout << "--- testGPUWeightedCrossEntropyTrain ---" << std::endl;
+  TestScope _t("testGPUWeightedCrossEntropyTrain");
 
   // Cross-entropy with per-class weights on GPU
   ANN::CoreConfig<float> config;
@@ -141,7 +141,7 @@ static void testGPUWeightedCrossEntropyTrain()
 
 static void testGPUTestMethod()
 {
-  std::cout << "--- testGPUTestMethod ---" << std::endl;
+  TestScope _t("testGPUTestMethod");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -174,7 +174,7 @@ static void testGPUTestMethod()
 
 static void testGPUTrainMetadata()
 {
-  std::cout << "--- testGPUTrainMetadata ---" << std::endl;
+  TestScope _t("testGPUTrainMetadata");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -202,7 +202,7 @@ static void testGPUTrainMetadata()
 
 static void testGPUPredictMetadata()
 {
-  std::cout << "--- testGPUPredictMetadata ---" << std::endl;
+  TestScope _t("testGPUPredictMetadata");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::PREDICT;

@@ -4,7 +4,7 @@
 
 static void testGPUTrainCallback()
 {
-  std::cout << "--- testGPUTrainCallback ---" << std::endl;
+  TestScope _t("testGPUTrainCallback");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -33,7 +33,7 @@ static void testGPUTrainCallback()
 
 static void testGPUParametersDuringTrain()
 {
-  std::cout << "--- testGPUParametersDuringTrain ---" << std::endl;
+  TestScope _t("testGPUParametersDuringTrain");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -72,7 +72,7 @@ static void testGPUParametersDuringTrain()
 
 static void testGPUDifferentActivations()
 {
-  std::cout << "--- testGPUDifferentActivations ---" << std::endl;
+  TestScope _t("testGPUDifferentActivations");
 
   std::vector<ANN::ActvFuncType> activations = {ANN::ActvFuncType::SIGMOID, ANN::ActvFuncType::RELU,
                                                 ANN::ActvFuncType::TANH};
@@ -105,7 +105,7 @@ static void testGPUDifferentActivations()
 
 static void testGPUMultiLayerNetwork()
 {
-  std::cout << "--- testGPUMultiLayerNetwork ---" << std::endl;
+  TestScope _t("testGPUMultiLayerNetwork");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -135,7 +135,7 @@ static void testGPUMultiLayerNetwork()
 
 static void testGPUMultiOutput()
 {
-  std::cout << "--- testGPUMultiOutput ---" << std::endl;
+  TestScope _t("testGPUMultiOutput");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -164,7 +164,7 @@ static void testGPUMultiOutput()
 
 static void testGPUWeightedLossAffectsTrain()
 {
-  std::cout << "--- testGPUWeightedLossAffectsTrain ---" << std::endl;
+  TestScope _t("testGPUWeightedLossAffectsTrain");
 
   auto makeConfig = [](std::vector<float> weights) {
     ANN::CoreConfig<float> config;
@@ -201,7 +201,7 @@ static void testGPUWeightedLossAffectsTrain()
 
 static void testGPUShuffleSamplesNoShuffle()
 {
-  std::cout << "--- testGPUShuffleSamplesNoShuffle ---" << std::endl;
+  TestScope _t("testGPUShuffleSamplesNoShuffle");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -227,7 +227,7 @@ static void testGPUShuffleSamplesNoShuffle()
 
 static void testGPUSoftmaxPredict()
 {
-  std::cout << "--- testGPUSoftmaxPredict ---" << std::endl;
+  TestScope _t("testGPUSoftmaxPredict");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::PREDICT;
@@ -251,7 +251,7 @@ static void testGPUSoftmaxPredict()
 
 static void testGPUSoftmaxTrain()
 {
-  std::cout << "--- testGPUSoftmaxTrain ---" << std::endl;
+  TestScope _t("testGPUSoftmaxTrain");
 
   ANN::Samples<float> samples = {
     {{1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}}, {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}}};
@@ -284,7 +284,7 @@ static void testGPUSoftmaxTrain()
 
 static void testGPUSoftmaxHiddenLayer()
 {
-  std::cout << "--- testGPUSoftmaxHiddenLayer ---" << std::endl;
+  TestScope _t("testGPUSoftmaxHiddenLayer");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::PREDICT;
@@ -304,7 +304,7 @@ static void testGPUSoftmaxHiddenLayer()
 
 static void testGPUDropoutTrain()
 {
-  std::cout << "--- testGPUDropoutTrain ---" << std::endl;
+  TestScope _t("testGPUDropoutTrain");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -332,7 +332,7 @@ static void testGPUDropoutTrain()
 
 static void testGPUCrossEntropyLossDecreases()
 {
-  std::cout << "--- testGPUCrossEntropyLossDecreases ---" << std::endl;
+  TestScope _t("testGPUCrossEntropyLossDecreases");
 
   ANN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;

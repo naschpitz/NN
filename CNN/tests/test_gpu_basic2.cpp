@@ -2,7 +2,7 @@
 
 static void testGPUMultiConvStack()
 {
-  std::cout << "--- testGPUMultiConvStack (Conv→ReLU→Conv→ReLU→Flatten→Dense) ---" << std::endl;
+  TestScope _t("testGPUMultiConvStack (Conv→ReLU→Conv→ReLU→Flatten→Dense)");
 
   CNN::CoreConfig<float> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -75,7 +75,7 @@ static void testGPUMultiConvStack()
 
 static void testGPUShuffleSamples()
 {
-  std::cout << "--- testGPUShuffleSamples ---" << std::endl;
+  TestScope _t("testGPUShuffleSamples");
 
   // Verify GPU training works with both shuffle=true and shuffle=false
   auto makeConfig = [](bool shuffle) {
@@ -162,7 +162,7 @@ static void testGPUShuffleSamples()
 
 static void testGPUCrossEntropyTrain()
 {
-  std::cout << "--- testGPUCrossEntropyTrain (CNN) ---" << std::endl;
+  TestScope _t("testGPUCrossEntropyTrain (CNN)");
 
   // 1x5x5 → Conv → ReLU → Flatten → Dense(3, softmax) with cross-entropy on GPU
   CNN::CoreConfig<float> config;

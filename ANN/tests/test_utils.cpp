@@ -5,7 +5,7 @@
 
 static void testDeviceNameToType()
 {
-  std::cout << "--- testDeviceNameToType ---" << std::endl;
+  TestScope _t("testDeviceNameToType");
 
   CHECK(Common::Device::nameToType("cpu") == Common::DeviceType::CPU, "cpu → CPU");
   CHECK(Common::Device::nameToType("gpu") == Common::DeviceType::GPU, "gpu → GPU");
@@ -18,7 +18,7 @@ static void testDeviceNameToType()
 
 static void testDeviceTypeToName()
 {
-  std::cout << "--- testDeviceTypeToName ---" << std::endl;
+  TestScope _t("testDeviceTypeToName");
 
   CHECK(Common::Device::typeToName(Common::DeviceType::CPU) == "cpu", "CPU → cpu");
   CHECK(Common::Device::typeToName(Common::DeviceType::GPU) == "gpu", "GPU → gpu");
@@ -28,7 +28,7 @@ static void testDeviceTypeToName()
 
 static void testModeNameToType()
 {
-  std::cout << "--- testModeNameToType ---" << std::endl;
+  TestScope _t("testModeNameToType");
 
   CHECK(Common::Mode::nameToType("train") == Common::ModeType::TRAIN, "train → TRAIN");
   CHECK(Common::Mode::nameToType("predict") == Common::ModeType::PREDICT, "predict → PREDICT");
@@ -42,7 +42,7 @@ static void testModeNameToType()
 
 static void testModeTypeToName()
 {
-  std::cout << "--- testModeTypeToName ---" << std::endl;
+  TestScope _t("testModeTypeToName");
 
   CHECK(Common::Mode::typeToName(Common::ModeType::TRAIN) == "train", "TRAIN → train");
   CHECK(Common::Mode::typeToName(Common::ModeType::PREDICT) == "predict", "PREDICT → predict");
@@ -54,7 +54,7 @@ static void testModeTypeToName()
 
 static void testLayersConfigGetTotalNumNeurons()
 {
-  std::cout << "--- testLayersConfigGetTotalNumNeurons ---" << std::endl;
+  TestScope _t("testLayersConfigGetTotalNumNeurons");
 
   ANN::LayersConfig config;
   config.push_back({3, ANN::ActvFuncType::RELU});
@@ -71,7 +71,7 @@ static void testLayersConfigGetTotalNumNeurons()
 
 static void testFormatDuration()
 {
-  std::cout << "--- testFormatDuration ---" << std::endl;
+  TestScope _t("testFormatDuration");
 
   CHECK(Common::Utils::formatDuration(0.0) == "0s", "0s");
   CHECK(Common::Utils::formatDuration(-5.0) == "0s", "negative → 0s");
@@ -86,7 +86,7 @@ static void testFormatDuration()
 
 static void testFlattenUnflattenTensor2D()
 {
-  std::cout << "--- testFlattenUnflattenTensor2D ---" << std::endl;
+  TestScope _t("testFlattenUnflattenTensor2D");
 
   ANN::Tensor2D<double> original = {{1.0, 2.0, 3.0}, {4.0, 5.0}};
   ANN::Tensor1D<double> flat = ANN::Utils<double>::flatten(original);
@@ -109,7 +109,7 @@ static void testFlattenUnflattenTensor2D()
 
 static void testFlattenUnflattenTensor3D()
 {
-  std::cout << "--- testFlattenUnflattenTensor3D ---" << std::endl;
+  TestScope _t("testFlattenUnflattenTensor3D");
 
   ANN::Tensor3D<double> original = {{{1.0, 2.0}, {3.0, 4.0}}, {{5.0, 6.0}, {7.0, 8.0}}};
   ANN::Tensor1D<double> flat = ANN::Utils<double>::flatten(original);
@@ -130,7 +130,7 @@ static void testFlattenUnflattenTensor3D()
 
 static void testCount()
 {
-  std::cout << "--- testCount ---" << std::endl;
+  TestScope _t("testCount");
 
   ANN::Tensor2D<double> t2d = {{1.0, 2.0}, {3.0, 4.0, 5.0}};
   CHECK(ANN::Utils<double>::count(t2d) == 5, "count 2D = 5");
@@ -143,7 +143,7 @@ static void testCount()
 
 static void testFormatISO8601()
 {
-  std::cout << "--- testFormatISO8601 ---" << std::endl;
+  TestScope _t("testFormatISO8601");
 
   std::string iso = Common::Utils::formatISO8601();
   // Basic format: "2026-02-21T..." — just verify it's non-empty and starts with "20"

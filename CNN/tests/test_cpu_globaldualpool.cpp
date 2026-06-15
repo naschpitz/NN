@@ -6,7 +6,7 @@
 
 static void testGlobalDualPoolPropagate()
 {
-  std::cout << "--- testGlobalDualPoolPropagate ---" << std::endl;
+  TestScope _t("testGlobalDualPoolPropagate");
 
   CNN::Shape3D shape{2, 2, 3};
   CNN::Tensor3D<double> input(shape);
@@ -26,7 +26,7 @@ static void testGlobalDualPoolPropagate()
 
 static void testGlobalDualPoolBackpropagate()
 {
-  std::cout << "--- testGlobalDualPoolBackpropagate ---" << std::endl;
+  TestScope _t("testGlobalDualPoolBackpropagate");
 
   CNN::Shape3D inputShape{2, 2, 3};
   ulong spatialSize = 6;
@@ -60,7 +60,7 @@ static void testGlobalDualPoolBackpropagate()
 
 static void testGlobalDualPoolSingleSpatial()
 {
-  std::cout << "--- testGlobalDualPoolSingleSpatial ---" << std::endl;
+  TestScope _t("testGlobalDualPoolSingleSpatial");
 
   CNN::Shape3D shape{4, 1, 1};
   CNN::Tensor3D<double> input(shape);
@@ -78,7 +78,7 @@ static void testGlobalDualPoolSingleSpatial()
 
 static void testGlobalDualPoolNegativeValues()
 {
-  std::cout << "--- testGlobalDualPoolNegativeValues ---" << std::endl;
+  TestScope _t("testGlobalDualPoolNegativeValues");
 
   CNN::Shape3D shape{1, 2, 2};
   CNN::Tensor3D<double> input(shape);
@@ -94,7 +94,7 @@ static void testGlobalDualPoolNegativeValues()
 
 static void testGlobalDualPoolUniformChannel()
 {
-  std::cout << "--- testGlobalDualPoolUniformChannel ---" << std::endl;
+  TestScope _t("testGlobalDualPoolUniformChannel");
 
   CNN::Shape3D shape{2, 3, 3};
   CNN::Tensor3D<double> input(shape, 5.0);
@@ -111,7 +111,7 @@ static void testGlobalDualPoolUniformChannel()
 
 static void testGlobalDualPoolLargeSpatial()
 {
-  std::cout << "--- testGlobalDualPoolLargeSpatial ---" << std::endl;
+  TestScope _t("testGlobalDualPoolLargeSpatial");
 
   CNN::Shape3D shape{1, 100, 100};
   CNN::Tensor3D<double> input(shape);
@@ -131,7 +131,7 @@ static void testGlobalDualPoolLargeSpatial()
 
 static void testGlobalDualPoolGradientCheck()
 {
-  std::cout << "--- testGlobalDualPoolGradientCheck ---" << std::endl;
+  TestScope _t("testGlobalDualPoolGradientCheck");
 
   CNN::Shape3D shape{2, 3, 3};
   ulong total = 2 * 3 * 3;
@@ -174,7 +174,7 @@ static void testGlobalDualPoolGradientCheck()
 
 static void testGlobalDualPoolAvgOnlyGradient()
 {
-  std::cout << "--- testGlobalDualPoolAvgOnlyGradient ---" << std::endl;
+  TestScope _t("testGlobalDualPoolAvgOnlyGradient");
 
   CNN::Shape3D shape{1, 2, 2};
   CNN::Tensor3D<double> layerInput(shape);
@@ -195,7 +195,7 @@ static void testGlobalDualPoolAvgOnlyGradient()
 
 static void testGlobalDualPoolMaxOnlyGradient()
 {
-  std::cout << "--- testGlobalDualPoolMaxOnlyGradient ---" << std::endl;
+  TestScope _t("testGlobalDualPoolMaxOnlyGradient");
 
   CNN::Shape3D shape{1, 2, 2};
   CNN::Tensor3D<double> layerInput(shape);

@@ -97,14 +97,8 @@
 </figure>
 
 <h2>Quick Example</h2>
-<pre><code><span class="comment"># Create a config.json</span>
-{
-  <span class="string">"model"</span>: <span class="string">"trained_E-100_S-60000_L-0.123456.nnmodel.tar"</span>,
-  <span class="string">"port"</span>: <span class="number">8080</span>
-}
-
-<span class="comment"># Start the server</span>
-./NN-Server config.json
+<pre><code><span class="comment"># Start the server</span>
+./NN-Server --model-package trained_E-100_S-60000_L-0.123456.nnmodel.tar
 
 <span class="comment"># Send an image for classification</span>
 curl -X POST http://localhost:<span class="number">8080</span>/predict \

@@ -2,7 +2,7 @@
 
 static void testCrossEntropyStringConversion()
 {
-  std::cout << "--- testCrossEntropyStringConversion ---" << std::endl;
+  TestScope _t("testCrossEntropyStringConversion");
 
   CHECK(Common::CostFunction::nameToType("crossEntropy") == Common::CostFunctionType::CROSS_ENTROPY,
         "nameToType crossEntropy");
@@ -14,7 +14,7 @@ static void testCrossEntropyStringConversion()
 
 static void testExactForwardBackwardSquaredDifference()
 {
-  std::cout << "--- testExactForwardBackwardSquaredDifference ---" << std::endl;
+  TestScope _t("testExactForwardBackwardSquaredDifference");
 
   // Hand-computed test: 2 inputs → 2 hidden (ReLU) → 1 output (sigmoid)
   // Squared-difference cost, SGD lr=1.0, 1 sample, 1 step.
@@ -91,7 +91,7 @@ static void testExactForwardBackwardSquaredDifference()
 
 static void testExactForwardBackwardCrossEntropy()
 {
-  std::cout << "--- testExactForwardBackwardCrossEntropy ---" << std::endl;
+  TestScope _t("testExactForwardBackwardCrossEntropy");
 
   // Hand-computed test: 2 inputs → 2 hidden (ReLU) → 2 output (softmax)
   // Cross-entropy cost, SGD lr=1.0, 1 sample, 1 step.
@@ -166,7 +166,7 @@ static void testExactForwardBackwardCrossEntropy()
 
 static void testExactForwardBackwardWeightedCrossEntropy()
 {
-  std::cout << "--- testExactForwardBackwardWeightedCrossEntropy ---" << std::endl;
+  TestScope _t("testExactForwardBackwardWeightedCrossEntropy");
 
   // Same network as above but with per-class weights [3.0, 0.5]
   // dL/da2[j] = -w_j * y_j / a2[j]

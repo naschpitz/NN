@@ -45,6 +45,7 @@ namespace NN_CLI
       //-- Configuration --//
       const QCommandLineParser& parser;
       LogLevel logLevel;
+      QString configPath;
       NetworkType networkType;
       Common::ModeType mode = Common::ModeType::PREDICT;
       IOConfig ioConfig;

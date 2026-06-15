@@ -10,7 +10,7 @@
 
 static void testCNNCheckpointParameters()
 {
-  std::cout << "  testCNNCheckpointParameters... ";
+  TestScope _t("testCNNCheckpointParameters");
 
   // Write a custom config with enough epochs to trigger checkpoints
   // (existing fixture has 5 epochs / interval 10, which produces no checkpoints)
@@ -45,7 +45,6 @@ static void testCNNCheckpointParameters()
     configFile.close();
   } else {
     CHECK(false, "CNN checkpoint params: failed to write config file");
-    std::cout << std::endl;
     return;
   }
 
@@ -62,7 +61,7 @@ static void testCNNCheckpointParameters()
   QString modelPath = tempDir() + "/cnn_ckpt_model.nnmodel.tar";
 
   auto result = runNNCLI(
-    {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
 
   CHECK(result.exitCode == 0, "CNN checkpoint params: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN checkpoint params: 'Training completed.'");
@@ -99,15 +98,13 @@ static void testCNNCheckpointParameters()
 
   // Cleanup checkpoint output dir
   QDir(tempDir() + "/output").removeRecursively();
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testCNNCheckpointInstanceNormRoundTrip()
 {
-  std::cout << "  testCNNCheckpointInstanceNormRoundTrip... ";
+  TestScope _t("testCNNCheckpointInstanceNormRoundTrip");
 
   // Config with instancenorm layer — train enough to get non-trivial running stats
   QString configPath = tempDir() + "/cnn_norm_ckpt_config.json";
@@ -142,7 +139,6 @@ static void testCNNCheckpointInstanceNormRoundTrip()
     configFile.close();
   } else {
     CHECK(false, "CNN BN checkpoint: failed to write config file");
-    std::cout << std::endl;
     return;
   }
 
@@ -158,7 +154,7 @@ static void testCNNCheckpointInstanceNormRoundTrip()
   QString modelPath = tempDir() + "/cnn_norm_ckpt_model.nnmodel.tar";
 
   auto result = runNNCLI(
-    {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
 
   CHECK(result.exitCode == 0, "CNN BN checkpoint: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN BN checkpoint: 'Training completed.'");
@@ -183,7 +179,8 @@ static void testCNNCheckpointInstanceNormRoundTrip()
     // The round-trip test below verifies they survive save/load correctly.
 
     // Now load the model back and verify the parameters survive the round-trip
-    auto result2 = runNNCLI({"--config", modelPath, "--mode", "test", "--device", "cpu", "--samples", samplesDst});
+    auto result2 =
+      runNNCLI({"--model-package", modelPath, "--mode", "test", "--device", "cpu", "--samples", samplesDst});
     CHECK(result2.exitCode == 0, "CNN BN checkpoint: test with loaded model exit code 0");
     CHECK(result2.stdOut.contains("Test Results:"), "CNN BN checkpoint: test produces results");
   } else {
@@ -192,15 +189,13 @@ static void testCNNCheckpointInstanceNormRoundTrip()
 
   // Cleanup
   QDir(tempDir() + "/output").removeRecursively();
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testCNNGlobalDualPoolEndToEnd()
 {
-  std::cout << "  testCNNGlobalDualPoolEndToEnd... ";
+  TestScope _t("testCNNGlobalDualPoolEndToEnd");
 
   // Config with globaldualpool: conv→relu→globaldualpool→flatten→dense
   // Input 1x8x8, conv 4 filters 3x3 valid → 4x6x6, GDP → 8x1x1, flatten → dense 2 sigmoid
@@ -236,7 +231,6 @@ static void testCNNGlobalDualPoolEndToEnd()
     configFile.close();
   } else {
     CHECK(false, "CNN GDP e2e: failed to write config file");
-    std::cout << std::endl;
     return;
   }
 
@@ -276,7 +270,7 @@ static void testCNNGlobalDualPoolEndToEnd()
   QString modelPath = tempDir() + "/cnn_gdp_model.nnmodel.tar";
 
   auto trainResult = runNNCLI(
-    {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
 
   CHECK(trainResult.exitCode == 0, "CNN GDP e2e: train exit code 0");
   CHECK(trainResult.stdOut.contains("Training completed."), "CNN GDP e2e: training completed");
@@ -308,8 +302,8 @@ static void testCNNGlobalDualPoolEndToEnd()
 
     QString predictOutput = tempDir() + "/cnn_gdp_predict_output.json";
 
-    auto predResult = runNNCLI({"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath,
-                                "--output", predictOutput});
+    auto predResult = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
+                                predictPath, "--output", predictOutput});
 
     CHECK(predResult.exitCode == 0, "CNN GDP e2e: predict exit code 0");
     CHECK(QFile::exists(predictOutput), "CNN GDP e2e: predict output file created");
@@ -338,15 +332,13 @@ static void testCNNGlobalDualPoolEndToEnd()
       }
     }
   }
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//
 
 static void testCNNResidualEndToEnd()
 {
-  std::cout << "  testCNNResidualEndToEnd... ";
+  TestScope _t("testCNNResidualEndToEnd");
 
   // Identity residual: Conv(4,same)→ReLU→residual_start→Conv(4,same)→ReLU→residual_end→GAP→Flatten→Dense(2)
   QString configPath = tempDir() + "/cnn_res_config.json";
@@ -421,7 +413,7 @@ static void testCNNResidualEndToEnd()
   QString modelPath = tempDir() + "/cnn_res_model.nnmodel.tar";
 
   auto trainResult = runNNCLI(
-    {"--config", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
 
   CHECK(trainResult.exitCode == 0, "CNN Residual e2e: train exit code 0");
   CHECK(trainResult.stdOut.contains("Training completed."), "CNN Residual e2e: training completed");
@@ -475,8 +467,8 @@ static void testCNNResidualEndToEnd()
 
   QString predictOutput = tempDir() + "/cnn_res_predict_output.json";
 
-  auto predResult = runNNCLI(
-    {"--config", modelPath, "--mode", "predict", "--device", "cpu", "--input", predictPath, "--output", predictOutput});
+  auto predResult = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
+                              predictPath, "--output", predictOutput});
 
   CHECK(predResult.exitCode == 0, "CNN Residual e2e: predict exit code 0");
 
@@ -496,8 +488,6 @@ static void testCNNResidualEndToEnd()
       outFile.close();
     }
   }
-
-  std::cout << std::endl;
 }
 
 //===================================================================================================================//

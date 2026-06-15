@@ -4,7 +4,7 @@
 
 static void testConv2DPropagate()
 {
-  std::cout << "--- testConv2DPropagate ---" << std::endl;
+  TestScope _t("testConv2DPropagate");
 
   CNN::Tensor3D<double> input({1, 4, 4});
 
@@ -32,7 +32,7 @@ static void testConv2DPropagate()
 
 static void testConv2DBackprop()
 {
-  std::cout << "--- testConv2DBackprop ---" << std::endl;
+  TestScope _t("testConv2DBackprop");
 
   CNN::Tensor3D<double> input({1, 4, 4});
 
@@ -62,7 +62,7 @@ static void testConv2DBackprop()
 
 static void testConv2DWithBias()
 {
-  std::cout << "--- testConv2DWithBias ---" << std::endl;
+  TestScope _t("testConv2DWithBias");
 
   // 1x3x3 input, 1 filter 2x2, VALID, bias = 10.0
   CNN::Tensor3D<double> input({1, 3, 3});
@@ -90,7 +90,7 @@ static void testConv2DWithBias()
 
 static void testConv2DMultiFilter()
 {
-  std::cout << "--- testConv2DMultiFilter ---" << std::endl;
+  TestScope _t("testConv2DMultiFilter");
 
   // 1x3x3 input, 2 filters 2x2, VALID
   CNN::Tensor3D<double> input({1, 3, 3});
@@ -126,7 +126,7 @@ static void testConv2DMultiFilter()
 
 static void testConv2DMultiChannel()
 {
-  std::cout << "--- testConv2DMultiChannel ---" << std::endl;
+  TestScope _t("testConv2DMultiChannel");
 
   // 2x2x2 input (2 channels), 1 filter 2x2, VALID
   CNN::Tensor3D<double> input({2, 2, 2});
@@ -155,7 +155,7 @@ static void testConv2DMultiChannel()
 
 static void testConv2DBackpropValues()
 {
-  std::cout << "--- testConv2DBackpropValues ---" << std::endl;
+  TestScope _t("testConv2DBackpropValues");
 
   // 1x3x3 input, 1 filter 2x2, VALID → 1x2x2 output
   CNN::Tensor3D<double> input({1, 3, 3});
@@ -202,7 +202,7 @@ static void testConv2DBackpropValues()
 
 static void testConv2DStride()
 {
-  std::cout << "--- testConv2DStride ---" << std::endl;
+  TestScope _t("testConv2DStride");
 
   // 1x4x4 input, 1 filter 2x2, stride 2, VALID → 1x2x2 output
   CNN::Tensor3D<double> input({1, 4, 4});
@@ -235,7 +235,7 @@ static void testConv2DStride()
 
 static void testConv2DSamePadding()
 {
-  std::cout << "--- testConv2DSamePadding ---" << std::endl;
+  TestScope _t("testConv2DSamePadding");
 
   // 1x3x3 input, 1 filter 3x3, stride 1, SAME (pad=1) → 1x3x3 output
   CNN::Tensor3D<double> input({1, 3, 3});
@@ -267,7 +267,7 @@ static void testConv2DSamePadding()
 
 static void testConv2DFullPadding()
 {
-  std::cout << "--- testConv2DFullPadding ---" << std::endl;
+  TestScope _t("testConv2DFullPadding");
 
   // 1x2x2 input, 1 filter 2x2, stride 1, FULL (pad=1) → 1x3x3 output
   CNN::Tensor3D<double> input({1, 2, 2});
@@ -297,7 +297,7 @@ static void testConv2DFullPadding()
 
 static void testConv2DNumericalGradient()
 {
-  std::cout << "--- testConv2DNumericalGradient ---" << std::endl;
+  TestScope _t("testConv2DNumericalGradient");
 
   // Verify backprop gradients match numerical (finite-difference) gradients
   CNN::Tensor3D<double> input({1, 4, 4});

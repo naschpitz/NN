@@ -6,7 +6,7 @@
 
 static void testGlobalAvgPoolPropagate()
 {
-  std::cout << "--- testGlobalAvgPoolPropagate ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolPropagate");
 
   // 2 channels, 2x3 spatial
   CNN::Shape3D shape{2, 2, 3};
@@ -26,7 +26,7 @@ static void testGlobalAvgPoolPropagate()
 
 static void testGlobalAvgPoolBackpropagate()
 {
-  std::cout << "--- testGlobalAvgPoolBackpropagate ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolBackpropagate");
 
   CNN::Shape3D inputShape{2, 2, 3};
   ulong spatialSize = 6;
@@ -52,7 +52,7 @@ static void testGlobalAvgPoolBackpropagate()
 
 static void testGlobalAvgPoolGradientCheck()
 {
-  std::cout << "--- testGlobalAvgPoolGradientCheck ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolGradientCheck");
 
   CNN::Shape3D shape{2, 1, 3};
   std::vector<double> origData = {1.0, 3.0, 5.0, 2.0, 4.0, 6.0};
@@ -88,7 +88,7 @@ static void testGlobalAvgPoolGradientCheck()
 
 static void testGlobalAvgPoolSingleChannel()
 {
-  std::cout << "--- testGlobalAvgPoolSingleChannel ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolSingleChannel");
 
   CNN::Shape3D shape{1, 4, 4};
   CNN::Tensor3D<double> input(shape);
@@ -106,7 +106,7 @@ static void testGlobalAvgPoolSingleChannel()
 
 static void testGlobalAvgPoolIdentity1x1()
 {
-  std::cout << "--- testGlobalAvgPoolIdentity1x1 ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolIdentity1x1");
 
   CNN::Shape3D shape{3, 1, 1};
   CNN::Tensor3D<double> input(shape);
@@ -134,7 +134,7 @@ static void testGlobalAvgPoolIdentity1x1()
 
 static void testGlobalAvgPoolUniformInput()
 {
-  std::cout << "--- testGlobalAvgPoolUniformInput ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolUniformInput");
 
   CNN::Shape3D shape{2, 3, 3};
   CNN::Tensor3D<double> input(shape, 5.0);
@@ -149,7 +149,7 @@ static void testGlobalAvgPoolUniformInput()
 
 static void testGlobalAvgPoolLargeSpatial()
 {
-  std::cout << "--- testGlobalAvgPoolLargeSpatial ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolLargeSpatial");
 
   CNN::Shape3D shape{4, 32, 32};
   CNN::Tensor3D<double> input(shape);
@@ -174,7 +174,7 @@ static void testGlobalAvgPoolLargeSpatial()
 
 static void testGlobalAvgPoolMultiChannelGradient()
 {
-  std::cout << "--- testGlobalAvgPoolMultiChannelGradient ---" << std::endl;
+  TestScope _t("testGlobalAvgPoolMultiChannelGradient");
 
   CNN::Shape3D shape{4, 3, 3};
   ulong total = 4 * 3 * 3;

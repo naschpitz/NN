@@ -4,7 +4,7 @@
 
 static void testCostFunctionConfigDefault()
 {
-  std::cout << "--- testCostFunctionConfigDefault ---" << std::endl;
+  TestScope _t("testCostFunctionConfigDefault");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::PREDICT;
@@ -22,7 +22,7 @@ static void testCostFunctionConfigDefault()
 
 static void testCostFunctionConfigGetter()
 {
-  std::cout << "--- testCostFunctionConfigGetter ---" << std::endl;
+  TestScope _t("testCostFunctionConfigGetter");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::PREDICT;
@@ -44,7 +44,7 @@ static void testCostFunctionConfigGetter()
 
 static void testCostFunctionStringConversion()
 {
-  std::cout << "--- testCostFunctionStringConversion ---" << std::endl;
+  TestScope _t("testCostFunctionStringConversion");
 
   CHECK(Common::CostFunction::nameToType("squaredDifference") == Common::CostFunctionType::SQUARED_DIFFERENCE,
         "nameToType squaredDifference");
@@ -72,7 +72,7 @@ static void testCostFunctionStringConversion()
 
 static void testWeightedLossAffectsTrain()
 {
-  std::cout << "--- testWeightedLossAffectsTrain ---" << std::endl;
+  TestScope _t("testWeightedLossAffectsTrain");
 
   // Train a 2-input → 2-output network.
   // Expected outputs: [1, 0] for all samples.
@@ -126,10 +126,10 @@ static void testWeightedLossAffectsTrain()
 
 static void testShuffleSamplesDefault()
 {
-  std::cout << "--- testShuffleSamplesDefault ---" << std::endl;
+  TestScope _t("testShuffleSamplesDefault");
 
   // Verify default is true
-   ANN::TrainConfig<double> tc;
+  ANN::TrainConfig<double> tc;
   CHECK(tc.shuffleSamples == true, "shuffleSamples default is true");
 }
 
@@ -137,7 +137,7 @@ static void testShuffleSamplesDefault()
 
 static void testShuffleSamplesTrain()
 {
-  std::cout << "--- testShuffleSamplesTrain ---" << std::endl;
+  TestScope _t("testShuffleSamplesTrain");
 
   // Train with shuffleSamples=true and shuffleSamples=false, both should converge
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}, {{1.0, 0.0}, {0.5}}, {{0.0, 1.0}, {0.5}}};
@@ -185,7 +185,7 @@ static void testShuffleSamplesTrain()
 
 static void testShuffleSamplesNoShuffle()
 {
-  std::cout << "--- testShuffleSamplesNoShuffle ---" << std::endl;
+  TestScope _t("testShuffleSamplesNoShuffle");
 
   // With shuffleSamples=false, two runs with the same initial parameters should produce identical results
   ANN::Samples<double> samples = {{{1.0, 1.0}, {1.0}}, {{0.0, 0.0}, {0.0}}};

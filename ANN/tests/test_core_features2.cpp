@@ -2,7 +2,7 @@
 
 static void testSoftmaxPredict()
 {
-  std::cout << "--- testSoftmaxPredict ---" << std::endl;
+  TestScope _t("testSoftmaxPredict");
 
   // 2 inputs → 3 outputs with softmax
   ANN::CoreConfig<double> config;
@@ -32,7 +32,7 @@ static void testSoftmaxPredict()
 
 static void testSoftmaxTrain()
 {
-  std::cout << "--- testSoftmaxTrain ---" << std::endl;
+  TestScope _t("testSoftmaxTrain");
 
   // Classification: 2 inputs → 3 classes with softmax output
   ANN::CoreConfig<double> config;
@@ -77,7 +77,7 @@ static void testSoftmaxTrain()
 
 static void testSoftmaxHiddenLayer()
 {
-  std::cout << "--- testSoftmaxHiddenLayer ---" << std::endl;
+  TestScope _t("testSoftmaxHiddenLayer");
 
   // Softmax in a hidden layer (unusual but should work)
   ANN::CoreConfig<double> config;
@@ -107,7 +107,7 @@ static void testSoftmaxHiddenLayer()
 
 static void testDropoutTrain()
 {
-  std::cout << "--- testDropoutTrain ---" << std::endl;
+  TestScope _t("testDropoutTrain");
 
   // Train XOR with dropout — should still converge (dropout is regularization, not destructive)
   ANN::CoreConfig<double> config;
@@ -141,7 +141,7 @@ static void testDropoutTrain()
 
 static void testDropoutDisabledByDefault()
 {
-  std::cout << "--- testDropoutDisabledByDefault ---" << std::endl;
+  TestScope _t("testDropoutDisabledByDefault");
 
   ANN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;

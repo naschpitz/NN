@@ -2,7 +2,7 @@
 
 static void testParameterRoundTrip()
 {
-  std::cout << "--- testParameterRoundTrip ---" << std::endl;
+  TestScope _t("testParameterRoundTrip");
 
   CNN::CoreConfig<double> config;
   config.modeType = Common::ModeType::TRAIN;
@@ -87,7 +87,7 @@ static void testParameterRoundTrip()
 
 static void testParametersDuringTrain()
 {
-  std::cout << "--- testParametersDuringTrain ---" << std::endl;
+  TestScope _t("testParametersDuringTrain");
 
   // Train and verify getParameters() returns populated conv AND dense params
   // during training (in the callback), not just after training ends.
@@ -165,7 +165,7 @@ static void testParametersDuringTrain()
 
 static void testMultipleOutputNeurons()
 {
-  std::cout << "--- testMultipleOutputNeurons ---" << std::endl;
+  TestScope _t("testMultipleOutputNeurons");
 
   // 1x8x8 → Conv(2,3x3) → ReLU → Flatten(72) → Dense(3, sigmoid)
   CNN::CoreConfig<double> config;

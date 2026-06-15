@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
 {
   QCoreApplication app(argc, argv);
 
-  std::cout << "=== NN-Server Endpoint Integration Tests ===" << std::endl;
+  std::cout << "=== Endpoint Integration Tests ===" << std::endl;
   std::cout << std::endl;
 
   runEndpointTests();

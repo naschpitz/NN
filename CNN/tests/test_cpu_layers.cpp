@@ -4,7 +4,7 @@
 
 static void testTensor3D()
 {
-  std::cout << "--- testTensor3D ---" << std::endl;
+  TestScope _t("testTensor3D");
 
   CNN::Tensor3D<double> t({2, 3, 4});
   CHECK(t.shape.c == 2 && t.shape.h == 3 && t.shape.w == 4, "shape");
@@ -22,7 +22,7 @@ static void testTensor3D()
 
 static void testReLU()
 {
-  std::cout << "--- testReLU ---" << std::endl;
+  TestScope _t("testReLU");
 
   CNN::Tensor3D<double> input({1, 2, 3});
   input.data = {-2.0, -1.0, 0.0, 1.0, 2.0, 3.0};
@@ -42,7 +42,7 @@ static void testReLU()
 
 static void testMaxPool()
 {
-  std::cout << "--- testMaxPool ---" << std::endl;
+  TestScope _t("testMaxPool");
 
   CNN::Tensor3D<double> input({1, 4, 4});
 
@@ -70,7 +70,7 @@ static void testMaxPool()
 
 static void testAvgPool()
 {
-  std::cout << "--- testAvgPool ---" << std::endl;
+  TestScope _t("testAvgPool");
 
   CNN::Tensor3D<double> input({1, 4, 4});
 
@@ -100,7 +100,7 @@ static void testAvgPool()
 
 static void testPoolNonSquare()
 {
-  std::cout << "--- testPoolNonSquare ---" << std::endl;
+  TestScope _t("testPoolNonSquare");
 
   // 1x4x6 input, pool 2x3 stride 2x3 → 1x2x2
   CNN::Tensor3D<double> input({1, 4, 6});
@@ -129,7 +129,7 @@ static void testPoolNonSquare()
 
 static void testFlatten()
 {
-  std::cout << "--- testFlatten ---" << std::endl;
+  TestScope _t("testFlatten");
 
   CNN::Tensor3D<double> input({2, 3, 4});
 

@@ -26,7 +26,7 @@ round-trips by a factor of 64.
 
 ```bash
 ./build_test/NN-CLI \
-  --config examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json \
+  --model examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json \
   --mode train \
   --samples examples/ISIC-MILK10k/train-app-11/samples_test.json \
   --output /tmp/output-test/trained.json
@@ -48,7 +48,7 @@ d['samples'] = d['samples'][:64]
 with open('/tmp/test_64s.json','w') as f: json.dump(d,f)
 "
 
-./build_test/NN-CLI --config /tmp/test_1e.json --mode train \
+./build_test/NN-CLI --model /tmp/test_1e.json --mode train \
   --samples /tmp/test_64s.json --output /tmp/output-test/trained.json
 ```
 
@@ -233,13 +233,13 @@ After implementation, compare img/s:
 
 ```bash
 # Baseline (current code)
-./build/NN-CLI --config examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json \
+./build/NN-CLI --model examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json \
   --mode train --samples examples/ISIC-MILK10k/train-app-11/samples_test.json \
   --output /tmp/output-test/trained.json
 # expect ~125 img/s
 
 # With microBatchSize=64
-./build_test/NN-CLI --config examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json \
+./build_test/NN-CLI --model examples/ISIC-MILK10k/train-app-11/isic_cnn_config.json \
   --mode train --samples examples/ISIC-MILK10k/train-app-11/samples_test.json \
   --output /tmp/output-test/trained.json
 # target: measurable improvement from fewer core->run() calls
