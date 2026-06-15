@@ -36,7 +36,8 @@ static nlohmann::json defaultConfig()
   return config;
 }
 
-static bool startServer(const nlohmann::json& config = nlohmann::json(), const QString& modelPackage = {})
+static bool startServer(const nlohmann::json& config = nlohmann::json(), const QString& modelPackage = {},
+                        bool useCliModelPackage = true)
 {
   nlohmann::json cfg = config.empty() ? defaultConfig() : config;
 
@@ -59,17 +60,25 @@ static bool startServer(const nlohmann::json& config = nlohmann::json(), const Q
   configFile.write(QByteArray::fromStdString(cfg.dump(2)));
   configFile.close();
 
-  QString modelPackageName;
+  QStringList args;
 
-  if (!modelPackage.isEmpty()) {
-    modelPackageName = modelPackage;
-  } else {
-    modelPackageName = fixturePath("checkpoint_E-150_L-0.029486.nnmodel.tar");
+  if (useCliModelPackage) {
+    QString modelPackageName;
+
+    if (!modelPackage.isEmpty()) {
+      modelPackageName = modelPackage;
+    } else {
+      modelPackageName = fixturePath("checkpoint_E-150_L-0.029486.nnmodel.tar");
+    }
+
+    args << "--model-package" << modelPackageName;
   }
+
+  args << configPath;
 
   serverProcess = new QProcess();
   serverProcess->setWorkingDirectory(projectRoot());
-  serverProcess->start(serverBinPath(), QStringList() << "--model-package" << modelPackageName << configPath);
+  serverProcess->start(serverBinPath(), args);
 
   if (!serverProcess->waitForStarted(5000)) {
     std::cerr << "Failed to start server process" << std::endl;
@@ -599,6 +608,39 @@ static void testImageDeterministic()
   }
 }
 
+static void testModelPackageFallback()
+{
+  TestScope _t("testModelPackageFallback");
+
+  // Server was started with model_package in config (no --model-package CLI flag).
+  // Verify health and prediction both work.
+
+  HttpResponse healthResp = httpGet("/health");
+  CHECK(healthResp.ok, "model_package_fallback: health got response");
+  CHECK(healthResp.statusCode == 200,
+        "model_package_fallback: health status 200 (got " + std::to_string(healthResp.statusCode) + ")");
+
+  QByteArray imgData = readImageFile(imagePath("ISIC_4671410.jpg"));
+  CHECK(!imgData.isEmpty(), "model_package_fallback: loaded test image");
+
+  if (!imgData.isEmpty()) {
+    HttpResponse predResp = httpPostImage("/predict", imgData);
+    CHECK(predResp.ok, "model_package_fallback: prediction got response");
+    CHECK(predResp.statusCode == 200,
+          "model_package_fallback: prediction status 200 (got " + std::to_string(predResp.statusCode) + ")");
+
+    if (predResp.statusCode == 200) {
+      nlohmann::json body = nlohmann::json::parse(predResp.body.toStdString());
+      CHECK(body.contains("output") && body["output"].is_array(), "model_package_fallback: has output array");
+
+      auto output = body["output"].get<std::vector<float>>();
+      CHECK(static_cast<int>(output.size()) == NUM_OUTPUT,
+            "model_package_fallback: output length == " + std::to_string(NUM_OUTPUT));
+      CHECK(body.contains("logits") && body["logits"].is_array(), "model_package_fallback: has logits array");
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
@@ -624,10 +666,28 @@ void runEndpointTests()
   testPredictImageRepeatedConcurrent();
   testQueueLimitReject();
 
+  // --- model_package fallback test ---
+  std::cout << std::endl;
+  std::cout << "Restarting NN-Server (config fallback)..." << std::endl;
+  stopServer();
+
+  {
+    nlohmann::json fallbackCfg = defaultConfig();
+    fallbackCfg["model_package"] = fixturePath("checkpoint_E-150_L-0.029486.nnmodel.tar").toStdString();
+
+    if (!startServer(fallbackCfg, {}, false)) {
+      std::cerr << "FATAL: Could not start NN-Server with config fallback. Skipping fallback test." << std::endl;
+      CHECK(false, "server started successfully with config fallback");
+      return;
+    }
+  }
+
+  testModelPackageFallback();
+  stopServer();
+
   // ---  image input tests (requires different model) ---
   std::cout << std::endl;
   std::cout << "Restarting NN-Server ( image model)..." << std::endl;
-  stopServer();
 
   if (!startServer(annImageConfig(), fixturePath("ann_image_model.nnmodel.tar"))) {
     std::cerr << "FATAL: Could not start NN-Server with  image model. Skipping  image tests." << std::endl;
