@@ -46,15 +46,7 @@ namespace NN_CLI
       // Panel selection indices used by setActivePanel / getActivePanel.
       // Note: PROGRESS (4) is part of the tab cycle for visual consistency
       // but is always rendered with an inactive color pair.
-      enum PanelIndex
-      {
-        MODEL_INFO = 0,
-        TIMING = 1,
-        EPOCH_HISTORY = 2,
-        RESULTS = 3,
-        PROGRESS = 4,
-        PANEL_COUNT = 5
-      };
+      enum PanelIndex { MODEL_INFO = 0, TIMING = 1, EPOCH_HISTORY = 2, RESULTS = 3, PROGRESS = 4, PANEL_COUNT = 5 };
 
       //-- Ctors / Dtors --//
 
@@ -166,7 +158,7 @@ namespace NN_CLI
 
       //-- Dismiss handling --//
 
-      // Spin-loop waiting for the user to press 'q', Enter, or ESC.
+      // Spin-loop waiting for the user to press 'q' or ESC.
       // Does NOT hold the window mutex.
       void waitForDismiss();
 

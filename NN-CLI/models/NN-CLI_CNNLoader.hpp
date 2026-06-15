@@ -25,24 +25,24 @@ namespace NN_CLI
     public:
       //-- Methods --//
 
-      // Load CNN configuration with optional CLI overrides (file-path convenience wrapper).
-      static CNN::CoreConfig<float> loadConfig(const std::string& configFilePath,
-                                               std::optional<std::string> modeOverride = std::nullopt,
-                                               std::optional<std::string> deviceOverride = std::nullopt);
+      // Load CNN model from config file (convenience).
+      static CNN::CoreConfig<float> loadModel(const std::string& configFilePath,
+                                              std::optional<std::string> modeOverride = std::nullopt,
+                                              std::optional<std::string> deviceOverride = std::nullopt);
 
-      // Load CNN configuration from pre-parsed JSON.
-      static CNN::CoreConfig<float> loadConfig(const nlohmann::json& json,
-                                               std::optional<std::string> modeOverride = std::nullopt,
-                                               std::optional<std::string> deviceOverride = std::nullopt);
+      // Load CNN model from pre-parsed JSON.
+      static CNN::CoreConfig<float> loadModel(const nlohmann::json& json,
+                                              std::optional<std::string> modeOverride = std::nullopt,
+                                              std::optional<std::string> deviceOverride = std::nullopt);
 
-      // Load CNN configuration from pre-parsed JSON with binary parameters (for .nnmodel packages).
-      static CNN::CoreConfig<float> loadConfig(const nlohmann::json& json, const std::vector<char>& binParams,
-                                               std::optional<std::string> modeOverride = std::nullopt,
-                                               std::optional<std::string> deviceOverride = std::nullopt);
+      // Load CNN model from .nnmodel package (JSON + binary parameters).
+      static CNN::CoreConfig<float> loadModelPackage(const nlohmann::json& json, const std::vector<char>& binParams,
+                                                     std::optional<std::string> modeOverride = std::nullopt,
+                                                     std::optional<std::string> deviceOverride = std::nullopt);
 
       // Load CNN samples from JSON (supports image paths when ioConfig.inputType/outputType is IMAGE)
       static CNN::Samples<float> loadSamples(const std::string& samplesFilePath, const CNN::Shape3D& inputShape,
-                                            const IOConfig& ioConfig, ulong progressReports = 1000);
+                                             const IOConfig& ioConfig, ulong progressReports = 1000);
 
       // Load CNN inputs from JSON (batch: "inputs" array; supports image paths when ioConfig.inputType is IMAGE)
       static std::vector<CNN::Input<float>> loadInputs(const std::string& inputFilePath, const CNN::Shape3D& inputShape,

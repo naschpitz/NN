@@ -36,7 +36,7 @@ static void testMonitoringConfigParsing()
 
   file.close();
 
-  auto config = ANNLoader::loadConfig(configPath.toStdString());
+  auto config = ANNLoader::loadModel(configPath.toStdString());
 
   CHECK(config.trainConfig.monitoringConfig.enabled == true, "monitoring enabled");
   CHECK(config.trainConfig.monitoringConfig.checkInterval == 10, "checkInterval");
@@ -66,7 +66,7 @@ static void testMonitoringConfigDefaults()
 
   file.close();
 
-  auto config = ANNLoader::loadConfig(configPath.toStdString());
+  auto config = ANNLoader::loadModel(configPath.toStdString());
 
   CHECK(config.trainConfig.monitoringConfig.enabled == false, "default disabled");
   CHECK(config.trainConfig.monitoringConfig.checkInterval == 5, "default checkInterval");

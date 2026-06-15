@@ -15,17 +15,17 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  CNN::CoreConfig<float> CNNLoader::loadConfig(const std::string& configFilePath,
-                                               std::optional<std::string> modeOverride,
-                                               std::optional<std::string> deviceOverride)
+  CNN::CoreConfig<float> CNNLoader::loadModel(const std::string& configFilePath,
+                                              std::optional<std::string> modeOverride,
+                                              std::optional<std::string> deviceOverride)
   {
-    return loadConfig(Loader::parseConfigFile(configFilePath), modeOverride, deviceOverride);
+    return loadModel(Loader::parseConfigFile(configFilePath), modeOverride, deviceOverride);
   }
 
   //===================================================================================================================//
 
-  CNN::CoreConfig<float> CNNLoader::loadConfig(const nlohmann::json& json, std::optional<std::string> modeOverride,
-                                               std::optional<std::string> deviceOverride)
+  CNN::CoreConfig<float> CNNLoader::loadModel(const nlohmann::json& json, std::optional<std::string> modeOverride,
+                                              std::optional<std::string> deviceOverride)
   {
     CNN::CoreConfig<float> coreConfig;
 
@@ -266,12 +266,12 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  CNN::CoreConfig<float> CNNLoader::loadConfig(const nlohmann::json& json, const std::vector<char>& binParams,
-                                               std::optional<std::string> modeOverride,
-                                               std::optional<std::string> deviceOverride)
+  CNN::CoreConfig<float> CNNLoader::loadModelPackage(const nlohmann::json& json, const std::vector<char>& binParams,
+                                                     std::optional<std::string> modeOverride,
+                                                     std::optional<std::string> deviceOverride)
   {
     // 1. Call the existing JSON-only version to parse architecture/config
-    auto coreConfig = loadConfig(json, modeOverride, deviceOverride);
+    auto coreConfig = loadModel(json, modeOverride, deviceOverride);
 
     // 2. If binary params provided, overwrite parameters from binary data
     if (!binParams.empty()) {

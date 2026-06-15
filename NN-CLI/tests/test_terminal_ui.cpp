@@ -427,6 +427,7 @@ static void testPredictWindowDismissOnQ()
   // waitForDismiss should return immediately since dismissed_ is already true.
   pw.waitForDismiss();
   CHECK(true, "waitForDismiss returned immediately after 'q' dismiss");
+  CHECK(!pw.handleEvent('\n'), "Enter should NOT dismiss PredictWindow");
 }
 
 //===================================================================================================================//
@@ -464,6 +465,36 @@ static void testPredictWindowChildCount()
 
 //===================================================================================================================//
 
+static void testShortcutBar()
+{
+  TestScope _t("testShortcutBar");
+
+  NN_CLI::TerminalUI_TrainWindow tw;
+  NN_CLI::TerminalUI_PredictWindow pw;
+
+  const std::string expected =
+    "Tab: panels \xe2\x86\x91\xe2\x86\x93: scroll PgUp/PgDn: page Home/End: top/bottom q/ESC: quit";
+
+  CHECK(tw.getShortcutBar() == expected, "TrainWindow shortcut bar text");
+  CHECK(pw.getShortcutBar() == expected, "PredictWindow shortcut bar text");
+  CHECK(tw.getShortcutBar() == pw.getShortcutBar(), "Both windows have identical shortcut bar");
+}
+
+//===================================================================================================================//
+
+static void testTrainWindowDismissOnQ()
+{
+  TestScope _t("testTrainWindowDismissOnQ");
+
+  NN_CLI::TerminalUI_TrainWindow tw;
+
+  CHECK(tw.handleEvent('q'), "handleEvent 'q' should set dismissed flag and return true");
+  tw.waitForDismiss();
+  CHECK(true, "waitForDismiss returned immediately after 'q' dismiss");
+}
+
+//===================================================================================================================//
+
 void runTerminalUITests()
 {
   testTrainWindowCycleActivePanel();
@@ -478,4 +509,6 @@ void runTerminalUITests()
   testPredictWindowDismissOnQ();
   testPredictWindowResultsTable();
   testPredictWindowChildCount();
+  testShortcutBar();
+  testTrainWindowDismissOnQ();
 }

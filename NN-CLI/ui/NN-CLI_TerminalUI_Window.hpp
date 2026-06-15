@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <memory>
+#include <string>
 #include <vector>
 
 // Forward-declare ncurses WINDOW to avoid pulling in <curses.h> (which defines
@@ -110,6 +111,11 @@ namespace NN_CLI
 
       TerminalUI_Widget* getChild(int index) const;
 
+      //-- Shortcut bar --//
+
+      void setShortcutBar(const std::string& text);
+      const std::string& getShortcutBar() const;
+
       //-- Layout --//
 
       // Reposition and resize all children according to the current window
@@ -131,6 +137,10 @@ namespace NN_CLI
       // before the first render and again before the re-render that
       // follows any consumed input events.
       virtual void preRender() {}
+
+      //-- Shortcut bar --//
+
+      int shortcutBarHeight() const;
 
       //-- Members --//
 
@@ -155,11 +165,16 @@ namespace NN_CLI
       // mutex at a fixed cadence until stopUiThread() clears the flag.
       void uiThreadLoop();
 
+      //-- Shortcut bar --//
+
+      void drawShortcutBar() const;
+
       //-- Members --//
 
       std::unique_ptr<QThread> uiThread;
       std::atomic<bool> uiThreadRunning{false};
       QRecursiveMutex uiMutex;
+      std::string shortcutBar;
   };
 
 } // namespace NN_CLI

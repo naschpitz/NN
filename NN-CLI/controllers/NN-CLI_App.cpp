@@ -133,9 +133,9 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
       annDeviceOverride = Common::Device::nameToType(deviceOverride.value());
 
     if (isPackage) {
-      this->annCoreConfig = ANNLoader::loadConfig(json, packageBinData, annModeOverride, annDeviceOverride);
+      this->annCoreConfig = ANNLoader::loadModelPackage(json, packageBinData, annModeOverride, annDeviceOverride);
     } else {
-      this->annCoreConfig = ANNLoader::loadConfig(json, annModeOverride, annDeviceOverride);
+      this->annCoreConfig = ANNLoader::loadModel(json, annModeOverride, annDeviceOverride);
     }
 
     // Validate parameters for predict/test in non-package mode (plain JSON).
@@ -159,9 +159,9 @@ App::App(const QCommandLineParser& parser, LogLevel logLevel) : parser(parser), 
     this->annCore = ANN::Core<float>::makeCore(this->annCoreConfig);
   } else {
     if (isPackage) {
-      this->cnnCoreConfig = CNNLoader::loadConfig(json, packageBinData, modeOverride, deviceOverride);
+      this->cnnCoreConfig = CNNLoader::loadModelPackage(json, packageBinData, modeOverride, deviceOverride);
     } else {
-      this->cnnCoreConfig = CNNLoader::loadConfig(json, modeOverride, deviceOverride);
+      this->cnnCoreConfig = CNNLoader::loadModel(json, modeOverride, deviceOverride);
     }
 
     // Validate parameters for predict/test in non-package mode (plain JSON).

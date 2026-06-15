@@ -103,7 +103,14 @@ namespace NN_CLI
     if (!this->runner)
       return 1;
 
-    return this->runner->train();
+    int result = this->runner->train();
+
+    // Block on dismiss after training completes when the TUI is active,
+    // so the user can inspect the final loss / validation table.
+    if (this->window && this->window->isInitialized())
+      this->window->waitForDismiss();
+
+    return result;
   }
 
   //===================================================================================================================//
@@ -129,8 +136,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex,
-                                                         ulong totalBatches, bool isValidation)
+  void TrainController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
+                                                      bool isValidation)
   {
     (void)batchIndex;
     (void)totalBatches;
@@ -168,9 +175,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void TrainController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                    float samplesPerSec, float etaSeconds,
-                                                    const std::vector<float>& fractions)
+  void TrainController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
+                                                 float etaSeconds, const std::vector<float>& fractions)
   {
     (void)batchIdx;
     (void)totalBatches;
@@ -198,7 +204,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TrainController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                     float valLoss, const std::string& summary)
+                                                  float valLoss, const std::string& summary)
   {
     if (!this->window)
       return;
@@ -215,6 +221,7 @@ namespace NN_CLI
     lossStream << std::fixed << std::setprecision(6) << epochLoss;
 
     std::string valLossStr;
+
     if (hasValLoss) {
       std::ostringstream valLossStream;
       valLossStream << std::fixed << std::setprecision(6) << valLoss;

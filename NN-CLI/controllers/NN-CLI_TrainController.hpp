@@ -61,7 +61,8 @@ namespace NN_CLI
       void init(std::unique_ptr<RunnerT> runner);
 
       // Trigger the Runner's training process.  Returns the exit code from
-      // RunnerT::train().
+      // RunnerT::train().  When the TUI is active, blocks on waitForDismiss()
+      // after training completes.
       int startTrain();
 
       //-- Accessors --//
