@@ -15,17 +15,17 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> ANNLoader::loadConfig(const std::string& configFilePath,
-                                               std::optional<Common::ModeType> modeType,
-                                               std::optional<Common::DeviceType> deviceType)
+  ANN::CoreConfig<float> ANNLoader::loadModel(const std::string& configFilePath,
+                                              std::optional<Common::ModeType> modeType,
+                                              std::optional<Common::DeviceType> deviceType)
   {
-    return loadConfig(Loader::parseConfigFile(configFilePath), modeType, deviceType);
+    return loadModel(Loader::parseConfigFile(configFilePath), modeType, deviceType);
   }
 
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> ANNLoader::loadConfig(const nlohmann::json& json, std::optional<Common::ModeType> modeType,
-                                               std::optional<Common::DeviceType> deviceType)
+  ANN::CoreConfig<float> ANNLoader::loadModel(const nlohmann::json& json, std::optional<Common::ModeType> modeType,
+                                              std::optional<Common::DeviceType> deviceType)
   {
     ANN::CoreConfig<float> coreConfig;
 
@@ -182,12 +182,12 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  ANN::CoreConfig<float> ANNLoader::loadConfig(const nlohmann::json& json, const std::vector<char>& binParams,
-                                               std::optional<Common::ModeType> modeType,
-                                               std::optional<Common::DeviceType> deviceType)
+  ANN::CoreConfig<float> ANNLoader::loadModelPackage(const nlohmann::json& json, const std::vector<char>& binParams,
+                                                     std::optional<Common::ModeType> modeType,
+                                                     std::optional<Common::DeviceType> deviceType)
   {
     // 1. Call the existing JSON-only version to parse architecture/config
-    auto coreConfig = loadConfig(json, modeType, deviceType);
+    auto coreConfig = loadModel(json, modeType, deviceType);
 
     // 2. If binary params provided, overwrite parameters from binary data
     if (!binParams.empty()) {
