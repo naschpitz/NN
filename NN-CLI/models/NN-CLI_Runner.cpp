@@ -114,6 +114,18 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTrainFinished(bool success, const
 //===================================================================================================================//
 
 template <typename CoreT, typename CoreConfigT>
+void NN_CLI::Runner<CoreT, CoreConfigT>::notifyPredictFinished(const Common::PredictResults<float>& results,
+                                                               size_t numInputs, double durationSeconds,
+                                                               const std::string& durationFormatted,
+                                                               const std::string& outputPath)
+{
+  for (auto* observer : this->observers)
+    observer->onPredictFinished(results, numInputs, durationSeconds, durationFormatted, outputPath);
+}
+
+//===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
 void NN_CLI::Runner<CoreT, CoreConfigT>::notifyModelInfoUpdated(const std::string& property, const std::string& value)
 {
   for (auto* observer : this->observers)
@@ -278,6 +290,14 @@ template <typename CoreT, typename CoreConfigT>
 const CoreConfigT& NN_CLI::Runner<CoreT, CoreConfigT>::getCoreConfig() const
 {
   return this->coreConfig;
+}
+
+//===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
+const NN_CLI::IOConfig& NN_CLI::Runner<CoreT, CoreConfigT>::getIOConfig() const
+{
+  return this->ioConfig;
 }
 
 //===================================================================================================================//
@@ -499,6 +519,107 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
 }
 
 //===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
+std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildPredictModelInfoRows() const
+{
+  std::vector<SummaryRow> rows;
+
+  //-- Device --//
+  std::string deviceStr =
+    SummaryTable::deviceString(this->coreConfig.deviceType, this->coreConfig.numGPUs, this->coreConfig.numThreads);
+  rows.push_back({"Device", deviceStr});
+
+  //-- Network type --//
+  rows.push_back({"Network type", this->getNetworkType()});
+
+  //-- Separator --//
+  rows.push_back({"", ""});
+
+  //-- Layer counts (conv / residual are CNN-only; omit the misleading "0"
+  //   rows for plain ANN models) --//
+  ulong numConvLayers = this->getNumConvLayers();
+  if (numConvLayers > 0)
+    rows.push_back({"Conv layers", std::to_string(numConvLayers)});
+
+  rows.push_back({"Dense layers", std::to_string(this->getNumDenseLayers())});
+
+  ulong numResidualBlocks = this->getNumResidualBlocks();
+  if (numResidualBlocks > 0)
+    rows.push_back({"Residual blocks", std::to_string(numResidualBlocks)});
+
+  //-- Total parameters --//
+  rows.push_back({"Total parameters", SummaryTable::formatWithCommas(this->getTotalParameters())});
+
+  //-- Output classes --//
+  rows.push_back({"Output classes", SummaryTable::formatWithCommas(this->getNumOutputClasses())});
+
+  //-- Separator --//
+  rows.push_back({"", ""});
+
+  //-- Saved training config --//
+  const auto& tc = this->coreConfig.trainConfig;
+  rows.push_back({"Epochs", std::to_string(tc.numEpochs)});
+  rows.push_back({"Batch size", std::to_string(tc.batchSize)});
+
+  std::ostringstream lrOss;
+  lrOss << tc.learningRate;
+  rows.push_back({"Learning rate", lrOss.str()});
+
+  std::string optStr = Common::Optimizer<float>::typeToName(tc.optimizer.type);
+  optStr[0] = toupper(optStr[0]);
+  rows.push_back({"Optimizer", optStr});
+
+  std::string costStr;
+  switch (this->coreConfig.costFunctionConfig.type) {
+  case Common::CostFunctionType::CROSS_ENTROPY:
+    costStr = "Cross-entropy";
+    break;
+  case Common::CostFunctionType::SQUARED_DIFFERENCE:
+    costStr = "Squared difference";
+    break;
+  case Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+    costStr = "Weighted squared difference";
+    break;
+  }
+  rows.push_back({"Cost function", costStr});
+
+  return rows;
+}
+
+//===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
+void NN_CLI::Runner<CoreT, CoreConfigT>::setupPredictProgressCallback(ulong total)
+{
+  if (this->logLevel > LogLevel::QUIET) {
+    this->core->setProgressCallback([this, total](ulong current, ulong /*totalCb*/) {
+      if (total == 0)
+        return;
+
+      // Throttle: only notify every total/progressReports samples.
+      ulong reports = this->ioConfig.progressReports;
+      ulong interval = (reports > 0) ? std::max(static_cast<ulong>(1), total / reports) : 0;
+
+      if (interval == 0)
+        return;
+
+      if (current != total && (current % interval) != 0)
+        return;
+
+      // Compute batch-level progress.
+      int batchIdx = static_cast<int>(current / this->coreConfig.trainConfig.batchSize);
+      int totalBatches = static_cast<int>((total + this->coreConfig.trainConfig.batchSize - 1) /
+                                          this->coreConfig.trainConfig.batchSize);
+
+      float fraction = static_cast<float>(current) / static_cast<float>(total);
+
+      this->notifyBatchProgress(batchIdx, totalBatches, 0.f, 0.f, 0.f, {fraction});
+    });
+  }
+}
+
+//===================================================================================================================//
 //  Shared methods
 //===================================================================================================================//
 
@@ -514,11 +635,11 @@ NN_CLI::ValidationMetadata NN_CLI::Runner<CoreT, CoreConfigT>::buildValidationMe
 template <typename CoreT, typename CoreConfigT>
 int NN_CLI::Runner<CoreT, CoreConfigT>::finishTrain(const QString& inputFilePath)
 {
-  // Defensive: unreachable in normal flow (train() clears loadedEpochHistory after
+  // Defensive: unreachable in normal flow (train() clears loadedTrainMetadata.epochHistory after
   // prepending), kept as safety net against future refactoring.
-  if (!this->coreConfig.loadedEpochHistory.empty()) {
-    this->core->prependEpochHistory(this->coreConfig.loadedEpochHistory);
-    this->coreConfig.loadedEpochHistory.clear();
+  if (!this->coreConfig.loadedTrainMetadata.epochHistory.empty()) {
+    this->core->prependEpochHistory(this->coreConfig.loadedTrainMetadata.epochHistory);
+    this->coreConfig.loadedTrainMetadata.epochHistory.clear();
   }
 
   // Every epoch — including the last — is finalized by the epoch-completed

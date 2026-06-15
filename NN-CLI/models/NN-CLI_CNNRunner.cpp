@@ -274,9 +274,9 @@ int CNNRunner::train()
 
   // Prepend loaded epoch history into the core before training starts, so
   // checkpoints during training serialize the full history, not just new epochs.
-  if (!this->coreConfig.loadedEpochHistory.empty()) {
-    this->core->prependEpochHistory(this->coreConfig.loadedEpochHistory);
-    this->coreConfig.loadedEpochHistory.clear();
+  if (!this->coreConfig.loadedTrainMetadata.epochHistory.empty()) {
+    this->core->prependEpochHistory(this->coreConfig.loadedTrainMetadata.epochHistory);
+    this->coreConfig.loadedTrainMetadata.epochHistory.clear();
   }
 
   // Drive the "Samples" data-loading progress bar: the DataLoader fires this
@@ -372,7 +372,7 @@ int CNNRunner::predict()
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = Common::Utils::formatISO8601();
 
-  NN_CLI::Utils<float>::setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports, "Predicting", inputs.size());
+  this->setupPredictProgressCallback(inputs.size());
 
   // The streaming predict API takes a provider that yields one batch at a
   // time. The batch JSON is already loaded into `inputs`, so we just slice it.
@@ -392,6 +392,8 @@ int CNNRunner::predict()
   std::chrono::duration<double> batchElapsed = batchEnd - batchStart;
   double batchDurationSeconds = batchElapsed.count();
   std::string batchDurationFormatted = Common::Utils::formatDuration(batchDurationSeconds);
+
+  this->notifyPredictFinished(results, inputs.size(), batchDurationSeconds, batchDurationFormatted, outputPath.toStdString());
 
   return NN_CLI::RunnerUtils::writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr, endTimeStr,
                             batchDurationSeconds, batchDurationFormatted, inputs.size());

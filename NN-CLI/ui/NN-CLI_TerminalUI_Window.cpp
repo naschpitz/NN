@@ -8,6 +8,7 @@
 #include <clocale>
 #include <csignal>
 #include <cstdio>
+#include <unistd.h>
 #include <curses.h>
 
 namespace NN_CLI
@@ -43,6 +44,14 @@ namespace NN_CLI
 
   bool TerminalUI_Window::init()
   {
+    // Guard: when stdin is not a terminal (pipes, tests, CI), skip ncurses
+    // entirely so the caller's isInitialized() check gates waitForDismiss()
+    // and the console-only fallback path is taken.
+    if (!::isatty(STDIN_FILENO)) {
+      this->initialized = false;
+      return false;
+    }
+
     if (this->initialized)
       return true;
 

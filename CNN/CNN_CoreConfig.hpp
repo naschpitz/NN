@@ -34,7 +34,7 @@ namespace CNN
       Parameters<T> parameters;
       ulong progressReports = 1000; // Number of progress reports (0 = no reports, default = 1000)
       Common::LogLevel logLevel = Common::LogLevel::ERROR;
-      std::vector<Common::EpochRecord<T>> loadedEpochHistory; // Epoch history loaded from saved model
+      Common::TrainMetadata<T> loadedTrainMetadata{}; // Full training metadata loaded from saved model
   };
 }
 

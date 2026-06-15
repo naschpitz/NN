@@ -53,6 +53,9 @@ namespace NN_CLI
       // Return a const reference to the core configuration.
       const CoreConfigT& getCoreConfig() const;
 
+      // Return a const reference to the I/O configuration.
+      const IOConfig& getIOConfig() const;
+
       // Return formatted timing/profiling lines for display in the TUI timing panel.
       // maxWidth > 0 constrains output to the given column width; maxWidth == 0
       // auto-detects the terminal width.
@@ -114,6 +117,11 @@ namespace NN_CLI
        // used by TrainSummary::collectCNNRows / collectRows.
       std::vector<SummaryRow> buildModelInfoRows() const;
 
+      // Build architecture-focused SummaryRows for the predict TerminalUI
+      // model info panel (Device, Network type, layer counts, parameters,
+      // saved training config).  Omits sample-count and augmentation rows.
+      std::vector<SummaryRow> buildPredictModelInfoRows() const;
+
     protected:
       //-- Methods --//
       ValidationMetadata buildValidationMetadata() const;
@@ -124,6 +132,14 @@ namespace NN_CLI
       // fractions (reset at epoch boundaries) and notifies observers of
       // batch progress.  Thread-safe (locks callbackMutex).
        void handleTrainProgress(const Common::TrainProgressEvent<float>& progress, ulong batchSize);
+
+      // Install a progress callback on the core that notifies observers of
+      // batch progress during predict.  Mirrors the throttling/threshold
+      // behavior of `Utils::setupModeProgressCallback` so it is a drop-in
+      // replacement.  When `logLevel > QUIET` installs a callback that
+      // calls `notifyBatchProgress` with a fraction derived from the
+      // core's sample counter.
+      void setupPredictProgressCallback(ulong total);
 
       //-- Pure virtual --//
       virtual void doSaveModel(const std::string& outputPath) = 0;
@@ -136,8 +152,13 @@ namespace NN_CLI
                                float etaSeconds, const std::vector<float>& fractions);
       void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
                                 const std::string& summary);
-       void notifyTrainFinished(bool success, const std::string& finalSummary);
-      void notifyModelInfoUpdated(const std::string& property, const std::string& value);
+        void notifyTrainFinished(bool success, const std::string& finalSummary);
+       void notifyPredictFinished(const Common::PredictResults<float>& results,
+                                  size_t numInputs,
+                                  double durationSeconds,
+                                  const std::string& durationFormatted,
+                                  const std::string& outputPath);
+       void notifyModelInfoUpdated(const std::string& property, const std::string& value);
       void notifyLogMessage(const std::string& message, bool isError);
       void notifyTimingUpdated(const std::string& metric, float value);
 

@@ -282,6 +282,18 @@ namespace NN_CLI
     if (json.contains("trainMetadata")) {
       const auto& md = json.at("trainMetadata");
 
+      // Parse scalar metadata fields
+      coreConfig.loadedTrainMetadata.startTime = md.value("startTime", "");
+      coreConfig.loadedTrainMetadata.endTime = md.value("endTime", "");
+      coreConfig.loadedTrainMetadata.durationSeconds = md.value("durationSeconds", 0.0);
+      coreConfig.loadedTrainMetadata.durationFormatted = md.value("durationFormatted", "");
+      coreConfig.loadedTrainMetadata.numSamples = md.value("numSamples", 0UL);
+      coreConfig.loadedTrainMetadata.finalLoss = static_cast<float>(md.value("finalLoss", 0.0));
+      coreConfig.loadedTrainMetadata.lastEpoch = md.value("lastEpoch", 0UL);
+      coreConfig.loadedTrainMetadata.stopReason = md.value("stopReason", "");
+      coreConfig.loadedTrainMetadata.bestEpoch = md.value("bestEpoch", 0UL);
+      coreConfig.loadedTrainMetadata.bestLoss = static_cast<float>(md.value("bestLoss", 0.0));
+
       // Set startingEpoch from lastEpoch: lastEpoch is the 0-based index of the
       // last completed epoch, so resume on the next one. E.g. lastEpoch=24
       // (epochs 0..24 done) resumes at startingEpoch=25 (e=25..99 = 75 more).
@@ -293,7 +305,7 @@ namespace NN_CLI
       // Parse epoch history array
       if (md.contains("epochs") && md.at("epochs").is_array()) {
         const auto& epochsArr = md.at("epochs");
-        coreConfig.loadedEpochHistory.reserve(epochsArr.size());
+        coreConfig.loadedTrainMetadata.epochHistory.reserve(epochsArr.size());
 
         for (const auto& recordJson : epochsArr) {
           Common::EpochRecord<float> record;
@@ -308,7 +320,7 @@ namespace NN_CLI
           record.isBest = recordJson.value("isBest", false);
           record.completionTime = recordJson.value("completionTime", 0UL);
 
-          coreConfig.loadedEpochHistory.push_back(record);
+          coreConfig.loadedTrainMetadata.epochHistory.push_back(record);
         }
       }
     }
