@@ -527,6 +527,66 @@ static void testShortcutBarReservesRow()
 
 //===================================================================================================================//
 
+static void testTitleBar()
+{
+  TestScope _t("testTitleBar");
+
+  NN_CLI::TerminalUI_TrainWindow tw;
+  CHECK(tw.getTitleBar() == "---- TRAIN ----", "TrainWindow title bar text");
+  CHECK(tw.getTitleBarColor() == 4, "TrainWindow title bar color");
+
+  NN_CLI::TerminalUI_PredictWindow pw;
+  CHECK(pw.getTitleBar() == "---- PREDICT ----", "PredictWindow title bar text");
+  CHECK(pw.getTitleBarColor() == 1, "PredictWindow title bar color");
+}
+
+//===================================================================================================================//
+
+static void testTitleBarReservesRow()
+{
+  TestScope _t("testTitleBarReservesRow");
+
+  // Regression: drawTitleBar() paints onto the top screen row, so the
+  // panel layout MUST reserve that row.  Before the fix, layout used the full
+  // window height starting at y=0 and the top-most panel's border was
+  // overwritten by the title bar text.
+
+  const int windowW = 80;
+  const int windowH = 24;
+
+  //-- TrainWindow: modelInfo panel is children[2] (top-left) --//
+
+  NN_CLI::TerminalUI_TrainWindow tw;
+  tw.resize(windowW, windowH, 0, 0);
+
+  NN_CLI::TerminalUI_Widget* twTopLeft = tw.getChild(2);
+  CHECK(twTopLeft != nullptr, "TrainWindow modelInfo panel should exist");
+  CHECK(twTopLeft->getY() == 1, "With title bar set, TrainWindow top-left panel should start at row 1");
+
+  // Clearing the title bar frees the row again (titleBarHeight()==0).
+  tw.setTitleBar("", 0);
+  tw.resize(windowW, windowH, 0, 0);
+  twTopLeft = tw.getChild(2);
+  CHECK(twTopLeft->getY() == 0, "Without title bar, TrainWindow top-left panel should start at row 0");
+
+  //-- PredictWindow: modelInfo panel is children[1] (top-left) --//
+
+  NN_CLI::TerminalUI_PredictWindow pw;
+  pw.resize(windowW, windowH, 0, 0);
+
+  NN_CLI::TerminalUI_Widget* pwTopLeft = pw.getChild(1);
+  CHECK(pwTopLeft != nullptr, "PredictWindow modelInfo panel should exist");
+  CHECK(pwTopLeft->getY() == 1, "With title bar set, PredictWindow top-left panel should start at row 1");
+
+  // Clearing the title bar frees the row again (titleBarHeight()==0).
+  pw.setTitleBar("", 0);
+  pw.resize(windowW, windowH, 0, 0);
+  pwTopLeft = pw.getChild(1);
+  CHECK(pwTopLeft->getY() == 0, "Without title bar, PredictWindow top-left panel should start at row 0");
+}
+
+//===================================================================================================================//
+
 static void testTrainWindowDismissOnQ()
 {
   TestScope _t("testTrainWindowDismissOnQ");
@@ -606,6 +666,8 @@ void runTerminalUITests()
   testPredictWindowChildCount();
   testShortcutBar();
   testShortcutBarReservesRow();
+  testTitleBar();
+  testTitleBarReservesRow();
   testTrainWindowDismissOnQ();
   testTrainWindowAbortRequested();
   testPredictWindowAbortRequested();

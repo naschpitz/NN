@@ -191,12 +191,13 @@ namespace NN_CLI
 
   void TerminalUI_Window::layoutChildren()
   {
-    // Reserve the bottom row(s) for the shortcut bar so children never
-    // occupy the row drawShortcutBar() later paints onto in render().
-    int h = std::max(0, this->height - this->shortcutBarHeight());
+    // Reserve the top row for the title bar and the bottom row(s) for the
+    // shortcut bar so children never occupy the rows drawTitleBar() and
+    // drawShortcutBar() later paint onto in render().
+    int h = std::max(0, this->height - this->shortcutBarHeight() - this->titleBarHeight());
 
     for (auto& child : this->children)
-      child->resize(this->width, h, this->x, this->y);
+      child->resize(this->width, h, this->x, this->y + this->titleBarHeight());
   }
 
   //===================================================================================================================//
@@ -257,6 +258,7 @@ namespace NN_CLI
     for (auto& child : this->children)
       child->draw();
 
+    this->drawTitleBar();
     this->drawShortcutBar();
 
     ::refresh();
@@ -359,6 +361,59 @@ namespace NN_CLI
     int n = std::min<int>(static_cast<int>(this->shortcutBar.size()), this->cols);
     mvaddnstr(lastRow, 0, this->shortcutBar.c_str(), n);
     attroff(COLOR_PAIR(8));
+  }
+
+  //===================================================================================================================//
+  //-- Title bar --//
+  //===================================================================================================================//
+
+  void TerminalUI_Window::setTitleBar(const std::string& text, int colorPair)
+  {
+    this->titleBar = text;
+    this->titleBarColor = colorPair;
+  }
+
+  //===================================================================================================================//
+
+  const std::string& TerminalUI_Window::getTitleBar() const
+  {
+    return this->titleBar;
+  }
+
+  //===================================================================================================================//
+
+  int TerminalUI_Window::getTitleBarColor() const
+  {
+    return this->titleBarColor;
+  }
+
+  //===================================================================================================================//
+
+  int TerminalUI_Window::titleBarHeight() const
+  {
+    return this->titleBar.empty() ? 0 : 1;
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_Window::drawTitleBar() const
+  {
+    if (this->titleBar.empty())
+      return;
+
+    ::move(0, 0);
+    ::clrtoeol();
+
+    int len = static_cast<int>(this->titleBar.size());
+    int startX = std::max(0, (this->cols - len) / 2);
+
+    if (this->titleBarColor > 0)
+      attron(COLOR_PAIR(this->titleBarColor));
+
+    mvaddnstr(0, startX, this->titleBar.c_str(), std::min(len, this->cols));
+
+    if (this->titleBarColor > 0)
+      attroff(COLOR_PAIR(this->titleBarColor));
   }
 
 } // namespace NN_CLI

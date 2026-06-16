@@ -57,6 +57,7 @@ namespace NN_CLI
     });
 
     this->setShortcutBar("Tab: panels ↑↓: scroll PgUp/PgDn: page Home/End: top/bottom q/ESC: quit");
+    this->setTitleBar("---- TRAIN ----", 4);
   }
 
   //===================================================================================================================//
@@ -70,7 +71,8 @@ namespace NN_CLI
   void TerminalUI_TrainWindow::layoutChildren()
   {
     int W = this->width;
-    int H = this->height - this->shortcutBarHeight();
+    int H = this->height - this->shortcutBarHeight() - this->titleBarHeight();
+    int titleH = this->titleBarHeight();
 
     if (W <= 0 || H <= 0)
       return;
@@ -100,20 +102,20 @@ namespace NN_CLI
     int epochsH = std::max(0, remainingH - modelInfoH);
 
     //-- Position panels --//
-    //   modelInfoPanel  — top-left:       (0, 0)            size: (leftW, modelInfoH)
-    //   epochsPanel     — bottom-left:    (0, modelInfoH)   size: (leftW, epochsH)
-    //   timingPanel     — right column:   (leftW, 0)        size: (timingW, remainingH)
-    //   progressPanel   — bottom full:    (0, H - progressH) size: (W, progressH)
+    //   modelInfoPanel  — top-left:       (0, titleH)           size: (leftW, modelInfoH)
+    //   epochsPanel     — bottom-left:    (0, modelInfoH + titleH)   size: (leftW, epochsH)
+    //   timingPanel     — right column:   (leftW, titleH)           size: (timingW, remainingH)
+    //   progressPanel   — bottom full:    (0, H - progressH + titleH)  size: (W, progressH)
 
     if (this->childCount() < 4)
       return;
 
-    this->children[0]->resize(W, progressH, 0, H - progressH);
-    this->children[1]->resize(leftW, epochsH, 0, modelInfoH);
-    this->children[2]->resize(leftW, modelInfoH, 0, 0);
+    this->children[0]->resize(W, progressH, 0, H - progressH + titleH);
+    this->children[1]->resize(leftW, epochsH, 0, modelInfoH + titleH);
+    this->children[2]->resize(leftW, modelInfoH, 0, titleH);
 
     if (timingW > 0)
-      this->children[3]->resize(timingW, remainingH, leftW, 0);
+      this->children[3]->resize(timingW, remainingH, leftW, titleH);
     else
       this->children[3]->resize(0, 0, 0, 0);
 
@@ -123,7 +125,7 @@ namespace NN_CLI
     // "Samples" loading bar on top (1 row) and the training bar below it
     // (remaining rows = bar + sub-line).
     int contentX = 2; // progress panel x (0) + border/pad
-    int contentY = (H - progressH) + 1; // progress panel y + top border
+    int contentY = (H - progressH + titleH) + 1; // progress panel y + top border
     int contentW = std::max(1, W - 4);
     int contentH = std::max(0, progressH - 2);
 

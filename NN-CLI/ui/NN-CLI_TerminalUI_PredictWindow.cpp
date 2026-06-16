@@ -62,6 +62,7 @@ namespace NN_CLI
     });
 
     this->setShortcutBar("Tab: panels ↑↓: scroll PgUp/PgDn: page Home/End: top/bottom q/ESC: quit");
+    this->setTitleBar("---- PREDICT ----", 1);
   }
 
   //===================================================================================================================//
@@ -75,7 +76,8 @@ namespace NN_CLI
   void TerminalUI_PredictWindow::layoutChildren()
   {
     int W = this->width;
-    int H = this->height - this->shortcutBarHeight();
+    int H = this->height - this->shortcutBarHeight() - this->titleBarHeight();
+    int titleH = this->titleBarHeight();
 
     if (W <= 0 || H <= 0)
       return;
@@ -111,22 +113,22 @@ namespace NN_CLI
     if (this->childCount() < 5)
       return;
 
-    this->children[0]->resize(W, progressH, 0, H - progressH);
-    this->children[1]->resize(leftW, topRowH, 0, 0);
-    this->children[2]->resize(rightW, topRowH, leftW, 0);
+    this->children[0]->resize(W, progressH, 0, H - progressH + titleH);
+    this->children[1]->resize(leftW, topRowH, 0, titleH);
+    this->children[2]->resize(rightW, topRowH, leftW, titleH);
 
     if (bottomRowH > 0) {
-      this->children[3]->resize(leftW, bottomRowH, 0, topRowH);
-      this->children[4]->resize(rightW, bottomRowH, leftW, topRowH);
+      this->children[3]->resize(leftW, bottomRowH, 0, topRowH + titleH);
+      this->children[4]->resize(rightW, bottomRowH, leftW, topRowH + titleH);
     } else {
-      this->children[3]->resize(0, 0, 0, 0);
-      this->children[4]->resize(0, 0, 0, 0);
+      this->children[3]->resize(0, 0, 0, titleH);
+      this->children[4]->resize(0, 0, 0, titleH);
     }
 
     //-- Stack the two progress bars inside the progress panel --//
 
     int contentX = 2; // progress panel x (0) + border/pad
-    int contentY = (H - progressH) + 1; // progress panel y + top border
+    int contentY = (H - progressH) + titleH + 1; // progress panel y + title bar offset + top border
     int contentW = std::max(1, W - 4);
     int contentH = std::max(0, progressH - 2);
 

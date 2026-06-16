@@ -116,6 +116,12 @@ namespace NN_CLI
       void setShortcutBar(const std::string& text);
       const std::string& getShortcutBar() const;
 
+      //-- Title bar --//
+
+      void setTitleBar(const std::string& text, int colorPair);
+      const std::string& getTitleBar() const;
+      int getTitleBarColor() const;
+
       //-- Layout --//
 
       // Reposition and resize all children according to the current window
@@ -141,6 +147,10 @@ namespace NN_CLI
       //-- Shortcut bar --//
 
       int shortcutBarHeight() const;
+
+      //-- Title bar --//
+
+      int titleBarHeight() const;
 
       //-- Members --//
 
@@ -169,12 +179,18 @@ namespace NN_CLI
 
       void drawShortcutBar() const;
 
+      //-- Title bar --//
+
+      void drawTitleBar() const;
+
       //-- Members --//
 
       std::unique_ptr<QThread> uiThread;
       std::atomic<bool> uiThreadRunning{false};
       QRecursiveMutex uiMutex;
       std::string shortcutBar;
+      std::string titleBar;
+      int titleBarColor = 0;
   };
 
 } // namespace NN_CLI
