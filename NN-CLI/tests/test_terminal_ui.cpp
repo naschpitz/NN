@@ -424,7 +424,7 @@ static void testPredictWindowDismissOnQ()
 
   NN_CLI::TerminalUI_PredictWindow pw;
   CHECK(pw.handleEvent('q'), "handleEvent 'q' should set dismissed flag and return true");
-  // waitForDismiss should return immediately since dismissed_ is already true.
+  // waitForDismiss should return immediately since dismissed is already true.
   pw.waitForDismiss();
   CHECK(true, "waitForDismiss returned immediately after 'q' dismiss");
   CHECK(!pw.handleEvent('\n'), "Enter should NOT dismiss PredictWindow");

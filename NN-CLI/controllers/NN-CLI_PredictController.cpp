@@ -48,7 +48,7 @@ namespace NN_CLI
   template <typename RunnerT>
   void PredictController<RunnerT>::init(std::unique_ptr<RunnerT> runner)
   {
-    this->window_ = std::make_unique<TerminalUI_PredictWindow>();
+    this->window = std::make_unique<TerminalUI_PredictWindow>();
     this->runner = std::move(runner);
 
     if (this->runner)
@@ -57,11 +57,11 @@ namespace NN_CLI
     // Initialize the ncurses TUI.  If init fails (e.g. no TTY attached),
     // the window gracefully degrades — the UI thread is never started, so
     // the prediction proceeds with console-only output from the Runner.
-    if (this->window_ && this->window_->init()) {
+    if (this->window && this->window->init()) {
       this->populateModelInfo();
       this->populateTrainMeta();
       this->populateProgress();
-      this->window_->startUiThread();
+      this->window->startUiThread();
     }
   }
 
@@ -76,8 +76,8 @@ namespace NN_CLI
     int r = this->runner->predict();
 
     // Block on dismiss after predict completes when the TUI is active.
-    if (this->window_ && this->window_->isInitialized())
-      this->window_->waitForDismiss();
+    if (this->window && this->window->isInitialized())
+      this->window->waitForDismiss();
 
     return r;
   }
@@ -90,7 +90,7 @@ namespace NN_CLI
     if (this->runner)
       this->runner->removeObserver(this);
 
-    this->window_.reset();
+    this->window.reset();
   }
 
   //===================================================================================================================//
@@ -108,7 +108,7 @@ namespace NN_CLI
   template <typename RunnerT>
   TerminalUI_PredictWindow* PredictController<RunnerT>::getWindow() const
   {
-    return this->window_.get();
+    return this->window.get();
   }
 
   //===================================================================================================================//
@@ -123,14 +123,14 @@ namespace NN_CLI
     (void)totalBatches;
     (void)isValidation;
 
-    if (!this->window_ || !this->window_->isInitialized())
+    if (!this->window || !this->window->isInitialized())
       return;
 
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
-    this->window_->setLoadingProgress("Samples " + std::to_string(current) + "/" + std::to_string(total), fraction);
+    this->window->setLoadingProgress("Samples " + std::to_string(current) + "/" + std::to_string(total), fraction);
   }
 
   //===================================================================================================================//
@@ -138,13 +138,13 @@ namespace NN_CLI
   template <typename RunnerT>
   void PredictController<RunnerT>::onValidationProgress(ulong current, ulong total)
   {
-    if (!this->window_ || !this->window_->isInitialized())
+    if (!this->window || !this->window->isInitialized())
       return;
 
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
-    this->window_->updateProgress("Validating", fraction);
+    this->window->updateProgress("Validating", fraction);
   }
 
   //===================================================================================================================//
@@ -158,7 +158,7 @@ namespace NN_CLI
     (void)samplesPerSec;
     (void)etaSeconds;
 
-    if (!this->window_ || !this->window_->isInitialized()) {
+    if (!this->window || !this->window->isInitialized()) {
       // Console fallback.
       float fraction = fractions.empty() ? 0.0f : fractions[0];
       std::cout << "\r  Progress: " << (batchIdx + 1) << "/" << totalBatches << " (" << std::fixed
@@ -166,15 +166,15 @@ namespace NN_CLI
       return;
     }
 
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     this->checkAbortRequested();
 
     float fraction = fractions.empty() ? 0.0f : fractions[0];
-    this->window_->updateProgress("Predicting " + std::to_string(batchIdx + 1) + "/" + std::to_string(totalBatches),
-                                  fraction);
-    this->window_->updateProgressSubLine(std::to_string(batchIdx + 1) + "/" + std::to_string(totalBatches) + " (" +
-                                         std::to_string(static_cast<int>(fraction * 100)) + "%)");
+    this->window->updateProgress("Predicting " + std::to_string(batchIdx + 1) + "/" + std::to_string(totalBatches),
+                                 fraction);
+    this->window->updateProgressSubLine(std::to_string(batchIdx + 1) + "/" + std::to_string(totalBatches) + " (" +
+                                        std::to_string(static_cast<int>(fraction * 100)) + "%)");
   }
 
   //===================================================================================================================//
@@ -190,14 +190,14 @@ namespace NN_CLI
     (void)valLoss;
 
     // When the TUI is not active, print to console for interface completeness.
-    if (!this->window_ || !this->window_->isInitialized()) {
+    if (!this->window || !this->window->isInitialized()) {
       std::cout << summary << "\n";
       return;
     }
 
     // When the TUI is active these events are informational only.
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
-    this->window_->updateProgressSubLine(summary);
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
+    this->window->updateProgressSubLine(summary);
   }
 
   //===================================================================================================================//
@@ -205,16 +205,16 @@ namespace NN_CLI
   template <typename RunnerT>
   void PredictController<RunnerT>::onTrainFinished(bool success, const std::string& finalSummary)
   {
-    if (!this->window_ || !this->window_->isInitialized()) {
+    if (!this->window || !this->window->isInitialized()) {
       std::string prefix = success ? "[Predict complete] " : "[Predict failed] ";
       std::cout << "\n" << prefix << finalSummary << "\n";
       return;
     }
 
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     std::string prefix = success ? "[Predict complete] " : "[Predict failed] ";
-    this->window_->updateProgressSubLine(prefix + finalSummary);
+    this->window->updateProgressSubLine(prefix + finalSummary);
   }
 
   //===================================================================================================================//
@@ -226,16 +226,16 @@ namespace NN_CLI
   {
     (void)durationSeconds;
 
-    if (!this->window_ || !this->window_->isInitialized())
+    if (!this->window || !this->window->isInitialized())
       return;
 
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     const auto& ioConfig = this->runner->getIOConfig();
 
     // Image output: single summary line.
     if (ioConfig.outputType == DataType::IMAGE) {
-      this->window_->addResultRow({"", std::to_string(numInputs) + " image outputs -> " + outputPath, ""});
+      this->window->addResultRow({"", std::to_string(numInputs) + " image outputs -> " + outputPath, ""});
     } else {
       // Vector output: one row per sample.
       for (size_t i = 0; i < results.size(); ++i) {
@@ -254,13 +254,13 @@ namespace NN_CLI
         std::string classStr = std::to_string(predictedClass);
         std::string pctStr = std::to_string(static_cast<int>(confidence * 100)) + "%";
 
-        this->window_->addResultRow({std::to_string(i), classStr, pctStr});
+        this->window->addResultRow({std::to_string(i), classStr, pctStr});
       }
     }
 
-    this->window_->refreshResultsContent();
-    this->window_->updateProgress("Predicting", 1.0f);
-    this->window_->updateProgressSubLine("Done — " + durationFormatted + ", output: " + outputPath);
+    this->window->refreshResultsContent();
+    this->window->updateProgress("Predicting", 1.0f);
+    this->window->updateProgressSubLine("Done — " + durationFormatted + ", output: " + outputPath);
   }
 
   //===================================================================================================================//
@@ -271,15 +271,15 @@ namespace NN_CLI
     (void)property;
     (void)value;
 
-    if (!this->window_ || !this->window_->isInitialized())
+    if (!this->window || !this->window->isInitialized())
       return;
 
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     // Re-fetch the full row set from the Runner (e.g. sample counts may have
     // been updated once the dataset is loaded).
-    this->window_->setModelInfoRows(this->runner->buildPredictModelInfoRows());
-    this->window_->refreshModelInfoContent();
+    this->window->setModelInfoRows(this->runner->buildPredictModelInfoRows());
+    this->window->refreshModelInfoContent();
   }
 
   //===================================================================================================================//
@@ -288,7 +288,7 @@ namespace NN_CLI
   void PredictController<RunnerT>::onLogMessage(const std::string& message, bool isError)
   {
     // When the TUI is not active, fall back to console output.
-    if (!this->window_ || !this->window_->isInitialized()) {
+    if (!this->window || !this->window->isInitialized()) {
       if (isError)
         std::cerr << "[ERROR] " << message << "\n";
       else
@@ -309,7 +309,7 @@ namespace NN_CLI
     (void)metric;
     (void)value;
 
-    if (!this->window_ || !this->window_->isInitialized()) {
+    if (!this->window || !this->window->isInitialized()) {
       std::cout << "  " << metric << ": " << std::fixed << std::setprecision(2) << value << " ms\n";
       return;
     }
@@ -325,16 +325,16 @@ namespace NN_CLI
   template <typename RunnerT>
   void PredictController<RunnerT>::populateModelInfo()
   {
-    if (!this->window_ || !this->window_->isInitialized())
+    if (!this->window || !this->window->isInitialized())
       return;
 
     if (!this->runner)
       return;
 
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
-    this->window_->setModelInfoRows(this->runner->buildPredictModelInfoRows());
-    this->window_->refreshModelInfoContent();
+    this->window->setModelInfoRows(this->runner->buildPredictModelInfoRows());
+    this->window->refreshModelInfoContent();
   }
 
   //===================================================================================================================//
@@ -344,13 +344,13 @@ namespace NN_CLI
   template <typename RunnerT>
   void PredictController<RunnerT>::populateTrainMeta()
   {
-    if (!this->window_ || !this->window_->isInitialized())
+    if (!this->window || !this->window->isInitialized())
       return;
 
     if (!this->runner)
       return;
 
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     const auto& config = this->runner->getCoreConfig();
     const auto& tm = config.loadedTrainMetadata;
@@ -365,8 +365,8 @@ namespace NN_CLI
     lines.push_back(::formatPadded("Stop Reason:", 22) + tm.stopReason);
     lines.push_back(::formatPadded("Epochs Trained:", 22) + std::to_string(tm.lastEpoch));
 
-    this->window_->setEpochHistoryLines(lines);
-    this->window_->refreshEpochHistoryContent();
+    this->window->setEpochHistoryLines(lines);
+    this->window->refreshEpochHistoryContent();
   }
 
   //===================================================================================================================//
@@ -376,10 +376,10 @@ namespace NN_CLI
   template <typename RunnerT>
   void PredictController<RunnerT>::checkAbortRequested()
   {
-    if (this->window_ && this->window_->abortRequested() && !this->abortHandled) {
+    if (this->window && this->window->abortRequested() && !this->abortHandled) {
       this->abortHandled = true;
       this->runner->requestAbort();
-      this->window_->updateProgressSubLine("Prediction aborted by user.");
+      this->window->updateProgressSubLine("Prediction aborted by user.");
     }
   }
 
@@ -390,12 +390,12 @@ namespace NN_CLI
   template <typename RunnerT>
   void PredictController<RunnerT>::populateProgress()
   {
-    if (!this->window_ || !this->window_->isInitialized())
+    if (!this->window || !this->window->isInitialized())
       return;
 
-    QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
+    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
-    this->window_->updateProgress("Predicting 0/0", 0.0f);
+    this->window->updateProgress("Predicting 0/0", 0.0f);
   }
 
   //===================================================================================================================//

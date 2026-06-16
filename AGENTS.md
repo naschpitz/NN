@@ -85,6 +85,7 @@ Static member init at top; template instantiations at bottom.
 - Files: `<Prefix>_<Name>.{hpp,cpp}` (e.g. `CNN_CoreCPU.cpp`, `NN-CLI_Runner.cpp`)
 - Namespaces: `ANN`, `CNN`, `NN_CLI` (PascalCase, not lowercase)
 - Types: PascalCase · methods/vars: camelCase · member access: `this->`
+- **No trailing underscores on member variable names** (e.g. `foo_` → `foo`).
 
 ## Principles
 

@@ -413,7 +413,7 @@ namespace NN_CLI
 
   void TerminalUI_PredictWindow::waitForDismiss()
   {
-    while (!this->dismissed_.load())
+    while (!this->dismissed.load())
       QThread::msleep(50);
   }
 
@@ -470,7 +470,7 @@ namespace NN_CLI
   {
     // Dismiss keys: 'q', 'Q', ESC (27)
     if (ch == 'q' || ch == 'Q' || ch == 27) {
-      this->dismissed_.store(true);
+      this->dismissed.store(true);
       return true;
     }
 

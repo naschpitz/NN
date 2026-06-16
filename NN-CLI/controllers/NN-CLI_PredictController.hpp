@@ -105,7 +105,7 @@ namespace NN_CLI
 
       //-- Members --//
 
-      std::unique_ptr<TerminalUI_PredictWindow> window_;
+      std::unique_ptr<TerminalUI_PredictWindow> window;
       std::unique_ptr<RunnerT> runner;
       bool abortHandled = false;
   };

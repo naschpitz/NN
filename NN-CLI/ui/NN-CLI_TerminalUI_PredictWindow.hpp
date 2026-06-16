@@ -166,7 +166,7 @@ namespace NN_CLI
       // Return true if the user has requested an abort (pressed 'q', 'Q', or ESC).
       bool abortRequested() const
       {
-        return this->dismissed_.load();
+        return this->dismissed.load();
       }
 
       //-- Widget overrides --//
@@ -224,7 +224,7 @@ namespace NN_CLI
       int activePanel = 0;
 
       // Set to true when the user presses a dismiss key.
-      std::atomic<bool> dismissed_{false};
+      std::atomic<bool> dismissed{false};
 
       //-- Layout constants --//
 

@@ -8,6 +8,13 @@ repos:
         types_or: [c, c++]
         exclude: '^(libs/|extern/)'
 
+      - id: forbid-trailing-underscore
+        name: forbid trailing-underscore identifiers
+        entry: python3 scripts/forbid-trailing-underscore.py
+        language: system
+        types_or: [c, c++]
+        exclude: '^(libs/|extern/)'
+
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v18.1.8
     hooks:
