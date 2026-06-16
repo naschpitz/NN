@@ -63,7 +63,7 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
       ulong endIdx;
   };
 
-  for (ulong batchIndex = 0; batchIndex < numBatches; batchIndex++) {
+  for (ulong batchIndex = 0; batchIndex < numBatches && !this->stopRequested.load(); batchIndex++) {
     Inputs<T> batch = provider(batchSize, batchIndex);
     ulong batchN = batch.size();
 
@@ -259,6 +259,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         QtConcurrent::blockingMap(&this->workerPool, gpuIndices, [this, currentBatchSize](size_t gpuIdx) {
           this->gpuWorkers[gpuIdx]->update(currentBatchSize);
         });
+
         this->emitTiming(TimingPhase::WeightUpdate, TimingEvent::End);
       }
 
@@ -273,6 +274,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
           this->gpuWorkers[gpuIdx]->restoreKernels(savedKernels[gpuIdx]);
           this->gpuWorkers[gpuIdx]->setTrainKernelsReady(true);
         });
+
         this->emitTiming(TimingPhase::KernelRestore, TimingEvent::End);
       }
     }

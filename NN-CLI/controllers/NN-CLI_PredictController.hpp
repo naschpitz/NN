@@ -79,11 +79,8 @@ namespace NN_CLI
 
       void onTrainFinished(bool success, const std::string& finalSummary) override;
 
-      void onPredictFinished(const Common::PredictResults<float>& results,
-                             size_t numInputs,
-                             double durationSeconds,
-                             const std::string& durationFormatted,
-                             const std::string& outputPath) override;
+      void onPredictFinished(const Common::PredictResults<float>& results, size_t numInputs, double durationSeconds,
+                             const std::string& durationFormatted, const std::string& outputPath) override;
 
       void onModelInfoUpdated(const std::string& property, const std::string& value) override;
 
@@ -103,10 +100,14 @@ namespace NN_CLI
       // Seed the progress bar with initial state.
       void populateProgress();
 
+      // Check if the user requested abort via the window and forward it to the runner.
+      void checkAbortRequested();
+
       //-- Members --//
 
       std::unique_ptr<TerminalUI_PredictWindow> window_;
       std::unique_ptr<RunnerT> runner;
+      bool abortHandled = false;
   };
 
   //===================================================================================================================//

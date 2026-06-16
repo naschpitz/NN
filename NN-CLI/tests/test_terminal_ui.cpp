@@ -540,6 +540,56 @@ static void testTrainWindowDismissOnQ()
 
 //===================================================================================================================//
 
+static void testTrainWindowAbortRequested()
+{
+  TestScope _t("testTrainWindowAbortRequested");
+
+  // Initially abortRequested() must be false.
+  NN_CLI::TerminalUI_TrainWindow tw;
+  CHECK(!tw.abortRequested(), "abortRequested() should be false initially");
+
+  // Pressing 'q' sets the abort flag.
+  tw.handleEvent('q');
+  CHECK(tw.abortRequested(), "abortRequested() should be true after handleEvent('q')");
+
+  // 'Q' also sets the abort flag on a fresh window.
+  NN_CLI::TerminalUI_TrainWindow tw2;
+  tw2.handleEvent('Q');
+  CHECK(tw2.abortRequested(), "abortRequested() should be true after handleEvent('Q')");
+
+  // ESC (27) also sets the abort flag.
+  NN_CLI::TerminalUI_TrainWindow tw3;
+  tw3.handleEvent(27);
+  CHECK(tw3.abortRequested(), "abortRequested() should be true after handleEvent(27/ESC)");
+}
+
+//===================================================================================================================//
+
+static void testPredictWindowAbortRequested()
+{
+  TestScope _t("testPredictWindowAbortRequested");
+
+  // Initially abortRequested() must be false.
+  NN_CLI::TerminalUI_PredictWindow pw;
+  CHECK(!pw.abortRequested(), "abortRequested() should be false initially");
+
+  // Pressing 'q' sets the abort flag.
+  pw.handleEvent('q');
+  CHECK(pw.abortRequested(), "abortRequested() should be true after handleEvent('q')");
+
+  // 'Q' also sets the abort flag on a fresh window.
+  NN_CLI::TerminalUI_PredictWindow pw2;
+  pw2.handleEvent('Q');
+  CHECK(pw2.abortRequested(), "abortRequested() should be true after handleEvent('Q')");
+
+  // ESC (27) also sets the abort flag.
+  NN_CLI::TerminalUI_PredictWindow pw3;
+  pw3.handleEvent(27);
+  CHECK(pw3.abortRequested(), "abortRequested() should be true after handleEvent(27/ESC)");
+}
+
+//===================================================================================================================//
+
 void runTerminalUITests()
 {
   testTrainWindowCycleActivePanel();
@@ -557,4 +607,6 @@ void runTerminalUITests()
   testShortcutBar();
   testShortcutBarReservesRow();
   testTrainWindowDismissOnQ();
+  testTrainWindowAbortRequested();
+  testPredictWindowAbortRequested();
 }

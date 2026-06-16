@@ -49,7 +49,7 @@ namespace NN_CLI
   void PredictController<RunnerT>::init(std::unique_ptr<RunnerT> runner)
   {
     this->window_ = std::make_unique<TerminalUI_PredictWindow>();
-    this->runner  = std::move(runner);
+    this->runner = std::move(runner);
 
     if (this->runner)
       this->runner->addObserver(this);
@@ -117,7 +117,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void PredictController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex,
-                                                           ulong totalBatches, bool isValidation)
+                                                        ulong totalBatches, bool isValidation)
   {
     (void)batchIndex;
     (void)totalBatches;
@@ -151,8 +151,8 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void PredictController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                      float samplesPerSec, float etaSeconds,
-                                                      const std::vector<float>& fractions)
+                                                   float samplesPerSec, float etaSeconds,
+                                                   const std::vector<float>& fractions)
   {
     (void)currentLoss;
     (void)samplesPerSec;
@@ -168,6 +168,8 @@ namespace NN_CLI
 
     QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
 
+    this->checkAbortRequested();
+
     float fraction = fractions.empty() ? 0.0f : fractions[0];
     this->window_->updateProgress("Predicting " + std::to_string(batchIdx + 1) + "/" + std::to_string(totalBatches),
                                   fraction);
@@ -179,7 +181,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void PredictController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                       float valLoss, const std::string& summary)
+                                                    float valLoss, const std::string& summary)
   {
     (void)epochIdx;
     (void)totalEpochs;
@@ -218,11 +220,9 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename RunnerT>
-  void PredictController<RunnerT>::onPredictFinished(const Common::PredictResults<float>& results,
-                                                        size_t numInputs,
-                                                        double durationSeconds,
-                                                        const std::string& durationFormatted,
-                                                        const std::string& outputPath)
+  void PredictController<RunnerT>::onPredictFinished(const Common::PredictResults<float>& results, size_t numInputs,
+                                                     double durationSeconds, const std::string& durationFormatted,
+                                                     const std::string& outputPath)
   {
     (void)durationSeconds;
 
@@ -242,17 +242,17 @@ namespace NN_CLI
         const auto& r = results[i];
 
         size_t predictedClass = 0;
-        float  confidence     = 0.0f;
+        float confidence = 0.0f;
 
         for (size_t j = 0; j < r.output.size(); ++j) {
           if (r.output[j] > confidence) {
-            confidence     = r.output[j];
+            confidence = r.output[j];
             predictedClass = j;
           }
         }
 
         std::string classStr = std::to_string(predictedClass);
-        std::string pctStr   = std::to_string(static_cast<int>(confidence * 100)) + "%";
+        std::string pctStr = std::to_string(static_cast<int>(confidence * 100)) + "%";
 
         this->window_->addResultRow({std::to_string(i), classStr, pctStr});
       }
@@ -353,7 +353,7 @@ namespace NN_CLI
     QMutexLocker<QRecursiveMutex> lock(&this->window_->getMutex());
 
     const auto& config = this->runner->getCoreConfig();
-    const auto& tm     = config.loadedTrainMetadata;
+    const auto& tm = config.loadedTrainMetadata;
 
     std::vector<std::string> lines;
 
@@ -367,6 +367,20 @@ namespace NN_CLI
 
     this->window_->setEpochHistoryLines(lines);
     this->window_->refreshEpochHistoryContent();
+  }
+
+  //===================================================================================================================//
+  //-- Private — abort check --//
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  void PredictController<RunnerT>::checkAbortRequested()
+  {
+    if (this->window_ && this->window_->abortRequested() && !this->abortHandled) {
+      this->abortHandled = true;
+      this->runner->requestAbort();
+      this->window_->updateProgressSubLine("Prediction aborted by user.");
+    }
   }
 
   //===================================================================================================================//

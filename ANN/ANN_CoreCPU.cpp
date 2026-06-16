@@ -67,8 +67,8 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> extraWorkers;
 
   for (int i = 1; i < numThreads; i++) {
-    extraWorkers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainConfig,
-                                                              this->parameters, this->costFunctionConfig, false));
+    extraWorkers.push_back(std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainConfig, this->parameters,
+                                                              this->costFunctionConfig, false));
   }
 
   std::vector<CoreCPUWorker<T>*> workerPtrs;
@@ -87,7 +87,7 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
   ulong numBatches = (numSamples + batchSize - 1) / batchSize;
   std::atomic<ulong> completedInputs{0};
 
-  for (ulong batchIndex = 0; batchIndex < numBatches; batchIndex++) {
+  for (ulong batchIndex = 0; batchIndex < numBatches && !this->stopRequested.load(); batchIndex++) {
     Inputs<T> batch = provider(batchSize, batchIndex);
     ulong batchN = batch.size();
 

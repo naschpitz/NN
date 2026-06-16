@@ -105,6 +105,9 @@ namespace NN_CLI
       // Refresh the timing panel content from the runner's profiling data.
       void refreshTimingPanel();
 
+      // Check the window's abort flag and forward it to the runner.
+      void checkAbortRequested();
+
       //-- Members --//
 
       std::unique_ptr<TerminalUI_TrainWindow> window;
@@ -115,6 +118,7 @@ namespace NN_CLI
       int currentEpoch = 0;
       int totalEpochs = 0;
       bool isValidating = false;
+      bool abortHandled = false;
   };
 
   //===================================================================================================================//

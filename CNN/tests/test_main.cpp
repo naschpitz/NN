@@ -30,6 +30,8 @@ void runGPUExactGlobalPoolTests();
 void runGPUExactBNTests();
 void runGPUBatchNormTests();
 void runGPUBatchNormTests2();
+void runPredictStopTests();
+void runTrainStopTests();
 
 int main()
 {
@@ -67,6 +69,14 @@ int main()
   runGPUExactBNTests();
   runGPUBatchNormTests();
   runGPUBatchNormTests2();
+
+  std::cout << std::endl;
+  std::cout << "=== Predict Stop Tests ===" << std::endl;
+  runPredictStopTests();
+
+  std::cout << std::endl;
+  std::cout << "=== Train Stop Tests ===" << std::endl;
+  runTrainStopTests();
 
   std::cout << std::endl;
   std::cout << "=== Results: " << testsPassed << " passed, " << testsFailed << " failed ===" << std::endl;

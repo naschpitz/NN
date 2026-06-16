@@ -114,5 +114,6 @@ add_executable(test_cnn
   tests/test_gpu_exact_bn.cpp
   tests/test_gpu_batchnorm.cpp
   tests/test_gpu_batchnorm2.cpp
+  tests/test_cpu_predict_abort.cpp
 )
 target_link_libraries(test_cnn PRIVATE CNN)

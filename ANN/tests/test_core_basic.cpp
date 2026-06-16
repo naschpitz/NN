@@ -391,6 +391,84 @@ static void testBatchPredictAfterTrain()
 
 //===================================================================================================================//
 
+static void testBatchPredictAbort()
+{
+  TestScope _t("testBatchPredictAbort");
+
+  // 2 inputs → 1 output, simple MLP
+  ANN::CoreConfig<double> config;
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+
+  auto core = ANN::Core<double>::makeCore(config);
+
+  // 200 inputs — 200 batches with batchSize=1
+  ANN::Inputs<double> inputs(200, ANN::Input<double>(2, 0.0));
+
+  auto sliceProvider = [&inputs](ulong batchSize, ulong batchIndex) {
+    ulong start = batchIndex * batchSize;
+    ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
+
+    if (start >= end)
+      return ANN::Inputs<double>{};
+    return ANN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
+  };
+
+  // Progress callback that aborts after the first batch completes.
+  // The callback receives (current, total) where `current` is the number
+  // of samples already processed. After the first batch (batchSize=1)
+  // `current` will be 1, so we request stop at that point.
+  core->setProgressCallback([&core](ulong current, ulong total) {
+    if (current >= 1)
+      core->requestStop();
+  });
+
+  ANN::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
+
+  CHECK(results.size() < inputs.size(), "abort produces partial results (size < 200)");
+  CHECK(results.size() >= 1, "at least one batch completed");
+}
+
+//===================================================================================================================//
+
+static void testTrainAbort()
+{
+  TestScope _t("testTrainAbort");
+
+  // 2 inputs → 1 output, simple MLP
+  ANN::CoreConfig<double> config;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::CPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.5;
+  config.trainConfig.batchSize = 1;
+  config.numThreads = 0;
+  config.progressReports = 0;
+  config.logLevel = Common::LogLevel::ERROR;
+
+  ANN::Samples<double> samples = {{{0.0, 0.0}, {0.0}}, {{1.0, 1.0}, {1.0}}};
+
+  auto core = ANN::Core<double>::makeCore(config);
+
+  // Train callback that aborts after epoch 1 starts.
+  // The callback fires per-sample during training; after the first
+  // sample of epoch 1 (currentEpoch == 1) we request stop.
+  core->setTrainCallback([&core](const Common::TrainProgressEvent<double>& p) {
+    if (p.currentEpoch >= 1)
+      core->requestStop();
+  });
+
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
+
+  const auto& meta = core->getTrainMetadata();
+  CHECK(meta.epochHistory.size() >= 1, "at least one epoch completed");
+  CHECK(meta.epochHistory.size() < 50, "aborted before all 50 epochs");
+}
+
+//===================================================================================================================//
+
 void runCoreBasicTests()
 {
   testMakeCoreCPU();
@@ -404,4 +482,6 @@ void runCoreBasicTests()
   testTrainCallback();
   testParameterRoundTrip();
   testParametersDuringTrain();
+  testBatchPredictAbort();
+  testTrainAbort();
 }

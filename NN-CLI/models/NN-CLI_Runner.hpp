@@ -56,6 +56,13 @@ namespace NN_CLI
       // Return a const reference to the I/O configuration.
       const IOConfig& getIOConfig() const;
 
+      // Request the core to stop (abort) the current training run.
+      void requestAbort()
+      {
+        if (this->core)
+          this->core->requestStop();
+      }
+
       // Return formatted timing/profiling lines for display in the TUI timing panel.
       // maxWidth > 0 constrains output to the given column width; maxWidth == 0
       // auto-detects the terminal width.

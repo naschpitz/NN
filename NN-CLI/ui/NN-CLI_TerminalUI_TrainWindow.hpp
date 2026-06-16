@@ -164,6 +164,14 @@ namespace NN_CLI
       // Does NOT hold the window mutex.
       void waitForDismiss();
 
+      //===================================================================================================================//
+
+      // Return true if the user has requested an abort (pressed 'q', 'Q', or ESC).
+      bool abortRequested() const
+      {
+        return this->dismissed_.load();
+      }
+
       //-- Event routing --//
 
       // Handle a Tab keypress to cycle the active panel (wraps 0→1→2→0).

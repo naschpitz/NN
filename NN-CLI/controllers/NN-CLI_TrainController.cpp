@@ -186,6 +186,8 @@ namespace NN_CLI
 
     QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
+    this->checkAbortRequested();
+
     // Clear any transitional "Validating" state from the previous epoch.
     this->isValidating = false;
 
@@ -210,6 +212,8 @@ namespace NN_CLI
       return;
 
     QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
+
+    this->checkAbortRequested();
 
     // Track the current epoch (0-based index → next epoch number for display).
     this->currentEpoch = epochIdx + 1;
@@ -349,6 +353,21 @@ namespace NN_CLI
 
     this->window->setTimingLines(lines);
     this->window->refreshTimingContent();
+  }
+
+  //===================================================================================================================//
+  //-- Private — check abort --//
+  //===================================================================================================================//
+
+  template <typename RunnerT>
+  void TrainController<RunnerT>::checkAbortRequested()
+  {
+    if (this->window && this->window->abortRequested() && !this->abortHandled) {
+      this->abortHandled = true;
+      this->runner->requestAbort();
+      this->window->addEpochMessage("Training aborted by user.");
+      this->window->refreshEpochContent();
+    }
   }
 
   //===================================================================================================================//

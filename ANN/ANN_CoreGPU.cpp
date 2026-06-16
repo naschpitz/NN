@@ -65,7 +65,7 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
       ulong endIdx;
   };
 
-  for (ulong batchIndex = 0; batchIndex < numBatches; batchIndex++) {
+  for (ulong batchIndex = 0; batchIndex < numBatches && !this->stopRequested.load(); batchIndex++) {
     Inputs<T> batch = provider(batchSize, batchIndex);
     ulong batchN = batch.size();
 
