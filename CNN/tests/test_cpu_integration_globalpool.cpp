@@ -384,7 +384,7 @@ static void testGlobalDualPoolEndToEnd()
 
 //===================================================================================================================//
 
-void runIntegrationGlobalPoolTests()
+void runCPUIntegrationGlobalPoolTests()
 {
   testGlobalAvgPoolEndToEnd();
   testGlobalAvgPoolWithNorm();

@@ -469,7 +469,7 @@ static void testTrainAbort()
 
 //===================================================================================================================//
 
-void runCoreBasicTests()
+void runCPUBasicTests()
 {
   testMakeCoreCPU();
   testPredictSimple();

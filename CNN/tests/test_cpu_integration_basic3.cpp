@@ -187,7 +187,7 @@ static void testShuffleSamplesTrain()
             << " dark=" << np1[0] << std::endl;
 }
 
-void runIntegrationBasicTests3()
+void runCPUIntegrationBasicTests3()
 {
   testCostFunctionConfigGetter();
   testWeightedLossTrain();

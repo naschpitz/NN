@@ -2,9 +2,9 @@
 
 //===================================================================================================================//
 
-static void testGPUPredictStopRequested()
+static void runGPUPredictStopRequested()
 {
-  TestScope _t("testGPUPredictStopRequested (abort mid-flight)");
+  TestScope _t("runGPUPredictStopRequested (abort mid-flight)");
 
   // 1x5x5 → Conv(1 filter 3x3 valid) → ReLU → Flatten(9) → Dense(1, sigmoid)
   CNN::CoreConfig<float> config;
@@ -152,7 +152,7 @@ void runGPUPredictStopTests()
     return;
   }
 
-  testGPUPredictStopRequested();
+  runGPUPredictStopRequested();
 }
 
 //===================================================================================================================//

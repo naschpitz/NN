@@ -361,7 +361,7 @@ static void testBatchPredict()
 
 //===================================================================================================================//
 
-void runIntegrationBasicTests()
+void runCPUIntegrationBasicTests()
 {
   testEndToEnd();
   testMultiConvStack();

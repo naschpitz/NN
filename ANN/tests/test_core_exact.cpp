@@ -226,7 +226,7 @@ static void testExactForwardBackwardWeightedCrossEntropy()
 
 //===================================================================================================================//
 
-void runCoreExactTests()
+void runCPUExactTests()
 {
   testCrossEntropyStringConversion();
   testExactForwardBackwardSquaredDifference();

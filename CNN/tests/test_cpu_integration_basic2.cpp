@@ -222,7 +222,7 @@ static void testMultipleOutputNeurons()
 
 //===================================================================================================================//
 
-void runIntegrationBasicTests2()
+void runCPUIntegrationBasicTests2()
 {
   testParameterRoundTrip();
   testParametersDuringTrain();

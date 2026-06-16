@@ -32,7 +32,7 @@ static AugmentationTransforms allDisabled()
   return t;
 }
 
-void runGpuAugmentTests()
+void runGPUAugmentTests()
 {
   std::cout << "\n--- GPU Augmentation Tests ---" << std::endl;
 

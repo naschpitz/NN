@@ -385,7 +385,7 @@ static void testValidateShapes()
 
 //===================================================================================================================//
 
-void runLayerTests2()
+void runCPULayerTests2()
 {
   testInstanceNormOutputShape();
   testInstanceNormValidateShapes();

@@ -3,21 +3,21 @@
 int testsPassed = 0;
 int testsFailed = 0;
 
-void runConv2DTests();
-void runLayerTests();
-void runLayerTests2();
-void runInstanceNormTests();
-void runGlobalAvgPoolTests();
-void runGlobalDualPoolTests();
-void runResidualTests();
-void runIntegrationBasicTests();
-void runIntegrationBasicTests2();
-void runIntegrationBasicTests3();
-void runIntegrationGlobalPoolTests();
-void runIntegrationResidualTests();
-void runIntegrationCostFuncTests();
-void runIntegrationExactTests();
-void runIntegrationBatchNormTests();
+void runCPUConv2DTests();
+void runCPULayerTests();
+void runCPULayerTests2();
+void runCPUInstanceNormTests();
+void runCPUGlobalAvgPoolTests();
+void runCPUGlobalDualPoolTests();
+void runCPUResidualTests();
+void runCPUIntegrationBasicTests();
+void runCPUIntegrationBasicTests2();
+void runCPUIntegrationBasicTests3();
+void runCPUIntegrationGlobalPoolTests();
+void runCPUIntegrationResidualTests();
+void runCPUIntegrationCostFuncTests();
+void runCPUIntegrationExactTests();
+void runCPUIntegrationBatchNormTests();
 void runGPUBasicTests();
 void runGPUBasicTests2();
 void runGPUBasicTests3();
@@ -30,35 +30,35 @@ void runGPUExactGlobalPoolTests();
 void runGPUExactBNTests();
 void runGPUBatchNormTests();
 void runGPUBatchNormTests2();
-void runPredictStopTests();
-void runTrainStopTests();
+void runCPUPredictStopTests();
+void runCPUTrainStopTests();
 void runGPUPredictStopTests();
 void runGPUTrainStopTests();
 
 int main()
 {
-  std::cout << "=== CNN Unit Tests ===" << std::endl;
-  runConv2DTests();
-  runLayerTests();
-  runLayerTests2();
-  runInstanceNormTests();
-  runGlobalAvgPoolTests();
-  runGlobalDualPoolTests();
-  runResidualTests();
+  std::cout << "=== CNN CPU Unit Tests ===" << std::endl;
+  runCPUConv2DTests();
+  runCPULayerTests();
+  runCPULayerTests2();
+  runCPUInstanceNormTests();
+  runCPUGlobalAvgPoolTests();
+  runCPUGlobalDualPoolTests();
+  runCPUResidualTests();
 
   std::cout << std::endl;
-  std::cout << "=== Integration Tests ===" << std::endl;
-  runIntegrationBasicTests();
-  runIntegrationBasicTests2();
-  runIntegrationBasicTests3();
-  runIntegrationGlobalPoolTests();
-  runIntegrationResidualTests();
-  runIntegrationCostFuncTests();
-  runIntegrationExactTests();
-  runIntegrationBatchNormTests();
+  std::cout << "=== CNN CPU Integration Tests ===" << std::endl;
+  runCPUIntegrationBasicTests();
+  runCPUIntegrationBasicTests2();
+  runCPUIntegrationBasicTests3();
+  runCPUIntegrationGlobalPoolTests();
+  runCPUIntegrationResidualTests();
+  runCPUIntegrationCostFuncTests();
+  runCPUIntegrationExactTests();
+  runCPUIntegrationBatchNormTests();
 
   std::cout << std::endl;
-  std::cout << "=== GPU Tests ===" << std::endl;
+  std::cout << "=== CNN GPU Tests ===" << std::endl;
   runGPUBasicTests();
   runGPUBasicTests2();
   runGPUBasicTests3();
@@ -73,19 +73,19 @@ int main()
   runGPUBatchNormTests2();
 
   std::cout << std::endl;
-  std::cout << "=== Predict Stop Tests ===" << std::endl;
-  runPredictStopTests();
+  std::cout << "=== CNN Predict Stop Tests ===" << std::endl;
+  runCPUPredictStopTests();
 
   std::cout << std::endl;
-  std::cout << "=== GPU Predict Stop Tests ===" << std::endl;
+  std::cout << "=== CNN GPU Predict Stop Tests ===" << std::endl;
   runGPUPredictStopTests();
 
   std::cout << std::endl;
-  std::cout << "=== Train Stop Tests ===" << std::endl;
-  runTrainStopTests();
+  std::cout << "=== CNN Train Stop Tests ===" << std::endl;
+  runCPUTrainStopTests();
 
   std::cout << std::endl;
-  std::cout << "=== GPU Train Stop Tests ===" << std::endl;
+  std::cout << "=== CNN GPU Train Stop Tests ===" << std::endl;
   runGPUTrainStopTests();
 
   std::cout << std::endl;

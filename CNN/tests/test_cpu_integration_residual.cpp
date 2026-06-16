@@ -223,7 +223,7 @@ static void testResidualMixedIdentityProjectionEndToEnd()
 
 //===================================================================================================================//
 
-void runIntegrationResidualTests()
+void runCPUIntegrationResidualTests()
 {
   testResidualIdentityEndToEnd();
   testResidualParametersEndToEnd();

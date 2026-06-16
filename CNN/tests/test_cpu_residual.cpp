@@ -339,7 +339,7 @@ static void testResidualShapeValidation()
 
 //===================================================================================================================//
 
-void runResidualTests()
+void runCPUResidualTests()
 {
   testResidualIdentityForward();
   testResidualIdentityBackward();

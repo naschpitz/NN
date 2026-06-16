@@ -381,7 +381,7 @@ static void testConv2DNumericalGradient()
 
 //===================================================================================================================//
 
-void runConv2DTests()
+void runCPUConv2DTests()
 {
   testConv2DPropagate();
   testConv2DBackprop();

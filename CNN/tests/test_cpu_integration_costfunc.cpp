@@ -285,7 +285,7 @@ static void testWeightedCrossEntropyTrain()
   std::cout << "  CNN weighted CE avgLoss=" << result.averageLoss << std::endl;
 }
 
-void runIntegrationCostFuncTests()
+void runCPUIntegrationCostFuncTests()
 {
   testCrossEntropyGradientNumerical();
   testCrossEntropyLossDecreases();

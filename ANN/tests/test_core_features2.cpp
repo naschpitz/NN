@@ -153,7 +153,7 @@ static void testDropoutDisabledByDefault()
 
 //===================================================================================================================//
 
-void runCoreFeaturesTests2()
+void runCPUFeaturesTests2()
 {
   testSoftmaxPredict();
   testSoftmaxTrain();

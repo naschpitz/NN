@@ -24,9 +24,9 @@ static QString readFile(const QString& path)
 
 // ---------------------------------------------------------------------------
 
-static void testLogCreatesFile()
+static void runLogCreatesFile()
 {
-  TestScope _t("testLogCreatesFile");
+  TestScope _t("runLogCreatesFile");
 
   QString logPath = tempLogDir() + "/test_create.log";
   QFile::remove(logPath);
@@ -47,9 +47,9 @@ static void testLogCreatesFile()
   CHECK(content.contains("1.5ms"), "log_create: contains duration");
 }
 
-static void testLogFormat()
+static void runLogFormat()
 {
-  TestScope _t("testLogFormat");
+  TestScope _t("runLogFormat");
 
   QString logPath = tempLogDir() + "/test_format.log";
   QFile::remove(logPath);
@@ -76,9 +76,9 @@ static void testLogFormat()
         "log_format: timestamp includes timezone (length=" + std::to_string(timestamp.length()) + ")");
 }
 
-static void testLogAppendsOnRestart()
+static void runLogAppendsOnRestart()
 {
-  TestScope _t("testLogAppendsOnRestart");
+  TestScope _t("runLogAppendsOnRestart");
 
   QString logPath = tempLogDir() + "/test_append.log";
   QFile::remove(logPath);
@@ -104,9 +104,9 @@ static void testLogAppendsOnRestart()
   CHECK(lineCount == 2, "log_append: exactly 2 lines (got " + std::to_string(lineCount) + ")");
 }
 
-static void testLogMultipleEntries()
+static void runLogMultipleEntries()
 {
-  TestScope _t("testLogMultipleEntries");
+  TestScope _t("runLogMultipleEntries");
 
   QString logPath = tempLogDir() + "/test_multi.log";
   QFile::remove(logPath);
@@ -127,9 +127,9 @@ static void testLogMultipleEntries()
   CHECK(content.contains("500"), "log_multi: contains 500 status");
 }
 
-static void testLogCircularWrap()
+static void runLogCircularWrap()
 {
-  TestScope _t("testLogCircularWrap");
+  TestScope _t("runLogCircularWrap");
 
   QString logPath = tempLogDir() + "/test_circular.log";
   QFile::remove(logPath);
@@ -158,9 +158,9 @@ static void testLogCircularWrap()
   CHECK(content.contains("/third"), "log_circular: latest entry present after wrap");
 }
 
-static void testLogCircularAppendsAfterRestart()
+static void runLogCircularAppendsAfterRestart()
 {
-  TestScope _t("testLogCircularAppendsAfterRestart");
+  TestScope _t("runLogCircularAppendsAfterRestart");
 
   QString logPath = tempLogDir() + "/test_circular_restart.log";
   QFile::remove(logPath);
@@ -196,9 +196,9 @@ static void testLogCircularAppendsAfterRestart()
   CHECK(content.contains("/session2"), "log_circular_restart: second session entry present");
 }
 
-static void testLogDisabledWithEmptyPath()
+static void runLogDisabledWithEmptyPath()
 {
-  TestScope _t("testLogDisabledWithEmptyPath");
+  TestScope _t("runLogDisabledWithEmptyPath");
 
   NN_Server::Logger logger("", 0);
   CHECK(!logger.isEnabled(), "log_disabled: logger not enabled with empty path");
@@ -213,11 +213,11 @@ static void testLogDisabledWithEmptyPath()
 
 void runLoggerTests()
 {
-  testLogCreatesFile();
-  testLogFormat();
-  testLogAppendsOnRestart();
-  testLogMultipleEntries();
-  testLogCircularWrap();
-  testLogCircularAppendsAfterRestart();
-  testLogDisabledWithEmptyPath();
+  runLogCreatesFile();
+  runLogFormat();
+  runLogAppendsOnRestart();
+  runLogMultipleEntries();
+  runLogCircularWrap();
+  runLogCircularAppendsAfterRestart();
+  runLogDisabledWithEmptyPath();
 }

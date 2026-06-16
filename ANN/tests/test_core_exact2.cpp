@@ -198,7 +198,7 @@ static void testWeightedCrossEntropyTrain()
 
 //===================================================================================================================//
 
-void runCoreExactTests2()
+void runCPUExactTests2()
 {
   testCrossEntropyGradientNumerical();
   testCrossEntropyTrain();

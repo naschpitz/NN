@@ -148,7 +148,7 @@ static void testFlatten()
 
 //===================================================================================================================//
 
-void runLayerTests()
+void runCPULayerTests()
 {
   testTensor3D();
   testReLU();

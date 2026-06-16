@@ -205,7 +205,7 @@ static void testGettersAfterConstruction()
   CHECK(core->getLogLevel() == Common::LogLevel::ERROR, "logLevel = ERROR after setLogLevel");
 }
 
-void runCoreBasicTests2()
+void runCPUBasicTests2()
 {
   testDifferentActivations();
   testMultiLayerNetwork();

@@ -217,7 +217,7 @@ static void testExactBNForwardBackwardWeightedCrossEntropy()
   CHECK_NEAR(p.denseParams.biases[1][1], -1.5, 1e-14, "BN-WCE db[1]");
 }
 
-void runIntegrationBatchNormTests()
+void runCPUIntegrationBatchNormTests()
 {
   testExactBNForwardBackwardCrossEntropy();
   testExactBNForwardBackwardSquaredDifference();

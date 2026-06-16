@@ -2,9 +2,9 @@
 
 //===================================================================================================================//
 
-static void testPredictStopRequested()
+static void runPredictStopRequested()
 {
-  TestScope _t("testPredictStopRequested (abort mid-flight)");
+  TestScope _t("runPredictStopRequested (abort mid-flight)");
 
   // 1x5x5 → Conv(1 filter 3x3 valid) → ReLU → Flatten(9) → Dense(1, sigmoid)
   CNN::CoreConfig<double> config;
@@ -143,14 +143,14 @@ static void testTrainStopRequested()
 
 //===================================================================================================================//
 
-void runPredictStopTests()
+void runCPUPredictStopTests()
 {
-  testPredictStopRequested();
+  runPredictStopRequested();
 }
 
 //===================================================================================================================//
 
-void runTrainStopTests()
+void runCPUTrainStopTests()
 {
   testTrainStopRequested();
 }

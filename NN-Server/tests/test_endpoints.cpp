@@ -154,9 +154,9 @@ static QByteArray readImageFile(const QString& path)
 // Individual tests
 // ---------------------------------------------------------------------------
 
-static void testHealth()
+static void runHealth()
 {
-  TestScope _t("testHealth");
+  TestScope _t("runHealth");
 
   HttpResponse resp = httpGet("/health");
   CHECK(resp.ok, "health: got response");
@@ -166,9 +166,9 @@ static void testHealth()
   CHECK(body.contains("status") && body["status"] == "ok", "health: status=ok");
 }
 
-static void testNotFound()
+static void runNotFound()
 {
-  TestScope _t("testNotFound");
+  TestScope _t("runNotFound");
 
   HttpResponse resp = httpGet("/nonexistent");
   CHECK(resp.ok, "not_found: got response");
@@ -177,9 +177,9 @@ static void testNotFound()
   std::cout << std::endl;
 }
 
-static void testPredictBadJson()
+static void runPredictBadJson()
 {
-  TestScope _t("testPredictBadJson");
+  TestScope _t("runPredictBadJson");
 
   HttpResponse resp = httpPostJson("/predict", "not json");
   CHECK(resp.ok, "bad_json: got response");
@@ -191,9 +191,9 @@ static void testPredictBadJson()
   std::cout << std::endl;
 }
 
-static void testPredictMissingInput()
+static void runPredictMissingInput()
 {
-  TestScope _t("testPredictMissingInput");
+  TestScope _t("runPredictMissingInput");
 
   HttpResponse resp = httpPostJson("/predict", R"({"foo":"bar"})");
   CHECK(resp.ok, "missing_input: got response");
@@ -202,9 +202,9 @@ static void testPredictMissingInput()
   std::cout << std::endl;
 }
 
-static void testPredictBodyTooLarge()
+static void runPredictBodyTooLarge()
 {
-  TestScope _t("testPredictBodyTooLarge");
+  TestScope _t("runPredictBodyTooLarge");
 
   // Send a request with Content-Length exceeding MAX_BODY_SIZE_BYTES.
   // Include a small body so the server's waitForReadyRead triggers.
@@ -233,9 +233,9 @@ static void testPredictBodyTooLarge()
   std::cout << std::endl;
 }
 
-static void testPredictBodyJustUnderLimit()
+static void runPredictBodyJustUnderLimit()
 {
-  TestScope _t("testPredictBodyJustUnderLimit");
+  TestScope _t("runPredictBodyJustUnderLimit");
 
   // Send a request with Content-Length just under the limit (1 MB - 1 KB).
   // This verifies the config value is interpreted as megabytes:
@@ -262,9 +262,9 @@ static void testPredictBodyJustUnderLimit()
   std::cout << std::endl;
 }
 
-static void testPredictImageSingle()
+static void runPredictImageSingle()
 {
-  TestScope _t("testPredictImageSingle");
+  TestScope _t("runPredictImageSingle");
 
   QByteArray imgData = readImageFile(imagePath("ISIC_4671410.jpg"));
   CHECK(!imgData.isEmpty(), "image_single: loaded test image");
@@ -308,9 +308,9 @@ static void testPredictImageSingle()
   CHECK(argmaxOutput == argmaxLogits, "image_single: argmax(output) == argmax(logits)");
 }
 
-static void testPredictImageConcurrent()
+static void runPredictImageConcurrent()
 {
-  TestScope _t("testPredictImageConcurrent");
+  TestScope _t("runPredictImageConcurrent");
 
   // Load all 5 test images
   QStringList imageNames = {"ISIC_1498519.jpg", "ISIC_2729538.jpg", "ISIC_3904045.jpg", "ISIC_4671410.jpg",
@@ -353,9 +353,9 @@ static void testPredictImageConcurrent()
   }
 }
 
-static void testPredictImageRepeatedConcurrent()
+static void runPredictImageRepeatedConcurrent()
 {
-  TestScope _t("testPredictImageRepeatedConcurrent");
+  TestScope _t("runPredictImageRepeatedConcurrent");
 
   QByteArray imgData = readImageFile(imagePath("ISIC_4671410.jpg"));
   CHECK(!imgData.isEmpty(), "repeated: loaded test image");
@@ -403,10 +403,10 @@ static void testPredictImageRepeatedConcurrent()
   }
 }
 
-static void testQueueLimitReject()
+static void runQueueLimitReject()
 {
   const int testQueueSize = 1;
-  TestScope _t("testQueueLimitReject");
+  TestScope _t("runQueueLimitReject");
 
   // Restart the server with maxQueueSize=1 for this test
   stopServer();
@@ -490,9 +490,9 @@ static nlohmann::json annImageConfig()
   return config;
 }
 
-static void testImagePredict()
+static void runImagePredict()
 {
-  TestScope _t("testImagePredict");
+  TestScope _t("runImagePredict");
 
   QByteArray imgData = readImageFile(imagePath("bright_1.png"));
   CHECK(!imgData.isEmpty(), "ann_image: loaded test image");
@@ -524,9 +524,9 @@ static void testImagePredict()
   CHECK(total > 0.0f, "ann_image: output values are positive");
 }
 
-static void testImagePredictDark()
+static void runImagePredictDark()
 {
-  TestScope _t("testImagePredictDark");
+  TestScope _t("runImagePredictDark");
 
   // Use a different test image — it will be resized to 4x4
   QByteArray imgData = readImageFile(imagePath("dark_1.png"));
@@ -556,9 +556,9 @@ static void testImagePredictDark()
   }
 }
 
-static void testImagePredictJson()
+static void runImagePredictJson()
 {
-  TestScope _t("testImagePredictJson");
+  TestScope _t("runImagePredictJson");
 
   // JSON input should also work: 16 values for 1x4x4
   std::vector<float> input(16, 0.5f);
@@ -586,9 +586,9 @@ static void testImagePredictJson()
   CHECK(total > 0.0f, "ann_json: output values are positive");
 }
 
-static void testImageDeterministic()
+static void runImageDeterministic()
 {
-  TestScope _t("testImageDeterministic");
+  TestScope _t("runImageDeterministic");
 
   QByteArray imgData = readImageFile(imagePath("bright_2.png"));
 
@@ -608,9 +608,9 @@ static void testImageDeterministic()
   }
 }
 
-static void testModelPackageFallback()
+static void runModelPackageFallback()
 {
-  TestScope _t("testModelPackageFallback");
+  TestScope _t("runModelPackageFallback");
 
   // Server was started with model_package in config (no --model-package CLI flag).
   // Verify health and prediction both work.
@@ -655,16 +655,16 @@ void runEndpointTests()
     return;
   }
 
-  testHealth();
-  testNotFound();
-  testPredictBadJson();
-  testPredictMissingInput();
-  testPredictBodyTooLarge();
-  testPredictBodyJustUnderLimit();
-  testPredictImageSingle();
-  testPredictImageConcurrent();
-  testPredictImageRepeatedConcurrent();
-  testQueueLimitReject();
+  runHealth();
+  runNotFound();
+  runPredictBadJson();
+  runPredictMissingInput();
+  runPredictBodyTooLarge();
+  runPredictBodyJustUnderLimit();
+  runPredictImageSingle();
+  runPredictImageConcurrent();
+  runPredictImageRepeatedConcurrent();
+  runQueueLimitReject();
 
   // --- model_package fallback test ---
   std::cout << std::endl;
@@ -682,7 +682,7 @@ void runEndpointTests()
     }
   }
 
-  testModelPackageFallback();
+  runModelPackageFallback();
   stopServer();
 
   // ---  image input tests (requires different model) ---
@@ -695,10 +695,10 @@ void runEndpointTests()
     return;
   }
 
-  testImagePredict();
-  testImagePredictDark();
-  testImagePredictJson();
-  testImageDeterministic();
+  runImagePredict();
+  runImagePredictDark();
+  runImagePredictJson();
+  runImageDeterministic();
 
   stopServer();
 }

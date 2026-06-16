@@ -213,7 +213,7 @@ static void testInstanceNormBackpropGradient()
 
 //===================================================================================================================//
 
-void runInstanceNormTests()
+void runCPUInstanceNormTests()
 {
   testInstanceNormInference();
   testInstanceNormTrain();

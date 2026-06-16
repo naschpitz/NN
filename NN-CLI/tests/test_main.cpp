@@ -31,7 +31,7 @@ void runErrorTests();
 void runDataLoaderTests();
 void runValidationTests();
 void runMonitoringTests();
-void runGpuAugmentTests();
+void runGPUAugmentTests();
 void runTerminalUITests();
 void runCalibrateControllerTests();
 
@@ -56,14 +56,14 @@ int main(int argc, char* argv[])
 
   std::cout << std::endl;
 
-  std::cout << "===  CPU Tests ===" << std::endl;
+  std::cout << "=== ANN CPU Tests ===" << std::endl;
   runCPUBasicTests();
   runCPUMNISTTests();
   runCPUFeatureTests();
   runANNCPUSaveLoadTests();
 
   std::cout << std::endl;
-  std::cout << "===  GPU Tests ===" << std::endl;
+  std::cout << "=== ANN GPU Tests ===" << std::endl;
   runGPUMNISTTests();
 
   std::cout << std::endl;
@@ -82,8 +82,8 @@ int main(int argc, char* argv[])
   runCNNGPUSaveLoadTests();
 
   std::cout << std::endl;
-  std::cout << "=== GPU Augmentation Tests ===" << std::endl;
-  runGpuAugmentTests();
+  std::cout << "=== Augmentation Tests ===" << std::endl;
+  runGPUAugmentTests();
 
   std::cout << std::endl;
   std::cout << "=== Error Handling Tests ===" << std::endl;

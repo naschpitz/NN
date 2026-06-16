@@ -214,7 +214,7 @@ static void testGlobalDualPoolMaxOnlyGradient()
 
 //===================================================================================================================//
 
-void runGlobalDualPoolTests()
+void runCPUGlobalDualPoolTests()
 {
   testGlobalDualPoolPropagate();
   testGlobalDualPoolBackpropagate();

@@ -212,7 +212,7 @@ static void testGlobalAvgPoolMultiChannelGradient()
 
 //===================================================================================================================//
 
-void runGlobalAvgPoolTests()
+void runCPUGlobalAvgPoolTests()
 {
   testGlobalAvgPoolPropagate();
   testGlobalAvgPoolBackpropagate();

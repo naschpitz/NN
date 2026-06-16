@@ -261,7 +261,7 @@ static void testExactForwardBackwardWeightedCrossEntropy()
   CHECK_NEAR(p.denseParams.biases[1][1], -1.5007499999374998, 1e-14, "WCE db[1]");
 }
 
-void runIntegrationExactTests()
+void runCPUIntegrationExactTests()
 {
   testExactForwardBackwardCrossEntropy();
   testExactForwardBackwardSquaredDifference();

@@ -223,7 +223,7 @@ static void testShuffleSamplesNoShuffle()
 
 //===================================================================================================================//
 
-void runCoreFeaturesTests()
+void runCPUFeaturesTests()
 {
   testCostFunctionConfigDefault();
   testCostFunctionConfigGetter();
