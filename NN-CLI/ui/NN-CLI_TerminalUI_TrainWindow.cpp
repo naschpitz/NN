@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <QThread>
+
 namespace NN_CLI
 {
 
@@ -53,6 +55,8 @@ namespace NN_CLI
       {"Best", 4, TerminalUI_Table::Align::LEFT},
       {"Completed At", 19, TerminalUI_Table::Align::LEFT},
     });
+
+    this->setShortcutBar("Tab: panels ↑↓: scroll PgUp/PgDn: page Home/End: top/bottom q/ESC: quit");
   }
 
   //===================================================================================================================//
@@ -66,7 +70,7 @@ namespace NN_CLI
   void TerminalUI_TrainWindow::layoutChildren()
   {
     int W = this->width;
-    int H = this->height;
+    int H = this->height - this->shortcutBarHeight();
 
     if (W <= 0 || H <= 0)
       return;
@@ -118,7 +122,7 @@ namespace NN_CLI
     // they would overlap); reposition them onto separate rows here: the
     // "Samples" loading bar on top (1 row) and the training bar below it
     // (remaining rows = bar + sub-line).
-    int contentX = 2;             // progress panel x (0) + border/pad
+    int contentX = 2; // progress panel x (0) + border/pad
     int contentY = (H - progressH) + 1; // progress panel y + top border
     int contentW = std::max(1, W - 4);
     int contentH = std::max(0, progressH - 2);
@@ -152,8 +156,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainWindow::updateProgress(const std::string& label,
-                                                  const std::vector<float>& fractions)
+  void TerminalUI_TrainWindow::updateProgress(const std::string& label, const std::vector<float>& fractions)
   {
     if (this->progressBarPtr)
       this->progressBarPtr->setBarData(label, fractions);
@@ -292,8 +295,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainWindow::setModelInfoEntries(
-    const std::vector<std::pair<std::string, std::string>>& entries)
+  void TerminalUI_TrainWindow::setModelInfoEntries(const std::vector<std::pair<std::string, std::string>>& entries)
   {
     this->modelConfigRows.clear();
 
@@ -487,6 +489,12 @@ namespace NN_CLI
 
   bool TerminalUI_TrainWindow::handleEvent(int ch)
   {
+    // Dismiss keys: 'q', 'Q', ESC (27)
+    if (ch == 'q' || ch == 'Q' || ch == 27) {
+      this->dismissed_.store(true);
+      return true;
+    }
+
     if (this->cycleActivePanel(ch))
       return true;
 
@@ -509,15 +517,24 @@ namespace NN_CLI
     // Grant both bars the widest label and per-segment suffix either of them
     // needs so their brackets stay vertically aligned (comparable progress)
     // while the bars themselves take every remaining column.
-    int labelReserve = std::max(this->loadingBarPtr->requiredLabelWidth(),
-                                this->progressBarPtr->requiredLabelWidth());
-    int suffixReserve = std::max(this->loadingBarPtr->requiredSuffixWidth(),
-                                 this->progressBarPtr->requiredSuffixWidth());
+    int labelReserve = std::max(this->loadingBarPtr->requiredLabelWidth(), this->progressBarPtr->requiredLabelWidth());
+    int suffixReserve =
+      std::max(this->loadingBarPtr->requiredSuffixWidth(), this->progressBarPtr->requiredSuffixWidth());
 
     this->loadingBarPtr->setReservedLabelWidth(labelReserve);
     this->progressBarPtr->setReservedLabelWidth(labelReserve);
     this->loadingBarPtr->setReservedSuffixWidth(suffixReserve);
     this->progressBarPtr->setReservedSuffixWidth(suffixReserve);
+  }
+
+  //===================================================================================================================//
+  //-- Dismiss handling --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainWindow::waitForDismiss()
+  {
+    while (!this->dismissed_.load())
+      QThread::msleep(50);
   }
 
   //===================================================================================================================//

@@ -7,6 +7,7 @@
 #include "NN-CLI_TerminalUI_Table.hpp"
 #include "NN-CLI_TerminalUI_Window.hpp"
 
+#include <atomic>
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,12 +42,7 @@ namespace NN_CLI
       //-- Types --//
 
       // Panel selection indices used by setActivePanel / getActivePanel.
-      enum PanelIndex
-      {
-        MODEL_INFO = 0,
-        EPOCHS = 1,
-        TIMING = 2
-      };
+      enum PanelIndex { MODEL_INFO = 0, EPOCHS = 1, TIMING = 2 };
 
       //-- Ctors / Dtors --//
 
@@ -162,6 +158,12 @@ namespace NN_CLI
       TerminalUI_Panel* getModelInfoPanel() const;
       TerminalUI_Panel* getTimingPanel() const;
 
+      //-- Dismiss handling --//
+
+      // Spin-loop waiting for the user to press 'q' or ESC.
+      // Does NOT hold the window mutex.
+      void waitForDismiss();
+
       //-- Event routing --//
 
       // Handle a Tab keypress to cycle the active panel (wraps 0→1→2→0).
@@ -228,6 +230,9 @@ namespace NN_CLI
 
       // Currently highlighted panel index (PanelIndex values).
       int activePanel = 0;
+
+      // Set to true when the user presses a dismiss key ('q', 'Q', or ESC).
+      std::atomic<bool> dismissed_{false};
 
       //-- Layout constants --//
 

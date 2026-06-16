@@ -191,8 +191,12 @@ namespace NN_CLI
 
   void TerminalUI_Window::layoutChildren()
   {
+    // Reserve the bottom row(s) for the shortcut bar so children never
+    // occupy the row drawShortcutBar() later paints onto in render().
+    int h = std::max(0, this->height - this->shortcutBarHeight());
+
     for (auto& child : this->children)
-      child->resize(this->width, this->height, this->x, this->y);
+      child->resize(this->width, h, this->x, this->y);
   }
 
   //===================================================================================================================//
@@ -253,6 +257,8 @@ namespace NN_CLI
     for (auto& child : this->children)
       child->draw();
 
+    this->drawShortcutBar();
+
     ::refresh();
   }
 
@@ -310,6 +316,49 @@ namespace NN_CLI
     }
 
     return false;
+  }
+
+  //===================================================================================================================//
+  //-- Shortcut bar --//
+  //===================================================================================================================//
+
+  void TerminalUI_Window::setShortcutBar(const std::string& text)
+  {
+    this->shortcutBar = text;
+  }
+
+  //===================================================================================================================//
+
+  const std::string& TerminalUI_Window::getShortcutBar() const
+  {
+    return this->shortcutBar;
+  }
+
+  //===================================================================================================================//
+
+  int TerminalUI_Window::shortcutBarHeight() const
+  {
+    return this->shortcutBar.empty() ? 0 : 1;
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_Window::drawShortcutBar() const
+  {
+    if (this->shortcutBar.empty())
+      return;
+
+    int lastRow = this->rows - 1;
+
+    if (lastRow < 0)
+      return;
+
+    ::move(lastRow, 0);
+    ::clrtoeol();
+    attron(COLOR_PAIR(8));
+    int n = std::min<int>(static_cast<int>(this->shortcutBar.size()), this->cols);
+    mvaddnstr(lastRow, 0, this->shortcutBar.c_str(), n);
+    attroff(COLOR_PAIR(8));
   }
 
 } // namespace NN_CLI

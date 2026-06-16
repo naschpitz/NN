@@ -427,6 +427,7 @@ static void testPredictWindowDismissOnQ()
   // waitForDismiss should return immediately since dismissed_ is already true.
   pw.waitForDismiss();
   CHECK(true, "waitForDismiss returned immediately after 'q' dismiss");
+  CHECK(!pw.handleEvent('\n'), "Enter should NOT dismiss PredictWindow");
 }
 
 //===================================================================================================================//
@@ -464,6 +465,81 @@ static void testPredictWindowChildCount()
 
 //===================================================================================================================//
 
+static void testShortcutBar()
+{
+  TestScope _t("testShortcutBar");
+
+  NN_CLI::TerminalUI_TrainWindow tw;
+  NN_CLI::TerminalUI_PredictWindow pw;
+
+  const std::string expected =
+    "Tab: panels \xe2\x86\x91\xe2\x86\x93: scroll PgUp/PgDn: page Home/End: top/bottom q/ESC: quit";
+
+  CHECK(tw.getShortcutBar() == expected, "TrainWindow shortcut bar text");
+  CHECK(pw.getShortcutBar() == expected, "PredictWindow shortcut bar text");
+  CHECK(tw.getShortcutBar() == pw.getShortcutBar(), "Both windows have identical shortcut bar");
+}
+
+//===================================================================================================================//
+
+static void testShortcutBarReservesRow()
+{
+  TestScope _t("testShortcutBarReservesRow");
+
+  // Regression: drawShortcutBar() paints onto the last screen row, so the
+  // panel layout MUST reserve that row.  Before the fix, layout used the full
+  // window height and the bottom-most panel's border collided with the
+  // shortcut bar text (drawn afterward in render()).
+
+  const int windowW = 80;
+  const int windowH = 24;
+  const int lastRow = windowH - 1;
+
+  //-- TrainWindow: progress panel is children[0] (bottom-most) --//
+
+  NN_CLI::TerminalUI_TrainWindow tw;
+  tw.resize(windowW, windowH, 0, 0);
+
+  NN_CLI::TerminalUI_Widget* twProgress = tw.getChild(0);
+  CHECK(twProgress != nullptr, "TrainWindow progress panel should exist");
+
+  int twBottom = twProgress->getY() + twProgress->getHeight() - 1;
+  CHECK(twBottom < lastRow, "With shortcut bar set, TrainWindow bottom panel must not reach the last row");
+
+  // Clearing the shortcut bar frees the row again (shortcutBarHeight()==0).
+  tw.setShortcutBar("");
+  tw.resize(windowW, windowH, 0, 0);
+  twProgress = tw.getChild(0);
+  twBottom = twProgress->getY() + twProgress->getHeight() - 1;
+  CHECK(twBottom == lastRow, "Without shortcut bar, TrainWindow bottom panel should reach the last row");
+
+  //-- PredictWindow: progress panel is children[0] (bottom-most) --//
+
+  NN_CLI::TerminalUI_PredictWindow pw;
+  pw.resize(windowW, windowH, 0, 0);
+
+  NN_CLI::TerminalUI_Widget* pwProgress = pw.getChild(0);
+  CHECK(pwProgress != nullptr, "PredictWindow progress panel should exist");
+
+  int pwBottom = pwProgress->getY() + pwProgress->getHeight() - 1;
+  CHECK(pwBottom < lastRow, "With shortcut bar set, PredictWindow bottom panel must not reach the last row");
+}
+
+//===================================================================================================================//
+
+static void testTrainWindowDismissOnQ()
+{
+  TestScope _t("testTrainWindowDismissOnQ");
+
+  NN_CLI::TerminalUI_TrainWindow tw;
+
+  CHECK(tw.handleEvent('q'), "handleEvent 'q' should set dismissed flag and return true");
+  tw.waitForDismiss();
+  CHECK(true, "waitForDismiss returned immediately after 'q' dismiss");
+}
+
+//===================================================================================================================//
+
 void runTerminalUITests()
 {
   testTrainWindowCycleActivePanel();
@@ -478,4 +554,7 @@ void runTerminalUITests()
   testPredictWindowDismissOnQ();
   testPredictWindowResultsTable();
   testPredictWindowChildCount();
+  testShortcutBar();
+  testShortcutBarReservesRow();
+  testTrainWindowDismissOnQ();
 }

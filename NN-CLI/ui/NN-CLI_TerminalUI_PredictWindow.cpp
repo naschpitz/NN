@@ -60,6 +60,8 @@ namespace NN_CLI
       {"Predicted Class", 16, TerminalUI_Table::Align::LEFT},
       {"Confidence", 11, TerminalUI_Table::Align::RIGHT},
     });
+
+    this->setShortcutBar("Tab: panels ↑↓: scroll PgUp/PgDn: page Home/End: top/bottom q/ESC: quit");
   }
 
   //===================================================================================================================//
@@ -73,7 +75,7 @@ namespace NN_CLI
   void TerminalUI_PredictWindow::layoutChildren()
   {
     int W = this->width;
-    int H = this->height;
+    int H = this->height - this->shortcutBarHeight();
 
     if (W <= 0 || H <= 0)
       return;
@@ -466,8 +468,8 @@ namespace NN_CLI
 
   bool TerminalUI_PredictWindow::handleEvent(int ch)
   {
-    // Dismiss keys: 'q', 'Q', Enter (\n), ESC (27)
-    if (ch == 'q' || ch == 'Q' || ch == '\n' || ch == 27) {
+    // Dismiss keys: 'q', 'Q', ESC (27)
+    if (ch == 'q' || ch == 'Q' || ch == 27) {
       this->dismissed_.store(true);
       return true;
     }
