@@ -75,7 +75,7 @@ namespace NN_CLI
   void TerminalUI_PredictWindow::layoutChildren()
   {
     int W = this->width;
-    int H = this->height;
+    int H = this->height - this->shortcutBarHeight();
 
     if (W <= 0 || H <= 0)
       return;

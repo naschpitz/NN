@@ -191,8 +191,12 @@ namespace NN_CLI
 
   void TerminalUI_Window::layoutChildren()
   {
+    // Reserve the bottom row(s) for the shortcut bar so children never
+    // occupy the row drawShortcutBar() later paints onto in render().
+    int h = std::max(0, this->height - this->shortcutBarHeight());
+
     for (auto& child : this->children)
-      child->resize(this->width, this->height, this->x, this->y);
+      child->resize(this->width, h, this->x, this->y);
   }
 
   //===================================================================================================================//
