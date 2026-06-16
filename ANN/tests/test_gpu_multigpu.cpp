@@ -268,6 +268,13 @@ static void testMultiGPUParametersDuringTrain()
 
 void runGPUMultiGPUTests()
 {
+  std::string section_name = "gpu multi-gpu tests";
+
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping " << section_name << ")" << std::endl;
+    return;
+  }
+
   testMultiGPUTrainSimple();
   testMultiGPUTestMethod();
   testMultiGPUCallback();

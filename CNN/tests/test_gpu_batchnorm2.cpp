@@ -198,6 +198,11 @@ static void testGPUTrueBNExactMultiSample()
 
 void runGPUBatchNormTests2()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping GPU batch norm 2 tests)" << std::endl;
+    return;
+  }
+
   testGPUTrueBNConvergence();
   testGPUTrueBNExactMultiSample();
 }

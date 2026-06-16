@@ -347,6 +347,11 @@ static void testGPUTrueBNBatchVsInstanceStats()
 
 void runGPUBatchNormTests()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping GPU batch norm tests)" << std::endl;
+    return;
+  }
+
   testGPUTrueBNvsCPUParity();
   testGPUTrueBNNoRelu();
   testGPUTrueBNBatchVsInstanceStats();

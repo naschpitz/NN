@@ -163,6 +163,11 @@ static void testGPUWeightedLossTrain()
 
 void runGPUBasicTests4()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping GPU basic 4 tests)" << std::endl;
+    return;
+  }
+
   testGPUMultipleOutputNeurons();
   testGPUCostFunctionConfigGetter();
   testGPUWeightedLossTrain();

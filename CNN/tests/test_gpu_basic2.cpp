@@ -233,6 +233,11 @@ static void testGPUCrossEntropyTrain()
 
 void runGPUBasicTests2()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping GPU basic 2 tests)" << std::endl;
+    return;
+  }
+
   testGPUMultiConvStack();
   testGPUShuffleSamples();
   testGPUCrossEntropyTrain();

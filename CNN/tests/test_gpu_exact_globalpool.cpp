@@ -174,6 +174,11 @@ static void testGPUGlobalDualPoolCPUGPUParity()
 
 void runGPUExactGlobalPoolTests()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping GPU exact global pool tests)" << std::endl;
+    return;
+  }
+
   testGPUGlobalAvgPoolCPUGPUParity();
   testGPUGlobalDualPoolCPUGPUParity();
 }

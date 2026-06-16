@@ -32,6 +32,8 @@ void runGPUBatchNormTests();
 void runGPUBatchNormTests2();
 void runPredictStopTests();
 void runTrainStopTests();
+void runGPUPredictStopTests();
+void runGPUTrainStopTests();
 
 int main()
 {
@@ -75,8 +77,16 @@ int main()
   runPredictStopTests();
 
   std::cout << std::endl;
+  std::cout << "=== GPU Predict Stop Tests ===" << std::endl;
+  runGPUPredictStopTests();
+
+  std::cout << std::endl;
   std::cout << "=== Train Stop Tests ===" << std::endl;
   runTrainStopTests();
+
+  std::cout << std::endl;
+  std::cout << "=== GPU Train Stop Tests ===" << std::endl;
+  runGPUTrainStopTests();
 
   std::cout << std::endl;
   std::cout << "=== Results: " << testsPassed << " passed, " << testsFailed << " failed ===" << std::endl;

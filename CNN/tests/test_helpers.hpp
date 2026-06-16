@@ -13,6 +13,7 @@
 #include "CNN_LayersConfig.hpp"
 
 #include <ANN_ActvFunc.hpp>
+#include <OCLW_Core.hpp>
 
 #include <cassert>
 #include <cmath>
@@ -42,6 +43,12 @@ extern int testsFailed;
   CHECK(threw, msg); \
 } while(0)
 // clang-format on
+
+inline bool gpuAvailable()
+{
+  OpenCLWrapper::Core::initialize(false);
+  return OpenCLWrapper::Core::getNumDevices() > 0;
+}
 
 // Helper: create gradient-filled tensor (values from lo to hi across spatial dims)
 // This produces diverse CNN features, avoiding the uniform-input problem where

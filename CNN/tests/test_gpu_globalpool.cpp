@@ -214,6 +214,11 @@ static void testGPUGlobalAvgPoolWithNormAndPool()
 
 void runGPUGlobalPoolTests()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping GPU global pool tests)" << std::endl;
+    return;
+  }
+
   testGPUWithGlobalAvgPool();
   testGPUWithGlobalDualPool();
   testGPUGlobalAvgPoolWithNormAndPool();

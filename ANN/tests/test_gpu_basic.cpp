@@ -168,6 +168,13 @@ static void testGPUShuffleSamples()
 
 void runGPUBasicTests()
 {
+  std::string section_name = "gpu basic tests";
+
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping " << section_name << ")" << std::endl;
+    return;
+  }
+
   testGPUTrainSimple();
   testGPUPredict();
   testGPUvsCPUParity();

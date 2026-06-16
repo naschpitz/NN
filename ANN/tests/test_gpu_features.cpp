@@ -367,6 +367,77 @@ static void testGPUCrossEntropyLossDecreases()
   CHECK(result2.averageLoss < 0.5f, "GPU CE loss below 0.5 after 250 epochs on trivial problem");
 }
 
+//===================================================================================================================//
+
+static void testGPUBatchPredictAbort()
+{
+  TestScope _t("testGPUBatchPredictAbort");
+
+  ANN::CoreConfig<float> config;
+  config.modeType = Common::ModeType::PREDICT;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.logLevel = Common::LogLevel::ERROR;
+
+  auto core = ANN::Core<float>::makeCore(config);
+
+  // 200 zero-input vectors — 200 batches with batchSize=1
+  ANN::Inputs<float> inputs(200, ANN::Input<float>(2, 0.0f));
+
+  auto sliceProvider = [&inputs](ulong batchSize, ulong batchIndex) {
+    ulong start = batchIndex * batchSize;
+    ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
+
+    if (start >= end)
+      return ANN::Inputs<float>{};
+    return ANN::Inputs<float>(inputs.begin() + start, inputs.begin() + end);
+  };
+
+  // Progress callback that aborts after the first batch completes.
+  core->setProgressCallback([&core](ulong current, ulong) {
+    if (current >= 1)
+      core->requestStop();
+  });
+
+  ANN::PredictResults<float> results = core->predict(inputs.size(), sliceProvider);
+
+  CHECK(results.size() < inputs.size(), "abort produces partial results (size < 200)");
+  CHECK(results.size() >= 1, "at least one batch completed");
+}
+
+//===================================================================================================================//
+
+static void testGPUTrainAbort()
+{
+  TestScope _t("testGPUTrainAbort");
+
+  ANN::CoreConfig<float> config;
+  config.modeType = Common::ModeType::TRAIN;
+  config.deviceType = Common::DeviceType::GPU;
+  config.layersConfig = makeLayersConfig({{2, ANN::ActvFuncType::RELU}, {1, ANN::ActvFuncType::SIGMOID}});
+  config.trainConfig.numEpochs = 50;
+  config.trainConfig.learningRate = 0.5f;
+  config.trainConfig.batchSize = 1;
+  config.numGPUs = 1;
+  config.logLevel = Common::LogLevel::ERROR;
+
+  ANN::Samples<float> samples = {{{0.0f, 0.0f}, {0.0f}}, {{1.0f, 1.0f}, {1.0f}}};
+
+  auto core = ANN::Core<float>::makeCore(config);
+
+  // Train callback that aborts after epoch 1 starts.
+  core->setTrainCallback([&core](const Common::TrainProgressEvent<float>& p) {
+    if (p.currentEpoch >= 1)
+      core->requestStop();
+  });
+
+  core->train(samples.size(), ANN::makeSampleProvider(samples));
+
+  const auto& meta = core->getTrainMetadata();
+  CHECK(meta.epochHistory.size() >= 1, "at least one epoch completed");
+  CHECK(meta.epochHistory.size() < 50, "aborted before all 50 epochs");
+}
+
 void runGPUFeaturesTests()
 {
   testGPUTrainCallback();
@@ -381,4 +452,7 @@ void runGPUFeaturesTests()
   testGPUSoftmaxHiddenLayer();
   testGPUDropoutTrain();
   testGPUCrossEntropyLossDecreases();
+
+  testGPUBatchPredictAbort();
+  testGPUTrainAbort();
 }

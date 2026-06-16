@@ -139,6 +139,13 @@ static void testGPUExactForwardBackwardWeightedCrossEntropy()
 
 void runGPUExactTests()
 {
+  std::string section_name = "gpu exact tests";
+
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping " << section_name << ")" << std::endl;
+    return;
+  }
+
   testGPUExactForwardBackwardSquaredDifference();
   testGPUExactForwardBackwardCrossEntropy();
   testGPUExactForwardBackwardWeightedCrossEntropy();

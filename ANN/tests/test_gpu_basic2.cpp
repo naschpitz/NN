@@ -221,6 +221,13 @@ static void testGPUPredictMetadata()
 
 void runGPUBasicTests2()
 {
+  std::string section_name = "gpu basic tests 2";
+
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping " << section_name << ")" << std::endl;
+    return;
+  }
+
   testGPUCrossEntropyTrain();
   testGPUCrossEntropyCPUParity();
   testGPUWeightedCrossEntropyTrain();

@@ -15,6 +15,7 @@
 #include "Common/Common_PredictMetadata.hpp"
 #include "Common/Common_TestResult.hpp"
 #include "ANN_Utils.hpp"
+#include <OCLW_Core.hpp>
 
 #include <cassert>
 #include <cmath>
@@ -55,6 +56,12 @@ inline ANN::LayersConfig makeLayersConfig(std::initializer_list<ANN::Layer> laye
   }
 
   return config;
+}
+
+inline bool gpuAvailable()
+{
+  OpenCLWrapper::Core::initialize(false);
+  return OpenCLWrapper::Core::getNumDevices() > 0;
 }
 
 // --- TestScope: RAII per-test verdict printer (project standard) ---

@@ -234,6 +234,11 @@ static void testGPUWithPoolLayer()
 
 void runGPUBasicTests()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping GPU basic tests)" << std::endl;
+    return;
+  }
+
   testGPUEndToEnd();
   testGPUPredictOnly();
   testGPUWithPoolLayer();

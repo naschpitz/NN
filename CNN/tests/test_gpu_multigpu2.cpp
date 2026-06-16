@@ -230,6 +230,11 @@ static void testMultiGPUWithPoolLayer()
 
 void runGPUMultiGPUTests2()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping multi-GPU 2 tests)" << std::endl;
+    return;
+  }
+
   testMultiGPUCrossEntropyTrain();
   testMultiGPUParameterRoundTrip();
   testMultiGPUWithPoolLayer();

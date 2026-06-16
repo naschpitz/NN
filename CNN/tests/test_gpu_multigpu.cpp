@@ -176,6 +176,11 @@ static void testMultiGPUMultiChannelInput()
 
 void runGPUMultiGPUTests()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping multi-GPU tests)" << std::endl;
+    return;
+  }
+
   testMultiGPUEndToEnd();
   testMultiGPUTestMethod();
   testMultiGPUMultiChannelInput();

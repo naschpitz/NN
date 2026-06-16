@@ -292,6 +292,11 @@ static void testGPUParametersDuringTrain()
 
 void runGPUBasicTests3()
 {
+  if (!gpuAvailable()) {
+    std::cout << "  (no GPU device available — skipping GPU basic 3 tests)" << std::endl;
+    return;
+  }
+
   testGPUWeightedCrossEntropyTrain();
   testGPUMultiChannelInput();
   testGPUParameterRoundTrip();
