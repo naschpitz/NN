@@ -24,24 +24,27 @@ Common headers: `#include "Common/Xxx.hpp"` from anywhere.
 
 ### All components
 ```bash
-./build.sh            # static Qt6 (default)
-./build.sh shared     # shared Qt6
+./build.sh                       # development (Debug), static Qt6 — default
+./build.sh --release             # release (Release), static Qt6
+./build.sh --development --shared
+./build.sh --release --shared
 ```
-Copies root `CMakeUserPresets.json` into each component, runs `git submodule update`, then builds each into `<component>/build/`.
+`build.sh` is the single build entry point: it iterates the components and builds each into
+its OWN `<component>/<build-dir>` (each pulls its deps via `add_subdirectory`, self-contained).
+Two output dirs keep dev rebuilds from clobbering a release executable that may be mid-training:
+`<component>/build-dev` (development, default, Debug) and `<component>/build` (release, Release).
+Flags: `--development`/`--release` pick the dir + build type; `--static`/`--shared` pick the Qt6
+kit (default `--static`). Copies root `CMakeUserPresets.json` into each component, runs
+`git submodule update`, then builds each.
 
-### Single component
+### Single component (standalone)
 ```bash
-./ANN/build.sh
-./CNN/build.sh
-./NN-CLI/build.sh
-./NN-Server/build.sh
+./ANN/build.sh             # development (build-dev, Debug) — default
+./ANN/build.sh --release   # release (build, Release)
+# same --development/--release flags for: CNN, NN-CLI, NN-Server
 ```
+Builds one component in isolation into its own `<component>/build-dev` (default) or `<component>/build`.
 
-### Manual cmake
-```bash
-cmake -B build && cmake --build build -j$(nproc)
-# Toggle components: cmake -B build -DBUILD_NN_SERVER=OFF -DBUILD_NN_CLI=ON && cmake --build build -j$(nproc)
-```
 Dependencies validated at configure time (CNN requires ANN).
 
 ### Prerequisites
@@ -65,7 +68,7 @@ No CTest wiring. Each component builds its own test binary:
 | NN-CLI | `test_nncli` | pass `--full` for long MNIST train/test |
 | NN-Server | `test_endpoints`, `test_logger` | |
 
-Run from the component's `build/` dir. Add tests for every new feature.
+Run from the component's `build/` (release) or `build-dev/` (development) dir. Add tests for every new feature.
 
 ## Code style
 

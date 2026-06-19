@@ -9,7 +9,7 @@ C++ CNN library (conv/pool/norm/residual layers) with CPU and GPU (OpenCL) backe
 ./CNN/build.sh        # standalone
 ```
 
-Builds into `CNN/build/`. Test binary: `test_cnn`.
+Builds into `CNN/build-dev/` (default, Debug) or `CNN/build/` (`--release`, Release). Test binary: `test_cnn`.
 
 ## Architecture
 
@@ -22,7 +22,7 @@ Builds into `CNN/build/`. Test binary: `test_cnn`.
 ## Testing
 
 ```bash
-cd CNN/build && ./test_cnn
+cd CNN/build-dev && ./test_cnn
 ```
 
 Tests cover: CPU conv2d, CPU layers (instance norm, global avg pool, global dual pool, residual), CPU integration (batch norm, cost func), GPU basic/exact.

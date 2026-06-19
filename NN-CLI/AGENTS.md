@@ -9,7 +9,7 @@ JSON-config-driven CLI for training, predicting, testing, and calibrating neural
 ./NN-CLI/build.sh     # standalone
 ```
 
-Binary: `NN-CLI/build/NN-CLI`. Test: `NN-CLI/build/test_nncli` (pass `--full` for long MNIST train/test).
+Binary: `NN-CLI/build-dev/NN-CLI` (default) or `NN-CLI/build/NN-CLI` (`--release`). Test: `NN-CLI/build-dev/test_nncli` (pass `--full` for long MNIST train/test).
 
 ## Dependencies
 
@@ -40,8 +40,8 @@ JSON config controls: device, layers, training params, I/O, augmentation, valida
 ## Testing
 
 ```bash
-cd NN-CLI/build && ./test_nncli          # basic tests
-cd NN-CLI/build && ./test_nncli --full   # includes long MNIST cases
+cd NN-CLI/build-dev && ./test_nncli          # basic tests (or NN-CLI/build for a release build)
+cd NN-CLI/build-dev && ./test_nncli --full   # includes long MNIST cases
 ```
 
 ## Gotchas

@@ -9,7 +9,7 @@ C++ feedforward (MLP) library with CPU and GPU (OpenCL) backends. Pure library â
 ./ANN/build.sh        # standalone
 ```
 
-Builds into `ANN/build/`. Test binary: `test_ann`.
+Builds into `ANN/build-dev/` (default, Debug) or `ANN/build/` (`--release`, Release). Test binary: `test_ann`.
 
 ## Architecture
 
@@ -22,7 +22,7 @@ Builds into `ANN/build/`. Test binary: `test_ann`.
 ## Testing
 
 ```bash
-cd ANN/build && ./test_ann          # all tests
+cd ANN/build-dev && ./test_ann          # all tests (or ANN/build for a release build)
 ```
 
 Tests cover: CPU basic, GPU basic, features, exact numerical matching, serialization.

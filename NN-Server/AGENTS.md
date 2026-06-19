@@ -9,7 +9,7 @@ QTcpServer-based HTTP server for serving ANN/CNN model predictions over REST. Lo
 ./NN-Server/build.sh  # standalone
 ```
 
-Binary: `NN-Server/build/NN-Server`. Tests: `test_endpoints` (integration), `test_logger` (unit).
+Binary: `NN-Server/build-dev/NN-Server` (default) or `NN-Server/build/NN-Server` (`--release`). Tests: `test_endpoints` (integration), `test_logger` (unit).
 
 ## Architecture
 
@@ -37,7 +37,7 @@ ANN / CNN predict()
 ## Testing
 
 ```bash
-cd NN-Server/build
+cd NN-Server/build-dev
 ./test_endpoints    # integration (starts server, sends HTTP requests)
 ./test_logger       # unit (tests Logger directly)
 ```
