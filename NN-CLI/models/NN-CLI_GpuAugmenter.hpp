@@ -31,6 +31,14 @@ namespace NN_CLI
       void augment(std::vector<float>& batch, ulong count, const AugmentationTransforms& transforms, float probability,
                    std::mt19937& rng);
 
+      // Maximum number of images augment() processes per internal GPU step. Callers
+      // can bound their host staging buffer to this many images and call augment()
+      // once per chunk for bit-identical results.
+      ulong chunkSize() const
+      {
+        return this->capacity;
+      }
+
     private:
       //-- Core members --//
       OpenCLWrapper::Core core;
@@ -68,6 +76,13 @@ namespace NN_CLI
       bool empty() const
       {
         return this->augmenters.empty();
+      }
+
+      // Image count of one internal GPU augmentation step (all augmenters share the
+      // same capacity). Zero when the pool is empty.
+      ulong chunkSize() const
+      {
+        return this->augmenters.empty() ? 0 : this->augmenters[0]->chunkSize();
       }
 
     private:

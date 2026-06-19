@@ -318,18 +318,28 @@ namespace NN_CLI
         }
 
         if (!augPos.empty()) {
-          std::vector<float> buf(augPos.size() * elems);
+          // Bound the host staging buffer to a single GPU augmentation chunk instead
+          // of one buffer holding every augmented image at once. augment() processes
+          // chunk-sized slices internally, so feeding it one chunk at a time gives
+          // bit-identical output (the pool's per-augmenter RNG streams continuously).
+          ulong total = augPos.size();
+          ulong chunk = this->gpuAugmenterPool->chunkSize();
+          std::vector<float> buf(chunk * elems);
 
-          for (ulong j = 0; j < augPos.size(); j++) {
-            const std::vector<float>& in = sampleInputData(batch[augPos[j]]);
-            std::copy(in.begin(), in.end(), buf.begin() + j * elems);
-          }
+          for (ulong base = 0; base < total; base += chunk) {
+            ulong n = std::min(chunk, total - base);
 
-          this->gpuAugmenterPool->augment(buf, augPos.size(), transforms, augmentationProbability);
+            for (ulong j = 0; j < n; j++) {
+              const std::vector<float>& in = sampleInputData(batch[augPos[base + j]]);
+              std::copy(in.begin(), in.end(), buf.begin() + j * elems);
+            }
 
-          for (ulong j = 0; j < augPos.size(); j++) {
-            std::vector<float>& in = sampleInputData(batch[augPos[j]]);
-            std::copy(buf.begin() + j * elems, buf.begin() + (j + 1) * elems, in.begin());
+            this->gpuAugmenterPool->augment(buf, n, transforms, augmentationProbability);
+
+            for (ulong j = 0; j < n; j++) {
+              std::vector<float>& in = sampleInputData(batch[augPos[base + j]]);
+              std::copy(buf.begin() + j * elems, buf.begin() + (j + 1) * elems, in.begin());
+            }
           }
         }
       }
