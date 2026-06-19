@@ -29,15 +29,15 @@ namespace NN_CLI
   //
   // Threading model: after startUiThread(), a single UI thread owns all
   // ncurses work — rendering, input, and resize handling.  It sleeps ~10 ms
-  // between ticks and repaints only when something changed: an observer
-  // raised the redraw flag via requestRedraw() after mutating widget data,
-  // a keystroke arrived, or SIGWINCH fired.  Worker threads never call
-  // draw(); they update widget data under getMutex() and then
-  // requestRedraw(), and the UI thread renders the change on the next tick.
-  // A flag check plus a non-blocking getch at ~100 Hz is negligible CPU (the
-  // old hog was the full repaint, not the wake), so an idle terminal — and
-  // the post-completion dismiss wait — stays cheap instead of repainting at
-  // a fixed frame rate.
+  // between ticks, drains buffered input (non-blocking), and repaints only
+  // when the widget tree is dirty.  Every mutating setter on a widget raises
+  // that widget's dirty flag, and isDirtyTree() propagates it up, so worker
+  // threads simply update widget data under getMutex() — the UI thread sees
+  // the dirty flag on its next tick and renders.  No explicit "please
+  // repaint" call is needed.  A dirty-tree walk plus a non-blocking getch at
+  // ~100 Hz is negligible CPU, so an idle terminal — and the post-completion
+  // dismiss wait — renders nothing instead of repainting at a fixed frame
+  // rate.
   //
   // The default layoutChildren() gives every child the full window area.
   // Override it in a subclass to implement custom layout strategies (e.g.
@@ -84,14 +84,9 @@ namespace NN_CLI
       }
 
       // Called from the SIGWINCH handler to schedule a deferred resize.
-      // Safe to call from a signal handler (sets an atomic flag only).
+      // Safe to call from a signal handler (sets an atomic flag only); the UI
+      // thread picks it up via needsRepaint() on its next tick.
       void requestResize();
-
-      // Set the redraw flag so the UI thread renders on its next tick.  Used
-      // by the content-commit methods after they mutate widget data under
-      // getMutex().  Setting an atomic bool is both thread- and async-signal-
-      // safe, so requestResize() also calls this from its signal-handler path.
-      void requestRedraw();
 
       //-- Terminal dimensions --//
 
@@ -145,6 +140,10 @@ namespace NN_CLI
       void resize(int width, int height, int x, int y) override;
       bool handleEvent(int ch) override;
 
+      // True if this window or any descendant widget changed since the last
+      // draw() cleared its dirty flag.
+      bool isDirtyTree() const override;
+
     protected:
       //-- Hooks --//
 
@@ -183,10 +182,15 @@ namespace NN_CLI
       bool pollAndDispatchInput();
 
       // UI thread body: sleep ~10 ms, drain buffered input, and run draw()
-      // (render + input + resize) under the mutex only when the redraw flag
-      // was set or input was consumed.  Loops until stopUiThread() clears the
-      // flag (the thread notices on its next tick).
+      // (resize + render) under the mutex only when needsRepaint() is true —
+      // i.e. some widget is dirty or a terminal resize is pending.  Loops
+      // until stopUiThread() clears the flag (the thread notices on its next
+      // tick).
       void uiThreadLoop();
+
+      // True when a repaint is warranted this tick: the widget tree is dirty
+      // or a terminal resize was requested by the SIGWINCH handler.
+      bool needsRepaint() const;
 
       //-- Shortcut bar --//
 
@@ -202,10 +206,6 @@ namespace NN_CLI
       std::atomic<bool> uiThreadRunning{false};
       QRecursiveMutex uiMutex;
 
-      // Set by requestRedraw() (from worker threads or the SIGWINCH handler)
-      // and cleared by the UI thread on the tick it renders.  At rest it
-      // stays false, so the UI thread renders nothing and spends ~0 CPU.
-      std::atomic<bool> redrawRequested{false};
       std::string shortcutBar;
       std::string titleBar;
       int titleBarColor = 0;

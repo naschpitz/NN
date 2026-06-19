@@ -82,10 +82,19 @@ namespace NN_CLI
       // the maximum scroll position so the view is always pinned to the bottom.
       void setAutoScroll(bool autoScroll);
 
+      // Set the manual scroll offset and flag the panel dirty.  This is the
+      // sanctioned way to write the offset from outside the panel; the
+      // non-const scrollState() accessor was removed so stray writes are a
+      // compile error.  Clamping to the valid range happens at read time.
+      void setScrollOffset(int offset);
+
       //-- Drawing --//
 
       // Unified Widget override: draws frame, content, scrollbar, and children.
       void draw() override;
+
+      // True if this panel or any child widget changed since the last draw().
+      bool isDirtyTree() const override;
 
       // Draw the ACS border frame and colored title.
       void drawFrame() const;
@@ -166,11 +175,6 @@ namespace NN_CLI
       int getColorPair() const
       {
         return this->colorPair;
-      }
-
-      ScrollState& scrollState()
-      {
-        return this->scroll;
       }
 
       const ScrollState& scrollState() const

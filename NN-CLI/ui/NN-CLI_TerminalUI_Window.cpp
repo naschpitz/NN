@@ -158,8 +158,10 @@ namespace NN_CLI
 
   void TerminalUI_Window::addChild(std::unique_ptr<TerminalUI_Widget> child)
   {
-    if (child)
+    if (child) {
       this->children.push_back(std::move(child));
+      this->markDirty();
+    }
   }
 
   //===================================================================================================================//
@@ -173,6 +175,7 @@ namespace NN_CLI
 
     auto removed = std::move(this->children[index]);
     this->children.erase(this->children.begin() + index);
+    this->markDirty();
 
     return removed;
   }
@@ -208,12 +211,9 @@ namespace NN_CLI
 
   void TerminalUI_Window::requestResize()
   {
+    // Setting an atomic is async-signal-safe.  needsRepaint() checks this flag
+    // so the UI thread handles the resize on its next tick.
     this->resizeRequested.store(true, std::memory_order_relaxed);
-
-    // Raise the redraw flag so the UI thread handles the resize on its next
-    // tick rather than waiting for an unrelated event.  Setting an atomic is
-    // async-signal-safe.
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -239,20 +239,7 @@ namespace NN_CLI
 
     this->preRender();
     this->render();
-
-    // Drain all pending input events so that buffered keystrokes (including
-    // wheel ticks delivered as arrow keys via alternate scroll) are processed
-    // in a single pass.  Re-render once at the end if any event was consumed,
-    // avoiding per-key repaints.
-    bool anyConsumed = false;
-
-    while (this->pollAndDispatchInput())
-      anyConsumed = true;
-
-    if (anyConsumed) {
-      this->preRender();
-      this->render();
-    }
+    this->clearDirty();
   }
 
   //===================================================================================================================//
@@ -285,40 +272,33 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_Window::requestRedraw()
+  bool TerminalUI_Window::needsRepaint() const
   {
-    this->redrawRequested.store(true, std::memory_order_relaxed);
+    return this->isDirtyTree() || this->resizeRequested.load(std::memory_order_relaxed);
   }
 
   //===================================================================================================================//
 
   void TerminalUI_Window::uiThreadLoop()
   {
-    // Render-on-demand loop.  The thread sleeps ~10 ms between ticks, then
-    // repaints only when something actually changed: either an observer set
-    // the redraw flag, or a buffered input event was consumed.  Replacing the
-    // previous unconditional 30 FPS repaint, this spends negligible CPU while
-    // idle (a flag check plus a non-blocking getch at ~100 Hz) and bounds
-    // worst-case event-to-paint latency to one tick (~10 ms, imperceptible
-    // for a TUI).  draw() itself is unchanged: it checks the resize flag,
-    // renders, and drains any buffered input.
+    // Render-on-demand loop.  The thread sleeps ~10 ms between ticks, drains
+    // buffered input (non-blocking), and repaints only when the widget tree
+    // is dirty — i.e. an observer mutated visible state (every mutating
+    // setter raises its widget's dirty flag, and isDirtyTree() propagates it)
+    // — or a terminal resize is pending.  An idle terminal therefore renders
+    // nothing and spends ~0 CPU, while worst-case event-to-paint latency is
+    // one tick (~10 ms).
     while (this->uiThreadRunning.load()) {
       QThread::msleep(10);
 
       QMutexLocker<QRecursiveMutex> lock(&this->uiMutex);
 
-      bool need = this->redrawRequested.exchange(false, std::memory_order_relaxed);
+      // Drain all buffered input first.  Handlers mutate the affected widgets
+      // (raising their dirty flags); isDirtyTree() below catches that this
+      // same tick, so a burst of keystrokes coalesces into a single repaint.
+      while (this->pollAndDispatchInput()) {}
 
-      // Drain all buffered input first (non-blocking), so a burst of keystrokes
-      // coalesces into a single repaint instead of one render per key.  Any
-      // consumed event is itself a reason to render.  Draining every tick also
-      // keeps idle key/wheel events (e.g. scrolling a panel when no observer
-      // is firing) from being stuck behind a false redraw flag.
-      while (this->pollAndDispatchInput()) {
-        need = true;
-      }
-
-      if (need) {
+      if (this->needsRepaint()) {
         this->draw();
       }
     }
@@ -349,12 +329,28 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+
+  bool TerminalUI_Window::isDirtyTree() const
+  {
+    if (this->dirty)
+      return true;
+
+    for (const auto& child : this->children)
+
+      if (child->isDirtyTree())
+        return true;
+
+    return false;
+  }
+
+  //===================================================================================================================//
   //-- Shortcut bar --//
   //===================================================================================================================//
 
   void TerminalUI_Window::setShortcutBar(const std::string& text)
   {
     this->shortcutBar = text;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -399,6 +395,7 @@ namespace NN_CLI
   {
     this->titleBar = text;
     this->titleBarColor = colorPair;
+    this->markDirty();
   }
 
   //===================================================================================================================//

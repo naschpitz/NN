@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <curses.h>
 
-
 namespace
 {
   //== getVisualWidth ==========================================================//
@@ -12,9 +11,12 @@ namespace
   static int getVisualWidth(const std::string& text)
   {
     int width = 0;
+
     for (unsigned char c : text) {
-      if ((c & 0xC0) != 0x80) width++;
+      if ((c & 0xC0) != 0x80)
+        width++;
     }
+
     return width;
   }
 
@@ -49,6 +51,7 @@ namespace NN_CLI
   {
     this->columns = std::move(columns);
     this->widthsDirty = true;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -56,6 +59,7 @@ namespace NN_CLI
   void TerminalUI_Table::setTitle(const std::string& title)
   {
     this->title = title;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -64,6 +68,7 @@ namespace NN_CLI
   {
     this->maxWidth = maxWidth;
     this->widthsDirty = true;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -73,6 +78,7 @@ namespace NN_CLI
   void TerminalUI_Table::addRow(const Row& cells)
   {
     this->rows.push_back(cells);
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -80,6 +86,7 @@ namespace NN_CLI
   void TerminalUI_Table::addRows(const std::vector<Row>& rows)
   {
     this->rows.insert(this->rows.end(), rows.begin(), rows.end());
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -87,6 +94,7 @@ namespace NN_CLI
   void TerminalUI_Table::clearRows()
   {
     this->rows.clear();
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -115,6 +123,8 @@ namespace NN_CLI
       const std::string& line = lines[i];
       mvaddstr(this->y + i, this->x, line.c_str());
     }
+
+    this->clearDirty();
   }
 
   //===================================================================================================================//
@@ -148,6 +158,7 @@ namespace NN_CLI
     } else {
       // Header row with column names
       Row headers;
+
       for (const auto& col : this->columns)
         headers.push_back(col.name);
 
@@ -230,6 +241,7 @@ namespace NN_CLI
 
     // Sum width hints for proportional allocation.
     int totalHints = 0;
+
     for (const auto& col : this->columns)
       totalHints += std::max(1, col.widthHint);
 
@@ -238,6 +250,7 @@ namespace NN_CLI
     if (dataWidth <= 0 || totalHints <= 0) {
       // No usable space or zero hints — equal distribution as fallback.
       const int perCol = dataWidth > 0 ? dataWidth / N : 0;
+
       for (int i = 0; i < N; i++)
         this->computedWidths[i] = perCol;
 
@@ -248,6 +261,7 @@ namespace NN_CLI
     // Proportional allocation: distribute dataWidth by weight.
     // The last column absorbs rounding remainder so the row fills maxWidth exactly.
     int allocated = 0;
+
     for (int i = 0; i < N - 1; i++) {
       int w = dataWidth * std::max(1, this->columns[i].widthHint) / totalHints;
       w = std::max(1, w);
@@ -330,6 +344,7 @@ namespace NN_CLI
     // A regular row: "| " + w0 + " | " + w1 + ... + " | " + wN-1 + " |"
     // Between outer "|"s: " w0 | w1 | ... | wN-1 " = sum(wi) + 3*N - 1
     int titleSpace = 3 * N - 1;
+
     for (int w : this->computedWidths)
       titleSpace += w;
 

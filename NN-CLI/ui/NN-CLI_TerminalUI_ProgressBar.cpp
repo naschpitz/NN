@@ -193,6 +193,7 @@ namespace NN_CLI
   {
     this->barLabel = label;
     this->barFractions = {std::clamp(fraction, 0.0f, 1.0f)};
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -205,6 +206,8 @@ namespace NN_CLI
 
     for (float f : fractions)
       this->barFractions.push_back(std::clamp(f, 0.0f, 1.0f));
+
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -213,6 +216,7 @@ namespace NN_CLI
   {
     this->subLineText = text;
     this->subLineColorPair = colorPair;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -221,6 +225,7 @@ namespace NN_CLI
   {
     this->subLineText.clear();
     this->subLineColorPair = 0;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -228,6 +233,7 @@ namespace NN_CLI
   void TerminalUI_ProgressBar::setVisible(bool visible)
   {
     this->visible = visible;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -243,7 +249,10 @@ namespace NN_CLI
   {
     // Reservations only grow so bar geometry stays stable across transient
     // states (e.g. a shorter label while a counter has fewer digits).
-    this->reservedLabelWidth = std::max(this->reservedLabelWidth, cols);
+    if (cols > this->reservedLabelWidth) {
+      this->reservedLabelWidth = cols;
+      this->markDirty();
+    }
   }
 
   //===================================================================================================================//
@@ -265,7 +274,10 @@ namespace NN_CLI
   {
     // Reservations only grow so bar geometry stays stable across transient
     // states (e.g. the single-segment "Validating" bar between epochs).
-    this->reservedSuffixWidth = std::max(this->reservedSuffixWidth, cols);
+    if (cols > this->reservedSuffixWidth) {
+      this->reservedSuffixWidth = cols;
+      this->markDirty();
+    }
   }
 
   //===================================================================================================================//
@@ -274,8 +286,10 @@ namespace NN_CLI
 
   void TerminalUI_ProgressBar::draw()
   {
-    if (!this->visible || this->width <= 0 || this->height <= 0)
+    if (!this->visible || this->width <= 0 || this->height <= 0) {
+      this->clearDirty();
       return;
+    }
 
     int numSegments = std::max(1, static_cast<int>(this->barFractions.size()));
 
@@ -338,6 +352,8 @@ namespace NN_CLI
       for (int i = 0; i < maxClear; i++)
         mvaddch(this->y + 1, this->x + textLen + i, ' ');
     }
+
+    this->clearDirty();
   }
 
   //===================================================================================================================//

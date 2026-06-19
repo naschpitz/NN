@@ -20,6 +20,7 @@ namespace
 
       // Determine the byte length of this UTF-8 character.
       int charBytes = 1;
+
       if ((c & 0xE0) == 0xC0)
         charBytes = 2;
       else if ((c & 0xF0) == 0xE0)
@@ -81,6 +82,7 @@ namespace NN_CLI
   void TerminalUI_Panel::setTitle(const std::string& title)
   {
     this->title = title;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -88,6 +90,7 @@ namespace NN_CLI
   void TerminalUI_Panel::setColorPair(int colorPair)
   {
     this->colorPair = colorPair;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -97,6 +100,7 @@ namespace NN_CLI
   void TerminalUI_Panel::setLines(const std::vector<std::string>& lines)
   {
     this->lines = lines;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -104,6 +108,15 @@ namespace NN_CLI
   void TerminalUI_Panel::setAutoScroll(bool autoScroll)
   {
     this->scroll.autoScroll = autoScroll;
+    this->markDirty();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_Panel::setScrollOffset(int offset)
+  {
+    this->scroll.offset = offset;
+    this->markDirty();
   }
 
   //===================================================================================================================//
@@ -118,6 +131,23 @@ namespace NN_CLI
 
     for (auto& child : this->children)
       child->draw();
+
+    this->clearDirty();
+  }
+
+  //===================================================================================================================//
+
+  bool TerminalUI_Panel::isDirtyTree() const
+  {
+    if (this->dirty)
+      return true;
+
+    for (const auto& child : this->children)
+
+      if (child->isDirtyTree())
+        return true;
+
+    return false;
   }
 
   //===================================================================================================================//
@@ -278,6 +308,7 @@ namespace NN_CLI
     }
 
     this->scroll.autoScroll = false;
+    this->markDirty();
     return true;
   }
 
@@ -287,8 +318,10 @@ namespace NN_CLI
 
   void TerminalUI_Panel::addChild(std::unique_ptr<TerminalUI_Widget> child)
   {
-    if (child)
+    if (child) {
       this->children.push_back(std::move(child));
+      this->markDirty();
+    }
   }
 
   //===================================================================================================================//
@@ -300,6 +333,7 @@ namespace NN_CLI
 
     auto removed = std::move(this->children[index]);
     this->children.erase(this->children.begin() + index);
+    this->markDirty();
 
     return removed;
   }

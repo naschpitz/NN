@@ -44,6 +44,18 @@ namespace NN_CLI
       // Handle a keypress event.  Returns true if the event was consumed.
       virtual bool handleEvent(int ch);
 
+      //-- Dirty tracking --//
+
+      // True if this widget (or any descendant) has changed since the last
+      // draw() cleared the flag.  The UI thread checks this to decide whether
+      // a repaint is needed, so unchanged widgets incur zero rendering cost.
+      // All widget mutation happens under the window's UI mutex, so the flag
+      // itself needs no atomic.
+      virtual bool isDirtyTree() const
+      {
+        return this->dirty;
+      }
+
       //-- Accessors --//
 
       int getX() const
@@ -67,12 +79,31 @@ namespace NN_CLI
       }
 
     protected:
+      //-- Dirty tracking --//
+
+      // Called by setters that mutate visible widget state (text, rows, bar
+      // fraction, child list, ...).  Implemented here so every widget marks
+      // itself dirty the same way without repeating the line.
+      void markDirty()
+      {
+        this->dirty = true;
+      }
+
+      // Called by a widget's own draw() after it has finished painting itself
+      // (and, for containers, its children).
+      void clearDirty()
+      {
+        this->dirty = false;
+      }
+
       //-- Members --//
 
       int x = 0;
       int y = 0;
       int width = 0;
       int height = 0;
+
+      bool dirty = true; // true initially so the first paint occurs
   };
 
 } // namespace NN_CLI

@@ -158,7 +158,6 @@ namespace NN_CLI
       this->progressBarPtr->setBarData(label, fraction);
 
     this->syncProgressBarLayout();
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -169,7 +168,6 @@ namespace NN_CLI
       this->progressBarPtr->setBarData(label, fractions);
 
     this->syncProgressBarLayout();
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -178,8 +176,6 @@ namespace NN_CLI
   {
     if (this->progressBarPtr)
       this->progressBarPtr->setSubLineText(line, 0);
-
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -188,8 +184,6 @@ namespace NN_CLI
   {
     if (this->progressBarPtr)
       this->progressBarPtr->clearSubLineText();
-
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -202,7 +196,6 @@ namespace NN_CLI
     }
 
     this->syncProgressBarLayout();
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -211,8 +204,6 @@ namespace NN_CLI
   {
     if (this->loadingBarPtr)
       this->loadingBarPtr->setVisible(false);
-
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -242,9 +233,7 @@ namespace NN_CLI
 
     auto lines = SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
     this->modelInfoPanelPtr->setLines(lines);
-    this->modelInfoPanelPtr->scrollState().offset = 0;
-
-    this->requestRedraw();
+    this->modelInfoPanelPtr->setScrollOffset(0);
   }
 
   //===================================================================================================================//
@@ -274,8 +263,6 @@ namespace NN_CLI
     }
 
     this->timingPanelPtr->setLines(lines);
-
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -305,8 +292,6 @@ namespace NN_CLI
     }
 
     this->epochHistoryPanelPtr->setLines(lines);
-
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -369,8 +354,6 @@ namespace NN_CLI
 
     auto lines = this->resultsTable.render();
     this->resultsPanelPtr->setLines(lines);
-
-    this->requestRedraw();
   }
 
   //===================================================================================================================//
