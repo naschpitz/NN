@@ -59,8 +59,8 @@ static void runGPUPredictStopRequested()
     ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
 
     if (start >= end)
-      return CNN::Inputs<float>{};
-    return CNN::Inputs<float>(inputs.begin() + start, inputs.begin() + end);
+      return CNN::InputsView<float>{};
+    return CNN::InputsView<float>(inputs.data() + start, end - start);
   };
 
   // Progress callback that requests stop after the first batch completes.

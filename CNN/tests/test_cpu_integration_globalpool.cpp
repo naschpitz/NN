@@ -287,8 +287,8 @@ static void testBatchPredict()
       ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
 
       if (start >= end)
-        return CNN::Inputs<double>{};
-      return CNN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
+        return CNN::InputsView<double>{};
+      return CNN::InputsView<double>(inputs.data() + start, end - start);
     };
 
     batchResults = core->predict(inputs.size(), sliceProvider);

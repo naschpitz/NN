@@ -105,16 +105,16 @@ template <typename T>
 PredictResults<T> Core<T>::predict(const Inputs<T>& inputs)
 {
   // Wrap an in-memory Inputs<T> as a one-shot InputProvider and delegate
-  // to the streaming overload. Per-input tensors are not deep-copied — the
-  // provider just returns slices of the original vector.
+  // to the streaming overload. The provider returns non-owning views into
+  // `inputs`, which outlives this call, so no per-input tensors are copied.
   return predict(inputs.size(), [&inputs](ulong batchSize, ulong batchIndex) {
     ulong start = batchIndex * batchSize;
     ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
 
     if (start >= end)
-      return Inputs<T>{};
+      return InputsView<T>{};
 
-    return Inputs<T>(inputs.begin() + start, inputs.begin() + end);
+    return InputsView<T>(inputs.data() + start, end - start);
   });
 }
 
