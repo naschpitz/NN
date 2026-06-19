@@ -1,6 +1,6 @@
 # NN — Monorepo
 
-C++17 + Qt6 + OpenCL neural-network monorepo: feedforward (ANN) and convolutional (CNN)
+C++20 + Qt6 + OpenCL neural-network monorepo: feedforward (ANN) and convolutional (CNN)
 libraries with CPU/GPU backends, a CLI tool, and an HTTP inference server.
 
 ## Layout
@@ -48,7 +48,7 @@ Builds one component in isolation into its own `<component>/build-dev` (default)
 Dependencies validated at configure time (CNN requires ANN).
 
 ### Prerequisites
-- C++17 compiler (GCC ≥ 9 / Clang ≥ 10)
+- C++20 compiler (GCC ≥ 11 / Clang ≥ 12)
 - CMake ≥ 3.14
 - Qt6 (Core, Concurrent; NN-Server needs Network)
 - OpenCL ICD + headers + GPU driver
