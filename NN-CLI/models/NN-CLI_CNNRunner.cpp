@@ -714,17 +714,13 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
 
     bool isBestEpoch = (isBest || completion.isNewBest);
 
-    // --- Best model save ---
-    if (isBestEpoch) {
-      std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-      ModelSerializer::saveCNNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                             this->buildValidationMetadata());
-    }
-
     // --- Write the validation results into this epoch's history record ---
     // The core's internal monitor is disabled (NN-CLI monitors externally), so
     // it recorded isBest=false / hasValLoss=false. The just-completed epoch is
     // epochHistory.back() (the core appended it immediately before this call).
+    // This MUST happen before the best-model save below, otherwise the saved
+    // best model captures this epoch's record with placeholder defaults
+    // (hasValLoss=false / isBest=false) even though validation just ran.
     auto& epochHistory = this->core->getTrainMetadata().epochHistory;
 
     if (!epochHistory.empty()) {
@@ -732,6 +728,13 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
       lastRecord.isBest = isBestEpoch;
       lastRecord.hasValLoss = hasValLoss;
       lastRecord.valLoss = valLoss;
+    }
+
+    // --- Best model save ---
+    if (isBestEpoch) {
+      std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
+      ModelSerializer::saveCNNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                             this->buildValidationMetadata());
     }
 
     this->profiler.setEpoch(epoch + 1);
