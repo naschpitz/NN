@@ -81,9 +81,9 @@ PredictResult<T> Core<T>::predict(const Input<T>& input)
   // One-shot provider for the single sample.
   PredictResults<T> results = predict(1, [&input](ulong, ulong batchIndex) {
     if (batchIndex > 0)
-      return Inputs<T>{};
+      return InputsView<T>{};
 
-    return Inputs<T>{input};
+    return InputsView<T>(&input, 1);
   });
 
   return results[0];

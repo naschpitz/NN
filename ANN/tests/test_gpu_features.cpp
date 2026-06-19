@@ -389,8 +389,8 @@ static void testGPUBatchPredictAbort()
     ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
 
     if (start >= end)
-      return ANN::Inputs<float>{};
-    return ANN::Inputs<float>(inputs.begin() + start, inputs.begin() + end);
+      return ANN::InputsView<float>{};
+    return ANN::InputsView<float>(inputs.data() + start, end - start);
   };
 
   // Progress callback that aborts after the first batch completes.

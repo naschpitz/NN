@@ -308,8 +308,8 @@ static void testBatchPredict()
     ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
 
     if (start >= end)
-      return ANN::Inputs<double>{};
-    return ANN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
+      return ANN::InputsView<double>{};
+    return ANN::InputsView<double>(inputs.data() + start, end - start);
   };
 
   ANN::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
@@ -376,8 +376,8 @@ static void testBatchPredictAfterTrain()
     ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
 
     if (start >= end)
-      return ANN::Inputs<double>{};
-    return ANN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
+      return ANN::InputsView<double>{};
+    return ANN::InputsView<double>(inputs.data() + start, end - start);
   };
 
   ANN::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
@@ -411,8 +411,8 @@ static void testBatchPredictAbort()
     ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
 
     if (start >= end)
-      return ANN::Inputs<double>{};
-    return ANN::Inputs<double>(inputs.begin() + start, inputs.begin() + end);
+      return ANN::InputsView<double>{};
+    return ANN::InputsView<double>(inputs.data() + start, end - start);
   };
 
   // Progress callback that aborts after the first batch completes.

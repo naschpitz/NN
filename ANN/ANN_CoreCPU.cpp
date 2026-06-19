@@ -88,7 +88,7 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
   std::atomic<ulong> completedInputs{0};
 
   for (ulong batchIndex = 0; batchIndex < numBatches && !this->stopRequested.load(); batchIndex++) {
-    Inputs<T> batch = provider(batchSize, batchIndex);
+    InputsView<T> batch = provider(batchSize, batchIndex);
     ulong batchN = batch.size();
 
     if (batchN == 0)
