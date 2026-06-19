@@ -98,8 +98,8 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
           };
         }
 
-        gpuResults[item.gpuIdx] =
-          this->gpuWorkers[item.gpuIdx]->predictSubset(batch, item.startIdx, item.endIdx, callback);
+        gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->predictSubset(
+          std::span<const Input<T>>(batch.data() + item.startIdx, item.endIdx - item.startIdx), callback);
       });
 
     // Append per-GPU results in input order.
@@ -405,7 +405,8 @@ TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
     std::vector<std::pair<T, ulong>> gpuResults(this->numGPUs, {0, 0});
 
     QtConcurrent::blockingMap(&this->workerPool, workItems, [this, &batch, &gpuResults](const GPUWorkItem& item) {
-      gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->testSubset(batch, item.startIdx, item.endIdx);
+      gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->testSubset(
+        std::span<const Sample<T>>(batch.data() + item.startIdx, item.endIdx - item.startIdx));
     });
 
     for (size_t i = 0; i < this->numGPUs; i++) {

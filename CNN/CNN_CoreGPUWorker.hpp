@@ -43,10 +43,10 @@ namespace CNN
                     const GpuProfileCallback& gpuProfileCallback = nullptr);
 
       //-- Testing --//
-      std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);
+      std::pair<T, ulong> testSubset(std::span<const Sample<T>> samples);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
-      Common::PredictResults<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
+      Common::PredictResults<T> predictSubset(std::span<const Input<T>> inputs,
                                               const ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training methods (for external orchestration) --//

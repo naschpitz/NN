@@ -100,8 +100,8 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
           };
         }
 
-        gpuResults[item.gpuIdx] =
-          this->gpuWorkers[item.gpuIdx]->predictSubset(batch, item.startIdx, item.endIdx, callback);
+        gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->predictSubset(
+          std::span<const Input<T>>(batch.data() + item.startIdx, item.endIdx - item.startIdx), callback);
       });
 
     // Append per-GPU results in input order.
@@ -338,7 +338,8 @@ TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
   return ::distributeTestAcrossGPUs<T>(
     &this->workerPool, numSamples, sampleProvider, this->numGPUs, this->testConfig.batchSize, this->progressCallback,
     [this](size_t gpuIdx, const Samples<T>& batch, ulong startIdx, ulong endIdx) -> std::pair<T, ulong> {
-      return this->gpuWorkers[gpuIdx]->testSubset(batch, startIdx, endIdx);
+      return this->gpuWorkers[gpuIdx]->testSubset(
+        std::span<const Sample<T>>(batch.data() + startIdx, endIdx - startIdx));
     });
 }
 

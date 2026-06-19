@@ -446,12 +446,12 @@ void CoreGPUWorker<T>::reportSampleProgress(const TrainCallback<T>& callback, ul
 //===================================================================================================================//
 
 template <typename T>
-std::pair<T, ulong> CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx)
+std::pair<T, ulong> CoreGPUWorker<T>::testSubset(std::span<const Sample<T>> samples)
 {
   T subsetLoss = static_cast<T>(0);
   ulong subsetCorrect = 0;
 
-  for (ulong s = startIdx; s < endIdx; s++) {
+  for (ulong s = 0; s < samples.size(); s++) {
     Output<T> predicted = this->predict(samples[s].input).output;
     subsetLoss += this->calculateLoss(predicted, samples[s].output);
 
@@ -472,8 +472,7 @@ std::pair<T, ulong> CoreGPUWorker<T>::testSubset(const Samples<T>& samples, ulon
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> CoreGPUWorker<T>::predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
-                                                  const ProgressCallback& callback)
+PredictResults<T> CoreGPUWorker<T>::predictSubset(std::span<const Input<T>> inputs, const ProgressCallback& callback)
 {
   // Set up predict kernels if needed (CNN propagate → bridge →  propagate)
   if (!this->kernelBuilder->predictKernelsSetup) {
@@ -481,14 +480,14 @@ PredictResults<T> CoreGPUWorker<T>::predictSubset(const Inputs<T>& inputs, ulong
   }
 
   PredictResults<T> results;
-  results.reserve(endIdx - startIdx);
+  results.reserve(inputs.size());
 
-  for (ulong i = startIdx; i < endIdx; i++) {
+  for (ulong i = 0; i < inputs.size(); i++) {
     PredictResult<T> r = this->predict(inputs[i]);
     results.push_back(std::move(r));
 
     if (callback)
-      callback(i - startIdx + 1, endIdx - startIdx);
+      callback(i + 1, inputs.size());
   }
 
   return results;

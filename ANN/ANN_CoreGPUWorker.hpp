@@ -41,11 +41,10 @@ namespace ANN
                     const TrainCallback<T>& callback);
 
       //-- Testing (called by CoreGPU orchestrator) --//
-      std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);
+      std::pair<T, ulong> testSubset(std::span<const Sample<T>> samples);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
-      PredictResults<T> predictSubset(const Inputs<T>& inputs, ulong startIdx, ulong endIdx,
-                                      const ProgressCallback& callback = nullptr);
+      PredictResults<T> predictSubset(std::span<const Input<T>> inputs, const ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training (for external orchestration) --//
       Tensor1D<T> backpropagate(const Output<T>& expected);
