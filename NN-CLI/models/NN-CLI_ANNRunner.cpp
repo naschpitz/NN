@@ -325,14 +325,15 @@ int ANNRunner::predict()
   this->setupPredictProgressCallback(inputs.size());
 
   // The streaming predict API takes a provider that yields one batch at a
-  // time. The batch JSON is already loaded into `inputs`, so we just slice it.
+  // time. The inputs are already loaded into `inputs`, so the provider returns
+  // a non-owning view over each batch slice (no per-input copy).
   auto sliceProvider = [&inputs](ulong batchSize, ulong batchIndex) {
     ulong start = batchIndex * batchSize;
     ulong end = std::min(start + batchSize, static_cast<ulong>(inputs.size()));
 
     if (start >= end)
-      return ANN::Inputs<float>{};
-    return ANN::Inputs<float>(inputs.begin() + start, inputs.begin() + end);
+      return ANN::InputsView<float>{};
+    return ANN::InputsView<float>(inputs.data() + start, end - start);
   };
 
   Common::PredictResults<float> results = this->core->predict(inputs.size(), sliceProvider);
