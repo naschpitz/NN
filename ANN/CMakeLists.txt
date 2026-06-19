@@ -53,6 +53,10 @@ target_link_libraries(ANN
 )
 target_compile_definitions(ANN PRIVATE ANN_LIBRARY)
 # --- Test executable ---
+# Built only when ANN is the top-level project (standalone build). Skipped when ANN
+# is pulled in via add_subdirectory by a consumer (CNN, NN-CLI, NN-Server), so those
+# builds don't compile ANN's test suite.
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 add_executable(test_ann
   tests/test_main.cpp
   tests/test_actvfunc.cpp
@@ -71,3 +75,4 @@ add_executable(test_ann
   tests/test_gpu_exact.cpp
 )
 target_link_libraries(test_ann PRIVATE ANN Qt6::Core Qt6::Concurrent)
+endif()

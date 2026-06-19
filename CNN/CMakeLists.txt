@@ -85,6 +85,10 @@ target_compile_definitions(CNN PRIVATE CNN_LIBRARY)
 
 
 # Test executable
+# Built only when CNN is the top-level project (standalone build). Skipped when CNN
+# is pulled in via add_subdirectory by a consumer (NN-CLI, NN-Server), so those
+# builds don't compile CNN's test suite.
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 add_executable(test_cnn
   tests/test_main.cpp
   tests/test_cpu_conv2d.cpp
@@ -118,3 +122,4 @@ add_executable(test_cnn
   tests/test_cpu_predict_stop.cpp
 )
 target_link_libraries(test_cnn PRIVATE CNN)
+endif()
