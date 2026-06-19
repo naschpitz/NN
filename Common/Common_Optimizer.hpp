@@ -20,8 +20,28 @@ namespace Common
       T epsilon = static_cast<T>(1e-8);
 
       //-- Name/type conversion --//
-      static OptimizerType nameToType(const std::string& name);
-      static std::string typeToName(OptimizerType t);
+      static OptimizerType nameToType(const std::string& name)
+      {
+        if (name == "sgd")
+          return OptimizerType::SGD;
+
+        if (name == "adam")
+          return OptimizerType::ADAM;
+
+        throw std::runtime_error("Unknown optimizer type: " + name);
+      }
+
+      static std::string typeToName(OptimizerType t)
+      {
+        switch (t) {
+        case OptimizerType::SGD:
+          return "sgd";
+        case OptimizerType::ADAM:
+          return "adam";
+        default:
+          return "sgd";
+        }
+      }
   };
 }
 

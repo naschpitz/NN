@@ -92,8 +92,7 @@ Static member init at top; template instantiations at bottom.
 
 ### Namespace hygiene
 - **Own-namespace `using` is OK** (e.g. `using namespace ANN;` in an ANN `.cpp`).
-- **Foreign-namespace `using` is banned** — never `using namespace Common;` outside of Common-implementing files.
-- Exception: `.cpp` files whose sole purpose is implementing Common types (e.g. `ANN_Device.cpp`, `ANN_Mode.cpp`, `ANN_TrainMonitor.cpp`) may `using namespace Common;`.
+- **Foreign-namespace `using` is banned** — never `using namespace Common;` outside of Common.
 - Headers: never `using namespace` any namespace.
 - `using X = Y;` type aliases and `using Base::method;` base-member imports are fine — not namespace abuse.
 
