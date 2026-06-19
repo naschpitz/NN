@@ -9,6 +9,7 @@
 #include <iostream>
 #include <numeric>
 #include <random>
+#include <span>
 
 #include <OCLW_Core.hpp>
 #include <QtConcurrent>
@@ -197,8 +198,8 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       QtConcurrent::blockingMap(
         &this->workerPool, workItems,
         [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples, &gpuCumulativeSamples](const GPUWorkItem& item) {
-          // Build the per-GPU sub-batch
-          Samples<T> gpuSamples(batchSamples.begin() + item.localStart, batchSamples.begin() + item.localEnd);
+          // Build the per-GPU sub-batch (non-owning view — avoids copying the slice)
+          std::span<const Sample<T>> gpuSamples(batchSamples.data() + item.localStart, item.localEnd - item.localStart);
 
           // Create per-batch callback that translates local indices to cumulative per-GPU counts
           TrainCallback<T> callback;

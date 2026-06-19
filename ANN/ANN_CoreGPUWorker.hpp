@@ -9,6 +9,7 @@
 #include <OCLW_Core.hpp>
 
 #include <memory>
+#include <span>
 #include <utility>
 
 //===================================================================================================================//
@@ -36,8 +37,8 @@ namespace ANN
       PredictResult<T> predict(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
-      T trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                     const TrainCallback<T>& callback);
+      T trainSubset(std::span<const Sample<T>> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
+                    const TrainCallback<T>& callback);
 
       //-- Testing (called by CoreGPU orchestrator) --//
       std::pair<T, ulong> testSubset(const Samples<T>& samples, ulong startIdx, ulong endIdx);

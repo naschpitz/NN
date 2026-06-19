@@ -96,8 +96,8 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 //===================================================================================================================//
 
 template <typename T>
-T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                                const TrainCallback<T>& callback)
+T CoreGPUWorker<T>::trainSubset(std::span<const Sample<T>> batchSamples, ulong totalSamples, ulong epoch,
+                                ulong totalEpochs, const TrainCallback<T>& callback)
 {
   ulong numSamplesInSubset = batchSamples.size();
 
