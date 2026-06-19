@@ -29,6 +29,12 @@
 #
 # Requires a root CMakeUserPresets.json pinning your Qt6 kit (see README).
 
+BOLD=$'\033[1m'
+GREEN=$'\033[32m'
+RED=$'\033[31m'
+RESET=$'\033[0m'
+
+
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -77,15 +83,21 @@ jobs="$(nproc 2>/dev/null || echo 4)"
 failed=()
 
 for c in "${COMPONENTS[@]}"; do
+  echo
+  echo
   echo "================================================================"
   echo "  $c   (kit: $KIT, mode: $MODE, dir: $BUILD_DIR, type: $BUILD_TYPE)"
   echo "================================================================"
+  
   # Distribute the master preset; ${sourceDir} in it re-resolves to this component.
   cp "$MASTER" "$ROOT/$c/CMakeUserPresets.json"
+  
   if ( cd "$ROOT/$c" && cmake --preset "$KIT" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE="$BUILD_TYPE" && cmake --build "$BUILD_DIR" -j"$jobs" ); then
-    echo "==> $c: OK"
+    echo
+    echo -e "${BOLD}${GREEN}==> $c: OK${RESET}"
   else
-    echo "==> $c: FAILED" >&2
+    echo
+    echo -e "${BOLD}${RED}==> $c: FAILED${RESET}" >&2
     failed+=("$c")
   fi
 done
