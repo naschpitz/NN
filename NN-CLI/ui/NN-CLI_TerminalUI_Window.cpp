@@ -144,6 +144,8 @@ namespace NN_CLI
   {
     this->uiThreadRunning.store(false);
 
+    // The UI thread checks uiThreadRunning every tick (~10 ms), so wait()
+    // returns promptly without an explicit wake.
     if (this->uiThread) {
       this->uiThread->wait();
       this->uiThread.reset();
@@ -207,6 +209,11 @@ namespace NN_CLI
   void TerminalUI_Window::requestResize()
   {
     this->resizeRequested.store(true, std::memory_order_relaxed);
+
+    // Raise the redraw flag so the UI thread handles the resize on its next
+    // tick rather than waiting for an unrelated event.  Setting an atomic is
+    // async-signal-safe.
+    this->requestRedraw();
   }
 
   //===================================================================================================================//
@@ -278,21 +285,42 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
+  void TerminalUI_Window::requestRedraw()
+  {
+    this->redrawRequested.store(true, std::memory_order_relaxed);
+  }
+
+  //===================================================================================================================//
+
   void TerminalUI_Window::uiThreadLoop()
   {
-    // ~30 FPS: frequent enough for smooth progress bars, cheap enough that
-    // the periodic redraw is negligible next to the training work.  ncurses
-    // diffs the virtual screen internally, so an unchanged frame sends
-    // almost nothing to the terminal.
-    constexpr unsigned long kFrameIntervalMs = 33;
-
+    // Render-on-demand loop.  The thread sleeps ~10 ms between ticks, then
+    // repaints only when something actually changed: either an observer set
+    // the redraw flag, or a buffered input event was consumed.  Replacing the
+    // previous unconditional 30 FPS repaint, this spends negligible CPU while
+    // idle (a flag check plus a non-blocking getch at ~100 Hz) and bounds
+    // worst-case event-to-paint latency to one tick (~10 ms, imperceptible
+    // for a TUI).  draw() itself is unchanged: it checks the resize flag,
+    // renders, and drains any buffered input.
     while (this->uiThreadRunning.load()) {
-      {
-        QMutexLocker<QRecursiveMutex> lock(&this->uiMutex);
-        this->draw();
+      QThread::msleep(10);
+
+      QMutexLocker<QRecursiveMutex> lock(&this->uiMutex);
+
+      bool need = this->redrawRequested.exchange(false, std::memory_order_relaxed);
+
+      // Drain all buffered input first (non-blocking), so a burst of keystrokes
+      // coalesces into a single repaint instead of one render per key.  Any
+      // consumed event is itself a reason to render.  Draining every tick also
+      // keeps idle key/wheel events (e.g. scrolling a panel when no observer
+      // is firing) from being stuck behind a false redraw flag.
+      while (this->pollAndDispatchInput()) {
+        need = true;
       }
 
-      QThread::msleep(kFrameIntervalMs);
+      if (need) {
+        this->draw();
+      }
     }
   }
 
