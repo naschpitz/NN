@@ -17,21 +17,20 @@
 
 namespace ANN
 {
-  using namespace Common;
   template <typename T>
   struct CoreConfig {
-      ModeType modeType;
-      DeviceType deviceType;
+      Common::ModeType modeType;
+      Common::DeviceType deviceType;
       int numThreads = 0; // 0 = use all available cores (for CPU mode)
       int numGPUs = 0; // 0 = use all available GPUs (for GPU mode)
       LayersConfig layersConfig;
-      CostFunctionConfig<T> costFunctionConfig;
-      TrainConfig<T> trainConfig;
-      TestConfig testConfig;
-       Common::CalibrateConfig calibrateConfig;
+      Common::CostFunctionConfig<T> costFunctionConfig;
+      Common::TrainConfig<T> trainConfig;
+      Common::TestConfig testConfig;
+      Common::CalibrateConfig calibrateConfig;
       Parameters<T> parameters;
       ulong progressReports = 1000; // Number of progress reports (0 = no reports, default = 1000)
-      LogLevel logLevel = LogLevel::ERROR;
+      Common::LogLevel logLevel = Common::LogLevel::ERROR;
       Common::TrainMetadata<T> loadedTrainMetadata{}; // Full training metadata loaded from saved model
   };
 }

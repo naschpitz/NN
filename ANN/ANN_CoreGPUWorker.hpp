@@ -16,35 +16,35 @@
 
 namespace ANN
 {
-  using namespace Common;
   template <typename T>
   class CoreGPUWorker : public Worker<T>
   {
     public:
       // Standalone constructor — creates its own OpenCL core
-      CoreGPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
+      CoreGPUWorker(const LayersConfig& layersConfig, const Common::TrainConfig<T>& trainConfig,
                     const Parameters<T>& parameters,
-                    const CostFunctionConfig<T>& costFunctionConfig = CostFunctionConfig<T>(),
-                    ulong progressReports = 1000, LogLevel logLevel = LogLevel::ERROR);
+                    const Common::CostFunctionConfig<T>& costFunctionConfig = Common::CostFunctionConfig<T>(),
+                    ulong progressReports = 1000, Common::LogLevel logLevel = Common::LogLevel::ERROR);
 
       // Shared-core constructor — uses externally-provided OpenCL core (for CNN integration).
       // Only initializes parameters. Caller must invoke loadSources() and allocateBuffers() manually.
-      CoreGPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
-                    const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
-                    OpenCLWrapper::Core& sharedCore, ulong progressReports = 1000, LogLevel logLevel = LogLevel::ERROR);
+      CoreGPUWorker(const LayersConfig& layersConfig, const Common::TrainConfig<T>& trainConfig,
+                    const Parameters<T>& parameters, const Common::CostFunctionConfig<T>& costFunctionConfig,
+                    OpenCLWrapper::Core& sharedCore, ulong progressReports = 1000,
+                    Common::LogLevel logLevel = Common::LogLevel::ERROR);
 
       //-- Predict (returns post-activation output and pre-activation logits) --//
-      PredictResult<T> predict(const Input<T>& input);
+      Common::PredictResult<T> predict(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
       T trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                    const TrainCallback<T>& callback);
+                    const Common::TrainCallback<T>& callback);
 
       //-- Testing (called by CoreGPU orchestrator) --//
       std::pair<T, ulong> testSubset(SamplesView<T> samples);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
-      PredictResults<T> predictSubset(InputsView<T> inputs, const ProgressCallback& callback = nullptr);
+      Common::PredictResults<T> predictSubset(InputsView<T> inputs, const Common::ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training (for external orchestration) --//
       Tensor1D<T> backpropagate(const Output<T>& expected);
@@ -74,11 +74,11 @@ namespace ANN
     private:
       //-- Configuration --//
       LayersConfig layersConfig;
-      TrainConfig<T> trainConfig;
+      Common::TrainConfig<T> trainConfig;
       Parameters<T> parameters;
-      CostFunctionConfig<T> costFunctionConfig;
+      Common::CostFunctionConfig<T> costFunctionConfig;
       ulong progressReports = 1000;
-      LogLevel logLevel = LogLevel::ERROR;
+      Common::LogLevel logLevel = Common::LogLevel::ERROR;
 
       //-- OpenCL state --//
       std::unique_ptr<OpenCLWrapper::Core> ownedCore; // Owned core (standalone mode)

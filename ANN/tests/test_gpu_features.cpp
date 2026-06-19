@@ -20,7 +20,7 @@ static void testGPUTrainCallback()
 
   int callbackCount = 0;
   auto core = ANN::Core<float>::makeCore(config);
-  core->setTrainCallback([&callbackCount](const ANN::TrainProgressEvent<float>& progress) { callbackCount++; });
+  core->setTrainCallback([&callbackCount](const Common::TrainProgressEvent<float>& progress) { callbackCount++; });
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -351,14 +351,14 @@ static void testGPUCrossEntropyLossDecreases()
   // Train 50 epochs, measure loss
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
-  ANN::TestResult<float> result1 = core->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<float> result1 = core->test(samples.size(), ANN::makeSampleProvider(samples));
 
   // Train 200 more epochs from same params
   config.trainConfig.numEpochs = 200;
   config.parameters = core->getParameters();
   auto core2 = ANN::Core<float>::makeCore(config);
   core2->train(samples.size(), ANN::makeSampleProvider(samples));
-  ANN::TestResult<float> result2 = core2->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<float> result2 = core2->test(samples.size(), ANN::makeSampleProvider(samples));
 
   std::cout << "  GPU CE loss after 50=" << result1.averageLoss << "  after 250=" << result2.averageLoss << std::endl;
   // Loss should decrease OR already be very low (converged early)
@@ -399,7 +399,7 @@ static void testGPUBatchPredictAbort()
       core->requestStop();
   });
 
-  ANN::PredictResults<float> results = core->predict(inputs.size(), sliceProvider);
+  Common::PredictResults<float> results = core->predict(inputs.size(), sliceProvider);
 
   CHECK(results.size() < inputs.size(), "abort produces partial results (size < 200)");
   CHECK(results.size() >= 1, "at least one batch completed");

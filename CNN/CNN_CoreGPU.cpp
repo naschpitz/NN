@@ -16,7 +16,6 @@
 #include <span>
 
 using namespace CNN;
-using namespace Common;
 
 //===================================================================================================================//
 //-- Constructor --//
@@ -46,12 +45,12 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
+Common::PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
 {
   // Pull batches from the provider; for each batch, fan out across the
   // worker GPUs. Bounded host memory regardless of total dataset size —
   // only one batch lives in host RAM at a time.
-  PredictResults<T> results;
+  Common::PredictResults<T> results;
   results.reserve(numSamples);
 
   ulong batchSize = std::max<ulong>(this->numGPUs, this->testConfig.batchSize);
@@ -85,11 +84,11 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
         workItems.append({gpuIdx, startIdx, endIdx});
     }
 
-    std::vector<PredictResults<T>> gpuResults(this->numGPUs);
+    std::vector<Common::PredictResults<T>> gpuResults(this->numGPUs);
 
     QtConcurrent::blockingMap(&this->workerPool, workItems,
                               [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
-                                ProgressCallback callback;
+                                Common::ProgressCallback callback;
 
                                 if (this->progressCallback) {
                                   callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
@@ -152,11 +151,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   bool kernelsSaved = false;
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
-  std::unique_ptr<TrainMonitor<T>> monitor;
+  const Common::MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
+  std::unique_ptr<Common::TrainMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
-    monitor = std::make_unique<TrainMonitor<T>>(monitoringConfig);
+    monitor = std::make_unique<Common::TrainMonitor<T>>(monitoringConfig);
   }
 
   for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
@@ -204,13 +203,13 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
           SamplesView<T> gpuSamples(batchSamples.data() + item.startIdx, item.endIdx - item.startIdx);
 
           // Create per-batch callback that translates indices to cumulative per-GPU counts
-          TrainCallback<T> callback;
+          Common::TrainCallback<T> callback;
 
           if (this->trainCallback) {
             ulong offset = gpuCumulativeSamples[item.gpuIdx];
             size_t gpuIdx = item.gpuIdx;
-            callback = [this, offset, gpuIdx, numSamples](const TrainProgressEvent<T>& progress) {
-              TrainProgressEvent<T> gpuProgress = progress;
+            callback = [this, offset, gpuIdx, numSamples](const Common::TrainProgressEvent<T>& progress) {
+              Common::TrainProgressEvent<T> gpuProgress = progress;
               gpuProgress.currentSample = offset + progress.currentSample;
               gpuProgress.totalSamples = numSamples;
               gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
@@ -299,7 +298,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     this->trainMetadata.lastEpoch = e;
 
     if (this->trainCallback) {
-      TrainProgressEvent<T> progress;
+      Common::TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -321,7 +320,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     }
 
     // Record epoch history
-    EpochRecord<T> epochRecord;
+    Common::EpochRecord<T> epochRecord;
     epochRecord.epoch = e;
     epochRecord.loss = avgEpochLoss;
     epochRecord.valLoss = static_cast<T>(0);
@@ -334,7 +333,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
     if (this->epochCompletedCallback) {
-      EpochCompletionEvent<T> completion;
+      Common::EpochCompletionEvent<T> completion;
       completion.epoch = e;
       completion.totalEpochs = numEpochs;
       completion.epochLoss = avgEpochLoss;
@@ -363,7 +362,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 //===================================================================================================================//
 
 template <typename T>
-TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
+Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   // Sequential index array (no shuffling for test)
   std::vector<ulong> sampleIndices(numSamples);
@@ -420,7 +419,7 @@ TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
     }
   }
 
-  TestResult<T> result;
+  Common::TestResult<T> result;
   result.numSamples = numSamples;
   result.totalLoss = totalLoss;
   result.numCorrect = totalCorrect;

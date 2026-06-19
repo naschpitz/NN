@@ -98,11 +98,11 @@ static void testWeightedLossAffectsTrain()
   // Use test() to compare loss on each — the weighted network should report different total loss
   auto coreDefault = ANN::Core<double>::makeCore(configDefault);
   coreDefault->train(samples.size(), ANN::makeSampleProvider(samples));
-  ANN::TestResult<double> resultDefault = coreDefault->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<double> resultDefault = coreDefault->test(samples.size(), ANN::makeSampleProvider(samples));
 
   auto coreWeighted = ANN::Core<double>::makeCore(configWeighted);
   coreWeighted->train(samples.size(), ANN::makeSampleProvider(samples));
-  ANN::TestResult<double> resultWeighted = coreWeighted->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<double> resultWeighted = coreWeighted->test(samples.size(), ANN::makeSampleProvider(samples));
 
   std::cout << "  default avgLoss=" << resultDefault.averageLoss << "  weighted avgLoss=" << resultWeighted.averageLoss
             << std::endl;
@@ -129,7 +129,7 @@ static void testShuffleSamplesDefault()
   TestScope _t("testShuffleSamplesDefault");
 
   // Verify default is true
-  ANN::TrainConfig<double> tc;
+  Common::TrainConfig<double> tc;
   CHECK(tc.shuffleSamples == true, "shuffleSamples default is true");
 }
 

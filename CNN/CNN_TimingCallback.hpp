@@ -36,7 +36,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   enum class TimingPhase : int {
     // Orchestrator phases (gpuIndex = -1)
     DataFetch = 0, // sampleProvider() — CPU, batch fetch / prefetch wait

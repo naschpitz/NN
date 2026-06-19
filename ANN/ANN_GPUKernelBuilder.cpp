@@ -5,15 +5,14 @@
 #include <string>
 
 using namespace ANN;
-using namespace Common;
 
 //===================================================================================================================//
 
 template <typename T>
 GPUKernelBuilder<T>::GPUKernelBuilder(OpenCLWrapper::Core* core, const LayersConfig& layersConfig,
-                                      const Parameters<T>& parameters, const TrainConfig<T>& trainConfig,
-                                      const CostFunctionConfig<T>& costFunctionConfig,
-                                      GPUBufferManager<T>& bufferManager, LogLevel logLevel)
+                                      const Parameters<T>& parameters, const Common::TrainConfig<T>& trainConfig,
+                                      const Common::CostFunctionConfig<T>& costFunctionConfig,
+                                      GPUBufferManager<T>& bufferManager, Common::LogLevel logLevel)
   : core(core),
     layersConfig(layersConfig),
     parameters(parameters),
@@ -104,7 +103,7 @@ void GPUKernelBuilder<T>::addUpdateKernels(ulong numSamples)
   ulong numBiases = Utils<T>::count(this->parameters.biases);
   ulong numWeights = Utils<T>::count(this->parameters.weights);
 
-  if (this->trainConfig.optimizer.type == OptimizerType::ADAM) {
+  if (this->trainConfig.optimizer.type == Common::OptimizerType::ADAM) {
     const auto& opt = this->trainConfig.optimizer;
     this->adam_t++;
 

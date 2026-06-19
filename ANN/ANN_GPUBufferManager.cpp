@@ -7,14 +7,14 @@
 #include <random>
 
 using namespace ANN;
-using namespace Common;
 
 //===================================================================================================================//
 
 template <typename T>
 GPUBufferManager<T>::GPUBufferManager(OpenCLWrapper::Core* core, const LayersConfig& layersConfig,
-                                      Parameters<T>& parameters, const TrainConfig<T>& trainConfig,
-                                      const CostFunctionConfig<T>& costFunctionConfig, LogLevel logLevel)
+                                      Parameters<T>& parameters, const Common::TrainConfig<T>& trainConfig,
+                                      const Common::CostFunctionConfig<T>& costFunctionConfig,
+                                      Common::LogLevel logLevel)
   : core(core),
     layersConfig(layersConfig),
     parameters(parameters),
@@ -86,7 +86,7 @@ void GPUBufferManager<T>::initializeParameters()
 template <typename T>
 void GPUBufferManager<T>::loadSources(bool skipDefines)
 {
-  if (this->logLevel >= LogLevel::INFO)
+  if (this->logLevel >= Common::LogLevel::INFO)
     std::cout << "Loading OpenCL kernels...\n";
 
   // Resolve .cl file paths relative to the source file's directory (via __FILE__),
@@ -107,7 +107,7 @@ void GPUBufferManager<T>::loadSources(bool skipDefines)
   this->core->addSourceFile(srcDir + "opencl/ANN_Update.cpp.cl");
   this->core->addSourceFile(srcDir + "opencl/ANN_Loss.cpp.cl");
 
-  if (this->logLevel >= LogLevel::INFO)
+  if (this->logLevel >= Common::LogLevel::INFO)
     std::cout << "OpenCL kernels loaded.\n";
 }
 
@@ -126,7 +126,7 @@ void GPUBufferManager<T>::allocateBuffers()
   ulong totalNumBiases = Utils<T>::count(this->parameters.biases);
 
   // Common buffers
-  if (this->logLevel >= LogLevel::INFO)
+  if (this->logLevel >= Common::LogLevel::INFO)
     std::cout << "Allocating  buffers...";
   this->core->template allocateBuffer<T>("actvs", totalNumNeurons);
   this->core->template allocateBuffer<T>("weights", totalNumWeights);
@@ -169,7 +169,7 @@ void GPUBufferManager<T>::allocateBuffers()
   }
 
   // Adam optimizer buffers
-  if (this->trainConfig.optimizer.type == OptimizerType::ADAM) {
+  if (this->trainConfig.optimizer.type == Common::OptimizerType::ADAM) {
     T zero = static_cast<T>(0);
 
     this->core->template allocateBuffer<T>("adam_m_weights", totalNumWeights);
@@ -183,7 +183,7 @@ void GPUBufferManager<T>::allocateBuffers()
     this->core->template fillBuffer<T>("adam_v_biases", zero, totalNumBiases);
   }
 
-  if (this->logLevel >= LogLevel::INFO)
+  if (this->logLevel >= Common::LogLevel::INFO)
     std::cout << " buffers allocation done.\n";
 
   // Write initialized weights and biases to GPU buffers

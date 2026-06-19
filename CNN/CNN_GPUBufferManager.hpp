@@ -17,7 +17,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   // Manages CNN GPU buffer allocation, layer offset computation, source loading,
   //  worker construction, and data I/O. Extracted from CoreGPUWorker.
   template <typename T>

@@ -4,7 +4,6 @@
 #include "Common/Common_Utils.hpp"
 
 using namespace ANN;
-using namespace Common;
 
 //===================================================================================================================//
 
@@ -31,9 +30,9 @@ template <typename T>
 std::unique_ptr<Core<T>> Core<T>::makeCore(const CoreConfig<T>& coreConfig)
 {
   switch (coreConfig.deviceType) {
-  case DeviceType::CPU:
+  case Common::DeviceType::CPU:
     return std::make_unique<CoreCPU<T>>(coreConfig);
-  case DeviceType::GPU:
+  case Common::DeviceType::GPU:
   default:
     return std::make_unique<CoreGPU<T>>(coreConfig);
   }
@@ -61,7 +60,7 @@ void Core<T>::trainingStart(ulong numSamples)
 //===================================================================================================================//
 
 template <typename T>
-TrainMetadata<T> Core<T>::trainingEnd()
+Common::TrainMetadata<T> Core<T>::trainingEnd()
 {
   auto endTime = std::chrono::system_clock::now();
   this->trainMetadata.endTime = Common::Utils::formatISO8601();
@@ -76,10 +75,10 @@ TrainMetadata<T> Core<T>::trainingEnd()
 //===================================================================================================================//
 
 template <typename T>
-PredictResult<T> Core<T>::predict(const Input<T>& input)
+Common::PredictResult<T> Core<T>::predict(const Input<T>& input)
 {
   // One-shot provider for the single sample.
-  PredictResults<T> results = predict(1, [&input](ulong, ulong batchIndex) {
+  Common::PredictResults<T> results = predict(1, [&input](ulong, ulong batchIndex) {
     if (batchIndex > 0)
       return InputsView<T>{};
 
@@ -101,7 +100,7 @@ void Core<T>::predictStart()
 //===================================================================================================================//
 
 template <typename T>
-PredictMetadata<T> Core<T>::predictEnd()
+Common::PredictMetadata<T> Core<T>::predictEnd()
 {
   auto endTime = std::chrono::system_clock::now();
   this->predictMetadata.endTime = Common::Utils::formatISO8601();

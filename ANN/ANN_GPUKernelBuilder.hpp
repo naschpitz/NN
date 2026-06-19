@@ -15,16 +15,16 @@
 
 namespace ANN
 {
-  using namespace Common;
   // Manages OpenCL kernel creation, argument binding, and setup orchestration.
   // Extracted from CoreGPUWorker to reduce class size.
   template <typename T>
   class GPUKernelBuilder
   {
     public:
-       GPUKernelBuilder(OpenCLWrapper::Core* core, const LayersConfig& layersConfig, const Parameters<T>& parameters,
-                        const TrainConfig<T>& trainConfig, const CostFunctionConfig<T>& costFunctionConfig,
-                       GPUBufferManager<T>& bufferManager, LogLevel logLevel);
+      GPUKernelBuilder(OpenCLWrapper::Core* core, const LayersConfig& layersConfig, const Parameters<T>& parameters,
+                       const Common::TrainConfig<T>& trainConfig,
+                       const Common::CostFunctionConfig<T>& costFunctionConfig, GPUBufferManager<T>& bufferManager,
+                       Common::LogLevel logLevel);
 
       //-- Kernel setup (clears previous kernels and rebuilds) --//
       void setupPredictKernels();
@@ -52,10 +52,10 @@ namespace ANN
       OpenCLWrapper::Core* core;
       const LayersConfig& layersConfig;
       const Parameters<T>& parameters;
-       const TrainConfig<T>& trainConfig;
-      const CostFunctionConfig<T>& costFunctionConfig;
+      const Common::TrainConfig<T>& trainConfig;
+      const Common::CostFunctionConfig<T>& costFunctionConfig;
       GPUBufferManager<T>& bufferManager;
-      LogLevel logLevel;
+      Common::LogLevel logLevel;
 
       //-- Adam optimizer state --//
       ulong adam_t = 0;

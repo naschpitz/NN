@@ -138,13 +138,13 @@ static void testCrossEntropyLossDecreases()
   // Train 50 epochs, measure loss, train 50 more, measure again
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
-  ANN::TestResult<double> result1 = core->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<double> result1 = core->test(samples.size(), ANN::makeSampleProvider(samples));
 
   config.trainConfig.numEpochs = 200;
   config.parameters = core->getParameters();
   auto core2 = ANN::Core<double>::makeCore(config);
   core2->train(samples.size(), ANN::makeSampleProvider(samples));
-  ANN::TestResult<double> result2 = core2->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<double> result2 = core2->test(samples.size(), ANN::makeSampleProvider(samples));
 
   std::cout << "  loss after 50 epochs=" << result1.averageLoss << "  after 250 epochs=" << result2.averageLoss
             << std::endl;
@@ -181,7 +181,7 @@ static void testWeightedCrossEntropyTrain()
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  ANN::TestResult<double> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<double> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
 
   CHECK(result.averageLoss >= 0.0, "weighted cross-entropy loss non-negative");
   CHECK(std::isfinite(result.averageLoss), "weighted cross-entropy loss is finite");

@@ -12,7 +12,6 @@
 #include <stack>
 
 using namespace CNN;
-using namespace Common;
 
 //===================================================================================================================//
 
@@ -131,7 +130,7 @@ ANN::CoreConfig<T> CoreCPUWorker<T>::buildConfig(const CoreConfig<T>& cnnConfig,
 //===================================================================================================================//
 
 template <typename T>
-PredictResult<T> CoreCPUWorker<T>::predict(const Input<T>& input)
+Common::PredictResult<T> CoreCPUWorker<T>::predict(const Input<T>& input)
 {
   Tensor3D<T> cnnOut = this->propagateCNN(input);
   Tensor1D<T> flatInput = Flatten<T>::propagate(cnnOut);
@@ -139,7 +138,7 @@ PredictResult<T> CoreCPUWorker<T>::predict(const Input<T>& input)
   ANN::Input<T> annInput(flatInput.begin(), flatInput.end());
   Common::PredictResult<T> annResult = this->annCore->predict(annInput);
 
-  PredictResult<T> result;
+  Common::PredictResult<T> result;
   result.output = Output<T>(annResult.output.begin(), annResult.output.end());
   result.logits = Logits<T>(annResult.logits.begin(), annResult.logits.end());
   return result;

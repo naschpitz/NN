@@ -55,7 +55,7 @@ static void testMultiGPUTestMethod()
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  ANN::TestResult<float> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<float> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
   CHECK(result.numSamples == 2, "multi-GPU test numSamples = 2");
   CHECK(result.averageLoss >= 0.0f, "multi-GPU test averageLoss >= 0");
   CHECK(std::isfinite(result.averageLoss), "multi-GPU test averageLoss finite");
@@ -85,7 +85,7 @@ static void testMultiGPUCallback()
   bool sawGPU1 = false;
 
   auto core = ANN::Core<float>::makeCore(config);
-  core->setTrainCallback([&](const ANN::TrainProgressEvent<float>& progress) {
+  core->setTrainCallback([&](const Common::TrainProgressEvent<float>& progress) {
     callbackCount++;
 
     if (progress.gpuIndex == 0)

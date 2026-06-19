@@ -14,7 +14,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   template <typename T>
   class CoreCPU : public Core<T>
   {

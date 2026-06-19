@@ -16,7 +16,6 @@
 #include <random>
 
 using namespace CNN;
-using namespace Common;
 
 //===================================================================================================================//
 //-- Constructors --//
@@ -97,7 +96,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const CoreGPUWorkerConfig<T>& config, OpenCLWrap
 //===================================================================================================================//
 
 template <typename T>
-PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
+Common::PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 {
   // Set up predict kernels if needed (CNN propagate → bridge →  propagate)
   if (!this->kernelBuilder->predictKernelsSetup) {
@@ -115,7 +114,7 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
   ANN::Output<T> annOutput = this->bufferManager->annGPUWorker->bufferManager->readOutput();
   ANN::Logits<T> annLogits = this->bufferManager->annGPUWorker->bufferManager->readOutputLogits();
 
-  PredictResult<T> result;
+  Common::PredictResult<T> result;
   result.output = Output<T>(annOutput.begin(), annOutput.end());
   result.logits = Logits<T>(annLogits.begin(), annLogits.end());
   return result;
@@ -127,8 +126,8 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 
 template <typename T>
 T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                                const TrainCallback<T>& callback, const TimingCallback& timingCallback, int gpuIndex,
-                                const GpuProfileCallback& gpuProfileCallback)
+                                const Common::TrainCallback<T>& callback, const TimingCallback& timingCallback,
+                                int gpuIndex, const GpuProfileCallback& gpuProfileCallback)
 {
   ulong N = batchSamples.size();
   ulong sampleStride = this->bufferManager->totalActvSize;
@@ -417,8 +416,8 @@ void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPUWorker<T>::reportSampleProgress(const TrainCallback<T>& callback, ulong currentSample, ulong totalSamples,
-                                            ulong epoch, ulong totalEpochs, T& prevAccumLoss)
+void CoreGPUWorker<T>::reportSampleProgress(const Common::TrainCallback<T>& callback, ulong currentSample,
+                                            ulong totalSamples, ulong epoch, ulong totalEpochs, T& prevAccumLoss)
 {
   if (!callback)
     return;
@@ -430,7 +429,7 @@ void CoreGPUWorker<T>::reportSampleProgress(const TrainCallback<T>& callback, ul
   T sampleLoss = currentAccumLoss - prevAccumLoss;
   prevAccumLoss = currentAccumLoss;
 
-  TrainProgressEvent<T> progress;
+  Common::TrainProgressEvent<T> progress;
   progress.currentEpoch = epoch;
   progress.totalEpochs = totalEpochs;
   progress.currentSample = currentSample;
@@ -471,18 +470,19 @@ std::pair<T, ulong> CoreGPUWorker<T>::testSubset(SamplesView<T> samples)
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> CoreGPUWorker<T>::predictSubset(InputsView<T> inputs, const ProgressCallback& callback)
+Common::PredictResults<T> CoreGPUWorker<T>::predictSubset(InputsView<T> inputs,
+                                                          const Common::ProgressCallback& callback)
 {
   // Set up predict kernels if needed (CNN propagate → bridge →  propagate)
   if (!this->kernelBuilder->predictKernelsSetup) {
     this->kernelBuilder->setupPredictKernels();
   }
 
-  PredictResults<T> results;
+  Common::PredictResults<T> results;
   results.reserve(inputs.size());
 
   for (ulong i = 0; i < inputs.size(); i++) {
-    PredictResult<T> r = this->predict(inputs[i]);
+    Common::PredictResult<T> r = this->predict(inputs[i]);
     results.push_back(std::move(r));
 
     if (callback)

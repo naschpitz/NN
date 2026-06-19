@@ -8,7 +8,6 @@
 
 namespace ANN
 {
-  using namespace Common;
   template <typename T>
   struct Sample {
       Input<T> input;

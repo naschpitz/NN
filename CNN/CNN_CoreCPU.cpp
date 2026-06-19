@@ -29,7 +29,6 @@
 #include <stdexcept>
 
 using namespace CNN;
-using namespace Common;
 
 //===================================================================================================================//
 
@@ -113,7 +112,7 @@ void CoreCPU<T>::runWorkers(int numThreads, const std::function<void(int)>& body
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
+Common::PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
 {
   int numThreads = this->numThreads;
 
@@ -132,7 +131,7 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
     workers.push_back(std::make_unique<CoreCPUWorker<T>>(predictConfig, this->layersConfig, this->parameters, false));
   }
 
-  PredictResults<T> results;
+  Common::PredictResults<T> results;
   results.reserve(numSamples);
 
   // Match the test() pattern: pull batches from the provider and process each
@@ -149,7 +148,7 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
     if (batchN == 0)
       break;
 
-    PredictResults<T> batchResults(batchN);
+    Common::PredictResults<T> batchResults(batchN);
 
     // Distribute this batch across workers.
     std::vector<ulong> workerInputCounts(numThreads);
@@ -498,11 +497,11 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   std::mt19937 rng(this->trainConfig.shuffleSeed != 0 ? this->trainConfig.shuffleSeed : std::random_device{}());
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
-  std::unique_ptr<TrainMonitor<T>> monitor;
+  const Common::MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
+  std::unique_ptr<Common::TrainMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
-    monitor = std::make_unique<TrainMonitor<T>>(monitoringConfig);
+    monitor = std::make_unique<Common::TrainMonitor<T>>(monitoringConfig);
   }
 
   for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
@@ -555,7 +554,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
           if (this->trainCallback) {
             QMutexLocker locker(&callbackMutex);
-            TrainProgressEvent<T> progress;
+            Common::TrainProgressEvent<T> progress;
             progress.currentEpoch = e + 1;
             progress.totalEpochs = numEpochs;
             progress.currentSample = completed;
@@ -643,7 +642,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     this->trainMetadata.lastEpoch = e;
 
     if (this->trainCallback) {
-      TrainProgressEvent<T> progress;
+      Common::TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -663,7 +662,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     }
 
     // Record epoch history
-    EpochRecord<T> epochRecord;
+    Common::EpochRecord<T> epochRecord;
     epochRecord.epoch = e;
     epochRecord.loss = avgLoss;
     epochRecord.valLoss = static_cast<T>(0);
@@ -676,7 +675,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
     if (this->epochCompletedCallback) {
-      EpochCompletionEvent<T> completion;
+      Common::EpochCompletionEvent<T> completion;
       completion.epoch = e;
       completion.totalEpochs = numEpochs;
       completion.epochLoss = avgLoss;
@@ -703,7 +702,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 //===================================================================================================================//
 
 template <typename T>
-TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
+Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   int numThreads = this->numThreads;
 
@@ -782,7 +781,7 @@ TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
     }
   }
 
-  TestResult<T> result;
+  Common::TestResult<T> result;
   result.numSamples = numSamples;
   result.totalLoss = totalLoss;
   result.numCorrect = totalCorrect;
@@ -836,11 +835,11 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
   ulong flattenSize = cnnOutputShape.size();
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
-  std::unique_ptr<TrainMonitor<T>> monitor;
+  const Common::MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
+  std::unique_ptr<Common::TrainMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
-    monitor = std::make_unique<TrainMonitor<T>>(monitoringConfig);
+    monitor = std::make_unique<Common::TrainMonitor<T>>(monitoringConfig);
   }
 
   for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
@@ -1048,7 +1047,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
 
           if (this->trainCallback) {
             QMutexLocker locker(&callbackMutex);
-            TrainProgressEvent<T> progress;
+            Common::TrainProgressEvent<T> progress;
             progress.currentEpoch = e + 1;
             progress.totalEpochs = numEpochs;
             progress.currentSample = completed;
@@ -1356,7 +1355,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     this->trainMetadata.lastEpoch = e;
 
     if (this->trainCallback) {
-      TrainProgressEvent<T> progress;
+      Common::TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -1376,7 +1375,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     }
 
     // Record epoch history
-    EpochRecord<T> epochRecord;
+    Common::EpochRecord<T> epochRecord;
     epochRecord.epoch = e;
     epochRecord.loss = avgLoss;
     epochRecord.valLoss = static_cast<T>(0);
@@ -1389,7 +1388,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
     if (this->epochCompletedCallback) {
-      EpochCompletionEvent<T> completion;
+      Common::EpochCompletionEvent<T> completion;
       completion.epoch = e;
       completion.totalEpochs = numEpochs;
       completion.epochLoss = avgLoss;

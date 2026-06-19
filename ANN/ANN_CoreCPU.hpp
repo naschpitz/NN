@@ -15,7 +15,6 @@
 
 namespace ANN
 {
-  using namespace Common;
   template <typename T>
   class CoreCPU : public Core<T>
   {
@@ -24,10 +23,10 @@ namespace ANN
       CoreCPU(const CoreConfig<T>& config);
 
       //-- Core interface --//
-      PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
-      PredictResult<T> predict(const Input<T>& input) override;
+      Common::PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
+      Common::PredictResult<T> predict(const Input<T>& input) override;
       void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
-      TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
+      Common::TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
 
       //-- Step-by-step training (for external orchestration) --//
       Tensor1D<T> backpropagate(const Output<T>& expected) override;

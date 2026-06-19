@@ -4,16 +4,15 @@
 #include <cmath>
 
 using namespace ANN;
-using namespace Common;
 
 //===================================================================================================================//
 //-- Constructor --//
 //===================================================================================================================//
 
 template <typename T>
-CoreCPUWorker<T>::CoreCPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
-                                const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
-                                 bool allocateTrainBuffers)
+CoreCPUWorker<T>::CoreCPUWorker(const LayersConfig& layersConfig, const Common::TrainConfig<T>& trainConfig,
+                                const Parameters<T>& parameters,
+                                const Common::CostFunctionConfig<T>& costFunctionConfig, bool allocateTrainBuffers)
   : layersConfig(layersConfig),
     trainConfig(trainConfig),
     parameters(parameters)
@@ -248,15 +247,15 @@ T CoreCPUWorker<T>::calc_dCost_dActv(ulong j, const Output<T>& output)
   T weight = (!this->costFunctionConfig.weights.empty()) ? this->costFunctionConfig.weights[j] : static_cast<T>(1);
 
   switch (this->costFunctionConfig.type) {
-  case CostFunctionType::CROSS_ENTROPY: {
+  case Common::CostFunctionType::CROSS_ENTROPY: {
     // Cross-entropy: dL/da_j = -y_j / a_j (with epsilon for numerical stability)
     const T epsilon = static_cast<T>(1e-7);
     T pred = std::max(this->actvs[l][j], epsilon);
     return -weight * output[j] / pred;
   }
 
-  case CostFunctionType::SQUARED_DIFFERENCE:
-  case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
+  case Common::CostFunctionType::SQUARED_DIFFERENCE:
+  case Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
   default:
     // Squared difference: dL/da_j = 2 * w * (a_j - y_j)
     return 2 * weight * (this->actvs[l][j] - output[j]);

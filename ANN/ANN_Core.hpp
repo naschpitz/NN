@@ -22,7 +22,6 @@
 
 namespace ANN
 {
-  using namespace Common;
   template <typename T>
   class Core
   {
@@ -37,12 +36,12 @@ namespace ANN
       // decode each batch lazily. .output is the post-activation, .logits is
       // the pre-activation z of the last layer (used for calibration /
       // OOD scores that softmax discards).
-      virtual PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) = 0;
+      virtual Common::PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) = 0;
       // Single-input convenience. Overridden in CoreCPU to avoid spawning a
       // thread pool on a single sample.
-      virtual PredictResult<T> predict(const Input<T>& input);
+      virtual Common::PredictResult<T> predict(const Input<T>& input);
       virtual void train(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
-      virtual TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
+      virtual Common::TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) = 0;
 
       //-- Step-by-step training (for external orchestration) --//
       // Used by external orchestrators that embed ANN as a sub-network (e.g., a dense
@@ -55,12 +54,12 @@ namespace ANN
       virtual void update(ulong numSamples) = 0;
 
       //-- Getters --//
-      ModeType getModeType() const
+      Common::ModeType getModeType() const
       {
         return modeType;
       }
 
-      DeviceType getDeviceType() const
+      Common::DeviceType getDeviceType() const
       {
         return deviceType;
       }
@@ -80,22 +79,22 @@ namespace ANN
         return layersConfig;
       }
 
-      const TrainConfig<T>& getTrainConfig() const
+      const Common::TrainConfig<T>& getTrainConfig() const
       {
         return trainConfig;
       }
 
-      const PredictMetadata<T>& getPredictMetadata() const
+      const Common::PredictMetadata<T>& getPredictMetadata() const
       {
         return predictMetadata;
       }
 
-      const TrainMetadata<T>& getTrainMetadata() const
+      const Common::TrainMetadata<T>& getTrainMetadata() const
       {
         return trainMetadata;
       }
 
-      TrainMetadata<T>& getTrainMetadata()
+      Common::TrainMetadata<T>& getTrainMetadata()
       {
         return trainMetadata;
       }
@@ -105,7 +104,7 @@ namespace ANN
         return parameters;
       }
 
-      const CostFunctionConfig<T>& getCostFunctionConfig() const
+      const Common::CostFunctionConfig<T>& getCostFunctionConfig() const
       {
         return costFunctionConfig;
       }
@@ -116,19 +115,19 @@ namespace ANN
         parameters = params;
       }
 
-      void setTrainCallback(TrainCallback<T> callback)
+      void setTrainCallback(Common::TrainCallback<T> callback)
       {
         trainCallback = callback;
       }
 
       // Invoked once per completed epoch with the 0-based epoch index. The
       // consumer performs epoch-boundary work here (validation, checkpoints).
-      void setEpochCompletedCallback(EpochCompletedCallback<T> callback)
+      void setEpochCompletedCallback(Common::EpochCompletedCallback<T> callback)
       {
         epochCompletedCallback = callback;
       }
 
-      void setProgressCallback(ProgressCallback callback)
+      void setProgressCallback(Common::ProgressCallback callback)
       {
         progressCallback = callback;
       }
@@ -145,12 +144,12 @@ namespace ANN
       }
 
       //-- Log level --//
-      void setLogLevel(LogLevel level)
+      void setLogLevel(Common::LogLevel level)
       {
         logLevel = level;
       }
 
-      LogLevel getLogLevel() const
+      Common::LogLevel getLogLevel() const
       {
         return logLevel;
       }
@@ -158,11 +157,10 @@ namespace ANN
       //-- Epoch history --//
       // Prepend loaded epoch history (from a resumed model) before the
       // newly-trained epochs so the serializer writes the full history.
-      void prependEpochHistory(const std::vector<EpochRecord<T>>& history)
+      void prependEpochHistory(const std::vector<Common::EpochRecord<T>>& history)
       {
-        std::vector<EpochRecord<T>> merged = history;
-        merged.insert(merged.end(), this->trainMetadata.epochHistory.begin(),
-                      this->trainMetadata.epochHistory.end());
+        std::vector<Common::EpochRecord<T>> merged = history;
+        merged.insert(merged.end(), this->trainMetadata.epochHistory.begin(), this->trainMetadata.epochHistory.end());
         this->trainMetadata.epochHistory = std::move(merged);
       }
 
@@ -173,30 +171,30 @@ namespace ANN
 
       //-- Training timing --//
       void trainingStart(ulong numSamples);
-       TrainMetadata<T> trainingEnd();
+      Common::TrainMetadata<T> trainingEnd();
 
       //-- Predict timing --//
       void predictStart();
-      PredictMetadata<T> predictEnd();
+      Common::PredictMetadata<T> predictEnd();
 
       //-- Configuration members --//
-      DeviceType deviceType;
-      ModeType modeType;
+      Common::DeviceType deviceType;
+      Common::ModeType modeType;
       int numThreads = 0;
       int numGPUs = 0;
       LayersConfig layersConfig;
-      TrainConfig<T> trainConfig;
-      TestConfig testConfig;
-      TrainMetadata<T> trainMetadata;
-      PredictMetadata<T> predictMetadata;
+      Common::TrainConfig<T> trainConfig;
+      Common::TestConfig testConfig;
+      Common::TrainMetadata<T> trainMetadata;
+      Common::PredictMetadata<T> predictMetadata;
       Parameters<T> parameters;
-      CostFunctionConfig<T> costFunctionConfig;
+      Common::CostFunctionConfig<T> costFunctionConfig;
       ulong progressReports = 1000;
-      LogLevel logLevel = LogLevel::ERROR;
+      Common::LogLevel logLevel = Common::LogLevel::ERROR;
 
-      TrainCallback<T> trainCallback;
-      EpochCompletedCallback<T> epochCompletedCallback;
-      ProgressCallback progressCallback;
+      Common::TrainCallback<T> trainCallback;
+      Common::EpochCompletedCallback<T> epochCompletedCallback;
+      Common::ProgressCallback progressCallback;
       std::atomic<bool> stopRequested{false};
 
     private:

@@ -13,7 +13,6 @@
 
 namespace ANN
 {
-  using namespace Common;
   template <typename T>
   class CoreGPU : public Core<T>
   {
@@ -21,9 +20,9 @@ namespace ANN
       CoreGPU(const CoreConfig<T>& config);
 
       using Core<T>::predict; // Bring in single-input convenience overload from the base
-      PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
+      Common::PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;
       void train(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
-      TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
+      Common::TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
 
       //-- Step-by-step training (for external orchestration) --//
       Tensor1D<T> backpropagate(const Output<T>& expected) override;

@@ -15,7 +15,6 @@
 #include <QtConcurrent>
 
 using namespace ANN;
-using namespace Common;
 
 //===================================================================================================================//
 //-- Constructor --//
@@ -25,7 +24,7 @@ template <typename T>
 CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 {
   // Initialize OpenCL before querying device information
-  OpenCLWrapper::Core::initialize(this->logLevel >= LogLevel::DEBUG);
+  OpenCLWrapper::Core::initialize(this->logLevel >= Common::LogLevel::DEBUG);
 
   // Determine number of GPUs to use
   int requestedGPUs = coreConfig.numGPUs;
@@ -46,14 +45,14 @@ CoreGPU<T>::CoreGPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
+Common::PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
 {
   this->predictStart();
 
   // Pull batches from the provider; for each batch, fan out across the
   // worker GPUs. Bounded memory regardless of total dataset size — only
   // one batch lives in host memory at a time.
-  PredictResults<T> results;
+  Common::PredictResults<T> results;
   results.reserve(numSamples);
 
   ulong batchSize = std::max<ulong>(this->numGPUs, this->testConfig.batchSize);
@@ -87,11 +86,11 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
         workItems.append({gpuIdx, startIdx, endIdx});
     }
 
-    std::vector<PredictResults<T>> gpuResults(this->numGPUs);
+    std::vector<Common::PredictResults<T>> gpuResults(this->numGPUs);
 
     QtConcurrent::blockingMap(&this->workerPool, workItems,
                               [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
-                                ProgressCallback callback;
+                                Common::ProgressCallback callback;
 
                                 if (this->progressCallback) {
                                   callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
@@ -131,7 +130,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   ulong batchSize = this->trainConfig.batchSize;
   batchSize = std::max(this->numGPUs, (batchSize / this->numGPUs) * this->numGPUs);
 
-  if (this->logLevel >= LogLevel::INFO) {
+  if (this->logLevel >= Common::LogLevel::INFO) {
     std::cout << "Starting GPU training: " << numSamples << " samples, " << numEpochs << " epochs, " << this->numGPUs
               << " GPU" << (this->numGPUs > 1 ? "s" : "") << "\n";
   }
@@ -152,11 +151,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   std::mt19937 rng(this->trainConfig.shuffleSeed != 0 ? this->trainConfig.shuffleSeed : std::random_device{}());
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
-  std::unique_ptr<TrainMonitor<T>> monitor;
+  const Common::MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
+  std::unique_ptr<Common::TrainMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
-    monitor = std::make_unique<TrainMonitor<T>>(monitoringConfig);
+    monitor = std::make_unique<Common::TrainMonitor<T>>(monitoringConfig);
   }
 
   for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
@@ -202,13 +201,13 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
           SamplesView<T> gpuSamples(batchSamples.data() + item.localStart, item.localEnd - item.localStart);
 
           // Create per-batch callback that translates local indices to cumulative per-GPU counts
-          TrainCallback<T> callback;
+          Common::TrainCallback<T> callback;
 
           if (this->trainCallback) {
             ulong offset = gpuCumulativeSamples[item.gpuIdx];
             size_t gpuIdx = item.gpuIdx;
-            callback = [this, offset, gpuIdx, numSamples](const TrainProgressEvent<T>& progress) {
-              TrainProgressEvent<T> gpuProgress = progress;
+            callback = [this, offset, gpuIdx, numSamples](const Common::TrainProgressEvent<T>& progress) {
+              Common::TrainProgressEvent<T> gpuProgress = progress;
               gpuProgress.currentSample = offset + progress.currentSample;
               gpuProgress.totalSamples = numSamples;
               gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
@@ -255,7 +254,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
 
       // Build epoch progress with monitoring signals
-      TrainProgressEvent<T> progress;
+      Common::TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -280,7 +279,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     } else {
       // Report epoch completion (gpuIndex = -1 indicates combined result)
       if (this->trainCallback) {
-        TrainProgressEvent<T> progress;
+        Common::TrainProgressEvent<T> progress;
         progress.currentEpoch = e + 1;
         progress.totalEpochs = numEpochs;
         progress.currentSample = numSamples;
@@ -294,11 +293,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     }
 
     // Always track the 0-based index of the last completed epoch (matches
-    // EpochRecord::epoch), regardless of monitoring
+    // Common::EpochRecord::epoch), regardless of monitoring
     this->trainMetadata.lastEpoch = e;
 
     // Record epoch history
-    EpochRecord<T> epochRecord;
+    Common::EpochRecord<T> epochRecord;
     epochRecord.epoch = e;
     epochRecord.loss = avgEpochLoss;
     epochRecord.valLoss = static_cast<T>(0);
@@ -311,7 +310,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
     if (this->epochCompletedCallback) {
-      EpochCompletionEvent<T> completion;
+      Common::EpochCompletionEvent<T> completion;
       completion.epoch = e;
       completion.totalEpochs = numEpochs;
       completion.epochLoss = avgEpochLoss;
@@ -333,9 +332,9 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 //===================================================================================================================//
 
 template <typename T>
-TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
+Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
-  return ::distributeTestAcrossGPUs<T>(
+  return Common::distributeTestAcrossGPUs<T>(
     &this->workerPool, numSamples, sampleProvider, this->numGPUs, this->testConfig.batchSize, this->progressCallback,
     [this](size_t gpuIdx, const Samples<T>& batch, ulong startIdx, ulong endIdx) -> std::pair<T, ulong> {
       return this->gpuWorkers[gpuIdx]->testSubset(SamplesView<T>(batch.data() + startIdx, endIdx - startIdx));
@@ -349,7 +348,7 @@ TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
 template <typename T>
 void CoreGPU<T>::initializeWorkers()
 {
-  if (this->logLevel >= LogLevel::INFO) {
+  if (this->logLevel >= Common::LogLevel::INFO) {
     std::cout << "Initializing GPU training with " << this->numGPUs << " GPU" << (this->numGPUs > 1 ? "s" : "")
               << "...\n";
   }
@@ -362,7 +361,7 @@ void CoreGPU<T>::initializeWorkers()
     this->gpuWorkers.push_back(std::move(worker));
   }
 
-  if (this->logLevel >= LogLevel::INFO) {
+  if (this->logLevel >= Common::LogLevel::INFO) {
     std::cout << "GPU initialization complete.\n";
   }
 }

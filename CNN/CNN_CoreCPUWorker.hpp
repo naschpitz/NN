@@ -13,13 +13,12 @@
 
 namespace CNN
 {
-  using namespace Common;
   template <typename T>
   class CoreCPUWorker : public Worker<T>
   {
     public:
       CoreCPUWorker(const CoreConfig<T>& config, const LayersConfig& layersConfig, const Parameters<T>& sharedParams,
-                     bool allocateTrain);
+                    bool allocateTrain);
 
       //-- Predict (inference only — no intermediates saved) --//
       // Returns post-activation output and pre-activation logits of the dense head.

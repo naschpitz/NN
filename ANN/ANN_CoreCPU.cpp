@@ -12,7 +12,6 @@
 #include <cmath>
 
 using namespace ANN;
-using namespace Common;
 
 //===================================================================================================================//
 
@@ -22,7 +21,7 @@ CoreCPU<T>::CoreCPU(const CoreConfig<T>& coreConfig) : Core<T>(coreConfig)
   this->initializeParameters();
 
   // Create the step worker (used for predict and step-by-step training path)
-  bool allocateTrain = (this->modeType == ModeType::TRAIN);
+  bool allocateTrain = (this->modeType == Common::ModeType::TRAIN);
   this->stepWorker = std::make_unique<CoreCPUWorker<T>>(this->layersConfig, this->trainConfig, this->parameters,
                                                         this->costFunctionConfig, allocateTrain);
 
@@ -51,7 +50,7 @@ void CoreCPU<T>::runWorkers(int numThreads, const std::function<void(int)>& body
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
+Common::PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& provider)
 {
   this->predictStart();
 
@@ -77,7 +76,7 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
   for (auto& w : extraWorkers)
     workerPtrs.push_back(w.get());
 
-  PredictResults<T> results;
+  Common::PredictResults<T> results;
   results.reserve(numSamples);
 
   // Match the test() pattern: pull batches from the provider and process each
@@ -94,7 +93,7 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
     if (batchN == 0)
       break;
 
-    PredictResults<T> batchResults(batchN);
+    Common::PredictResults<T> batchResults(batchN);
 
     // Distribute this batch across workers in contiguous chunks (extras to first workers).
     std::vector<ulong> workerInputCounts(numThreads);
@@ -136,7 +135,7 @@ PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvider<T>& 
 //===================================================================================================================//
 
 template <typename T>
-PredictResult<T> CoreCPU<T>::predict(const Input<T>& input)
+Common::PredictResult<T> CoreCPU<T>::predict(const Input<T>& input)
 {
   // Direct single-input predict using stepWorker — avoids QtConcurrent::blockingMap
   // to prevent deadlocks when called from inside another blockingMap (e.g., CNN training).
@@ -146,7 +145,7 @@ PredictResult<T> CoreCPU<T>::predict(const Input<T>& input)
 
   this->stepWorker->propagate(input);
 
-  PredictResult<T> result;
+  Common::PredictResult<T> result;
   result.output = this->stepWorker->getOutput();
   result.logits = this->stepWorker->getOutputLogits();
 
@@ -165,7 +164,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   if (this->accum_dCost_dWeights.empty()) {
     this->allocateGlobalAccumulators();
 
-    if (this->trainConfig.optimizer.type == OptimizerType::ADAM) {
+    if (this->trainConfig.optimizer.type == Common::OptimizerType::ADAM) {
       this->allocateAdamState();
     }
   }
@@ -204,11 +203,11 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   std::mt19937 rng(this->trainConfig.shuffleSeed != 0 ? this->trainConfig.shuffleSeed : std::random_device{}());
 
   // Create training monitor if monitoring is enabled
-  const MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
-  std::unique_ptr<TrainMonitor<T>> monitor;
+  const Common::MonitoringConfig& monitoringConfig = this->trainConfig.monitoringConfig;
+  std::unique_ptr<Common::TrainMonitor<T>> monitor;
 
   if (monitoringConfig.enabled) {
-    monitor = std::make_unique<TrainMonitor<T>>(monitoringConfig);
+    monitor = std::make_unique<Common::TrainMonitor<T>>(monitoringConfig);
   }
 
   for (ulong e = this->trainConfig.startingEpoch; e < numEpochs && !this->stopRequested.load(); e++) {
@@ -296,7 +295,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       shouldStop = monitor->checkEpoch(e + 1, avgEpochLoss);
 
       // Build epoch progress with monitoring signals
-      TrainProgressEvent<T> progress;
+      Common::TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
       progress.currentSample = numSamples;
@@ -321,11 +320,11 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     }
 
     // Always track the 0-based index of the last completed epoch (matches
-    // EpochRecord::epoch), regardless of monitoring
+    // Common::EpochRecord::epoch), regardless of monitoring
     this->trainMetadata.lastEpoch = e;
 
     // Record epoch history
-    EpochRecord<T> epochRecord;
+    Common::EpochRecord<T> epochRecord;
     epochRecord.epoch = e;
     epochRecord.loss = avgEpochLoss;
     epochRecord.valLoss = static_cast<T>(0);
@@ -338,7 +337,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
     if (this->epochCompletedCallback) {
-      EpochCompletionEvent<T> completion;
+      Common::EpochCompletionEvent<T> completion;
       completion.epoch = e;
       completion.totalEpochs = numEpochs;
       completion.epochLoss = avgEpochLoss;
@@ -358,7 +357,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 //===================================================================================================================//
 
 template <typename T>
-TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
+Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   // Use configured numThreads, or all available cores if 0
   int numThreads = this->numThreads;
@@ -443,7 +442,7 @@ TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
     }
   }
 
-  TestResult<T> result;
+  Common::TestResult<T> result;
   result.numSamples = numSamples;
   result.totalLoss = totalLoss;
   result.averageLoss = (numSamples > 0) ? totalLoss / static_cast<T>(numSamples) : static_cast<T>(0);
@@ -630,7 +629,7 @@ void CoreCPU<T>::update(ulong numSamples)
 
   T n = static_cast<T>(numSamples);
 
-  if (this->trainConfig.optimizer.type == OptimizerType::ADAM) {
+  if (this->trainConfig.optimizer.type == Common::OptimizerType::ADAM) {
     // Lazily allocate ADAM state on first update() call.
     // This handles the step-by-step path where train() is never called.
     if (this->adam_m_weights.empty()) {
@@ -698,7 +697,7 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 
   QMutexLocker locker(&callbackMutex);
 
-  TrainProgressEvent<T> progress;
+  Common::TrainProgressEvent<T> progress;
   progress.currentEpoch = currentEpoch;
   progress.totalEpochs = totalEpochs;
   progress.currentSample = currentSample;

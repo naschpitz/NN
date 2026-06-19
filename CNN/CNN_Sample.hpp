@@ -8,7 +8,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   template <typename T>
   struct Sample {
       Input<T> input; // 3D tensor (e.g., 1x28x28 for MNIST)

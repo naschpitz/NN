@@ -23,7 +23,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   template <typename T>
   class Core
   {
@@ -176,8 +175,7 @@ namespace CNN
       void prependEpochHistory(const std::vector<Common::EpochRecord<T>>& history)
       {
         std::vector<Common::EpochRecord<T>> merged = history;
-        merged.insert(merged.end(), this->trainMetadata.epochHistory.begin(),
-                      this->trainMetadata.epochHistory.end());
+        merged.insert(merged.end(), this->trainMetadata.epochHistory.begin(), this->trainMetadata.epochHistory.end());
         this->trainMetadata.epochHistory = std::move(merged);
       }
 
@@ -211,9 +209,9 @@ namespace CNN
       Common::LogLevel logLevel = Common::LogLevel::ERROR;
 
       //-- Internal state --//
-      TrainCallback<T> trainCallback;
-      EpochCompletedCallback<T> epochCompletedCallback;
-      ProgressCallback progressCallback;
+      Common::TrainCallback<T> trainCallback;
+      Common::EpochCompletedCallback<T> epochCompletedCallback;
+      Common::ProgressCallback progressCallback;
       TimingCallback timingCallback;
       GpuProfileCallback gpuProfileCallback;
       std::atomic<bool> stopRequested{false};

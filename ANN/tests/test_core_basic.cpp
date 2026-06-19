@@ -109,7 +109,7 @@ static void testTestMethod()
   auto core = ANN::Core<double>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  ANN::TestResult<double> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<double> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
   CHECK(result.numSamples == 2, "test numSamples = 2");
   CHECK(result.averageLoss >= 0.0, "test averageLoss >= 0");
   CHECK(result.totalLoss >= 0.0, "test totalLoss >= 0");
@@ -312,7 +312,7 @@ static void testBatchPredict()
     return ANN::InputsView<double>(inputs.data() + start, end - start);
   };
 
-  ANN::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
+  Common::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
 
   CHECK(results.size() == 4, "batch predict returns 4 outputs");
 
@@ -380,7 +380,7 @@ static void testBatchPredictAfterTrain()
     return ANN::InputsView<double>(inputs.data() + start, end - start);
   };
 
-  ANN::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
+  Common::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
 
   CHECK(results.size() == 4, "batch predict returns 4 outputs");
   CHECK(results[0].output[0] < 0.5, "XOR(0,0) ≈ 0");
@@ -424,7 +424,7 @@ static void testBatchPredictAbort()
       core->requestStop();
   });
 
-  ANN::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
+  Common::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
 
   CHECK(results.size() < inputs.size(), "abort produces partial results (size < 200)");
   CHECK(results.size() >= 1, "at least one batch completed");

@@ -16,7 +16,6 @@
 
 namespace ANN
 {
-  using namespace Common;
   // Manages GPU buffer allocation, source loading, parameter initialization/synchronization,
   // data I/O (read output, read gradients), offset computation, and dropout mask generation.
   // Extracted from CoreGPUWorker to reduce class size.
@@ -24,9 +23,9 @@ namespace ANN
   class GPUBufferManager
   {
     public:
-       GPUBufferManager(OpenCLWrapper::Core* core, const LayersConfig& layersConfig, Parameters<T>& parameters,
-                        const TrainConfig<T>& trainConfig, const CostFunctionConfig<T>& costFunctionConfig,
-                       LogLevel logLevel);
+      GPUBufferManager(OpenCLWrapper::Core* core, const LayersConfig& layersConfig, Parameters<T>& parameters,
+                       const Common::TrainConfig<T>& trainConfig,
+                       const Common::CostFunctionConfig<T>& costFunctionConfig, Common::LogLevel logLevel);
 
       //-- Initialization --//
       void initializeParameters();
@@ -64,9 +63,9 @@ namespace ANN
       OpenCLWrapper::Core* core;
       const LayersConfig& layersConfig;
       Parameters<T>& parameters;
-       const TrainConfig<T>& trainConfig;
-      const CostFunctionConfig<T>& costFunctionConfig;
-      LogLevel logLevel;
+      const Common::TrainConfig<T>& trainConfig;
+      const Common::CostFunctionConfig<T>& costFunctionConfig;
+      Common::LogLevel logLevel;
 
       std::mt19937 dropoutRng{std::random_device{}()};
   };

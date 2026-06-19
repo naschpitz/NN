@@ -8,7 +8,6 @@
 
 namespace ANN
 {
-  using namespace Common;
   template <typename T>
   class Worker
   {
@@ -16,7 +15,7 @@ namespace ANN
       virtual ~Worker() = default;
 
     protected:
-      CostFunctionConfig<T> costFunctionConfig;
+      Common::CostFunctionConfig<T> costFunctionConfig;
 
       //-- Loss calculation (shared by CPU and GPU workers) --//
       T calculateLoss(const Output<T>& predicted, const Output<T>& expected);

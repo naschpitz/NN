@@ -14,14 +14,13 @@
 
 namespace ANN
 {
-  using namespace Common;
   template <typename T>
   class CoreCPUWorker : public Worker<T>
   {
     public:
-      CoreCPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
-                    const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
-                     bool allocateTrainBuffers = true);
+      CoreCPUWorker(const LayersConfig& layersConfig, const Common::TrainConfig<T>& trainConfig,
+                    const Parameters<T>& parameters, const Common::CostFunctionConfig<T>& costFunctionConfig,
+                    bool allocateTrainBuffers = true);
 
       //-- Forward pass --//
       void propagate(const Input<T>& input, bool applyDropout = false);
@@ -80,7 +79,7 @@ namespace ANN
     private:
       //-- Shared references (owned by CoreCPU/Core) --//
       const LayersConfig& layersConfig;
-      const TrainConfig<T>& trainConfig;
+      const Common::TrainConfig<T>& trainConfig;
       const Parameters<T>& parameters;
 
       //-- Per-worker state --//

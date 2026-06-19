@@ -37,7 +37,11 @@ def check_file(path: str) -> list[str]:
             start = m.start()
             if start == 0:
                 continue
-            if not line[start - 1].isalnum() and line[start - 1] != "_":
+            # Skip double-underscores (e.g. __FILE__, __LINE__) which are
+            # reserved for implementation and not naming violations.
+            if line[start - 1] == "_":
+                continue
+            if not line[start - 1].isalnum():
                 continue
             violations.append(f"{path}:{lineno}: trailing underscore in identifier")
 

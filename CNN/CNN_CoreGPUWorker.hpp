@@ -18,7 +18,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   template <typename T>
   class CoreGPUWorker : public Worker<T>
   {
@@ -39,14 +38,14 @@ namespace CNN
       // notifies phase boundaries (H2DUpload / GpuCompute) tagged with its GPU index.
       // gpuProfileCallback receives GPU-profiled per-sub-phase kernel times.
       T trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                    const TrainCallback<T>& callback, const TimingCallback& timingCallback = nullptr, int gpuIndex = -1,
-                    const GpuProfileCallback& gpuProfileCallback = nullptr);
+                    const Common::TrainCallback<T>& callback, const TimingCallback& timingCallback = nullptr,
+                    int gpuIndex = -1, const GpuProfileCallback& gpuProfileCallback = nullptr);
 
       //-- Testing --//
       std::pair<T, ulong> testSubset(SamplesView<T> samples);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
-      Common::PredictResults<T> predictSubset(InputsView<T> inputs, const ProgressCallback& callback = nullptr);
+      Common::PredictResults<T> predictSubset(InputsView<T> inputs, const Common::ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training methods (for external orchestration) --//
       void backpropagateSample(const Input<T>& input, const Output<T>& expected);
@@ -91,8 +90,8 @@ namespace CNN
       bool profilingEnabled = false;
 
       //-- Per-sample progress reporting (loss delta from the GPU accumulator) --//
-      void reportSampleProgress(const TrainCallback<T>& callback, ulong currentSample, ulong totalSamples, ulong epoch,
-                                ulong totalEpochs, T& prevAccumLoss);
+      void reportSampleProgress(const Common::TrainCallback<T>& callback, ulong currentSample, ulong totalSamples,
+                                ulong epoch, ulong totalEpochs, T& prevAccumLoss);
   };
 }
 

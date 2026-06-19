@@ -124,7 +124,7 @@ static void testGPUWeightedCrossEntropyTrain()
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  ANN::TestResult<float> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<float> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
 
   CHECK(result.averageLoss >= 0.0f, "GPU weighted CE: loss non-negative");
   CHECK(std::isfinite(result.averageLoss), "GPU weighted CE: loss is finite");
@@ -160,7 +160,7 @@ static void testGPUTestMethod()
   auto core = ANN::Core<float>::makeCore(config);
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
-  ANN::TestResult<float> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
+  Common::TestResult<float> result = core->test(samples.size(), ANN::makeSampleProvider(samples));
   CHECK(result.numSamples == 2, "GPU test numSamples = 2");
   CHECK(result.averageLoss >= 0.0f, "GPU test averageLoss >= 0");
   CHECK(result.totalLoss >= 0.0f, "GPU test totalLoss >= 0");

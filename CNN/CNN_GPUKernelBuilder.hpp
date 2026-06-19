@@ -12,7 +12,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   // Manages OpenCL kernel creation, argument binding, and setup orchestration for CNN.
   // Extracted from CoreGPUWorker to reduce class size.
   template <typename T>

@@ -7,7 +7,6 @@
 #include <stdexcept>
 
 using namespace CNN;
-using namespace Common;
 
 //===================================================================================================================//
 
@@ -87,7 +86,7 @@ void Core<T>::trainingStart(ulong numSamples)
 //===================================================================================================================//
 
 template <typename T>
-TrainMetadata<T> Core<T>::trainingEnd()
+Common::TrainMetadata<T> Core<T>::trainingEnd()
 {
   auto endTime = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed = endTime - this->trainingStartTime;
@@ -102,7 +101,7 @@ TrainMetadata<T> Core<T>::trainingEnd()
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> Core<T>::predict(const Inputs<T>& inputs)
+Common::PredictResults<T> Core<T>::predict(const Inputs<T>& inputs)
 {
   // Wrap an in-memory Inputs<T> as a one-shot InputProvider and delegate
   // to the streaming overload. The provider returns non-owning views into
@@ -121,7 +120,7 @@ PredictResults<T> Core<T>::predict(const Inputs<T>& inputs)
 //===================================================================================================================//
 
 template <typename T>
-PredictResult<T> Core<T>::predict(const Input<T>& input)
+Common::PredictResult<T> Core<T>::predict(const Input<T>& input)
 {
   return predict(Inputs<T>{input})[0];
 }
@@ -137,7 +136,7 @@ void Core<T>::predictStart()
 //===================================================================================================================//
 
 template <typename T>
-PredictMetadata<T> Core<T>::predictEnd()
+Common::PredictMetadata<T> Core<T>::predictEnd()
 {
   auto endTime = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed = endTime - this->predictStartTime;

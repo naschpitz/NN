@@ -10,7 +10,6 @@
 
 namespace ANN
 {
-  using namespace Common;
   // Lazy supplier used by the streaming predict(): given a batch size and a
   // 0-based batch index, returns a NON-OWNING view over the corresponding
   // chunk of inputs. The last batch may be shorter than batchSize. The caller

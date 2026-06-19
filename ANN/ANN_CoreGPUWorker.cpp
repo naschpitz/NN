@@ -9,14 +9,14 @@
 #include <OCLW_Core.hpp>
 
 using namespace ANN;
-using namespace Common;
 
 //===================================================================================================================//
 
 template <typename T>
-CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
-                                const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
-                                ulong progressReports, LogLevel logLevel)
+CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Common::TrainConfig<T>& trainConfig,
+                                const Parameters<T>& parameters,
+                                const Common::CostFunctionConfig<T>& costFunctionConfig, ulong progressReports,
+                                Common::LogLevel logLevel)
   : layersConfig(layersConfig),
     trainConfig(trainConfig),
     parameters(parameters),
@@ -26,7 +26,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainCon
 {
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
   this->core = this->ownedCore.get();
-  this->core->setVerbose(this->logLevel >= LogLevel::DEBUG);
+  this->core->setVerbose(this->logLevel >= Common::LogLevel::DEBUG);
 
   this->bufferManager = std::make_unique<GPUBufferManager<T>>(
     this->core, this->layersConfig, this->parameters, this->trainConfig, this->costFunctionConfig, this->logLevel);
@@ -43,9 +43,10 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainCon
 //===================================================================================================================//
 
 template <typename T>
-CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainConfig<T>& trainConfig,
-                                const Parameters<T>& parameters, const CostFunctionConfig<T>& costFunctionConfig,
-                                OpenCLWrapper::Core& sharedCore, ulong progressReports, LogLevel logLevel)
+CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Common::TrainConfig<T>& trainConfig,
+                                const Parameters<T>& parameters,
+                                const Common::CostFunctionConfig<T>& costFunctionConfig,
+                                OpenCLWrapper::Core& sharedCore, ulong progressReports, Common::LogLevel logLevel)
   : layersConfig(layersConfig),
     trainConfig(trainConfig),
     parameters(parameters),
@@ -71,7 +72,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const TrainCon
 //===================================================================================================================//
 
 template <typename T>
-PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
+Common::PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 {
   // Set up predict kernels if not done yet
   if (!this->kernelBuilder->predictKernelsSetup) {
@@ -85,7 +86,7 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
   // Execute predict kernels
   this->core->run();
 
-  PredictResult<T> result;
+  Common::PredictResult<T> result;
   result.output = this->bufferManager->readOutput();
   result.logits = this->bufferManager->readOutputLogits();
   return result;
@@ -97,7 +98,7 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 
 template <typename T>
 T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                                const TrainCallback<T>& callback)
+                                const Common::TrainCallback<T>& callback)
 {
   ulong numSamplesInSubset = batchSamples.size();
 
@@ -134,7 +135,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
 
     // Report progress
     if (callback) {
-      TrainProgressEvent<T> progress;
+      Common::TrainProgressEvent<T> progress;
       progress.currentEpoch = epoch;
       progress.totalEpochs = totalEpochs;
       progress.currentSample = s + 1;
@@ -193,7 +194,8 @@ std::pair<T, ulong> CoreGPUWorker<T>::testSubset(SamplesView<T> samples)
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> CoreGPUWorker<T>::predictSubset(InputsView<T> inputs, const ProgressCallback& callback)
+Common::PredictResults<T> CoreGPUWorker<T>::predictSubset(InputsView<T> inputs,
+                                                          const Common::ProgressCallback& callback)
 {
   // Set up predict kernels if not done yet (forward pass only)
   if (!this->kernelBuilder->predictKernelsSetup) {
@@ -201,7 +203,7 @@ PredictResults<T> CoreGPUWorker<T>::predictSubset(InputsView<T> inputs, const Pr
     this->kernelBuilder->predictKernelsSetup = true;
   }
 
-  PredictResults<T> results;
+  Common::PredictResults<T> results;
   results.reserve(inputs.size());
 
   for (ulong i = 0; i < inputs.size(); i++) {
@@ -213,7 +215,7 @@ PredictResults<T> CoreGPUWorker<T>::predictSubset(InputsView<T> inputs, const Pr
     // Execute forward pass kernels only
     this->core->run();
 
-    PredictResult<T> r;
+    Common::PredictResult<T> r;
     r.output = this->bufferManager->readOutput();
     r.logits = this->bufferManager->readOutputLogits();
     results.push_back(std::move(r));

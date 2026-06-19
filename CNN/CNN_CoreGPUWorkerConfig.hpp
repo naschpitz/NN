@@ -13,7 +13,6 @@
 
 namespace CNN
 {
-  using namespace Common;
   // Configuration for a single GPU worker. Extracts only the fields needed
   // from CoreConfig and adds the per-GPU batch size.
   template <typename T>

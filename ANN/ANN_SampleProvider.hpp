@@ -12,7 +12,6 @@
 
 namespace ANN
 {
-  using namespace Common;
   // Lazy supplier used by train() and test(): given the full shuffled index
   // array, a batch size, and a 0-based batch index, returns the corresponding
   // batch of samples. Lets callers stream samples on demand (e.g. decode
