@@ -37,14 +37,14 @@ namespace ANN
       PredictResult<T> predict(const Input<T>& input);
 
       //-- Training (called by CoreGPU orchestrator) --//
-      T trainSubset(std::span<const Sample<T>> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
+      T trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
                     const TrainCallback<T>& callback);
 
       //-- Testing (called by CoreGPU orchestrator) --//
-      std::pair<T, ulong> testSubset(std::span<const Sample<T>> samples);
+      std::pair<T, ulong> testSubset(SamplesView<T> samples);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
-      PredictResults<T> predictSubset(std::span<const Input<T>> inputs, const ProgressCallback& callback = nullptr);
+      PredictResults<T> predictSubset(InputsView<T> inputs, const ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training (for external orchestration) --//
       Tensor1D<T> backpropagate(const Output<T>& expected);

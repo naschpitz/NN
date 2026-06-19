@@ -87,20 +87,20 @@ PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvider<T>& 
 
     std::vector<PredictResults<T>> gpuResults(this->numGPUs);
 
-    QtConcurrent::blockingMap(
-      &this->workerPool, workItems, [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
-        ProgressCallback callback;
+    QtConcurrent::blockingMap(&this->workerPool, workItems,
+                              [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
+                                ProgressCallback callback;
 
-        if (this->progressCallback) {
-          callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
-            ulong completed = ++completedInputs;
-            this->progressCallback(completed, numSamples);
-          };
-        }
+                                if (this->progressCallback) {
+                                  callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
+                                    ulong completed = ++completedInputs;
+                                    this->progressCallback(completed, numSamples);
+                                  };
+                                }
 
-        gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->predictSubset(
-          std::span<const Input<T>>(batch.data() + item.startIdx, item.endIdx - item.startIdx), callback);
-      });
+                                gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->predictSubset(
+                                  InputsView<T>(batch.data() + item.startIdx, item.endIdx - item.startIdx), callback);
+                              });
 
     // Append per-GPU results in input order.
     for (size_t gpuIdx = 0; gpuIdx < this->numGPUs; gpuIdx++) {
@@ -201,7 +201,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         &this->workerPool, workItems,
         [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples, &gpuCumulativeSamples](const GPUWorkItem& item) {
           // Build the per-GPU sub-batch (non-owning view — avoids copying the slice)
-          std::span<const Sample<T>> gpuSamples(batchSamples.data() + item.startIdx, item.endIdx - item.startIdx);
+          SamplesView<T> gpuSamples(batchSamples.data() + item.startIdx, item.endIdx - item.startIdx);
 
           // Create per-batch callback that translates indices to cumulative per-GPU counts
           TrainCallback<T> callback;
@@ -406,7 +406,7 @@ TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sample
 
     QtConcurrent::blockingMap(&this->workerPool, workItems, [this, &batch, &gpuResults](const GPUWorkItem& item) {
       gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->testSubset(
-        std::span<const Sample<T>>(batch.data() + item.startIdx, item.endIdx - item.startIdx));
+        SamplesView<T>(batch.data() + item.startIdx, item.endIdx - item.startIdx));
     });
 
     for (size_t i = 0; i < this->numGPUs; i++) {

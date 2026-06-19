@@ -126,9 +126,8 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 //===================================================================================================================//
 
 template <typename T>
-T CoreGPUWorker<T>::trainSubset(std::span<const Sample<T>> batchSamples, ulong totalSamples, ulong epoch,
-                                ulong totalEpochs, const TrainCallback<T>& callback,
-                                const TimingCallback& timingCallback, int gpuIndex,
+T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
+                                const TrainCallback<T>& callback, const TimingCallback& timingCallback, int gpuIndex,
                                 const GpuProfileCallback& gpuProfileCallback)
 {
   ulong N = batchSamples.size();
@@ -446,7 +445,7 @@ void CoreGPUWorker<T>::reportSampleProgress(const TrainCallback<T>& callback, ul
 //===================================================================================================================//
 
 template <typename T>
-std::pair<T, ulong> CoreGPUWorker<T>::testSubset(std::span<const Sample<T>> samples)
+std::pair<T, ulong> CoreGPUWorker<T>::testSubset(SamplesView<T> samples)
 {
   T subsetLoss = static_cast<T>(0);
   ulong subsetCorrect = 0;
@@ -472,7 +471,7 @@ std::pair<T, ulong> CoreGPUWorker<T>::testSubset(std::span<const Sample<T>> samp
 //===================================================================================================================//
 
 template <typename T>
-PredictResults<T> CoreGPUWorker<T>::predictSubset(std::span<const Input<T>> inputs, const ProgressCallback& callback)
+PredictResults<T> CoreGPUWorker<T>::predictSubset(InputsView<T> inputs, const ProgressCallback& callback)
 {
   // Set up predict kernels if needed (CNN propagate → bridge →  propagate)
   if (!this->kernelBuilder->predictKernelsSetup) {

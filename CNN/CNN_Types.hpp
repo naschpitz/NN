@@ -4,6 +4,7 @@
 #include "CNN_Shape3D.hpp"
 #include "CNN_Tensor3D.hpp"
 
+#include <span>
 #include <sys/types.h>
 #include <vector>
 
@@ -21,6 +22,10 @@ namespace CNN
 
   template <typename T>
   using Inputs = std::vector<Input<T>>;
+
+  // Non-owning view over a sequence of inputs (e.g. a sub-batch handed to a worker).
+  template <typename T>
+  using InputsView = std::span<const Input<T>>;
 
   // Output from the CNN is a 1D vector (from dense layers)
   template <typename T>

@@ -17,6 +17,10 @@ namespace CNN
 
   template <typename T>
   using Samples = std::vector<Sample<T>>;
+
+  // Non-owning view over a sequence of samples (e.g. a sub-batch handed to a worker).
+  template <typename T>
+  using SamplesView = std::span<const Sample<T>>;
 }
 
 //===================================================================================================================//

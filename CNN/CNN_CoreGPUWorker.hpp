@@ -38,16 +38,15 @@ namespace CNN
       // timingCallback/gpuIndex are optional instrumentation: when set, the worker
       // notifies phase boundaries (H2DUpload / GpuCompute) tagged with its GPU index.
       // gpuProfileCallback receives GPU-profiled per-sub-phase kernel times.
-      T trainSubset(std::span<const Sample<T>> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
+      T trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
                     const TrainCallback<T>& callback, const TimingCallback& timingCallback = nullptr, int gpuIndex = -1,
                     const GpuProfileCallback& gpuProfileCallback = nullptr);
 
       //-- Testing --//
-      std::pair<T, ulong> testSubset(std::span<const Sample<T>> samples);
+      std::pair<T, ulong> testSubset(SamplesView<T> samples);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
-      Common::PredictResults<T> predictSubset(std::span<const Input<T>> inputs,
-                                              const ProgressCallback& callback = nullptr);
+      Common::PredictResults<T> predictSubset(InputsView<T> inputs, const ProgressCallback& callback = nullptr);
 
       //-- Step-by-step training methods (for external orchestration) --//
       void backpropagateSample(const Input<T>& input, const Output<T>& expected);

@@ -1,6 +1,7 @@
 #ifndef ANN_TYPES_HPP
 #define ANN_TYPES_HPP
 
+#include <span>
 #include <sys/types.h>
 #include <vector>
 
@@ -13,6 +14,10 @@ namespace ANN
 
   template <typename T>
   using Inputs = std::vector<Input<T>>;
+
+  // Non-owning view over a sequence of inputs (e.g. a sub-batch handed to a worker).
+  template <typename T>
+  using InputsView = std::span<const Input<T>>;
 
   template <typename T>
   using Output = std::vector<T>;
