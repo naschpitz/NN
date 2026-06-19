@@ -126,8 +126,9 @@ PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 //===================================================================================================================//
 
 template <typename T>
-T CoreGPUWorker<T>::trainSubset(const Samples<T>& batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
-                                const TrainCallback<T>& callback, const TimingCallback& timingCallback, int gpuIndex,
+T CoreGPUWorker<T>::trainSubset(std::span<const Sample<T>> batchSamples, ulong totalSamples, ulong epoch,
+                                ulong totalEpochs, const TrainCallback<T>& callback,
+                                const TimingCallback& timingCallback, int gpuIndex,
                                 const GpuProfileCallback& gpuProfileCallback)
 {
   ulong N = batchSamples.size();
@@ -417,8 +418,8 @@ void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPUWorker<T>::reportSampleProgress(const TrainCallback<T>& callback, ulong currentSample,
-                                            ulong totalSamples, ulong epoch, ulong totalEpochs, T& prevAccumLoss)
+void CoreGPUWorker<T>::reportSampleProgress(const TrainCallback<T>& callback, ulong currentSample, ulong totalSamples,
+                                            ulong epoch, ulong totalEpochs, T& prevAccumLoss)
 {
   if (!callback)
     return;

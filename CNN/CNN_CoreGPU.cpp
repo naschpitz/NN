@@ -13,6 +13,7 @@
 #include <iostream>
 #include <numeric>
 #include <random>
+#include <span>
 
 using namespace CNN;
 using namespace Common;
@@ -199,8 +200,8 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       QtConcurrent::blockingMap(
         &this->workerPool, workItems,
         [this, &batchSamples, &gpuLosses, e, numEpochs, numSamples, &gpuCumulativeSamples](const GPUWorkItem& item) {
-          // Build the per-GPU sub-batch
-          Samples<T> gpuSamples(batchSamples.begin() + item.startIdx, batchSamples.begin() + item.endIdx);
+          // Build the per-GPU sub-batch (non-owning view — avoids copying the slice)
+          std::span<const Sample<T>> gpuSamples(batchSamples.data() + item.startIdx, item.endIdx - item.startIdx);
 
           // Create per-batch callback that translates indices to cumulative per-GPU counts
           TrainCallback<T> callback;
