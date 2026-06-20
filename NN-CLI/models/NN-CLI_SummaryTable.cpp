@@ -230,6 +230,9 @@ namespace NN_CLI
       allLines.insert(allLines.end(), secLines.begin(), secLines.end());
     }
 
+    if (!allLines.empty() && allLines.front().empty())
+      allLines.erase(allLines.begin());
+
     return allLines;
   }
 
