@@ -638,6 +638,7 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
         this->core->template addArgument<T>(gemmFiltId, "cnn_im2col");
         this->core->template addArgument<T>(gemmFiltId, "cnn_dFilters");
         this->core->template addArgument<ulong>(gemmFiltId, gradOutOffset);
+        this->core->template addArgument<ulong>(gemmFiltId, static_cast<ulong>(0)); // offsetB (im2col at base)
         this->core->template addArgument<ulong>(gemmFiltId, filterOffset);
         this->core->template addArgument<ulong>(gemmFiltId, dF_M);
         this->core->template addArgument<ulong>(gemmFiltId, dF_N);
@@ -886,7 +887,6 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
       if (rpi.inC > 0) {
         // Projection backward: dSkip = W^T * dOut
         ulong totalIn = rpi.inC * rpi.spatialSize;
-        ulong totalWeights = rpi.outC * rpi.inC;
 
         ulong wOffset = 0;
         ulong bOffset = 0;
@@ -910,20 +910,66 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
         this->core->template addArgument<ulong>(dSkipKernelId, rpi.outC);
         this->core->template addArgument<ulong>(dSkipKernelId, rpi.spatialSize);
 
-        // dW += dOut * skip^T, dB += sum(dOut)
+        // dW = dOut × skip^T  (a gemm_dFilters: C = A·B^T) and dB = sum(dOut).
+        //   A = cnn_grads at dSkipOutOffset, shape (outC, spatial) = (M, K)
+        //   B = cnn_actvs at skipOffset,     shape (inC,  spatial) = (N, K)
+        //   C = cnn_res_dproj_w at wOffset,  shape (outC, inC) = (M, N)
+        // Routed through the same device-aware GEMM as conv dFilters: when the output grid
+        // (outC*inC) is too small to fill the GPU via tiling, use the K-parallel reduction;
+        // otherwise the tiled GEMM. Both write each element once (full assignment), matching
+        // the per-sample overwrite the accumulator expects. dB reuses the conv bias-gradient
+        // reduction (one work-group per channel, tree-reduce over spatial).
+        ulong dW_M = rpi.outC;
+        ulong dW_N = rpi.inC;
+        ulong dW_K = rpi.spatialSize;
+
         std::string dwKernelId = "res_bwd_proj_dw" + kernelSuffix;
-        this->core->addKernel(dwKernelId, "residual_bwd_proj_dw", totalWeights, 0);
-        this->core->template addArgument<T>(dwKernelId, "cnn_grads");
-        this->core->template addArgument<T>(dwKernelId, "cnn_actvs");
-        this->core->template addArgument<T>(dwKernelId, "cnn_res_dproj_w");
-        this->core->template addArgument<T>(dwKernelId, "cnn_res_dproj_b");
-        this->core->template addArgument<ulong>(dwKernelId, wOffset);
-        this->core->template addArgument<ulong>(dwKernelId, bOffset);
-        this->core->template addArgument<ulong>(dwKernelId, dSkipOutOffset);
-        this->core->template addArgument<ulong>(dwKernelId, rpi.skipOffset);
-        this->core->template addArgument<ulong>(dwKernelId, rpi.inC);
-        this->core->template addArgument<ulong>(dwKernelId, rpi.outC);
-        this->core->template addArgument<ulong>(dwKernelId, rpi.spatialSize);
+
+        const ulong TILE = 16;
+        const ulong DFILTERS_LOCAL_WS = 256;
+        const ulong DFILTERS_GROUPS_PER_SM = 4; // occupancy target: work-groups per compute unit
+        const ulong tiledGroups = ((dW_M + TILE - 1) / TILE) * ((dW_N + TILE - 1) / TILE);
+        const ulong computeUnits = this->core->template getDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+
+        if (tiledGroups < computeUnits * DFILTERS_GROUPS_PER_SM) {
+          ulong numOut = dW_M * dW_N;
+          this->core->addKernel(dwKernelId, "gemm_dFilters_kpar", numOut * DFILTERS_LOCAL_WS, 0, DFILTERS_LOCAL_WS);
+          this->core->template addArgument<T>(dwKernelId, "cnn_grads");
+          this->core->template addArgument<T>(dwKernelId, "cnn_actvs");
+          this->core->template addArgument<T>(dwKernelId, "cnn_res_dproj_w");
+          this->core->template addArgument<ulong>(dwKernelId, dSkipOutOffset);
+          this->core->template addArgument<ulong>(dwKernelId, rpi.skipOffset);
+          this->core->template addArgument<ulong>(dwKernelId, wOffset);
+          this->core->template addArgument<ulong>(dwKernelId, dW_M);
+          this->core->template addArgument<ulong>(dwKernelId, dW_N);
+          this->core->template addArgument<ulong>(dwKernelId, dW_K);
+        } else {
+          ulong dW_globalX = ((dW_N + TILE - 1) / TILE) * TILE;
+          ulong dW_globalY = ((dW_M + TILE - 1) / TILE) * TILE;
+          this->core->addKernel(dwKernelId, "gemm_dFilters", dW_globalX, dW_globalY, TILE, TILE);
+          this->core->template addArgument<T>(dwKernelId, "cnn_grads");
+          this->core->template addArgument<T>(dwKernelId, "cnn_actvs");
+          this->core->template addArgument<T>(dwKernelId, "cnn_res_dproj_w");
+          this->core->template addArgument<ulong>(dwKernelId, dSkipOutOffset);
+          this->core->template addArgument<ulong>(dwKernelId, rpi.skipOffset);
+          this->core->template addArgument<ulong>(dwKernelId, wOffset);
+          this->core->template addArgument<ulong>(dwKernelId, dW_M);
+          this->core->template addArgument<ulong>(dwKernelId, dW_N);
+          this->core->template addArgument<ulong>(dwKernelId, dW_K);
+        }
+
+        // dB = sum(dOut) — reuse the conv bias-gradient reduction (same operation).
+        std::string dbKernelId = "res_bwd_proj_db" + kernelSuffix;
+        ulong dbLocalWS = 256;
+        ulong dbGlobalWS = rpi.outC * dbLocalWS;
+        this->core->addKernel(dbKernelId, "calculate_dCost_dBiases", dbGlobalWS, 0, dbLocalWS);
+        this->core->template addArgument<T>(dbKernelId, "cnn_grads");
+        this->core->template addArgument<T>(dbKernelId, "cnn_res_dproj_b");
+        this->core->template addArgument<ulong>(dbKernelId, dSkipOutOffset);
+        this->core->template addArgument<ulong>(dbKernelId, bOffset);
+        this->core->template addArgument<ulong>(dbKernelId, rpi.outC);
+        this->core->template addArgument<ulong>(dbKernelId, rpi.spatialSize);
+        this->core->template addArgument<ulong>(dbKernelId, static_cast<ulong>(1));
       } else {
         // Identity backward: dSkip += dOut
         ulong size = inShape.size();

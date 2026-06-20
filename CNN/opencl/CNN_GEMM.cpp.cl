@@ -200,12 +200,12 @@ kernel void gemm_dFilters(global TYPE* A, global TYPE* B, global TYPE* C, ulong 
 // Dispatched only for conv layers with large K; layers with small K and a large M*N stay on
 // gemm_dFilters (the tree reduction here would dominate when K is short). See CNN_GPUKernelBuilder.
 //
-// A = dOut at offsetA, shape (M, K) row-major:  A[oc*K + s] = dOut[oc, s]
-// B = im2col,           shape (N, K) row-major:  B[ic*K + s] = im2col[ic, s]   (offset 0)
-// C = dFilters at offsetC, shape (M, N):         C[oc*N + ic]
+// A = dOut/skip at offsetA, shape (M, K) row-major:  A[oc*K + s]
+// B = im2col/skip at offsetB, shape (N, K) row-major: B[ic*K + s]
+// C = dFilters at offsetC, shape (M, N):              C[oc*N + ic]
 // Dispatch: global (M*N * localWS), local (localWS)  [localWS must equal the partials array size]
-kernel void gemm_dFilters_kpar(global TYPE* A, global TYPE* B, global TYPE* C, ulong offsetA, ulong offsetC, ulong M,
-                               ulong N, ulong K)
+kernel void gemm_dFilters_kpar(global TYPE* A, global TYPE* B, global TYPE* C, ulong offsetA, ulong offsetB, ulong offsetC,
+                               ulong M, ulong N, ulong K)
 {
   ulong e = get_group_id(0); // output element index in [0, M*N)
   ulong oc = e / N;
@@ -213,8 +213,8 @@ kernel void gemm_dFilters_kpar(global TYPE* A, global TYPE* B, global TYPE* C, u
   uint lid = get_local_id(0);
   uint ls = get_local_size(0);
 
-  ulong aBase = offsetA + oc * K; // dOut[oc, :] row base
-  ulong bBase = ic * K; // im2col[ic, :] row base (B lives at offset 0)
+  ulong aBase = offsetA + oc * K; // A[oc, :] row base
+  ulong bBase = offsetB + ic * K; // B[ic, :] row base
 
   TYPE partial = (TYPE)0;
 

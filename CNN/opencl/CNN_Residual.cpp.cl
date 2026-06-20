@@ -8,8 +8,11 @@
 // Identity shortcut: out[i] += skip[i]
 // Projection shortcut: out[i] += bias[oc] + sum_ic(W[oc*inC+ic] * skip[ic*spatial+s])
 // Backward identity: dSkip[i] = dOut[i]
-// Backward projection: dSkip = W^T * dOut, dW = dOut * skip^T, dB = sum(dOut)
-// (per-sample overwrite; accumulated into a separate buffer by accumulate_gradients)
+// Backward projection (here): dSkip = W^T * dOut
+// Backward projection dW/dB: dispatched to the shared gemm_dFilters (CNN_GEMM.cpp.cl) and
+//   calculate_dCost_dBiases (CNN_Backpropagate.cpp.cl) kernels — a 1x1 projection is a GEMM
+//   over channels. Both write each element once (full assignment); accumulated into a
+//   separate buffer by accumulate_gradients.
 //===================================================================================================================//
 
 //===================================================================================================================//
@@ -88,39 +91,6 @@ kernel void residual_bwd_proj_dskip(global TYPE* grads, global const TYPE* projW
     sum += projW[wOffset + oc * inC + ic] * grads[dOutOffset + oc * spatialSize + s];
 
   grads[dSkipOffset + gid] += sum;
-}
-
-//===================================================================================================================//
-
-// Projection backward: accumulate weight gradients. One work-item per weight (oc, ic).
-kernel void residual_bwd_proj_dw(global const TYPE* grads, global const TYPE* actvs, global TYPE* dProjW,
-                                 global TYPE* dProjB, ulong wOffset, ulong bOffset, ulong dOutOffset, ulong skipOffset,
-                                 ulong inC, ulong outC, ulong spatialSize)
-{
-  size_t gid = get_global_id(0);
-
-  if (gid >= outC * inC)
-    return;
-
-  ulong oc = gid / inC;
-  ulong ic = gid % inC;
-
-  TYPE dw = (TYPE)0;
-
-  for (ulong s = 0; s < spatialSize; s++)
-    dw += grads[dOutOffset + oc * spatialSize + s] * actvs[skipOffset + ic * spatialSize + s];
-
-  dProjW[wOffset + gid] = dw;
-
-  // Accumulate bias gradient (only for ic == 0 to avoid duplicate adds)
-  if (ic == 0) {
-    TYPE db = (TYPE)0;
-
-    for (ulong s = 0; s < spatialSize; s++)
-      db += grads[dOutOffset + oc * spatialSize + s];
-
-    dProjB[bOffset + oc] = db;
-  }
 }
 
 //===================================================================================================================//
