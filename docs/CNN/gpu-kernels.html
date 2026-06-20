@@ -138,8 +138,8 @@ Same data, different indexing, zero extra memory or kernel launches.
 
 <h2 id="gemm-kernels">GEMM Kernels</h2>
 <p><span class="badge badge-blue">CNN_GEMM.cpp.cl</span></p>
-<p>Tiled General Matrix Multiply kernels. All three variants use the same tiled algorithm with local memory — only the indexing into A or B differs for transpose variants.</p>
-<p>Dispatch: 2D global work size <code>(ceil(N/TILE)*TILE, ceil(M/TILE)*TILE)</code>, local <code>(TILE, TILE)</code>.</p>
+<p>Tiled General Matrix Multiply kernels. The three tiled variants use the same tiled algorithm with local memory — only the indexing into A or B differs for transpose variants. A fourth variant, <code>gemm_dFilters_kpar</code>, uses a K-parallel reduction for the split-K-bound dFilters case where the tiled approach cannot fill the GPU (see below).</p>
+<p>Tiled dispatch: 2D global work size <code>(ceil(N/TILE)*TILE, ceil(M/TILE)*TILE)</code>, local <code>(TILE, TILE)</code>.</p>
 
 <table>
   <thead>
@@ -161,6 +161,11 @@ Same data, different indexing, zero extra memory or kernel launches.
       <td>C = A<sup>T</sup> × B</td>
       <td>Backward: project output error back into input space (dInput)</td>
     </tr>
+    <tr>
+      <td><code>gemm_dFilters_kpar</code></td>
+      <td>C = A × B<sup>T</sup> (K-parallel reduction)</td>
+      <td>Backward: filter gradients for split-K-bound layers (small M×N output, large K) where tiled GEMM underfills the GPU. Also used for 1×1 residual projection backward</td>
+    </tr>
   </tbody>
 </table>
 
@@ -180,7 +185,20 @@ Same data, different indexing, zero extra memory or kernel launches.
   </tbody>
 </table>
 
-<p>The transpose variants (<code>gemm_dInput</code>, <code>gemm_dFilters</code>) have the same arguments except without <code>bias</code> and <code>offsetBias</code>.</p>
+<p>The transpose variants (<code>gemm_dInput</code>, <code>gemm_dFilters</code>) have the same arguments except without <code>bias</code> and <code>offsetBias</code>. The <code>gemm_dFilters_kpar</code> variant takes <code>(A, B, C, offsetA, offsetB, offsetC, M, N, K)</code> — no bias argument.</p>
+
+<h3>K-Parallel dFilters Variant</h3>
+<p>The tiled GEMM launches one work-group per output tile, so it only fills the GPU when the output matrix <code>M×N</code> is large enough. The dFilters operation (<code>C = dOut × im2col<sup>T</sup></code>) has <code>M=numFilters</code>, <code>N=k²·C<sub>in</sub></code>, <code>K=outH·outW</code>. For early, high-resolution layers <code>M×N</code> is small (e.g. 32×27 = 864 elements = 4 tiles at <code>TILE=16</code>) while <code>K</code> is huge — the GPU sits nearly idle because the parallelism lives entirely in the <code>K</code> dimension, which the tiled output-parallel approach cannot exploit.</p>
+
+<p><code>gemm_dFilters_kpar</code> flips the parallelism axis: <strong>one work-group per output element</strong> (256 work-items cooperatively striding over <code>K</code>), tree-reducing partial sums in a <code>local TYPE partials[256]</code> array. This turns 864 outputs into 864 work-groups instead of 4 — a ~200× parallelism gain for the worst case. Each element is written once per sample (full assignment, <code>=</code>), matching the two-buffer accumulate pattern used by the tiled variant.</p>
+
+<div class="info-box">
+<strong>Device-aware dispatch.</strong> GPUKernelBuilder selects the variant per layer at kernel-build time, based on whether the tiled approach can fill the GPU:
+<pre><code>tiledGroups = ceil(M / 16) * ceil(N / 16)
+if (tiledGroups &lt; computeUnits * 4) → gemm_dFilters_kpar   // tiled can't fill the GPU
+else                                → gemm_dFilters        // tiled is well-occupied</code></pre>
+<code>computeUnits</code> is queried at runtime via <code>getDeviceInfo&lt;CL_DEVICE_MAX_COMPUTE_UNITS&gt;()</code> (exposed by the OpenCLWrapper submodule), so the threshold auto-adapts to the device. The factor <code>4</code> is a dimensionless occupancy target (work-groups per compute unit). On a 128-SM GPU this routes the small-output layers to the kpar path and the large-output layers to the tiled path — empirically cutting the dominant dFilters layer from 33% to under 3% of per-sample time.
+</div>
 
 <h2 id="im2col-kernels">im2col / col2im Kernels</h2>
 <p><span class="badge badge-blue">CNN_Im2Col.cpp.cl</span></p>

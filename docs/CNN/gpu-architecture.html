@@ -185,7 +185,7 @@
   <tr>
     <td><code>opencl/CNN_GEMM.cpp.cl</code></td>
     <td>Tiled GEMM kernels — convolution forward and backward passes via matrix multiply</td>
-    <td><code>gemm_conv</code>, <code>gemm_dInput</code>, <code>gemm_dFilters</code></td>
+    <td><code>gemm_conv</code>, <code>gemm_dInput</code>, <code>gemm_dFilters</code>, <code>gemm_dFilters_kpar</code></td>
   </tr>
   <tr>
     <td><code>opencl/CNN_Im2Col.cpp.cl</code></td>
@@ -219,8 +219,8 @@
   </tr>
   <tr>
     <td><code>opencl/CNN_Residual.cpp.cl</code></td>
-    <td>Residual (skip connection) kernels — identity addition and 1×1 projection</td>
-    <td><code>residual_add</code>, <code>residual_add_proj</code>, <code>residual_bwd</code>, <code>residual_bwd_proj_dskip</code>, <code>residual_bwd_proj_dw</code></td>
+    <td>Residual (skip connection) kernels — identity addition, 1×1 projection forward, and backward skip gradients. The projection backward (dW/dB) reuses the shared GEMM and reduction kernels (<code>gemm_dFilters_kpar</code>, <code>calculate_dCost_dBiases</code>) rather than dedicated kernels</td>
+    <td><code>residual_add</code>, <code>residual_add_proj</code>, <code>residual_bwd</code>, <code>residual_bwd_proj_dskip</code></td>
   </tr>
 </table>
 
