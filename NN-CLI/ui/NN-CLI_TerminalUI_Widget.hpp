@@ -54,18 +54,7 @@ namespace NN_CLI
       // a repaint is needed, so unchanged widgets incur zero rendering cost.
       // All widget mutation happens under the window's UI mutex, so the flag
       // itself needs no atomic.
-      virtual bool isDirtyTree() const
-      {
-        if (this->dirty)
-          return true;
-
-        for (const auto& child : this->children)
-
-          if (child->isDirtyTree())
-            return true;
-
-        return false;
-      }
+      virtual bool isDirtyTree() const;
 
       //-- Accessors --//
 
