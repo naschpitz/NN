@@ -220,7 +220,7 @@ void GPUKernelBuilder<T>::addPropagateKernels(ulong sampleIdx, ulong layerStart,
       ulong biasOffset = this->bufferManager.convInfos[convIdx].biasOffset;
 
       std::string gemmId = "gemm_conv" + kernelSuffix;
-      this->core->addKernel(gemmId, "gemm", globalX, globalY, TILE, TILE);
+      this->core->addKernel(gemmId, "gemm_conv", globalX, globalY, TILE, TILE);
       this->core->template addArgument<T>(gemmId, "cnn_filters");
       this->core->template addArgument<T>(gemmId, "cnn_im2col");
       this->core->template addArgument<T>(gemmId, "cnn_actvs");
@@ -572,9 +572,9 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
     switch (layerConfig.type) {
     case LayerType::CONV: {
       // Backward convolution via im2col + GEMM (mirrors the forward pass approach):
-      //   dFilters = dOut × im2col(input)^T          (gemm_transB)
+      //   dFilters = dOut × im2col(input)^T          (gemm_dFilters)
       //   dBiases  = sum of dOut over spatial dims    (existing reduction kernel)
-      //   dInput   = col2im(Filters^T × dOut)         (gemm_transA + col2im)
+      //   dInput   = col2im(Filters^T × dOut)         (gemm_dInput + col2im)
       // See opencl/CNN_GEMM.cpp.cl and opencl/CNN_Im2Col.cpp.cl for detailed explanations.
       convIdx--;
       const auto& conv = std::get<ConvLayerConfig>(layerConfig.config);
@@ -610,27 +610,53 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
       this->core->template addArgument<ulong>(im2colFiltId, outH);
       this->core->template addArgument<ulong>(im2colFiltId, outW);
 
-      // Step 2: gemm_transB — dFilters = dOut × im2col^T
+      // Step 2: dFilters = dOut × im2col^T
       //   A = cnn_grads at gradOutOffset, shape (numFilters, outH*outW) = (M, K)
       //   B = cnn_im2col, shape (C_in*kH*kW, outH*outW) — transposed → (outH*outW, C_in*kH*kW)
       //   C = cnn_dFilters at filterOffset, shape (numFilters, C_in*kH*kW) = (M, N)
       ulong dF_M = conv.numFilters;
       ulong dF_N = im2colRows;
       ulong dF_K = im2colCols;
-      ulong dF_globalX = ((dF_N + TILE - 1) / TILE) * TILE;
-      ulong dF_globalY = ((dF_M + TILE - 1) / TILE) * TILE;
 
       std::string gemmFiltId = "gemm_dFilters" + kernelSuffix;
-      this->core->addKernel(gemmFiltId, "gemm_transB", dF_globalX, dF_globalY, TILE, TILE);
-      this->core->template addArgument<T>(gemmFiltId, "cnn_grads");
-      this->core->template addArgument<T>(gemmFiltId, "cnn_im2col");
-      this->core->template addArgument<T>(gemmFiltId, "cnn_dFilters");
-      this->core->template addArgument<ulong>(gemmFiltId, gradOutOffset);
-      this->core->template addArgument<ulong>(gemmFiltId, static_cast<ulong>(0));
-      this->core->template addArgument<ulong>(gemmFiltId, filterOffset);
-      this->core->template addArgument<ulong>(gemmFiltId, dF_M);
-      this->core->template addArgument<ulong>(gemmFiltId, dF_N);
-      this->core->template addArgument<ulong>(gemmFiltId, dF_K);
+
+      // The dFilters output grid (M*N) is small while K (spatial) is large, so the tiled
+      // path can launch too few work-groups to occupy the GPU. Pick the kernel by whether
+      // the tiled grid would underfill the device: if it has fewer work-groups than the
+      // device can run concurrently (computeUnits * GROUPS_PER_SM), use the K-parallel
+      // reduction kernel (one work-group per output element, cooperative reduction over K).
+      // Otherwise the tree-reduction overhead would dominate, so keep the proven tiled path.
+      const ulong DFILTERS_LOCAL_WS = 256;
+      const ulong DFILTERS_GROUPS_PER_SM = 4; // occupancy target: work-groups per compute unit
+      const ulong tiledGroups = ((dF_M + TILE - 1) / TILE) * ((dF_N + TILE - 1) / TILE);
+      const ulong computeUnits = this->core->template getDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+
+      if (tiledGroups < computeUnits * DFILTERS_GROUPS_PER_SM) {
+        ulong numOut = dF_M * dF_N;
+        this->core->addKernel(gemmFiltId, "gemm_dFilters_kpar", numOut * DFILTERS_LOCAL_WS, 0, DFILTERS_LOCAL_WS);
+        this->core->template addArgument<T>(gemmFiltId, "cnn_grads");
+        this->core->template addArgument<T>(gemmFiltId, "cnn_im2col");
+        this->core->template addArgument<T>(gemmFiltId, "cnn_dFilters");
+        this->core->template addArgument<ulong>(gemmFiltId, gradOutOffset);
+        this->core->template addArgument<ulong>(gemmFiltId, static_cast<ulong>(0)); // offsetB (im2col at base)
+        this->core->template addArgument<ulong>(gemmFiltId, filterOffset);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_M);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_N);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_K);
+      } else {
+        ulong dF_globalX = ((dF_N + TILE - 1) / TILE) * TILE;
+        ulong dF_globalY = ((dF_M + TILE - 1) / TILE) * TILE;
+        this->core->addKernel(gemmFiltId, "gemm_dFilters", dF_globalX, dF_globalY, TILE, TILE);
+        this->core->template addArgument<T>(gemmFiltId, "cnn_grads");
+        this->core->template addArgument<T>(gemmFiltId, "cnn_im2col");
+        this->core->template addArgument<T>(gemmFiltId, "cnn_dFilters");
+        this->core->template addArgument<ulong>(gemmFiltId, gradOutOffset);
+        this->core->template addArgument<ulong>(gemmFiltId, static_cast<ulong>(0));
+        this->core->template addArgument<ulong>(gemmFiltId, filterOffset);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_M);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_N);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_K);
+      }
 
       // --- dBiases: keep existing reduction kernel (unchanged) ---
       std::string biasId = "dBiases" + kernelSuffix;
@@ -645,7 +671,7 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
       this->core->template addArgument<ulong>(biasId, outH);
       this->core->template addArgument<ulong>(biasId, outW);
 
-      // --- dInput: gemm_transA then col2im (skip if first layer) ---
+      // --- dInput: gemm_dInput then col2im (skip if first layer) ---
       if (i > 0) {
         ulong inSize = inShape.size();
 
@@ -656,7 +682,7 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
         this->core->template addArgument<ulong>(zeroId, gradInOffset);
         this->core->template addArgument<ulong>(zeroId, inSize);
 
-        // Step 1: gemm_transA — dInput_cols = Filter^T × dOut
+        // Step 1: gemm_dInput — dInput_cols = Filter^T × dOut
         //   A = cnn_filters at filterOffset, shape (numFilters, C_in*kH*kW) — transposed
         //   B = cnn_grads at gradOutOffset, shape (numFilters, outH*outW) = (K, N)
         //   C = cnn_im2col, shape (C_in*kH*kW, outH*outW) = (M, N)
@@ -667,7 +693,7 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
         ulong dI_globalY = ((dI_M + TILE - 1) / TILE) * TILE;
 
         std::string gemmInputId = "gemm_dInput" + kernelSuffix;
-        this->core->addKernel(gemmInputId, "gemm_transA", dI_globalX, dI_globalY, TILE, TILE);
+        this->core->addKernel(gemmInputId, "gemm_dInput", dI_globalX, dI_globalY, TILE, TILE);
         this->core->template addArgument<T>(gemmInputId, "cnn_filters");
         this->core->template addArgument<T>(gemmInputId, "cnn_grads");
         this->core->template addArgument<T>(gemmInputId, "cnn_im2col");
@@ -861,7 +887,6 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
       if (rpi.inC > 0) {
         // Projection backward: dSkip = W^T * dOut
         ulong totalIn = rpi.inC * rpi.spatialSize;
-        ulong totalWeights = rpi.outC * rpi.inC;
 
         ulong wOffset = 0;
         ulong bOffset = 0;
@@ -885,20 +910,66 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
         this->core->template addArgument<ulong>(dSkipKernelId, rpi.outC);
         this->core->template addArgument<ulong>(dSkipKernelId, rpi.spatialSize);
 
-        // dW += dOut * skip^T, dB += sum(dOut)
+        // dW = dOut × skip^T  (a gemm_dFilters: C = A·B^T) and dB = sum(dOut).
+        //   A = cnn_grads at dSkipOutOffset, shape (outC, spatial) = (M, K)
+        //   B = cnn_actvs at skipOffset,     shape (inC,  spatial) = (N, K)
+        //   C = cnn_res_dproj_w at wOffset,  shape (outC, inC) = (M, N)
+        // Routed through the same device-aware GEMM as conv dFilters: when the output grid
+        // (outC*inC) is too small to fill the GPU via tiling, use the K-parallel reduction;
+        // otherwise the tiled GEMM. Both write each element once (full assignment), matching
+        // the per-sample overwrite the accumulator expects. dB reuses the conv bias-gradient
+        // reduction (one work-group per channel, tree-reduce over spatial).
+        ulong dW_M = rpi.outC;
+        ulong dW_N = rpi.inC;
+        ulong dW_K = rpi.spatialSize;
+
         std::string dwKernelId = "res_bwd_proj_dw" + kernelSuffix;
-        this->core->addKernel(dwKernelId, "residual_bwd_proj_dw", totalWeights, 0);
-        this->core->template addArgument<T>(dwKernelId, "cnn_grads");
-        this->core->template addArgument<T>(dwKernelId, "cnn_actvs");
-        this->core->template addArgument<T>(dwKernelId, "cnn_res_dproj_w");
-        this->core->template addArgument<T>(dwKernelId, "cnn_res_dproj_b");
-        this->core->template addArgument<ulong>(dwKernelId, wOffset);
-        this->core->template addArgument<ulong>(dwKernelId, bOffset);
-        this->core->template addArgument<ulong>(dwKernelId, dSkipOutOffset);
-        this->core->template addArgument<ulong>(dwKernelId, rpi.skipOffset);
-        this->core->template addArgument<ulong>(dwKernelId, rpi.inC);
-        this->core->template addArgument<ulong>(dwKernelId, rpi.outC);
-        this->core->template addArgument<ulong>(dwKernelId, rpi.spatialSize);
+
+        const ulong TILE = 16;
+        const ulong DFILTERS_LOCAL_WS = 256;
+        const ulong DFILTERS_GROUPS_PER_SM = 4; // occupancy target: work-groups per compute unit
+        const ulong tiledGroups = ((dW_M + TILE - 1) / TILE) * ((dW_N + TILE - 1) / TILE);
+        const ulong computeUnits = this->core->template getDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+
+        if (tiledGroups < computeUnits * DFILTERS_GROUPS_PER_SM) {
+          ulong numOut = dW_M * dW_N;
+          this->core->addKernel(dwKernelId, "gemm_dFilters_kpar", numOut * DFILTERS_LOCAL_WS, 0, DFILTERS_LOCAL_WS);
+          this->core->template addArgument<T>(dwKernelId, "cnn_grads");
+          this->core->template addArgument<T>(dwKernelId, "cnn_actvs");
+          this->core->template addArgument<T>(dwKernelId, "cnn_res_dproj_w");
+          this->core->template addArgument<ulong>(dwKernelId, dSkipOutOffset);
+          this->core->template addArgument<ulong>(dwKernelId, rpi.skipOffset);
+          this->core->template addArgument<ulong>(dwKernelId, wOffset);
+          this->core->template addArgument<ulong>(dwKernelId, dW_M);
+          this->core->template addArgument<ulong>(dwKernelId, dW_N);
+          this->core->template addArgument<ulong>(dwKernelId, dW_K);
+        } else {
+          ulong dW_globalX = ((dW_N + TILE - 1) / TILE) * TILE;
+          ulong dW_globalY = ((dW_M + TILE - 1) / TILE) * TILE;
+          this->core->addKernel(dwKernelId, "gemm_dFilters", dW_globalX, dW_globalY, TILE, TILE);
+          this->core->template addArgument<T>(dwKernelId, "cnn_grads");
+          this->core->template addArgument<T>(dwKernelId, "cnn_actvs");
+          this->core->template addArgument<T>(dwKernelId, "cnn_res_dproj_w");
+          this->core->template addArgument<ulong>(dwKernelId, dSkipOutOffset);
+          this->core->template addArgument<ulong>(dwKernelId, rpi.skipOffset);
+          this->core->template addArgument<ulong>(dwKernelId, wOffset);
+          this->core->template addArgument<ulong>(dwKernelId, dW_M);
+          this->core->template addArgument<ulong>(dwKernelId, dW_N);
+          this->core->template addArgument<ulong>(dwKernelId, dW_K);
+        }
+
+        // dB = sum(dOut) — reuse the conv bias-gradient reduction (same operation).
+        std::string dbKernelId = "res_bwd_proj_db" + kernelSuffix;
+        ulong dbLocalWS = 256;
+        ulong dbGlobalWS = rpi.outC * dbLocalWS;
+        this->core->addKernel(dbKernelId, "calculate_dCost_dBiases", dbGlobalWS, 0, dbLocalWS);
+        this->core->template addArgument<T>(dbKernelId, "cnn_grads");
+        this->core->template addArgument<T>(dbKernelId, "cnn_res_dproj_b");
+        this->core->template addArgument<ulong>(dbKernelId, dSkipOutOffset);
+        this->core->template addArgument<ulong>(dbKernelId, bOffset);
+        this->core->template addArgument<ulong>(dbKernelId, rpi.outC);
+        this->core->template addArgument<ulong>(dbKernelId, rpi.spatialSize);
+        this->core->template addArgument<ulong>(dbKernelId, static_cast<ulong>(1));
       } else {
         // Identity backward: dSkip += dOut
         ulong size = inShape.size();
@@ -1036,6 +1107,43 @@ void GPUKernelBuilder<T>::addCNNAccumulateKernels(ulong sampleIdx, ulong layerSt
       normIdx++;
     }
   }
+
+  // Accumulate residual projection weight and bias gradients for residual layers within [layerStart, layerEnd)
+  ulong resProjIdx = 0;
+  ulong resWOffset = 0;
+  ulong resBOffset = 0;
+
+  for (ulong i = 0; i < layerEnd; i++) {
+    if (cnnLayers[i].type == LayerType::RESIDUAL_END) {
+      const auto& rpi = this->bufferManager.residualProjInfos[resProjIdx];
+
+      if (rpi.inC > 0 && i >= layerStart) {
+        ulong numW = rpi.outC * rpi.inC;
+        ulong numB = rpi.outC;
+
+        std::string wId = "accum_res_dproj_w_s" + sampleStr + "_r" + std::to_string(resProjIdx);
+        this->core->addKernel(wId, "accumulate_gradients", numW, 0);
+        this->core->template addArgument<T>(wId, "cnn_accum_res_dproj_w");
+        this->core->template addArgument<T>(wId, "cnn_res_dproj_w");
+        this->core->template addArgument<ulong>(wId, resWOffset);
+        this->core->template addArgument<ulong>(wId, numW);
+
+        std::string bId = "accum_res_dproj_b_s" + sampleStr + "_r" + std::to_string(resProjIdx);
+        this->core->addKernel(bId, "accumulate_gradients", numB, 0);
+        this->core->template addArgument<T>(bId, "cnn_accum_res_dproj_b");
+        this->core->template addArgument<T>(bId, "cnn_res_dproj_b");
+        this->core->template addArgument<ulong>(bId, resBOffset);
+        this->core->template addArgument<ulong>(bId, numB);
+      }
+
+      if (rpi.inC > 0) {
+        resWOffset += rpi.outC * rpi.inC;
+        resBOffset += rpi.outC;
+      }
+
+      resProjIdx++;
+    }
+  }
 }
 
 //===================================================================================================================//
@@ -1124,6 +1232,44 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<float>("update_parameters_norm_beta", bc1);
       this->core->template addArgument<float>("update_parameters_norm_beta", bc2);
     }
+
+    if (this->bufferManager.totalResidualWeightSize > 0) {
+      this->core->addKernel("update_parameters_res_w", "update_parameters_adam",
+                            this->bufferManager.totalResidualWeightSize, 0);
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_res_proj_w");
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_accum_res_dproj_w");
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_adam_m_res_w");
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_adam_v_res_w");
+      this->core->template addArgument<ulong>("update_parameters_res_w", static_cast<ulong>(0));
+      this->core->template addArgument<ulong>("update_parameters_res_w", this->bufferManager.totalResidualWeightSize);
+      this->core->template addArgument<ulong>("update_parameters_res_w", numSamples);
+      this->core->template addArgument<float>("update_parameters_res_w",
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
+      this->core->template addArgument<float>("update_parameters_res_w", static_cast<float>(opt.beta1));
+      this->core->template addArgument<float>("update_parameters_res_w", static_cast<float>(opt.beta2));
+      this->core->template addArgument<float>("update_parameters_res_w", static_cast<float>(opt.epsilon));
+      this->core->template addArgument<float>("update_parameters_res_w", bc1);
+      this->core->template addArgument<float>("update_parameters_res_w", bc2);
+    }
+
+    if (this->bufferManager.totalResidualBiasSize > 0) {
+      this->core->addKernel("update_parameters_res_b", "update_parameters_adam",
+                            this->bufferManager.totalResidualBiasSize, 0);
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_res_proj_b");
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_accum_res_dproj_b");
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_adam_m_res_b");
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_adam_v_res_b");
+      this->core->template addArgument<ulong>("update_parameters_res_b", static_cast<ulong>(0));
+      this->core->template addArgument<ulong>("update_parameters_res_b", this->bufferManager.totalResidualBiasSize);
+      this->core->template addArgument<ulong>("update_parameters_res_b", numSamples);
+      this->core->template addArgument<float>("update_parameters_res_b",
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
+      this->core->template addArgument<float>("update_parameters_res_b", static_cast<float>(opt.beta1));
+      this->core->template addArgument<float>("update_parameters_res_b", static_cast<float>(opt.beta2));
+      this->core->template addArgument<float>("update_parameters_res_b", static_cast<float>(opt.epsilon));
+      this->core->template addArgument<float>("update_parameters_res_b", bc1);
+      this->core->template addArgument<float>("update_parameters_res_b", bc2);
+    }
   } else {
     // SGD
     if (this->bufferManager.totalFilterSize > 0) {
@@ -1167,6 +1313,30 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_norm_beta", this->bufferManager.totalNormParamSize);
       this->core->template addArgument<ulong>("update_parameters_norm_beta", numSamples);
       this->core->template addArgument<float>("update_parameters_norm_beta",
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
+    }
+
+    if (this->bufferManager.totalResidualWeightSize > 0) {
+      this->core->addKernel("update_parameters_res_w", "update_parameters", this->bufferManager.totalResidualWeightSize,
+                            0);
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_res_proj_w");
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_accum_res_dproj_w");
+      this->core->template addArgument<ulong>("update_parameters_res_w", static_cast<ulong>(0));
+      this->core->template addArgument<ulong>("update_parameters_res_w", this->bufferManager.totalResidualWeightSize);
+      this->core->template addArgument<ulong>("update_parameters_res_w", numSamples);
+      this->core->template addArgument<float>("update_parameters_res_w",
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
+    }
+
+    if (this->bufferManager.totalResidualBiasSize > 0) {
+      this->core->addKernel("update_parameters_res_b", "update_parameters", this->bufferManager.totalResidualBiasSize,
+                            0);
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_res_proj_b");
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_accum_res_dproj_b");
+      this->core->template addArgument<ulong>("update_parameters_res_b", static_cast<ulong>(0));
+      this->core->template addArgument<ulong>("update_parameters_res_b", this->bufferManager.totalResidualBiasSize);
+      this->core->template addArgument<ulong>("update_parameters_res_b", numSamples);
+      this->core->template addArgument<float>("update_parameters_res_b",
                                               static_cast<float>(this->workerConfig.trainConfig.learningRate));
     }
   }

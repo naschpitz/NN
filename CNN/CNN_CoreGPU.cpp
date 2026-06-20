@@ -220,7 +220,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
           gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->trainSubset(
             gpuSamples, numSamples, e + 1, numEpochs, callback, this->timingCallback, static_cast<int>(item.gpuIdx),
-            this->gpuProfileCallback);
+            this->gpuProfileCallback, this->gpuProfileDumpPath);
         });
 
       this->emitTiming(TimingPhase::GpuTrain, TimingEvent::End);
@@ -496,6 +496,8 @@ void CoreGPU<T>::mergeCNNGradients()
   std::vector<std::vector<T>> allBiases(this->numGPUs);
   std::vector<std::vector<T>> allBNGamma(this->numGPUs);
   std::vector<std::vector<T>> allBNBeta(this->numGPUs);
+  std::vector<std::vector<T>> allResW(this->numGPUs);
+  std::vector<std::vector<T>> allResB(this->numGPUs);
 
   QVector<size_t> gpuIndices;
 
@@ -503,9 +505,11 @@ void CoreGPU<T>::mergeCNNGradients()
     gpuIndices.append(i);
 
   QtConcurrent::blockingMap(
-    &this->workerPool, gpuIndices, [this, &allFilters, &allBiases, &allBNGamma, &allBNBeta](size_t gpuIdx) {
+    &this->workerPool, gpuIndices,
+    [this, &allFilters, &allBiases, &allBNGamma, &allBNBeta, &allResW, &allResB](size_t gpuIdx) {
       this->gpuWorkers[gpuIdx]->bufferManager->readAccumulatedGradients(allFilters[gpuIdx], allBiases[gpuIdx]);
       this->gpuWorkers[gpuIdx]->bufferManager->readBNAccumulatedGradients(allBNGamma[gpuIdx], allBNBeta[gpuIdx]);
+      this->gpuWorkers[gpuIdx]->bufferManager->readResAccumulatedGradients(allResW[gpuIdx], allResB[gpuIdx]);
     });
 
   // Sum on CPU
@@ -513,6 +517,8 @@ void CoreGPU<T>::mergeCNNGradients()
   std::vector<T>& totalBiases = allBiases[0];
   std::vector<T>& totalBNGamma = allBNGamma[0];
   std::vector<T>& totalBNBeta = allBNBeta[0];
+  std::vector<T>& totalResW = allResW[0];
+  std::vector<T>& totalResB = allResB[0];
 
   for (size_t g = 1; g < this->numGPUs; g++) {
     for (size_t i = 0; i < totalFilters.size(); i++)
@@ -526,14 +532,22 @@ void CoreGPU<T>::mergeCNNGradients()
 
     for (size_t i = 0; i < totalBNBeta.size(); i++)
       totalBNBeta[i] += allBNBeta[g][i];
+
+    for (size_t i = 0; i < totalResW.size(); i++)
+      totalResW[i] += allResW[g][i];
+
+    for (size_t i = 0; i < totalResB.size(); i++)
+      totalResB[i] += allResB[g][i];
   }
 
   // Write merged gradients back to all workers in parallel
-  QtConcurrent::blockingMap(&this->workerPool, gpuIndices,
-                            [this, &totalFilters, &totalBiases, &totalBNGamma, &totalBNBeta](size_t gpuIdx) {
-                              this->gpuWorkers[gpuIdx]->bufferManager->setAccumulators(totalFilters, totalBiases);
-                              this->gpuWorkers[gpuIdx]->bufferManager->setBNAccumulators(totalBNGamma, totalBNBeta);
-                            });
+  QtConcurrent::blockingMap(
+    &this->workerPool, gpuIndices,
+    [this, &totalFilters, &totalBiases, &totalBNGamma, &totalBNBeta, &totalResW, &totalResB](size_t gpuIdx) {
+      this->gpuWorkers[gpuIdx]->bufferManager->setAccumulators(totalFilters, totalBiases);
+      this->gpuWorkers[gpuIdx]->bufferManager->setBNAccumulators(totalBNGamma, totalBNBeta);
+      this->gpuWorkers[gpuIdx]->bufferManager->setResAccumulators(totalResW, totalResB);
+    });
 }
 
 //===================================================================================================================//

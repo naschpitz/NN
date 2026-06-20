@@ -244,7 +244,7 @@
 </table>
 
 <div class="info-box">
-The im2col buffer is sized to the <strong>largest</strong> conv layer's column matrix. This avoids allocating separate buffers per layer. The buffer is written by <code>im2col</code> and read by <code>gemm</code> (forward) or <code>gemm_transB</code> / <code>gemm_transA</code> (backward). During backward dInput computation, <code>gemm_transA</code> writes to it and <code>col2im</code> reads from it.
+The im2col buffer is sized to the <strong>largest</strong> conv layer's column matrix. This avoids allocating separate buffers per layer. The buffer is written by <code>im2col</code> and read by <code>gemm_conv</code> (forward) or <code>gemm_dFilters</code> / <code>gemm_dInput</code> (backward). During backward dInput computation, <code>gemm_dInput</code> writes to it and <code>col2im</code> reads from it.
 </div>
 
 </main>

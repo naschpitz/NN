@@ -641,6 +641,10 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
     });
   }
 
+  if (this->parser.isSet("gpu-profile-dump")) {
+    this->core->setGpuProfileDumpPath(this->parser.value("gpu-profile-dump").toStdString());
+  }
+
   std::shared_ptr<CNN::SampleProvider<float>> validationProviderPtr;
 
   if (validationDataLoader && validationIndices && !validationIndices->empty()) {

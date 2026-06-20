@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <random>
 
@@ -31,6 +32,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const CoreGPUWorkerConfig<T>& workerConfig)
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
   this->core = this->ownedCore.get();
   this->core->setVerbose(this->workerConfig.logLevel >= Common::LogLevel::DEBUG);
+  this->core->setFastMath(true);
 
   // Initialize conv parameters (He initialization if not loaded)
   Worker<T>::initializeConvParams(workerConfig.layersConfig, workerConfig.inputShape, this->parameters);
@@ -127,7 +129,8 @@ Common::PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 template <typename T>
 T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
                                 const Common::TrainCallback<T>& callback, const TimingCallback& timingCallback,
-                                int gpuIndex, const GpuProfileCallback& gpuProfileCallback)
+                                int gpuIndex, const GpuProfileCallback& gpuProfileCallback,
+                                const std::string& gpuProfileDumpPath)
 {
   ulong N = batchSamples.size();
   ulong sampleStride = this->bufferManager->totalActvSize;
@@ -195,7 +198,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
 
       emit(TimingPhase::GpuCompute, TimingEvent::Begin);
       this->core->run();
-      this->collectGpuProfile(gpuProfileCallback, gpuIndex);
+      this->collectGpuProfile(gpuProfileCallback, gpuIndex, gpuProfileDumpPath);
       emit(TimingPhase::GpuCompute, TimingEvent::End);
 
       this->reportSampleProgress(callback, s + 1, totalSamples, epoch, totalEpochs, prevAccumLoss);
@@ -368,7 +371,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
     this->kernelBuilder->addBatchNormRunningStatsUpdate(N);
     this->core->run();
 
-    this->collectGpuProfile(gpuProfileCallback, gpuIndex);
+    this->collectGpuProfile(gpuProfileCallback, gpuIndex, gpuProfileDumpPath);
     emit(TimingPhase::GpuCompute, TimingEvent::End);
   }
 
@@ -384,7 +387,8 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
 //===================================================================================================================//
 
 template <typename T>
-void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int gpuIndex)
+void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int gpuIndex,
+                                         const std::string& gpuProfileDumpPath)
 {
   if (!callback)
     return;
@@ -394,6 +398,33 @@ void CoreGPUWorker<T>::collectGpuProfile(const GpuProfileCallback& callback, int
 
   if (timings.empty())
     return;
+
+  if (!gpuProfileDumpPath.empty()) {
+    std::vector<OpenCLWrapper::KernelTiming> sortedTimings = timings;
+    std::sort(
+      sortedTimings.begin(), sortedTimings.end(),
+      [](const OpenCLWrapper::KernelTiming& a, const OpenCLWrapper::KernelTiming& b) { return a.totalMs > b.totalMs; });
+
+    double grandTotalMs = 0.0;
+
+    for (const auto& kt : sortedTimings) {
+      grandTotalMs += kt.totalMs;
+    }
+
+    std::string dumpPath = gpuProfileDumpPath + "/gpu-kernel-timing-gpu" + std::to_string(gpuIndex) + ".txt";
+    std::ofstream dumpStream(dumpPath);
+
+    if (dumpStream.is_open()) {
+      dumpStream << "gpuIndex\ttotalMs\tcalls\tavgMs\tpct\tkernelName\n";
+
+      for (const auto& kt : sortedTimings) {
+        double avgMs = kt.callCount > 0 ? kt.totalMs / static_cast<double>(kt.callCount) : 0.0;
+        double pct = grandTotalMs > 0.0 ? 100.0 * kt.totalMs / grandTotalMs : 0.0;
+        dumpStream << gpuIndex << "\t" << kt.totalMs << "\t" << kt.callCount << "\t" << avgMs << "\t" << pct << "\t"
+                   << kt.kernelName << "\n";
+      }
+    }
+  }
 
   std::map<TimingPhase, std::pair<double, ulong>> phaseAcc;
 
