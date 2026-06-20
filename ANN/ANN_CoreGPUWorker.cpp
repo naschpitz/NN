@@ -27,6 +27,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const LayersConfig& layersConfig, const Common::
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
   this->core = this->ownedCore.get();
   this->core->setVerbose(this->logLevel >= Common::LogLevel::DEBUG);
+  this->core->setFastMath(true);
 
   this->bufferManager = std::make_unique<GPUBufferManager<T>>(
     this->core, this->layersConfig, this->parameters, this->trainConfig, this->costFunctionConfig, this->logLevel);

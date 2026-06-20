@@ -31,6 +31,7 @@ CoreGPUWorker<T>::CoreGPUWorker(const CoreGPUWorkerConfig<T>& workerConfig)
   this->ownedCore = std::make_unique<OpenCLWrapper::Core>(false);
   this->core = this->ownedCore.get();
   this->core->setVerbose(this->workerConfig.logLevel >= Common::LogLevel::DEBUG);
+  this->core->setFastMath(true);
 
   // Initialize conv parameters (He initialization if not loaded)
   Worker<T>::initializeConvParams(workerConfig.layersConfig, workerConfig.inputShape, this->parameters);
