@@ -46,6 +46,8 @@ namespace CNN
       void setAccumulators(const std::vector<T>& accumFilters, const std::vector<T>& accumBiases);
       void readBNAccumulatedGradients(std::vector<T>& accumGamma, std::vector<T>& accumBeta);
       void setBNAccumulators(const std::vector<T>& accumGamma, const std::vector<T>& accumBeta);
+      void readResAccumulatedGradients(std::vector<T>& accumResW, std::vector<T>& accumResB);
+      void setResAccumulators(const std::vector<T>& accumResW, const std::vector<T>& accumResB);
       void readAnnAccumulatedGradients(ANN::Tensor1D<T>& accumWeights, ANN::Tensor1D<T>& accumBiases);
       void setAnnAccumulators(const ANN::Tensor1D<T>& accumWeights, const ANN::Tensor1D<T>& accumBiases);
 
@@ -101,6 +103,8 @@ namespace CNN
 
       std::vector<ResidualProjInfo> residualProjInfos;
       ulong totalResidualParamSize = 0;
+      ulong totalResidualWeightSize = 0;
+      ulong totalResidualBiasSize = 0;
       std::stack<ResidualShapeInfo> residualShapeStack; // Used during computeLayerOffsets
 
       Shape3D cnnOutputShape;

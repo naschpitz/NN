@@ -145,8 +145,11 @@ void GPUBufferManager<T>::computeLayerOffsets()
     }
 
     case LayerType::RESIDUAL_START: {
-      // No shape change — just a marker. Save current shape on the stack.
-      this->residualShapeStack.push({currentShape, offset});
+      // No shape change — just a marker. Save current shape and the skip-input activation
+      // offset (the layer's own activation offset, which it shares with its predecessor).
+      // NOTE: must use layerInfos.back().actvOffset, NOT the running `offset` (next-free),
+      // since RESIDUAL_START shares its predecessor's buffer.
+      this->residualShapeStack.push({currentShape, this->layerInfos.back().actvOffset});
       this->layerInfos.push_back({this->layerInfos.back().actvOffset, outShape.size()});
       currentShape = outShape;
       continue; // Same buffer as previous
@@ -168,6 +171,8 @@ void GPUBufferManager<T>::computeLayerOffsets()
         rpi.paramOffset = this->totalResidualParamSize;
         this->residualProjInfos.push_back(rpi);
         this->totalResidualParamSize += rpi.outC * rpi.inC + rpi.outC; // weights + biases
+        this->totalResidualWeightSize += rpi.outC * rpi.inC;
+        this->totalResidualBiasSize += rpi.outC;
       } else {
         ResidualProjInfo rpi;
         rpi.skipOffset = skipInfo.actvOffset;
@@ -401,11 +406,15 @@ void GPUBufferManager<T>::allocateBuffers(ulong batchSize)
     if (totalWeightSize > 0) {
       this->core->template allocateBuffer<T>("cnn_res_dproj_w", totalWeightSize);
       this->core->template fillBuffer<T>("cnn_res_dproj_w", static_cast<T>(0), totalWeightSize);
+      this->core->template allocateBuffer<T>("cnn_accum_res_dproj_w", totalWeightSize);
+      this->core->template fillBuffer<T>("cnn_accum_res_dproj_w", static_cast<T>(0), totalWeightSize);
     }
 
     if (totalBiasSize > 0) {
       this->core->template allocateBuffer<T>("cnn_res_dproj_b", totalBiasSize);
       this->core->template fillBuffer<T>("cnn_res_dproj_b", static_cast<T>(0), totalBiasSize);
+      this->core->template allocateBuffer<T>("cnn_accum_res_dproj_b", totalBiasSize);
+      this->core->template fillBuffer<T>("cnn_accum_res_dproj_b", static_cast<T>(0), totalBiasSize);
     }
   }
 
@@ -726,6 +735,45 @@ void GPUBufferManager<T>::syncParametersFromGPU()
     }
   }
 
+  // Read residual projection parameters from GPU
+  if (this->totalResidualWeightSize > 0) {
+    std::vector<T> flatResW(this->totalResidualWeightSize);
+    this->core->template readBuffer<T>("cnn_res_proj_w", flatResW, 0);
+
+    ulong wOff = 0;
+    ulong projIdx = 0;
+
+    for (ulong i = 0; i < this->residualProjInfos.size(); i++) {
+      if (this->residualProjInfos[i].inC > 0) {
+        ulong numW = this->residualProjInfos[i].outC * this->residualProjInfos[i].inC;
+
+        this->parameters.residualParams[projIdx].weights.assign(flatResW.begin() + static_cast<long>(wOff),
+                                                                flatResW.begin() + static_cast<long>(wOff + numW));
+        wOff += numW;
+        projIdx++;
+      }
+    }
+  }
+
+  if (this->totalResidualBiasSize > 0) {
+    std::vector<T> flatResB(this->totalResidualBiasSize);
+    this->core->template readBuffer<T>("cnn_res_proj_b", flatResB, 0);
+
+    ulong bOff = 0;
+    ulong projIdx = 0;
+
+    for (ulong i = 0; i < this->residualProjInfos.size(); i++) {
+      if (this->residualProjInfos[i].inC > 0) {
+        ulong numB = this->residualProjInfos[i].outC;
+
+        this->parameters.residualParams[projIdx].biases.assign(flatResB.begin() + static_cast<long>(bOff),
+                                                               flatResB.begin() + static_cast<long>(bOff + numB));
+        bOff += numB;
+        projIdx++;
+      }
+    }
+  }
+
   // Sync  dense layer parameters from GPU
   this->annGPUWorker->bufferManager->syncParametersFromGPU();
   this->parameters.denseParams = this->annGPUWorker->getParameters();
@@ -753,6 +801,14 @@ void GPUBufferManager<T>::resetAccumulators()
     this->core->template fillBuffer<T>("cnn_accum_norm_dBeta", zero, this->totalNormParamSize);
     this->core->template fillBuffer<T>("cnn_accum_norm_batch_mean", zero, this->totalNormParamSize);
     this->core->template fillBuffer<T>("cnn_accum_norm_batch_var", zero, this->totalNormParamSize);
+  }
+
+  if (this->totalResidualWeightSize > 0) {
+    this->core->template fillBuffer<T>("cnn_accum_res_dproj_w", zero, this->totalResidualWeightSize);
+  }
+
+  if (this->totalResidualBiasSize > 0) {
+    this->core->template fillBuffer<T>("cnn_accum_res_dproj_b", zero, this->totalResidualBiasSize);
   }
 
   this->annGPUWorker->resetAccumulators();
@@ -811,6 +867,37 @@ void GPUBufferManager<T>::setBNAccumulators(const std::vector<T>& accumGamma, co
   if (this->totalNormParamSize > 0) {
     this->core->template writeBuffer<T>("cnn_accum_norm_dGamma", accumGamma, 0);
     this->core->template writeBuffer<T>("cnn_accum_norm_dBeta", accumBeta, 0);
+  }
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void GPUBufferManager<T>::readResAccumulatedGradients(std::vector<T>& accumResW, std::vector<T>& accumResB)
+{
+  accumResW.resize(this->totalResidualWeightSize);
+  accumResB.resize(this->totalResidualBiasSize);
+
+  if (this->totalResidualWeightSize > 0) {
+    this->core->template readBuffer<T>("cnn_accum_res_dproj_w", accumResW, 0);
+  }
+
+  if (this->totalResidualBiasSize > 0) {
+    this->core->template readBuffer<T>("cnn_accum_res_dproj_b", accumResB, 0);
+  }
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void GPUBufferManager<T>::setResAccumulators(const std::vector<T>& accumResW, const std::vector<T>& accumResB)
+{
+  if (this->totalResidualWeightSize > 0) {
+    this->core->template writeBuffer<T>("cnn_accum_res_dproj_w", accumResW, 0);
+  }
+
+  if (this->totalResidualBiasSize > 0) {
+    this->core->template writeBuffer<T>("cnn_accum_res_dproj_b", accumResB, 0);
   }
 }
 

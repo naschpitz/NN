@@ -1061,6 +1061,43 @@ void GPUKernelBuilder<T>::addCNNAccumulateKernels(ulong sampleIdx, ulong layerSt
       normIdx++;
     }
   }
+
+  // Accumulate residual projection weight and bias gradients for residual layers within [layerStart, layerEnd)
+  ulong resProjIdx = 0;
+  ulong resWOffset = 0;
+  ulong resBOffset = 0;
+
+  for (ulong i = 0; i < layerEnd; i++) {
+    if (cnnLayers[i].type == LayerType::RESIDUAL_END) {
+      const auto& rpi = this->bufferManager.residualProjInfos[resProjIdx];
+
+      if (rpi.inC > 0 && i >= layerStart) {
+        ulong numW = rpi.outC * rpi.inC;
+        ulong numB = rpi.outC;
+
+        std::string wId = "accum_res_dproj_w_s" + sampleStr + "_r" + std::to_string(resProjIdx);
+        this->core->addKernel(wId, "accumulate_gradients", numW, 0);
+        this->core->template addArgument<T>(wId, "cnn_accum_res_dproj_w");
+        this->core->template addArgument<T>(wId, "cnn_res_dproj_w");
+        this->core->template addArgument<ulong>(wId, resWOffset);
+        this->core->template addArgument<ulong>(wId, numW);
+
+        std::string bId = "accum_res_dproj_b_s" + sampleStr + "_r" + std::to_string(resProjIdx);
+        this->core->addKernel(bId, "accumulate_gradients", numB, 0);
+        this->core->template addArgument<T>(bId, "cnn_accum_res_dproj_b");
+        this->core->template addArgument<T>(bId, "cnn_res_dproj_b");
+        this->core->template addArgument<ulong>(bId, resBOffset);
+        this->core->template addArgument<ulong>(bId, numB);
+      }
+
+      if (rpi.inC > 0) {
+        resWOffset += rpi.outC * rpi.inC;
+        resBOffset += rpi.outC;
+      }
+
+      resProjIdx++;
+    }
+  }
 }
 
 //===================================================================================================================//
@@ -1149,6 +1186,44 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<float>("update_parameters_norm_beta", bc1);
       this->core->template addArgument<float>("update_parameters_norm_beta", bc2);
     }
+
+    if (this->bufferManager.totalResidualWeightSize > 0) {
+      this->core->addKernel("update_parameters_res_w", "update_parameters_adam",
+                            this->bufferManager.totalResidualWeightSize, 0);
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_res_proj_w");
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_accum_res_dproj_w");
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_adam_m_res_w");
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_adam_v_res_w");
+      this->core->template addArgument<ulong>("update_parameters_res_w", static_cast<ulong>(0));
+      this->core->template addArgument<ulong>("update_parameters_res_w", this->bufferManager.totalResidualWeightSize);
+      this->core->template addArgument<ulong>("update_parameters_res_w", numSamples);
+      this->core->template addArgument<float>("update_parameters_res_w",
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
+      this->core->template addArgument<float>("update_parameters_res_w", static_cast<float>(opt.beta1));
+      this->core->template addArgument<float>("update_parameters_res_w", static_cast<float>(opt.beta2));
+      this->core->template addArgument<float>("update_parameters_res_w", static_cast<float>(opt.epsilon));
+      this->core->template addArgument<float>("update_parameters_res_w", bc1);
+      this->core->template addArgument<float>("update_parameters_res_w", bc2);
+    }
+
+    if (this->bufferManager.totalResidualBiasSize > 0) {
+      this->core->addKernel("update_parameters_res_b", "update_parameters_adam",
+                            this->bufferManager.totalResidualBiasSize, 0);
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_res_proj_b");
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_accum_res_dproj_b");
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_adam_m_res_b");
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_adam_v_res_b");
+      this->core->template addArgument<ulong>("update_parameters_res_b", static_cast<ulong>(0));
+      this->core->template addArgument<ulong>("update_parameters_res_b", this->bufferManager.totalResidualBiasSize);
+      this->core->template addArgument<ulong>("update_parameters_res_b", numSamples);
+      this->core->template addArgument<float>("update_parameters_res_b",
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
+      this->core->template addArgument<float>("update_parameters_res_b", static_cast<float>(opt.beta1));
+      this->core->template addArgument<float>("update_parameters_res_b", static_cast<float>(opt.beta2));
+      this->core->template addArgument<float>("update_parameters_res_b", static_cast<float>(opt.epsilon));
+      this->core->template addArgument<float>("update_parameters_res_b", bc1);
+      this->core->template addArgument<float>("update_parameters_res_b", bc2);
+    }
   } else {
     // SGD
     if (this->bufferManager.totalFilterSize > 0) {
@@ -1192,6 +1267,30 @@ void GPUKernelBuilder<T>::addCNNUpdateKernels(ulong numSamples, bool skipBNRunni
       this->core->template addArgument<ulong>("update_parameters_norm_beta", this->bufferManager.totalNormParamSize);
       this->core->template addArgument<ulong>("update_parameters_norm_beta", numSamples);
       this->core->template addArgument<float>("update_parameters_norm_beta",
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
+    }
+
+    if (this->bufferManager.totalResidualWeightSize > 0) {
+      this->core->addKernel("update_parameters_res_w", "update_parameters", this->bufferManager.totalResidualWeightSize,
+                            0);
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_res_proj_w");
+      this->core->template addArgument<T>("update_parameters_res_w", "cnn_accum_res_dproj_w");
+      this->core->template addArgument<ulong>("update_parameters_res_w", static_cast<ulong>(0));
+      this->core->template addArgument<ulong>("update_parameters_res_w", this->bufferManager.totalResidualWeightSize);
+      this->core->template addArgument<ulong>("update_parameters_res_w", numSamples);
+      this->core->template addArgument<float>("update_parameters_res_w",
+                                              static_cast<float>(this->workerConfig.trainConfig.learningRate));
+    }
+
+    if (this->bufferManager.totalResidualBiasSize > 0) {
+      this->core->addKernel("update_parameters_res_b", "update_parameters", this->bufferManager.totalResidualBiasSize,
+                            0);
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_res_proj_b");
+      this->core->template addArgument<T>("update_parameters_res_b", "cnn_accum_res_dproj_b");
+      this->core->template addArgument<ulong>("update_parameters_res_b", static_cast<ulong>(0));
+      this->core->template addArgument<ulong>("update_parameters_res_b", this->bufferManager.totalResidualBiasSize);
+      this->core->template addArgument<ulong>("update_parameters_res_b", numSamples);
+      this->core->template addArgument<float>("update_parameters_res_b",
                                               static_cast<float>(this->workerConfig.trainConfig.learningRate));
     }
   }

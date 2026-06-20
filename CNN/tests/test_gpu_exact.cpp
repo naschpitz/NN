@@ -357,6 +357,191 @@ static void testGPULargeKDFiltersParityVsCPU()
 
 //===================================================================================================================//
 
+static void testGPUResidualProjectionTrainsVsCPU()
+{
+  // Regression test for the residual-projection training bug: the 1x1
+  // projection weights (residualParams) were never updated on GPU (no
+  // accumulate/update/merge/syncFromGPU wiring). Trains a network with a
+  // channel-changing residual block on GPU and CPU from identical preset
+  // parameters and verifies the projection weights (a) move from init and
+  // (b) match CPU. Network: 2x8x8 -> resStart -> Conv(4,SAME) -> ReLU ->
+  // resEnd -> GAP -> Dense(2,softmax). The skip path 2->4 needs a projection,
+  // so residualParams[0] (inC=2,outC=4). No normalization -> InstanceNorm fast
+  // (per-sample) path. 4 samples, 1 batch -> multi-sample accumulate + /N update.
+  TestScope _t("testGPUResidualProjectionTrainsVsCPU (residual 1x1 projection trains on GPU)");
+
+  auto buildConfig = [](Common::DeviceType dev) {
+    CNN::CoreConfig<float> config;
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = dev;
+    config.inputShape = {2, 8, 8};
+    config.logLevel = Common::LogLevel::ERROR;
+    config.numThreads = 1;
+    config.numGPUs = 1;
+
+    CNN::CNNLayerConfig resStart;
+    resStart.type = CNN::LayerType::RESIDUAL_START;
+    resStart.config = CNN::ResidualStartConfig{};
+
+    CNN::CNNLayerConfig convLayer;
+    convLayer.type = CNN::LayerType::CONV;
+    convLayer.config = CNN::ConvLayerConfig{4, 3, 3, 1, 1, CNN::SlidingStrategyType::SAME};
+
+    CNN::CNNLayerConfig reluLayer;
+    reluLayer.type = CNN::LayerType::RELU;
+    reluLayer.config = CNN::ReLULayerConfig{};
+
+    CNN::CNNLayerConfig resEnd;
+    resEnd.type = CNN::LayerType::RESIDUAL_END;
+    resEnd.config = CNN::ResidualEndConfig{};
+
+    CNN::CNNLayerConfig gapLayer;
+    gapLayer.type = CNN::LayerType::GLOBALAVGPOOL;
+    gapLayer.config = CNN::GlobalAvgPoolLayerConfig{};
+
+    CNN::CNNLayerConfig flattenLayer;
+    flattenLayer.type = CNN::LayerType::FLATTEN;
+    flattenLayer.config = CNN::FlattenLayerConfig{};
+
+    config.layersConfig.cnnLayers = {resStart, convLayer, reluLayer, resEnd, gapLayer, flattenLayer};
+    config.layersConfig.denseLayers = {{2, ANN::ActvFuncType::SOFTMAX}};
+
+    // Conv 2->4 (3x3): 4*2*3*3 = 72 filters, 4 biases. Deterministic pattern.
+    CNN::ConvParameters<float> initConv;
+    initConv.numFilters = 4;
+    initConv.inputC = 2;
+    initConv.filterH = 3;
+    initConv.filterW = 3;
+    initConv.filters.resize(72);
+
+    for (int i = 0; i < 72; ++i)
+      initConv.filters[i] = static_cast<float>((i % 5) - 2) * 0.1f;
+    initConv.biases = {0.0f, 0.0f, 0.0f, 0.0f};
+    config.parameters.convParams = {initConv};
+
+    // Residual projection 2->4 (1x1): outC*inC = 8 weights, 4 biases.
+    CNN::ResidualParameters<float> initRes;
+    initRes.inC = 2;
+    initRes.outC = 4;
+    initRes.weights = {0.1f, -0.1f, 0.05f, -0.05f, 0.2f, -0.2f, 0.1f, -0.1f};
+    initRes.biases = {0.0f, 0.0f, 0.0f, 0.0f};
+    config.parameters.residualParams = {initRes};
+
+    // Dense 4->2.
+    ANN::Parameters<float> denseParams;
+    denseParams.weights.resize(2);
+    denseParams.biases.resize(2);
+    denseParams.weights[0] = {};
+    denseParams.biases[0] = {};
+    denseParams.weights[1] = {{0.1f, -0.2f, 0.1f, -0.1f}, {0.2f, 0.1f, -0.1f, 0.05f}};
+    denseParams.biases[1] = {0.0f, 0.0f};
+    config.parameters.denseParams = denseParams;
+
+    config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
+    config.trainConfig.numEpochs = 1;
+    config.trainConfig.learningRate = 0.5f;
+    config.trainConfig.batchSize = 4;
+    config.trainConfig.shuffleSamples = false;
+    config.trainConfig.optimizer.type = Common::OptimizerType::ADAM;
+    config.progressReports = 0;
+
+    return config;
+  };
+
+  const std::vector<float> initResW = {0.1f, -0.1f, 0.05f, -0.05f, 0.2f, -0.2f, 0.1f, -0.1f};
+
+  CNN::Samples<float> samples(4);
+  samples[0].input = makeGradientInput<float>({2, 8, 8});
+  samples[0].output = {1.0f, 0.0f};
+  samples[1].input = CNN::Tensor3D<float>({2, 8, 8}, 0.0f);
+  samples[1].output = {0.0f, 1.0f};
+  samples[2].input = makeGradientInput<float>({2, 8, 8});
+  samples[2].output = {1.0f, 0.0f};
+  samples[3].input = CNN::Tensor3D<float>({2, 8, 8}, 0.0f);
+  samples[3].output = {0.0f, 1.0f};
+
+  // Diagnostic: forward prediction parity (init params, before training). If the GPU
+  // forward differs from CPU here, a projection-forward bug drives the gradient mismatch.
+  {
+    auto gpuPredCore = CNN::Core<float>::makeCore(buildConfig(Common::DeviceType::GPU));
+    auto cpuPredCore = CNN::Core<float>::makeCore(buildConfig(Common::DeviceType::CPU));
+    CNN::Output<float> gpuPred = gpuPredCore->predict(samples[0].input).output;
+    CNN::Output<float> cpuPred = cpuPredCore->predict(samples[0].input).output;
+
+    std::cout << "  FWD GPU pred={";
+
+    for (size_t i = 0; i < gpuPred.size(); ++i)
+      std::cout << gpuPred[i] << " ";
+
+    std::cout << "} CPU pred={";
+
+    for (size_t i = 0; i < cpuPred.size(); ++i)
+      std::cout << cpuPred[i] << " ";
+
+    std::cout << "}" << std::endl;
+
+    for (size_t i = 0; i < gpuPred.size(); ++i)
+      CHECK_NEAR(gpuPred[i], cpuPred[i], 1e-3f, "GPU/CPU forward prediction parity (init params)");
+  }
+
+  auto gpuCore = CNN::Core<float>::makeCore(buildConfig(Common::DeviceType::GPU));
+  gpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
+
+  auto cpuCore = CNN::Core<float>::makeCore(buildConfig(Common::DeviceType::CPU));
+  cpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
+
+  const CNN::Parameters<float>& gp = gpuCore->getParameters();
+  const CNN::Parameters<float>& cp = cpuCore->getParameters();
+
+  CHECK(!gp.residualParams.empty(), "GPU residual projection params populated");
+  CHECK(!cp.residualParams.empty(), "CPU residual projection params populated");
+
+  std::cout << "  GPU res proj w[0]=" << gp.residualParams[0].weights[0]
+            << "  CPU res proj w[0]=" << cp.residualParams[0].weights[0] << "  init w[0]=" << initResW[0] << std::endl;
+
+  // Diagnostic: conv filter parity after training. If conv matches CPU but residual
+  // does not, the bug is residual-specific (not the shared backward path).
+  if (!gp.convParams.empty() && !cp.convParams.empty()) {
+    std::cout << "  GPU conv filt[0]=" << gp.convParams[0].filters[0]
+              << "  CPU conv filt[0]=" << cp.convParams[0].filters[0] << std::endl;
+
+    for (size_t i = 0; i < gp.convParams[0].filters.size(); ++i)
+      CHECK_NEAR(gp.convParams[0].filters[i], cp.convParams[0].filters[i], 1e-3f, "GPU/CPU conv filter");
+  }
+
+  // (a) Projections must have trained: at least one weight moved from init.
+  float gpuMaxDrift = 0.0f;
+  float cpuMaxDrift = 0.0f;
+
+  for (size_t i = 0; i < initResW.size(); ++i) {
+    gpuMaxDrift = std::max(gpuMaxDrift, std::fabs(gp.residualParams[0].weights[i] - initResW[i]));
+    cpuMaxDrift = std::max(cpuMaxDrift, std::fabs(cp.residualParams[0].weights[i] - initResW[i]));
+  }
+
+  CHECK(gpuMaxDrift > 1e-4f, "GPU residual projection trained (weights moved from init)");
+  CHECK(cpuMaxDrift > 1e-4f, "CPU residual projection trained (weights moved from init)");
+
+  // (b) GPU matches CPU within tolerance. 1e-3 absorbs reduction-order and Adam
+  // round-off differences between the GPU kernel and CPU reference.
+  for (size_t i = 0; i < gp.residualParams[0].weights.size(); ++i) {
+    ulong oc = i / gp.residualParams[0].inC;
+    ulong ic = i % gp.residualParams[0].inC;
+    std::cout << "    w[" << i << "] (oc=" << oc << ",ic=" << ic << ") GPU=" << gp.residualParams[0].weights[i]
+              << " CPU=" << cp.residualParams[0].weights[i] << " init=" << initResW[i] << std::endl;
+    CHECK_NEAR(gp.residualParams[0].weights[i], cp.residualParams[0].weights[i], 1e-3f,
+               "GPU/CPU residual projection weight");
+  }
+
+  for (size_t i = 0; i < gp.residualParams[0].biases.size(); ++i) {
+    std::cout << "    b[" << i << "] GPU=" << gp.residualParams[0].biases[i]
+              << " CPU=" << cp.residualParams[0].biases[i] << std::endl;
+    CHECK_NEAR(gp.residualParams[0].biases[i], cp.residualParams[0].biases[i], 1e-3f,
+               "GPU/CPU residual projection bias");
+  }
+}
+
+//===================================================================================================================//
+
 void runGPUExactTests()
 {
   if (!gpuAvailable()) {
@@ -368,4 +553,5 @@ void runGPUExactTests()
   testGPUExactForwardBackwardSquaredDifference();
   testGPUExactForwardBackwardWeightedCrossEntropy();
   testGPULargeKDFiltersParityVsCPU();
+  testGPUResidualProjectionTrainsVsCPU();
 }

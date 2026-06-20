@@ -8,7 +8,8 @@
 // Identity shortcut: out[i] += skip[i]
 // Projection shortcut: out[i] += bias[oc] + sum_ic(W[oc*inC+ic] * skip[ic*spatial+s])
 // Backward identity: dSkip[i] = dOut[i]
-// Backward projection: dSkip = W^T * dOut, dW += dOut * skip^T, dB += sum(dOut)
+// Backward projection: dSkip = W^T * dOut, dW = dOut * skip^T, dB = sum(dOut)
+// (per-sample overwrite; accumulated into a separate buffer by accumulate_gradients)
 //===================================================================================================================//
 
 //===================================================================================================================//
@@ -109,7 +110,7 @@ kernel void residual_bwd_proj_dw(global const TYPE* grads, global const TYPE* ac
   for (ulong s = 0; s < spatialSize; s++)
     dw += grads[dOutOffset + oc * spatialSize + s] * actvs[skipOffset + ic * spatialSize + s];
 
-  dProjW[wOffset + gid] += dw;
+  dProjW[wOffset + gid] = dw;
 
   // Accumulate bias gradient (only for ic == 0 to avoid duplicate adds)
   if (ic == 0) {
@@ -118,7 +119,7 @@ kernel void residual_bwd_proj_dw(global const TYPE* grads, global const TYPE* ac
     for (ulong s = 0; s < spatialSize; s++)
       db += grads[dOutOffset + oc * spatialSize + s];
 
-    dProjB[bOffset + oc] += db;
+    dProjB[bOffset + oc] = db;
   }
 }
 
