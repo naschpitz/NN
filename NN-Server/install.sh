@@ -348,7 +348,7 @@ After=network.target
 Type=simple
 User=$user
 Group=$group
-ExecStart=$SYMLINK_PATH $CONFIG_PATH
+ExecStart=$SYMLINK_PATH --config $CONFIG_PATH
 WorkingDirectory=$INSTALL_PATH
 Restart=always
 RestartSec=5
@@ -365,7 +365,7 @@ setup_systemd() {
 
     if ! have_systemd; then
         echo "  This system does not appear to use systemd; skipping auto-start setup."
-        echo "  Start NN-Server manually:  $SYMLINK_PATH $CONFIG_PATH"
+        echo "  Start NN-Server manually:  $SYMLINK_PATH --config $CONFIG_PATH"
         return 0
     fi
 
@@ -385,7 +385,7 @@ setup_systemd() {
 
     echo "  No '$SERVICE_NAME' service is installed."
     if ! ask_yesno "Create a systemd service so NN-Server starts automatically on boot?" "y"; then
-        echo "  Skipped. Start manually:  $SYMLINK_PATH $CONFIG_PATH"
+        echo "  Skipped. Start manually:  $SYMLINK_PATH --config $CONFIG_PATH"
         return 0
     fi
 
@@ -498,7 +498,7 @@ update_flow() {
 final_summary() {
     banner "Done"
     echo "  Binary:  $BINARY_PATH"
-    echo "  Run:     $SYMLINK_PATH $CONFIG_PATH"
+    echo "  Run:     $SYMLINK_PATH --config $CONFIG_PATH"
     echo "  Config:  $CONFIG_PATH"
     if have_systemd && command -v systemctl >/dev/null 2>&1; then
         echo "  Service: sudo systemctl status $SERVICE_NAME"

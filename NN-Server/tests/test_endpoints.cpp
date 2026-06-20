@@ -74,7 +74,7 @@ static bool startServer(const nlohmann::json& config = nlohmann::json(), const Q
     args << "--model-package" << modelPackageName;
   }
 
-  args << configPath;
+  args << "--config" << configPath;
 
   serverProcess = new QProcess();
   serverProcess->setWorkingDirectory(projectRoot());

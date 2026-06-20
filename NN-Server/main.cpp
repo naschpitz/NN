@@ -30,18 +30,12 @@ int main(int argc, char* argv[])
   const QCommandLineOption configOption("config", "Path to server settings config JSON file", "path");
   parser.addOption(configOption);
 
-  parser.addPositionalArgument("config", "Path to server settings config JSON file (overrides --config)", "[config]");
-
   parser.process(app);
 
-  // Determine config file path: positional arg > --config > default
+  // Determine config file path: --config > default (config.json in cwd)
   std::string configFilePath = "config.json";
 
-  const QStringList posArgs = parser.positionalArguments();
-
-  if (!posArgs.isEmpty()) {
-    configFilePath = posArgs.first().toStdString();
-  } else if (parser.isSet(configOption)) {
+  if (parser.isSet(configOption)) {
     configFilePath = parser.value(configOption).toStdString();
   }
 
@@ -50,9 +44,9 @@ int main(int argc, char* argv[])
 
   if (!configFile.open(QIODevice::ReadOnly)) {
     std::cerr << "Error: Could not open configuration file: " << configFilePath << "\n";
-    std::cerr << "       Pass the path as a positional argument or via --config.\n";
+    std::cerr << "       Pass the path via --config <path>.\n";
     std::cerr << "\n";
-    std::cerr << "Usage: NN-Server --model-package <path> [config.json]\n";
+    std::cerr << "Usage: NN-Server --model-package <path> --config <config.json>\n";
     return 1;
   }
 

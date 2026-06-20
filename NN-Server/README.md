@@ -71,7 +71,7 @@ For image-output models, the response is a raw PNG image.
 
 ## Configuration
 
-NN-Server is configured through a JSON file. Pass the path as the first argument, or it defaults to `config.json` in the current directory.
+NN-Server is configured through a JSON file. Pass the path with `--config`, or it defaults to `config.json` in the current directory.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
