@@ -220,7 +220,7 @@ void GPUKernelBuilder<T>::addPropagateKernels(ulong sampleIdx, ulong layerStart,
       ulong biasOffset = this->bufferManager.convInfos[convIdx].biasOffset;
 
       std::string gemmId = "gemm_conv" + kernelSuffix;
-      this->core->addKernel(gemmId, "gemm", globalX, globalY, TILE, TILE);
+      this->core->addKernel(gemmId, "gemm_conv", globalX, globalY, TILE, TILE);
       this->core->template addArgument<T>(gemmId, "cnn_filters");
       this->core->template addArgument<T>(gemmId, "cnn_im2col");
       this->core->template addArgument<T>(gemmId, "cnn_actvs");
@@ -572,9 +572,9 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
     switch (layerConfig.type) {
     case LayerType::CONV: {
       // Backward convolution via im2col + GEMM (mirrors the forward pass approach):
-      //   dFilters = dOut × im2col(input)^T          (gemm_transB)
+      //   dFilters = dOut × im2col(input)^T          (gemm_dFilters)
       //   dBiases  = sum of dOut over spatial dims    (existing reduction kernel)
-      //   dInput   = col2im(Filters^T × dOut)         (gemm_transA + col2im)
+      //   dInput   = col2im(Filters^T × dOut)         (gemm_dInput + col2im)
       // See opencl/CNN_GEMM.cpp.cl and opencl/CNN_Im2Col.cpp.cl for detailed explanations.
       convIdx--;
       const auto& conv = std::get<ConvLayerConfig>(layerConfig.config);
@@ -610,27 +610,52 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
       this->core->template addArgument<ulong>(im2colFiltId, outH);
       this->core->template addArgument<ulong>(im2colFiltId, outW);
 
-      // Step 2: gemm_transB — dFilters = dOut × im2col^T
+      // Step 2: dFilters = dOut × im2col^T
       //   A = cnn_grads at gradOutOffset, shape (numFilters, outH*outW) = (M, K)
       //   B = cnn_im2col, shape (C_in*kH*kW, outH*outW) — transposed → (outH*outW, C_in*kH*kW)
       //   C = cnn_dFilters at filterOffset, shape (numFilters, C_in*kH*kW) = (M, N)
       ulong dF_M = conv.numFilters;
       ulong dF_N = im2colRows;
       ulong dF_K = im2colCols;
-      ulong dF_globalX = ((dF_N + TILE - 1) / TILE) * TILE;
-      ulong dF_globalY = ((dF_M + TILE - 1) / TILE) * TILE;
 
       std::string gemmFiltId = "gemm_dFilters" + kernelSuffix;
-      this->core->addKernel(gemmFiltId, "gemm_transB", dF_globalX, dF_globalY, TILE, TILE);
-      this->core->template addArgument<T>(gemmFiltId, "cnn_grads");
-      this->core->template addArgument<T>(gemmFiltId, "cnn_im2col");
-      this->core->template addArgument<T>(gemmFiltId, "cnn_dFilters");
-      this->core->template addArgument<ulong>(gemmFiltId, gradOutOffset);
-      this->core->template addArgument<ulong>(gemmFiltId, static_cast<ulong>(0));
-      this->core->template addArgument<ulong>(gemmFiltId, filterOffset);
-      this->core->template addArgument<ulong>(gemmFiltId, dF_M);
-      this->core->template addArgument<ulong>(gemmFiltId, dF_N);
-      this->core->template addArgument<ulong>(gemmFiltId, dF_K);
+
+      // The dFilters output grid (M*N) is small while K (spatial) is large, so the tiled
+      // path can launch too few work-groups to occupy the GPU. Pick the kernel by whether
+      // the tiled grid would underfill the device: if it has fewer work-groups than the
+      // device can run concurrently (computeUnits * GROUPS_PER_SM), use the K-parallel
+      // reduction kernel (one work-group per output element, cooperative reduction over K).
+      // Otherwise the tree-reduction overhead would dominate, so keep the proven tiled path.
+      const ulong DFILTERS_LOCAL_WS = 256;
+      const ulong DFILTERS_GROUPS_PER_SM = 4; // occupancy target: work-groups per compute unit
+      const ulong tiledGroups = ((dF_M + TILE - 1) / TILE) * ((dF_N + TILE - 1) / TILE);
+      const ulong computeUnits = this->core->template getDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+
+      if (tiledGroups < computeUnits * DFILTERS_GROUPS_PER_SM) {
+        ulong numOut = dF_M * dF_N;
+        this->core->addKernel(gemmFiltId, "gemm_dFilters_kpar", numOut * DFILTERS_LOCAL_WS, 0, DFILTERS_LOCAL_WS);
+        this->core->template addArgument<T>(gemmFiltId, "cnn_grads");
+        this->core->template addArgument<T>(gemmFiltId, "cnn_im2col");
+        this->core->template addArgument<T>(gemmFiltId, "cnn_dFilters");
+        this->core->template addArgument<ulong>(gemmFiltId, gradOutOffset);
+        this->core->template addArgument<ulong>(gemmFiltId, filterOffset);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_M);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_N);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_K);
+      } else {
+        ulong dF_globalX = ((dF_N + TILE - 1) / TILE) * TILE;
+        ulong dF_globalY = ((dF_M + TILE - 1) / TILE) * TILE;
+        this->core->addKernel(gemmFiltId, "gemm_dFilters", dF_globalX, dF_globalY, TILE, TILE);
+        this->core->template addArgument<T>(gemmFiltId, "cnn_grads");
+        this->core->template addArgument<T>(gemmFiltId, "cnn_im2col");
+        this->core->template addArgument<T>(gemmFiltId, "cnn_dFilters");
+        this->core->template addArgument<ulong>(gemmFiltId, gradOutOffset);
+        this->core->template addArgument<ulong>(gemmFiltId, static_cast<ulong>(0));
+        this->core->template addArgument<ulong>(gemmFiltId, filterOffset);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_M);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_N);
+        this->core->template addArgument<ulong>(gemmFiltId, dF_K);
+      }
 
       // --- dBiases: keep existing reduction kernel (unchanged) ---
       std::string biasId = "dBiases" + kernelSuffix;
@@ -645,7 +670,7 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
       this->core->template addArgument<ulong>(biasId, outH);
       this->core->template addArgument<ulong>(biasId, outW);
 
-      // --- dInput: gemm_transA then col2im (skip if first layer) ---
+      // --- dInput: gemm_dInput then col2im (skip if first layer) ---
       if (i > 0) {
         ulong inSize = inShape.size();
 
@@ -656,7 +681,7 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
         this->core->template addArgument<ulong>(zeroId, gradInOffset);
         this->core->template addArgument<ulong>(zeroId, inSize);
 
-        // Step 1: gemm_transA — dInput_cols = Filter^T × dOut
+        // Step 1: gemm_dInput — dInput_cols = Filter^T × dOut
         //   A = cnn_filters at filterOffset, shape (numFilters, C_in*kH*kW) — transposed
         //   B = cnn_grads at gradOutOffset, shape (numFilters, outH*outW) = (K, N)
         //   C = cnn_im2col, shape (C_in*kH*kW, outH*outW) = (M, N)
@@ -667,7 +692,7 @@ void GPUKernelBuilder<T>::addBackpropagateKernels(ulong sampleIdx, ulong layerSt
         ulong dI_globalY = ((dI_M + TILE - 1) / TILE) * TILE;
 
         std::string gemmInputId = "gemm_dInput" + kernelSuffix;
-        this->core->addKernel(gemmInputId, "gemm_transA", dI_globalX, dI_globalY, TILE, TILE);
+        this->core->addKernel(gemmInputId, "gemm_dInput", dI_globalX, dI_globalY, TILE, TILE);
         this->core->template addArgument<T>(gemmInputId, "cnn_filters");
         this->core->template addArgument<T>(gemmInputId, "cnn_grads");
         this->core->template addArgument<T>(gemmInputId, "cnn_im2col");

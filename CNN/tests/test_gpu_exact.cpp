@@ -259,7 +259,101 @@ static void testGPUExactForwardBackwardWeightedCrossEntropy()
 
 //===================================================================================================================//
 
-// Helper: build a GPU Conv→BN→ReLU→Flatten→Dense config with preset parameters
+static void testGPULargeKDFiltersParityVsCPU()
+{
+  // Exercises gemm_dFilters_kpar (per-output cooperative K-reduction), the kernel
+  // used when the tiled gemm_dFilters grid would underfill the device
+  // (tiledGroups < computeUnits * GROUPS_PER_SM). Here M=2, N=9 -> 1 tiled group,
+  // which underfills any GPU, forcing the kpar path regardless of K.
+  // Tiled GEMM cannot fill the GPU for a small-output (M*N) x huge-K shape, so a
+  // dedicated K-parallel kernel is used. Conv output is 100x100 = K=10000.
+  // Hand-computing golden values at this K is impractical, so verify GPU vs CPU.
+  // Network: 1x100x100 -> Conv(2,3x3,stride1,SAME) -> ReLU -> GAP -> Dense(2,softmax)
+  TestScope _t("testGPULargeKDFiltersParityVsCPU (K-parallel dFilters, small tiled grid)");
+
+  auto buildConfig = [](Common::DeviceType dev) {
+    CNN::CoreConfig<float> config;
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = dev;
+    config.inputShape = {1, 100, 100};
+    config.logLevel = Common::LogLevel::ERROR;
+    config.numThreads = 1;
+    config.numGPUs = 1;
+
+    CNN::CNNLayerConfig convLayer;
+    convLayer.type = CNN::LayerType::CONV;
+    convLayer.config = CNN::ConvLayerConfig{2, 3, 3, 1, 1, CNN::SlidingStrategyType::SAME};
+
+    CNN::CNNLayerConfig reluLayer;
+    reluLayer.type = CNN::LayerType::RELU;
+    reluLayer.config = CNN::ReLULayerConfig{};
+
+    CNN::CNNLayerConfig gapLayer;
+    gapLayer.type = CNN::LayerType::GLOBALAVGPOOL;
+    gapLayer.config = CNN::GlobalAvgPoolLayerConfig{};
+
+    CNN::CNNLayerConfig flattenLayer;
+    flattenLayer.type = CNN::LayerType::FLATTEN;
+    flattenLayer.config = CNN::FlattenLayerConfig{};
+
+    config.layersConfig.cnnLayers = {convLayer, reluLayer, gapLayer, flattenLayer};
+    config.layersConfig.denseLayers = {{2, ANN::ActvFuncType::SOFTMAX}};
+
+    CNN::ConvParameters<float> initConv;
+    initConv.numFilters = 2;
+    initConv.inputC = 1;
+    initConv.filterH = 3;
+    initConv.filterW = 3;
+    initConv.filters = {0.1f, -0.2f, 0.3f,  -0.1f, 0.05f, 0.2f,  -0.15f, 0.1f,  -0.05f,
+                        0.2f, 0.1f,  -0.3f, 0.15f, -0.1f, 0.25f, 0.05f,  -0.2f, 0.1f};
+    initConv.biases = {0.0f, 0.0f};
+    config.parameters.convParams = {initConv};
+
+    ANN::Parameters<float> denseParams;
+    denseParams.weights.resize(2);
+    denseParams.biases.resize(2);
+    denseParams.weights[0] = {};
+    denseParams.biases[0] = {};
+    denseParams.weights[1] = {{0.1f, -0.2f}, {0.2f, 0.1f}};
+    denseParams.biases[1] = {0.0f, 0.0f};
+    config.parameters.denseParams = denseParams;
+
+    config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
+    config.trainConfig.numEpochs = 1;
+    config.trainConfig.learningRate = 0.1f;
+    config.trainConfig.shuffleSamples = false;
+    config.progressReports = 0;
+
+    return config;
+  };
+
+  CNN::Samples<float> samples(1);
+  samples[0].input = makeGradientInput<float>({1, 100, 100});
+  samples[0].output = {1.0f, 0.0f};
+
+  auto gpuCore = CNN::Core<float>::makeCore(buildConfig(Common::DeviceType::GPU));
+  gpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
+
+  auto cpuCore = CNN::Core<float>::makeCore(buildConfig(Common::DeviceType::CPU));
+  cpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
+
+  const CNN::Parameters<float>& gp = gpuCore->getParameters();
+  const CNN::Parameters<float>& cp = cpuCore->getParameters();
+
+  std::cout << "  GPU conv filt[0]=" << gp.convParams[0].filters[0]
+            << "  CPU conv filt[0]=" << cp.convParams[0].filters[0] << std::endl;
+
+  // Conv filters after one SGD step: new = init - lr*dFilter. GPU uses the
+  // K-parallel tree-reduction kernel (K=10000); CPU uses a serial reference.
+  // Tolerance 1e-3 absorbs the reduction-order difference and float round-off.
+  for (size_t i = 0; i < gp.convParams[0].filters.size(); ++i) {
+    CHECK_NEAR(gp.convParams[0].filters[i], cp.convParams[0].filters[i], 1e-3f, "GPU/CPU large-K conv filt");
+  }
+
+  for (size_t i = 0; i < gp.convParams[0].biases.size(); ++i) {
+    CHECK_NEAR(gp.convParams[0].biases[i], cp.convParams[0].biases[i], 1e-3f, "GPU/CPU large-K conv bias");
+  }
+}
 
 //===================================================================================================================//
 
@@ -273,4 +367,5 @@ void runGPUExactTests()
   testGPUExactForwardBackwardCrossEntropy();
   testGPUExactForwardBackwardSquaredDifference();
   testGPUExactForwardBackwardWeightedCrossEntropy();
+  testGPULargeKDFiltersParityVsCPU();
 }

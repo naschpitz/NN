@@ -25,10 +25,11 @@
 //   4. barrier() ensures the tile is fully consumed before loading the next one
 //   5. After all K-tiles, the accumulated result is written to global memory
 //
-// Three variants handle the different matrix layouts needed for forward and backward passes:
-//   gemm       — C = A × B + bias  (forward: Output = Filters × im2col + Bias)
-//   gemm_transA — C = A^T × B      (backward: dInput_cols = Filters^T × dOut)
-//   gemm_transB — C = A × B^T      (backward: dFilters = dOut × im2col^T)
+// Four variants handle the different matrix layouts needed for forward and backward passes:
+//   gemm_conv          — C = A × B + bias  (forward: Output = Filters × im2col + Bias)
+//   gemm_dInput        — C = A^T × B       (backward: dInput_cols = Filters^T × dOut)
+//   gemm_dFilters      — C = A × B^T       (backward: dFilters = dOut × im2col^T)
+//   gemm_dFilters_kpar — K-parallel variant of gemm_dFilters for small-output / large-K shapes
 //
 // Depends on CNN_Defines.hpp.cl for TYPE and TILE_SIZE.
 
@@ -39,7 +40,7 @@
 // bias: vector of length M at offsetBias, added per-row
 // 2D dispatch: global (ceil(N/TILE_SIZE)*TILE_SIZE, ceil(M/TILE_SIZE)*TILE_SIZE)
 //              local  (TILE_SIZE, TILE_SIZE)
-kernel void gemm(global TYPE* A, global TYPE* B, global TYPE* C, global TYPE* bias, ulong offsetA, ulong offsetB,
+kernel void gemm_conv(global TYPE* A, global TYPE* B, global TYPE* C, global TYPE* bias, ulong offsetA, ulong offsetB,
                  ulong offsetC, ulong offsetBias, ulong M, ulong N, ulong K)
 {
   uint localRow = get_local_id(1);
@@ -87,7 +88,7 @@ kernel void gemm(global TYPE* A, global TYPE* B, global TYPE* C, global TYPE* bi
 // Tiled GEMM: C = A^T × B (no bias)
 // A stored as (K, M), accessed as (M, K) via transposed indexing
 // B: (K, N), C: (M, N)
-kernel void gemm_transA(global TYPE* A, global TYPE* B, global TYPE* C, ulong offsetA, ulong offsetB, ulong offsetC,
+kernel void gemm_dInput(global TYPE* A, global TYPE* B, global TYPE* C, ulong offsetA, ulong offsetB, ulong offsetC,
                         ulong M, ulong N, ulong K)
 {
   uint localRow = get_local_id(1);
@@ -135,7 +136,7 @@ kernel void gemm_transA(global TYPE* A, global TYPE* B, global TYPE* C, ulong of
 // Tiled GEMM: C = A × B^T (no bias)
 // A: (M, K), B stored as (N, K), accessed as (K, N) via transposed indexing
 // C: (M, N)
-kernel void gemm_transB(global TYPE* A, global TYPE* B, global TYPE* C, ulong offsetA, ulong offsetB, ulong offsetC,
+kernel void gemm_dFilters(global TYPE* A, global TYPE* B, global TYPE* C, ulong offsetA, ulong offsetB, ulong offsetC,
                         ulong M, ulong N, ulong K)
 {
   uint localRow = get_local_id(1);
@@ -176,6 +177,62 @@ kernel void gemm_transB(global TYPE* A, global TYPE* B, global TYPE* C, ulong of
 
   if (globalRow < M && globalCol < N)
     C[offsetC + globalRow * N + globalCol] = acc;
+}
+
+//===================================================================================================================//
+
+// Backward weight-gradient GEMM with K-parallel reduction: dFilters = dOut × im2col^T
+// (equivalent to gemm_dFilters, but parallelized along K instead of the output grid).
+//
+// WHY: the dFilters output shape is M=numFilters (small) by N=C_in*kH*kW (small), while
+// K=outH*outW (huge). The tiled gemm_dFilters maps one work-item per output element and so
+// launches only ceil(M/16)*ceil(N/16) work-groups — far too few to occupy the GPU (e.g. the
+// first conv layer: M=32, N=27 -> 4 work-groups). Each work-item then grinds through the
+// whole K reduction serially. The output M*N is too small to ever fill the device via output
+// tiling, so the only available source of parallelism is the K dimension.
+//
+// HOW: one work-group per OUTPUT element (oc, ic). The local work-items cooperatively stride
+// over K, each accumulating a partial dot product dOut[oc,s]*im2col[ic,s], then tree-reduce in
+// local memory. Consecutive work-items read consecutive s -> coalesced global-memory access.
+// Each group writes its single output element exactly once (full assignment, like gemm_dFilters),
+// so no zeroing of dFilters is required.
+//
+// Dispatched only for conv layers with large K; layers with small K and a large M*N stay on
+// gemm_dFilters (the tree reduction here would dominate when K is short). See CNN_GPUKernelBuilder.
+//
+// A = dOut at offsetA, shape (M, K) row-major:  A[oc*K + s] = dOut[oc, s]
+// B = im2col,           shape (N, K) row-major:  B[ic*K + s] = im2col[ic, s]   (offset 0)
+// C = dFilters at offsetC, shape (M, N):         C[oc*N + ic]
+// Dispatch: global (M*N * localWS), local (localWS)  [localWS must equal the partials array size]
+kernel void gemm_dFilters_kpar(global TYPE* A, global TYPE* B, global TYPE* C, ulong offsetA, ulong offsetC, ulong M,
+                               ulong N, ulong K)
+{
+  ulong e = get_group_id(0); // output element index in [0, M*N)
+  ulong oc = e / N;
+  ulong ic = e % N;
+  uint lid = get_local_id(0);
+  uint ls = get_local_size(0);
+
+  ulong aBase = offsetA + oc * K; // dOut[oc, :] row base
+  ulong bBase = ic * K; // im2col[ic, :] row base (B lives at offset 0)
+
+  TYPE partial = (TYPE)0;
+
+  for (ulong s = lid; s < K; s += ls)
+    partial += A[aBase + s] * B[bBase + s];
+
+  local TYPE partials[256];
+  partials[lid] = partial;
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  for (uint off = ls >> 1; off > 0; off >>= 1) {
+    if (lid < off)
+      partials[lid] += partials[lid + off];
+    barrier(CLK_LOCAL_MEM_FENCE);
+  }
+
+  if (lid == 0)
+    C[offsetC + e] = partials[0];
 }
 
 #endif // CNN_GEMM_CPP_CL

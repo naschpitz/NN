@@ -86,7 +86,7 @@ The tables below show exactly which kernels run for each logical operation per c
     <tr>
       <td>1</td>
       <td>Compute convolution output</td>
-      <td><code>im2col</code> → <code>gemm</code></td>
+      <td><code>im2col</code> → <code>gemm_conv</code></td>
       <td>Rearranges input patches into a column matrix, then computes
           <strong>Output = Filters × im2col(Input) + Bias</strong>.
           Each row of the Filters matrix is one filter flattened; each column of the im2col matrix
@@ -104,7 +104,7 @@ The tables below show exactly which kernels run for each logical operation per c
     <tr>
       <td>1</td>
       <td>Compute filter gradients</td>
-      <td><code>im2col</code> → <code>gemm_transB</code></td>
+      <td><code>im2col</code> → <code>gemm_dFilters</code></td>
       <td>Computes <strong>dFilters = dOut × im2col(Input)<sup>T</sup></strong>.
           Each element of dFilters is the dot product of one row of dOut (gradient at each spatial position for filter f)
           and one column of im2col<sup>T</sup> (input values seen by that filter element).
@@ -120,7 +120,7 @@ The tables below show exactly which kernels run for each logical operation per c
     <tr>
       <td>3</td>
       <td>Compute input gradients</td>
-      <td><code>gemm_transA</code> → <code>col2im</code></td>
+      <td><code>gemm_dInput</code> → <code>col2im</code></td>
       <td>Computes <strong>dInput_cols = Filters<sup>T</sup> × dOut</strong>, then scatters back to input shape.
           A is transposed because Filters are stored as (numFilters, filterVolume) but we need (filterVolume, numFilters)
           to project the output gradients back into the input space.
@@ -131,7 +131,7 @@ The tables below show exactly which kernels run for each logical operation per c
 
 <div class="info-box">
 <strong>Why transpose variants instead of actually transposing matrices?</strong>
-Transposing a large matrix on GPU is itself an expensive memory operation. Instead, <code>gemm_transA</code> and <code>gemm_transB</code>
+Transposing a large matrix on GPU is itself an expensive memory operation. Instead, <code>gemm_dInput</code> and <code>gemm_dFilters</code>
 read the matrix elements in transposed order during the tile-loading phase — <code>A[col][row]</code> instead of <code>A[row][col]</code>.
 Same data, different indexing, zero extra memory or kernel launches.
 </div>
@@ -147,17 +147,17 @@ Same data, different indexing, zero extra memory or kernel launches.
   </thead>
   <tbody>
     <tr>
-      <td><code>gemm</code></td>
+      <td><code>gemm_conv</code></td>
       <td>C = A × B + bias</td>
       <td>Forward: compute all filter outputs at all spatial positions</td>
     </tr>
     <tr>
-      <td><code>gemm_transB</code></td>
+      <td><code>gemm_dFilters</code></td>
       <td>C = A × B<sup>T</sup></td>
       <td>Backward: compute how much each filter weight contributed to the error (dFilters)</td>
     </tr>
     <tr>
-      <td><code>gemm_transA</code></td>
+      <td><code>gemm_dInput</code></td>
       <td>C = A<sup>T</sup> × B</td>
       <td>Backward: project output error back into input space (dInput)</td>
     </tr>
@@ -180,7 +180,7 @@ Same data, different indexing, zero extra memory or kernel launches.
   </tbody>
 </table>
 
-<p>The transpose variants (<code>gemm_transA</code>, <code>gemm_transB</code>) have the same arguments except without <code>bias</code> and <code>offsetBias</code>.</p>
+<p>The transpose variants (<code>gemm_dInput</code>, <code>gemm_dFilters</code>) have the same arguments except without <code>bias</code> and <code>offsetBias</code>.</p>
 
 <h2 id="im2col-kernels">im2col / col2im Kernels</h2>
 <p><span class="badge badge-blue">CNN_Im2Col.cpp.cl</span></p>
