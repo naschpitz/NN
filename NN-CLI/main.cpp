@@ -33,6 +33,8 @@ void printUsage()
   std::cout << "  --output-type <type>     Output data type: 'vector' or 'image' (overrides config file)\n";
   std::cout << "  --log-level, -l <lvl>    Log level: quiet, error, warning, info, debug (default: error)\n";
   std::cout << "  --gpu-profile            Enable OpenCL GPU kernel profiling (adds ~12% overhead)\n";
+  std::cout
+    << "  --gpu-profile-dump <dir> With --gpu-profile: dump per-kernel timings to <dir> (requires --gpu-profile)\n";
   std::cout << "\nCalibrate-mode options:\n";
   std::cout << "  --id-images <dir>        Directory of in-distribution images (recursed) [required]\n";
   std::cout << "  --ood-dir <dir>          OOD images directory (default: <cwd>/extern-datasets/ood)\n";
@@ -137,6 +139,10 @@ int main(int argc, char* argv[])
   QCommandLineOption gpuProfileOption("gpu-profile", "Enable OpenCL GPU kernel profiling (adds ~12% overhead).");
   parser.addOption(gpuProfileOption);
 
+  QCommandLineOption gpuProfileDumpOption("gpu-profile-dump", "With --gpu-profile: dump per-kernel timings to <dir>.",
+                                          "dir");
+  parser.addOption(gpuProfileDumpOption);
+
   parser.process(app);
 
   // Validate that at least one model option is provided
@@ -226,6 +232,12 @@ int main(int argc, char* argv[])
       std::cerr << "Error: Output type must be 'vector' or 'image'.\n";
       return 1;
     }
+  }
+
+  // Validate gpu-profile-dump requires gpu-profile
+  if (parser.isSet("gpu-profile-dump") && !parser.isSet("gpu-profile")) {
+    std::cerr << "Error: --gpu-profile-dump requires --gpu-profile to be set.\n";
+    return 1;
   }
 
   // Parse log level

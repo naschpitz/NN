@@ -147,6 +147,11 @@ namespace CNN
         gpuProfileCallback = callback;
       }
 
+      void setGpuProfileDumpPath(const std::string& path)
+      {
+        gpuProfileDumpPath = path;
+      }
+
       // Request early training termination. The training loop checks this at epoch boundaries.
       void requestStop()
       {
@@ -214,6 +219,7 @@ namespace CNN
       Common::ProgressCallback progressCallback;
       TimingCallback timingCallback;
       GpuProfileCallback gpuProfileCallback;
+      std::string gpuProfileDumpPath;
       std::atomic<bool> stopRequested{false};
 
       // Notify the consumer that a measurable phase begins/ends. Cheap no-op when unset.

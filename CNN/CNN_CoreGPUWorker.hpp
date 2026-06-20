@@ -39,7 +39,8 @@ namespace CNN
       // gpuProfileCallback receives GPU-profiled per-sub-phase kernel times.
       T trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
                     const Common::TrainCallback<T>& callback, const TimingCallback& timingCallback = nullptr,
-                    int gpuIndex = -1, const GpuProfileCallback& gpuProfileCallback = nullptr);
+                    int gpuIndex = -1, const GpuProfileCallback& gpuProfileCallback = nullptr,
+                    const std::string& gpuProfileDumpPath = "");
 
       //-- Testing --//
       std::pair<T, ulong> testSubset(SamplesView<T> samples);
@@ -86,7 +87,7 @@ namespace CNN
       OpenCLWrapper::Core* core = nullptr; // Pointer to active core (owned or shared);
 
       //-- GPU profiling helper --//
-      void collectGpuProfile(const GpuProfileCallback& callback, int gpuIndex);
+      void collectGpuProfile(const GpuProfileCallback& callback, int gpuIndex, const std::string& gpuProfileDumpPath);
       bool profilingEnabled = false;
 
       //-- Per-sample progress reporting (loss delta from the GPU accumulator) --//
