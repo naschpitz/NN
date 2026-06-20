@@ -110,6 +110,36 @@ To extract:
 tar -xf model.nnmodel
 ```
 
+## Install
+
+NN-Server ships an interactive installer that clones the monorepo, builds the
+server (release), interviews you for `config.json`, and optionally installs a
+systemd service. Run it with a one-liner:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/naschpitz/NN/main/NN-Server/install.sh | bash
+```
+
+The installer:
+
+- Clones `https://github.com/naschpitz/NN.git` and runs `NN-Server/build.sh --release`
+- Asks for an install path (default `~/nn-server`), or accepts it as an argument
+- Interviews you for each `config.json` field with described defaults (fresh installs only)
+- Tracks the install in `~/.config/nn-server/install.state` (version + paths) so
+  re-running the script detects the existing install and offers an update when a
+  newer release tag is available
+- Offers to install/refresh the `nn-server.service` systemd unit
+
+If you prefer to pipe through `less` first, or pass an install path:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/naschpitz/NN/main/NN-Server/install.sh | less
+curl -fsSL https://raw.githubusercontent.com/naschpitz/NN/main/NN-Server/install.sh | bash -s -- /opt/nn-server
+```
+
+To update an existing install, just re-run the one-liner — the installer detects
+the prior install and offers to update (or rebuild) in place.
+
 ## Build Instructions
 
 ### From repo root

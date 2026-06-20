@@ -1,268 +1,535 @@
 #!/bin/bash
-set -e
-
-# NN-Server installer
-# Downloads from GitHub, builds from source, and installs the binary.
 #
-# Usage:
-#   ./install.sh /usr/local/bin
-#   ./install.sh ~/bin
+# NN-Server installer.
 #
-# Authentication (private repo):
-#   The script tries SSH first (git@github.com). If SSH is not configured,
-#   it falls back to HTTPS and prompts for a GitHub Personal Access Token.
+# Clones the NN monorepo from GitHub, builds the NN-Server release binary, runs
+# an interactive configuration interview, writes config.json, and optionally
+# installs a systemd service so NN-Server starts on boot.
+#
+# Download & run in one step (recommended):
+#   curl -fsSL https://raw.githubusercontent.com/naschpitz/NN/main/NN-Server/install.sh | bash
+#
+# Or save it first:
+#   curl -fsSL <url> -o install.sh && chmod +x install.sh && ./install.sh [install-path]
+#
+# Re-running the script detects an existing installation (tracked in a hidden
+# state file under ~/.config/nn-server/) and offers to update it to the latest
+# tagged release.
 
-INSTALL_DIR="${1:-}"
-REPO_SSH="git@github.com:naschpitz/NN-Server.git"
-REPO_HTTPS="https://github.com/naschpitz/NN-Server.git"
+set -euo pipefail
 
-# ---------------------------------------------------------------------------
-# Validate arguments
-# ---------------------------------------------------------------------------
+#-----------------------------------------------------------------------------#
+# Constants
+#-----------------------------------------------------------------------------#
+REPO_URL="https://github.com/naschpitz/NN.git"
+RAW_URL="https://raw.githubusercontent.com/naschpitz/NN/main/NN-Server/install.sh"
+STATE_FILE="${HOME}/.config/nn-server/install.state"
+SERVICE_NAME="nn-server"
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+BUILD_FLAGS="--release"               # shipped binary is a Release build
+DEFAULT_INSTALL_PATH="${HOME}/nn-server"
 
-if [ -z "$INSTALL_DIR" ]; then
-  echo "Usage: $0 <install-path>"
-  echo ""
-  echo "  <install-path>  Directory where the NN-Server binary will be installed."
-  echo ""
-  echo "Examples:"
-  echo "  $0 /usr/local/bin"
-  echo "  $0 \$HOME/bin"
-  exit 1
-fi
+# Globals populated during the run.
+INSTALL_PATH=""
+REPO_PATH=""
+BINARY_PATH=""
+SYMLINK_PATH=""
+CONFIG_PATH=""
 
-# Resolve to absolute path
-INSTALL_DIR="$(mkdir -p "$INSTALL_DIR" && cd "$INSTALL_DIR" && pwd)"
+#-----------------------------------------------------------------------------#
+# Helpers
+#-----------------------------------------------------------------------------#
 
-# ---------------------------------------------------------------------------
-# Check dependencies
-# ---------------------------------------------------------------------------
+banner() {
+    echo
+    echo "=================================================================="
+    echo "  $1"
+    echo "=================================================================="
+}
 
-echo "Checking dependencies..."
+# Log to stderr so stdout stays clean for functions whose return value is
+# captured via $(...).
+log() { echo "$@" >&2; }
 
-missing=()
-for cmd in git cmake make g++; do
-  if ! command -v "$cmd" &>/dev/null; then
-    missing+=("$cmd")
-  fi
-done
+die() { echo "ERROR: $1" >&2; exit 1; }
 
-# Check for Qt (qmake or qmake6)
-if ! command -v qmake &>/dev/null && ! command -v qmake6 &>/dev/null; then
-  missing+=("Qt (qmake)")
-fi
+usage() {
+    cat <<EOF
+Usage: $0 [install-path]
 
-if [ ${#missing[@]} -gt 0 ]; then
-  echo "Missing required dependencies: ${missing[*]}"
-  echo ""
+  Clones the NN monorepo, builds NN-Server (release), runs a config interview,
+  and optionally installs a systemd service.
 
-  # Detect package manager and build the install command
-  install_cmd=""
-  if command -v apt &>/dev/null; then
-    install_cmd="sudo apt install -y git cmake make g++ qtbase5-dev"
-  elif command -v dnf &>/dev/null; then
-    install_cmd="sudo dnf install -y git cmake make gcc-c++ qt5-qtbase-devel"
-  elif command -v pacman &>/dev/null; then
-    install_cmd="sudo pacman -S --noconfirm git cmake make gcc qt5-base"
-  elif command -v zypper &>/dev/null; then
-    install_cmd="sudo zypper install -y git cmake make gcc-c++ libqt5-qtbase-devel"
-  fi
+  [install-path]  Optional. Directory to install into
+                  (default: ${DEFAULT_INSTALL_PATH}).
+                  Re-running detects an existing install and offers to update it.
 
-  if [ -n "$install_cmd" ]; then
-    echo "The following command will install them:"
-    echo "  $install_cmd"
-    echo ""
-    read -rp "Do you want to install them now? [y/N] " answer
-    if [[ "$answer" =~ ^[Yy]$ ]]; then
-      echo "Installing dependencies..."
-      $install_cmd
+Download & run in one step:
+  curl -fsSL ${RAW_URL} | bash
+EOF
+}
+
+# Read a value from the user into the named variable.
+# Works under 'curl | bash' (where stdin is the script body) by reading from
+# /dev/tty. Pressing Enter accepts the [default] when one is given.
+#   prompt <var> <text> [default]
+prompt() {
+    local var="$1" text="$2" default="${3:-}" full val=""
+    if [ -n "$default" ]; then
+        full="${text} [${default}] "
     else
-      echo "Aborted. Please install the dependencies manually and re-run this script."
-      exit 1
+        full="${text} "
     fi
-  else
-    echo "Could not detect your package manager."
-    echo "Please install the following manually and re-run this script:"
-    echo "  git, cmake, make, g++ (or gcc-c++), Qt5/Qt6 development headers"
-    exit 1
-  fi
-fi
-
-echo "  All dependencies found."
-
-# ---------------------------------------------------------------------------
-# Clone (private repo — try SSH first, fall back to HTTPS with PAT)
-# ---------------------------------------------------------------------------
-
-echo ""
-echo "Cloning NN-Server (private repository)..."
-
-REPO_DIR="$INSTALL_DIR/NN-Server-repo"
-
-cloned=false
-
-# Check if already cloned (for re-installs / updates)
-if [ -d "$REPO_DIR/.git" ]; then
-  echo "  Existing installation found at $REPO_DIR"
-  cd "$REPO_DIR"
-
-  # Migrate clones still on the old "master" branch.
-  # GitHub default is now "main"; "origin/master" no longer exists, so a plain
-  # `git pull` would fail with "couldn't find remote ref master".
-  current_branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo "")
-  if [ "$current_branch" = "master" ]; then
-    echo "  Migrating local 'master' branch to 'main' (default branch was renamed upstream)..."
-    git fetch origin
-    git branch -m master main
-    git branch -u origin/main main
-    git remote set-head origin -a >/dev/null 2>&1 || true
-  fi
-
-  echo "  Pulling latest changes..."
-  git pull
-  git submodule update --init --recursive
-  cloned=true
-fi
-
-if [ "$cloned" = false ]; then
-  # Try SSH first
-  if ssh -T git@github.com 2>&1 | grep -qi "successfully authenticated"; then
-    echo "  SSH authentication detected, cloning via SSH..."
-    if git clone --recursive "$REPO_SSH" "$REPO_DIR" 2>/dev/null; then
-      cloned=true
+    if [ -t 0 ]; then
+        read -rp "$full" val || true
+    else
+        read -rp "$full" val </dev/tty || true
     fi
-  fi
+    if [ -z "$val" ] && [ -n "$default" ]; then val="$default"; fi
+    printf -v "$var" '%s' "$val"
+}
 
-  # Fall back to HTTPS with Personal Access Token
-  if [ "$cloned" = false ]; then
-    TOKEN_FILE="$HOME/.nn-server-github-token"
-    token=""
+# Yes/no question. Returns 0 for yes, 1 for no.
+#   ask_yesno <text> [y|n default]
+ask_yesno() {
+    local text="$1" def="${2:-n}" hint ans=""
+    if [ "$def" = "y" ]; then hint="[Y/n]"; else hint="[y/N]"; fi
+    if [ -t 0 ]; then
+        read -rp "${text} ${hint} " ans || true
+    else
+        read -rp "${text} ${hint} " ans </dev/tty || true
+    fi
+    [ -z "$ans" ] && ans="$def"
+    [[ "$ans" =~ ^[Yy] ]]
+}
 
-    # Try to load a saved token
-    if [ -f "$TOKEN_FILE" ]; then
-      token=$(cat "$TOKEN_FILE")
-      echo "  Using saved GitHub token from $TOKEN_FILE"
+# Escape a string for embedding inside JSON double quotes.
+json_str() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+# Escape a string for a single-quoted shell value (used in the state file).
+state_quote() {
+    local s="$1"
+    s="${s//\'/\'\\\'\'}"
+    printf '%s' "$s"
+}
+
+#-----------------------------------------------------------------------------#
+# Dependencies
+#-----------------------------------------------------------------------------#
+
+install_dependencies() {
+    local cmd=""
+    if   command -v apt    >/dev/null 2>&1; then cmd="sudo apt install -y git cmake make g++ qt6-base-dev ocl-icd-opencl-dev"
+    elif command -v dnf    >/dev/null 2>&1; then cmd="sudo dnf install -y git cmake make gcc-c++ qt6-qtbase-devel ocl-icd-devel"
+    elif command -v pacman >/dev/null 2>&1; then cmd="sudo pacman -S --noconfirm git cmake make gcc qt6-base ocl-icd"
+    elif command -v zypper >/dev/null 2>&1; then cmd="sudo zypper install -y git cmake make gcc-c++ qt6-base-devel ocl-icd-devel"
     fi
 
-    # If no saved token, ask the user
-    if [ -z "$token" ]; then
-      echo "  SSH authentication not available or failed."
-      echo "  To clone this private repository via HTTPS, a GitHub Personal Access Token (PAT) is required."
-      echo "  You can create one at: https://github.com/settings/tokens"
-      echo "  (select at least the 'repo' scope)"
-      echo ""
-      read -rp "Enter your GitHub Personal Access Token (or press Enter to abort): " token
-
-      if [ -z "$token" ]; then
-        echo "Aborted. Cannot clone without authentication."
-        exit 1
-      fi
-
-      # Save the token for future use
-      echo "$token" > "$TOKEN_FILE"
-      chmod 600 "$TOKEN_FILE"
-      echo "  Token saved to $TOKEN_FILE"
+    if [ -z "$cmd" ]; then
+        echo "  Could not detect a package manager."
+        echo "  Please install manually: git, cmake, make, g++ (C++20),"
+        echo "  Qt6 (Core/Concurrent/Network), and OpenCL ICD + headers."
+        die "Install the missing dependencies and re-run this script."
     fi
 
-    REPO_PAT="https://${token}@github.com/naschpitz/NN-Server.git"
-    git clone --recursive "$REPO_PAT" "$REPO_DIR"
-    cloned=true
-  fi
-fi
-
-# ---------------------------------------------------------------------------
-# Build
-# ---------------------------------------------------------------------------
-
-echo ""
-echo "Building NN-Server..."
-cd "$REPO_DIR"
-mkdir -p build
-cd build
-cmake ..
-make -j"$(nproc)"
-
-# ---------------------------------------------------------------------------
-# Symlink
-# ---------------------------------------------------------------------------
-
-echo ""
-echo "Creating symlink..."
-
-# Create a symlink in INSTALL_DIR pointing to the binary inside the repo
-ln -sf "$REPO_DIR/build/NN-Server" "$INSTALL_DIR/NN-Server"
-
-echo ""
-echo "========================================"
-echo "  NN-Server installed successfully!"
-echo "  Binary:  $REPO_DIR/build/NN-Server"
-echo "  Symlink: $INSTALL_DIR/NN-Server"
-echo "========================================"
-echo ""
-echo "IMPORTANT: Do not delete $REPO_DIR — it contains"
-echo "  OpenCL kernel files required at runtime for GPU execution."
-
-# ---------------------------------------------------------------------------
-# Systemd service setup
-# ---------------------------------------------------------------------------
-
-SERVICE_FILE="/etc/systemd/system/nn-server.service"
-BINARY_PATH="$INSTALL_DIR/NN-Server"
-
-# If the service already exists, just restart it
-if [ -f "$SERVICE_FILE" ]; then
-  echo ""
-  echo "Existing systemd service found. Restarting..."
-  sudo systemctl daemon-reload
-  sudo systemctl restart nn-server
-  echo "  nn-server service restarted."
-else
-  echo ""
-  read -rp "Do you want to create a systemd service so NN-Server starts on boot? [y/N] " setup_service
-
-  if [[ "$setup_service" =~ ^[Yy]$ ]]; then
-    # Ask for config file path
-    DEFAULT_CONFIG="$INSTALL_DIR/config.json"
-    read -rp "Path to config.json [$DEFAULT_CONFIG]: " config_path
-    config_path="${config_path:-$DEFAULT_CONFIG}"
-
-    # Resolve to absolute path
-    if [[ "$config_path" != /* ]]; then
-      config_path="$(cd "$(dirname "$config_path")" && pwd)/$(basename "$config_path")"
+    echo "  Detected package manager. Proposed command:"
+    echo "    ${cmd}"
+    if ! ask_yesno "Install the missing dependencies now?" "y"; then
+        die "Required dependencies were not installed."
     fi
+    bash -c "$cmd"
 
-    sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+    # Re-verify.
+    local still=() c
+    for c in git cmake make g++; do command -v "$c" >/dev/null 2>&1 || still+=("$c"); done
+    if ! command -v qmake6 >/dev/null 2>&1 && ! command -v qmake >/dev/null 2>&1; then
+        still+=("qmake6")
+    fi
+    [ ${#still[@]} -eq 0 ] || die "Some dependencies are still missing: ${still[*]}"
+}
+
+check_dependencies() {
+    banner "Checking dependencies"
+    local missing=() c
+    for c in git cmake make g++; do command -v "$c" >/dev/null 2>&1 || missing+=("$c"); done
+    if ! command -v qmake6 >/dev/null 2>&1 && ! command -v qmake >/dev/null 2>&1; then
+        missing+=("qt6 (qmake6)")
+    fi
+    if [ ${#missing[@]} -eq 0 ]; then
+        echo "  All required build tools found."
+        return 0
+    fi
+    echo "  Missing: ${missing[*]}"
+    install_dependencies
+    echo "  Dependencies installed."
+}
+
+#-----------------------------------------------------------------------------#
+# Repository / build
+#-----------------------------------------------------------------------------#
+
+# Print the highest semver tag in the repo (or empty if there are none).
+latest_tag() {
+    git -C "$REPO_PATH" tag --sort=-v:refname 2>/dev/null | sed -n '1p' | tr -d '[:space:]'
+}
+
+# True if $1 is a strictly greater version than $2 (v-prefix tolerant, semver-ish).
+version_gt() {
+    [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ]
+}
+
+clone_or_fetch() {
+    if [ -d "$REPO_PATH/.git" ]; then
+        echo "  Existing repository clone found at $REPO_PATH"
+        git -C "$REPO_PATH" fetch --tags --quiet
+    else
+        echo "  Cloning ${REPO_URL} -> $REPO_PATH"
+        git clone --quiet "$REPO_URL" "$REPO_PATH"
+    fi
+    git -C "$REPO_PATH" submodule update --init --recursive --quiet
+}
+
+# Check out the latest release tag (prints the tag, or the short SHA if no tags).
+checkout_latest_release() {
+    local tag
+    tag="$(latest_tag)"
+    if [ -n "$tag" ]; then
+        log "  Checking out latest release tag: $tag"
+        git -C "$REPO_PATH" checkout --quiet "$tag"
+        git -C "$REPO_PATH" submodule update --init --recursive --quiet
+    else
+        log "  No release tags found; staying on default branch."
+        tag="$(git -C "$REPO_PATH" rev-parse --short HEAD)"
+    fi
+    printf '%s' "$tag"
+}
+
+build_server() {
+    banner "Building NN-Server (release)"
+    ( cd "$REPO_PATH" && bash NN-Server/build.sh $BUILD_FLAGS )
+    BINARY_PATH="$REPO_PATH/NN-Server/build/NN-Server"
+    [ -x "$BINARY_PATH" ] || die "Build finished but binary not found at $BINARY_PATH"
+    echo "  Built: $BINARY_PATH"
+}
+
+make_symlink() {
+    SYMLINK_PATH="$INSTALL_PATH/${SERVICE_NAME}"
+    ln -sfn "$BINARY_PATH" "$SYMLINK_PATH"
+    echo "  Symlink: $SYMLINK_PATH -> $BINARY_PATH"
+}
+
+#-----------------------------------------------------------------------------#
+# Config interview (only on fresh install, or when config.json is missing)
+#-----------------------------------------------------------------------------#
+
+interview_config() {
+    banner "Configuration interview"
+    cat <<MSG
+  NN-Server reads its settings from config.json. Answer the following questions;
+  press Enter to accept the [default] shown. You can edit config.json later.
+MSG
+
+    local model port pool_size max_body max_queue log_file max_log_size nproc
+    nproc="$(nproc 2>/dev/null || echo 4)"
+
+    prompt model \
+"  Path to your trained model (.nnmodel or .nnmodel.tar) that NN-Server will serve.
+  Leave empty if you don't have one yet (server starts, but /predict errors until set)" \
+        ""
+
+    prompt port \
+"  TCP port the HTTP server listens on (1-65535)" "8080"
+    while ! [[ "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; do
+        prompt port "  Invalid. Enter a port between 1 and 65535" "8080"
+    done
+
+    prompt pool_size \
+"  Number of pre-loaded Core instances in the thread pool
+  (more = more concurrent predictions but more RAM)" "$nproc"
+    while ! [[ "$pool_size" =~ ^[0-9]+$ ]] || [ "$pool_size" -lt 1 ]; do
+        prompt pool_size "  Invalid. Enter a positive integer" "$nproc"
+    done
+
+    prompt max_body \
+"  Max accepted request body size in MB (0 = unlimited)" "10"
+    while ! [[ "$max_body" =~ ^[0-9]+$ ]]; do
+        prompt max_body "  Invalid. Enter a non-negative integer" "10"
+    done
+
+    prompt max_queue \
+"  Max concurrent in-flight requests; extras get HTTP 503 (0 = unlimited)" "0"
+    while ! [[ "$max_queue" =~ ^[0-9]+$ ]]; do
+        prompt max_queue "  Invalid. Enter a non-negative integer" "0"
+    done
+
+    local default_log="$INSTALL_PATH/nn-server.log"
+    prompt log_file \
+"  Path to the log file (leave empty to disable file logging;
+  systemd also captures output to journald)" "$default_log"
+
+    prompt max_log_size \
+"  Max log file size in GB before it rotates (0 = unlimited)" "1"
+    while ! [[ "$max_log_size" =~ ^[0-9]+$ ]]; do
+        prompt max_log_size "  Invalid. Enter a non-negative integer" "1"
+    done
+
+    CONFIG_PATH="$INSTALL_PATH/config.json"
+    cat > "$CONFIG_PATH" <<EOF
+{
+  "model": "$(json_str "$model")",
+  "port": $port,
+  "poolSize": $pool_size,
+  "maxBodySize": $max_body,
+  "maxQueueSize": $max_queue,
+  "logFile": "$(json_str "$log_file")",
+  "maxLogSize": $max_log_size
+}
+EOF
+    echo "  Wrote $CONFIG_PATH"
+}
+
+#-----------------------------------------------------------------------------#
+# State file (hidden) — tracks version + install location for updates
+#-----------------------------------------------------------------------------#
+
+save_state() {
+    local version="$1"
+    mkdir -p "$(dirname "$STATE_FILE")"
+    cat > "$STATE_FILE" <<EOF
+# NN-Server install state (managed by install.sh). Safe to remove to force a
+# fresh install, but do not commit or share this file.
+VERSION='$(state_quote "$version")'
+INSTALL_PATH='$(state_quote "$INSTALL_PATH")'
+REPO_PATH='$(state_quote "$REPO_PATH")'
+BINARY_PATH='$(state_quote "$BINARY_PATH")'
+SYMLINK_PATH='$(state_quote "$SYMLINK_PATH")'
+CONFIG_PATH='$(state_quote "$CONFIG_PATH")'
+BUILD_FLAGS='$(state_quote "$BUILD_FLAGS")'
+INSTALLED_AT='$(date -u +%Y-%m-%dT%H:%M:%SZ)'
+EOF
+    chmod 600 "$STATE_FILE"
+    echo "  State saved to $STATE_FILE"
+}
+
+# Load state if it exists AND the recorded repo is still present.
+load_state() {
+    [ -f "$STATE_FILE" ] || return 1
+    # shellcheck disable=SC1090
+    source "$STATE_FILE"
+    [ -n "${INSTALL_PATH:-}" ] && [ -d "${REPO_PATH:-}/.git" ]
+}
+
+#-----------------------------------------------------------------------------#
+# systemd
+#-----------------------------------------------------------------------------#
+
+have_systemd() {
+    [ -d /run/systemd/system ] || grep -qa systemd /proc/1/comm 2>/dev/null
+}
+
+write_service_unit() {
+    local user group
+    user="$(id -un)"
+    group="$(id -gn)"
+    sudo tee "$SERVICE_FILE" >/dev/null <<EOF
 [Unit]
 Description=NN-Server Neural Network Inference Server
 After=network.target
 
 [Service]
-ExecStart=$BINARY_PATH $config_path
-WorkingDirectory=$INSTALL_DIR
+Type=simple
+User=$user
+Group=$group
+ExecStart=$SYMLINK_PATH $CONFIG_PATH
+WorkingDirectory=$INSTALL_PATH
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
+}
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable nn-server
+# Offer/refresh the systemd service. Asked on fresh installs and whenever the
+# service is missing — even during an update.
+setup_systemd() {
+    banner "systemd service"
 
-    if [ -f "$config_path" ]; then
-      sudo systemctl start nn-server
-      echo ""
-      echo "  nn-server service created, enabled, and started."
-    else
-      echo ""
-      echo "  nn-server service created and enabled."
-      echo "  It will start automatically on boot once $config_path exists."
-      echo "  To start manually: sudo systemctl start nn-server"
+    if ! have_systemd; then
+        echo "  This system does not appear to use systemd; skipping auto-start setup."
+        echo "  Start NN-Server manually:  $SYMLINK_PATH $CONFIG_PATH"
+        return 0
     fi
-  fi
-fi
 
-echo ""
-echo "Quick start:"
-echo "  1. Create a config.json with your model path and settings"
-echo "  2. Run: $BINARY_PATH config.json"
+    if [ -f "$SERVICE_FILE" ]; then
+        echo "  Existing service found at $SERVICE_FILE."
+        if ask_yesno "Refresh the unit file and restart the service now?" "y"; then
+            write_service_unit
+            sudo systemctl daemon-reload
+            if sudo systemctl restart "$SERVICE_NAME"; then
+                echo "  Service refreshed and restarted."
+            else
+                echo "  Service did not start cleanly. Check: journalctl -u $SERVICE_NAME -e"
+            fi
+        fi
+        return 0
+    fi
+
+    echo "  No '$SERVICE_NAME' service is installed."
+    if ! ask_yesno "Create a systemd service so NN-Server starts automatically on boot?" "y"; then
+        echo "  Skipped. Start manually:  $SYMLINK_PATH $CONFIG_PATH"
+        return 0
+    fi
+
+    write_service_unit
+    sudo systemctl daemon-reload
+    sudo systemctl enable "$SERVICE_NAME" >/dev/null
+    if [ -f "$CONFIG_PATH" ]; then
+        if sudo systemctl start "$SERVICE_NAME"; then
+            echo "  Service created, enabled, and started."
+        else
+            echo "  Service created and enabled, but failed to start."
+            echo "  Check: journalctl -u $SERVICE_NAME -e"
+        fi
+    else
+        echo "  Service created and enabled (starts on boot once $CONFIG_PATH exists)."
+    fi
+}
+
+#-----------------------------------------------------------------------------#
+# Flows
+#-----------------------------------------------------------------------------#
+
+fresh_flow() {
+    banner "Fresh installation"
+    local path_arg="${1:-}"
+    if [ -n "$path_arg" ]; then
+        INSTALL_PATH="$path_arg"
+    else
+        prompt INSTALL_PATH \
+"  Where should NN-Server be installed?
+  (the repo will be cloned into a subdirectory of this path)" \
+            "$DEFAULT_INSTALL_PATH"
+    fi
+
+    mkdir -p "$INSTALL_PATH"
+    INSTALL_PATH="$(cd "$INSTALL_PATH" && pwd)"   # resolve to absolute
+    REPO_PATH="$INSTALL_PATH/NN"
+
+    clone_or_fetch
+    local version
+    version="$(checkout_latest_release)"
+    build_server
+    make_symlink
+
+    if [ -f "$INSTALL_PATH/config.json" ]; then
+        CONFIG_PATH="$INSTALL_PATH/config.json"
+        echo "  Existing config.json kept: $CONFIG_PATH"
+    else
+        interview_config
+    fi
+
+    save_state "$version"
+}
+
+update_flow() {
+    banner "Existing installation detected"
+    echo "  Version:     ${VERSION:-unknown}"
+    echo "  Install dir: $INSTALL_PATH"
+    echo "  Repo:        $REPO_PATH"
+
+    REPO_PATH="${REPO_PATH:-$INSTALL_PATH/NN}"
+    BINARY_PATH="${BINARY_PATH:-$REPO_PATH/NN-Server/build/NN-Server}"
+    SYMLINK_PATH="${SYMLINK_PATH:-$INSTALL_PATH/$SERVICE_NAME}"
+    CONFIG_PATH="${CONFIG_PATH:-$INSTALL_PATH/config.json}"
+
+    # Repo gone -> offer re-clone into the recorded location.
+    if [ ! -d "$REPO_PATH/.git" ]; then
+        echo "  The recorded repository is missing ($REPO_PATH)."
+        if ! ask_yesno "Re-clone into the same location and reinstall?" "y"; then
+            die "Cannot update: repository missing."
+        fi
+        clone_or_fetch
+        local version
+        version="$(checkout_latest_release)"
+        build_server
+        make_symlink
+        [ -f "$CONFIG_PATH" ] || interview_config
+        save_state "$version"
+        return
+    fi
+
+    echo "  Checking for updates..."
+    git -C "$REPO_PATH" fetch --tags --quiet
+    local latest version_current
+    latest="$(latest_tag)"
+    version_current="${VERSION:-}"
+
+    if [ -n "$latest" ] && version_gt "$latest" "$version_current"; then
+        echo "  Update available: ${version_current:-unknown} -> $latest"
+        if ask_yesno "Update to $latest now?" "y"; then
+            git -C "$REPO_PATH" checkout --quiet "$latest"
+            git -C "$REPO_PATH" submodule update --init --recursive --quiet
+            build_server
+            make_symlink
+            save_state "$latest"
+            echo "  Updated to $latest."
+        else
+            echo "  Skipping update."
+        fi
+    else
+        echo "  Already up to date (${version_current:-${latest:-unknown}})."
+        if ask_yesno "Rebuild from the current source anyway?" "n"; then
+            build_server
+            make_symlink
+            save_state "${latest:-$version_current}"
+        fi
+    fi
+}
+
+final_summary() {
+    banner "Done"
+    echo "  Binary:  $BINARY_PATH"
+    echo "  Run:     $SYMLINK_PATH $CONFIG_PATH"
+    echo "  Config:  $CONFIG_PATH"
+    if have_systemd && command -v systemctl >/dev/null 2>&1; then
+        echo "  Service: sudo systemctl status $SERVICE_NAME"
+    fi
+    echo
+    echo "  IMPORTANT: do not delete $REPO_PATH"
+    echo "             (it holds the OpenCL kernels needed for GPU inference)."
+}
+
+#-----------------------------------------------------------------------------#
+# Main
+#-----------------------------------------------------------------------------#
+
+main() {
+    if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+        usage
+        exit 0
+    fi
+
+    banner "NN-Server installer"
+
+    check_dependencies
+
+    if load_state; then
+        update_flow
+    else
+        fresh_flow "${1:-}"
+    fi
+
+    setup_systemd
+    final_summary
+}
+
+main "$@"

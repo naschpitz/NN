@@ -42,6 +42,20 @@ A distro/Homebrew Qt6 installs onto CMake's default search paths, so the build
 needs **no extra configuration**. If your Qt6 lives somewhere non-standard, point
 CMake at it — see [Build](#build) below.
 
+## Install NN-Server
+
+NN-Server has an interactive installer that clones the monorepo, builds the
+server, interviews you for its `config.json`, and optionally sets up a systemd
+service — all from a one-liner:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/naschpitz/NN/main/NN-Server/install.sh | bash
+```
+
+Re-running the one-liner detects an existing install (via a state file under
+`~/.config/nn-server/`) and offers to update when a newer release tag exists.
+See [NN-Server/README.md](NN-Server/README.md#install) for details.
+
 ## Build
 
 Each component builds into **its own `build/` directory** (there is no single
