@@ -137,21 +137,6 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  bool TerminalUI_Panel::isDirtyTree() const
-  {
-    if (this->dirty)
-      return true;
-
-    for (const auto& child : this->children)
-
-      if (child->isDirtyTree())
-        return true;
-
-    return false;
-  }
-
-  //===================================================================================================================//
-
   void TerminalUI_Panel::drawFrame() const
   {
     if (this->height < 2 || this->width < 2)
@@ -310,42 +295,6 @@ namespace NN_CLI
     this->scroll.autoScroll = false;
     this->markDirty();
     return true;
-  }
-
-  //===================================================================================================================//
-  //-- Child management --//
-  //===================================================================================================================//
-
-  void TerminalUI_Panel::addChild(std::unique_ptr<TerminalUI_Widget> child)
-  {
-    if (child) {
-      this->children.push_back(std::move(child));
-      this->markDirty();
-    }
-  }
-
-  //===================================================================================================================//
-
-  std::unique_ptr<TerminalUI_Widget> TerminalUI_Panel::removeChild(int index)
-  {
-    if (index < 0 || index >= static_cast<int>(this->children.size()))
-      return nullptr;
-
-    auto removed = std::move(this->children[index]);
-    this->children.erase(this->children.begin() + index);
-    this->markDirty();
-
-    return removed;
-  }
-
-  //===================================================================================================================//
-
-  TerminalUI_Widget* TerminalUI_Panel::getChild(int index) const
-  {
-    if (index < 0 || index >= static_cast<int>(this->children.size()))
-      return nullptr;
-
-    return this->children[index].get();
   }
 
   //===================================================================================================================//

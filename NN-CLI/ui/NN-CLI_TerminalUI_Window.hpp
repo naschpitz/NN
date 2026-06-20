@@ -101,21 +101,13 @@ namespace NN_CLI
       }
 
       //-- Child management --//
+      // Storage and implementation live in TerminalUI_Widget; re-exposed here so
+      // window callers can build the child list exactly as before.
 
-      // Take ownership of a child widget.  The child will be drawn and resized
-      // together with the window.
-      void addChild(std::unique_ptr<TerminalUI_Widget> child);
-
-      // Release and return the child at the given index, or nullptr if the
-      // index is out of range.
-      std::unique_ptr<TerminalUI_Widget> removeChild(int index);
-
-      int childCount() const
-      {
-        return static_cast<int>(this->children.size());
-      }
-
-      TerminalUI_Widget* getChild(int index) const;
+      using TerminalUI_Widget::addChild;
+      using TerminalUI_Widget::childCount;
+      using TerminalUI_Widget::getChild;
+      using TerminalUI_Widget::removeChild;
 
       //-- Shortcut bar --//
 
@@ -139,10 +131,6 @@ namespace NN_CLI
       void draw() override;
       void resize(int width, int height, int x, int y) override;
       bool handleEvent(int ch) override;
-
-      // True if this window or any descendant widget changed since the last
-      // draw() cleared its dirty flag.
-      bool isDirtyTree() const override;
 
     protected:
       //-- Hooks --//
@@ -168,7 +156,6 @@ namespace NN_CLI
       int rows = 0;
       int cols = 0;
       std::atomic<bool> resizeRequested{false};
-      std::vector<std::unique_ptr<TerminalUI_Widget>> children;
 
     private:
       //-- Methods --//

@@ -153,44 +153,6 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- Child management --//
-  //===================================================================================================================//
-
-  void TerminalUI_Window::addChild(std::unique_ptr<TerminalUI_Widget> child)
-  {
-    if (child) {
-      this->children.push_back(std::move(child));
-      this->markDirty();
-    }
-  }
-
-  //===================================================================================================================//
-  //-- Child management --//
-  //===================================================================================================================//
-
-  std::unique_ptr<TerminalUI_Widget> TerminalUI_Window::removeChild(int index)
-  {
-    if (index < 0 || index >= static_cast<int>(this->children.size()))
-      return nullptr;
-
-    auto removed = std::move(this->children[index]);
-    this->children.erase(this->children.begin() + index);
-    this->markDirty();
-
-    return removed;
-  }
-
-  //===================================================================================================================//
-
-  TerminalUI_Widget* TerminalUI_Window::getChild(int index) const
-  {
-    if (index < 0 || index >= static_cast<int>(this->children.size()))
-      return nullptr;
-
-    return this->children[index].get();
-  }
-
-  //===================================================================================================================//
   //-- Layout --//
   //===================================================================================================================//
 
@@ -324,21 +286,6 @@ namespace NN_CLI
       if (child->handleEvent(ch))
         return true;
     }
-
-    return false;
-  }
-
-  //===================================================================================================================//
-
-  bool TerminalUI_Window::isDirtyTree() const
-  {
-    if (this->dirty)
-      return true;
-
-    for (const auto& child : this->children)
-
-      if (child->isDirtyTree())
-        return true;
 
     return false;
   }

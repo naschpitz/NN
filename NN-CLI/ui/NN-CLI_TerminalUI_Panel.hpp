@@ -93,9 +93,6 @@ namespace NN_CLI
       // Unified Widget override: draws frame, content, scrollbar, and children.
       void draw() override;
 
-      // True if this panel or any child widget changed since the last draw().
-      bool isDirtyTree() const override;
-
       // Draw the ACS border frame and colored title.
       void drawFrame() const;
 
@@ -116,19 +113,13 @@ namespace NN_CLI
       bool applyScrollInput(int ch);
 
       //-- Child management --//
+      // Storage and implementation live in TerminalUI_Widget; re-exposed here so
+      // panel callers can build the child list exactly as before.
 
-      // Take ownership of a child widget positioned within this panel.
-      void addChild(std::unique_ptr<TerminalUI_Widget> child);
-
-      // Release and return the child at the given index, or nullptr if out of range.
-      std::unique_ptr<TerminalUI_Widget> removeChild(int index);
-
-      int childCount() const
-      {
-        return static_cast<int>(this->children.size());
-      }
-
-      TerminalUI_Widget* getChild(int index) const;
+      using TerminalUI_Widget::addChild;
+      using TerminalUI_Widget::childCount;
+      using TerminalUI_Widget::getChild;
+      using TerminalUI_Widget::removeChild;
 
       //-- Layout (children) --//
 
@@ -199,7 +190,6 @@ namespace NN_CLI
       int colorPair = 2; // CYAN (inactive) by default
       ScrollState scroll;
       std::vector<std::string> lines;
-      std::vector<std::unique_ptr<TerminalUI_Widget>> children;
   };
 
 } // namespace NN_CLI

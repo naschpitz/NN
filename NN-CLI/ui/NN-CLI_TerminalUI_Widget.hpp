@@ -1,6 +1,9 @@
 #ifndef NN_CLI_TERMINALUI_WIDGET_HPP
 #define NN_CLI_TERMINALUI_WIDGET_HPP
 
+#include <memory>
+#include <vector>
+
 namespace NN_CLI
 {
 
@@ -53,7 +56,15 @@ namespace NN_CLI
       // itself needs no atomic.
       virtual bool isDirtyTree() const
       {
-        return this->dirty;
+        if (this->dirty)
+          return true;
+
+        for (const auto& child : this->children)
+
+          if (child->isDirtyTree())
+            return true;
+
+        return false;
       }
 
       //-- Accessors --//
@@ -96,6 +107,21 @@ namespace NN_CLI
         this->dirty = false;
       }
 
+      //-- Child management --//
+
+      // Protected so leaf widgets (Table, ProgressBar) do not expose add/remove
+      // to callers; container widgets (Panel, Window) re-expose the parts of
+      // this API they want public via `using TerminalUI_Widget::addChild;` etc.
+
+      void addChild(std::unique_ptr<TerminalUI_Widget> child);
+      std::unique_ptr<TerminalUI_Widget> removeChild(int index);
+      TerminalUI_Widget* getChild(int index) const;
+
+      int childCount() const
+      {
+        return static_cast<int>(this->children.size());
+      }
+
       //-- Members --//
 
       int x = 0;
@@ -104,6 +130,8 @@ namespace NN_CLI
       int height = 0;
 
       bool dirty = true; // true initially so the first paint occurs
+
+      std::vector<std::unique_ptr<TerminalUI_Widget>> children;
   };
 
 } // namespace NN_CLI
