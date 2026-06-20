@@ -68,11 +68,13 @@ static QString writeGPUTestInputs(const QString& path)
     a[i] = static_cast<float>(i) / 63.0f;
   inputsArr.push_back(a);
 
-  // Pattern B: inverse gradient
+  // Pattern B: step (bimodal). Distinct distribution shape from the gradient so it
+  // stays separable through InstanceNorm + GlobalDualPool, which collapse spatially
+  // reverse / symmetric patterns to an identical representation.
   std::vector<float> b(64);
 
   for (int i = 0; i < 64; i++)
-    b[i] = static_cast<float>(63 - i) / 63.0f;
+    b[i] = (i < 32) ? 0.0f : 1.0f;
   inputsArr.push_back(b);
 
   inputsJson["inputs"] = inputsArr;
@@ -105,7 +107,7 @@ static QString writeGPUTestSamples(const QString& path)
       if (cls == 0)
         input[i] = static_cast<float>(i) / 63.0f + 0.01f * s;
       else
-        input[i] = static_cast<float>(63 - i) / 63.0f + 0.01f * (s - 2);
+        input[i] = ((i < 32) ? 0.0f : 1.0f) + 0.01f * (s - 2);
     }
 
     sample["input"] = input;
