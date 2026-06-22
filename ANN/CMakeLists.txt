@@ -40,10 +40,11 @@ add_library(ANN STATIC
 )
 # PUBLIC: Consumers of ANN need access to ANN headers
 target_include_directories(ANN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-# When building standalone (not from monorepo root), add parent dir so
-# #include "Common/..." resolves to ../Common/
-if(NOT TARGET NN_Common AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../Common)
-  target_include_directories(ANN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+# When building standalone (not from monorepo root), create NN_Common here so its
+# compiled sources + include dir are available. When built from root, NN_Common already
+# exists (root CMakeLists add_subdirectory(Common)), so this guard is a no-op.
+if(NOT TARGET NN_Common AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../Common/CMakeLists.txt)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../Common ${CMAKE_CURRENT_BINARY_DIR}/Common)
 endif()
 # PUBLIC: Consumers of ANN will also need OpenCLWrapper (it's part of our public API)
 # PRIVATE: Qt Concurrent is only used internally
@@ -51,6 +52,11 @@ target_link_libraries(ANN
   PUBLIC OpenCLWrapper
   PRIVATE Qt6::Concurrent
 )
+# NN_Common (Common config/result structs + compiled sources) is part of ANN's public API
+# (ANN cores carry Common config types and link against NN_Common sources).
+if(TARGET NN_Common)
+  target_link_libraries(ANN PUBLIC NN_Common)
+endif()
 target_compile_definitions(ANN PRIVATE ANN_LIBRARY)
 # --- Test executable ---
 # Built only when ANN is the top-level project (standalone build). Skipped when ANN

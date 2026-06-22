@@ -65,11 +65,9 @@ add_library(CNN STATIC
 # PUBLIC: Consumers of CNN need access to CNN headers
 target_include_directories(CNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-# When building standalone (not from monorepo root), add parent dir so
-# #include "Common/..." resolves to ../Common/
-if(NOT TARGET NN_Common AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../Common)
-  target_include_directories(CNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
-endif()
+# NN_Common (Common config/result structs) is created by ANN's standalone fallback above
+# (ANN is pulled in via add_subdirectory at line 20) or by the monorepo root. Its PUBLIC
+# include dir + compiled sources propagate to CNN transitively via ANN's PUBLIC link.
 
 # PUBLIC: Consumers of CNN will also need ANN and OpenCLWrapper
 # PRIVATE: Qt Concurrent is only used internally

@@ -22,18 +22,15 @@ if(BUILD_CNN AND NOT BUILD_ANN)
   message(FATAL_ERROR "CNN requires ANN. Set -DBUILD_ANN=ON or build from within CNN/ directly.")
 endif()
 
-# Make Common headers available — include dir is NN/ so #include "Common/Xxx.hpp" resolves
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Common)
-  add_library(NN_Common INTERFACE)
-  target_include_directories(NN_Common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+# Common config/result structs + compiled sources shared across the monorepo.
+# Created here when building from the root; component CMakeLists create it when built standalone.
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Common/CMakeLists.txt)
+  add_subdirectory(Common)
 endif()
 
 # Dependencies are PUBLIC-linked, so order matters
 if(BUILD_ANN)
   add_subdirectory(ANN)
-  if(TARGET NN_Common)
-    target_link_libraries(ANN PUBLIC NN_Common)
-  endif()
 endif()
 
 if(BUILD_CNN)
@@ -41,9 +38,6 @@ if(BUILD_CNN)
     # CNN will pull in ANN via add_subdirectory
   endif()
   add_subdirectory(CNN)
-  if(TARGET NN_Common)
-    target_link_libraries(CNN PUBLIC NN_Common)
-  endif()
 endif()
 
 if(BUILD_NN_CLI)
