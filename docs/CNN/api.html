@@ -123,12 +123,12 @@
 </table>
 
 <h3>SampleProvider&lt;T&gt; <span class="badge badge-blue">CNN_SampleProvider.hpp</span></h3>
-<p>Lazy supplier used by <code>train()</code> and <code>test()</code>. Given the full shuffled index array, a batch size, and a 0-based batch index, returns the batch of samples. Lets callers stream data on demand instead of holding the full <code>Samples&lt;T&gt;</code> in memory.</p>
+<p>Lazy supplier used by <code>train()</code> and <code>test()</code>. Given the full shuffled index array, a fetch window size, and an absolute start index, returns that slice of samples. The fetch window (<code>fetchSize</code>) is independent of the mini-batch size — for BatchNorm models <code>fetchSize = batchSize</code> (all samples needed simultaneously); for InstanceNorm or no-norm models <code>fetchSize</code> can be much smaller, reducing peak host memory. Lets callers stream data on demand instead of holding the full <code>Samples&lt;T&gt;</code> in memory.</p>
 <pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
 <span class="keyword">using</span> SampleProvider =
   std::function&lt;Samples&lt;T&gt;(<span class="keyword">const</span> std::vector&lt;<span class="type">ulong</span>&gt;&amp; sampleIndices,
-                          <span class="type">ulong</span> batchSize,
-                          <span class="type">ulong</span> batchIndex)&gt;;
+                          <span class="type">ulong</span> fetchSize,
+                          <span class="type">ulong</span> fetchStart)&gt;;
 </code></pre>
 <p>Helper: <code>makeSampleProvider(samples)</code> wraps an in-memory <code>Samples&lt;T&gt;</code> so no prefetching is needed.</p>
 
@@ -255,6 +255,7 @@
   <tr><td><code>startingEpoch</code></td><td><code>ulong</code></td><td>Epoch index to start training from (0 = fresh start; &gt;0 = resume)</td></tr>
   <tr><td><code>learningRate</code></td><td><code>float</code></td><td>Learning rate (default 0.01). Used as the base learning rate α for both SGD and Adam.</td></tr>
   <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size (default 64)</td></tr>
+  <tr><td><code>fetchSize</code></td><td><code>ulong</code></td><td>Samples loaded per provider call, independent of batchSize (default 0 = auto). 0 = <code>batchSize</code> for BatchNorm models, <code>numWorkers</code> for InstanceNorm/no-norm. Rounded to a multiple of numWorkers and guaranteed to divide batchSize evenly.</td></tr>
   <tr><td><code>shuffleSamples</code></td><td><code>bool</code></td><td>Shuffle sample order each epoch (default true)</td></tr>
   <tr><td><code>shuffleSeed</code></td><td><code>uint32_t</code></td><td>RNG seed for the per-epoch shuffle. Default <code>0</code> means seed from <code>std::random_device</code> — non-deterministic, what production wants. Set to a non-zero value (e.g. tests use <code>42</code>) and the whole training run reproduces bit-for-bit, including the shuffle order. Only meaningful when <code>shuffleSamples</code> is true.</td></tr>
   <tr><td><code>dropoutRate</code></td><td><code>float</code></td><td>Dropout probability for dense hidden layers during training (default 0.0 = disabled). Uses inverted dropout: activations are scaled by 1/(1−p) during training so no adjustment is needed at inference. Applied only to the dense (fully-connected) layers, not convolutional layers.</td></tr>
@@ -379,6 +380,7 @@
   <tr><td><code>predict(input)</code></td><td><code>PredictResult&lt;T&gt;</code></td><td>Single-input convenience. Delegates to the streaming overload with a one-shot provider. The underlying ANN sub-core uses the step worker directly (no threading) to avoid deadlocks when called from within CNN's thread pool.</td></tr>
   <tr><td><code>train(numSamples, sampleProvider)</code></td><td><code>void</code></td><td>Full training loop with SGD</td></tr>
   <tr><td><code>test(numSamples, sampleProvider)</code></td><td><code>TestResult&lt;T&gt;</code></td><td>Evaluate loss on a test set using on-demand sample loading</td></tr>
+  <tr><td><code>computeFetchSize(batchSize, numWorkers, hasBatchNorm)</code></td><td><code>ulong</code></td><td>Resolve <code>fetchSize</code> from config or auto-compute (BatchNorm → batchSize; otherwise numWorkers). Rounded and divisibility-checked.</td></tr>
 </table>
 
 <h4>Getters</h4>
@@ -448,8 +450,10 @@
   <tr><th>Method</th><th>Description</th></tr>
   <tr><td><code>predict(input)</code></td><td>Single-sample inference on GPU. Returns <code>PredictResult&lt;T&gt;</code>.</td></tr>
   <tr><td><code>predictSubset(inputs, start, end)</code></td><td>Batch inference on a range of inputs (called by CoreGPU). Returns <code>PredictResults&lt;T&gt;</code>.</td></tr>
-  <tr><td><code>trainSubset(samples, start, end, ...)</code></td><td>Train on a range of samples</td></tr>
+  <tr><td><code>trainSubset(samples, start, end, ...)</code></td><td>Train on a range of samples (accumulate only). Reads <code>accum_loss</code> at entry and returns a per-window loss delta so callers can sum windows with <code>+=</code>. Caller must call <code>resetAccumulators()</code> and <code>resetAccumLoss()</code> before the first window.</td></tr>
   <tr><td><code>testSubset(samples, start, end)</code></td><td>Evaluate a range of samples</td></tr>
+  <tr><td><code>resetAccumulators()</code></td><td>Zero gradient accumulators (caller invokes before trainSubset)</td></tr>
+  <tr><td><code>resetAccumLoss()</code></td><td>Zero GPU <code>accum_loss</code> buffer (caller invokes before trainSubset)</td></tr>
   <tr><td><code>backpropagateSample(input, expected)</code></td><td>Backpropagate through one sample (step-by-step mode)</td></tr>
   <tr><td><code>accumulate()</code></td><td>Accumulate gradients (step-by-step mode)</td></tr>
   <tr><td><code>update(numSamples)</code></td><td>Run SGD update kernels</td></tr>

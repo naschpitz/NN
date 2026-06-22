@@ -175,9 +175,16 @@
 
   <span class="comment">// Process samples in mini-batches</span>
   <span class="keyword">for</span> each mini-batch:
-    <span class="comment">// 1. Each worker trains on its subset in parallel</span>
-    <span class="keyword">for</span> <span class="keyword">each</span> worker <span class="keyword">in</span> workers:  <span class="comment">// launched as threads</span>
-      worker.trainSubset(samples, startIdx, endIdx, ...)
+    <span class="comment">// 0. Reset accumulators (once per batch)</span>
+    <span class="keyword">for</span> <span class="keyword">each</span> worker:
+      worker.resetAccumulators()
+      worker.resetAccumLoss()
+
+    <span class="comment">// 1. Accumulate gradients over fetch windows within the batch</span>
+    <span class="keyword">for</span> each fetch window <span class="keyword">of</span> fetchSize samples:
+      fetchSamples = sampleProvider(sampleIndices, fetchSize, fetchStart)
+      <span class="keyword">for</span> <span class="keyword">each</span> worker <span class="keyword">in</span> workers:  <span class="comment">// launched as threads</span>
+        gpuLosses[worker] += worker.trainSubset(fetchSamples, startIdx, endIdx, ...)
 
     <span class="comment">// 2. Merge CNN gradients across all workers</span>
     mergeCNNGradients()

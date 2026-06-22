@@ -80,12 +80,12 @@
 <p><code>Samples&lt;T&gt;</code> is <code>std::vector&lt;Sample&lt;T&gt;&gt;</code>.</p>
 
 <h3>SampleProvider&lt;T&gt; <span class="badge badge-blue">ANN_SampleProvider.hpp</span></h3>
-<p>Lazy supplier used by <code>train()</code> and <code>test()</code>. Given the full shuffled index array, a batch size, and a 0-based batch index, returns the batch of samples. Lets callers stream data on demand instead of holding the full <code>Samples&lt;T&gt;</code> in memory.</p>
+<p>Lazy supplier used by <code>train()</code> and <code>test()</code>. Given the full shuffled index array, a fetch window size, and an absolute start index, returns that slice of samples. The fetch window (<code>fetchSize</code>) is independent of the mini-batch size — it controls how many samples are materialized per call, not the optimizer update boundary. Lets callers stream data on demand instead of holding the full <code>Samples&lt;T&gt;</code> in memory.</p>
 <pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
 <span class="keyword">using</span> SampleProvider =
   std::function&lt;Samples&lt;T&gt;(<span class="keyword">const</span> std::vector&lt;<span class="type">ulong</span>&gt;&amp; sampleIndices,
-                          <span class="type">ulong</span> batchSize,
-                          <span class="type">ulong</span> batchIndex)&gt;;
+                          <span class="type">ulong</span> fetchSize,
+                          <span class="type">ulong</span> fetchStart)&gt;;
 </code></pre>
 <p>Helper: <code>makeSampleProvider(samples)</code> wraps an in-memory <code>Samples&lt;T&gt;</code> so no prefetching is needed.</p>
 
@@ -182,6 +182,7 @@
   <tr><td><code>startingEpoch</code></td><td><code>ulong</code></td><td>Epoch index to start training from (0 = fresh start; &gt;0 = resume)</td></tr>
   <tr><td><code>learningRate</code></td><td><code>float</code></td><td>Learning rate (default 0.01). Used as the base learning rate α for both SGD and Adam.</td></tr>
   <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size (default 64)</td></tr>
+  <tr><td><code>fetchSize</code></td><td><code>ulong</code></td><td>Samples loaded per provider call, independent of batchSize (default 0 = auto: numWorkers). 0 lets the library pick the smallest window that keeps all workers busy.</td></tr>
   <tr><td><code>shuffleSamples</code></td><td><code>bool</code></td><td>Shuffle sample order each epoch (default true)</td></tr>
   <tr><td><code>shuffleSeed</code></td><td><code>uint32_t</code></td><td>RNG seed for the per-epoch shuffle. Default <code>0</code> means seed from <code>std::random_device</code> — non-deterministic, what production wants. Set to a non-zero value (e.g. tests use <code>42</code>) and the whole training run reproduces bit-for-bit, including the shuffle order. Only meaningful when <code>shuffleSamples</code> is true.</td></tr>
   <tr><td><code>dropoutRate</code></td><td><code>float</code></td><td>Dropout probability for hidden layers during training (default 0.0 = disabled). Uses inverted dropout: activations are scaled by 1/(1−p) during training so no adjustment is needed at inference.</td></tr>
@@ -412,6 +413,7 @@
   <tr><td><code>accumulate()</code></td><td><code>void</code></td><td>Add current gradients to running accumulators</td></tr>
   <tr><td><code>resetAccumulators()</code></td><td><code>void</code></td><td>Zero out gradient accumulators</td></tr>
   <tr><td><code>update(ulong numSamples)</code></td><td><code>void</code></td><td>SGD step: <code>params -= lr · (accum / n)</code></td></tr>
+  <tr><td><code>computeFetchSize(batchSize, numWorkers)</code></td><td><code>ulong</code></td><td>Resolve <code>fetchSize</code> from config or auto-compute (rounded to a multiple of numWorkers, divides batchSize evenly)</td></tr>
 </table>
 
 <h3>Accessors</h3>
@@ -485,6 +487,8 @@
   <tr><td><code>predict(input)</code></td><td>Single-sample inference on GPU. Returns <code>PredictResult&lt;T&gt;</code>.</td></tr>
   <tr><td><code>predictSubset(inputs, start, end)</code></td><td>Batch inference on a range of inputs (called by CoreGPU). Returns <code>PredictResults&lt;T&gt;</code>.</td></tr>
   <tr><td><code>testSubset(samples, start, end)</code></td><td>Evaluate a range of samples</td></tr>
+  <tr><td><code>trainSubset(samples, ...)</code></td><td>Train on a range of samples (accumulate only — caller resets and updates)</td></tr>
+  <tr><td><code>resetAccumulators()</code></td><td>Zero gradient accumulators (caller invokes before trainSubset)</td></tr>
 </table>
 
 <h3>CoreGPUWorker Buffer Layout</h3>

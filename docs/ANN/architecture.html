@@ -173,19 +173,21 @@
     <span class="keyword">for each</span> batch <span class="keyword">of</span> batchSize samples:
         <span class="func">resetAccumulators</span>()
 
-        <span class="keyword">for each</span> sample <span class="keyword">in</span> batch:
-            <span class="comment">// 1. Propagate</span>
-            output = <span class="func">predict</span>(sample.input)
+        <span class="comment">// Fetch windows load samples on demand (fetchSize ≤ batchSize, default = numWorkers)</span>
+        <span class="keyword">for each</span> fetchWindow <span class="keyword">of</span> fetchSize samples <span class="keyword">in</span> batch:
+            <span class="keyword">for each</span> sample <span class="keyword">in</span> fetchWindow:
+                <span class="comment">// 1. Propagate</span>
+                output = <span class="func">predict</span>(sample.input)
 
-            <span class="comment">// 2. Compute loss (MSE example — library supports three configurable cost functions)</span>
-            loss = (<span class="number">1</span>/n) × Σ (output[i] − expected[i])²
-            <span class="comment">// Configurable: SQUARED_DIFFERENCE (MSE), WEIGHTED_SQUARED_DIFFERENCE, CROSS_ENTROPY</span>
+                <span class="comment">// 2. Compute loss (MSE example — library supports three configurable cost functions)</span>
+                loss = (<span class="number">1</span>/n) × Σ (output[i] − expected[i])²
+                <span class="comment">// Configurable: SQUARED_DIFFERENCE (MSE), WEIGHTED_SQUARED_DIFFERENCE, CROSS_ENTROPY</span>
 
-            <span class="comment">// 3. Backpropagate — compute gradients</span>
-            <span class="func">backpropagate</span>(sample.output)
+                <span class="comment">// 3. Backpropagate — compute gradients</span>
+                <span class="func">backpropagate</span>(sample.output)
 
-            <span class="comment">// 4. Add to running totals</span>
-            <span class="func">accumulate</span>()
+                <span class="comment">// 4. Add to running totals</span>
+                <span class="func">accumulate</span>()
 
         <span class="comment">// 5. SGD weight update (per batch)</span>
         <span class="func">update</span>(batchSize)

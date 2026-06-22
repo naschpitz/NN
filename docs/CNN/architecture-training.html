@@ -116,26 +116,30 @@
 
   <span class="keyword">for</span> batch <span class="keyword">of</span> batchSize samples:
     resetCNNAccumulators()
-    <span class="keyword">for</span> sample <span class="keyword">in</span> batch:
-      <span class="comment">// 1. Propagate through CNN (store intermediates)</span>
-      cnnOut = propagateCNN(sample.input, <span class="keyword">true</span>, &amp;intermediates, &amp;poolMaxIndices)
 
-      <span class="comment">// 2. Flatten and propagate through ANN</span>
-      flatInput = Flatten::propagate(cnnOut)
-      annOutput = annCore-&gt;predict(flatInput)
+    <span class="comment">// Fetch windows let the library load samples on demand (fetchSize ≤ batchSize).</span>
+    <span class="comment">// BatchNorm: fetchSize = batchSize (one window). InstanceNorm: fetchSize = numWorkers.</span>
+    <span class="keyword">for</span> fetchWindow <span class="keyword">of</span> fetchSize samples <span class="keyword">in</span> batch:
+      <span class="keyword">for</span> sample <span class="keyword">in</span> fetchWindow:
+        <span class="comment">// 1. Propagate through CNN (store intermediates)</span>
+        cnnOut = propagateCNN(sample.input, <span class="keyword">true</span>, &amp;intermediates, &amp;poolMaxIndices)
 
-      <span class="comment">// 3. Compute loss (MSE)</span>
-      loss = MSE(annOutput, sample.output)
+        <span class="comment">// 2. Flatten and propagate through ANN</span>
+        flatInput = Flatten::propagate(cnnOut)
+        annOutput = annCore-&gt;predict(flatInput)
 
-      <span class="comment">// 4. Backprop through ANN</span>
-      dANNInput = annCore-&gt;backpropagate(dLoss)
+        <span class="comment">// 3. Compute loss (MSE)</span>
+        loss = MSE(annOutput, sample.output)
 
-      <span class="comment">// 5. Unflatten and backprop through CNN</span>
-      dCNNOut = Flatten::backpropagate(dANNInput)
-      backpropagateCNN(dCNNOut, intermediates, poolMaxIndices, dFilters, dBiases)
+        <span class="comment">// 4. Backprop through ANN</span>
+        dANNInput = annCore-&gt;backpropagate(dLoss)
 
-      <span class="comment">// 6. Accumulate gradients</span>
-      accumulateCNNGradients(dFilters, dBiases)
+        <span class="comment">// 5. Unflatten and backprop through CNN</span>
+        dCNNOut = Flatten::backpropagate(dANNInput)
+        backpropagateCNN(dCNNOut, intermediates, poolMaxIndices, dFilters, dBiases)
+
+        <span class="comment">// 6. Accumulate gradients</span>
+        accumulateCNNGradients(dFilters, dBiases)
 
     <span class="comment">// 7. Update parameters (SGD, per batch)</span>
     updateCNNParameters(batchSize)
