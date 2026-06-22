@@ -167,6 +167,7 @@ add_executable(test_nncli
   tests/test_gpu_augment.cpp
   tests/test_terminal_ui.cpp
   tests/test_calibrate_controller.cpp
+  tests/test_lr_scheduler.cpp
   # TerminalUI sources needed for unit tests (panel, table, window, training window).
   # Compiled separately from nncli_common to keep the shared object library lean.
   ui/NN-CLI_TerminalUI_Panel.cpp
