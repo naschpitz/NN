@@ -185,7 +185,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   ulong numWorkers = static_cast<ulong>(numThreads);
   batchSize = std::max(numWorkers, (batchSize / numWorkers) * numWorkers);
 
-  ulong fetchSize = this->computeFetchSize(batchSize, numWorkers, false);
+  ulong fetchSize = this->computeFetchSize(batchSize, numWorkers);
 
   // Pre-allocate workers for each thread
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;

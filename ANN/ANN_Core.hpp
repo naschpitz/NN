@@ -178,7 +178,7 @@ namespace ANN
       Common::PredictMetadata<T> predictEnd();
 
       //-- Fetch size computation --//
-      ulong computeFetchSize(ulong batchSize, ulong numWorkers, bool hasBatchNorm) const;
+      ulong computeFetchSize(ulong batchSize, ulong numWorkers) const;
 
       //-- Configuration members --//
       Common::DeviceType deviceType;

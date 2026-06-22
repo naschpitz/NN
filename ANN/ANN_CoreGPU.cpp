@@ -130,7 +130,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   ulong batchSize = this->trainConfig.batchSize;
   batchSize = std::max(this->numGPUs, (batchSize / this->numGPUs) * this->numGPUs);
 
-  ulong fetchSize = this->computeFetchSize(batchSize, static_cast<ulong>(this->numGPUs), false);
+  ulong fetchSize = this->computeFetchSize(batchSize, static_cast<ulong>(this->numGPUs));
 
   if (this->logLevel >= Common::LogLevel::INFO) {
     std::cout << "Starting GPU training: " << numSamples << " samples, " << numEpochs << " epochs, " << this->numGPUs
