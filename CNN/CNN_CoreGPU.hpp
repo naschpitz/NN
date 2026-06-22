@@ -25,6 +25,15 @@ namespace CNN
       Common::TestResult<T> test(ulong numSamples, const SampleProvider<T>& sampleProvider) override;
       void syncParametersToGPU() override;
 
+      //-- LR scheduling: fan the new learning rate out to every GPU worker --//
+      void setLearningRate(T lr) override
+      {
+        Core<T>::setLearningRate(lr);
+
+        for (auto& worker : gpuWorkers)
+          worker->setLearningRate(lr);
+      }
+
       //-- Worker access (for diagnostics/testing) --//
       CoreGPUWorker<T>* getWorker(size_t idx = 0)
       {

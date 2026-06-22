@@ -2,6 +2,11 @@
 
 #include "Common/Common_LRScheduler.hpp"
 
+#include <CNN_Core.hpp>
+#include <CNN_CoreConfig.hpp>
+#include <CNN_Sample.hpp>
+
+#include <cmath>
 #include <vector>
 
 //===================================================================================================================//
@@ -311,9 +316,119 @@ static void testStepResumeMatchesContinuous()
 
 //===================================================================================================================//
 
+//===================================================================================================================//
+//
+// Phase 2: setLearningRate must reach the CNN dense head. CPU workers (and their dense-head
+// ANN core) are recreated fresh each epoch from coreConfig.trainConfig, so setLearningRate has
+// to update coreConfig.trainConfig.learningRate, not just the live this->trainConfig. SGD makes
+// the update linear in LR, so a net built at LR=0.5 must equal a net built at LR=1.0 then
+// setLearningRate(0.5) — and both must differ from a plain LR=1.0 net.
+//
+//===================================================================================================================//
+
+static void testSetLearningRatePropagatesToDenseHead()
+{
+  TestScope _t("testSetLearningRatePropagatesToDenseHead");
+
+  auto buildConfig = [](float lr) {
+    CNN::CoreConfig<double> config;
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = Common::DeviceType::CPU;
+    config.inputShape = {1, 5, 5};
+    config.logLevel = Common::LogLevel::ERROR;
+
+    CNN::CNNLayerConfig convLayer;
+    convLayer.type = CNN::LayerType::CONV;
+    convLayer.config = CNN::ConvLayerConfig{1, 3, 3, 1, 1, CNN::SlidingStrategyType::VALID};
+    CNN::CNNLayerConfig reluLayer;
+    reluLayer.type = CNN::LayerType::RELU;
+    reluLayer.config = CNN::ReLULayerConfig{};
+    CNN::CNNLayerConfig flattenLayer;
+    flattenLayer.type = CNN::LayerType::FLATTEN;
+    flattenLayer.config = CNN::FlattenLayerConfig{};
+    config.layersConfig.cnnLayers = {convLayer, reluLayer, flattenLayer};
+    config.layersConfig.denseLayers = {{1, ANN::ActvFuncType::SIGMOID}};
+
+    CNN::ConvParameters<double> initConv;
+    initConv.numFilters = 1;
+    initConv.inputC = 1;
+    initConv.filterH = 3;
+    initConv.filterW = 3;
+    initConv.filters.assign(9, 0.1);
+    initConv.biases.assign(1, 0.0);
+    config.parameters.convParams = {initConv};
+
+    // Dense head: Flatten yields 9 inputs → 1 sigmoid neuron. weights[1] holds the layer
+    // (index 0 is the empty input slot — same convention as CNN/tests/test_gpu_exact.cpp).
+    // Preset deterministically so two separately-built cores start identically.
+    ANN::Parameters<double> denseParams;
+    denseParams.weights.resize(2);
+    denseParams.biases.resize(2);
+    denseParams.weights[0] = {};
+    denseParams.biases[0] = {};
+    denseParams.weights[1] = {{0.1, 0.2, 0.3, 0.1, 0.2, 0.3, 0.1, 0.2, 0.3}};
+    denseParams.biases[1] = {0.0};
+    config.parameters.denseParams = denseParams;
+
+    config.trainConfig.numEpochs = 3;
+    config.trainConfig.learningRate = lr;
+    config.trainConfig.shuffleSeed = 42;
+    config.progressReports = 0;
+    return config;
+  };
+
+  CNN::Samples<double> samples(1);
+  samples[0].input = CNN::Tensor3D<double>({1, 5, 5}, 0.5);
+  samples[0].output = {1.0};
+
+  // CoreA: built and trained at LR=0.5 (reference).
+  auto coreA = CNN::Core<double>::makeCore(buildConfig(0.5f));
+  coreA->train(samples.size(), CNN::makeSampleProvider(samples));
+
+  // CoreB: built at LR=1.0, then setLearningRate(0.5) before training.
+  auto coreB = CNN::Core<double>::makeCore(buildConfig(1.0f));
+  coreB->setLearningRate(static_cast<double>(0.5f));
+  CHECK_NEAR(coreB->getTrainConfig().learningRate, 0.5f, 1e-6f, "setLearningRate updates core trainConfig");
+  coreB->train(samples.size(), CNN::makeSampleProvider(samples));
+
+  // CoreC: built and trained at LR=1.0 (no setLearningRate) — must differ from CoreA.
+  auto coreC = CNN::Core<double>::makeCore(buildConfig(1.0f));
+  coreC->train(samples.size(), CNN::makeSampleProvider(samples));
+
+  const auto& pa = coreA->getParameters();
+  const auto& pb = coreB->getParameters();
+  const auto& pc = coreC->getParameters();
+
+  // First non-empty dense weight entry (robust to the [0]-empty / [1]-layer convention).
+  auto firstDenseWeight = [](const ANN::Parameters<double>& p) -> const double* {
+    for (const auto& layer : p.weights)
+
+      for (const auto& neuron : layer)
+
+        if (!neuron.empty())
+          return &neuron[0];
+    return nullptr;
+  };
+
+  const double* dwa = firstDenseWeight(pa.denseParams);
+  const double* dwb = firstDenseWeight(pb.denseParams);
+  const double* dwc = firstDenseWeight(pc.denseParams);
+  CHECK(dwa != nullptr && dwb != nullptr && dwc != nullptr, "dense weights present after training");
+
+  // Conv filter (consumer #3) and dense weight (#5) must match between A and B...
+  CHECK_NEAR(pa.convParams[0].filters[0], pb.convParams[0].filters[0], 1e-9, "conv: setLR path matches built-at-LR");
+  CHECK_NEAR(*dwa, *dwb, 1e-9, "dense: setLR path matches built-at-LR");
+  // ...and differ from C (proves the LR change actually changed the update, not a no-op).
+  CHECK(std::fabs(pa.convParams[0].filters[0] - pc.convParams[0].filters[0]) > 1e-6, "conv: LR=1 differs from LR=0.5");
+  CHECK(std::fabs(*dwa - *dwc) > 1e-6, "dense: LR=1 differs from LR=0.5");
+}
+
+//===================================================================================================================//
+
 void runLRSchedulerTests()
 {
   testNoneKeepsConstantLR();
+  testSetLearningRatePropagatesToDenseHead();
   testStepSchedule();
   testStepRespectsMinLR();
   testCosineSchedule();

@@ -117,6 +117,16 @@ namespace CNN
       // Upload current host-side parameters to GPU buffers (no-op for CPU cores).
       virtual void syncParametersToGPU() {}
 
+      // Push a new learning rate into the core mid-run (LR schedulers call this at epoch
+      // boundaries). Updates the live trainConfig (read by updateCNNParameters) and the
+      // build-time coreConfig (so CPU workers — recreated each epoch — and their dense
+      // head pick up the new LR). GPU backends override to also fan out to their workers.
+      virtual void setLearningRate(T lr)
+      {
+        this->trainConfig.learningRate = lr;
+        this->coreConfig.trainConfig.learningRate = lr;
+      }
+
       void setTrainCallback(Common::TrainCallback<T> callback)
       {
         trainCallback = callback;

@@ -54,6 +54,14 @@ namespace ANN
       //-- Weight update --//
       void update(ulong numSamples);
 
+      //-- LR scheduling: update the worker's trainConfig copy and force the update kernels
+      //   to rebuild so the new LR is re-baked into their arguments next update().
+      void setLearningRate(T lr)
+      {
+        this->trainConfig.learningRate = lr;
+        this->kernelBuilder->updateKernelsSetup = false;
+      }
+
       //-- Parameter access --//
       const Parameters<T>& getParameters() const
       {

@@ -59,6 +59,13 @@ namespace CNN
       //-- Weight update --//
       void update(ulong numSamples);
 
+      //-- LR scheduling: update the worker's config copy so the new LR is picked up when
+      //   the update kernels are rebuilt next update() (CNN GPU rebuilds kernels every update).
+      void setLearningRate(T lr)
+      {
+        this->workerConfig.trainConfig.learningRate = lr;
+      }
+
       //-- Kernel save/restore (delegates to OpenCL core) --//
       std::vector<std::vector<OpenCLWrapper::Kernel>> saveKernels();
       void restoreKernels(const std::vector<std::vector<OpenCLWrapper::Kernel>>& kernels);

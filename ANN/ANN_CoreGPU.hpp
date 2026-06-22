@@ -30,6 +30,15 @@ namespace ANN
       void resetAccumulators() override;
       void update(ulong numSamples) override;
 
+      //-- LR scheduling: fan the new learning rate out to every GPU worker --//
+      void setLearningRate(T lr) override
+      {
+        Core<T>::setLearningRate(lr);
+
+        for (auto& worker : gpuWorkers)
+          worker->setLearningRate(lr);
+      }
+
     private:
       //-- GPU workers (one per GPU) --//
       std::vector<std::unique_ptr<CoreGPUWorker<T>>> gpuWorkers;
