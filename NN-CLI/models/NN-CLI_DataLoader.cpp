@@ -368,60 +368,68 @@ namespace NN_CLI
     auto prefetch = std::make_shared<QFuture<BatchPtr>>();
     auto hasPrefetch = std::make_shared<bool>(false);
 
-    return [this, subsetPtr, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability, loadType](
-             const std::vector<ulong>& sampleIndices, ulong fetchSize, ulong fetchStart) -> std::vector<SampleT> {
-      ulong numSamples = sampleIndices.size();
-      ulong start = fetchStart;
-      ulong end = std::min(start + fetchSize, numSamples);
-      ulong totalBatches = (numSamples + fetchSize - 1) / fetchSize;
-      ulong batchNum = fetchStart / fetchSize + 1;
+    // Track the nominal fetchSize (max seen) for prefetch sizing. Per-call fetchSize
+    // may be smaller on partial windows (e.g. last window of a batch). The prefetch
+    // must use the nominal size so the NEXT call — likely a full window — gets enough.
+    auto nominalFetchSize = std::make_shared<ulong>(0);
 
-      // Resolve entry indices — direct slice (full dataset) or remapped (subset).
-      auto resolveIndices = [&](ulong from, ulong to) {
-        if (subsetPtr->empty())
-          return std::vector<ulong>(sampleIndices.begin() + from, sampleIndices.begin() + to);
+    return
+      [this, subsetPtr, prefetchPool, prefetch, hasPrefetch, nominalFetchSize, transforms, augmentationProbability,
+       loadType](const std::vector<ulong>& sampleIndices, ulong fetchSize, ulong fetchStart) -> std::vector<SampleT> {
+        *nominalFetchSize = std::max(*nominalFetchSize, fetchSize);
 
-        std::vector<ulong> mapped;
-        mapped.reserve(to - from);
+        ulong numSamples = sampleIndices.size();
+        ulong start = fetchStart;
+        ulong end = std::min(start + fetchSize, numSamples);
+        ulong totalBatches = (numSamples + *nominalFetchSize - 1) / *nominalFetchSize;
+        ulong batchNum = fetchStart / *nominalFetchSize + 1;
 
-        for (ulong i = from; i < to; i++)
-          mapped.push_back((*subsetPtr)[sampleIndices[i]]);
+        // Resolve entry indices — direct slice (full dataset) or remapped (subset).
+        auto resolveIndices = [&](ulong from, ulong to) {
+          if (subsetPtr->empty())
+            return std::vector<ulong>(sampleIndices.begin() + from, sampleIndices.begin() + to);
 
-        return mapped;
+          std::vector<ulong> mapped;
+          mapped.reserve(to - from);
+
+          for (ulong i = from; i < to; i++)
+            mapped.push_back((*subsetPtr)[sampleIndices[i]]);
+
+          return mapped;
+        };
+
+        BatchPtr batchPtr;
+
+        if (*hasPrefetch) {
+          prefetch->waitForFinished();
+          batchPtr = prefetch->result();
+          *hasPrefetch = false;
+        } else {
+          std::vector<ulong> indices = resolveIndices(start, end);
+          batchPtr = std::make_shared<std::vector<SampleT>>(
+            this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches, loadType));
+        }
+
+        ulong nextStart = end;
+
+        if (nextStart < numSamples) {
+          ulong nextEnd = std::min(nextStart + *nominalFetchSize, numSamples);
+          std::vector<ulong> nextIndices = resolveIndices(nextStart, nextEnd);
+
+          *prefetch =
+            QtConcurrent::run(prefetchPool.get(),
+                              [this, indices = std::move(nextIndices), transforms, augmentationProbability, batchNum,
+                               totalBatches, loadType]() -> BatchPtr {
+                                ulong nextBatchNum = batchNum + 1;
+                                return std::make_shared<std::vector<SampleT>>(this->loadBatch(
+                                  indices, transforms, augmentationProbability, nextBatchNum, totalBatches, loadType));
+                              });
+
+          *hasPrefetch = true;
+        }
+
+        return std::move(*batchPtr);
       };
-
-      BatchPtr batchPtr;
-
-      if (*hasPrefetch) {
-        prefetch->waitForFinished();
-        batchPtr = prefetch->result();
-        *hasPrefetch = false;
-      } else {
-        std::vector<ulong> indices = resolveIndices(start, end);
-        batchPtr = std::make_shared<std::vector<SampleT>>(
-          this->loadBatch(indices, transforms, augmentationProbability, batchNum, totalBatches, loadType));
-      }
-
-      ulong nextStart = end;
-
-      if (nextStart < numSamples) {
-        ulong nextEnd = std::min(nextStart + fetchSize, numSamples);
-        std::vector<ulong> nextIndices = resolveIndices(nextStart, nextEnd);
-
-        *prefetch =
-          QtConcurrent::run(prefetchPool.get(),
-                            [this, indices = std::move(nextIndices), transforms, augmentationProbability, batchNum,
-                             totalBatches, loadType]() -> BatchPtr {
-                              ulong nextBatchNum = batchNum + 1;
-                              return std::make_shared<std::vector<SampleT>>(this->loadBatch(
-                                indices, transforms, augmentationProbability, nextBatchNum, totalBatches, loadType));
-                            });
-
-        *hasPrefetch = true;
-      }
-
-      return std::move(*batchPtr);
-    };
   }
 
   //===================================================================================================================//
