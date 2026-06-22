@@ -57,7 +57,7 @@ namespace NN_CLI
       this->numGpus = gpuIndex + 1;
 
     if (event == Event::Begin) {
-      if (phase == Phase::DataFetch && row == 0) {
+      if (phase == Phase::GpuTrain && row == 0) {
         if (this->stepInProgress)
           this->finalizeStep();
 
@@ -175,6 +175,7 @@ namespace NN_CLI
 
       containerWidth = termWidth > 4 ? termWidth - 4 : 120;
     }
+
     int msW = static_cast<int>(
       containerWidth > static_cast<ulong>(tableOverhead + minMsW) ? containerWidth - tableOverhead : minMsW);
     msW = std::max(msW, minMsW);
