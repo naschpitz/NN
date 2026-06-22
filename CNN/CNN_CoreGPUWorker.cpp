@@ -188,7 +188,11 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
       this->kernelBuilder->setupTrainKernels();
     }
 
-    T prevAccumLoss = zeroVal;
+    // Read current accum_loss so per-sample loss deltas are correct across fetch windows.
+    // accum_loss is reset per batch (resetAccumLoss), but accumulates across windows within a batch.
+    std::vector<T> currentAccumLoss(1);
+    this->core->template readBuffer<T>("accum_loss", currentAccumLoss, 0);
+    T prevAccumLoss = currentAccumLoss[0];
 
     for (ulong s = 0; s < N; s++) {
       const Sample<T>& sample = batchSamples[s];

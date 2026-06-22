@@ -239,7 +239,9 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
               };
             }
 
-            gpuLosses[item.gpuIdx] += this->gpuWorkers[item.gpuIdx]->trainSubset(
+            // accum_loss is cumulative across windows (reset per batch), so assign (=)
+            // the final window's return value — don't add (+=) across windows.
+            gpuLosses[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->trainSubset(
               gpuSamples, numSamples, e + 1, numEpochs, callback, this->timingCallback, static_cast<int>(item.gpuIdx),
               this->gpuProfileCallback, this->gpuProfileDumpPath);
           });
