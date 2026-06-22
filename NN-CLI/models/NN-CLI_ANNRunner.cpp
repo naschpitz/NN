@@ -237,8 +237,8 @@ int ANNRunner::train()
     });
 
   if (validationConfig.enabled) {
-    auto trainProvider = dataLoader.makeSampleProvider(split.trainIndices, this->augConfig.transforms,
-                                                       this->augConfig.augmentationProbability, SampleLoadType::Train);
+    auto trainProvider = dataLoader.makeSampleProvider(
+      this->augConfig.transforms, this->augConfig.augmentationProbability, SampleLoadType::Train, split.trainIndices);
     this->core->train(split.trainIndices.size(), trainProvider);
   } else {
     auto sampleProvider = dataLoader.makeSampleProvider(this->augConfig.transforms,
@@ -580,7 +580,7 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
   std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr;
 
   if (validationDataLoader && validationIndices && !validationIndices->empty()) {
-    auto provider = validationDataLoader->makeSampleProvider(*validationIndices, {}, 0.0f, SampleLoadType::Validation);
+    auto provider = validationDataLoader->makeSampleProvider({}, 0.0f, SampleLoadType::Validation, *validationIndices);
     validationProviderPtr = std::make_shared<ANN::SampleProvider<float>>(std::move(provider));
   }
 

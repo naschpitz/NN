@@ -92,13 +92,11 @@ namespace NN_CLI
       // The provider receives the full shuffled index array, a fetch size, and an
       // absolute start index. It returns the current window's samples and prefetches
       // the next window in the background using a persistent worker thread.
+      // When subsetIndices is non-empty, the provider remaps logical indices to the
+      // given subset entries (used for validation splits). Empty = full dataset.
       ProviderT makeSampleProvider(const AugmentationTransforms& transforms = {}, float augmentationProbability = 0.5f,
-                                   SampleLoadType loadType = SampleLoadType::Train) const;
-
-      // Build a SampleProvider that only serves samples from the given index subset.
-      ProviderT makeSampleProvider(const std::vector<ulong>& subsetIndices,
-                                   const AugmentationTransforms& transforms = {}, float augmentationProbability = 0.5f,
-                                   SampleLoadType loadType = SampleLoadType::Train) const;
+                                   SampleLoadType loadType = SampleLoadType::Train,
+                                   const std::vector<ulong>& subsetIndices = {}) const;
 
       // When set, image augmentation runs on the GPU (batch-level) instead of on the
       // CPU per sample. The pool is owned by the caller and must outlive this loader.
