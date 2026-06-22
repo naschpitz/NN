@@ -119,7 +119,17 @@ ulong Core<T>::computeFetchSize(ulong batchSize, ulong numWorkers) const
 {
   ulong fs = this->trainConfig.fetchSize > 0 ? this->trainConfig.fetchSize : numWorkers;
   fs = std::min(fs, batchSize);
-  return std::max(numWorkers, (fs / numWorkers) * numWorkers);
+  fs = std::max(numWorkers, (fs / numWorkers) * numWorkers);
+
+  // Ensure fetchSize divides batchSize evenly so every window within a batch
+  // is exactly fetchSize (no partial windows). Only the last batch of an epoch
+  // may be smaller; its last window triggers no further prefetch.
+  if (fs < batchSize)
+
+    while (batchSize % fs != 0)
+      fs--;
+
+  return fs;
 }
 
 //===================================================================================================================//
