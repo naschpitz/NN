@@ -112,6 +112,17 @@ namespace NN_CLI
           coreConfig.trainConfig.optimizer.epsilon = opt.at("epsilon").get<float>();
       }
 
+      if (tc.contains("scheduler")) {
+        const auto& sched = tc.at("scheduler");
+        auto& sc = coreConfig.trainConfig.scheduler;
+        sc.type = Common::LRSchedulerConfig::nameToType(sched.at("type").get<std::string>());
+        sc.gamma = sched.value("gamma", sc.gamma);
+        sc.stepSize = sched.value("stepSize", sc.stepSize);
+        sc.minLR = sched.value("minLR", sc.minLR);
+        sc.patience = sched.value("patience", sc.patience);
+        sc.minDelta = sched.value("minDelta", sc.minDelta);
+      }
+
       if (tc.contains("monitoring")) {
         const auto& mon = tc.at("monitoring");
         auto& mc = coreConfig.trainConfig.monitoringConfig;

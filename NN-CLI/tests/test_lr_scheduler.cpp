@@ -2,6 +2,8 @@
 
 #include "Common/Common_LRScheduler.hpp"
 
+#include "NN-CLI_ANNLoader.hpp"
+
 #include <CNN_Core.hpp>
 #include <CNN_CoreConfig.hpp>
 #include <CNN_Sample.hpp>
@@ -425,6 +427,105 @@ static void testSetLearningRatePropagatesToDenseHead()
 
 //===================================================================================================================//
 
+static void testSchedulerConfigParsingCosine()
+{
+  TestScope _t("testSchedulerConfigParsingCosine");
+
+  QString configPath = tempDir() + "/scheduler_cosine_parse.json";
+  QFile file(configPath);
+  file.open(QIODevice::WriteOnly);
+  file.write(R"({
+    "mode": "train",
+    "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
+    "train": {
+      "numEpochs": 100,
+      "learningRate": 0.01,
+      "scheduler": { "type": "cosine", "minLR": 0.0001 }
+    }
+  })");
+
+  file.close();
+
+  auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
+  CHECK(config.trainConfig.scheduler.type == Common::LRSchedulerType::COSINE, "cosine type parsed");
+  CHECK_NEAR(config.trainConfig.scheduler.minLR, 0.0001f, 1e-7f, "cosine minLR parsed");
+  CHECK_NEAR(config.trainConfig.scheduler.gamma, 0.1f, 1e-7f, "gamma retains default when omitted");
+}
+
+//===================================================================================================================//
+
+static void testSchedulerConfigParsingStep()
+{
+  TestScope _t("testSchedulerConfigParsingStep");
+
+  QString configPath = tempDir() + "/scheduler_step_parse.json";
+  QFile file(configPath);
+  file.open(QIODevice::WriteOnly);
+  file.write(R"({
+    "mode": "train",
+    "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
+    "train": {
+      "numEpochs": 100,
+      "learningRate": 0.01,
+      "scheduler": { "type": "step", "gamma": 0.5, "stepSize": 20 }
+    }
+  })");
+
+  file.close();
+
+  auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
+  CHECK(config.trainConfig.scheduler.type == Common::LRSchedulerType::STEP, "step type parsed");
+  CHECK_NEAR(config.trainConfig.scheduler.gamma, 0.5f, 1e-7f, "step gamma parsed");
+  CHECK(config.trainConfig.scheduler.stepSize == 20, "step stepSize parsed");
+}
+
+//===================================================================================================================//
+
+static void testSchedulerConfigDefaultsToNone()
+{
+  TestScope _t("testSchedulerConfigDefaultsToNone");
+
+  QString configPath = tempDir() + "/scheduler_none_parse.json";
+  QFile file(configPath);
+  file.open(QIODevice::WriteOnly);
+  file.write(R"({
+    "mode": "train",
+    "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
+    "train": { "numEpochs": 10, "learningRate": 0.01 }
+  })");
+
+  file.close();
+
+  auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
+  CHECK(config.trainConfig.scheduler.type == Common::LRSchedulerType::NONE, "no scheduler block → NONE");
+}
+
+//===================================================================================================================//
+
+static void testSchedulerMissingTypeThrows()
+{
+  TestScope _t("testSchedulerMissingTypeThrows");
+
+  QString configPath = tempDir() + "/scheduler_missing_type.json";
+  QFile file(configPath);
+  file.open(QIODevice::WriteOnly);
+  file.write(R"({
+    "mode": "train",
+    "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
+    "train": {
+      "numEpochs": 10,
+      "learningRate": 0.01,
+      "scheduler": { "gamma": 0.5 }
+    }
+  })");
+
+  file.close();
+
+  CHECK_THROWS(NN_CLI::ANNLoader::loadModel(configPath.toStdString()), "scheduler without 'type' must throw");
+}
+
+//===================================================================================================================//
+
 void runLRSchedulerTests()
 {
   testNoneKeepsConstantLR();
@@ -438,4 +539,8 @@ void runLRSchedulerTests()
   testPlateauRespectsMinLR();
   testPlateauResumeMatchesContinuous();
   testStepResumeMatchesContinuous();
+  testSchedulerConfigParsingCosine();
+  testSchedulerConfigParsingStep();
+  testSchedulerConfigDefaultsToNone();
+  testSchedulerMissingTypeThrows();
 }

@@ -135,6 +135,20 @@ namespace NN_CLI
     optJson["beta2"] = tc.optimizer.beta2;
     optJson["epsilon"] = tc.optimizer.epsilon;
     tcJson["optimizer"] = optJson;
+
+    using SchedulerType = std::decay_t<decltype(tc.scheduler.type)>;
+
+    if (tc.scheduler.type != SchedulerType::NONE) {
+      nlohmann::ordered_json schedJson;
+      using SchedulerConfigT = std::decay_t<decltype(tc.scheduler)>;
+      schedJson["type"] = SchedulerConfigT::typeToName(tc.scheduler.type);
+      schedJson["gamma"] = tc.scheduler.gamma;
+      schedJson["stepSize"] = tc.scheduler.stepSize;
+      schedJson["minLR"] = tc.scheduler.minLR;
+      schedJson["patience"] = tc.scheduler.patience;
+      schedJson["minDelta"] = tc.scheduler.minDelta;
+      tcJson["scheduler"] = schedJson;
+    }
   }
 
   //===================================================================================================================//
