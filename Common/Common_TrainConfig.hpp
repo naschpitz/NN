@@ -18,6 +18,11 @@ namespace Common
       ulong startingEpoch = 0; // Epoch index to start training from (0 = fresh start; >0 = resume)
       float learningRate = 0.01f;
       ulong batchSize = 64; // Mini-batch size (default = 64)
+      // Samples to fetch/materialize per SampleProvider call (host RAM window).
+      // 0 (default) = auto: max(numWorkers, augmenterChunkSize) for InstanceNorm,
+      // batchSize for BatchNorm. Smaller values reduce peak host RAM at the cost of
+      // more frequent I/O. See todo/decouple-fetchsize-from-batchsize.md.
+      ulong fetchSize = 0;
       bool shuffleSamples = true; // Shuffle sample order each epoch (default = true)
       // RNG seed for the per-epoch shuffle. 0 (default) means
       // std::random_device — non-deterministic, what production wants. Tests
