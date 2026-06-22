@@ -178,7 +178,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       // Fetch batch samples via provider
       this->emitTiming(TimingPhase::DataFetch, TimingEvent::Begin);
-      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchIndex);
+      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchStart);
       this->emitTiming(TimingPhase::DataFetch, TimingEvent::End);
 
       // Distribute the batch across GPUs
@@ -378,7 +378,7 @@ Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>
   ulong totalCorrect = 0;
 
   for (ulong b = 0; b < numBatches; b++) {
-    Samples<T> batch = sampleProvider(sampleIndices, batchSize, b);
+    Samples<T> batch = sampleProvider(sampleIndices, batchSize, b * batchSize);
 
     // Distribute batch across GPUs
     ulong batchLen = batch.size();

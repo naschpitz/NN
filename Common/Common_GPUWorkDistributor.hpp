@@ -85,7 +85,7 @@ namespace Common
     ulong totalCorrect = 0;
 
     for (ulong b = 0; b < numBatches; b++) {
-      auto batch = sampleProvider(sampleIndices, batchSize, b);
+      auto batch = sampleProvider(sampleIndices, batchSize, b * batchSize);
 
       // Distribute batch across GPUs
       ulong batchLen = batch.size();

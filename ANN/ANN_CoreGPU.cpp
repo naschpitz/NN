@@ -177,7 +177,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       ulong currentBatchSize = batchEnd - batchStart;
 
       // Fetch batch samples via provider
-      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchIndex);
+      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchStart);
 
       // Distribute the batch across GPUs (using local 0-based indices into batchSamples)
       ulong samplesPerGPU = currentBatchSize / this->numGPUs;

@@ -54,17 +54,17 @@ static void testProviderReturnsCorrectBatches()
   CHECK(batch0[2].input[0] == 2.0f, "batch 0 sample 2 correct");
 
   // Batch 1: indices 3,4,5
-  auto batch1 = provider(indices, batchSize, 1);
+  auto batch1 = provider(indices, batchSize, batchSize);
   CHECK(batch1.size() == 3, "batch 1 has 3 samples");
   CHECK(batch1[0].input[0] == 3.0f, "batch 1 sample 0 correct");
 
   // Batch 2: indices 6,7,8
-  auto batch2 = provider(indices, batchSize, 2);
+  auto batch2 = provider(indices, batchSize, 2 * batchSize);
   CHECK(batch2.size() == 3, "batch 2 has 3 samples");
   CHECK(batch2[0].input[0] == 6.0f, "batch 2 sample 0 correct");
 
   // Batch 3 (partial): indices 9
-  auto batch3 = provider(indices, batchSize, 3);
+  auto batch3 = provider(indices, batchSize, 3 * batchSize);
   CHECK(batch3.size() == 1, "last batch has 1 sample");
   CHECK(batch3[0].input[0] == 9.0f, "last batch sample correct");
 }
@@ -91,7 +91,7 @@ static void testProviderRespectsShuffledIndices()
   CHECK(batch0[1].input[0] == 4.0f, "shuffled batch 0 sample 1 = original[4]");
   CHECK(batch0[2].input[0] == 3.0f, "shuffled batch 0 sample 2 = original[3]");
 
-  auto batch1 = provider(indices, batchSize, 1);
+  auto batch1 = provider(indices, batchSize, batchSize);
   CHECK(batch1[0].input[0] == 2.0f, "shuffled batch 1 sample 0 = original[2]");
   CHECK(batch1[1].input[0] == 1.0f, "shuffled batch 1 sample 1 = original[1]");
   CHECK(batch1[2].input[0] == 0.0f, "shuffled batch 1 sample 2 = original[0]");
@@ -122,7 +122,7 @@ static void testPrefetchOverlapsWithProcessing()
 
   // Simulate the training loop pattern: get batch, sleep (train), get next
   for (ulong b = 0; b < 4; b++) {
-    auto batch = provider(indices, batchSize, b);
+    auto batch = provider(indices, batchSize, b * batchSize);
     CHECK(batch.size() == 5, "batch " + std::to_string(b) + " has 5 samples");
     CHECK(batch[0].input[0] == static_cast<float>(b * 5), "batch " + std::to_string(b) + " first sample correct");
 
@@ -147,7 +147,7 @@ static void testNewEpochResetsPrefetch()
   // Epoch 1: indices 0..5
   std::vector<ulong> epoch1 = {0, 1, 2, 3, 4, 5};
   auto b0 = provider(epoch1, batchSize, 0);
-  auto b1 = provider(epoch1, batchSize, 1);
+  auto b1 = provider(epoch1, batchSize, batchSize);
   CHECK(b0[0].input[0] == 0.0f, "epoch 1 batch 0 correct");
   CHECK(b1[0].input[0] == 3.0f, "epoch 1 batch 1 correct");
 
@@ -158,7 +158,7 @@ static void testNewEpochResetsPrefetch()
   CHECK(e2b0[0].input[0] == 5.0f, "epoch 2 batch 0 uses new indices");
   CHECK(e2b0[1].input[0] == 4.0f, "epoch 2 batch 0 sample 1 correct");
 
-  auto e2b1 = provider(epoch2, batchSize, 1);
+  auto e2b1 = provider(epoch2, batchSize, batchSize);
   CHECK(e2b1[0].input[0] == 2.0f, "epoch 2 batch 1 correct");
 }
 

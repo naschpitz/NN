@@ -89,11 +89,11 @@ namespace NN_CLI
       std::vector<std::vector<float>> getAllOutputs() const;
 
       // Build a SampleProvider with async prefetching for use with train().
-      // The provider receives the full shuffled index array, batch size, and current batch index.
-      // It returns the current batch's samples and prefetches the next batch in the background
-      // using a persistent worker thread.
+      // The provider receives the full shuffled index array, a fetch size, and an
+      // absolute start index. It returns the current window's samples and prefetches
+      // the next window in the background using a persistent worker thread.
       ProviderT makeSampleProvider(const AugmentationTransforms& transforms = {}, float augmentationProbability = 0.5f,
-                                    SampleLoadType loadType = SampleLoadType::Train) const;
+                                   SampleLoadType loadType = SampleLoadType::Train) const;
 
       // Build a SampleProvider that only serves samples from the given index subset.
       ProviderT makeSampleProvider(const std::vector<ulong>& subsetIndices,
@@ -134,7 +134,7 @@ namespace NN_CLI
       // batchIndex and totalBatches are passed through to the loading callback for progress display.
       std::vector<SampleT> loadBatch(const std::vector<ulong>& entryIndices, const AugmentationTransforms& transforms,
                                      float augmentationProbability, ulong batchIndex = 1, ulong totalBatches = 1,
-                                   SampleLoadType loadType = SampleLoadType::Train) const;
+                                     SampleLoadType loadType = SampleLoadType::Train) const;
 
       // Retrieve a single sample by entry index, optionally applying augmentation.
       SampleT loadSample(ulong entryIndex, std::mt19937& rng, const AugmentationTransforms& transforms,

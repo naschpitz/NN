@@ -518,7 +518,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       ulong batchEnd = std::min(batchStart + batchSize, numSamples);
       ulong currentBatchSize = batchEnd - batchStart;
 
-      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchIndex);
+      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchStart);
 
       // Per-worker sample counts (extras distributed to first workers)
       std::vector<ulong> workerSampleCounts(numThreads);
@@ -731,7 +731,7 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
   ulong totalCorrect = 0;
 
   for (ulong b = 0; b < numBatches; b++) {
-    Samples<T> batch = sampleProvider(sampleIndices, batchSize, b);
+    Samples<T> batch = sampleProvider(sampleIndices, batchSize, b * batchSize);
     ulong currentBatchSize = batch.size();
 
     // Distribute samples across workers
@@ -856,7 +856,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
       ulong batchEnd = std::min(batchStart + batchSize, numSamples);
       ulong currentBatchSize = batchEnd - batchStart;
 
-      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchIndex);
+      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchStart);
       ulong N = batchSamples.size();
 
       // ---- FORWARD PASS (layer by layer) ----

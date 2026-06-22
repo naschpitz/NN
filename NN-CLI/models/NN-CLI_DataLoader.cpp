@@ -363,12 +363,12 @@ namespace NN_CLI
     auto hasPrefetch = std::make_shared<bool>(false);
 
     return [this, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability, loadType](
-             const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
+             const std::vector<ulong>& sampleIndices, ulong fetchSize, ulong fetchStart) -> std::vector<SampleT> {
       ulong numSamples = sampleIndices.size();
-      ulong start = batchIndex * batchSize;
-      ulong end = std::min(start + batchSize, numSamples);
-      ulong totalBatches = (numSamples + batchSize - 1) / batchSize;
-      ulong batchNum = batchIndex + 1;
+      ulong start = fetchStart;
+      ulong end = std::min(start + fetchSize, numSamples);
+      ulong totalBatches = (numSamples + fetchSize - 1) / fetchSize;
+      ulong batchNum = fetchStart / fetchSize + 1;
 
       BatchPtr batchPtr;
 
@@ -385,7 +385,7 @@ namespace NN_CLI
       ulong nextStart = end;
 
       if (nextStart < numSamples) {
-        ulong nextEnd = std::min(nextStart + batchSize, numSamples);
+        ulong nextEnd = std::min(nextStart + fetchSize, numSamples);
         std::vector<ulong> nextIndices(sampleIndices.begin() + nextStart, sampleIndices.begin() + nextEnd);
 
         *prefetch =
@@ -426,12 +426,12 @@ namespace NN_CLI
     auto hasPrefetch = std::make_shared<bool>(false);
 
     return [this, subsetPtr, prefetchPool, prefetch, hasPrefetch, transforms, augmentationProbability, loadType](
-             const std::vector<ulong>& sampleIndices, ulong batchSize, ulong batchIndex) -> std::vector<SampleT> {
+             const std::vector<ulong>& sampleIndices, ulong fetchSize, ulong fetchStart) -> std::vector<SampleT> {
       ulong numSamples = sampleIndices.size();
-      ulong start = batchIndex * batchSize;
-      ulong end = std::min(start + batchSize, numSamples);
-      ulong totalBatches = (numSamples + batchSize - 1) / batchSize;
-      ulong batchNum = batchIndex + 1;
+      ulong start = fetchStart;
+      ulong end = std::min(start + fetchSize, numSamples);
+      ulong totalBatches = (numSamples + fetchSize - 1) / fetchSize;
+      ulong batchNum = fetchStart / fetchSize + 1;
 
       // Remap: sampleIndices contains shuffled indices 0..N-1 into the subset,
       // and subsetPtr maps those to actual entry indices.
@@ -460,7 +460,7 @@ namespace NN_CLI
       ulong nextStart = end;
 
       if (nextStart < numSamples) {
-        ulong nextEnd = std::min(nextStart + batchSize, numSamples);
+        ulong nextEnd = std::min(nextStart + fetchSize, numSamples);
 
         *prefetch =
           QtConcurrent::run(prefetchPool.get(),

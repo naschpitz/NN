@@ -238,7 +238,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       }
 
       // Fetch batch samples via provider
-      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchIndex);
+      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchStart);
 
       // Distribute this batch across workers in contiguous chunks (extras to first
       // workers). Each worker processes its chunk end-to-end on this core's own pool.
@@ -391,7 +391,7 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
   ulong totalCorrect = 0;
 
   for (ulong b = 0; b < numBatches; b++) {
-    Samples<T> batch = sampleProvider(sampleIndices, batchSize, b);
+    Samples<T> batch = sampleProvider(sampleIndices, batchSize, b * batchSize);
     ulong batchN = batch.size();
 
     // Per-worker loss and correct counters
