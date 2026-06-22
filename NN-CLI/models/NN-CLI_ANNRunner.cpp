@@ -671,6 +671,9 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
                                              this->buildValidationMetadata());
     }
 
+    // --- LR scheduler step (publishes the new LR for the next epoch) ---
+    this->applyLRScheduler(epoch, totalEpochs, hasValLoss, valLoss);
+
     // --- Observer notification — epoch completed ---
     std::string epochSummary = "Epoch " + std::to_string(epoch + 1) + "/" + std::to_string(totalEpochs) +
                                " | Loss: " + std::to_string(this->lastEpochLoss);

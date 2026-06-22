@@ -526,6 +526,51 @@ static void testSchedulerMissingTypeThrows()
 
 //===================================================================================================================//
 
+static void testSchedulerAppliedDuringTraining()
+{
+  TestScope _t("testSchedulerAppliedDuringTraining");
+
+  // Step scheduler: gamma=0.1 every stepSize=3 epochs, baseLR=0.5, 10 epochs. The epoch-boundary
+  // callback fires after epochs 0..9; the last is at absEpoch=9 → floor(9/3)=3 decay steps →
+  // 0.5 * 0.1^3 = 0.0005. The --output model is saved post-train, so it captures that final LR.
+  // If applyLRScheduler were never wired, the output LR would stay 0.5 and this assertion fails.
+  QString configPath = tempDir() + "/scheduler_applied_train.json";
+  QFile file(configPath);
+  file.open(QIODevice::WriteOnly);
+  file.write(R"({
+    "mode": "train",
+    "device": "cpu",
+    "numThreads": 1,
+    "saveModelInterval": 0,
+    "layers": [
+      { "numNeurons": 2, "actvFunc": "relu" },
+      { "numNeurons": 8, "actvFunc": "relu" },
+      { "numNeurons": 2, "actvFunc": "sigmoid" }
+    ],
+    "train": {
+      "numEpochs": 10,
+      "learningRate": 0.5,
+      "scheduler": { "type": "step", "gamma": 0.1, "stepSize": 3 }
+    }
+  })");
+
+  file.close();
+
+  QString modelPath = tempDir() + "/scheduler_applied_model.nnmodel.tar";
+  auto result = runNNCLI({"--model", configPath, "--mode", "train", "--device", "cpu", "--samples",
+                          fixturePath("ann_train_samples.json"), "--output", modelPath, "--log-level", "quiet"});
+  CHECK(result.exitCode == 0, "scheduler training run exited 0");
+
+  QJsonObject modelJson = readModelJsonFromPackage(modelPath);
+  CHECK(!modelJson.isEmpty(), "output model.json readable");
+  QJsonObject trainJson = modelJson.value("train").toObject();
+  CHECK(!trainJson.isEmpty(), "model.json has train block");
+  const double finalLR = trainJson.value("learningRate").toDouble(-999.0);
+  CHECK_NEAR(static_cast<float>(finalLR), 0.0005f, 1e-5f, "step scheduler annealed final LR to base*gamma^3");
+}
+
+//===================================================================================================================//
+
 void runLRSchedulerTests()
 {
   testNoneKeepsConstantLR();
@@ -543,4 +588,5 @@ void runLRSchedulerTests()
   testSchedulerConfigParsingStep();
   testSchedulerConfigDefaultsToNone();
   testSchedulerMissingTypeThrows();
+  testSchedulerAppliedDuringTraining();
 }

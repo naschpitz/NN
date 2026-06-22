@@ -26,6 +26,34 @@ NN_CLI::Runner<CoreT, CoreConfigT>::Runner(const QCommandLineParser& parser, NN_
     coreConfig(coreConfig),
     configPath(configPath)
 {
+  // Seed the LR scheduler: the base/current LR is the configured learning rate.
+  // On resume this is overwritten by the checkpoint's schedulerState (Phase 6-state).
+  this->schedulerState.baseLR = coreConfig.trainConfig.learningRate;
+  this->schedulerState.currentLR = coreConfig.trainConfig.learningRate;
+}
+
+//===================================================================================================================//
+//  LR scheduler
+//===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
+void NN_CLI::Runner<CoreT, CoreConfigT>::applyLRScheduler(ulong epoch, int totalEpochs, bool hasValLoss, float valLoss)
+{
+  const auto& trainConfig = this->core->getTrainConfig();
+  const auto& cfg = trainConfig.scheduler;
+
+  if (cfg.type == Common::LRSchedulerType::NONE)
+    return;
+
+  // Absolute epoch index keeps step/cosine curves continuous across resumed runs.
+  const ulong absEpoch = trainConfig.startingEpoch + epoch;
+  const float newLR =
+    Common::stepLRScheduler(cfg, this->schedulerState, absEpoch, static_cast<ulong>(totalEpochs), hasValLoss, valLoss);
+
+  if (newLR != this->schedulerState.currentLR)
+    this->core->setLearningRate(newLR);
+
+  this->schedulerState.currentLR = newLR;
 }
 
 //===================================================================================================================//

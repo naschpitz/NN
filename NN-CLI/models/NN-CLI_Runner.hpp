@@ -10,6 +10,7 @@
 #include "NN-CLI_SummaryTable.hpp"
 #include "NN-CLI_Utils.hpp"
 
+#include "Common/Common_LRScheduler.hpp"
 #include "Common/Common_TrainProgressEvent.hpp"
 
 #include <QCommandLineParser>
@@ -163,6 +164,14 @@ namespace NN_CLI
       // core's sample counter.
       void setupPredictProgressCallback(ulong total);
 
+      // Advance the LR scheduler one step at an epoch boundary and publish the
+      // new LR to the core (no-op when scheduler.type == NONE).  `epoch` is the
+      // 0-based index of the just-completed epoch (relative to this run); the
+      // absolute index used by step/cosine is startingEpoch + epoch so curves
+      // continue across resumes.  Called from both ANN/CNN epoch-completed
+      // callbacks after validation loss is known.
+      void applyLRScheduler(ulong epoch, int totalEpochs, bool hasValLoss, float valLoss);
+
       //-- Pure virtual --//
       virtual void doSaveModel(const std::string& outputPath) = 0;
 
@@ -197,6 +206,10 @@ namespace NN_CLI
 
       //-- Validation state --//
       ValidationState validationState;
+
+      //-- LR scheduler state (seeded in the ctor from trainConfig.learningRate;
+      // overwritten on resume by the loaded checkpoint state). --//
+      Common::LRSchedulerState schedulerState;
 
       //-- Callback state --//
       // Latest epoch-average training loss, written by the per-batch progress
