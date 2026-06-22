@@ -122,4 +122,8 @@ add_executable(test_cnn
   tests/test_cpu_predict_stop.cpp
 )
 target_link_libraries(test_cnn PRIVATE CNN)
+
+# GCC 13 -Wstringop-overread false positive: fires on std::vector copy inside
+# ConvParameters<T>'s implicit copy ctor (GCC loses track of heap-allocated size).
+target_compile_options(test_cnn PRIVATE -Wno-stringop-overread)
 endif()
