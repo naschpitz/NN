@@ -222,9 +222,9 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     std::atomic<ulong> completedSamples{0};
 
     // Process samples in mini-batches
-    ulong batchIndex = 0;
+    ulong fetchSize = batchSize;
 
-    for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize, batchIndex++) {
+    for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize) {
       ulong batchEnd = std::min(batchStart + batchSize, numSamples);
       ulong currentBatchSize = batchEnd - batchStart;
 
@@ -237,40 +237,41 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         workers[i]->resetAccumLoss();
       }
 
-      // Fetch batch samples via provider
-      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchStart);
+      // Accumulate gradients over fetch windows within the batch
+      for (ulong fetchStart = batchStart; fetchStart < batchEnd; fetchStart += fetchSize) {
+        ulong thisFetchSize = std::min(fetchSize, batchEnd - fetchStart);
 
-      // Distribute this batch across workers in contiguous chunks (extras to first
-      // workers). Each worker processes its chunk end-to-end on this core's own pool.
-      // numThreads==1 means a single worker handles all samples in order — the
-      // bit-deterministic path the tests rely on when they set shuffleSeed.
-      std::vector<ulong> workerSampleCounts(numThreads);
+        Samples<T> fetchSamples = sampleProvider(sampleIndices, thisFetchSize, fetchStart);
 
-      for (int i = 0; i < numThreads; i++)
-        workerSampleCounts[i] = currentBatchSize / static_cast<ulong>(numThreads) +
-                                (static_cast<ulong>(i) < currentBatchSize % static_cast<ulong>(numThreads) ? 1 : 0);
+        // Per-worker distribution for this fetch window
+        std::vector<ulong> windowWorkerCounts(numThreads);
 
-      this->runWorkers(numThreads, [&](int workerIdx) {
-        CoreCPUWorker<T>& worker = *workers[workerIdx];
+        for (int i = 0; i < numThreads; i++)
+          windowWorkerCounts[i] = thisFetchSize / static_cast<ulong>(numThreads) +
+                                  (static_cast<ulong>(i) < thisFetchSize % static_cast<ulong>(numThreads) ? 1 : 0);
 
-        ulong workerLocalStart = 0;
+        this->runWorkers(numThreads, [&](int workerIdx) {
+          CoreCPUWorker<T>& worker = *workers[workerIdx];
 
-        for (int i = 0; i < workerIdx; i++)
-          workerLocalStart += workerSampleCounts[i];
-        ulong workerLocalEnd = workerLocalStart + workerSampleCounts[workerIdx];
+          ulong workerLocalStart = 0;
 
-        for (ulong localIdx = workerLocalStart; localIdx < workerLocalEnd; localIdx++) {
-          const Sample<T>& sample = batchSamples[localIdx];
-          worker.propagate(sample.input, true);
-          T sampleLoss = worker.computeLoss(sample.output);
-          worker.backpropagate(sample.output);
-          worker.addToAccumLoss(sampleLoss);
-          worker.accumulate();
+          for (int i = 0; i < workerIdx; i++)
+            workerLocalStart += windowWorkerCounts[i];
+          ulong workerLocalEnd = workerLocalStart + windowWorkerCounts[workerIdx];
 
-          ulong completed = ++completedSamples;
-          this->reportProgress(e + 1, numEpochs, completed, numSamples, sampleLoss, 0, callbackMutex);
-        }
-      });
+          for (ulong localIdx = workerLocalStart; localIdx < workerLocalEnd; localIdx++) {
+            const Sample<T>& sample = fetchSamples[localIdx];
+            worker.propagate(sample.input, true);
+            T sampleLoss = worker.computeLoss(sample.output);
+            worker.backpropagate(sample.output);
+            worker.addToAccumLoss(sampleLoss);
+            worker.accumulate();
+
+            ulong completed = ++completedSamples;
+            this->reportProgress(e + 1, numEpochs, completed, numSamples, sampleLoss, 0, callbackMutex);
+          }
+        });
+      }
 
       // Merge all worker accumulators into global accumulators
       for (int i = 0; i < numThreads; i++) {

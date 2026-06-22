@@ -512,13 +512,11 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       std::shuffle(sampleIndices.begin(), sampleIndices.end(), rng);
     }
 
-    ulong batchIndex = 0;
+    ulong fetchSize = batchSize;
 
-    for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize, batchIndex++) {
+    for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize) {
       ulong batchEnd = std::min(batchStart + batchSize, numSamples);
       ulong currentBatchSize = batchEnd - batchStart;
-
-      Samples<T> batchSamples = sampleProvider(sampleIndices, batchSize, batchStart);
 
       // Per-worker sample counts (extras distributed to first workers)
       std::vector<ulong> workerSampleCounts(numThreads);
@@ -536,35 +534,49 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         workers[i]->resetAccumLoss();
       }
 
-      // Each worker processes its chunk of the batch end-to-end (fully parallel)
-      this->runWorkers(numThreads, [&](int workerIdx) {
-        CoreCPUWorker<T>& worker = *workers[workerIdx];
+      // Accumulate gradients over fetch windows within the batch
+      for (ulong fetchStart = batchStart; fetchStart < batchEnd; fetchStart += fetchSize) {
+        ulong thisFetchSize = std::min(fetchSize, batchEnd - fetchStart);
 
-        ulong workerLocalStart = 0;
+        Samples<T> fetchSamples = sampleProvider(sampleIndices, thisFetchSize, fetchStart);
 
-        for (int i = 0; i < workerIdx; i++)
-          workerLocalStart += workerSampleCounts[i];
-        ulong workerLocalEnd = workerLocalStart + workerSampleCounts[workerIdx];
+        // Per-worker distribution for this fetch window
+        std::vector<ulong> windowWorkerCounts(numThreads);
 
-        for (ulong s = workerLocalStart; s < workerLocalEnd; s++) {
-          const Sample<T>& sample = batchSamples[s];
-          T sampleLoss = worker.processSample(sample.input, sample.output);
+        for (int i = 0; i < numThreads; i++)
+          windowWorkerCounts[i] = thisFetchSize / static_cast<ulong>(numThreads) +
+                                  (static_cast<ulong>(i) < thisFetchSize % static_cast<ulong>(numThreads) ? 1 : 0);
 
-          ulong completed = ++completedSamples;
+        // Each worker processes its chunk of this fetch window
+        this->runWorkers(numThreads, [&](int workerIdx) {
+          CoreCPUWorker<T>& worker = *workers[workerIdx];
 
-          if (this->trainCallback) {
-            QMutexLocker locker(&callbackMutex);
-            Common::TrainProgressEvent<T> progress;
-            progress.currentEpoch = e + 1;
-            progress.totalEpochs = numEpochs;
-            progress.currentSample = completed;
-            progress.totalSamples = numSamples;
-            progress.sampleLoss = sampleLoss;
-            progress.epochLoss = 0;
-            this->trainCallback(progress);
+          ulong workerLocalStart = 0;
+
+          for (int i = 0; i < workerIdx; i++)
+            workerLocalStart += windowWorkerCounts[i];
+          ulong workerLocalEnd = workerLocalStart + windowWorkerCounts[workerIdx];
+
+          for (ulong s = workerLocalStart; s < workerLocalEnd; s++) {
+            const Sample<T>& sample = fetchSamples[s];
+            T sampleLoss = worker.processSample(sample.input, sample.output);
+
+            ulong completed = ++completedSamples;
+
+            if (this->trainCallback) {
+              QMutexLocker locker(&callbackMutex);
+              Common::TrainProgressEvent<T> progress;
+              progress.currentEpoch = e + 1;
+              progress.totalEpochs = numEpochs;
+              progress.currentSample = completed;
+              progress.totalSamples = numSamples;
+              progress.sampleLoss = sampleLoss;
+              progress.epochLoss = 0;
+              this->trainCallback(progress);
+            }
           }
-        }
-      });
+        });
+      }
 
       // Merge: update each worker's , then weighted-average their parameters
       for (int i = 0; i < numThreads; i++)
