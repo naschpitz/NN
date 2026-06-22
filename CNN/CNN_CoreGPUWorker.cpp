@@ -127,6 +127,22 @@ Common::PredictResult<T> CoreGPUWorker<T>::predict(const Input<T>& input)
 //===================================================================================================================//
 
 template <typename T>
+void CoreGPUWorker<T>::resetAccumulators()
+{
+  this->bufferManager->resetAccumulators();
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPUWorker<T>::resetAccumLoss()
+{
+  this->core->template fillBuffer<T>("accum_loss", static_cast<T>(0), 1);
+}
+
+//===================================================================================================================//
+
+template <typename T>
 T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples, ulong epoch, ulong totalEpochs,
                                 const Common::TrainCallback<T>& callback, const TimingCallback& timingCallback,
                                 int gpuIndex, const GpuProfileCallback& gpuProfileCallback,
@@ -164,12 +180,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
   // Tell kernel builder whether to skip BN running stats in update()
   this->kernelBuilder->skipBNRunningStatsInUpdate = hasBatchNorm;
 
-  // Reset accumulators
-  this->bufferManager->resetAccumulators();
-
-  // Zero the GPU loss accumulator
   T zeroVal = static_cast<T>(0);
-  this->core->template fillBuffer<T>("accum_loss", zeroVal, 1);
 
   if (!hasBatchNorm) {
     // ---- FAST PATH: no BN layers — pre-built kernel set, one run() per sample ----

@@ -193,6 +193,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       std::vector<T> gpuLosses(this->numGPUs, 0);
 
+      // Reset accumulators (once per batch — mirrors CPU worker pattern)
+      for (size_t i = 0; i < this->numGPUs; i++) {
+        this->gpuWorkers[i]->resetAccumulators();
+      }
+
       // Use QtConcurrent to process each GPU's work in parallel
       QtConcurrent::blockingMap(
         &this->workerPool, workItems,

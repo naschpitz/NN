@@ -42,6 +42,10 @@ namespace CNN
                     int gpuIndex = -1, const GpuProfileCallback& gpuProfileCallback = nullptr,
                     const std::string& gpuProfileDumpPath = "");
 
+      //-- Accumulator reset (called by CoreGPU before trainSubset, mirrors CoreCPUWorker) --//
+      void resetAccumulators();
+      void resetAccumLoss();
+
       //-- Testing --//
       std::pair<T, ulong> testSubset(SamplesView<T> samples);
 

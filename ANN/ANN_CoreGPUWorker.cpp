@@ -111,9 +111,6 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
 
   T subsetLoss = 0;
 
-  // Reset accumulators at the start
-  this->resetAccumulators();
-
   for (ulong s = 0; s < numSamplesInSubset; s++) {
     const Input<T>& input = batchSamples[s].input;
     const Output<T>& output = batchSamples[s].output;
