@@ -185,18 +185,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   ulong numWorkers = static_cast<ulong>(numThreads);
   batchSize = std::max(numWorkers, (batchSize / numWorkers) * numWorkers);
 
-  // Compute fetch window size: ANN processes samples independently (no BatchNorm).
-  // fetchSize controls host RAM (2×fetchSize with prefetch) — smaller = less RAM.
-  ulong fetchSize;
-
-  if (this->trainConfig.fetchSize > 0) {
-    fetchSize = this->trainConfig.fetchSize;
-  } else {
-    fetchSize = numWorkers;
-  }
-
-  fetchSize = std::min(fetchSize, batchSize);
-  fetchSize = std::max(numWorkers, (fetchSize / numWorkers) * numWorkers);
+  ulong fetchSize = this->computeFetchSize(batchSize, numWorkers, false);
 
   // Pre-allocate workers for each thread
   std::vector<std::unique_ptr<CoreCPUWorker<T>>> workers;

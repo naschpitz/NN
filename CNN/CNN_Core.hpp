@@ -197,6 +197,9 @@ namespace CNN
       void predictStart();
       Common::PredictMetadata<T> predictEnd();
 
+      //-- Fetch size computation --//
+      ulong computeFetchSize(ulong batchSize, ulong numWorkers, bool hasBatchNorm) const;
+
       //-- Configuration members --//
       CoreConfig<T> coreConfig;
       Common::DeviceType deviceType;

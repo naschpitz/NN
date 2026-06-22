@@ -130,18 +130,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   ulong batchSize = this->trainConfig.batchSize;
   batchSize = std::max(this->numGPUs, (batchSize / this->numGPUs) * this->numGPUs);
 
-  // Compute fetch window size: ANN processes samples independently (no BatchNorm).
-  // fetchSize controls host RAM (2×fetchSize with prefetch) — smaller = less RAM.
-  ulong fetchSize;
-
-  if (this->trainConfig.fetchSize > 0) {
-    fetchSize = this->trainConfig.fetchSize;
-  } else {
-    fetchSize = static_cast<ulong>(this->numGPUs);
-  }
-
-  fetchSize = std::min(fetchSize, batchSize);
-  fetchSize = std::max(this->numGPUs, (fetchSize / this->numGPUs) * this->numGPUs);
+  ulong fetchSize = this->computeFetchSize(batchSize, static_cast<ulong>(this->numGPUs), false);
 
   if (this->logLevel >= Common::LogLevel::INFO) {
     std::cout << "Starting GPU training: " << numSamples << " samples, " << numEpochs << " epochs, " << this->numGPUs

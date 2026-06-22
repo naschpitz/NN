@@ -151,6 +151,25 @@ Common::PredictMetadata<T> Core<T>::predictEnd()
 
 //===================================================================================================================//
 
+template <typename T>
+ulong Core<T>::computeFetchSize(ulong batchSize, ulong numWorkers, bool hasBatchNorm) const
+{
+  ulong fs;
+
+  if (hasBatchNorm) {
+    fs = batchSize;
+  } else if (this->trainConfig.fetchSize > 0) {
+    fs = this->trainConfig.fetchSize;
+  } else {
+    fs = numWorkers;
+  }
+
+  fs = std::min(fs, batchSize);
+  return std::max(numWorkers, (fs / numWorkers) * numWorkers);
+}
+
+//===================================================================================================================//
+
 // Explicit template instantiations
 template class CNN::Core<int>;
 template class CNN::Core<double>;

@@ -136,20 +136,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     }
   }
 
-  // Compute fetch window size: BatchNorm needs full batch; InstanceNorm decouples.
-  // fetchSize controls host RAM (2×fetchSize with prefetch) — smaller = less RAM.
-  ulong fetchSize;
-
-  if (hasBatchNorm) {
-    fetchSize = batchSize;
-  } else if (this->trainConfig.fetchSize > 0) {
-    fetchSize = this->trainConfig.fetchSize;
-  } else {
-    fetchSize = static_cast<ulong>(this->numGPUs);
-  }
-
-  fetchSize = std::min(fetchSize, batchSize);
-  fetchSize = std::max(this->numGPUs, (fetchSize / this->numGPUs) * this->numGPUs);
+  ulong fetchSize = this->computeFetchSize(batchSize, static_cast<ulong>(this->numGPUs), hasBatchNorm);
 
   if (this->logLevel >= Common::LogLevel::INFO) {
     std::cout << "Starting GPU training: " << numSamples << " samples, " << numEpochs << " epochs, " << this->numGPUs
