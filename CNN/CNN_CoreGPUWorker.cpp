@@ -184,7 +184,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
   // For the first window of each batch this is 0 (just reset by resetAccumLoss).
   // For subsequent windows this carries the value accumulated by prior windows.
   std::vector<T> initialAccumLoss(1);
-  this->core->template readBuffer<T>("accum_loss", initialAccumLoss, 0);
+  this->readGPUBuffer("accum_loss", initialAccumLoss, 0);
   T initialLoss = initialAccumLoss[0];
 
   if (!hasBatchNorm) {
@@ -393,7 +393,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
 
   // Read accumulated loss
   std::vector<T> lossVec(1);
-  this->core->template readBuffer<T>("accum_loss", lossVec, 0);
+  this->readGPUBuffer("accum_loss", lossVec, 0);
 
   // Return per-window loss delta (not cumulative) so callers can use += to sum windows.
   return lossVec[0] - initialLoss;
@@ -472,7 +472,7 @@ void CoreGPUWorker<T>::reportSampleProgress(const Common::TrainCallback<T>& call
 
   // Per-sample loss is the delta of the GPU's running accumulator since the previous sample.
   std::vector<T> accumLoss(1);
-  this->core->template readBuffer<T>("accum_loss", accumLoss, 0);
+  this->readGPUBuffer("accum_loss", accumLoss, 0);
   T currentAccumLoss = accumLoss[0];
   T sampleLoss = currentAccumLoss - prevAccumLoss;
   prevAccumLoss = currentAccumLoss;
