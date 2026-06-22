@@ -224,6 +224,16 @@ namespace NN_CLI
       coreConfig.loadedTrainMetadata.bestEpoch = md.value("bestEpoch", 0UL);
       coreConfig.loadedTrainMetadata.bestLoss = static_cast<float>(md.value("bestLoss", 0.0));
 
+      // Parse persisted LR scheduler state (enables plateau resume)
+      if (md.contains("schedulerState")) {
+        const auto& ss = md.at("schedulerState");
+        coreConfig.loadedTrainMetadata.schedulerState.currentLR = ss.value("currentLR", 0.0f);
+        coreConfig.loadedTrainMetadata.schedulerState.baseLR = ss.value("baseLR", 0.0f);
+        coreConfig.loadedTrainMetadata.schedulerState.epochsSinceImprovement = ss.value("epochsSinceImprovement", 0UL);
+        coreConfig.loadedTrainMetadata.schedulerState.bestValLoss = ss.value("bestValLoss", 0.0f);
+        coreConfig.loadedTrainMetadata.schedulerState.initialized = ss.value("initialized", false);
+      }
+
       // Set startingEpoch from lastEpoch: lastEpoch is the 0-based index of the
       // last completed epoch, so resume on the next one. E.g. lastEpoch=24
       // (epochs 0..24 done) resumes at startingEpoch=25 (e=25..99 = 75 more).

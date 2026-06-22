@@ -190,6 +190,18 @@ namespace NN_CLI
       mdJson["bestLoss"] = md.bestLoss;
     }
 
+    // Persist LR scheduler state so training can resume (matters for plateau, which tracks
+    // bestValLoss and a patience counter across epochs).
+    if (md.schedulerState.initialized) {
+      nlohmann::ordered_json ssJson;
+      ssJson["currentLR"] = md.schedulerState.currentLR;
+      ssJson["baseLR"] = md.schedulerState.baseLR;
+      ssJson["epochsSinceImprovement"] = md.schedulerState.epochsSinceImprovement;
+      ssJson["bestValLoss"] = md.schedulerState.bestValLoss;
+      ssJson["initialized"] = md.schedulerState.initialized;
+      mdJson["schedulerState"] = ssJson;
+    }
+
     // Serialize epoch history (only when non-empty)
     if (!md.epochHistory.empty()) {
       nlohmann::ordered_json epochsArr = nlohmann::ordered_json::array();

@@ -2,6 +2,7 @@
 #define COMMON_TRAINMETADATA_HPP
 
 #include "Common/Common_EpochRecord.hpp"
+#include "Common/Common_LRScheduler.hpp"
 
 #include <cstdint>
 #include <string>
@@ -27,6 +28,9 @@ namespace Common
       std::string stopReason; // Why training stopped (empty = completed all epochs)
       ulong bestEpoch = 0; // Epoch with best loss
       T bestLoss = 0; // Best loss value
+
+      // LR scheduler state (persisted so resumed runs continue the schedule; plateau-relevant)
+      LRSchedulerState schedulerState;
 
       // Per-epoch training history
       std::vector<EpochRecord<T>> epochHistory;

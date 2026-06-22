@@ -567,6 +567,13 @@ static void testSchedulerAppliedDuringTraining()
   CHECK(!trainJson.isEmpty(), "model.json has train block");
   const double finalLR = trainJson.value("learningRate").toDouble(-999.0);
   CHECK_NEAR(static_cast<float>(finalLR), 0.0005f, 1e-5f, "step scheduler annealed final LR to base*gamma^3");
+
+  QJsonObject metaJson = modelJson.value("trainMetadata").toObject();
+  CHECK(metaJson.contains("schedulerState"), "scheduler state persisted in model metadata");
+  QJsonObject ssJson = metaJson.value("schedulerState").toObject();
+  CHECK(ssJson.value("initialized").toBool(false), "persisted scheduler state marked initialized");
+  const double persistedCurrentLR = ssJson.value("currentLR").toDouble(-999.0);
+  CHECK_NEAR(static_cast<float>(persistedCurrentLR), 0.0005f, 1e-5f, "persisted currentLR matches annealed LR");
 }
 
 //===================================================================================================================//

@@ -710,6 +710,7 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
 
 void ANNRunner::doSaveModel(const std::string& outputPath)
 {
+  this->core->getTrainMetadata().schedulerState = this->schedulerState;
   ModelSerializer::saveANNModelToPackage(outputPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                          this->buildValidationMetadata());
 }

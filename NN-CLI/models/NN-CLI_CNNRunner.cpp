@@ -782,6 +782,7 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
 
 void CNNRunner::doSaveModel(const std::string& outputPath)
 {
+  this->core->getTrainMetadata().schedulerState = this->schedulerState;
   ModelSerializer::saveCNNModelToPackage(outputPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                          this->buildValidationMetadata());
 }

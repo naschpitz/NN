@@ -30,6 +30,10 @@ NN_CLI::Runner<CoreT, CoreConfigT>::Runner(const QCommandLineParser& parser, NN_
   // On resume this is overwritten by the checkpoint's schedulerState (Phase 6-state).
   this->schedulerState.baseLR = coreConfig.trainConfig.learningRate;
   this->schedulerState.currentLR = coreConfig.trainConfig.learningRate;
+
+  // On resume, restore the persisted scheduler state so the schedule continues (plateau needs this).
+  if (coreConfig.loadedTrainMetadata.schedulerState.initialized)
+    this->schedulerState = coreConfig.loadedTrainMetadata.schedulerState;
 }
 
 //===================================================================================================================//
@@ -44,6 +48,9 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::applyLRScheduler(ulong epoch, int total
 
   if (cfg.type == Common::LRSchedulerType::NONE)
     return;
+
+  // Mark state as live so it persists across checkpoint saves (enables plateau resume).
+  this->schedulerState.initialized = true;
 
   // Absolute epoch index keeps step/cosine curves continuous across resumed runs.
   const ulong absEpoch = trainConfig.startingEpoch + epoch;
