@@ -542,6 +542,122 @@ static void testGPUResidualProjectionTrainsVsCPU()
 
 //===================================================================================================================//
 
+static void testGPUSetLearningRateParityVsCPU()
+{
+  // GPU parity test for setLearningRate: change the learning rate mid-training
+  // (between two 1-epoch train() calls) and verify GPU matches CPU. If
+  // setLearningRate failed to propagate to the GPU kernels, the GPU would keep
+  // using the old LR and the parameters would diverge from CPU.
+  // Network: 1x3x3 -> Conv(1,2x2,valid) -> ReLU -> Flatten(4) -> Dense(2,softmax)
+  // Cross-entropy, SGD, 1 sample. LR 1.0 -> 0.25 between epochs.
+  TestScope _t("testGPUSetLearningRateParityVsCPU (LR change mid-training)");
+
+  auto buildConfig = [](Common::DeviceType dev) {
+    CNN::CoreConfig<float> config;
+    config.modeType = Common::ModeType::TRAIN;
+    config.deviceType = dev;
+    config.inputShape = {1, 3, 3};
+    config.logLevel = Common::LogLevel::ERROR;
+    config.numThreads = 1;
+    config.numGPUs = 1;
+
+    CNN::CNNLayerConfig convLayer;
+    convLayer.type = CNN::LayerType::CONV;
+    convLayer.config = CNN::ConvLayerConfig{1, 2, 2, 1, 1, CNN::SlidingStrategyType::VALID};
+
+    CNN::CNNLayerConfig reluLayer;
+    reluLayer.type = CNN::LayerType::RELU;
+    reluLayer.config = CNN::ReLULayerConfig{};
+
+    CNN::CNNLayerConfig flattenLayer;
+    flattenLayer.type = CNN::LayerType::FLATTEN;
+    flattenLayer.config = CNN::FlattenLayerConfig{};
+
+    config.layersConfig.cnnLayers = {convLayer, reluLayer, flattenLayer};
+    config.layersConfig.denseLayers = {{2, ANN::ActvFuncType::SOFTMAX}};
+
+    CNN::ConvParameters<float> initConv;
+    initConv.numFilters = 1;
+    initConv.inputC = 1;
+    initConv.filterH = 2;
+    initConv.filterW = 2;
+    initConv.filters = {0.1f, -0.2f, 0.3f, -0.1f};
+    initConv.biases = {0.0f};
+    config.parameters.convParams = {initConv};
+
+    ANN::Parameters<float> denseParams;
+    denseParams.weights.resize(2);
+    denseParams.biases.resize(2);
+    denseParams.weights[0] = {};
+    denseParams.biases[0] = {};
+    denseParams.weights[1] = {{0.1f, -0.2f, 0.3f, -0.1f}, {0.2f, 0.1f, -0.3f, 0.2f}};
+    denseParams.biases[1] = {0.0f, 0.0f};
+    config.parameters.denseParams = denseParams;
+
+    config.costFunctionConfig.type = Common::CostFunctionType::CROSS_ENTROPY;
+    config.trainConfig.numEpochs = 1;
+    config.trainConfig.learningRate = 1.0f;
+    config.trainConfig.optimizer.type = Common::OptimizerType::SGD;
+    config.trainConfig.shuffleSamples = false;
+    config.progressReports = 0;
+
+    return config;
+  };
+
+  CNN::Samples<float> samples(1);
+  samples[0].input = CNN::Tensor3D<float>({1, 3, 3});
+  samples[0].input.data = {0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f};
+  samples[0].output = {1.0f, 0.0f};
+
+  auto gpuCore = CNN::Core<float>::makeCore(buildConfig(Common::DeviceType::GPU));
+  auto cpuCore = CNN::Core<float>::makeCore(buildConfig(Common::DeviceType::CPU));
+
+  // Epoch 0 at LR=1.0
+  gpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
+  cpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
+
+  // Snapshot conv filter[0] after epoch 0 for the "params moved" sanity check.
+  const float gpuEpoch0Filt0 = gpuCore->getParameters().convParams[0].filters[0];
+  const float cpuEpoch0Filt0 = cpuCore->getParameters().convParams[0].filters[0];
+
+  // Change LR mid-training (mirrors what the LR scheduler does at epoch boundaries).
+  gpuCore->setLearningRate(0.25f);
+  cpuCore->setLearningRate(0.25f);
+
+  // Epoch 1 at LR=0.25
+  gpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
+  cpuCore->train(samples.size(), CNN::makeSampleProvider(samples));
+
+  const CNN::Parameters<float>& gp = gpuCore->getParameters();
+  const CNN::Parameters<float>& cp = cpuCore->getParameters();
+
+  std::cout << "  post-LR-change GPU conv filt[0]=" << gp.convParams[0].filters[0]
+            << "  CPU conv filt[0]=" << cp.convParams[0].filters[0] << std::endl;
+
+  // Conv: GPU must match CPU after the LR change (1e-4 tolerance for float GPU round-off).
+  for (size_t i = 0; i < gp.convParams[0].filters.size(); ++i)
+    CHECK_NEAR(gp.convParams[0].filters[i], cp.convParams[0].filters[i], 1e-4f, "GPU/CPU conv filt after LR change");
+
+  for (size_t i = 0; i < gp.convParams[0].biases.size(); ++i)
+    CHECK_NEAR(gp.convParams[0].biases[i], cp.convParams[0].biases[i], 1e-4f, "GPU/CPU conv bias after LR change");
+
+  // Dense: GPU must match CPU.
+  for (size_t i = 0; i < gp.denseParams.weights[1].size(); ++i)
+
+    for (size_t j = 0; j < gp.denseParams.weights[1][i].size(); ++j)
+      CHECK_NEAR(gp.denseParams.weights[1][i][j], cp.denseParams.weights[1][i][j], 1e-4f,
+                 "GPU/CPU dense weight after LR change");
+
+  for (size_t i = 0; i < gp.denseParams.biases[1].size(); ++i)
+    CHECK_NEAR(gp.denseParams.biases[1][i], cp.denseParams.biases[1][i], 1e-4f, "GPU/CPU dense bias after LR change");
+
+  // Sanity: params moved between epoch 0 and epoch 1 (training continued at the new LR).
+  CHECK(std::fabs(gp.convParams[0].filters[0] - gpuEpoch0Filt0) > 1e-5f, "GPU conv filt moved after LR change");
+  CHECK(std::fabs(cp.convParams[0].filters[0] - cpuEpoch0Filt0) > 1e-5f, "CPU conv filt moved after LR change");
+}
+
+//===================================================================================================================//
+
 void runGPUExactTests()
 {
   if (!gpuAvailable()) {
@@ -554,4 +670,5 @@ void runGPUExactTests()
   testGPUExactForwardBackwardWeightedCrossEntropy();
   testGPULargeKDFiltersParityVsCPU();
   testGPUResidualProjectionTrainsVsCPU();
+  testGPUSetLearningRateParityVsCPU();
 }

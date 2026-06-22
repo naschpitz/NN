@@ -61,9 +61,14 @@ namespace CNN
 
       //-- LR scheduling: update the worker's config copy so the new LR is picked up when
       //   the update kernels are rebuilt next update() (CNN GPU rebuilds kernels every update).
+      //   Also propagate to the embedded ANN GPU worker (dense head), which holds its own
+      //   trainConfig copy for the dense-layer update kernels.
       void setLearningRate(T lr)
       {
         this->workerConfig.trainConfig.learningRate = lr;
+
+        if (this->bufferManager && this->bufferManager->annGPUWorker)
+          this->bufferManager->annGPUWorker->setLearningRate(lr);
       }
 
       //-- Kernel save/restore (delegates to OpenCL core) --//
