@@ -167,6 +167,9 @@ namespace NN_CLI
       if (tc.contains("batchSize"))
         coreConfig.trainConfig.batchSize = tc.at("batchSize").get<ulong>();
 
+      if (tc.contains("fetchSize"))
+        coreConfig.trainConfig.fetchSize = tc.at("fetchSize").get<ulong>();
+
       if (tc.contains("shuffleSamples"))
         coreConfig.trainConfig.shuffleSamples = tc.at("shuffleSamples").get<bool>();
 

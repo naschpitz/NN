@@ -123,6 +123,7 @@ namespace NN_CLI
     tcJson["numEpochs"] = tc.numEpochs;
     tcJson["learningRate"] = tc.learningRate;
     tcJson["batchSize"] = tc.batchSize;
+    tcJson["fetchSize"] = tc.fetchSize;
     tcJson["shuffleSamples"] = tc.shuffleSamples;
 
     tcJson["dropoutRate"] = tc.dropoutRate;
@@ -646,9 +647,11 @@ namespace NN_CLI
         ulong filterH;
         ulong filterW;
     };
+
     struct NormMeta {
         ulong numChannels;
     };
+
     struct ResidualMeta {
         ulong inC;
         ulong outC;
