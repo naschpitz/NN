@@ -180,7 +180,12 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
   // Tell kernel builder whether to skip BN running stats in update()
   this->kernelBuilder->skipBNRunningStatsInUpdate = hasBatchNorm;
 
-  T zeroVal = static_cast<T>(0);
+  // Read accum_loss at entry to compute the per-window delta at return.
+  // For the first window of each batch this is 0 (just reset by resetAccumLoss).
+  // For subsequent windows this carries the value accumulated by prior windows.
+  std::vector<T> initialAccumLoss(1);
+  this->core->template readBuffer<T>("accum_loss", initialAccumLoss, 0);
+  T initialLoss = initialAccumLoss[0];
 
   if (!hasBatchNorm) {
     // ---- FAST PATH: no BN layers — pre-built kernel set, one run() per sample ----
@@ -188,11 +193,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
       this->kernelBuilder->setupTrainKernels();
     }
 
-    // Read current accum_loss so per-sample loss deltas are correct across fetch windows.
-    // accum_loss is reset per batch (resetAccumLoss), but accumulates across windows within a batch.
-    std::vector<T> currentAccumLoss(1);
-    this->core->template readBuffer<T>("accum_loss", currentAccumLoss, 0);
-    T prevAccumLoss = currentAccumLoss[0];
+    T prevAccumLoss = initialLoss;
 
     for (ulong s = 0; s < N; s++) {
       const Sample<T>& sample = batchSamples[s];
@@ -288,7 +289,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
     }
 
     // ----  FORWARD + BACKWARD (per sample) ----
-    T prevAccumLoss = zeroVal;
+    T prevAccumLoss = initialLoss;
 
     for (ulong n = 0; n < N; n++) {
       this->core->clearKernels();
@@ -394,7 +395,8 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
   std::vector<T> lossVec(1);
   this->core->template readBuffer<T>("accum_loss", lossVec, 0);
 
-  return lossVec[0];
+  // Return per-window loss delta (not cumulative) so callers can use += to sum windows.
+  return lossVec[0] - initialLoss;
 }
 
 //===================================================================================================================//
