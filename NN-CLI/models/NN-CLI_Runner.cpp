@@ -57,8 +57,13 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::applyLRScheduler(ulong epoch, int total
   const float newLR =
     Common::stepLRScheduler(cfg, this->schedulerState, absEpoch, static_cast<ulong>(totalEpochs), hasValLoss, valLoss);
 
-  if (newLR != this->schedulerState.currentLR)
+  if (newLR != this->schedulerState.currentLR) {
+    std::ostringstream lrMsg;
+    lrMsg << "LR scheduler: " << this->schedulerState.currentLR << " -> " << newLR << " ("
+          << Common::LRSchedulerConfig::typeToName(cfg.type) << ", epoch " << absEpoch << ")";
+    this->notifyLogMessage(lrMsg.str(), false);
     this->core->setLearningRate(newLR);
+  }
 
   this->schedulerState.currentLR = newLR;
 }
@@ -533,6 +538,12 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
   std::string optStr = Common::Optimizer<float>::typeToName(tc.optimizer.type);
   optStr[0] = toupper(optStr[0]);
   rows.push_back({"Optimizer", optStr});
+
+  if (tc.scheduler.type != Common::LRSchedulerType::NONE) {
+    std::string schedStr = Common::LRSchedulerConfig::typeToName(tc.scheduler.type);
+    schedStr[0] = toupper(schedStr[0]);
+    rows.push_back({"Scheduler", schedStr});
+  }
 
   if (tc.dropoutRate > 0)
     rows.push_back({"Dropout", std::to_string(static_cast<int>(tc.dropoutRate * 100)) + "%"});
