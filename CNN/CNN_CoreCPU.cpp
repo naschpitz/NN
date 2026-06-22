@@ -477,6 +477,20 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   ulong batchSize = this->trainConfig.batchSize;
   this->trainingStart(numSamples);
 
+  // Compute fetch window size: train() only runs for non-BatchNorm models
+  // (BatchNorm dispatches to trainBatchNorm). fetchSize controls host RAM.
+  ulong fetchSize;
+
+  if (this->trainConfig.fetchSize > 0) {
+    fetchSize = this->trainConfig.fetchSize;
+  } else {
+    fetchSize = static_cast<ulong>(numThreads);
+  }
+
+  fetchSize = std::min(fetchSize, batchSize);
+  fetchSize = std::max(static_cast<ulong>(numThreads),
+                       (fetchSize / static_cast<ulong>(numThreads)) * static_cast<ulong>(numThreads));
+
   if (this->logLevel >= Common::LogLevel::INFO)
     qDebug() << "CNN Training:" << numEpochs << "epochs," << numSamples << "samples," << numThreads
              << "threads, batch size" << batchSize;
@@ -511,8 +525,6 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     if (this->trainConfig.shuffleSamples) {
       std::shuffle(sampleIndices.begin(), sampleIndices.end(), rng);
     }
-
-    ulong fetchSize = batchSize;
 
     for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize) {
       ulong batchEnd = std::min(batchStart + batchSize, numSamples);

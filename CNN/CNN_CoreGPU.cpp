@@ -126,6 +126,31 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
   ulong batchSize = this->trainConfig.batchSize;
   batchSize = std::max(this->numGPUs, (batchSize / this->numGPUs) * this->numGPUs);
 
+  // Determine if model has BatchNorm (requires full batch resident simultaneously)
+  bool hasBatchNorm = false;
+
+  for (const auto& layer : this->coreConfig.layersConfig.cnnLayers) {
+    if (layer.type == LayerType::BATCHNORM) {
+      hasBatchNorm = true;
+      break;
+    }
+  }
+
+  // Compute fetch window size: BatchNorm needs full batch; InstanceNorm decouples.
+  // fetchSize controls host RAM (2×fetchSize with prefetch) — smaller = less RAM.
+  ulong fetchSize;
+
+  if (hasBatchNorm) {
+    fetchSize = batchSize;
+  } else if (this->trainConfig.fetchSize > 0) {
+    fetchSize = this->trainConfig.fetchSize;
+  } else {
+    fetchSize = static_cast<ulong>(this->numGPUs);
+  }
+
+  fetchSize = std::min(fetchSize, batchSize);
+  fetchSize = std::max(this->numGPUs, (fetchSize / this->numGPUs) * this->numGPUs);
+
   if (this->logLevel >= Common::LogLevel::INFO) {
     std::cout << "Starting GPU training: " << numSamples << " samples, " << numEpochs << " epochs, " << this->numGPUs
               << " GPU" << (this->numGPUs > 1 ? "s" : "") << "\n";
@@ -170,8 +195,6 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     std::fill(gpuCumulativeSamples.begin(), gpuCumulativeSamples.end(), 0);
 
     // Process samples in mini-batches
-    ulong fetchSize = batchSize;
-
     for (ulong batchStart = 0; batchStart < numSamples; batchStart += batchSize) {
       ulong batchEnd = std::min(batchStart + batchSize, numSamples);
       ulong currentBatchSize = batchEnd - batchStart;
