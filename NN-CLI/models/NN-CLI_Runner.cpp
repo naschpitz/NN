@@ -66,6 +66,9 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::applyLRScheduler(ulong epoch, int total
   }
 
   this->schedulerState.currentLR = newLR;
+
+  // Publish the state into the core's metadata so every save path serializes it.
+  this->core->getTrainMetadata().schedulerState = this->schedulerState;
 }
 
 //===================================================================================================================//
