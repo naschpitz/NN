@@ -193,10 +193,11 @@ namespace NN_CLI
 
     this->window->updateProgress(this->buildEpochLabel(), fractions);
 
-    // Sub-line: running average loss, ingestion rate, and epoch ETA.
+    // Sub-line: running average loss, current learning rate, ingestion rate, and epoch ETA.
     std::ostringstream stats;
-    stats << "Loss: " << std::fixed << std::setprecision(6) << currentLoss << "  " << std::setw(6)
-          << static_cast<long>(samplesPerSec) << " img/s  ETA " << formatEta(etaSeconds);
+    stats << "Loss: " << std::fixed << std::setprecision(6) << currentLoss << "  LR " << std::setprecision(6)
+          << this->runner->getCurrentLearningRate() << "  " << std::setw(6) << static_cast<long>(samplesPerSec)
+          << " img/s  ETA " << formatEta(etaSeconds);
     this->window->updateProgressSubLine(stats.str());
 
     this->refreshTimingPanel();

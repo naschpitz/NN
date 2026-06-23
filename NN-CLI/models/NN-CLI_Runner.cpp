@@ -331,6 +331,14 @@ int NN_CLI::Runner<CoreT, CoreConfigT>::getTotalEpochs() const
 //===================================================================================================================//
 
 template <typename CoreT, typename CoreConfigT>
+float NN_CLI::Runner<CoreT, CoreConfigT>::getCurrentLearningRate() const
+{
+  return this->schedulerState.currentLR;
+}
+
+//===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
 const CoreConfigT& NN_CLI::Runner<CoreT, CoreConfigT>::getCoreConfig() const
 {
   return this->coreConfig;

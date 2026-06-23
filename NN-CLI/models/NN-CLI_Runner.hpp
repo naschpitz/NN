@@ -51,6 +51,10 @@ namespace NN_CLI
       // Return the total number of epochs configured for this training run.
       int getTotalEpochs() const;
 
+      // Return the current learning rate (reflects LR-scheduler adjustments
+      // at epoch boundaries; equals trainConfig.learningRate when no scheduler).
+      float getCurrentLearningRate() const;
+
       // Return a const reference to the core configuration.
       const CoreConfigT& getCoreConfig() const;
 
