@@ -129,8 +129,7 @@ namespace NN_CLI
     tcJson["dropoutRate"] = tc.dropoutRate;
 
     nlohmann::ordered_json optJson;
-    using OptimizerT = std::decay_t<decltype(tc.optimizer)>;
-    optJson["type"] = OptimizerT::typeToName(tc.optimizer.type);
+    optJson["type"] = Common::optimizerTypeToName(tc.optimizer.type);
     optJson["beta1"] = tc.optimizer.beta1;
     optJson["beta2"] = tc.optimizer.beta2;
     optJson["epsilon"] = tc.optimizer.epsilon;

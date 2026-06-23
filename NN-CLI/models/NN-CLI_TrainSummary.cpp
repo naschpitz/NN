@@ -12,10 +12,9 @@ namespace NN_CLI
   //===================================================================================================================//
 
   std::vector<std::string> TrainSummary::collectCNN(const CNN::CoreConfig<float>& cnnConfig,
-                                                       const AugmentationConfig& augConfig,
-                                                       ulong numOriginalTrainSamples, ulong numTrainSamples,
-                                                       ulong numValidationSamples, float validationRatio,
-                                                       bool validationAuto, ulong maxWidth)
+                                                    const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
+                                                    ulong numTrainSamples, ulong numValidationSamples,
+                                                    float validationRatio, bool validationAuto, ulong maxWidth)
   {
     auto rows = collectCNNRows(cnnConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
                                validationRatio, validationAuto);
@@ -25,10 +24,10 @@ namespace NN_CLI
   //===================================================================================================================//
 
   std::vector<SummaryRow> TrainSummary::collectCNNRows(const CNN::CoreConfig<float>& cnnConfig,
-                                                          const AugmentationConfig& augConfig,
-                                                          ulong numOriginalTrainSamples, ulong numTrainSamples,
-                                                          ulong numValidationSamples, float validationRatio,
-                                                          bool validationAuto)
+                                                       const AugmentationConfig& augConfig,
+                                                       ulong numOriginalTrainSamples, ulong numTrainSamples,
+                                                       ulong numValidationSamples, float validationRatio,
+                                                       bool validationAuto)
   {
     const auto& tc = cnnConfig.trainConfig;
     const auto& layers = cnnConfig.layersConfig;
@@ -68,7 +67,7 @@ namespace NN_CLI
     }
 
     // Optimizer string
-    std::string optStr = Common::Optimizer<float>::typeToName(tc.optimizer.type);
+    std::string optStr = Common::optimizerTypeToName(tc.optimizer.type);
     optStr[0] = toupper(optStr[0]);
 
     // Augmentation string
@@ -213,9 +212,9 @@ namespace NN_CLI
   //===================================================================================================================//
 
   std::vector<std::string> TrainSummary::collect(const ANN::CoreConfig<float>& annConfig,
-                                                    const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
-                                                    ulong numTrainSamples, ulong numValidationSamples,
-                                                    float validationRatio, bool validationAuto, ulong maxWidth)
+                                                 const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
+                                                 ulong numTrainSamples, ulong numValidationSamples,
+                                                 float validationRatio, bool validationAuto, ulong maxWidth)
   {
     auto rows = collectRows(annConfig, augConfig, numOriginalTrainSamples, numTrainSamples, numValidationSamples,
                             validationRatio, validationAuto);
@@ -225,10 +224,9 @@ namespace NN_CLI
   //===================================================================================================================//
 
   std::vector<SummaryRow> TrainSummary::collectRows(const ANN::CoreConfig<float>& annConfig,
-                                                       const AugmentationConfig& augConfig,
-                                                       ulong numOriginalTrainSamples, ulong numTrainSamples,
-                                                       ulong numValidationSamples, float validationRatio,
-                                                       bool validationAuto)
+                                                    const AugmentationConfig& augConfig, ulong numOriginalTrainSamples,
+                                                    ulong numTrainSamples, ulong numValidationSamples,
+                                                    float validationRatio, bool validationAuto)
   {
     const auto& tc = annConfig.trainConfig;
     const auto& costConfig = annConfig.costFunctionConfig;
@@ -254,7 +252,7 @@ namespace NN_CLI
     }
 
     // Optimizer string
-    std::string optStr = Common::Optimizer<float>::typeToName(tc.optimizer.type);
+    std::string optStr = Common::optimizerTypeToName(tc.optimizer.type);
     optStr[0] = toupper(optStr[0]);
 
     // Validation string

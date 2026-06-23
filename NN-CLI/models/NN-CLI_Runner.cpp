@@ -535,7 +535,7 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
   lrOss << tc.learningRate;
   rows.push_back({"Learning rate", lrOss.str()});
 
-  std::string optStr = Common::Optimizer<float>::typeToName(tc.optimizer.type);
+  std::string optStr = Common::optimizerTypeToName(tc.optimizer.type);
   optStr[0] = toupper(optStr[0]);
   rows.push_back({"Optimizer", optStr});
 
@@ -619,7 +619,7 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildPredict
   lrOss << tc.learningRate;
   rows.push_back({"Learning rate", lrOss.str()});
 
-  std::string optStr = Common::Optimizer<float>::typeToName(tc.optimizer.type);
+  std::string optStr = Common::optimizerTypeToName(tc.optimizer.type);
   optStr[0] = toupper(optStr[0]);
   rows.push_back({"Optimizer", optStr});
 

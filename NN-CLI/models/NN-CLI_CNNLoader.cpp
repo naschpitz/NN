@@ -183,8 +183,7 @@ namespace NN_CLI
         const auto& opt = tc.at("optimizer");
 
         if (opt.contains("type"))
-          coreConfig.trainConfig.optimizer.type =
-            Common::Optimizer<float>::nameToType(opt.at("type").get<std::string>());
+          coreConfig.trainConfig.optimizer.type = Common::optimizerNameToType(opt.at("type").get<std::string>());
 
         if (opt.contains("beta1"))
           coreConfig.trainConfig.optimizer.beta1 = opt.at("beta1").get<float>();

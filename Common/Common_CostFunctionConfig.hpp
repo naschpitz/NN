@@ -2,7 +2,6 @@
 #define COMMON_COSTFUNCTIONCONFIG_HPP
 
 #include <string>
-#include <stdexcept>
 #include <vector>
 
 //===================================================================================================================//
@@ -13,32 +12,8 @@ namespace Common
 
   //-- String conversion helpers --//
   struct CostFunction {
-      static CostFunctionType nameToType(const std::string& name)
-      {
-        if (name == "squaredDifference")
-          return CostFunctionType::SQUARED_DIFFERENCE;
-
-        if (name == "weightedSquaredDifference")
-          return CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE;
-
-        if (name == "crossEntropy")
-          return CostFunctionType::CROSS_ENTROPY;
-        throw std::runtime_error("Unknown cost function type: " + name);
-      }
-
-      static std::string typeToName(CostFunctionType type)
-      {
-        switch (type) {
-        case CostFunctionType::SQUARED_DIFFERENCE:
-          return "squaredDifference";
-        case CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
-          return "weightedSquaredDifference";
-        case CostFunctionType::CROSS_ENTROPY:
-          return "crossEntropy";
-        default:
-          return "squaredDifference";
-        }
-      }
+      static CostFunctionType nameToType(const std::string& name);
+      static std::string typeToName(CostFunctionType type);
   };
 
   template <typename T>
