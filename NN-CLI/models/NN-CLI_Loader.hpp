@@ -1,6 +1,11 @@
 #ifndef NN_CLI_LOADER_HPP
 #define NN_CLI_LOADER_HPP
 
+#include "Common/Common_CalibrateConfig.hpp"
+#include "Common/Common_TestConfig.hpp"
+#include "Common/Common_TrainConfig.hpp"
+#include "Common/Common_TrainMetadata.hpp"
+
 #include "NN-CLI_AugmentationConfig.hpp"
 #include "NN-CLI_NetworkType.hpp"
 #include "NN-CLI_IOConfig.hpp"
@@ -29,13 +34,13 @@ namespace NN_CLI
 
       // Load I/O configuration (inputType, outputType, shapes) with optional CLI overrides (file-path wrapper).
       static IOConfig loadIOConfig(const std::string& configFilePath,
-                                    std::optional<std::string> inputTypeOverride = std::nullopt,
-                                    std::optional<std::string> outputTypeOverride = std::nullopt);
+                                   std::optional<std::string> inputTypeOverride = std::nullopt,
+                                   std::optional<std::string> outputTypeOverride = std::nullopt);
 
       // Load I/O configuration from pre-parsed JSON.
       static IOConfig loadIOConfig(const nlohmann::json& json,
-                                    std::optional<std::string> inputTypeOverride = std::nullopt,
-                                    std::optional<std::string> outputTypeOverride = std::nullopt);
+                                   std::optional<std::string> inputTypeOverride = std::nullopt,
+                                   std::optional<std::string> outputTypeOverride = std::nullopt);
 
       // Load progressReports from config root (returns 1000 if not present) (file-path wrapper).
       static ulong loadProgressReports(const std::string& configFilePath);
@@ -54,6 +59,18 @@ namespace NN_CLI
 
       // Load data augmentation config from pre-parsed JSON.
       static AugmentationConfig loadAugmentationConfig(const nlohmann::json& json);
+
+      // Load training configuration (numEpochs, learningRate, optimizer, scheduler, monitoring) from pre-parsed JSON.
+      static Common::TrainConfig<float> loadTrainConfig(const nlohmann::json& json);
+
+      // Load test configuration from pre-parsed JSON.
+      static Common::TestConfig loadTestConfig(const nlohmann::json& json);
+
+      // Load calibrate configuration from pre-parsed JSON.
+      static Common::CalibrateConfig loadCalibrateConfig(const nlohmann::json& json);
+
+      // Load persisted training metadata (scalars, scheduler state, epoch history) from pre-parsed JSON.
+      static Common::TrainMetadata<float> loadTrainMetadata(const nlohmann::json& json);
   };
 
 } // namespace NN_CLI

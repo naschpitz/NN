@@ -75,114 +75,11 @@ namespace NN_CLI
       }
     }
 
-    if (json.contains("train")) {
-      const auto& tc = json.at("train");
-      coreConfig.trainConfig.numEpochs = tc.at("numEpochs").get<ulong>();
-      coreConfig.trainConfig.learningRate = tc.at("learningRate").get<float>();
+    coreConfig.trainConfig = Loader::loadTrainConfig(json);
 
-      if (tc.contains("batchSize"))
-        coreConfig.trainConfig.batchSize = tc.at("batchSize").get<ulong>();
+    coreConfig.testConfig = Loader::loadTestConfig(json);
 
-      if (tc.contains("fetchSize"))
-        coreConfig.trainConfig.fetchSize = tc.at("fetchSize").get<ulong>();
-
-      if (tc.contains("shuffleSamples"))
-        coreConfig.trainConfig.shuffleSamples = tc.at("shuffleSamples").get<bool>();
-
-      if (tc.contains("shuffleSeed"))
-        coreConfig.trainConfig.shuffleSeed = tc.at("shuffleSeed").get<uint32_t>();
-
-      if (tc.contains("dropoutRate"))
-        coreConfig.trainConfig.dropoutRate = tc.at("dropoutRate").get<float>();
-
-      if (tc.contains("optimizer")) {
-        const auto& opt = tc.at("optimizer");
-
-        if (opt.contains("type"))
-          coreConfig.trainConfig.optimizer.type = Common::optimizerNameToType(opt.at("type").get<std::string>());
-
-        if (opt.contains("beta1"))
-          coreConfig.trainConfig.optimizer.beta1 = opt.at("beta1").get<float>();
-
-        if (opt.contains("beta2"))
-          coreConfig.trainConfig.optimizer.beta2 = opt.at("beta2").get<float>();
-
-        if (opt.contains("epsilon"))
-          coreConfig.trainConfig.optimizer.epsilon = opt.at("epsilon").get<float>();
-      }
-
-      if (tc.contains("scheduler")) {
-        const auto& sched = tc.at("scheduler");
-        auto& sc = coreConfig.trainConfig.scheduler;
-        sc.type = Common::LRSchedulerConfig::nameToType(sched.at("type").get<std::string>());
-        sc.gamma = sched.value("gamma", sc.gamma);
-        sc.stepSize = sched.value("stepSize", sc.stepSize);
-        sc.minLR = sched.value("minLR", sc.minLR);
-        sc.patience = sched.value("patience", sc.patience);
-        sc.minDelta = sched.value("minDelta", sc.minDelta);
-      }
-
-      if (tc.contains("monitoring")) {
-        const auto& mon = tc.at("monitoring");
-        auto& mc = coreConfig.trainConfig.monitoringConfig;
-
-        if (mon.contains("enabled"))
-          mc.enabled = mon.at("enabled").get<bool>();
-
-        if (mon.contains("checkInterval"))
-          mc.checkInterval = mon.at("checkInterval").get<ulong>();
-
-        if (mon.contains("patience"))
-          mc.patience = mon.at("patience").get<ulong>();
-
-        if (mon.contains("metrics")) {
-          const auto& metrics = mon.at("metrics");
-
-          if (metrics.contains("lossStagnation")) {
-            const auto& ls = metrics.at("lossStagnation");
-
-            if (ls.contains("enabled"))
-              mc.metrics.lossStagnation.enabled = ls.at("enabled").get<bool>();
-
-            if (ls.contains("minDelta"))
-              mc.metrics.lossStagnation.minDelta = ls.at("minDelta").get<float>();
-          }
-
-          if (metrics.contains("lossExplosion")) {
-            const auto& le = metrics.at("lossExplosion");
-
-            if (le.contains("enabled"))
-              mc.metrics.lossExplosion.enabled = le.at("enabled").get<bool>();
-
-            if (le.contains("threshold"))
-              mc.metrics.lossExplosion.threshold = le.at("threshold").get<float>();
-          }
-        }
-      }
-    }
-
-    if (json.contains("test")) {
-      const auto& tc = json.at("test");
-
-      if (tc.contains("batchSize"))
-        coreConfig.testConfig.batchSize = tc.at("batchSize").get<ulong>();
-    }
-
-    if (json.contains("calibrate")) {
-      const auto& cc = json.at("calibrate");
-
-      if (cc.contains("idSampleCount"))
-        coreConfig.calibrateConfig.idSampleCount = cc.at("idSampleCount").get<std::size_t>();
-
-      if (cc.contains("oodSampleCount"))
-        coreConfig.calibrateConfig.oodSampleCount = cc.at("oodSampleCount").get<std::size_t>();
-
-      if (cc.contains("idPercentile"))
-        coreConfig.calibrateConfig.idPercentile = cc.at("idPercentile").get<double>();
-
-      if (cc.contains("fetchIfMissing"))
-        coreConfig.calibrateConfig.fetchIfMissing = cc.at("fetchIfMissing").get<bool>();
-    }
+    coreConfig.calibrateConfig = Loader::loadCalibrateConfig(json);
 
     if (json.contains("parameters")) {
       throw std::runtime_error("This JSON file contains embedded parameters. "
@@ -207,62 +104,11 @@ namespace NN_CLI
       ModelSerializer::loadANNParametersBinary(binParams, coreConfig, coreConfig.layersConfig);
     }
 
-    // 3. Parse epoch history and set startingEpoch from saved training metadata
-    if (json.contains("trainMetadata")) {
-      const auto& md = json.at("trainMetadata");
+    // 3. Parse persisted training metadata and set startingEpoch for resume.
+    coreConfig.loadedTrainMetadata = Loader::loadTrainMetadata(json);
 
-      // Parse scalar metadata fields
-      coreConfig.loadedTrainMetadata.startTime = md.value("startTime", "");
-      coreConfig.loadedTrainMetadata.endTime = md.value("endTime", "");
-      coreConfig.loadedTrainMetadata.durationSeconds = md.value("durationSeconds", 0.0);
-      coreConfig.loadedTrainMetadata.durationFormatted = md.value("durationFormatted", "");
-      coreConfig.loadedTrainMetadata.numSamples = md.value("numSamples", 0UL);
-      coreConfig.loadedTrainMetadata.finalLoss = static_cast<float>(md.value("finalLoss", 0.0));
-      coreConfig.loadedTrainMetadata.lastEpoch = md.value("lastEpoch", 0UL);
-      coreConfig.loadedTrainMetadata.stopReason = md.value("stopReason", "");
-      coreConfig.loadedTrainMetadata.bestEpoch = md.value("bestEpoch", 0UL);
-      coreConfig.loadedTrainMetadata.bestLoss = static_cast<float>(md.value("bestLoss", 0.0));
-
-      // Parse persisted LR scheduler state (enables plateau resume)
-      if (md.contains("schedulerState")) {
-        const auto& ss = md.at("schedulerState");
-        coreConfig.loadedTrainMetadata.schedulerState.currentLR = ss.value("currentLR", 0.0f);
-        coreConfig.loadedTrainMetadata.schedulerState.baseLR = ss.value("baseLR", 0.0f);
-        coreConfig.loadedTrainMetadata.schedulerState.epochsSinceImprovement = ss.value("epochsSinceImprovement", 0UL);
-        coreConfig.loadedTrainMetadata.schedulerState.bestValLoss = ss.value("bestValLoss", 0.0f);
-        coreConfig.loadedTrainMetadata.schedulerState.initialized = ss.value("initialized", false);
-      }
-
-      // Set startingEpoch from lastEpoch: lastEpoch is the 0-based index of the
-      // last completed epoch, so resume on the next one. E.g. lastEpoch=24
-      // (epochs 0..24 done) resumes at startingEpoch=25 (e=25..99 = 75 more).
-      if (md.contains("lastEpoch")) {
-        ulong lastEpoch = md.at("lastEpoch").get<ulong>();
-        coreConfig.trainConfig.startingEpoch = lastEpoch + 1;
-      }
-
-      // Parse epoch history array
-      if (md.contains("epochs") && md.at("epochs").is_array()) {
-        const auto& epochsArr = md.at("epochs");
-        coreConfig.loadedTrainMetadata.epochHistory.reserve(epochsArr.size());
-
-        for (const auto& recordJson : epochsArr) {
-          Common::EpochRecord<float> record;
-          record.epoch = recordJson.at("epoch").get<ulong>();
-          record.loss = recordJson.at("loss").get<float>();
-
-          if (recordJson.contains("valLoss") && recordJson.value("hasValLoss", false)) {
-            record.valLoss = recordJson.at("valLoss").get<float>();
-            record.hasValLoss = true;
-          }
-
-          record.isBest = recordJson.value("isBest", false);
-          record.completionTime = recordJson.value("completionTime", 0UL);
-
-          coreConfig.loadedTrainMetadata.epochHistory.push_back(record);
-        }
-      }
-    }
+    if (json.contains("trainMetadata") && json.at("trainMetadata").contains("lastEpoch"))
+      coreConfig.trainConfig.startingEpoch = coreConfig.loadedTrainMetadata.lastEpoch + 1;
 
     return coreConfig;
   }

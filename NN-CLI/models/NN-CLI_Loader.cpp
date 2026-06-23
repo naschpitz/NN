@@ -3,6 +3,7 @@
 #include <QFile>
 #include <json.hpp>
 
+#include <cstdint>
 #include <stdexcept>
 
 namespace NN_CLI
@@ -213,6 +214,200 @@ namespace NN_CLI
     }
 
     return config;
+  }
+
+  //===================================================================================================================//
+
+  Common::TrainConfig<float> Loader::loadTrainConfig(const nlohmann::json& json)
+  {
+    Common::TrainConfig<float> tc;
+
+    if (json.contains("train")) {
+      const auto& train = json.at("train");
+
+      tc.numEpochs = train.at("numEpochs").get<ulong>();
+      tc.learningRate = train.at("learningRate").get<float>();
+
+      if (train.contains("batchSize"))
+        tc.batchSize = train.at("batchSize").get<ulong>();
+
+      if (train.contains("fetchSize"))
+        tc.fetchSize = train.at("fetchSize").get<ulong>();
+
+      if (train.contains("shuffleSamples"))
+        tc.shuffleSamples = train.at("shuffleSamples").get<bool>();
+
+      if (train.contains("shuffleSeed"))
+        tc.shuffleSeed = train.at("shuffleSeed").get<uint32_t>();
+
+      if (train.contains("dropoutRate"))
+        tc.dropoutRate = train.at("dropoutRate").get<float>();
+
+      if (train.contains("optimizer")) {
+        const auto& opt = train.at("optimizer");
+
+        if (opt.contains("type"))
+          tc.optimizer.type = Common::optimizerNameToType(opt.at("type").get<std::string>());
+
+        if (opt.contains("beta1"))
+          tc.optimizer.beta1 = opt.at("beta1").get<float>();
+
+        if (opt.contains("beta2"))
+          tc.optimizer.beta2 = opt.at("beta2").get<float>();
+
+        if (opt.contains("epsilon"))
+          tc.optimizer.epsilon = opt.at("epsilon").get<float>();
+      }
+
+      if (train.contains("scheduler")) {
+        const auto& sched = train.at("scheduler");
+
+        tc.scheduler.type = Common::LRSchedulerConfig::nameToType(sched.at("type").get<std::string>());
+        tc.scheduler.gamma = sched.value("gamma", tc.scheduler.gamma);
+        tc.scheduler.stepSize = sched.value("stepSize", tc.scheduler.stepSize);
+        tc.scheduler.minLR = sched.value("minLR", tc.scheduler.minLR);
+        tc.scheduler.patience = sched.value("patience", tc.scheduler.patience);
+        tc.scheduler.minDelta = sched.value("minDelta", tc.scheduler.minDelta);
+      }
+
+      if (train.contains("monitoring")) {
+        const auto& mon = train.at("monitoring");
+        auto& mc = tc.monitoringConfig;
+
+        if (mon.contains("enabled"))
+          mc.enabled = mon.at("enabled").get<bool>();
+
+        if (mon.contains("checkInterval"))
+          mc.checkInterval = mon.at("checkInterval").get<ulong>();
+
+        if (mon.contains("patience"))
+          mc.patience = mon.at("patience").get<ulong>();
+
+        if (mon.contains("metrics")) {
+          const auto& metrics = mon.at("metrics");
+
+          if (metrics.contains("lossStagnation")) {
+            const auto& ls = metrics.at("lossStagnation");
+
+            if (ls.contains("enabled"))
+              mc.metrics.lossStagnation.enabled = ls.at("enabled").get<bool>();
+
+            if (ls.contains("minDelta"))
+              mc.metrics.lossStagnation.minDelta = ls.at("minDelta").get<float>();
+          }
+
+          if (metrics.contains("lossExplosion")) {
+            const auto& le = metrics.at("lossExplosion");
+
+            if (le.contains("enabled"))
+              mc.metrics.lossExplosion.enabled = le.at("enabled").get<bool>();
+
+            if (le.contains("threshold"))
+              mc.metrics.lossExplosion.threshold = le.at("threshold").get<float>();
+          }
+        }
+      }
+    }
+
+    return tc;
+  }
+
+  //===================================================================================================================//
+
+  Common::TestConfig Loader::loadTestConfig(const nlohmann::json& json)
+  {
+    Common::TestConfig config;
+
+    if (json.contains("test")) {
+      const auto& test = json.at("test");
+
+      if (test.contains("batchSize"))
+        config.batchSize = test.at("batchSize").get<ulong>();
+    }
+
+    return config;
+  }
+
+  //===================================================================================================================//
+
+  Common::CalibrateConfig Loader::loadCalibrateConfig(const nlohmann::json& json)
+  {
+    Common::CalibrateConfig config;
+
+    if (json.contains("calibrate")) {
+      const auto& cal = json.at("calibrate");
+
+      if (cal.contains("idSampleCount"))
+        config.idSampleCount = cal.at("idSampleCount").get<std::size_t>();
+
+      if (cal.contains("oodSampleCount"))
+        config.oodSampleCount = cal.at("oodSampleCount").get<std::size_t>();
+
+      if (cal.contains("idPercentile"))
+        config.idPercentile = cal.at("idPercentile").get<double>();
+
+      if (cal.contains("fetchIfMissing"))
+        config.fetchIfMissing = cal.at("fetchIfMissing").get<bool>();
+    }
+
+    return config;
+  }
+
+  //===================================================================================================================//
+
+  Common::TrainMetadata<float> Loader::loadTrainMetadata(const nlohmann::json& json)
+  {
+    Common::TrainMetadata<float> md;
+
+    if (json.contains("trainMetadata")) {
+      const auto& meta = json.at("trainMetadata");
+
+      md.startTime = meta.value("startTime", "");
+      md.endTime = meta.value("endTime", "");
+      md.durationSeconds = meta.value("durationSeconds", 0.0);
+      md.durationFormatted = meta.value("durationFormatted", "");
+      md.numSamples = meta.value("numSamples", 0UL);
+      md.finalLoss = static_cast<float>(meta.value("finalLoss", 0.0));
+      md.lastEpoch = meta.value("lastEpoch", 0UL);
+      md.stopReason = meta.value("stopReason", "");
+      md.bestEpoch = meta.value("bestEpoch", 0UL);
+      md.bestLoss = static_cast<float>(meta.value("bestLoss", 0.0));
+
+      if (meta.contains("schedulerState")) {
+        const auto& ss = meta.at("schedulerState");
+
+        md.schedulerState.currentLR = ss.value("currentLR", 0.0f);
+        md.schedulerState.baseLR = ss.value("baseLR", 0.0f);
+        md.schedulerState.epochsSinceImprovement = ss.value("epochsSinceImprovement", 0UL);
+        md.schedulerState.bestValLoss = ss.value("bestValLoss", 0.0f);
+        md.schedulerState.initialized = ss.value("initialized", false);
+      }
+
+      if (meta.contains("epochs") && meta.at("epochs").is_array()) {
+        const auto& epochsArr = meta.at("epochs");
+
+        md.epochHistory.reserve(epochsArr.size());
+
+        for (const auto& recordJson : epochsArr) {
+          Common::EpochRecord<float> record;
+
+          record.epoch = recordJson.at("epoch").get<ulong>();
+          record.loss = recordJson.at("loss").get<float>();
+
+          if (recordJson.contains("valLoss") && recordJson.value("hasValLoss", false)) {
+            record.valLoss = recordJson.at("valLoss").get<float>();
+            record.hasValLoss = true;
+          }
+
+          record.isBest = recordJson.value("isBest", false);
+          record.completionTime = recordJson.value("completionTime", 0UL);
+
+          md.epochHistory.push_back(record);
+        }
+      }
+    }
+
+    return md;
   }
 
   //===================================================================================================================//
