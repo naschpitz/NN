@@ -32,32 +32,26 @@ namespace NN_CLI
   class RunnerUtils
   {
     public:
-
-       //-- finishTrainCommon --//
-       template <typename CoreT, typename SaveFn>
-       static int finishTrainCommon(LogLevel logLevel, const QCommandLineParser& parser,
-                                      const QString& inputFilePath, const CoreT& core,
-                                      const SaveFn& saveFn);
+      //-- finishTrainCommon --//
+      template <typename CoreT, typename SaveFn>
+      static int finishTrainCommon(LogLevel logLevel, const QCommandLineParser& parser, const QString& inputFilePath,
+                                   const CoreT& core, const SaveFn& saveFn);
 
       //-- resolvePredictOutputPath --//
       static QString resolvePredictOutputPath(const QCommandLineParser& parser, const IOConfig& ioConfig);
 
       //-- writePredictOutput --//
       template <typename ResultsT>
-      static int writePredictOutput(const ResultsT& results, const QString& outputPath,
-                                    const IOConfig& ioConfig, LogLevel logLevel,
-                                    const std::string& startTimeStr, const std::string& endTimeStr,
-                                    double durationSeconds, const std::string& durationFormatted,
-                                    size_t numInputs);
+      static int writePredictOutput(const ResultsT& results, const QString& outputPath, const IOConfig& ioConfig,
+                                    LogLevel logLevel, const std::string& startTimeStr, const std::string& endTimeStr,
+                                    double durationSeconds, const std::string& durationFormatted, size_t numInputs);
 
       //-- loadSamplesFromOptionsCommon --//
       template <typename SamplesT, typename LoadJsonFn, typename LoadIdxFn>
-      static std::pair<SamplesT, bool> loadSamplesFromOptionsCommon(const QCommandLineParser& parser,
-                                                                    LogLevel logLevel, const IOConfig& ioConfig,
-                                                                    const std::string& modeName,
-                                                                    QString& inputFilePath,
-                                                                    LoadJsonFn&& loadJsonSamples,
-                                                                    LoadIdxFn&& loadIdxSamples);
+      static std::pair<SamplesT, bool>
+      loadSamplesFromOptionsCommon(const QCommandLineParser& parser, LogLevel logLevel, const IOConfig& ioConfig,
+                                   const std::string& modeName, QString& inputFilePath, LoadJsonFn&& loadJsonSamples,
+                                   LoadIdxFn&& loadIdxSamples);
   };
 
 } // namespace NN_CLI
@@ -70,9 +64,8 @@ namespace NN_CLI
 {
 
   template <typename CoreT, typename SaveFn>
-  int RunnerUtils::finishTrainCommon(LogLevel logLevel, const QCommandLineParser& parser,
-                                        const QString& inputFilePath, const CoreT& core,
-                                        const SaveFn& saveFn)
+  int RunnerUtils::finishTrainCommon(LogLevel logLevel, const QCommandLineParser& parser, const QString& inputFilePath,
+                                     const CoreT& core, const SaveFn& saveFn)
   {
     if (logLevel > LogLevel::QUIET)
       std::cout << "\nTraining completed.\n";
@@ -89,8 +82,8 @@ namespace NN_CLI
     if (parser.isSet("output")) {
       outputPathStr = parser.value("output").toStdString();
     } else {
-      outputPathStr = ModelSerializer::generateDefaultOutputPath(
-        inputFilePath, actualEpochs, trainMetadata.numSamples, trainMetadata.finalLoss);
+      outputPathStr = ModelSerializer::generateDefaultOutputPath(inputFilePath, actualEpochs, trainMetadata.numSamples,
+                                                                 trainMetadata.finalLoss);
     }
 
     saveFn(outputPathStr);
@@ -207,12 +200,9 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename SamplesT, typename LoadJsonFn, typename LoadIdxFn>
-  std::pair<SamplesT, bool> RunnerUtils::loadSamplesFromOptionsCommon(const QCommandLineParser& parser,
-                                                                      LogLevel logLevel, const IOConfig& ioConfig,
-                                                                      const std::string& modeName,
-                                                                      QString& inputFilePath,
-                                                                      LoadJsonFn&& loadJsonSamples,
-                                                                      LoadIdxFn&& loadIdxSamples)
+  std::pair<SamplesT, bool> RunnerUtils::loadSamplesFromOptionsCommon(
+    const QCommandLineParser& parser, LogLevel logLevel, const IOConfig& ioConfig, const std::string& modeName,
+    QString& inputFilePath, LoadJsonFn&& loadJsonSamples, LoadIdxFn&& loadIdxSamples)
   {
     SamplesT samples;
 
