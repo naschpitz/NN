@@ -195,9 +195,9 @@ namespace NN_CLI
 
     // Sub-line: running average loss, current learning rate, ingestion rate, and epoch ETA.
     std::ostringstream stats;
-    stats << "Loss: " << std::fixed << std::setprecision(6) << currentLoss << " | LR " << std::setprecision(6)
-          << this->runner->getCurrentLearningRate() << " | " << std::setprecision(1) << samplesPerSec << " img/s | ETA "
-          << formatEta(etaSeconds);
+    stats << "Loss: " << std::fixed << std::setprecision(6) << currentLoss << " | LR " << std::defaultfloat
+          << std::setprecision(6) << this->runner->getCurrentLearningRate() << " | " << std::fixed
+          << std::setprecision(1) << samplesPerSec << " img/s | ETA " << formatEta(etaSeconds);
     this->window->updateProgressSubLine(stats.str());
 
     this->refreshTimingPanel();
