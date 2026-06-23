@@ -80,7 +80,22 @@ namespace NN_CLI
     std::string outputPathStr;
 
     if (parser.isSet("output")) {
-      outputPathStr = parser.value("output").toStdString();
+      QString outputValue = parser.value("output");
+
+      // --output may name a directory (e.g. "output/"): generate a filename
+      // inside it rather than treating the directory itself as the target file,
+      // which makes the atomic temp-file rename fail with EISDIR.
+      if (outputValue.endsWith('/') || QFileInfo(outputValue).isDir()) {
+        QDir outputDir(outputValue);
+
+        Utils<>::ensureOutputDir(outputDir.absolutePath());
+
+        std::string filename =
+          ModelSerializer::generateTrainFilename(actualEpochs, trainMetadata.numSamples, trainMetadata.finalLoss);
+        outputPathStr = outputDir.filePath(QString::fromStdString(filename)).toStdString();
+      } else {
+        outputPathStr = outputValue.toStdString();
+      }
     } else {
       outputPathStr = ModelSerializer::generateDefaultOutputPath(inputFilePath, actualEpochs, trainMetadata.numSamples,
                                                                  trainMetadata.finalLoss);
