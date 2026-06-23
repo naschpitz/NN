@@ -674,6 +674,10 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
     // --- LR scheduler step (publishes the new LR for the next epoch) ---
     this->applyLRScheduler(epoch, totalEpochs, hasValLoss, valLoss);
 
+    // Publish the scheduler state into the core's metadata so every subsequent
+    // save path (checkpoint, best-model, final) serializes the current state.
+    this->core->getTrainMetadata().schedulerState = this->schedulerState;
+
     // --- Observer notification — epoch completed ---
     std::string epochSummary = "Epoch " + std::to_string(epoch + 1) + "/" + std::to_string(totalEpochs) +
                                " | Loss: " + std::to_string(this->lastEpochLoss);
@@ -710,7 +714,6 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
 
 void ANNRunner::doSaveModel(const std::string& outputPath)
 {
-  this->core->getTrainMetadata().schedulerState = this->schedulerState;
   ModelSerializer::saveANNModelToPackage(outputPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                          this->buildValidationMetadata());
 }
