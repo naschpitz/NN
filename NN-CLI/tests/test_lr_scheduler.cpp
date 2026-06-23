@@ -28,6 +28,18 @@ static float stepAndUpdate(const Common::LRSchedulerConfig& cfg, Common::LRSched
 
 //===================================================================================================================//
 
+static QString writeTempJson(const QString& name, const char* json)
+{
+  QString path = tempDir() + "/" + name;
+  QFile file(path);
+  file.open(QIODevice::WriteOnly);
+  file.write(json);
+  file.close();
+  return path;
+}
+
+//===================================================================================================================//
+
 static void testNoneKeepsConstantLR()
 {
   TestScope _t("testNoneKeepsConstantLR");
@@ -431,10 +443,7 @@ static void testSchedulerConfigParsingCosine()
 {
   TestScope _t("testSchedulerConfigParsingCosine");
 
-  QString configPath = tempDir() + "/scheduler_cosine_parse.json";
-  QFile file(configPath);
-  file.open(QIODevice::WriteOnly);
-  file.write(R"({
+  QString configPath = writeTempJson("scheduler_cosine_parse.json", R"({
     "mode": "train",
     "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
     "train": {
@@ -443,8 +452,6 @@ static void testSchedulerConfigParsingCosine()
       "scheduler": { "type": "cosine", "minLR": 0.0001 }
     }
   })");
-
-  file.close();
 
   auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
   CHECK(config.trainConfig.scheduler.type == Common::LRSchedulerType::COSINE, "cosine type parsed");
@@ -458,10 +465,7 @@ static void testSchedulerConfigParsingStep()
 {
   TestScope _t("testSchedulerConfigParsingStep");
 
-  QString configPath = tempDir() + "/scheduler_step_parse.json";
-  QFile file(configPath);
-  file.open(QIODevice::WriteOnly);
-  file.write(R"({
+  QString configPath = writeTempJson("scheduler_step_parse.json", R"({
     "mode": "train",
     "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
     "train": {
@@ -470,8 +474,6 @@ static void testSchedulerConfigParsingStep()
       "scheduler": { "type": "step", "gamma": 0.5, "stepSize": 20 }
     }
   })");
-
-  file.close();
 
   auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
   CHECK(config.trainConfig.scheduler.type == Common::LRSchedulerType::STEP, "step type parsed");
@@ -485,16 +487,11 @@ static void testSchedulerConfigDefaultsToNone()
 {
   TestScope _t("testSchedulerConfigDefaultsToNone");
 
-  QString configPath = tempDir() + "/scheduler_none_parse.json";
-  QFile file(configPath);
-  file.open(QIODevice::WriteOnly);
-  file.write(R"({
+  QString configPath = writeTempJson("scheduler_none_parse.json", R"({
     "mode": "train",
     "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
     "train": { "numEpochs": 10, "learningRate": 0.01 }
   })");
-
-  file.close();
 
   auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
   CHECK(config.trainConfig.scheduler.type == Common::LRSchedulerType::NONE, "no scheduler block → NONE");
@@ -506,10 +503,7 @@ static void testSchedulerMissingTypeThrows()
 {
   TestScope _t("testSchedulerMissingTypeThrows");
 
-  QString configPath = tempDir() + "/scheduler_missing_type.json";
-  QFile file(configPath);
-  file.open(QIODevice::WriteOnly);
-  file.write(R"({
+  QString configPath = writeTempJson("scheduler_missing_type.json", R"({
     "mode": "train",
     "layers": [{"numNeurons": 4, "actvFunc": "relu"}],
     "train": {
@@ -518,8 +512,6 @@ static void testSchedulerMissingTypeThrows()
       "scheduler": { "gamma": 0.5 }
     }
   })");
-
-  file.close();
 
   CHECK_THROWS(NN_CLI::ANNLoader::loadModel(configPath.toStdString()), "scheduler without 'type' must throw");
 }
@@ -534,10 +526,7 @@ static void testSchedulerAppliedDuringTraining()
   // callback fires after epochs 0..9; the last is at absEpoch=9 → floor(9/3)=3 decay steps →
   // 0.5 * 0.1^3 = 0.0005. The --output model is saved post-train, so it captures that final LR.
   // If applyLRScheduler were never wired, the output LR would stay 0.5 and this assertion fails.
-  QString configPath = tempDir() + "/scheduler_applied_train.json";
-  QFile file(configPath);
-  file.open(QIODevice::WriteOnly);
-  file.write(R"({
+  QString configPath = writeTempJson("scheduler_applied_train.json", R"({
     "mode": "train",
     "device": "cpu",
     "numThreads": 1,
@@ -553,8 +542,6 @@ static void testSchedulerAppliedDuringTraining()
       "scheduler": { "type": "step", "gamma": 0.1, "stepSize": 3 }
     }
   })");
-
-  file.close();
 
   QString modelPath = tempDir() + "/scheduler_applied_model.nnmodel.tar";
   auto result = runNNCLI({"--model", configPath, "--mode", "train", "--device", "cpu", "--samples",
