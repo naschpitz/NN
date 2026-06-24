@@ -60,7 +60,7 @@ namespace NN_CLI
     rows.push_back({"Total parameters", SummaryTable::formatWithCommas(totalParams)});
     rows.push_back({"", ""});
     rows.push_back({"Test samples", SummaryTable::formatWithCommas(testSamples)});
-    rows.push_back({"Batch size", std::to_string(cnnConfig.testConfig.batchSize)});
+    rows.push_back({"Fetch size", std::to_string(cnnConfig.testConfig.fetchSize)});
     rows.push_back({"Cost function", costStr});
 
     SummaryTable::print("Test Configuration", rows);
@@ -95,7 +95,7 @@ namespace NN_CLI
     rows.push_back({"Dense layers", std::to_string(denseCount)});
     rows.push_back({"", ""});
     rows.push_back({"Test samples", SummaryTable::formatWithCommas(testSamples)});
-    rows.push_back({"Batch size", std::to_string(annConfig.testConfig.batchSize)});
+    rows.push_back({"Fetch size", std::to_string(annConfig.testConfig.fetchSize)});
     rows.push_back({"Cost function", costStr});
 
     SummaryTable::print("Test Configuration", rows);

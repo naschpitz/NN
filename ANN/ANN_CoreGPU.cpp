@@ -55,8 +55,8 @@ Common::PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvi
   Common::PredictResults<T> results;
   results.reserve(numSamples);
 
-  ulong batchSize = std::max<ulong>(this->numGPUs, this->testConfig.batchSize);
-  ulong numBatches = (numSamples + batchSize - 1) / batchSize;
+  ulong fetchSize = std::max<ulong>(this->numGPUs, this->testConfig.fetchSize);
+  ulong numBatches = (numSamples + fetchSize - 1) / fetchSize;
   std::atomic<ulong> completedInputs{0};
 
   struct GPUWorkItem {
@@ -66,7 +66,7 @@ Common::PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvi
   };
 
   for (ulong batchIndex = 0; batchIndex < numBatches && !this->stopRequested.load(); batchIndex++) {
-    InputsView<T> batch = provider(batchSize, batchIndex);
+    InputsView<T> batch = provider(fetchSize, batchIndex);
     ulong batchN = batch.size();
 
     if (batchN == 0)
@@ -345,7 +345,7 @@ template <typename T>
 Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   return Common::distributeTestAcrossGPUs<T>(
-    &this->workerPool, numSamples, sampleProvider, this->numGPUs, this->testConfig.batchSize, this->progressCallback,
+    &this->workerPool, numSamples, sampleProvider, this->numGPUs, this->testConfig.fetchSize, this->progressCallback,
     [this](size_t gpuIdx, const Samples<T>& batch, ulong startIdx, ulong endIdx) -> std::pair<T, ulong> {
       return this->gpuWorkers[gpuIdx]->testSubset(SamplesView<T>(batch.data() + startIdx, endIdx - startIdx));
     });

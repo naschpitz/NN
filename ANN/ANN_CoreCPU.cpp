@@ -82,12 +82,12 @@ Common::PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvi
   // Match the test() pattern: pull batches from the provider and process each
   // with QtConcurrent across the worker pool. Bounded memory regardless of
   // total dataset size — only one batch lives in memory at a time.
-  ulong batchSize = std::max<ulong>(static_cast<ulong>(numThreads), this->testConfig.batchSize);
-  ulong numBatches = (numSamples + batchSize - 1) / batchSize;
+  ulong fetchSize = std::max<ulong>(static_cast<ulong>(numThreads), this->testConfig.fetchSize);
+  ulong numBatches = (numSamples + fetchSize - 1) / fetchSize;
   std::atomic<ulong> completedInputs{0};
 
   for (ulong batchIndex = 0; batchIndex < numBatches && !this->stopRequested.load(); batchIndex++) {
-    InputsView<T> batch = provider(batchSize, batchIndex);
+    InputsView<T> batch = provider(fetchSize, batchIndex);
     ulong batchN = batch.size();
 
     if (batchN == 0)
@@ -385,14 +385,14 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
   }
 
   // Process in batches via the provider
-  ulong batchSize = this->testConfig.batchSize;
-  ulong numBatches = (numSamples + batchSize - 1) / batchSize;
+  ulong fetchSize = this->testConfig.fetchSize;
+  ulong numBatches = (numSamples + fetchSize - 1) / fetchSize;
 
   T totalLoss = 0;
   ulong totalCorrect = 0;
 
   for (ulong b = 0; b < numBatches; b++) {
-    Samples<T> batch = sampleProvider(sampleIndices, batchSize, b * batchSize);
+    Samples<T> batch = sampleProvider(sampleIndices, fetchSize, b * fetchSize);
     ulong batchN = batch.size();
 
     // Per-worker loss and correct counters
@@ -438,7 +438,7 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
     }
 
     if (this->progressCallback) {
-      ulong samplesProcessed = std::min((b + 1) * batchSize, numSamples);
+      ulong samplesProcessed = std::min((b + 1) * fetchSize, numSamples);
       this->progressCallback(samplesProcessed, numSamples);
     }
   }

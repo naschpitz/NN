@@ -55,21 +55,22 @@ namespace Common
   //
   // Template parameters:
   //   T                - numeric type (float, double, int)
-  //   SampleProviderFn - callable: (sampleIndices, batchSize, batchIndex) ->
+  //   SampleProviderFn - callable: (sampleIndices, fetchSize, batchIndex) ->
   //   BatchT TestSubsetFn     - callable: (gpuIdx, batch, startIdx, endIdx) ->
   //   std::pair<T, ulong>
   //                      Returns {loss, numCorrect} for the given slice.
   //
   // The function handles:
   //   - Sequential sample index creation (no shuffling for test)
-  //   - Batch iteration with bounded memory
+  //   - Fetch-window iteration with bounded memory (fetchSize = host-RAM window,
+  //     not an optimizer update boundary — test has no gradient step)
   //   - GPU work distribution via distributeBatchAcrossGPUs()
   //   - Parallel dispatch via QtConcurrent::blockingMap
   //   - Loss and accuracy aggregation
   //   - Progress reporting
   template <typename T, typename SampleProviderFn, typename TestSubsetFn>
   TestResult<T> distributeTestAcrossGPUs(QThreadPool* pool, ulong numSamples, SampleProviderFn sampleProvider,
-                                         size_t numGPUs, ulong batchSize, const ProgressCallback& progressCallback,
+                                         size_t numGPUs, ulong fetchSize, const ProgressCallback& progressCallback,
                                          TestSubsetFn&& testSubsetFn)
   {
     // Sequential index array (no shuffling for test)
@@ -79,13 +80,13 @@ namespace Common
       sampleIndices[i] = i;
     }
 
-    ulong numBatches = (numSamples + batchSize - 1) / batchSize;
+    ulong numBatches = (numSamples + fetchSize - 1) / fetchSize;
 
     T totalLoss = static_cast<T>(0);
     ulong totalCorrect = 0;
 
     for (ulong b = 0; b < numBatches; b++) {
-      auto batch = sampleProvider(sampleIndices, batchSize, b * batchSize);
+      auto batch = sampleProvider(sampleIndices, fetchSize, b * fetchSize);
 
       // Distribute batch across GPUs
       ulong batchLen = batch.size();
@@ -103,7 +104,7 @@ namespace Common
       }
 
       if (progressCallback) {
-        ulong samplesProcessed = std::min((b + 1) * batchSize, numSamples);
+        ulong samplesProcessed = std::min((b + 1) * fetchSize, numSamples);
         progressCallback(samplesProcessed, numSamples);
       }
     }

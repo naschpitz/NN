@@ -53,8 +53,8 @@ Common::PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvi
   Common::PredictResults<T> results;
   results.reserve(numSamples);
 
-  ulong batchSize = std::max<ulong>(this->numGPUs, this->testConfig.batchSize);
-  ulong numBatches = (numSamples + batchSize - 1) / batchSize;
+  ulong fetchSize = std::max<ulong>(this->numGPUs, this->testConfig.fetchSize);
+  ulong numBatches = (numSamples + fetchSize - 1) / fetchSize;
   std::atomic<ulong> completedInputs{0};
 
   struct GPUWorkItem {
@@ -64,7 +64,7 @@ Common::PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvi
   };
 
   for (ulong batchIndex = 0; batchIndex < numBatches && !this->stopRequested.load(); batchIndex++) {
-    InputsView<T> batch = provider(batchSize, batchIndex);
+    InputsView<T> batch = provider(fetchSize, batchIndex);
     ulong batchN = batch.size();
 
     if (batchN == 0)
@@ -393,14 +393,14 @@ Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>
     sampleIndices[i] = i;
   }
 
-  ulong batchSize = this->testConfig.batchSize;
-  ulong numBatches = (numSamples + batchSize - 1) / batchSize;
+  ulong fetchSize = this->testConfig.fetchSize;
+  ulong numBatches = (numSamples + fetchSize - 1) / fetchSize;
 
   T totalLoss = static_cast<T>(0);
   ulong totalCorrect = 0;
 
   for (ulong b = 0; b < numBatches; b++) {
-    Samples<T> batch = sampleProvider(sampleIndices, batchSize, b * batchSize);
+    Samples<T> batch = sampleProvider(sampleIndices, fetchSize, b * fetchSize);
 
     // Distribute batch across GPUs
     ulong batchLen = batch.size();
@@ -436,7 +436,7 @@ Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>
     }
 
     if (this->progressCallback) {
-      ulong samplesProcessed = std::min((b + 1) * batchSize, numSamples);
+      ulong samplesProcessed = std::min((b + 1) * fetchSize, numSamples);
       this->progressCallback(samplesProcessed, numSamples);
     }
   }

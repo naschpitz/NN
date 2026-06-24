@@ -195,7 +195,7 @@
 <p>Configuration for test evaluation. Separate from <code>TrainConfig</code> to allow independent batch sizing.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
-  <tr><td><code>batchSize</code></td><td><code>ulong</code></td><td>Mini-batch size for test evaluation (default 64). Controls how many samples are loaded into memory at once during testing.</td></tr>
+  <tr><td><code>fetchSize</code></td><td><code>ulong</code></td><td>Fetch/streaming window for test/predict (default 64). Samples loaded into host memory per provider call — there is no optimizer update boundary in test, so this is purely a memory-bounded window fanned out across workers.</td></tr>
 </table>
 
 <h3>Optimizer&lt;T&gt; <span class="badge badge-blue">Common/Common_Optimizer.hpp</span></h3>

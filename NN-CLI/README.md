@@ -249,7 +249,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
 
 #### ANN Test Configuration
 
-- `batchSize`: Mini-batch size for test evaluation (default: `64`). Controls how many samples are loaded into memory at once during `--mode test`
+- `fetchSize`: Fetch/streaming window for test/predict (default: `64`). Samples loaded into memory per provider call during `--mode test`. Unlike train's `batchSize`, there is no optimizer update boundary here — it is purely a host-RAM window fanned out across workers
 
 ## CNN Configuration
 
@@ -378,7 +378,7 @@ Each layer has a `type` field:
 
 #### CNN Test Configuration
 
-- `batchSize`: Mini-batch size for test evaluation (default: `64`). Controls how many samples are loaded into memory at once during `--mode test`
+- `fetchSize`: Fetch/streaming window for test/predict (default: `64`). Samples loaded into memory per provider call during `--mode test`. Unlike train's `batchSize`, there is no optimizer update boundary here — it is purely a host-RAM window fanned out across workers
 
 ## Model Output (output from training)
 

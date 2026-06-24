@@ -157,7 +157,7 @@ namespace NN_CLI
   template <typename TestConfigT>
   static void serializeTestConfig(nlohmann::ordered_json& testJson, const TestConfigT& testConfig)
   {
-    testJson["batchSize"] = testConfig.batchSize;
+    testJson["fetchSize"] = testConfig.fetchSize;
   }
 
   //===================================================================================================================//

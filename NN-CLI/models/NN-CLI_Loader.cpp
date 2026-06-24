@@ -321,8 +321,8 @@ namespace NN_CLI
     if (json.contains("test")) {
       const auto& test = json.at("test");
 
-      if (test.contains("batchSize"))
-        config.batchSize = test.at("batchSize").get<ulong>();
+      if (test.contains("fetchSize"))
+        config.fetchSize = test.at("fetchSize").get<ulong>();
     }
 
     return config;

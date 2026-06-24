@@ -47,7 +47,7 @@ config.trainingConfig.numEpochs    = 100;
 config.trainingConfig.batchSize    = 64;
 config.trainingConfig.learningRate = 0.01f;
 
-config.testConfig.batchSize = 128;   // batch size for test evaluation (default: 64)
+config.testConfig.fetchSize = 128;   // fetch window for test/predict (default: 64)
 
 // Create, train, test, and query
 auto core = ANN::Core<float>::makeCore(config);

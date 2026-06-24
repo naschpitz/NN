@@ -202,7 +202,7 @@
   <tr><td><code>numGPUs</code></td><td>int</td><td>No</td><td>Number of GPUs to use (0 = all available)</td></tr>
   <tr><td><code>parameters</code></td><td>object</td><td>Pred/Test</td><td>Deprecated — parameters are now stored in <code>params.bin</code> inside the <code>.nnmodel</code> package</td></tr>
   <tr><td><code>test</code></td><td>object</td><td>No</td><td>Test mode configuration</td></tr>
-  <tr><td><code>test.batchSize</code></td><td>int</td><td>No</td><td>Mini-batch size for test/evaluation (default 64)</td></tr>
+  <tr><td><code>test.fetchSize</code></td><td>int</td><td>No</td><td>Fetch/streaming window for test/evaluation (default 64). Samples materialized per provider call — not an optimizer update boundary (test has none), purely a host-RAM window fanned out across workers/GPUs.</td></tr>
   <tr><td><code>calibrate</code></td><td>object</td><td>No</td><td>Calibration parameters for OOD detection threshold</td></tr>
   <tr><td><code>calibrate.idSampleCount</code></td><td>int</td><td>No</td><td>Number of in-distribution samples to use (default 500)</td></tr>
   <tr><td><code>calibrate.oodSampleCount</code></td><td>int</td><td>No</td><td>Number of out-of-distribution samples to use (default 1500)</td></tr>

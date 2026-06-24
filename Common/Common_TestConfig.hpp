@@ -8,7 +8,10 @@
 namespace Common
 {
   struct TestConfig {
-      ulong batchSize = 64; // Mini-batch size for test evaluation (default = 64)
+      // Samples fetched/materialized per provider call during test/predict. Unlike
+      // TrainConfig.batchSize, there is no optimizer update boundary in test — this
+      // is purely a host-RAM streaming window, fanned out across workers/GPUs per call.
+      ulong fetchSize = 64; // Fetch window for test/predict (default = 64)
   };
 }
 
