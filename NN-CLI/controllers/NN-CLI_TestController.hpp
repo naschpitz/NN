@@ -63,7 +63,7 @@ namespace NN_CLI
                            const std::vector<float>& fractions) override;
 
       void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
-                            const std::string& summary) override;
+                            float learningRate, const std::string& summary) override;
 
       void onTrainFinished(bool success, const std::string& finalSummary) override;
 

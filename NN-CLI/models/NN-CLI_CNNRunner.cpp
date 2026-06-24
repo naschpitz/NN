@@ -726,12 +726,14 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
     // best model captures this epoch's record with placeholder defaults
     // (hasValLoss=false / isBest=false) even though validation just ran.
     auto& epochHistory = this->core->getTrainMetadata().epochHistory;
+    float epochLearningRate = 0.0f;
 
     if (!epochHistory.empty()) {
       auto& lastRecord = epochHistory.back();
       lastRecord.isBest = isBestEpoch;
       lastRecord.hasValLoss = hasValLoss;
       lastRecord.valLoss = valLoss;
+      epochLearningRate = lastRecord.learningRate;
     }
 
     // --- Best model save ---
@@ -757,7 +759,7 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
       epochSummary += " | Best*";
 
     this->notifyEpochCompleted(static_cast<int>(epoch), totalEpochs, this->lastEpochLoss, hasValLoss, valLoss,
-                               epochSummary);
+                               epochLearningRate, epochSummary);
 
     // --- Monitor stop requests ---
     if (monitorShouldStop) {

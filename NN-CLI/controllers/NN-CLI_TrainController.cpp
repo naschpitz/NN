@@ -207,7 +207,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TrainController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                  float valLoss, const std::string& summary)
+                                                  float valLoss, float learningRate, const std::string& summary)
   {
     if (!this->window)
       return;
@@ -235,11 +235,14 @@ namespace NN_CLI
       valLossStr = "-";
     }
 
+    std::ostringstream learningRateStream;
+    learningRateStream << std::fixed << std::setprecision(6) << learningRate;
+
     bool isBest = summary.find("Best*") != std::string::npos;
     std::string bestStr = isBest ? "✓" : "";
     std::string timestamp = Common::Utils::formatHumanReadable();
 
-    TerminalUI_Table::Row row = {epochStr, lossStream.str(), valLossStr, bestStr, timestamp};
+    TerminalUI_Table::Row row = {epochStr, lossStream.str(), valLossStr, learningRateStream.str(), bestStr, timestamp};
 
     this->window->addEpochRow(row);
     this->window->refreshEpochContent();

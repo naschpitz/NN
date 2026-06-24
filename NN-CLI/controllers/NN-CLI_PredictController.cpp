@@ -181,13 +181,14 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void PredictController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                    float valLoss, const std::string& summary)
+                                                    float valLoss, float learningRate, const std::string& summary)
   {
     (void)epochIdx;
     (void)totalEpochs;
     (void)epochLoss;
     (void)hasValLoss;
     (void)valLoss;
+    (void)learningRate;
 
     // When the TUI is not active, print to console for interface completeness.
     if (!this->window || !this->window->isInitialized()) {

@@ -78,7 +78,7 @@ namespace NN_CLI
 
   template <typename RunnerT>
   void TestController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                 float valLoss, const std::string& summary)
+                                                 float valLoss, float learningRate, const std::string& summary)
   {
     // Test mode does not use epoch events, but print the summary for
     // interface completeness in case the runner fires one.
@@ -87,6 +87,7 @@ namespace NN_CLI
     (void)epochLoss;
     (void)hasValLoss;
     (void)valLoss;
+    (void)learningRate;
 
     std::cout << summary << "\n";
   }

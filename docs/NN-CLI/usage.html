@@ -287,7 +287,7 @@ NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labe
 <p>Displayed only when the terminal width is ≥ 88 columns. Shows per-phase timing data from the Runner's profiler: data fetch time, GPU training time, gradient merge time, weight update time, etc. The panel width adapts to roughly 35% of the available width (min 20 columns).</p>
 
 <h4>Epochs panel (bottom-left)</h4>
-<p>A scrollable table with auto-scroll showing completed epochs. Columns are <code>Epoch | Loss | Validation Loss | Best | Completed At</code>. Each completed epoch adds a row with the epoch loss (6 decimal places), validation loss (or <code>-</code> if none), a <code>✓</code> marker in the Best column for new best epochs, and a human-readable timestamp. Monitor messages, training completion messages, and error messages appear below the table.</p>
+<p>A scrollable table with auto-scroll showing completed epochs. Columns are <code>Epoch | Loss | Validation Loss | Learning Rate | Best | Completed At</code>. Each completed epoch adds a row with the epoch loss (6 decimal places), validation loss (or <code>-</code> if none), the learning rate used during that epoch (6 decimal places), a <code>✓</code> marker in the Best column for new best epochs, and a human-readable timestamp. Monitor messages, training completion messages, and error messages appear below the table.</p>
 
 <h4>Progress panel (bottom, full width)</h4>
 <p>Contains two stacked progress bars:</p>

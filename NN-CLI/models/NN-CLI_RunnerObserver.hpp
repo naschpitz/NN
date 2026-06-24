@@ -91,13 +91,14 @@ namespace NN_CLI
        * @param summary        Human-readable epoch summary string.
        */
       virtual void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
-                                    const std::string& summary)
+                                    float learningRate, const std::string& summary)
       {
         (void)epochIdx;
         (void)totalEpochs;
         (void)epochLoss;
         (void)hasValLoss;
         (void)valLoss;
+        (void)learningRate;
         (void)summary;
       }
 
@@ -106,13 +107,13 @@ namespace NN_CLI
        * @param success        True if training completed normally.
        * @param finalSummary   Human-readable summary of the full run.
        */
-        virtual void onTrainFinished(bool success, const std::string& finalSummary)
-       {
-         (void)success;
-         (void)finalSummary;
-       }
+      virtual void onTrainFinished(bool success, const std::string& finalSummary)
+      {
+        (void)success;
+        (void)finalSummary;
+      }
 
-       /**
+      /**
         * Called when prediction finishes.
         * @param results            Predicted results.
         * @param numInputs          Number of inputs processed.
@@ -120,18 +121,16 @@ namespace NN_CLI
         * @param durationFormatted  Human-readable duration string.
         * @param outputPath         Path to the output file (empty if none).
         */
-       virtual void onPredictFinished(const Common::PredictResults<float>& results,
-                                      size_t numInputs,
-                                      double durationSeconds,
-                                      const std::string& durationFormatted,
-                                      const std::string& outputPath)
-       {
-         (void)results;
-         (void)numInputs;
-         (void)durationSeconds;
-         (void)durationFormatted;
-         (void)outputPath;
-       }
+      virtual void onPredictFinished(const Common::PredictResults<float>& results, size_t numInputs,
+                                     double durationSeconds, const std::string& durationFormatted,
+                                     const std::string& outputPath)
+      {
+        (void)results;
+        (void)numInputs;
+        (void)durationSeconds;
+        (void)durationFormatted;
+        (void)outputPath;
+      }
 
       //-- Model / informational events --//
 

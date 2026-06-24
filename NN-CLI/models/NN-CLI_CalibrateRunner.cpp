@@ -176,13 +176,14 @@ void NN_CLI::CalibrateRunner::onBatchProgress(int batchIdx, int totalBatches, fl
 //===================================================================================================================//
 
 void NN_CLI::CalibrateRunner::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                               float valLoss, const std::string& summary)
+                                               float valLoss, float learningRate, const std::string& summary)
 {
   (void)epochIdx;
   (void)totalEpochs;
   (void)epochLoss;
   (void)hasValLoss;
   (void)valLoss;
+  (void)learningRate;
   (void)summary;
 }
 

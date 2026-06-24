@@ -61,7 +61,7 @@ namespace NN_CLI
       void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
                            const std::vector<float>& fractions) override;
       void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
-                            const std::string& summary) override;
+                            float learningRate, const std::string& summary) override;
       void onTrainFinished(bool success, const std::string& finalSummary) override;
       void onModelInfoUpdated(const std::string& property, const std::string& value) override;
       void onLogMessage(const std::string& message, bool isError) override;

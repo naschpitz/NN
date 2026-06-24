@@ -190,7 +190,7 @@ namespace NN_CLI
       void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
                                const std::vector<float>& fractions);
       void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
-                                const std::string& summary);
+                                float learningRate, const std::string& summary);
       void notifyTrainFinished(bool success, const std::string& finalSummary);
       void notifyPredictFinished(const Common::PredictResults<float>& results, size_t numInputs, double durationSeconds,
                                  const std::string& durationFormatted, const std::string& outputPath);
