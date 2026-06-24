@@ -30,7 +30,7 @@ namespace Common
       T bestLoss = 0; // Best loss value
 
       // LR scheduler state (persisted so resumed runs continue the schedule; plateau-relevant)
-      LearningRateSchedulerState schedulerState;
+      LearningRateSchedulerState learningRateSchedulerState;
 
       // Per-epoch training history
       std::vector<EpochRecord<T>> epochHistory;

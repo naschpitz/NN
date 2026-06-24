@@ -213,7 +213,7 @@ namespace NN_CLI
 
       //-- Learning-rate scheduler state (seeded in the ctor from trainConfig.learningRate;
       // overwritten on resume by the loaded checkpoint state). --//
-      Common::LearningRateSchedulerState schedulerState;
+      Common::LearningRateSchedulerState learningRateSchedulerState;
 
       //-- Callback state --//
       // Latest epoch-average training loss, written by the per-batch progress

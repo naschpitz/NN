@@ -259,15 +259,17 @@ namespace NN_CLI
           tc.optimizer.epsilon = opt.at("epsilon").get<float>();
       }
 
-      if (train.contains("scheduler")) {
-        const auto& sched = train.at("scheduler");
+      if (train.contains("learningRateScheduler")) {
+        const auto& sched = train.at("learningRateScheduler");
 
-        tc.scheduler.type = Common::LearningRateSchedulerConfig::nameToType(sched.at("type").get<std::string>());
-        tc.scheduler.gamma = sched.value("gamma", tc.scheduler.gamma);
-        tc.scheduler.stepSize = sched.value("stepSize", tc.scheduler.stepSize);
-        tc.scheduler.minLearningRate = sched.value("minLearningRate", tc.scheduler.minLearningRate);
-        tc.scheduler.patience = sched.value("patience", tc.scheduler.patience);
-        tc.scheduler.minDelta = sched.value("minDelta", tc.scheduler.minDelta);
+        tc.learningRateScheduler.type =
+          Common::LearningRateSchedulerConfig::nameToType(sched.at("type").get<std::string>());
+        tc.learningRateScheduler.gamma = sched.value("gamma", tc.learningRateScheduler.gamma);
+        tc.learningRateScheduler.stepSize = sched.value("stepSize", tc.learningRateScheduler.stepSize);
+        tc.learningRateScheduler.minLearningRate =
+          sched.value("minLearningRate", tc.learningRateScheduler.minLearningRate);
+        tc.learningRateScheduler.patience = sched.value("patience", tc.learningRateScheduler.patience);
+        tc.learningRateScheduler.minDelta = sched.value("minDelta", tc.learningRateScheduler.minDelta);
       }
 
       if (train.contains("monitoring")) {
@@ -373,14 +375,14 @@ namespace NN_CLI
       md.bestEpoch = meta.value("bestEpoch", 0UL);
       md.bestLoss = static_cast<float>(meta.value("bestLoss", 0.0));
 
-      if (meta.contains("schedulerState")) {
-        const auto& ss = meta.at("schedulerState");
+      if (meta.contains("learningRateSchedulerState")) {
+        const auto& ss = meta.at("learningRateSchedulerState");
 
-        md.schedulerState.currentLearningRate = ss.value("currentLearningRate", 0.0f);
-        md.schedulerState.baseLearningRate = ss.value("baseLearningRate", 0.0f);
-        md.schedulerState.epochsSinceImprovement = ss.value("epochsSinceImprovement", 0UL);
-        md.schedulerState.bestValidationLoss = ss.value("bestValidationLoss", 0.0f);
-        md.schedulerState.initialized = ss.value("initialized", false);
+        md.learningRateSchedulerState.currentLearningRate = ss.value("currentLearningRate", 0.0f);
+        md.learningRateSchedulerState.baseLearningRate = ss.value("baseLearningRate", 0.0f);
+        md.learningRateSchedulerState.epochsSinceImprovement = ss.value("epochsSinceImprovement", 0UL);
+        md.learningRateSchedulerState.bestValidationLoss = ss.value("bestValidationLoss", 0.0f);
+        md.learningRateSchedulerState.initialized = ss.value("initialized", false);
       }
 
       if (meta.contains("epochs") && meta.at("epochs").is_array()) {

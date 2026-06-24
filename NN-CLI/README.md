@@ -173,7 +173,7 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   - `beta1`: Adam beta1 (default: `0.9`)
   - `beta2`: Adam beta2 (default: `0.999`)
   - `epsilon`: Adam epsilon (default: `1e-8`)
-- `scheduler`: Object controlling the learning-rate scheduler (default: none / disabled). Runs at each epoch boundary after validation and adjusts the learning rate for the next epoch
+- `learningRateScheduler`: Object controlling the learning-rate scheduler (default: none / disabled). Runs at each epoch boundary after validation and adjusts the learning rate for the next epoch
   - `type`: `"none"` (default, disabled), `"step"` (decay every `stepSize` epochs), `"cosine"` (cosine-anneal from `learningRate` to `minLearningRate` over the run), or `"plateau"` (reduce the LR after `patience` epochs without validation improvement)
   - `gamma`: Multiplicative decay factor (default: `0.1`; used by `step` and `plateau`)
   - `stepSize`: Step scheduler: epochs per decay step (default: `1`)
@@ -366,7 +366,7 @@ Each layer has a `type` field:
   - `beta1`: Adam beta1 (default: `0.9`)
   - `beta2`: Adam beta2 (default: `0.999`)
   - `epsilon`: Adam epsilon (default: `1e-8`)
-- `scheduler`: Learning-rate scheduler (same fields as ANN — see above for details)
+- `learningRateScheduler`: Learning-rate scheduler (same fields as ANN — see above for details)
 - `augmentationFactor`: Multiply each class by N× using random image transforms (default: `0` = disabled)
 - `balanceAugmentation`: Oversample minority classes up to the majority class count (default: `false`). Only the oversampled copies are augmented; originals are kept as-is
 - `fullAugmentation`: Apply augmentation to all training samples every epoch (not just the oversampled copies), for stronger regularisation (default: `false`). Composable with `balanceAugmentation`/`augmentationFactor`

@@ -30,7 +30,8 @@ namespace Common
       // set a non-zero value so the whole training run reproduces.
       uint32_t shuffleSeed = 0;
       float dropoutRate = 0.0f; // Dropout probability for dense hidden layers (0.0 = disabled)
-      LearningRateSchedulerConfig scheduler; // LR scheduler (default: NONE = flat LR, behavior identical to today)
+      LearningRateSchedulerConfig
+        learningRateScheduler; // LR scheduler (default: NONE = flat LR, behavior identical to today)
       Optimizer<T> optimizer; // Optimizer (default: SGD)
       ValidationConfig validationDataset; // Validation split config (default: enabled, auto-size)
       MonitoringConfig monitoringConfig; // Training health monitoring (default: disabled)

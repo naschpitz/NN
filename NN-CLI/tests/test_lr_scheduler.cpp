@@ -449,14 +449,15 @@ static void testSchedulerConfigParsingCosine()
     "train": {
       "numEpochs": 100,
       "learningRate": 0.01,
-      "scheduler": { "type": "cosine", "minLearningRate": 0.0001 }
+      "learningRateScheduler": { "type": "cosine", "minLearningRate": 0.0001 }
     }
   })");
 
   auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
-  CHECK(config.trainConfig.scheduler.type == Common::LearningRateSchedulerType::COSINE, "cosine type parsed");
-  CHECK_NEAR(config.trainConfig.scheduler.minLearningRate, 0.0001f, 1e-7f, "cosine minLearningRate parsed");
-  CHECK_NEAR(config.trainConfig.scheduler.gamma, 0.1f, 1e-7f, "gamma retains default when omitted");
+  CHECK(config.trainConfig.learningRateScheduler.type == Common::LearningRateSchedulerType::COSINE,
+        "cosine type parsed");
+  CHECK_NEAR(config.trainConfig.learningRateScheduler.minLearningRate, 0.0001f, 1e-7f, "cosine minLearningRate parsed");
+  CHECK_NEAR(config.trainConfig.learningRateScheduler.gamma, 0.1f, 1e-7f, "gamma retains default when omitted");
 }
 
 //===================================================================================================================//
@@ -471,14 +472,14 @@ static void testSchedulerConfigParsingStep()
     "train": {
       "numEpochs": 100,
       "learningRate": 0.01,
-      "scheduler": { "type": "step", "gamma": 0.5, "stepSize": 20 }
+      "learningRateScheduler": { "type": "step", "gamma": 0.5, "stepSize": 20 }
     }
   })");
 
   auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
-  CHECK(config.trainConfig.scheduler.type == Common::LearningRateSchedulerType::STEP, "step type parsed");
-  CHECK_NEAR(config.trainConfig.scheduler.gamma, 0.5f, 1e-7f, "step gamma parsed");
-  CHECK(config.trainConfig.scheduler.stepSize == 20, "step stepSize parsed");
+  CHECK(config.trainConfig.learningRateScheduler.type == Common::LearningRateSchedulerType::STEP, "step type parsed");
+  CHECK_NEAR(config.trainConfig.learningRateScheduler.gamma, 0.5f, 1e-7f, "step gamma parsed");
+  CHECK(config.trainConfig.learningRateScheduler.stepSize == 20, "step stepSize parsed");
 }
 
 //===================================================================================================================//
@@ -494,7 +495,8 @@ static void testSchedulerConfigDefaultsToNone()
   })");
 
   auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
-  CHECK(config.trainConfig.scheduler.type == Common::LearningRateSchedulerType::NONE, "no scheduler block → NONE");
+  CHECK(config.trainConfig.learningRateScheduler.type == Common::LearningRateSchedulerType::NONE,
+        "no scheduler block → NONE");
 }
 
 //===================================================================================================================//
@@ -509,7 +511,7 @@ static void testSchedulerMissingTypeThrows()
     "train": {
       "numEpochs": 10,
       "learningRate": 0.01,
-      "scheduler": { "gamma": 0.5 }
+      "learningRateScheduler": { "gamma": 0.5 }
     }
   })");
 
@@ -539,7 +541,7 @@ static void testSchedulerAppliedDuringTraining()
     "train": {
       "numEpochs": 10,
       "learningRate": 0.5,
-      "scheduler": { "type": "step", "gamma": 0.1, "stepSize": 3 }
+      "learningRateScheduler": { "type": "step", "gamma": 0.1, "stepSize": 3 }
     }
   })");
 
@@ -556,8 +558,8 @@ static void testSchedulerAppliedDuringTraining()
   CHECK_NEAR(static_cast<float>(finalLearningRate), 0.0005f, 1e-5f, "step scheduler annealed final LR to base*gamma^3");
 
   QJsonObject metaJson = modelJson.value("trainMetadata").toObject();
-  CHECK(metaJson.contains("schedulerState"), "scheduler state persisted in model metadata");
-  QJsonObject ssJson = metaJson.value("schedulerState").toObject();
+  CHECK(metaJson.contains("learningRateSchedulerState"), "scheduler state persisted in model metadata");
+  QJsonObject ssJson = metaJson.value("learningRateSchedulerState").toObject();
   CHECK(ssJson.value("initialized").toBool(false), "persisted scheduler state marked initialized");
   const double persistedCurrentLearningRate = ssJson.value("currentLearningRate").toDouble(-999.0);
   CHECK_NEAR(static_cast<float>(persistedCurrentLearningRate), 0.0005f, 1e-5f,

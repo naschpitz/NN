@@ -135,18 +135,18 @@ namespace NN_CLI
     optJson["epsilon"] = tc.optimizer.epsilon;
     tcJson["optimizer"] = optJson;
 
-    using SchedulerType = std::decay_t<decltype(tc.scheduler.type)>;
+    using SchedulerType = std::decay_t<decltype(tc.learningRateScheduler.type)>;
 
-    if (tc.scheduler.type != SchedulerType::NONE) {
+    if (tc.learningRateScheduler.type != SchedulerType::NONE) {
       nlohmann::ordered_json schedJson;
-      using SchedulerConfigT = std::decay_t<decltype(tc.scheduler)>;
-      schedJson["type"] = SchedulerConfigT::typeToName(tc.scheduler.type);
-      schedJson["gamma"] = tc.scheduler.gamma;
-      schedJson["stepSize"] = tc.scheduler.stepSize;
-      schedJson["minLearningRate"] = tc.scheduler.minLearningRate;
-      schedJson["patience"] = tc.scheduler.patience;
-      schedJson["minDelta"] = tc.scheduler.minDelta;
-      tcJson["scheduler"] = schedJson;
+      using SchedulerConfigT = std::decay_t<decltype(tc.learningRateScheduler)>;
+      schedJson["type"] = SchedulerConfigT::typeToName(tc.learningRateScheduler.type);
+      schedJson["gamma"] = tc.learningRateScheduler.gamma;
+      schedJson["stepSize"] = tc.learningRateScheduler.stepSize;
+      schedJson["minLearningRate"] = tc.learningRateScheduler.minLearningRate;
+      schedJson["patience"] = tc.learningRateScheduler.patience;
+      schedJson["minDelta"] = tc.learningRateScheduler.minDelta;
+      tcJson["learningRateScheduler"] = schedJson;
     }
   }
 
@@ -191,14 +191,14 @@ namespace NN_CLI
 
     // Persist learning-rate scheduler state so training can resume (matters for plateau, which tracks
     // bestValidationLoss and a patience counter across epochs).
-    if (md.schedulerState.initialized) {
+    if (md.learningRateSchedulerState.initialized) {
       nlohmann::ordered_json ssJson;
-      ssJson["currentLearningRate"] = md.schedulerState.currentLearningRate;
-      ssJson["baseLearningRate"] = md.schedulerState.baseLearningRate;
-      ssJson["epochsSinceImprovement"] = md.schedulerState.epochsSinceImprovement;
-      ssJson["bestValidationLoss"] = md.schedulerState.bestValidationLoss;
-      ssJson["initialized"] = md.schedulerState.initialized;
-      mdJson["schedulerState"] = ssJson;
+      ssJson["currentLearningRate"] = md.learningRateSchedulerState.currentLearningRate;
+      ssJson["baseLearningRate"] = md.learningRateSchedulerState.baseLearningRate;
+      ssJson["epochsSinceImprovement"] = md.learningRateSchedulerState.epochsSinceImprovement;
+      ssJson["bestValidationLoss"] = md.learningRateSchedulerState.bestValidationLoss;
+      ssJson["initialized"] = md.learningRateSchedulerState.initialized;
+      mdJson["learningRateSchedulerState"] = ssJson;
     }
 
     // Serialize epoch history (only when non-empty)
