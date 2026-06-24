@@ -76,7 +76,7 @@
     },
     <span class="string">"scheduler"</span>: {
       <span class="string">"type"</span>: <span class="string">"cosine"</span>,
-      <span class="string">"minLR"</span>: <span class="number">1e-5</span>
+      <span class="string">"minLearningRate"</span>: <span class="number">1e-5</span>
     },
     <span class="string">"augmentationFactor"</span>: <span class="number">2</span>,
     <span class="string">"balanceAugmentation"</span>: <span class="keyword">true</span>,
@@ -161,10 +161,10 @@
   <tr><td><code>train.optimizer.beta2</code></td><td>float</td><td>No</td><td>Adam second moment decay rate (default 0.999)</td></tr>
   <tr><td><code>train.optimizer.epsilon</code></td><td>float</td><td>No</td><td>Adam numerical stability constant (default 1e-8)</td></tr>
   <tr><td><code>train.scheduler</code></td><td>object</td><td>No</td><td>Learning-rate scheduler configuration (default: none / disabled). The scheduler runs at each epoch boundary after validation and adjusts the learning rate for the next epoch</td></tr>
-  <tr><td><code>train.scheduler.type</code></td><td>string</td><td>No</td><td><code>"none"</code> (default, disabled), <code>"step"</code> (decay every <code>stepSize</code> epochs), <code>"cosine"</code> (cosine anneal to <code>minLR</code>), or <code>"plateau"</code> (reduce on validation-loss stagnation)</td></tr>
+  <tr><td><code>train.scheduler.type</code></td><td>string</td><td>No</td><td><code>"none"</code> (default, disabled), <code>"step"</code> (decay every <code>stepSize</code> epochs), <code>"cosine"</code> (cosine anneal to <code>minLearningRate</code>), or <code>"plateau"</code> (reduce on validation-loss stagnation)</td></tr>
   <tr><td><code>train.scheduler.gamma</code></td><td>float</td><td>No</td><td>Multiplicative decay factor (default 0.1; used by <code>step</code> and <code>plateau</code>)</td></tr>
   <tr><td><code>train.scheduler.stepSize</code></td><td>int</td><td>No</td><td>Step scheduler: number of epochs per decay step (default 1)</td></tr>
-  <tr><td><code>train.scheduler.minLR</code></td><td>float</td><td>No</td><td>Lower bound for the learning rate (default 0.0; used by <code>cosine</code> and <code>plateau</code>)</td></tr>
+  <tr><td><code>train.scheduler.minLearningRate</code></td><td>float</td><td>No</td><td>Lower bound for the learning rate (default 0.0; used by <code>cosine</code> and <code>plateau</code>)</td></tr>
   <tr><td><code>train.scheduler.patience</code></td><td>int</td><td>No</td><td>Plateau scheduler: epochs without validation improvement before reducing the LR (default 10)</td></tr>
   <tr><td><code>train.scheduler.minDelta</code></td><td>float</td><td>No</td><td>Plateau scheduler: minimum validation-loss improvement to reset the patience counter (default 0.0001)</td></tr>
   <tr><td><code>train.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>

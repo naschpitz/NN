@@ -36,7 +36,7 @@ namespace NN_CLI
       bool enabled = false;
       ulong checkInterval = 1;
       ulong numValSamples = 0;
-      float bestValLoss = std::numeric_limits<float>::max();
+      float bestValidationLoss = std::numeric_limits<float>::max();
       ulong bestValEpoch = 0;
       float lastValLoss = 0.0f;
   };
@@ -49,7 +49,6 @@ namespace NN_CLI
   class Utils
   {
     public:
-
       //-- Non-template static helpers --//
 
       static QString ensureOutputDir(const QString& outputPath)
@@ -87,7 +86,8 @@ namespace NN_CLI
         for (int i = 0; i < barWidth; i++)
           out << (i < filledWidth ? "\xe2\x96\x88" : "\xe2\x96\x91");
 
-        out << "] " << current << "/" << total << "  " << std::fixed << std::setprecision(1) << (percent * 100.0f) << "%";
+        out << "] " << current << "/" << total << "  " << std::fixed << std::setprecision(1) << (percent * 100.0f)
+            << "%";
         out << "   ";
 
         std::cout << out.str() << std::flush;
@@ -164,7 +164,6 @@ namespace NN_CLI
                                         const CNN::Shape3D& inputShape, ulong progressReports = 1000);
 
     private:
-
       //-- IDX private helpers --//
 
       static uint32_t readBigEndianUInt32(std::ifstream& stream);

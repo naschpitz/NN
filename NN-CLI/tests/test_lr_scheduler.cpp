@@ -1,6 +1,6 @@
 #include "test_helpers.hpp"
 
-#include "Common/Common_LRScheduler.hpp"
+#include "Common/Common_LearningRateScheduler.hpp"
 
 #include "NN-CLI_ANNLoader.hpp"
 
@@ -14,15 +14,15 @@
 //===================================================================================================================//
 //
 // Helper: mirror the Runner's caller pattern — step the scheduler, then publish the returned
-// LR back into state.currentLR (the function computes-and-returns; the caller owns currentLR).
+// LR back into state.currentLearningRate (the function computes-and-returns; the caller owns currentLearningRate).
 //
 //===================================================================================================================//
 
-static float stepAndUpdate(const Common::LRSchedulerConfig& cfg, Common::LRSchedulerState& state, ulong epoch,
-                           ulong totalEpochs, float valLoss)
+static float stepAndUpdate(const Common::LearningRateSchedulerConfig& cfg, Common::LearningRateSchedulerState& state,
+                           ulong epoch, ulong totalEpochs, float valLoss)
 {
-  const float lr = Common::stepLRScheduler(cfg, state, epoch, totalEpochs, true, valLoss);
-  state.currentLR = lr;
+  const float lr = Common::stepLearningRateScheduler(cfg, state, epoch, totalEpochs, true, valLoss);
+  state.currentLearningRate = lr;
   return lr;
 }
 
@@ -44,17 +44,17 @@ static void testNoneKeepsConstantLR()
 {
   TestScope _t("testNoneKeepsConstantLR");
 
-  Common::LRSchedulerConfig cfg; // type defaults to NONE
-  Common::LRSchedulerState state;
-  state.baseLR = 0.5f;
-  state.currentLR = 0.5f;
+  Common::LearningRateSchedulerConfig cfg; // type defaults to NONE
+  Common::LearningRateSchedulerState state;
+  state.baseLearningRate = 0.5f;
+  state.currentLearningRate = 0.5f;
 
   for (ulong epoch = 0; epoch < 100; ++epoch) {
-    const float lr = Common::stepLRScheduler(cfg, state, epoch, 100, false, 0.0f);
-    CHECK_NEAR(lr, 0.5f, 1e-6f, "NONE keeps currentLR constant across epochs");
+    const float lr = Common::stepLearningRateScheduler(cfg, state, epoch, 100, false, 0.0f);
+    CHECK_NEAR(lr, 0.5f, 1e-6f, "NONE keeps currentLearningRate constant across epochs");
   }
 
-  CHECK_NEAR(state.currentLR, 0.5f, 1e-6f, "NONE leaves state.currentLR untouched");
+  CHECK_NEAR(state.currentLearningRate, 0.5f, 1e-6f, "NONE leaves state.currentLearningRate untouched");
 }
 
 //===================================================================================================================//
@@ -63,14 +63,14 @@ static void testStepSchedule()
 {
   TestScope _t("testStepSchedule");
 
-  Common::LRSchedulerConfig cfg;
-  cfg.type = Common::LRSchedulerType::STEP;
+  Common::LearningRateSchedulerConfig cfg;
+  cfg.type = Common::LearningRateSchedulerType::STEP;
   cfg.gamma = 0.1f;
   cfg.stepSize = 10;
 
-  Common::LRSchedulerState state;
-  state.baseLR = 1.0f;
-  state.currentLR = 1.0f;
+  Common::LearningRateSchedulerState state;
+  state.baseLearningRate = 1.0f;
+  state.currentLearningRate = 1.0f;
 
   // floor(epoch/10) = number of decay steps applied
   CHECK_NEAR(stepAndUpdate(cfg, state, 9, 100, 0.0f), 1.0f, 1e-4f, "step: epoch 9 = base");
@@ -87,27 +87,27 @@ static void testStepRespectsMinLR()
 {
   TestScope _t("testStepRespectsMinLR");
 
-  Common::LRSchedulerConfig cfg;
-  cfg.type = Common::LRSchedulerType::STEP;
+  Common::LearningRateSchedulerConfig cfg;
+  cfg.type = Common::LearningRateSchedulerType::STEP;
   cfg.gamma = 0.1f;
   cfg.stepSize = 1;
-  cfg.minLR = 0.05f;
+  cfg.minLearningRate = 0.05f;
 
-  Common::LRSchedulerState state;
-  state.baseLR = 1.0f;
-  state.currentLR = 1.0f;
+  Common::LearningRateSchedulerState state;
+  state.baseLearningRate = 1.0f;
+  state.currentLearningRate = 1.0f;
 
-  // gamma^0..gamma^many; once the decay crosses minLR it must clamp.
+  // gamma^0..gamma^many; once the decay crosses minLearningRate it must clamp.
   float prev = 1.0f;
 
   for (ulong epoch = 0; epoch < 30; ++epoch) {
     const float lr = stepAndUpdate(cfg, state, epoch, 100, 0.0f);
-    CHECK(lr >= cfg.minLR - 1e-6f, "step: never below minLR");
+    CHECK(lr >= cfg.minLearningRate - 1e-6f, "step: never below minLearningRate");
     CHECK(lr <= prev + 1e-6f, "step: monotonically non-increasing");
     prev = lr;
   }
 
-  CHECK_NEAR(state.currentLR, 0.05f, 1e-6f, "step: floors at minLR");
+  CHECK_NEAR(state.currentLearningRate, 0.05f, 1e-6f, "step: floors at minLearningRate");
 }
 
 //===================================================================================================================//
@@ -116,17 +116,17 @@ static void testCosineSchedule()
 {
   TestScope _t("testCosineSchedule");
 
-  Common::LRSchedulerConfig cfg;
-  cfg.type = Common::LRSchedulerType::COSINE;
-  cfg.minLR = 0.0f;
+  Common::LearningRateSchedulerConfig cfg;
+  cfg.type = Common::LearningRateSchedulerType::COSINE;
+  cfg.minLearningRate = 0.0f;
 
-  Common::LRSchedulerState state;
-  state.baseLR = 1.0f;
-  state.currentLR = 1.0f;
+  Common::LearningRateSchedulerState state;
+  state.baseLearningRate = 1.0f;
+  state.currentLearningRate = 1.0f;
 
-  CHECK_NEAR(stepAndUpdate(cfg, state, 0, 100, 0.0f), 1.0f, 1e-4f, "cosine: epoch 0 = baseLR");
+  CHECK_NEAR(stepAndUpdate(cfg, state, 0, 100, 0.0f), 1.0f, 1e-4f, "cosine: epoch 0 = baseLearningRate");
   CHECK_NEAR(stepAndUpdate(cfg, state, 50, 100, 0.0f), 0.5f, 1e-3f, "cosine: epoch 50 = midpoint");
-  CHECK_NEAR(stepAndUpdate(cfg, state, 100, 100, 0.0f), 0.0f, 1e-3f, "cosine: epoch 100 = minLR");
+  CHECK_NEAR(stepAndUpdate(cfg, state, 100, 100, 0.0f), 0.0f, 1e-3f, "cosine: epoch 100 = minLearningRate");
 }
 
 //===================================================================================================================//
@@ -135,24 +135,24 @@ static void testCosineMonotonicAndFloor()
 {
   TestScope _t("testCosineMonotonicAndFloor");
 
-  Common::LRSchedulerConfig cfg;
-  cfg.type = Common::LRSchedulerType::COSINE;
-  cfg.minLR = 0.01f;
+  Common::LearningRateSchedulerConfig cfg;
+  cfg.type = Common::LearningRateSchedulerType::COSINE;
+  cfg.minLearningRate = 0.01f;
 
-  Common::LRSchedulerState state;
-  state.baseLR = 1.0f;
-  state.currentLR = 1.0f;
+  Common::LearningRateSchedulerState state;
+  state.baseLearningRate = 1.0f;
+  state.currentLearningRate = 1.0f;
 
   float prev = 1.0f;
 
   for (ulong epoch = 0; epoch <= 150; ++epoch) {
     const float lr = stepAndUpdate(cfg, state, epoch, 100, 0.0f);
-    CHECK(lr >= cfg.minLR - 1e-6f, "cosine: never below minLR");
+    CHECK(lr >= cfg.minLearningRate - 1e-6f, "cosine: never below minLearningRate");
     CHECK(lr <= prev + 1e-6f, "cosine: monotonically non-increasing");
     prev = lr;
   }
 
-  CHECK_NEAR(state.currentLR, 0.01f, 1e-6f, "cosine: final floors at minLR");
+  CHECK_NEAR(state.currentLearningRate, 0.01f, 1e-6f, "cosine: final floors at minLearningRate");
 }
 
 //===================================================================================================================//
@@ -161,18 +161,18 @@ static void testPlateauReduces()
 {
   TestScope _t("testPlateauReduces");
 
-  Common::LRSchedulerConfig cfg;
-  cfg.type = Common::LRSchedulerType::PLATEAU;
+  Common::LearningRateSchedulerConfig cfg;
+  cfg.type = Common::LearningRateSchedulerType::PLATEAU;
   cfg.gamma = 0.5f;
   cfg.patience = 3;
   cfg.minDelta = 1e-4f;
-  cfg.minLR = 0.0f;
+  cfg.minLearningRate = 0.0f;
 
-  Common::LRSchedulerState state;
-  state.baseLR = 1.0f;
-  state.currentLR = 1.0f;
+  Common::LearningRateSchedulerState state;
+  state.baseLearningRate = 1.0f;
+  state.currentLearningRate = 1.0f;
 
-  // epoch 0 (val=1.0): first call seeds bestValLoss, returns currentLR unchanged
+  // epoch 0 (val=1.0): first call seeds bestValidationLoss, returns currentLearningRate unchanged
   CHECK_NEAR(stepAndUpdate(cfg, state, 0, 100, 1.0f), 1.0f, 1e-6f, "plateau: epoch 0 seeds best");
   CHECK(state.initialized == true, "plateau: initialized after first call");
 
@@ -193,16 +193,16 @@ static void testPlateauCounterResetsOnImprovement()
 {
   TestScope _t("testPlateauCounterResetsOnImprovement");
 
-  Common::LRSchedulerConfig cfg;
-  cfg.type = Common::LRSchedulerType::PLATEAU;
+  Common::LearningRateSchedulerConfig cfg;
+  cfg.type = Common::LearningRateSchedulerType::PLATEAU;
   cfg.gamma = 0.5f;
   cfg.patience = 3;
   cfg.minDelta = 1e-4f;
-  cfg.minLR = 0.0f;
+  cfg.minLearningRate = 0.0f;
 
-  Common::LRSchedulerState state;
-  state.baseLR = 1.0f;
-  state.currentLR = 1.0f;
+  Common::LearningRateSchedulerState state;
+  state.baseLearningRate = 1.0f;
+  state.currentLearningRate = 1.0f;
 
   stepAndUpdate(cfg, state, 0, 100, 1.0f); // seed best=1.0
   stepAndUpdate(cfg, state, 1, 100, 1.0f); // counter=1
@@ -218,31 +218,31 @@ static void testPlateauRespectsMinLR()
 {
   TestScope _t("testPlateauRespectsMinLR");
 
-  Common::LRSchedulerConfig cfg;
-  cfg.type = Common::LRSchedulerType::PLATEAU;
+  Common::LearningRateSchedulerConfig cfg;
+  cfg.type = Common::LearningRateSchedulerType::PLATEAU;
   cfg.gamma = 0.5f;
   cfg.patience = 1;
   cfg.minDelta = 1e-4f;
-  cfg.minLR = 0.1f;
+  cfg.minLearningRate = 0.1f;
 
-  Common::LRSchedulerState state;
-  state.baseLR = 1.0f;
-  state.currentLR = 1.0f;
+  Common::LearningRateSchedulerState state;
+  state.baseLearningRate = 1.0f;
+  state.currentLearningRate = 1.0f;
 
   stepAndUpdate(cfg, state, 0, 100, 1.0f); // seed
-  // patience=1 → every stagnant epoch after the seed reduces by gamma*0.5, clamped at minLR=0.1
+  // patience=1 → every stagnant epoch after the seed reduces by gamma*0.5, clamped at minLearningRate=0.1
   for (ulong epoch = 1; epoch <= 10; ++epoch) {
     const float lr = stepAndUpdate(cfg, state, epoch, 100, 1.0f);
-    CHECK(lr >= cfg.minLR - 1e-6f, "plateau: never below minLR");
+    CHECK(lr >= cfg.minLearningRate - 1e-6f, "plateau: never below minLearningRate");
   }
 
-  CHECK_NEAR(state.currentLR, 0.1f, 1e-6f, "plateau: floors at minLR");
+  CHECK_NEAR(state.currentLearningRate, 0.1f, 1e-6f, "plateau: floors at minLearningRate");
 }
 
 //===================================================================================================================//
 //
 // Resume correctness: a scheduler state loaded from a checkpoint must produce the same LR
-// sequence as an uninterrupted run. Plateau is the interesting case (bestValLoss/counter persist).
+// sequence as an uninterrupted run. Plateau is the interesting case (bestValidationLoss/counter persist).
 //
 //===================================================================================================================//
 
@@ -251,12 +251,12 @@ static void testPlateauResumeMatchesContinuous()
   TestScope _t("testPlateauResumeMatchesContinuous");
 
   auto buildCfg = [] {
-    Common::LRSchedulerConfig cfg;
-    cfg.type = Common::LRSchedulerType::PLATEAU;
+    Common::LearningRateSchedulerConfig cfg;
+    cfg.type = Common::LearningRateSchedulerType::PLATEAU;
     cfg.gamma = 0.5f;
     cfg.patience = 2;
     cfg.minDelta = 1e-4f;
-    cfg.minLR = 0.0f;
+    cfg.minLearningRate = 0.0f;
     return cfg;
   };
 
@@ -264,36 +264,36 @@ static void testPlateauResumeMatchesContinuous()
   const float losses[8] = {1.0f, 0.8f, 0.8f, 0.8f, 0.6f, 0.6f, 0.6f, 0.6f};
 
   // Continuous run, 8 epochs.
-  Common::LRSchedulerState cont;
-  cont.baseLR = 1.0f;
-  cont.currentLR = 1.0f;
-  std::vector<float> contLR;
-  Common::LRSchedulerState contAt4; // snapshot of cont after epoch index 3 (4 epochs done)
+  Common::LearningRateSchedulerState cont;
+  cont.baseLearningRate = 1.0f;
+  cont.currentLearningRate = 1.0f;
+  std::vector<float> continuousLearningRates;
+  Common::LearningRateSchedulerState contAt4; // snapshot of cont after epoch index 3 (4 epochs done)
 
   for (ulong e = 0; e < 8; ++e) {
-    contLR.push_back(stepAndUpdate(cfg, cont, e, 100, losses[e]));
+    continuousLearningRates.push_back(stepAndUpdate(cfg, cont, e, 100, losses[e]));
 
     if (e == 3)
       contAt4 = cont;
   }
 
   // Resumed run: 4 epochs, snapshot state, "load" it, continue 4 more.
-  Common::LRSchedulerState resumed;
-  resumed.baseLR = 1.0f;
-  resumed.currentLR = 1.0f;
+  Common::LearningRateSchedulerState resumed;
+  resumed.baseLearningRate = 1.0f;
+  resumed.currentLearningRate = 1.0f;
 
   for (ulong e = 0; e < 4; ++e)
     stepAndUpdate(cfg, resumed, e, 100, losses[e]);
 
   // Simulate checkpoint: copy the live state (as the serializer would round-trip it).
-  Common::LRSchedulerState loaded = resumed;
-  CHECK(loaded.bestValLoss == contAt4.bestValLoss, "resume: bestValLoss persisted");
+  Common::LearningRateSchedulerState loaded = resumed;
+  CHECK(loaded.bestValidationLoss == contAt4.bestValidationLoss, "resume: bestValidationLoss persisted");
   CHECK(loaded.epochsSinceImprovement == contAt4.epochsSinceImprovement, "resume: counter persisted");
-  CHECK_NEAR(loaded.currentLR, contAt4.currentLR, 1e-6f, "resume: currentLR persisted");
+  CHECK_NEAR(loaded.currentLearningRate, contAt4.currentLearningRate, 1e-6f, "resume: currentLearningRate persisted");
 
   for (ulong e = 4; e < 8; ++e) {
     const float lr = stepAndUpdate(cfg, loaded, e, 100, losses[e]);
-    CHECK_NEAR(lr, contLR[e], 1e-6f, "resume: LR matches continuous run at each resumed epoch");
+    CHECK_NEAR(lr, continuousLearningRates[e], 1e-6f, "resume: LR matches continuous run at each resumed epoch");
   }
 }
 
@@ -303,28 +303,28 @@ static void testStepResumeMatchesContinuous()
 {
   TestScope _t("testStepResumeMatchesContinuous");
 
-  Common::LRSchedulerConfig cfg;
-  cfg.type = Common::LRSchedulerType::STEP;
+  Common::LearningRateSchedulerConfig cfg;
+  cfg.type = Common::LearningRateSchedulerType::STEP;
   cfg.gamma = 0.1f;
   cfg.stepSize = 3;
 
-  Common::LRSchedulerState cont;
-  cont.baseLR = 1.0f;
-  cont.currentLR = 1.0f;
+  Common::LearningRateSchedulerState cont;
+  cont.baseLearningRate = 1.0f;
+  cont.currentLearningRate = 1.0f;
 
   // Run 10 continuous epochs; step is purely epoch-index driven.
-  std::vector<float> contLR;
+  std::vector<float> continuousLearningRates;
 
   for (ulong e = 0; e < 10; ++e)
-    contLR.push_back(stepAndUpdate(cfg, cont, e, 100, 0.0f));
+    continuousLearningRates.push_back(stepAndUpdate(cfg, cont, e, 100, 0.0f));
 
   // "Resume" from epoch 5 with absEpoch continuing — must match continuous at each index.
-  Common::LRSchedulerState resumed;
-  resumed.baseLR = 1.0f;
-  resumed.currentLR = 1.0f;
+  Common::LearningRateSchedulerState resumed;
+  resumed.baseLearningRate = 1.0f;
+  resumed.currentLearningRate = 1.0f;
 
   for (ulong e = 5; e < 10; ++e)
-    CHECK_NEAR(stepAndUpdate(cfg, resumed, e, 100, 0.0f), contLR[e], 1e-6f,
+    CHECK_NEAR(stepAndUpdate(cfg, resumed, e, 100, 0.0f), continuousLearningRates[e], 1e-6f,
                "step: resumed LR matches continuous (absEpoch-driven)");
 }
 
@@ -449,13 +449,13 @@ static void testSchedulerConfigParsingCosine()
     "train": {
       "numEpochs": 100,
       "learningRate": 0.01,
-      "scheduler": { "type": "cosine", "minLR": 0.0001 }
+      "scheduler": { "type": "cosine", "minLearningRate": 0.0001 }
     }
   })");
 
   auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
-  CHECK(config.trainConfig.scheduler.type == Common::LRSchedulerType::COSINE, "cosine type parsed");
-  CHECK_NEAR(config.trainConfig.scheduler.minLR, 0.0001f, 1e-7f, "cosine minLR parsed");
+  CHECK(config.trainConfig.scheduler.type == Common::LearningRateSchedulerType::COSINE, "cosine type parsed");
+  CHECK_NEAR(config.trainConfig.scheduler.minLearningRate, 0.0001f, 1e-7f, "cosine minLearningRate parsed");
   CHECK_NEAR(config.trainConfig.scheduler.gamma, 0.1f, 1e-7f, "gamma retains default when omitted");
 }
 
@@ -476,7 +476,7 @@ static void testSchedulerConfigParsingStep()
   })");
 
   auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
-  CHECK(config.trainConfig.scheduler.type == Common::LRSchedulerType::STEP, "step type parsed");
+  CHECK(config.trainConfig.scheduler.type == Common::LearningRateSchedulerType::STEP, "step type parsed");
   CHECK_NEAR(config.trainConfig.scheduler.gamma, 0.5f, 1e-7f, "step gamma parsed");
   CHECK(config.trainConfig.scheduler.stepSize == 20, "step stepSize parsed");
 }
@@ -494,7 +494,7 @@ static void testSchedulerConfigDefaultsToNone()
   })");
 
   auto config = NN_CLI::ANNLoader::loadModel(configPath.toStdString());
-  CHECK(config.trainConfig.scheduler.type == Common::LRSchedulerType::NONE, "no scheduler block → NONE");
+  CHECK(config.trainConfig.scheduler.type == Common::LearningRateSchedulerType::NONE, "no scheduler block → NONE");
 }
 
 //===================================================================================================================//
@@ -522,10 +522,10 @@ static void testSchedulerAppliedDuringTraining()
 {
   TestScope _t("testSchedulerAppliedDuringTraining");
 
-  // Step scheduler: gamma=0.1 every stepSize=3 epochs, baseLR=0.5, 10 epochs. The epoch-boundary
+  // Step scheduler: gamma=0.1 every stepSize=3 epochs, baseLearningRate=0.5, 10 epochs. The epoch-boundary
   // callback fires after epochs 0..9; the last is at absEpoch=9 → floor(9/3)=3 decay steps →
   // 0.5 * 0.1^3 = 0.0005. The --output model is saved post-train, so it captures that final LR.
-  // If applyLRScheduler were never wired, the output LR would stay 0.5 and this assertion fails.
+  // If applyLearningRateScheduler were never wired, the output LR would stay 0.5 and this assertion fails.
   QString configPath = writeTempJson("scheduler_applied_train.json", R"({
     "mode": "train",
     "device": "cpu",
@@ -552,20 +552,21 @@ static void testSchedulerAppliedDuringTraining()
   CHECK(!modelJson.isEmpty(), "output model.json readable");
   QJsonObject trainJson = modelJson.value("train").toObject();
   CHECK(!trainJson.isEmpty(), "model.json has train block");
-  const double finalLR = trainJson.value("learningRate").toDouble(-999.0);
-  CHECK_NEAR(static_cast<float>(finalLR), 0.0005f, 1e-5f, "step scheduler annealed final LR to base*gamma^3");
+  const double finalLearningRate = trainJson.value("learningRate").toDouble(-999.0);
+  CHECK_NEAR(static_cast<float>(finalLearningRate), 0.0005f, 1e-5f, "step scheduler annealed final LR to base*gamma^3");
 
   QJsonObject metaJson = modelJson.value("trainMetadata").toObject();
   CHECK(metaJson.contains("schedulerState"), "scheduler state persisted in model metadata");
   QJsonObject ssJson = metaJson.value("schedulerState").toObject();
   CHECK(ssJson.value("initialized").toBool(false), "persisted scheduler state marked initialized");
-  const double persistedCurrentLR = ssJson.value("currentLR").toDouble(-999.0);
-  CHECK_NEAR(static_cast<float>(persistedCurrentLR), 0.0005f, 1e-5f, "persisted currentLR matches annealed LR");
+  const double persistedCurrentLearningRate = ssJson.value("currentLearningRate").toDouble(-999.0);
+  CHECK_NEAR(static_cast<float>(persistedCurrentLearningRate), 0.0005f, 1e-5f,
+             "persisted currentLearningRate matches annealed LR");
 }
 
 //===================================================================================================================//
 
-void runLRSchedulerTests()
+void runLearningRateSchedulerTests()
 {
   testNoneKeepsConstantLR();
   testSetLearningRatePropagatesToDenseHead();

@@ -108,7 +108,7 @@ namespace NN_CLI
     if (validationMeta.enabled) {
       mdJson["numValidationSamples"] = validationMeta.numValSamples;
       mdJson["finalValidationLoss"] = validationMeta.lastValLoss;
-      mdJson["bestValidationLoss"] = validationMeta.bestValLoss;
+      mdJson["bestValidationLoss"] = validationMeta.bestValidationLoss;
       mdJson["bestValidationEpoch"] = validationMeta.bestValEpoch;
     }
   }
@@ -143,7 +143,7 @@ namespace NN_CLI
       schedJson["type"] = SchedulerConfigT::typeToName(tc.scheduler.type);
       schedJson["gamma"] = tc.scheduler.gamma;
       schedJson["stepSize"] = tc.scheduler.stepSize;
-      schedJson["minLR"] = tc.scheduler.minLR;
+      schedJson["minLearningRate"] = tc.scheduler.minLearningRate;
       schedJson["patience"] = tc.scheduler.patience;
       schedJson["minDelta"] = tc.scheduler.minDelta;
       tcJson["scheduler"] = schedJson;
@@ -189,14 +189,14 @@ namespace NN_CLI
       mdJson["bestLoss"] = md.bestLoss;
     }
 
-    // Persist LR scheduler state so training can resume (matters for plateau, which tracks
-    // bestValLoss and a patience counter across epochs).
+    // Persist learning-rate scheduler state so training can resume (matters for plateau, which tracks
+    // bestValidationLoss and a patience counter across epochs).
     if (md.schedulerState.initialized) {
       nlohmann::ordered_json ssJson;
-      ssJson["currentLR"] = md.schedulerState.currentLR;
-      ssJson["baseLR"] = md.schedulerState.baseLR;
+      ssJson["currentLearningRate"] = md.schedulerState.currentLearningRate;
+      ssJson["baseLearningRate"] = md.schedulerState.baseLearningRate;
       ssJson["epochsSinceImprovement"] = md.schedulerState.epochsSinceImprovement;
-      ssJson["bestValLoss"] = md.schedulerState.bestValLoss;
+      ssJson["bestValidationLoss"] = md.schedulerState.bestValidationLoss;
       ssJson["initialized"] = md.schedulerState.initialized;
       mdJson["schedulerState"] = ssJson;
     }

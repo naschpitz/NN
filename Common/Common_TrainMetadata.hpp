@@ -2,7 +2,7 @@
 #define COMMON_TRAINMETADATA_HPP
 
 #include "Common/Common_EpochRecord.hpp"
-#include "Common/Common_LRScheduler.hpp"
+#include "Common/Common_LearningRateScheduler.hpp"
 
 #include <cstdint>
 #include <string>
@@ -30,7 +30,7 @@ namespace Common
       T bestLoss = 0; // Best loss value
 
       // LR scheduler state (persisted so resumed runs continue the schedule; plateau-relevant)
-      LRSchedulerState schedulerState;
+      LearningRateSchedulerState schedulerState;
 
       // Per-epoch training history
       std::vector<EpochRecord<T>> epochHistory;

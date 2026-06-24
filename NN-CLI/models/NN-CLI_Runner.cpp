@@ -26,10 +26,10 @@ NN_CLI::Runner<CoreT, CoreConfigT>::Runner(const QCommandLineParser& parser, NN_
     coreConfig(coreConfig),
     configPath(configPath)
 {
-  // Seed the LR scheduler: the base/current LR is the configured learning rate.
+  // Seed the learning-rate scheduler: the base/current learning rate is the configured learning rate.
   // On resume this is overwritten by the checkpoint's schedulerState (Phase 6-state).
-  this->schedulerState.baseLR = coreConfig.trainConfig.learningRate;
-  this->schedulerState.currentLR = coreConfig.trainConfig.learningRate;
+  this->schedulerState.baseLearningRate = coreConfig.trainConfig.learningRate;
+  this->schedulerState.currentLearningRate = coreConfig.trainConfig.learningRate;
 
   // On resume, restore the persisted scheduler state so the schedule continues (plateau needs this).
   if (coreConfig.loadedTrainMetadata.schedulerState.initialized)
@@ -37,16 +37,17 @@ NN_CLI::Runner<CoreT, CoreConfigT>::Runner(const QCommandLineParser& parser, NN_
 }
 
 //===================================================================================================================//
-//  LR scheduler
+//  Learning-rate scheduler
 //===================================================================================================================//
 
 template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::applyLRScheduler(ulong epoch, int totalEpochs, bool hasValLoss, float valLoss)
+void NN_CLI::Runner<CoreT, CoreConfigT>::applyLearningRateScheduler(ulong epoch, int totalEpochs, bool hasValLoss,
+                                                                    float valLoss)
 {
   const auto& trainConfig = this->core->getTrainConfig();
   const auto& cfg = trainConfig.scheduler;
 
-  if (cfg.type == Common::LRSchedulerType::NONE)
+  if (cfg.type == Common::LearningRateSchedulerType::NONE)
     return;
 
   // Mark state as live so it persists across checkpoint saves (enables plateau resume).
@@ -54,18 +55,18 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::applyLRScheduler(ulong epoch, int total
 
   // Absolute epoch index keeps step/cosine curves continuous across resumed runs.
   const ulong absEpoch = trainConfig.startingEpoch + epoch;
-  const float newLR =
-    Common::stepLRScheduler(cfg, this->schedulerState, absEpoch, static_cast<ulong>(totalEpochs), hasValLoss, valLoss);
+  const float newLearningRate = Common::stepLearningRateScheduler(cfg, this->schedulerState, absEpoch,
+                                                                  static_cast<ulong>(totalEpochs), hasValLoss, valLoss);
 
-  if (newLR != this->schedulerState.currentLR) {
-    std::ostringstream lrMsg;
-    lrMsg << "LR scheduler: " << this->schedulerState.currentLR << " -> " << newLR << " ("
-          << Common::LRSchedulerConfig::typeToName(cfg.type) << ", epoch " << absEpoch << ")";
-    this->notifyLogMessage(lrMsg.str(), false);
-    this->core->setLearningRate(newLR);
+  if (newLearningRate != this->schedulerState.currentLearningRate) {
+    std::ostringstream logMessage;
+    logMessage << "Learning-rate scheduler: " << this->schedulerState.currentLearningRate << " -> " << newLearningRate
+               << " (" << Common::LearningRateSchedulerConfig::typeToName(cfg.type) << ", epoch " << absEpoch << ")";
+    this->notifyLogMessage(logMessage.str(), false);
+    this->core->setLearningRate(newLearningRate);
   }
 
-  this->schedulerState.currentLR = newLR;
+  this->schedulerState.currentLearningRate = newLearningRate;
 
   // Publish the state into the core's metadata so every save path serializes it.
   this->core->getTrainMetadata().schedulerState = this->schedulerState;
@@ -333,7 +334,7 @@ int NN_CLI::Runner<CoreT, CoreConfigT>::getTotalEpochs() const
 template <typename CoreT, typename CoreConfigT>
 float NN_CLI::Runner<CoreT, CoreConfigT>::getCurrentLearningRate() const
 {
-  return this->schedulerState.currentLR;
+  return this->schedulerState.currentLearningRate;
 }
 
 //===================================================================================================================//
@@ -550,8 +551,8 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
   optStr[0] = toupper(optStr[0]);
   rows.push_back({"Optimizer", optStr});
 
-  if (tc.scheduler.type != Common::LRSchedulerType::NONE) {
-    std::string schedStr = Common::LRSchedulerConfig::typeToName(tc.scheduler.type);
+  if (tc.scheduler.type != Common::LearningRateSchedulerType::NONE) {
+    std::string schedStr = Common::LearningRateSchedulerConfig::typeToName(tc.scheduler.type);
     schedStr[0] = toupper(schedStr[0]);
     rows.push_back({"Scheduler", schedStr});
   }
@@ -692,7 +693,7 @@ template <typename CoreT, typename CoreConfigT>
 NN_CLI::ValidationMetadata NN_CLI::Runner<CoreT, CoreConfigT>::buildValidationMetadata() const
 {
   return {this->validationState.enabled, this->validationState.numValSamples, this->validationState.lastValLoss,
-          this->validationState.bestValLoss, this->validationState.bestValEpoch};
+          this->validationState.bestValidationLoss, this->validationState.bestValEpoch};
 }
 
 //===================================================================================================================//

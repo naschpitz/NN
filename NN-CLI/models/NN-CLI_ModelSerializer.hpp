@@ -23,7 +23,7 @@ namespace NN_CLI
       bool enabled = false;
       ulong numValSamples = 0;
       float lastValLoss = 0.0f;
-      float bestValLoss = 0.0f;
+      float bestValidationLoss = 0.0f;
       ulong bestValEpoch = 0;
   };
 
@@ -48,7 +48,7 @@ namespace NN_CLI
                                         const AugmentationConfig& augConfig, const ValidationMetadata& validationMeta);
 
       //-- Output path helpers --//
-       static std::string generateTrainFilename(ulong epochs, ulong samples, float loss);
+      static std::string generateTrainFilename(ulong epochs, ulong samples, float loss);
       static std::string generateDefaultOutputPath(const QString& inputFilePath, ulong epochs, ulong samples,
                                                    float loss);
       static std::string generateCheckpointPath(const QString& inputFilePath, ulong epoch, float loss);

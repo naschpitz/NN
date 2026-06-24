@@ -262,10 +262,10 @@ namespace NN_CLI
       if (train.contains("scheduler")) {
         const auto& sched = train.at("scheduler");
 
-        tc.scheduler.type = Common::LRSchedulerConfig::nameToType(sched.at("type").get<std::string>());
+        tc.scheduler.type = Common::LearningRateSchedulerConfig::nameToType(sched.at("type").get<std::string>());
         tc.scheduler.gamma = sched.value("gamma", tc.scheduler.gamma);
         tc.scheduler.stepSize = sched.value("stepSize", tc.scheduler.stepSize);
-        tc.scheduler.minLR = sched.value("minLR", tc.scheduler.minLR);
+        tc.scheduler.minLearningRate = sched.value("minLearningRate", tc.scheduler.minLearningRate);
         tc.scheduler.patience = sched.value("patience", tc.scheduler.patience);
         tc.scheduler.minDelta = sched.value("minDelta", tc.scheduler.minDelta);
       }
@@ -376,10 +376,10 @@ namespace NN_CLI
       if (meta.contains("schedulerState")) {
         const auto& ss = meta.at("schedulerState");
 
-        md.schedulerState.currentLR = ss.value("currentLR", 0.0f);
-        md.schedulerState.baseLR = ss.value("baseLR", 0.0f);
+        md.schedulerState.currentLearningRate = ss.value("currentLearningRate", 0.0f);
+        md.schedulerState.baseLearningRate = ss.value("baseLearningRate", 0.0f);
         md.schedulerState.epochsSinceImprovement = ss.value("epochsSinceImprovement", 0UL);
-        md.schedulerState.bestValLoss = ss.value("bestValLoss", 0.0f);
+        md.schedulerState.bestValidationLoss = ss.value("bestValidationLoss", 0.0f);
         md.schedulerState.initialized = ss.value("initialized", false);
       }
 

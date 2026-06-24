@@ -704,8 +704,8 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
       valLoss = validationResult.averageLoss;
       hasValLoss = true;
 
-      if (validationResult.averageLoss < this->validationState.bestValLoss) {
-        this->validationState.bestValLoss = validationResult.averageLoss;
+      if (validationResult.averageLoss < this->validationState.bestValidationLoss) {
+        this->validationState.bestValidationLoss = validationResult.averageLoss;
         this->validationState.bestValEpoch = epoch;
       }
 
@@ -744,7 +744,7 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
     this->profiler.setEpoch(epoch + 1);
 
     // --- LR scheduler step (publishes the new LR for the next epoch) ---
-    this->applyLRScheduler(epoch, totalEpochs, hasValLoss, valLoss);
+    this->applyLearningRateScheduler(epoch, totalEpochs, hasValLoss, valLoss);
 
     // --- Observer notification — epoch completed ---
     std::string epochSummary = "Epoch " + std::to_string(epoch + 1) + "/" + std::to_string(totalEpochs) +

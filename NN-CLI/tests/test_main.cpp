@@ -34,7 +34,7 @@ void runMonitoringTests();
 void runGPUAugmentTests();
 void runTerminalUITests();
 void runCalibrateControllerTests();
-void runLRSchedulerTests();
+void runLearningRateSchedulerTests();
 
 int main(int argc, char* argv[])
 {
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
 
   std::cout << std::endl;
   std::cout << "=== LR Scheduler Tests ===" << std::endl;
-  runLRSchedulerTests();
+  runLearningRateSchedulerTests();
 
   // Cleanup temp files
   cleanupTemp();

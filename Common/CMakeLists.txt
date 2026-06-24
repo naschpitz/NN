@@ -3,8 +3,8 @@
 add_library(NN_Common STATIC
     Common_CostFunctionConfig.cpp
     Common_Device.cpp
-    Common_LRScheduler.cpp
-    Common_LRSchedulerConfig.cpp
+    Common_LearningRateScheduler.cpp
+    Common_LearningRateSchedulerConfig.cpp
     Common_Mode.cpp
     Common_Optimizer.cpp
     Common_Utils.cpp

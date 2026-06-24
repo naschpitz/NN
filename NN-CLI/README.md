@@ -174,10 +174,10 @@ If omitted, the default `squaredDifference` loss is used (equivalent to standard
   - `beta2`: Adam beta2 (default: `0.999`)
   - `epsilon`: Adam epsilon (default: `1e-8`)
 - `scheduler`: Object controlling the learning-rate scheduler (default: none / disabled). Runs at each epoch boundary after validation and adjusts the learning rate for the next epoch
-  - `type`: `"none"` (default, disabled), `"step"` (decay every `stepSize` epochs), `"cosine"` (cosine-anneal from `learningRate` to `minLR` over the run), or `"plateau"` (reduce the LR after `patience` epochs without validation improvement)
+  - `type`: `"none"` (default, disabled), `"step"` (decay every `stepSize` epochs), `"cosine"` (cosine-anneal from `learningRate` to `minLearningRate` over the run), or `"plateau"` (reduce the LR after `patience` epochs without validation improvement)
   - `gamma`: Multiplicative decay factor (default: `0.1`; used by `step` and `plateau`)
   - `stepSize`: Step scheduler: epochs per decay step (default: `1`)
-  - `minLR`: Lower bound for the learning rate (default: `0.0`; used by `cosine` and `plateau`)
+  - `minLearningRate`: Lower bound for the learning rate (default: `0.0`; used by `cosine` and `plateau`)
   - `patience`: Plateau scheduler: epochs without validation improvement before reducing the LR (default: `10`)
   - `minDelta`: Plateau scheduler: minimum validation-loss improvement to reset the patience counter (default: `0.0001`). Scheduler state is persisted across resume runs
 - `augmentationFactor`: Multiply each class by N× using random transforms (default: `0` = disabled). NN-CLI applies transforms before passing samples to the library

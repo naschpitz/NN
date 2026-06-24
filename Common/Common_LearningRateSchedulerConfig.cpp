@@ -1,38 +1,38 @@
-#include "Common_LRSchedulerConfig.hpp"
+#include "Common_LearningRateSchedulerConfig.hpp"
 
 #include <stdexcept>
 
 namespace Common
 {
-  LRSchedulerType LRSchedulerConfig::nameToType(const std::string& name)
+  LearningRateSchedulerType LearningRateSchedulerConfig::nameToType(const std::string& name)
   {
     if (name == "none")
-      return LRSchedulerType::NONE;
+      return LearningRateSchedulerType::NONE;
 
     if (name == "step")
-      return LRSchedulerType::STEP;
+      return LearningRateSchedulerType::STEP;
 
     if (name == "cosine")
-      return LRSchedulerType::COSINE;
+      return LearningRateSchedulerType::COSINE;
 
     if (name == "plateau")
-      return LRSchedulerType::PLATEAU;
+      return LearningRateSchedulerType::PLATEAU;
 
     throw std::runtime_error("Unknown LR scheduler type: " + name);
   }
 
   //===================================================================================================================//
 
-  std::string LRSchedulerConfig::typeToName(LRSchedulerType type)
+  std::string LearningRateSchedulerConfig::typeToName(LearningRateSchedulerType type)
   {
     switch (type) {
-    case LRSchedulerType::NONE:
+    case LearningRateSchedulerType::NONE:
       return "none";
-    case LRSchedulerType::STEP:
+    case LearningRateSchedulerType::STEP:
       return "step";
-    case LRSchedulerType::COSINE:
+    case LearningRateSchedulerType::COSINE:
       return "cosine";
-    case LRSchedulerType::PLATEAU:
+    case LearningRateSchedulerType::PLATEAU:
       return "plateau";
     default:
       return "none";
