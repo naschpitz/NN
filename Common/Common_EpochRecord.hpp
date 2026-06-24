@@ -14,6 +14,7 @@ namespace Common
       //-- Members --//
       ulong epoch = 0; // 0-based epoch index
       T loss = 0; // training loss
+      T learningRate = 0; // learning rate used during this epoch
       T valLoss = 0; // validation loss (only meaningful if hasValLoss is true)
       bool hasValLoss = false; // whether validation ran this epoch
       bool isBest = false; // whether this epoch produced the best model so far

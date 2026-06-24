@@ -209,6 +209,7 @@ namespace NN_CLI
         nlohmann::ordered_json recordJson;
         recordJson["epoch"] = record.epoch;
         recordJson["loss"] = static_cast<double>(record.loss);
+        recordJson["learningRate"] = static_cast<double>(record.learningRate);
 
         if (record.hasValLoss) {
           recordJson["valLoss"] = static_cast<double>(record.valLoss);

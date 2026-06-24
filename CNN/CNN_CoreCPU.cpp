@@ -677,6 +677,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     Common::EpochRecord<T> epochRecord;
     epochRecord.epoch = e;
     epochRecord.loss = avgLoss;
+    epochRecord.learningRate = this->trainConfig.learningRate;
     epochRecord.valLoss = static_cast<T>(0);
     epochRecord.hasValLoss = false;
     epochRecord.isBest = monitor ? monitor->isNewBest() : false;
@@ -1390,6 +1391,7 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     Common::EpochRecord<T> epochRecord;
     epochRecord.epoch = e;
     epochRecord.loss = avgLoss;
+    epochRecord.learningRate = this->trainConfig.learningRate;
     epochRecord.valLoss = static_cast<T>(0);
     epochRecord.hasValLoss = false;
     epochRecord.isBest = monitor ? monitor->isNewBest() : false;

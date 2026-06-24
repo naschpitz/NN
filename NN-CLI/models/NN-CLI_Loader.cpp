@@ -393,6 +393,7 @@ namespace NN_CLI
 
           record.epoch = recordJson.at("epoch").get<ulong>();
           record.loss = recordJson.at("loss").get<float>();
+          record.learningRate = recordJson.value("learningRate", 0.0f);
 
           if (recordJson.contains("valLoss") && recordJson.value("hasValLoss", false)) {
             record.valLoss = recordJson.at("valLoss").get<float>();

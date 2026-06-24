@@ -396,7 +396,7 @@ The saved model JSON also includes `trainMetadata` with training history:
 - `lastEpoch`: 0-based index of last completed epoch
 - `stopReason`: Reason training stopped (empty if completed normally)
 - `bestEpoch`, `bestLoss`: Epoch and loss of the best model
-- `epochs`: Array of per-epoch records with `epoch`, `loss`, `valLoss` (if validation enabled), `hasValLoss`, `isBest`, `completionTime`
+- `epochs`: Array of per-epoch records with `epoch`, `loss`, `learningRate`, `valLoss` (if validation enabled), `hasValLoss`, `isBest`, `completionTime`
 - `numValidationSamples`, `finalValidationLoss`, `bestValidationLoss`, `bestValidationEpoch`: Validation metrics (if validation enabled)
 
 ## Model Package Format (.nnmodel)
