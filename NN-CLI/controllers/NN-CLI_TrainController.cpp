@@ -270,8 +270,7 @@ namespace NN_CLI
     this->isValidating = false;
 
     std::string prefix = success ? "[Training complete] " : "[Training failed] ";
-    this->window->addEpochMessage(prefix + finalSummary);
-    this->window->refreshEpochContent();
+    this->window->addLogMessage(prefix + finalSummary);
   }
 
   //===================================================================================================================//
@@ -306,8 +305,7 @@ namespace NN_CLI
     QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     std::string formatted = isError ? ("[ERROR] " + message) : message;
-    this->window->addEpochMessage(formatted);
-    this->window->refreshEpochContent();
+    this->window->addLogMessage(formatted);
   }
 
   //===================================================================================================================//
@@ -369,8 +367,7 @@ namespace NN_CLI
     if (this->window && this->window->abortRequested() && !this->abortHandled) {
       this->abortHandled = true;
       this->runner->requestAbort();
-      this->window->addEpochMessage("Training aborted by user.");
-      this->window->refreshEpochContent();
+      this->window->addLogMessage("Training aborted by user.");
     }
   }
 

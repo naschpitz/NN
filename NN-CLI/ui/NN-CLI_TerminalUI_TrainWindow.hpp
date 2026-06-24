@@ -19,7 +19,7 @@ namespace NN_CLI
   // in the MVC pattern — it contains no training logic, only layout and
   // display of data provided by the Controller.
   //
-  // Owns four child panels arranged in a responsive grid:
+  // Owns five child panels arranged in a responsive grid:
   //
   //   +-------------------------------------------+------------------+
   //   |         modelInfoPanel (top-left)         |                  |
@@ -28,6 +28,9 @@ namespace NN_CLI
   //   |         epochsPanel (bottom-left)         |                  |
   //   |         Epoch loss / validation table     |                  |
   //   +-------------------------------------------+------------------+
+  //   |         logPanel (full width, scrollable)                    |
+  //   |         Timestamped status / log messages                    |
+  //   +--------------------------------------------------------------+
   //   |         progressPanel (bottom, full width)                   |
   //   |         Epoch + sample progress bars                         |
   //   +--------------------------------------------------------------+
@@ -42,7 +45,7 @@ namespace NN_CLI
       //-- Types --//
 
       // Panel selection indices used by setActivePanel / getActivePanel.
-      enum PanelIndex { MODEL_INFO = 0, EPOCHS = 1, TIMING = 2 };
+      enum PanelIndex { MODEL_INFO = 0, EPOCHS = 1, TIMING = 2, LOG = 3 };
 
       //-- Ctors / Dtors --//
 
@@ -93,15 +96,19 @@ namespace NN_CLI
       // Remove all epoch rows.
       void clearEpochRows();
 
-      // Append a status / monitor message below the epoch table.
-      void addEpochMessage(const std::string& message);
-
-      // Remove all epoch messages.
-      void clearEpochMessages();
-
       // Rebuild the epoch panel content from the current table rows and
-      // messages, then apply it to the epochs panel.
+      // apply it to the epochs panel.
       void refreshEpochContent();
+
+      //-- Log --//
+
+      // Append a status / log message to the scrollable log panel.  The
+      // message is prefixed with a human-readable timestamp and the panel is
+      // refreshed immediately (auto-scroll stays pinned to the newest line).
+      void addLogMessage(const std::string& message);
+
+      // Remove all log messages.
+      void clearLogMessages();
 
       //-- Model info --//
 
@@ -157,6 +164,7 @@ namespace NN_CLI
       TerminalUI_Panel* getEpochsPanel() const;
       TerminalUI_Panel* getModelInfoPanel() const;
       TerminalUI_Panel* getTimingPanel() const;
+      TerminalUI_Panel* getLogPanel() const;
 
       //-- Dismiss handling --//
 
@@ -202,6 +210,9 @@ namespace NN_CLI
       // progress) while the bars take every remaining column.
       void syncProgressBarLayout();
 
+      // Rebuild the log panel content from the stored log messages.
+      void refreshLogContent();
+
     private:
       //-- Members --//
 
@@ -211,6 +222,7 @@ namespace NN_CLI
       TerminalUI_Panel* epochsPanelPtr = nullptr;
       TerminalUI_Panel* modelInfoPanelPtr = nullptr;
       TerminalUI_Panel* timingPanelPtr = nullptr;
+      TerminalUI_Panel* logPanelPtr = nullptr;
 
       // Raw pointers to the progress bar widgets (owned as children of
       // progressPanel).  loadingBarPtr is the top "Samples" bar; progressBarPtr
@@ -232,9 +244,8 @@ namespace NN_CLI
       // Raw timing lines stored for re-padding on resize.
       std::vector<std::string> rawTimingLines;
 
-      // Additional status / monitor messages displayed below the epoch
-      // table.
-      std::vector<std::string> epochMessages;
+      // Timestamped status / log messages rendered in the log panel.
+      std::vector<std::string> logMessages;
 
       // Currently highlighted panel index (PanelIndex values).
       int activePanel = 0;
@@ -245,6 +256,7 @@ namespace NN_CLI
       //-- Layout constants --//
 
       static constexpr int kProgressHeight = 5;
+      static constexpr int kLogHeight = 7;
       static constexpr int kMinTimingWidth = 20;
       static constexpr int kMinLeftWidth = 68;
   };

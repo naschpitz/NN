@@ -1,5 +1,7 @@
 #include "NN-CLI_TerminalUI_TrainWindow.hpp"
 
+#include "Common/Common_Utils.hpp"
+
 #include <algorithm>
 
 #include <QThread>
@@ -19,20 +21,24 @@ namespace NN_CLI
     auto epochsPanel = std::make_unique<TerminalUI_Panel>("Epochs", 2);
     auto modelInfoPanel = std::make_unique<TerminalUI_Panel>("Model Info", 2);
     auto timingPanel = std::make_unique<TerminalUI_Panel>("Timing", 2);
+    auto logPanel = std::make_unique<TerminalUI_Panel>("Log", 2);
 
     this->progressPanelPtr = progressPanel.get();
     this->epochsPanelPtr = epochsPanel.get();
     this->modelInfoPanelPtr = modelInfoPanel.get();
     this->timingPanelPtr = timingPanel.get();
+    this->logPanelPtr = logPanel.get();
 
     this->addChild(std::move(progressPanel));
     this->addChild(std::move(epochsPanel));
     this->addChild(std::move(modelInfoPanel));
     this->addChild(std::move(timingPanel));
+    this->addChild(std::move(logPanel));
 
     //-- Configure panels --//
 
     this->epochsPanelPtr->setAutoScroll(true);
+    this->logPanelPtr->setAutoScroll(true);
 
     //-- Create and attach the two stacked progress bars inside the progress --//
     //-- panel: the "Samples" loading bar on top, the training bar below.     --//
@@ -78,10 +84,12 @@ namespace NN_CLI
     if (W <= 0 || H <= 0)
       return;
 
-    //-- Reserve the progress panel at the bottom --//
+    //-- Reserve the log panel (full width) and the progress panel at the --//
+    //-- bottom.  The log band sits directly above the progress panel.        --//
 
     int progressH = std::min(kProgressHeight, H);
-    int remainingH = std::max(0, H - progressH);
+    int logH = std::min(kLogHeight, std::max(0, H - progressH));
+    int remainingH = std::max(0, H - progressH - logH);
 
     //-- Horizontal split: timing panel on the right if screen is wide enough --//
 
@@ -106,9 +114,10 @@ namespace NN_CLI
     //   modelInfoPanel  — top-left:       (0, titleH)           size: (leftW, modelInfoH)
     //   epochsPanel     — bottom-left:    (0, modelInfoH + titleH)   size: (leftW, epochsH)
     //   timingPanel     — right column:   (leftW, titleH)           size: (timingW, remainingH)
+    //   logPanel        — full width:     (0, remainingH + titleH)  size: (W, logH)
     //   progressPanel   — bottom full:    (0, H - progressH + titleH)  size: (W, progressH)
 
-    if (this->childCount() < 4)
+    if (this->childCount() < 5)
       return;
 
     this->children[0]->resize(W, progressH, 0, H - progressH + titleH);
@@ -119,6 +128,8 @@ namespace NN_CLI
       this->children[3]->resize(timingW, remainingH, leftW, titleH);
     else
       this->children[3]->resize(0, 0, 0, 0);
+
+    this->children[4]->resize(W, logH, 0, remainingH + titleH);
 
     //-- Stack the two progress bars inside the progress panel --//
     // The generic Panel layout places all children at the content origin (so
@@ -143,6 +154,7 @@ namespace NN_CLI
     this->refreshEpochContent();
     this->refreshModelInfoContent();
     this->refreshTimingContent();
+    this->refreshLogContent();
   }
 
   //===================================================================================================================//
@@ -235,20 +247,6 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  void TerminalUI_TrainWindow::addEpochMessage(const std::string& message)
-  {
-    this->epochMessages.push_back(message);
-  }
-
-  //===================================================================================================================//
-
-  void TerminalUI_TrainWindow::clearEpochMessages()
-  {
-    this->epochMessages.clear();
-  }
-
-  //===================================================================================================================//
-
   void TerminalUI_TrainWindow::refreshEpochContent()
   {
     if (!this->epochsPanelPtr)
@@ -266,10 +264,6 @@ namespace NN_CLI
     // Render the table to formatted lines.
     auto lines = this->epochTable.render();
 
-    // Append status / monitor messages below the table.
-    for (const auto& msg : this->epochMessages)
-      lines.push_back(msg);
-
     this->epochsPanelPtr->setLines(lines);
 
     // If the new line count toggled the scrollbar, contentWidth() may have
@@ -280,11 +274,37 @@ namespace NN_CLI
       this->epochTable.setMaxWidth(revisedWidth);
       lines = this->epochTable.render();
 
-      for (const auto& msg : this->epochMessages)
-        lines.push_back(msg);
-
       this->epochsPanelPtr->setLines(lines);
     }
+  }
+
+  //===================================================================================================================//
+  //-- Log --//
+  //===================================================================================================================//
+
+  void TerminalUI_TrainWindow::addLogMessage(const std::string& message)
+  {
+    std::string stamped = "[" + Common::Utils::formatHumanReadable() + "] " + message;
+    this->logMessages.push_back(stamped);
+    this->refreshLogContent();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainWindow::clearLogMessages()
+  {
+    this->logMessages.clear();
+    this->refreshLogContent();
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_TrainWindow::refreshLogContent()
+  {
+    if (!this->logPanelPtr)
+      return;
+
+    this->logPanelPtr->setLines(this->logMessages);
   }
 
   //===================================================================================================================//
@@ -445,6 +465,13 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+
+  TerminalUI_Panel* TerminalUI_TrainWindow::getLogPanel() const
+  {
+    return this->logPanelPtr;
+  }
+
+  //===================================================================================================================//
   //-- Hooks --//
   //===================================================================================================================//
 
@@ -462,7 +489,7 @@ namespace NN_CLI
     if (ch != '\t')
       return false;
 
-    this->activePanel = (this->activePanel + 1) % 3;
+    this->activePanel = (this->activePanel + 1) % 4;
     return true;
   }
 
@@ -474,9 +501,10 @@ namespace NN_CLI
       this->modelInfoPanelPtr,
       this->epochsPanelPtr,
       this->timingPanelPtr,
+      this->logPanelPtr,
     };
 
-    if (this->activePanel >= 0 && this->activePanel < 3) {
+    if (this->activePanel >= 0 && this->activePanel < 4) {
       TerminalUI_Panel* active = scrollablePanels[this->activePanel];
 
       if (active && active->applyScrollInput(ch))
@@ -559,6 +587,9 @@ namespace NN_CLI
 
     if (this->timingPanelPtr)
       this->timingPanelPtr->setColorPair(this->activePanel == TIMING ? 3 : 2);
+
+    if (this->logPanelPtr)
+      this->logPanelPtr->setColorPair(this->activePanel == LOG ? 3 : 2);
   }
 
 } // namespace NN_CLI

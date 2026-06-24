@@ -76,10 +76,15 @@ static void testTrainWindowCycleActivePanel()
   CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainWindow::TIMING,
         "After two Tabs, active panel should be TIMING (2)");
 
-  // Tab wraps: 2 -> 0.
+  // Tab again: 2 -> 3 (LOG).
   CHECK(window.cycleActivePanel('\t'), "Third Tab should be consumed");
+  CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainWindow::LOG,
+        "After three Tabs, active panel should be LOG (3)");
+
+  // Tab wraps: 3 -> 0.
+  CHECK(window.cycleActivePanel('\t'), "Fourth Tab should be consumed");
   CHECK(window.getActivePanel() == NN_CLI::TerminalUI_TrainWindow::MODEL_INFO,
-        "After three Tabs, active panel should wrap back to MODEL_INFO (0)");
+        "After four Tabs, active panel should wrap back to MODEL_INFO (0)");
 
   // Non-Tab keys should not be consumed.
   CHECK(!window.cycleActivePanel('a'), "Non-Tab key should not be consumed by cycleActivePanel");
@@ -158,6 +163,36 @@ static void testTrainWindowScrollRouting()
   CHECK(window.getTimingPanel()->scrollState().offset > 0, "TIMING offset should be non-zero after KEY_END");
   CHECK(window.getModelInfoPanel()->scrollState().offset == 0, "MODEL_INFO offset should still be 0");
   CHECK(window.getEpochsPanel()->scrollState().offset == 1, "EPOCHS offset should still be 1 from earlier scroll");
+}
+
+//===================================================================================================================//
+
+static void testTrainWindowLogPanelScrollRouting()
+{
+  TestScope _t("testTrainWindowLogPanelScrollRouting");
+
+  NN_CLI::TerminalUI_TrainWindow window;
+
+  // Populate the log panel with scrollable content.
+  populateScrollablePanel(window.getLogPanel(), 50);
+
+  // Activate LOG panel (index 3).
+  window.setActivePanel(NN_CLI::TerminalUI_TrainWindow::LOG);
+
+  // Scroll down — should affect LOG only, not the other panels.
+  CHECK(window.scrollActivePanel(TestKeys::kKeyDown), "KEY_DOWN on LOG panel should be consumed");
+  CHECK(window.getLogPanel()->scrollState().offset == 1, "LOG offset should be 1 after scroll");
+  CHECK(window.getModelInfoPanel()->scrollState().offset == 0,
+        "MODEL_INFO offset should remain 0 (not the active panel)");
+  CHECK(window.getEpochsPanel()->scrollState().offset == 0, "EPOCHS offset should remain 0 (not the active panel)");
+
+  // Page down — offset should advance past 1.
+  CHECK(window.scrollActivePanel(TestKeys::kKeyPgDn), "KEY_NPAGE on LOG panel should be consumed");
+  CHECK(window.getLogPanel()->scrollState().offset > 1, "LOG offset should advance past 1 after page down");
+
+  // Home — offset should be 0.
+  CHECK(window.scrollActivePanel(TestKeys::kKeyHome), "KEY_HOME on LOG panel should be consumed");
+  CHECK(window.getLogPanel()->scrollState().offset == 0, "LOG offset should be 0 after KEY_HOME");
 }
 
 //===================================================================================================================//
@@ -655,6 +690,7 @@ void runTerminalUITests()
   testTrainWindowCycleActivePanel();
   testTrainWindowScrollActivePanel();
   testTrainWindowScrollRouting();
+  testTrainWindowLogPanelScrollRouting();
   testTrainWindowHandleEvent();
   testTableUtf8RightBorder();
   testPredictWindowDefaultActivePanel();
