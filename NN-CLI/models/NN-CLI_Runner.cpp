@@ -59,11 +59,6 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::applyLearningRateScheduler(ulong epoch,
                                                                   static_cast<ulong>(totalEpochs), hasValLoss, valLoss);
 
   if (newLearningRate != this->learningRateSchedulerState.currentLearningRate) {
-    std::ostringstream logMessage;
-    logMessage << "Learning-rate scheduler: " << this->learningRateSchedulerState.currentLearningRate << " -> "
-               << newLearningRate << " (" << Common::LearningRateSchedulerConfig::typeToName(cfg.type) << ", epoch "
-               << absEpoch << ")";
-    this->notifyLogMessage(logMessage.str(), false);
     this->core->setLearningRate(newLearningRate);
   }
 

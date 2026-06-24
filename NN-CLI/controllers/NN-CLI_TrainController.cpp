@@ -236,7 +236,7 @@ namespace NN_CLI
     }
 
     std::ostringstream learningRateStream;
-    learningRateStream << std::fixed << std::setprecision(6) << learningRate;
+    learningRateStream << std::defaultfloat << std::setprecision(6) << learningRate;
 
     bool isBest = summary.find("Best*") != std::string::npos;
     std::string bestStr = isBest ? "✓" : "";
