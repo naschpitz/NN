@@ -372,32 +372,32 @@ std::string NN_CLI::Runner<CoreT, CoreConfigT>::getAugmentationString() const
       parts.push_back("flip");
 
     if (this->augConfig.transforms.rotation > 0)
-      parts.push_back("rot " + std::to_string(static_cast<int>(this->augConfig.transforms.rotation)) + "\xC2\xB0");
+      parts.push_back("rot: " + std::to_string(static_cast<int>(this->augConfig.transforms.rotation)) + "\xC2\xB0");
 
     if (this->augConfig.transforms.translation > 0)
-      parts.push_back("trans " + std::to_string(static_cast<int>(this->augConfig.transforms.translation * 100)) + "%");
+      parts.push_back("trans: " + std::to_string(static_cast<int>(this->augConfig.transforms.translation * 100)) + "%");
 
     if (this->augConfig.transforms.brightness > 0)
-      parts.push_back("bright " + std::to_string(static_cast<int>(this->augConfig.transforms.brightness * 100)) + "%");
+      parts.push_back("bright: " + std::to_string(static_cast<int>(this->augConfig.transforms.brightness * 100)) + "%");
 
     if (this->augConfig.transforms.contrast > 0)
-      parts.push_back("contrast " + std::to_string(static_cast<int>(this->augConfig.transforms.contrast * 100)) + "%");
+      parts.push_back("contrast: " + std::to_string(static_cast<int>(this->augConfig.transforms.contrast * 100)) + "%");
 
     if (this->augConfig.transforms.gaussianNoise > 0) {
       std::ostringstream oss;
-      oss << "noise " << this->augConfig.transforms.gaussianNoise;
+      oss << "noise: " << this->augConfig.transforms.gaussianNoise;
       parts.push_back(oss.str());
     }
 
     if (this->augConfig.transforms.randomErasing > 0)
-      parts.push_back("erase " + std::to_string(static_cast<int>(this->augConfig.transforms.randomErasing * 100)) +
+      parts.push_back("erase: " + std::to_string(static_cast<int>(this->augConfig.transforms.randomErasing * 100)) +
                       "%");
 
     if (this->augConfig.transforms.hueShift > 0)
-      parts.push_back("hue " + std::to_string(static_cast<int>(this->augConfig.transforms.hueShift * 100)) + "%");
+      parts.push_back("hue: " + std::to_string(static_cast<int>(this->augConfig.transforms.hueShift * 100)) + "%");
 
     if (this->augConfig.transforms.scaling > 0)
-      parts.push_back("scale " + std::to_string(static_cast<int>(this->augConfig.transforms.scaling * 100)) + "%");
+      parts.push_back("scale: " + std::to_string(static_cast<int>(this->augConfig.transforms.scaling * 100)) + "%");
 
     if (this->augConfig.transforms.elasticDeformation.alpha > 0)
       parts.push_back("elastic");
@@ -464,6 +464,63 @@ std::string NN_CLI::Runner<CoreT, CoreConfigT>::getClassWeightsString() const
     oss << "]";
     return oss.str();
   }
+}
+
+//===================================================================================================================//
+
+template <typename CoreT, typename CoreConfigT>
+std::string NN_CLI::Runner<CoreT, CoreConfigT>::getLearningRateSchedulerString() const
+{
+  const auto& sched = this->coreConfig.trainConfig.learningRateScheduler;
+
+  if (sched.type == Common::LearningRateSchedulerType::NONE)
+    return "None";
+
+  auto formatFloat = [](float value) {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(6) << value;
+    std::string s = oss.str();
+    auto dot = s.find('.');
+
+    if (dot != std::string::npos) {
+      s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+
+      if (s.back() == '.')
+        s.pop_back();
+    }
+
+    return s;
+  };
+
+  std::vector<std::string> parts;
+  parts.push_back("type: " + Common::LearningRateSchedulerConfig::typeToName(sched.type));
+
+  // Show every field whose value differs from its default, in declaration order
+  // (matches how augmentation lists only the active transforms).
+  if (sched.gamma != 0.1f)
+    parts.push_back("gamma: " + formatFloat(sched.gamma));
+
+  if (sched.stepSize != 1)
+    parts.push_back("step size: " + std::to_string(sched.stepSize));
+
+  if (sched.minLearningRate != 0.0f)
+    parts.push_back("minimum learning rate: " + formatFloat(sched.minLearningRate));
+
+  if (sched.patience != 10)
+    parts.push_back("patience: " + std::to_string(sched.patience));
+
+  if (sched.minDelta != 1e-4f)
+    parts.push_back("minimum delta: " + formatFloat(sched.minDelta));
+
+  std::string result;
+
+  for (ulong i = 0; i < parts.size(); i++) {
+    if (i > 0)
+      result += ", ";
+    result += parts[i];
+  }
+
+  return result;
 }
 
 //===================================================================================================================//
@@ -552,11 +609,10 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildModelIn
   optStr[0] = toupper(optStr[0]);
   rows.push_back({"Optimizer", optStr});
 
-  if (tc.learningRateScheduler.type != Common::LearningRateSchedulerType::NONE) {
-    std::string schedStr = Common::LearningRateSchedulerConfig::typeToName(tc.learningRateScheduler.type);
-    schedStr[0] = toupper(schedStr[0]);
-    rows.push_back({"Scheduler", schedStr});
-  }
+  std::string schedulerStr = this->getLearningRateSchedulerString();
+
+  if (schedulerStr != "None")
+    rows.push_back({"Learning-rate scheduler", schedulerStr});
 
   if (tc.dropoutRate > 0)
     rows.push_back({"Dropout", std::to_string(static_cast<int>(tc.dropoutRate * 100)) + "%"});

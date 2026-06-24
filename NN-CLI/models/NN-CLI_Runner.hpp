@@ -137,6 +137,10 @@ namespace NN_CLI
       // (e.g. "Uniform" or "Auto [0.50, 1.20, 0.80]").
       std::string getClassWeightsString() const;
 
+      // Return a human-readable string describing the learning-rate scheduler
+      // configuration (e.g. "type: step, gamma: 0.1, step size: 3" or "None").
+      std::string getLearningRateSchedulerString() const;
+
       //-- Model info row builder --//
 
       // Build the complete set of SummaryRows describing the model
