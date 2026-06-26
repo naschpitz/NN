@@ -460,6 +460,8 @@ namespace NN_CLI
   void GpuAugmenterPool::augment(std::vector<float>& batch, ulong count, const AugmentationTransforms& transforms,
                                  float probability)
   {
+    emit this->gpuAugmenterPoolSignals.timingUpdate(true);
+
     if (this->timingCallback)
       this->timingCallback(true);
 
@@ -495,6 +497,8 @@ namespace NN_CLI
     }
 
     release();
+
+    emit this->gpuAugmenterPoolSignals.timingUpdate(false);
 
     if (this->timingCallback)
       this->timingCallback(false);

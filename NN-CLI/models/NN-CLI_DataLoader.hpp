@@ -1,6 +1,7 @@
 #ifndef NN_CLI_DATALOADER_HPP
 #define NN_CLI_DATALOADER_HPP
 
+#include "NN-CLI_DataLoaderSignals.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_Loader.hpp"
 #include "NN-CLI_Types.hpp"
@@ -22,8 +23,6 @@
 
 namespace NN_CLI
 {
-
-  enum class SampleLoadType { Train, Validation };
 
   class GpuAugmenterPool; // GPU augmentation (defined in NN-CLI_GpuAugmenter.hpp)
 
@@ -111,6 +110,8 @@ namespace NN_CLI
       }
 
     private:
+      mutable DataLoaderSignals dataLoaderSignals;
+
       std::vector<SampleManifest> manifest; // Original samples — paths + labels (JSON path)
       std::vector<SampleT> memorySamples; // Original samples — fully loaded (memory path)
       bool fromMemory = false; // Which source to use

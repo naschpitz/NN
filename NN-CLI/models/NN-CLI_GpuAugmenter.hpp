@@ -2,6 +2,7 @@
 #define NN_CLI_GPUAUGMENTER_HPP
 
 #include "NN-CLI_AugmentationTransforms.hpp"
+#include "NN-CLI_GpuAugmenterSignals.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_Types.hpp"
 
@@ -90,6 +91,9 @@ namespace NN_CLI
       std::vector<std::unique_ptr<GpuAugmenter>> augmenters;
       std::vector<std::unique_ptr<std::mt19937>> rngs;
       std::vector<int> freeList;
+
+      //-- Signals hub --//
+      GpuAugmenterPoolSignals gpuAugmenterPoolSignals;
 
       //-- Synchronization --//
       QMutex mutex;

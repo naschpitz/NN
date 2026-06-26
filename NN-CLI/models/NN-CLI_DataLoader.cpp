@@ -274,8 +274,12 @@ namespace NN_CLI
     auto onSample = [this, &loaded, count, batchIndex, totalBatches, reportInterval, loadType]() {
       ulong n = loaded.fetch_add(1, std::memory_order_relaxed) + 1;
 
-      if (this->loadingCallback && (n == count || n % reportInterval == 0))
-        this->loadingCallback(n, count, batchIndex, totalBatches, loadType);
+      if (n == count || n % reportInterval == 0) {
+        if (this->loadingCallback)
+          this->loadingCallback(n, count, batchIndex, totalBatches, loadType);
+
+        emit this->dataLoaderSignals.loadingProgress(n, count, batchIndex, totalBatches, loadType);
+      }
     };
 
     QVector<QFuture<void>> futures;

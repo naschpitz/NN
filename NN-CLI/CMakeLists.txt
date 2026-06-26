@@ -67,7 +67,9 @@ add_library(nncli_common OBJECT
     models/NN-CLI_ANNLoader.cpp
     models/NN-CLI_CalibrateUtils.cpp
     models/NN-CLI_DataLoader.cpp
+    models/NN-CLI_DataLoaderSignals.hpp
     models/NN-CLI_GpuAugmenter.cpp
+    models/NN-CLI_GpuAugmenterSignals.hpp
     models/NN-CLI_DataSplitter.cpp
     models/NN-CLI_DataType.cpp
     models/NN-CLI_ImageLoader.cpp
