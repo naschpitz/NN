@@ -92,12 +92,10 @@ Common::PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvi
                               [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
                                 Common::ProgressCallback callback;
 
-                                if (this->progressCallback) {
-                                  callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
-                                    ulong completed = ++completedInputs;
-                                    this->progressCallback(completed, numSamples);
-                                  };
-                                }
+                                callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
+                                  ulong completed = ++completedInputs;
+                                  this->emitPredictProgress(completed, numSamples);
+                                };
 
                                 gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->predictSubset(
                                   InputsView<T>(batch.data() + item.startIdx, item.endIdx - item.startIdx), callback);
@@ -212,7 +210,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
             // Create per-batch callback that translates local indices to cumulative per-GPU counts
             Common::TrainCallback<T> callback;
 
-            if (this->trainCallback) {
+            {
               ulong offset = gpuCumulativeSamples[item.gpuIdx];
               size_t gpuIdx = item.gpuIdx;
               callback = [this, offset, gpuIdx, numSamples](const Common::TrainProgressEvent<T>& progress) {
@@ -221,7 +219,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
                 gpuProgress.totalSamples = numSamples;
                 gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
                 gpuProgress.totalGPUs = static_cast<int>(this->numGPUs);
-                this->trainCallback(gpuProgress);
+                this->emitTrainProgress(gpuProgress);
               };
             }
 
@@ -283,12 +281,10 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       this->trainMetadata.bestEpoch = monitor->getBestEpoch();
       this->trainMetadata.bestLoss = monitor->getBestLoss();
 
-      if (this->trainCallback) {
-        this->trainCallback(progress);
-      }
+      this->emitTrainProgress(progress);
     } else {
       // Report epoch completion (gpuIndex = -1 indicates combined result)
-      if (this->trainCallback) {
+      {
         Common::TrainProgressEvent<T> progress;
         progress.currentEpoch = e + 1;
         progress.totalEpochs = numEpochs;
@@ -298,7 +294,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         progress.epochLoss = avgEpochLoss;
         progress.gpuIndex = -1;
         progress.totalGPUs = static_cast<int>(this->numGPUs);
-        this->trainCallback(progress);
+        this->emitTrainProgress(progress);
       }
     }
 
@@ -320,15 +316,13 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
-    if (this->epochCompletedCallback) {
-      Common::EpochCompletionEvent<T> completion;
-      completion.epoch = e;
-      completion.totalEpochs = numEpochs;
-      completion.epochLoss = avgEpochLoss;
-      completion.isNewBest = monitor ? monitor->isNewBest() : false;
-      completion.stoppedEarly = shouldStop;
-      this->epochCompletedCallback(completion);
-    }
+    Common::EpochCompletionEvent<T> completion;
+    completion.epoch = e;
+    completion.totalEpochs = numEpochs;
+    completion.epochLoss = avgEpochLoss;
+    completion.isNewBest = monitor ? monitor->isNewBest() : false;
+    completion.stoppedEarly = shouldStop;
+    this->emitEpochCompleted(completion);
 
     if (shouldStop) {
       break;

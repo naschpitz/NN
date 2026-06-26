@@ -134,6 +134,42 @@ ulong Core<T>::computeFetchSize(ulong batchSize, ulong numWorkers) const
 
 //===================================================================================================================//
 
+template <typename T>
+void Core<T>::emitTrainProgress(const Common::TrainProgressEvent<T>& progress)
+{
+  if (this->trainCallback)
+    this->trainCallback(progress);
+
+  emit this->coreSignals.trainProgress(
+    progress.currentEpoch, progress.totalEpochs, progress.currentSample, progress.totalSamples, progress.epochLoss,
+    progress.sampleLoss, progress.isNewBest, progress.stoppedEarly, progress.gpuIndex, progress.totalGPUs);
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void Core<T>::emitEpochCompleted(const Common::EpochCompletionEvent<T>& completion)
+{
+  if (this->epochCompletedCallback)
+    this->epochCompletedCallback(completion);
+
+  emit this->coreSignals.epochCompleted(completion.epoch, completion.totalEpochs, completion.epochLoss,
+                                        completion.isNewBest, completion.stoppedEarly);
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void Core<T>::emitPredictProgress(ulong current, ulong total)
+{
+  if (this->progressCallback)
+    this->progressCallback(current, total);
+
+  emit this->coreSignals.predictProgress(current, total);
+}
+
+//===================================================================================================================//
+
 // (Optional) Explicit template instantiations.
 template class ANN::Core<int>;
 template class ANN::Core<double>;

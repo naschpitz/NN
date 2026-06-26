@@ -13,6 +13,7 @@ if(NOT TARGET OpenCLWrapper)
 endif()
 add_library(ANN STATIC
   ANN_Core.hpp ANN_Core.cpp
+  ANN_CoreSignals.hpp
   ANN_ActvFunc.hpp ANN_ActvFunc.cpp
   ANN_Utils.hpp ANN_Utils.cpp
   ANN_Worker.hpp ANN_Worker.cpp

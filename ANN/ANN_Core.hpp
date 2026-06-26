@@ -3,10 +3,12 @@
 
 #include "ANN_Types.hpp"
 #include "ANN_CoreConfig.hpp"
+#include "ANN_CoreSignals.hpp"
 #include "ANN_InputProvider.hpp"
 #include "ANN_Sample.hpp"
 #include "ANN_SampleProvider.hpp"
 #include "Common/Common_EpochRecord.hpp"
+#include "Common/Common_EpochCompletionEvent.hpp"
 #include "Common/Common_TrainProgressEvent.hpp"
 #include "Common/Common_TrainMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
@@ -188,6 +190,14 @@ namespace ANN
       //-- Fetch size computation --//
       ulong computeFetchSize(ulong batchSize, ulong numWorkers) const;
 
+      //-- Dual-emission helpers (Phase 1: legacy callback AND Qt signal both fire) --//
+      // Each invokes the configured callback (if set) and also emits through
+      // coreSignals. The signal fires unconditionally so a consumer connected via
+      // signals/slots is notified even when the legacy callback is unset.
+      void emitTrainProgress(const Common::TrainProgressEvent<T>& progress);
+      void emitEpochCompleted(const Common::EpochCompletionEvent<T>& completion);
+      void emitPredictProgress(ulong current, ulong total);
+
       //-- Configuration members --//
       Common::DeviceType deviceType;
       Common::ModeType modeType;
@@ -207,6 +217,9 @@ namespace ANN
       Common::EpochCompletedCallback<T> epochCompletedCallback;
       Common::ProgressCallback progressCallback;
       std::atomic<bool> stopRequested{false};
+
+      //-- Signal hub (Qt signals/slot surface; non-template QObject) --//
+      CoreSignals coreSignals;
 
     private:
       //-- Timing state --//

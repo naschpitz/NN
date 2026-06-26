@@ -118,8 +118,7 @@ Common::PredictResults<T> CoreCPU<T>::predict(ulong numSamples, const InputProvi
 
         ulong completed = ++completedInputs;
 
-        if (this->progressCallback)
-          this->progressCallback(completed, numSamples);
+        this->emitPredictProgress(completed, numSamples);
       }
     });
 
@@ -313,9 +312,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
       this->trainMetadata.bestEpoch = monitor->getBestEpoch();
       this->trainMetadata.bestLoss = monitor->getBestLoss();
 
-      if (this->trainCallback) {
-        this->trainCallback(progress);
-      }
+      this->emitTrainProgress(progress);
     } else {
       this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss, callbackMutex);
     }
@@ -338,15 +335,13 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
-    if (this->epochCompletedCallback) {
-      Common::EpochCompletionEvent<T> completion;
-      completion.epoch = e;
-      completion.totalEpochs = numEpochs;
-      completion.epochLoss = avgEpochLoss;
-      completion.isNewBest = monitor ? monitor->isNewBest() : false;
-      completion.stoppedEarly = shouldStop;
-      this->epochCompletedCallback(completion);
-    }
+    Common::EpochCompletionEvent<T> completion;
+    completion.epoch = e;
+    completion.totalEpochs = numEpochs;
+    completion.epochLoss = avgEpochLoss;
+    completion.isNewBest = monitor ? monitor->isNewBest() : false;
+    completion.stoppedEarly = shouldStop;
+    this->emitEpochCompleted(completion);
 
     if (shouldStop) {
       break;
@@ -438,10 +433,8 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
       totalCorrect += workerCorrects[i];
     }
 
-    if (this->progressCallback) {
-      ulong samplesProcessed = std::min((b + 1) * fetchSize, numSamples);
-      this->progressCallback(samplesProcessed, numSamples);
-    }
+    ulong samplesProcessed = std::min((b + 1) * fetchSize, numSamples);
+    this->emitPredictProgress(samplesProcessed, numSamples);
   }
 
   Common::TestResult<T> result;
@@ -693,6 +686,9 @@ template <typename T>
 void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
                                 T sampleLoss, T epochLoss, QMutex& callbackMutex)
 {
+  emit this->coreSignals.trainProgress(currentEpoch, totalEpochs, currentSample, totalSamples, epochLoss, sampleLoss,
+                                       false, false, -1, 0);
+
   if (!this->trainCallback) {
     return;
   }
