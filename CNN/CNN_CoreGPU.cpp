@@ -90,12 +90,10 @@ Common::PredictResults<T> CoreGPU<T>::predict(ulong numSamples, const InputProvi
                               [this, &batch, &gpuResults, &completedInputs, numSamples](const GPUWorkItem& item) {
                                 Common::ProgressCallback callback;
 
-                                if (this->progressCallback) {
-                                  callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
-                                    ulong completed = ++completedInputs;
-                                    this->progressCallback(completed, numSamples);
-                                  };
-                                }
+                                callback = [this, &completedInputs, numSamples](ulong /*current*/, ulong /*total*/) {
+                                  ulong completed = ++completedInputs;
+                                  this->emitPredictProgress(completed, numSamples);
+                                };
 
                                 gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->predictSubset(
                                   InputsView<T>(batch.data() + item.startIdx, item.endIdx - item.startIdx), callback);
@@ -223,10 +221,11 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
             // Build the per-GPU sub-batch (non-owning view — avoids copying the slice)
             SamplesView<T> gpuSamples(fetchSamples.data() + item.startIdx, item.endIdx - item.startIdx);
 
-            // Create per-batch callback that translates indices to cumulative per-GPU counts
+            // Per-batch callback that translates local indices to cumulative per-GPU counts.
+            // Built unconditionally so a signals/slot consumer is notified even when the legacy
+            // trainCallback is unset (emitTrainProgress guards the legacy call).
             Common::TrainCallback<T> callback;
-
-            if (this->trainCallback) {
+            {
               ulong offset = gpuCumulativeSamples[item.gpuIdx];
               size_t gpuIdx = item.gpuIdx;
               callback = [this, offset, gpuIdx, numSamples](const Common::TrainProgressEvent<T>& progress) {
@@ -235,12 +234,24 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
                 gpuProgress.totalSamples = numSamples;
                 gpuProgress.gpuIndex = static_cast<int>(gpuIdx);
                 gpuProgress.totalGPUs = static_cast<int>(this->numGPUs);
-                this->trainCallback(gpuProgress);
+                this->emitTrainProgress(gpuProgress);
               };
             }
 
+            // Wrap the timing callback so worker-phase boundaries (H2DUpload / GpuCompute)
+            // also emit through coreSignals (DirectConnection-safe from worker threads).
+            // gpuProfileCallback is passed through unchanged: a non-null value doubles as a
+            // feature flag that enables GPU profiling, so it must stay null when unset (the
+            // gpuProfile signal is wired in a later phase alongside a profiling-enable flag).
+            TimingCallback wrappedTiming = [this](TimingPhase phase, TimingEvent event, int gpuIndex) {
+              emit this->coreSignals.timing(phase, event, gpuIndex);
+
+              if (this->timingCallback)
+                this->timingCallback(phase, event, gpuIndex);
+            };
+
             gpuLosses[item.gpuIdx] += this->gpuWorkers[item.gpuIdx]->trainSubset(
-              gpuSamples, numSamples, e + 1, numEpochs, callback, this->timingCallback, static_cast<int>(item.gpuIdx),
+              gpuSamples, numSamples, e + 1, numEpochs, callback, wrappedTiming, static_cast<int>(item.gpuIdx),
               this->gpuProfileCallback, this->gpuProfileDumpPath);
           });
 
@@ -319,7 +330,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     // EpochRecord::epoch), regardless of monitoring
     this->trainMetadata.lastEpoch = e;
 
-    if (this->trainCallback) {
+    {
       Common::TrainProgressEvent<T> progress;
       progress.currentEpoch = e + 1;
       progress.totalEpochs = numEpochs;
@@ -338,7 +349,7 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         }
       }
 
-      this->trainCallback(progress);
+      this->emitTrainProgress(progress);
     }
 
     // Record epoch history
@@ -355,15 +366,13 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
     // Notify the consumer that epoch e (0-based) is complete, so it can run
     // epoch-boundary work (validation, checkpoints) against the synced params.
-    if (this->epochCompletedCallback) {
-      Common::EpochCompletionEvent<T> completion;
-      completion.epoch = e;
-      completion.totalEpochs = numEpochs;
-      completion.epochLoss = avgEpochLoss;
-      completion.isNewBest = monitor ? monitor->isNewBest() : false;
-      completion.stoppedEarly = shouldStop;
-      this->epochCompletedCallback(completion);
-    }
+    Common::EpochCompletionEvent<T> completion;
+    completion.epoch = e;
+    completion.totalEpochs = numEpochs;
+    completion.epochLoss = avgEpochLoss;
+    completion.isNewBest = monitor ? monitor->isNewBest() : false;
+    completion.stoppedEarly = shouldStop;
+    this->emitEpochCompleted(completion);
 
     if (shouldStop) {
       break;
@@ -436,10 +445,8 @@ Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>
       totalCorrect += gpuResults[i].second;
     }
 
-    if (this->progressCallback) {
-      ulong samplesProcessed = std::min((b + 1) * fetchSize, numSamples);
-      this->progressCallback(samplesProcessed, numSamples);
-    }
+    ulong samplesProcessed = std::min((b + 1) * fetchSize, numSamples);
+    this->emitPredictProgress(samplesProcessed, numSamples);
   }
 
   Common::TestResult<T> result;

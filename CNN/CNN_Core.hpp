@@ -3,10 +3,12 @@
 
 #include "CNN_Types.hpp"
 #include "CNN_CoreConfig.hpp"
+#include "CNN_CoreSignals.hpp"
 #include "CNN_InputProvider.hpp"
 #include "CNN_Sample.hpp"
 #include "CNN_SampleProvider.hpp"
 #include "Common/Common_EpochRecord.hpp"
+#include "Common/Common_EpochCompletionEvent.hpp"
 #include "Common/Common_TrainProgressEvent.hpp"
 #include "Common/Common_TrainMetadata.hpp"
 #include "Common/Common_PredictMetadata.hpp"
@@ -210,6 +212,14 @@ namespace CNN
       //-- Fetch size computation --//
       ulong computeFetchSize(ulong batchSize, ulong numWorkers, bool hasBatchNorm) const;
 
+      //-- Dual-emission helpers (Phase 1: legacy callback AND Qt signal both fire) --//
+      // Each invokes the configured callback (if set) and also emits through
+      // coreSignals. The signal fires unconditionally so a consumer connected via
+      // signals/slots is notified even when the legacy callback is unset.
+      void emitTrainProgress(const Common::TrainProgressEvent<T>& progress);
+      void emitEpochCompleted(const Common::EpochCompletionEvent<T>& completion);
+      void emitPredictProgress(ulong current, ulong total);
+
       //-- Configuration members --//
       CoreConfig<T> coreConfig;
       Common::DeviceType deviceType;
@@ -235,11 +245,17 @@ namespace CNN
       std::string gpuProfileDumpPath;
       std::atomic<bool> stopRequested{false};
 
+      //-- Signal hub (Qt signals/slot surface; non-template QObject) --//
+      // mutable: emitTiming is const and emitting a signal is a non-const op.
+      mutable CoreSignals coreSignals;
+
       // Notify the consumer that a measurable phase begins/ends. Cheap no-op when unset.
       void emitTiming(TimingPhase phase, TimingEvent event, int gpuIndex = -1) const
       {
         if (timingCallback)
           timingCallback(phase, event, gpuIndex);
+
+        emit this->coreSignals.timing(phase, event, gpuIndex);
       }
 
     private:

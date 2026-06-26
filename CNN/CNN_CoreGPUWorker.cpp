@@ -152,7 +152,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
   ulong sampleStride = this->bufferManager->totalActvSize;
 
   // Instrumentation: notify NN-CLI of phase boundaries (no-op when unset).
-  auto emit = [&timingCallback, gpuIndex](TimingPhase phase, TimingEvent event) {
+  auto emitTiming = [&timingCallback, gpuIndex](TimingPhase phase, TimingEvent event) {
     if (timingCallback)
       timingCallback(phase, event, gpuIndex);
   };
@@ -198,7 +198,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
     for (ulong s = 0; s < N; s++) {
       const Sample<T>& sample = batchSamples[s];
 
-      emit(TimingPhase::H2DUpload, TimingEvent::Begin);
+      emitTiming(TimingPhase::H2DUpload, TimingEvent::Begin);
       std::vector<T> inputVec(sample.input.data.begin(), sample.input.data.end());
       this->core->template writeBuffer<T>("cnn_actvs", inputVec, 0);
 
@@ -207,15 +207,15 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
 
       if (this->bufferManager->annGPUWorker->bufferManager->hasDropout)
         this->bufferManager->annGPUWorker->bufferManager->generateAndUploadDropoutMask();
-      emit(TimingPhase::H2DUpload, TimingEvent::End);
+      emitTiming(TimingPhase::H2DUpload, TimingEvent::End);
 
       if (gpuProfileCallback)
         this->core->resetProfilingResults();
 
-      emit(TimingPhase::GpuCompute, TimingEvent::Begin);
+      emitTiming(TimingPhase::GpuCompute, TimingEvent::Begin);
       this->core->run();
       this->collectGpuProfile(gpuProfileCallback, gpuIndex, gpuProfileDumpPath);
-      emit(TimingPhase::GpuCompute, TimingEvent::End);
+      emitTiming(TimingPhase::GpuCompute, TimingEvent::End);
 
       this->reportSampleProgress(callback, s + 1, totalSamples, epoch, totalEpochs, prevAccumLoss);
     }
@@ -223,7 +223,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
     // ---- BATCH NORM PATH: segment-based processing with cross-sample statistics ----
 
     // Write all sample inputs to the unified activation buffer at sample offsets
-    emit(TimingPhase::H2DUpload, TimingEvent::Begin);
+    emitTiming(TimingPhase::H2DUpload, TimingEvent::Begin);
 
     for (ulong n = 0; n < N; n++) {
       const auto& input = batchSamples[n].input;
@@ -231,7 +231,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
       this->core->template writeBuffer<T>("cnn_actvs", inputVec, n * sampleStride);
     }
 
-    emit(TimingPhase::H2DUpload, TimingEvent::End);
+    emitTiming(TimingPhase::H2DUpload, TimingEvent::End);
 
     // Identify BN layer positions to determine segments
     std::vector<ulong> bnLayerIndices;
@@ -253,7 +253,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
     if (gpuProfileCallback)
       this->core->resetProfilingResults();
 
-    emit(TimingPhase::GpuCompute, TimingEvent::Begin);
+    emitTiming(TimingPhase::GpuCompute, TimingEvent::Begin);
 
     // ---- FORWARD PASS ----
     ulong segStart = 0;
@@ -388,7 +388,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
     this->core->run();
 
     this->collectGpuProfile(gpuProfileCallback, gpuIndex, gpuProfileDumpPath);
-    emit(TimingPhase::GpuCompute, TimingEvent::End);
+    emitTiming(TimingPhase::GpuCompute, TimingEvent::End);
   }
 
   // Read accumulated loss

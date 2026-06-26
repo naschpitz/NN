@@ -22,6 +22,7 @@ endif()
 
 add_library(CNN STATIC
   CNN_Core.hpp CNN_Core.cpp
+  CNN_CoreSignals.hpp
   CNN_Worker.hpp CNN_Worker.cpp
   CNN_CoreCPU.hpp CNN_CoreCPU.cpp
   CNN_CoreCPUWorker.hpp CNN_CoreCPUWorker.cpp
