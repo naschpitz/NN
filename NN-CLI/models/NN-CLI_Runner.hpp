@@ -6,6 +6,7 @@
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
 #include "NN-CLI_RunnerObserver.hpp"
+#include "NN-CLI_RunnerSignals.hpp"
 #include "NN-CLI_RunnerUtils.hpp"
 #include "NN-CLI_SummaryTable.hpp"
 #include "NN-CLI_Utils.hpp"
@@ -246,6 +247,9 @@ namespace NN_CLI
 
       //-- Observer list --//
       std::vector<IRunnerObserver*> observers;
+
+      //-- Qt signals hub (dual-fires with the notify*() -> IRunnerObserver path) --//
+      RunnerSignals runnerSignals;
   };
 
 } // namespace NN_CLI

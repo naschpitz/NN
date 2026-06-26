@@ -111,6 +111,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifySampleLoadProgress(ulong current,
 {
   for (auto* observer : this->observers)
     observer->onSampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
+
+  emit this->runnerSignals.sampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
 }
 
 //===================================================================================================================//
@@ -120,6 +122,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyValidationProgress(ulong current,
 {
   for (auto* observer : this->observers)
     observer->onValidationProgress(current, total);
+
+  emit this->runnerSignals.validationProgress(current, total);
 }
 
 //===================================================================================================================//
@@ -131,6 +135,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyBatchProgress(int batchIdx, int t
 {
   for (auto* observer : this->observers)
     observer->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
+
+  emit this->runnerSignals.batchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
 }
 
 //===================================================================================================================//
@@ -142,6 +148,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyEpochCompleted(int epochIdx, int 
 {
   for (auto* observer : this->observers)
     observer->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate, summary);
+
+  emit this->runnerSignals.epochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate, summary);
 }
 
 //===================================================================================================================//
@@ -151,6 +159,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTrainFinished(bool success, const
 {
   for (auto* observer : this->observers)
     observer->onTrainFinished(success, finalSummary);
+
+  emit this->runnerSignals.trainFinished(success, finalSummary);
 }
 
 //===================================================================================================================//
@@ -163,6 +173,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyPredictFinished(const Common::Pre
 {
   for (auto* observer : this->observers)
     observer->onPredictFinished(results, numInputs, durationSeconds, durationFormatted, outputPath);
+
+  emit this->runnerSignals.predictFinished(results, numInputs, durationSeconds, durationFormatted, outputPath);
 }
 
 //===================================================================================================================//
@@ -172,6 +184,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyModelInfoUpdated(const std::strin
 {
   for (auto* observer : this->observers)
     observer->onModelInfoUpdated(property, value);
+
+  emit this->runnerSignals.modelInfoUpdated(property, value);
 }
 
 //===================================================================================================================//
@@ -181,6 +195,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyLogMessage(const std::string& mes
 {
   for (auto* observer : this->observers)
     observer->onLogMessage(message, isError);
+
+  emit this->runnerSignals.logMessage(message, isError);
 }
 
 //===================================================================================================================//
@@ -190,6 +206,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTimingUpdated(const std::string& 
 {
   for (auto* observer : this->observers)
     observer->onTimingUpdated(metric, value);
+
+  emit this->runnerSignals.timingUpdated(metric, value);
 }
 
 //===================================================================================================================//
