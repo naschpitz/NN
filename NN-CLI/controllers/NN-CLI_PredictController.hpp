@@ -4,6 +4,8 @@
 #include "NN-CLI_RunnerObserver.hpp"
 #include "NN-CLI_TerminalUI_PredictWindow.hpp"
 
+#include <QObject>
+
 #include <memory>
 #include <string>
 
@@ -108,6 +110,9 @@ namespace NN_CLI
       std::unique_ptr<TerminalUI_PredictWindow> window;
       std::unique_ptr<RunnerT> runner;
       bool abortHandled = false;
+
+      //-- Qt signal-connection context (thread affinity for Phase 2 queued delivery) --//
+      QObject signalContext;
   };
 
   //===================================================================================================================//

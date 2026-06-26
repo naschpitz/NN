@@ -18,8 +18,7 @@ namespace NN_CLI
   template <typename RunnerT>
   TestController<RunnerT>::~TestController()
   {
-    if (this->runner)
-      this->runner->removeObserver(this);
+    // Signal connections auto-disconnect when runnerSignals (sender) is destroyed.
   }
 
   //===================================================================================================================//
@@ -32,7 +31,7 @@ namespace NN_CLI
     this->runner = std::move(runner);
 
     if (this->runner)
-      this->runner->addObserver(this);
+      connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
   }
 
   //===================================================================================================================//

@@ -51,8 +51,8 @@ namespace NN_CLI
   template <typename RunnerT>
   TrainController<RunnerT>::~TrainController()
   {
-    if (this->runner)
-      this->runner->removeObserver(this);
+    // Signal connections auto-disconnect when runnerSignals (sender) is destroyed
+    // (Runner owns runnerSignals; Controller owns Runner via unique_ptr).
   }
 
   //===================================================================================================================//
@@ -66,7 +66,7 @@ namespace NN_CLI
     this->runner = std::move(runner);
 
     if (this->runner) {
-      this->runner->addObserver(this);
+      connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
       this->totalEpochs = this->runner->getTotalEpochs();
     }
 

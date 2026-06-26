@@ -37,8 +37,7 @@ namespace NN_CLI
   template <typename RunnerT>
   PredictController<RunnerT>::~PredictController()
   {
-    if (this->runner)
-      this->runner->removeObserver(this);
+    // Signal connections auto-disconnect when runnerSignals (sender) is destroyed.
   }
 
   //===================================================================================================================//
@@ -52,7 +51,7 @@ namespace NN_CLI
     this->runner = std::move(runner);
 
     if (this->runner)
-      this->runner->addObserver(this);
+      connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
 
     // Initialize the ncurses TUI.  If init fails (e.g. no TTY attached),
     // the window gracefully degrades — the UI thread is never started, so
@@ -88,7 +87,7 @@ namespace NN_CLI
   void PredictController<RunnerT>::shutdown()
   {
     if (this->runner)
-      this->runner->removeObserver(this);
+      this->runner->getRunnerSignals().disconnect(&this->signalContext);
 
     this->window.reset();
   }

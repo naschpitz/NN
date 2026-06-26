@@ -3,6 +3,8 @@
 
 #include "NN-CLI_RunnerObserver.hpp"
 
+#include <QObject>
+
 #include <memory>
 #include <string>
 
@@ -77,6 +79,9 @@ namespace NN_CLI
       //-- Members --//
 
       std::unique_ptr<RunnerT> runner;
+
+      //-- Qt signal-connection context (thread affinity for Phase 2 queued delivery) --//
+      QObject signalContext;
   };
 
   //===================================================================================================================//

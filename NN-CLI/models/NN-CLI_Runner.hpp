@@ -47,6 +47,12 @@ namespace NN_CLI
       void addObserver(IRunnerObserver* observer);
       void removeObserver(IRunnerObserver* observer);
 
+      //-- Qt signals hub --//
+      RunnerSignals& getRunnerSignals()
+      {
+        return this->runnerSignals;
+      }
+
       //-- Accessors --//
 
       // Return the total number of epochs configured for this training run.

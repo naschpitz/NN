@@ -4,6 +4,8 @@
 #include "NN-CLI_RunnerObserver.hpp"
 #include "NN-CLI_TerminalUI_TrainWindow.hpp"
 
+#include <QObject>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -119,6 +121,9 @@ namespace NN_CLI
       int totalEpochs = 0;
       bool isValidating = false;
       bool abortHandled = false;
+
+      //-- Qt signal-connection context (thread affinity for Phase 2 queued delivery) --//
+      QObject signalContext;
   };
 
   //===================================================================================================================//

@@ -2,6 +2,7 @@
 #define NN_CLI_RUNNERSIGNALS_HPP
 
 #include "Common/Common_PredictResult.hpp"
+#include "NN-CLI_RunnerObserver.hpp"
 #include "NN-CLI_Types.hpp"
 
 #include <QObject>
@@ -71,6 +72,79 @@ namespace NN_CLI
       template <typename CoreT, typename CoreConfigT>
       friend class Runner;
   };
+
+  //===================================================================================================================//
+
+  // Connect all RunnerSignals to an IRunnerObserver-derived controller via a
+  // QObject context (for connection lifetime + thread affinity).  Uses
+  // Qt::DirectConnection so the slot runs synchronously in the emitting thread
+  // — identical semantics to the legacy observer path.  In Phase 2 the
+  // Qt::DirectConnection flag is removed, flipping to AutoConnection (queued
+  // across threads, delivered on the context object's thread).
+  inline void connectRunnerSignals(RunnerSignals& hub, QObject* context, IRunnerObserver* observer)
+  {
+    QObject::connect(
+      &hub, &RunnerSignals::sampleLoadProgress, context,
+      [observer](ulong current, ulong total, ulong batchIndex, ulong totalBatches, bool isValidation) {
+        observer->onSampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
+      },
+
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::validationProgress, context,
+      [observer](ulong current, ulong total) { observer->onValidationProgress(current, total); }, Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::batchProgress, context,
+      [observer](int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
+                 const std::vector<float>& fractions) {
+        observer->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
+      },
+
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::epochCompleted, context,
+      [observer](int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss, float learningRate,
+                 const std::string& summary) {
+        observer->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate, summary);
+      },
+
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::trainFinished, context,
+      [observer](bool success, const std::string& finalSummary) { observer->onTrainFinished(success, finalSummary); },
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::predictFinished, context,
+      [observer](const Common::PredictResults<float>& results, size_t numInputs, double durationSeconds,
+                 const std::string& durationFormatted, const std::string& outputPath) {
+        observer->onPredictFinished(results, numInputs, durationSeconds, durationFormatted, outputPath);
+      },
+
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::modelInfoUpdated, context,
+      [observer](const std::string& property, const std::string& value) {
+        observer->onModelInfoUpdated(property, value);
+      },
+
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::logMessage, context,
+      [observer](const std::string& message, bool isError) { observer->onLogMessage(message, isError); },
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::timingUpdated, context,
+      [observer](const std::string& metric, float value) { observer->onTimingUpdated(metric, value); },
+      Qt::DirectConnection);
+  }
 }
 
 //===================================================================================================================//
