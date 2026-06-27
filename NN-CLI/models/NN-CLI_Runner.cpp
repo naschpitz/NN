@@ -587,29 +587,35 @@ template <typename CoreT, typename CoreConfigT>
 void NN_CLI::Runner<CoreT, CoreConfigT>::setupPredictProgressCallback(ulong total)
 {
   if (this->logLevel > LogLevel::QUIET) {
-    this->core->setProgressCallback([this, total](ulong current, ulong /*totalCb*/) {
-      if (total == 0)
-        return;
+    auto& hub = this->core->getCoreSignals();
 
-      // Throttle: only notify every total/progressReports samples.
-      ulong reports = this->ioConfig.progressReports;
-      ulong interval = (reports > 0) ? std::max(static_cast<ulong>(1), total / reports) : 0;
+    QObject::connect(
+      &hub, &std::remove_reference_t<decltype(hub)>::predictProgress, &this->runnerSignals,
+      [this, total](ulong current, ulong /*totalCb*/) {
+        if (total == 0)
+          return;
 
-      if (interval == 0)
-        return;
+        // Throttle: only notify every total/progressReports samples.
+        ulong reports = this->ioConfig.progressReports;
+        ulong interval = (reports > 0) ? std::max(static_cast<ulong>(1), total / reports) : 0;
 
-      if (current != total && (current % interval) != 0)
-        return;
+        if (interval == 0)
+          return;
 
-      // Compute batch-level progress.
-      int batchIdx = static_cast<int>(current / this->coreConfig.trainConfig.batchSize);
-      int totalBatches =
-        static_cast<int>((total + this->coreConfig.trainConfig.batchSize - 1) / this->coreConfig.trainConfig.batchSize);
+        if (current != total && (current % interval) != 0)
+          return;
 
-      float fraction = static_cast<float>(current) / static_cast<float>(total);
+        // Compute batch-level progress.
+        int batchIdx = static_cast<int>(current / this->coreConfig.trainConfig.batchSize);
+        int totalBatches = static_cast<int>((total + this->coreConfig.trainConfig.batchSize - 1) /
+                                            this->coreConfig.trainConfig.batchSize);
 
-      emit this->runnerSignals.batchProgress(batchIdx, totalBatches, 0.f, 0.f, 0.f, {fraction});
-    });
+        float fraction = static_cast<float>(current) / static_cast<float>(total);
+
+        emit this->runnerSignals.batchProgress(batchIdx, totalBatches, 0.f, 0.f, 0.f, {fraction});
+      },
+
+      Qt::DirectConnection);
   }
 }
 

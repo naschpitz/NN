@@ -585,127 +585,149 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
     validationProviderPtr = std::make_shared<ANN::SampleProvider<float>>(std::move(provider));
   }
 
-  // Live progress callback: fires per batch. It only drives the progress
-  // display — every epoch-boundary task lives in the epoch-completed callback.
-  this->core->setTrainCallback([this, batchSize](const Common::TrainProgressEvent<float>& progress) {
-    this->handleTrainProgress(progress, batchSize);
-  });
+  // Live progress: fires per batch from Core worker threads (DirectConnection
+  // = synchronous on the emitting thread). Only drives the progress display —
+  // every epoch-boundary task lives in the epoch-completed connection below.
+  QObject::connect(
+    &this->core->getCoreSignals(), &ANN::CoreSignals::trainProgress, &this->runnerSignals,
+    [this, batchSize](ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples, double epochLoss,
+                      double sampleLoss, bool isNewBest, bool stoppedEarly, int gpuIndex, int totalGPUs) {
+      Common::TrainProgressEvent<float> progress;
+      progress.currentEpoch = currentEpoch;
+      progress.totalEpochs = totalEpochs;
+      progress.currentSample = currentSample;
+      progress.totalSamples = totalSamples;
+      progress.epochLoss = static_cast<float>(epochLoss);
+      progress.sampleLoss = static_cast<float>(sampleLoss);
+      progress.isNewBest = isNewBest;
+      progress.stoppedEarly = stoppedEarly;
+      progress.gpuIndex = gpuIndex;
+      progress.totalGPUs = totalGPUs;
+      this->handleTrainProgress(progress, batchSize);
+    },
 
-  // Epoch-completed callback: fires once per epoch (after the epoch's record is
-  // recorded) with the 0-based epoch index. The core hands us the index
-  // directly, so there is no transition tracking and no off-by-one — completion.epoch
-  // matches EpochRecord::epoch and the serialized bestValidationEpoch.
-  this->core->setEpochCompletedCallback([this, inputFilePath, validationCore, trainMonitor, validationProviderPtr,
-                                         validationIndices,
-                                         totalEpochs](const Common::EpochCompletionEvent<float>& completion) {
-    QMutexLocker<QMutex> lock(&this->callbackMutex);
+    Qt::DirectConnection);
 
-    const ulong epoch = completion.epoch; // 0-based index of the just-completed epoch
+  // Epoch-completed: fires once per epoch (after the epoch's record is
+  // recorded) with the 0-based epoch index. DirectConnection = synchronous on
+  // the Core worker thread, so validation/checkpointing/LR-scheduling complete
+  // before the Core starts the next epoch.
+  QObject::connect(
+    &this->core->getCoreSignals(), &ANN::CoreSignals::epochCompleted, &this->runnerSignals,
+    [this, inputFilePath, validationCore, trainMonitor, validationProviderPtr, validationIndices, totalEpochs](
+      ulong epoch, ulong /*signalTotalEpochs*/, double /*signalEpochLoss*/, bool isNewBest, bool stoppedEarly) {
+      QMutexLocker<QMutex> lock(&this->callbackMutex);
 
-    // --- Checkpointing (every saveModelInterval completed epochs) ---
-    // epoch + 1 is the count of completed epochs; checkpoint filenames stay
-    // 1-based for human-facing numbering.
-    if (this->ioConfig.saveModelInterval > 0 && (epoch + 1) % this->ioConfig.saveModelInterval == 0) {
-      std::string checkpointPath =
-        ModelSerializer::generateCheckpointPath(inputFilePath, epoch + 1, this->lastEpochLoss);
-      ModelSerializer::saveANNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
-                                             this->augConfig, this->buildValidationMetadata());
-    }
-
-    // --- Validation ---
-    bool isBest = false;
-    bool monitorShouldStop = false;
-    float valLoss = 0.0f;
-    bool hasValLoss = false;
-
-    if (this->validationState.enabled && validationCore && validationProviderPtr && validationIndices &&
-        epoch % this->validationState.checkInterval == 0) {
-      ulong validationTotal = validationIndices->size();
-
-      validationCore->setParameters(this->core->getParameters());
-
-      // Live "Validating" bar: route validation progress through the observer
-      // instead of printing to stdout (which would corrupt the ncurses TUI).
-      validationCore->setProgressCallback([this, validationTotal](ulong current, ulong) {
-        emit this->runnerSignals.validationProgress(current, validationTotal);
-      });
-
-      auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
-
-      this->validationState.lastValLoss = validationResult.averageLoss;
-      valLoss = validationResult.averageLoss;
-      hasValLoss = true;
-
-      if (validationResult.averageLoss < this->validationState.bestValidationLoss) {
-        this->validationState.bestValidationLoss = validationResult.averageLoss;
-        this->validationState.bestValEpoch = epoch;
+      // --- Checkpointing (every saveModelInterval completed epochs) ---
+      // epoch + 1 is the count of completed epochs; checkpoint filenames stay
+      // 1-based for human-facing numbering.
+      if (this->ioConfig.saveModelInterval > 0 && (epoch + 1) % this->ioConfig.saveModelInterval == 0) {
+        std::string checkpointPath =
+          ModelSerializer::generateCheckpointPath(inputFilePath, epoch + 1, this->lastEpochLoss);
+        ModelSerializer::saveANNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
+                                               this->augConfig, this->buildValidationMetadata());
       }
 
-      if (trainMonitor) {
-        monitorShouldStop =
-          trainMonitor->checkEpoch(epoch, this->lastEpochLoss, std::optional<float>(validationResult.averageLoss));
-        isBest = trainMonitor->isNewBest();
+      // --- Validation ---
+      bool isBest = false;
+      bool monitorShouldStop = false;
+      float valLoss = 0.0f;
+      bool hasValLoss = false;
+
+      if (this->validationState.enabled && validationCore && validationProviderPtr && validationIndices &&
+          epoch % this->validationState.checkInterval == 0) {
+        ulong validationTotal = validationIndices->size();
+
+        validationCore->setParameters(this->core->getParameters());
+
+        // Live "Validating" bar: route validation progress through the observer
+        // instead of printing to stdout (which would corrupt the ncurses TUI).
+        QObject::connect(
+          &validationCore->getCoreSignals(), &ANN::CoreSignals::predictProgress, &this->runnerSignals,
+          [this, validationTotal](ulong current, ulong) {
+            emit this->runnerSignals.validationProgress(current, validationTotal);
+          },
+
+          Qt::DirectConnection);
+
+        auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
+
+        this->validationState.lastValLoss = validationResult.averageLoss;
+        valLoss = validationResult.averageLoss;
+        hasValLoss = true;
+
+        if (validationResult.averageLoss < this->validationState.bestValidationLoss) {
+          this->validationState.bestValidationLoss = validationResult.averageLoss;
+          this->validationState.bestValEpoch = epoch;
+        }
+
+        if (trainMonitor) {
+          monitorShouldStop =
+            trainMonitor->checkEpoch(epoch, this->lastEpochLoss, std::optional<float>(validationResult.averageLoss));
+          isBest = trainMonitor->isNewBest();
+        }
       }
-    }
 
-    bool isBestEpoch = (isBest || completion.isNewBest);
+      bool isBestEpoch = (isBest || isNewBest);
 
-    // --- Write the validation results into this epoch's history record ---
-    // The core's internal monitor is disabled (NN-CLI monitors externally), so
-    // it recorded isBest=false / hasValLoss=false. The just-completed epoch is
-    // epochHistory.back() (the core appended it immediately before this call).
-    // This MUST happen before the best-model save below, otherwise the saved
-    // best model captures this epoch's record with placeholder defaults
-    // (hasValLoss=false / isBest=false) even though validation just ran.
-    auto& epochHistory = this->core->getTrainMetadata().epochHistory;
-    float epochLearningRate = 0.0f;
+      // --- Write the validation results into this epoch's history record ---
+      // The core's internal monitor is disabled (NN-CLI monitors externally), so
+      // it recorded isBest=false / hasValLoss=false. The just-completed epoch is
+      // epochHistory.back() (the core appended it immediately before this call).
+      // This MUST happen before the best-model save below, otherwise the saved
+      // best model captures this epoch's record with placeholder defaults
+      // (hasValLoss=false / isBest=false) even though validation just ran.
+      auto& epochHistory = this->core->getTrainMetadata().epochHistory;
+      float epochLearningRate = 0.0f;
 
-    if (!epochHistory.empty()) {
-      auto& lastRecord = epochHistory.back();
-      lastRecord.isBest = isBestEpoch;
-      lastRecord.hasValLoss = hasValLoss;
-      lastRecord.valLoss = valLoss;
-      epochLearningRate = lastRecord.learningRate;
-    }
+      if (!epochHistory.empty()) {
+        auto& lastRecord = epochHistory.back();
+        lastRecord.isBest = isBestEpoch;
+        lastRecord.hasValLoss = hasValLoss;
+        lastRecord.valLoss = valLoss;
+        epochLearningRate = lastRecord.learningRate;
+      }
 
-    // --- Best model save ---
-    if (isBestEpoch) {
-      std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
-      ModelSerializer::saveANNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
-                                             this->buildValidationMetadata());
-    }
+      // --- Best model save ---
+      if (isBestEpoch) {
+        std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
+        ModelSerializer::saveANNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
+                                               this->buildValidationMetadata());
+      }
 
-    // --- LR scheduler step (publishes the new LR for the next epoch) ---
-    this->applyLearningRateScheduler(epoch, totalEpochs, hasValLoss, valLoss);
+      // --- LR scheduler step (publishes the new LR for the next epoch) ---
+      this->applyLearningRateScheduler(epoch, totalEpochs, hasValLoss, valLoss);
 
-    // --- Observer notification — epoch completed ---
-    std::string epochSummary = "Epoch " + std::to_string(epoch + 1) + "/" + std::to_string(totalEpochs) +
-                               " | Loss: " + std::to_string(this->lastEpochLoss);
+      // --- Observer notification — epoch completed ---
+      std::string epochSummary = "Epoch " + std::to_string(epoch + 1) + "/" + std::to_string(totalEpochs) +
+                                 " | Loss: " + std::to_string(this->lastEpochLoss);
 
-    if (hasValLoss)
-      epochSummary += " | ValLoss: " + std::to_string(valLoss);
+      if (hasValLoss)
+        epochSummary += " | ValLoss: " + std::to_string(valLoss);
 
-    if (isBestEpoch)
-      epochSummary += " | Best*";
+      if (isBestEpoch)
+        epochSummary += " | Best*";
 
-    emit this->runnerSignals.epochCompleted(static_cast<int>(epoch), totalEpochs, this->lastEpochLoss, hasValLoss,
-                                            valLoss, epochLearningRate, epochSummary);
+      emit this->runnerSignals.epochCompleted(static_cast<int>(epoch), totalEpochs, this->lastEpochLoss, hasValLoss,
+                                              valLoss, epochLearningRate, epochSummary);
 
-    // --- Monitor stop requests ---
-    if (monitorShouldStop) {
-      std::string stopMsg = "[Monitor] Training stopped: " + trainMonitor->getStopReason();
+      // --- Monitor stop requests ---
+      if (monitorShouldStop) {
+        std::string stopMsg = "[Monitor] Training stopped: " + trainMonitor->getStopReason();
 
-      emit this->runnerSignals.logMessage(stopMsg, false);
-      this->core->requestStop();
-    }
+        emit this->runnerSignals.logMessage(stopMsg, false);
+        this->core->requestStop();
+      }
 
-    if (completion.stoppedEarly) {
-      std::string stopMsg = "[Monitor] Training stopped: " + this->core->getTrainMetadata().stopReason;
+      if (stoppedEarly) {
+        std::string stopMsg = "[Monitor] Training stopped: " + this->core->getTrainMetadata().stopReason;
 
-      emit this->runnerSignals.logMessage(stopMsg, false);
-      this->core->requestStop();
-    }
-  });
+        emit this->runnerSignals.logMessage(stopMsg, false);
+        this->core->requestStop();
+      }
+    },
+
+    Qt::DirectConnection);
 }
 
 //===================================================================================================================//

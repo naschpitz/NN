@@ -169,9 +169,16 @@ namespace NN_CLI
 
     if (logLevel > LogLevel::QUIET) {
       NN_CLI::Utils<>::printLoadingProgress(std::string("Loading ") + progressLabel, 0, total, progressReports);
-      core.setProgressCallback([progressReports, &progressLabel](ulong current, ulong totalCb) {
-        NN_CLI::Utils<>::printLoadingProgress(progressLabel, current, totalCb, progressReports);
-      });
+
+      auto& hub = core.getCoreSignals();
+
+      QObject::connect(
+        &hub, &std::remove_reference_t<decltype(hub)>::predictProgress, &hub,
+        [progressReports, &progressLabel](ulong current, ulong totalCb) {
+          NN_CLI::Utils<>::printLoadingProgress(progressLabel, current, totalCb, progressReports);
+        },
+
+        Qt::DirectConnection);
     }
 
     auto predicts = core.predict(total, provider);

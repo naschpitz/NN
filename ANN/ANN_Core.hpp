@@ -111,6 +111,12 @@ namespace ANN
         return costFunctionConfig;
       }
 
+      //-- Signal hub --//
+      CoreSignals& getCoreSignals()
+      {
+        return coreSignals;
+      }
+
       //-- Setters --//
       void setParameters(const Parameters<T>& params)
       {

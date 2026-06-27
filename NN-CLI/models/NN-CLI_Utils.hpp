@@ -10,6 +10,7 @@
 #include <QCommandLineParser>
 #include <QDir>
 #include <QFileInfo>
+#include <QObject>
 #include <QString>
 
 #include <algorithm>
@@ -21,6 +22,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 //===================================================================================================================//
@@ -149,9 +151,16 @@ namespace NN_CLI
       {
         if (logLevel > LogLevel::QUIET) {
           printLoadingProgress(label, 0, total, progressReports);
-          core.setProgressCallback([progressReports, label](ulong current, ulong total) {
-            printLoadingProgress(label, current, total, progressReports);
-          });
+
+          auto& hub = core.getCoreSignals();
+
+          QObject::connect(
+            &hub, &std::remove_reference_t<decltype(hub)>::predictProgress, &hub,
+            [progressReports, label](ulong current, ulong total) {
+              printLoadingProgress(label, current, total, progressReports);
+            },
+
+            Qt::DirectConnection);
         }
       }
 
