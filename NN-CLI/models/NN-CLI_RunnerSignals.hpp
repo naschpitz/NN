@@ -10,6 +10,13 @@
 #include <string>
 #include <vector>
 
+// Metatype declarations for queued-connection argument types.  Without these,
+// Qt cannot deep-copy the arguments when a signal is emitted cross-thread
+// (AutoConnection → QueuedConnection).
+Q_DECLARE_METATYPE(std::string)
+Q_DECLARE_METATYPE(std::vector<float>)
+Q_DECLARE_METATYPE(Common::PredictResults<float>)
+
 //===================================================================================================================//
 
 namespace NN_CLI
@@ -24,10 +31,10 @@ namespace NN_CLI
   // RunnerSignals member and emits through it, dual-firing with the legacy
   // notify*() -> IRunnerObserver::on*() virtual dispatch.
   //
-  // NOTE(Phase 2): when connections flip to Qt::QueuedConnection, register the
-  // non-primitive argument types (ulong, std::string, std::vector<float>,
-  // Common::PredictResults<float>) with qRegisterMetaType once at startup so
-  // queued delivery works.
+  // Connections use default AutoConnection: cross-thread emits (from Core
+  // worker threads) are queued and delivered on the receiver's thread.
+  // Custom argument types are registered via qRegisterMetaType in
+  // connectRunnerSignals().
   class RunnerSignals : public QObject
   {
       Q_OBJECT
@@ -76,74 +83,60 @@ namespace NN_CLI
   //===================================================================================================================//
 
   // Connect all RunnerSignals to an IRunnerObserver-derived controller via a
-  // QObject context (for connection lifetime + thread affinity).  Uses
-  // Qt::DirectConnection so the slot runs synchronously in the emitting thread
-  // — identical semantics to the legacy observer path.  In Phase 2 the
-  // Qt::DirectConnection flag is removed, flipping to AutoConnection (queued
-  // across threads, delivered on the context object's thread).
+  // QObject context (for connection lifetime + thread affinity).  Uses default
+  // AutoConnection: when a signal is emitted from a worker thread (Core
+  // callback → Runner::notify*()), the slot is queued and delivered on the
+  // context object's thread (main thread), serialized with the UI timer —
+  // no mutex needed for view data.
   inline void connectRunnerSignals(RunnerSignals& hub, QObject* context, IRunnerObserver* observer)
   {
-    QObject::connect(
-      &hub, &RunnerSignals::sampleLoadProgress, context,
-      [observer](ulong current, ulong total, ulong batchIndex, ulong totalBatches, bool isValidation) {
-        observer->onSampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
-      },
+    qRegisterMetaType<std::string>();
+    qRegisterMetaType<std::vector<float>>();
+    qRegisterMetaType<Common::PredictResults<float>>();
 
-      Qt::DirectConnection);
+    QObject::connect(&hub, &RunnerSignals::sampleLoadProgress, context,
+                     [observer](ulong current, ulong total, ulong batchIndex, ulong totalBatches, bool isValidation) {
+                       observer->onSampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
+                     });
 
-    QObject::connect(
-      &hub, &RunnerSignals::validationProgress, context,
-      [observer](ulong current, ulong total) { observer->onValidationProgress(current, total); }, Qt::DirectConnection);
+    QObject::connect(&hub, &RunnerSignals::validationProgress, context,
+                     [observer](ulong current, ulong total) { observer->onValidationProgress(current, total); });
 
-    QObject::connect(
-      &hub, &RunnerSignals::batchProgress, context,
-      [observer](int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
-                 const std::vector<float>& fractions) {
-        observer->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
-      },
+    QObject::connect(&hub, &RunnerSignals::batchProgress, context,
+                     [observer](int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
+                                float etaSeconds, const std::vector<float>& fractions) {
+                       observer->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds,
+                                                 fractions);
+                     });
 
-      Qt::DirectConnection);
-
-    QObject::connect(
-      &hub, &RunnerSignals::epochCompleted, context,
-      [observer](int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss, float learningRate,
-                 const std::string& summary) {
-        observer->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate, summary);
-      },
-
-      Qt::DirectConnection);
+    QObject::connect(&hub, &RunnerSignals::epochCompleted, context,
+                     [observer](int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
+                                float learningRate, const std::string& summary) {
+                       observer->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate,
+                                                  summary);
+                     });
 
     QObject::connect(
       &hub, &RunnerSignals::trainFinished, context,
-      [observer](bool success, const std::string& finalSummary) { observer->onTrainFinished(success, finalSummary); },
-      Qt::DirectConnection);
+      [observer](bool success, const std::string& finalSummary) { observer->onTrainFinished(success, finalSummary); });
 
-    QObject::connect(
-      &hub, &RunnerSignals::predictFinished, context,
-      [observer](const Common::PredictResults<float>& results, size_t numInputs, double durationSeconds,
-                 const std::string& durationFormatted, const std::string& outputPath) {
-        observer->onPredictFinished(results, numInputs, durationSeconds, durationFormatted, outputPath);
-      },
+    QObject::connect(&hub, &RunnerSignals::predictFinished, context,
+                     [observer](const Common::PredictResults<float>& results, size_t numInputs, double durationSeconds,
+                                const std::string& durationFormatted, const std::string& outputPath) {
+                       observer->onPredictFinished(results, numInputs, durationSeconds, durationFormatted, outputPath);
+                     });
 
-      Qt::DirectConnection);
+    QObject::connect(&hub, &RunnerSignals::modelInfoUpdated, context,
+                     [observer](const std::string& property, const std::string& value) {
+                       observer->onModelInfoUpdated(property, value);
+                     });
 
-    QObject::connect(
-      &hub, &RunnerSignals::modelInfoUpdated, context,
-      [observer](const std::string& property, const std::string& value) {
-        observer->onModelInfoUpdated(property, value);
-      },
+    QObject::connect(&hub, &RunnerSignals::logMessage, context, [observer](const std::string& message, bool isError) {
+      observer->onLogMessage(message, isError);
+    });
 
-      Qt::DirectConnection);
-
-    QObject::connect(
-      &hub, &RunnerSignals::logMessage, context,
-      [observer](const std::string& message, bool isError) { observer->onLogMessage(message, isError); },
-      Qt::DirectConnection);
-
-    QObject::connect(
-      &hub, &RunnerSignals::timingUpdated, context,
-      [observer](const std::string& metric, float value) { observer->onTimingUpdated(metric, value); },
-      Qt::DirectConnection);
+    QObject::connect(&hub, &RunnerSignals::timingUpdated, context,
+                     [observer](const std::string& metric, float value) { observer->onTimingUpdated(metric, value); });
   }
 }
 

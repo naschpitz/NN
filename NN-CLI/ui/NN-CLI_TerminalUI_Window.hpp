@@ -3,8 +3,6 @@
 
 #include "NN-CLI_TerminalUI_Widget.hpp"
 
-#include <QMutex>
-
 #include <atomic>
 #include <memory>
 #include <string>
@@ -30,14 +28,12 @@ namespace NN_CLI
   // Threading model: after startUiTimer(), the main-thread QTimer (driven by
   // the QCoreApplication event loop) owns all ncurses work — rendering, input,
   // and resize handling.  It fires ~every 10 ms, drains buffered input
-  // when the widget tree is dirty.  Every mutating setter on a widget raises
-  // that widget's dirty flag, and isDirtyTree() propagates it up, so worker
-  // threads simply update widget data under getMutex() — the UI thread sees
-  // the dirty flag on its next tick and renders.  No explicit "please
-  // repaint" call is needed.  A dirty-tree walk plus a non-blocking getch at
-  // ~100 Hz is negligible CPU, so an idle terminal — and the post-completion
-  // dismiss wait — renders nothing instead of repainting at a fixed frame
-  // rate.
+  // (non-blocking), and repaints only when the widget tree is dirty.  Every
+  // mutating setter on a widget raises that widget's dirty flag, and
+  // isDirtyTree() propagates it up, so worker threads simply emit signals —
+  // queued delivery brings the update to the main thread, the timer sees the
+  // dirty flag on its next tick and renders.  No mutex is needed because all
+  // view mutations arrive on the main thread via the event loop.
   //
   // The default layoutChildren() gives every child the full window area.
   // Override it in a subclass to implement custom layout strategies (e.g.
@@ -74,14 +70,6 @@ namespace NN_CLI
 
       // Stop the UI timer.  Called automatically by shutdown().
       void stopUiTimer();
-
-      // Serializes the widget tree (and ncurses) between the UI thread and
-      // the data-updating threads.  Lock it around any mutation of window or
-      // panel content.
-      QRecursiveMutex& getMutex()
-      {
-        return this->uiMutex;
-      }
 
       // Called from the SIGWINCH handler to schedule a deferred resize.
       // Safe to call from a signal handler (sets an atomic flag only); the UI
@@ -183,7 +171,6 @@ namespace NN_CLI
       //-- Members --//
 
       std::unique_ptr<QTimer> uiTimer;
-      QRecursiveMutex uiMutex;
 
       std::string shortcutBar;
       std::string titleBar;

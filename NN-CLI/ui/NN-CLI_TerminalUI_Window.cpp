@@ -140,8 +140,6 @@ namespace NN_CLI
     // widget tree is dirty or a terminal resize is pending.  Same logic as
     // the former uiThreadLoop(), now driven by the main-thread event loop.
     QObject::connect(this->uiTimer.get(), &QTimer::timeout, [this]() {
-      QMutexLocker<QRecursiveMutex> lock(&this->uiMutex);
-
       while (this->pollAndDispatchInput()) {}
 
       if (this->needsRepaint()) {

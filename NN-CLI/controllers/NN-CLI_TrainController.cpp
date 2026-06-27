@@ -10,7 +10,6 @@
 
 #include <QCoreApplication>
 #include <QFutureWatcher>
-#include <QMutex>
 #include <QTimer>
 #include <QtConcurrent>
 
@@ -69,13 +68,11 @@ namespace NN_CLI
     this->window = std::make_unique<TerminalUI_TrainWindow>();
     this->runner = std::move(runner);
 
-    if (this->runner) {
-      connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
+    if (this->runner)
       this->totalEpochs = this->runner->getTotalEpochs();
-    }
 
     // Initialize the ncurses TUI.  If init fails (e.g. no TTY attached),
-    // the window gracefully degrades -- the UI thread is never started, so
+    // the window gracefully degrades -- the UI timer is never started, so
     // the training proceeds with console-only output from the Runner.
     if (this->window)
       this->window->init();
@@ -91,11 +88,15 @@ namespace NN_CLI
       this->window->updateProgressSubLine("Loss: 0.000000");
     }
 
-    // Start the window's UI timer.  From here on the window redraws itself at
-    // a fixed frame rate and handles input and resize on the main thread via
-    // the QTimer (which fires once the QCoreApplication event loop is entered
-    // in startTrain()); the observer callbacks below only update view data
-    // under the window mutex.
+    // Connect Runner signals only when the TUI is active.  In the no-TUI
+    // path the main thread blocks synchronously in runner->train(), so
+    // queued cross-thread events would pile up unbounded.
+    if (this->runner && this->window && this->window->isInitialized())
+      connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
+
+    // Start the window's UI timer.  It fires once the QCoreApplication event
+    // loop is entered in startTrain(); observer callbacks arrive on the same
+    // main thread via queued signal delivery, so no mutex is needed.
     if (this->window)
       this->window->startUiTimer();
   }
@@ -175,9 +176,6 @@ namespace NN_CLI
 
     if (!this->window)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
     std::string label =
@@ -193,9 +191,6 @@ namespace NN_CLI
   {
     if (!this->window)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     this->isValidating = true;
 
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
@@ -213,9 +208,6 @@ namespace NN_CLI
 
     if (!this->window)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     this->checkAbortRequested();
 
     // Clear any transitional "Validating" state from the previous epoch.
@@ -241,9 +233,6 @@ namespace NN_CLI
   {
     if (!this->window)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     this->checkAbortRequested();
 
     // Track the current epoch (0-based index → next epoch number for display).
@@ -294,9 +283,6 @@ namespace NN_CLI
   {
     if (!this->window)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     this->isValidating = false;
 
     std::string prefix = success ? "[Training complete] " : "[Training failed] ";
@@ -313,9 +299,6 @@ namespace NN_CLI
 
     if (!this->window || !this->runner)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     // The Runner emits these notifications after it has updated its internal
     // state (e.g. sample counts once the dataset is loaded), so rebuild the
     // whole configuration section from the authoritative row set rather than
@@ -331,9 +314,6 @@ namespace NN_CLI
   {
     if (!this->window)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     std::string formatted = isError ? ("[ERROR] " + message) : message;
     this->window->addLogMessage(formatted);
   }
@@ -348,9 +328,6 @@ namespace NN_CLI
 
     if (!this->window)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     this->refreshTimingPanel();
   }
 

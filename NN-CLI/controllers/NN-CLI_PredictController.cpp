@@ -5,7 +5,6 @@
 
 #include <QCoreApplication>
 #include <QFutureWatcher>
-#include <QMutex>
 #include <QTimer>
 #include <QtConcurrent>
 
@@ -54,9 +53,6 @@ namespace NN_CLI
     this->window = std::make_unique<TerminalUI_PredictWindow>();
     this->runner = std::move(runner);
 
-    if (this->runner)
-      connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
-
     // Initialize the ncurses TUI.  If init fails (e.g. no TTY attached),
     // the window gracefully degrades — the UI timer is never started, so
     // the prediction proceeds with console-only output from the Runner.
@@ -64,6 +60,13 @@ namespace NN_CLI
       this->populateModelInfo();
       this->populateTrainMeta();
       this->populateProgress();
+
+      // Connect Runner signals only when the TUI is active.  In the no-TUI
+      // path the main thread blocks synchronously in runner->predict(), so
+      // queued cross-thread events would pile up unbounded.
+      if (this->runner)
+        connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
+
       this->window->startUiTimer();
     }
   }
@@ -154,9 +157,6 @@ namespace NN_CLI
 
     if (!this->window || !this->window->isInitialized())
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
 
     this->window->setLoadingProgress("Samples " + std::to_string(current) + "/" + std::to_string(total), fraction);
@@ -169,9 +169,6 @@ namespace NN_CLI
   {
     if (!this->window || !this->window->isInitialized())
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     float fraction = (total > 0) ? static_cast<float>(current) / static_cast<float>(total) : 0.0f;
     this->window->updateProgress("Validating", fraction);
   }
@@ -194,8 +191,6 @@ namespace NN_CLI
                 << std::setprecision(1) << (fraction * 100.0f) << "%)" << std::flush;
       return;
     }
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     this->checkAbortRequested();
 
@@ -226,7 +221,6 @@ namespace NN_CLI
     }
 
     // When the TUI is active these events are informational only.
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
     this->window->updateProgressSubLine(summary);
   }
 
@@ -240,8 +234,6 @@ namespace NN_CLI
       std::cout << "\n" << prefix << finalSummary << "\n";
       return;
     }
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
 
     std::string prefix = success ? "[Predict complete] " : "[Predict failed] ";
     this->window->updateProgressSubLine(prefix + finalSummary);
@@ -258,9 +250,6 @@ namespace NN_CLI
 
     if (!this->window || !this->window->isInitialized())
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     const auto& ioConfig = this->runner->getIOConfig();
 
     // Image output: single summary line.
@@ -303,9 +292,6 @@ namespace NN_CLI
 
     if (!this->window || !this->window->isInitialized())
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     // Re-fetch the full row set from the Runner (e.g. sample counts may have
     // been updated once the dataset is loaded).
     this->window->setModelInfoRows(this->runner->buildPredictModelInfoRows());
@@ -360,9 +346,6 @@ namespace NN_CLI
 
     if (!this->runner)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     this->window->setModelInfoRows(this->runner->buildPredictModelInfoRows());
     this->window->refreshModelInfoContent();
   }
@@ -379,9 +362,6 @@ namespace NN_CLI
 
     if (!this->runner)
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     const auto& config = this->runner->getCoreConfig();
     const auto& tm = config.loadedTrainMetadata;
 
@@ -422,9 +402,6 @@ namespace NN_CLI
   {
     if (!this->window || !this->window->isInitialized())
       return;
-
-    QMutexLocker<QRecursiveMutex> lock(&this->window->getMutex());
-
     this->window->updateProgress("Predicting 0/0", 0.0f);
   }
 
