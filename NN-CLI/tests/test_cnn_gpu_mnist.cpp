@@ -1,5 +1,6 @@
 #include "test_helpers.hpp"
 
+#include <QDir>
 #include <QFile>
 
 //===================================================================================================================//
@@ -16,19 +17,22 @@ static void testCNNTrainAndTestMNISTGPU()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_mnist_trained_gpu.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_mnist_gpu_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   // Step 1: Train on MNIST training data on GPU (10 epochs, 60k samples, Adam + crossEntropy + instancenorm)
   auto trainResult =
     runNNCLI({"--model", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "gpu", "--idx-data",
               examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
-              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
+              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", outDir, "--log-level", "quiet"},
              1800000); // 30 min timeout
 
   CHECK(trainResult.exitCode == 0, "CNN MNIST GPU train+test: training exit code 0");
-  CHECK(QFile::exists(modelPath), "CNN MNIST GPU train+test: trained model file exists");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), "CNN MNIST GPU train+test: trained model file exists");
 
-  if (trainResult.exitCode != 0 || !QFile::exists(modelPath)) {
+  if (trainResult.exitCode != 0 || modelPath.isEmpty()) {
     return;
   }
 

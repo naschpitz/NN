@@ -40,6 +40,9 @@ namespace NN_CLI
       //-- resolvePredictOutputPath --//
       static QString resolvePredictOutputPath(const QCommandLineParser& parser, const IOConfig& ioConfig);
 
+      //-- resolveOutputDir --//
+      static QString resolveOutputDir(const QCommandLineParser& parser, const QString& fallbackDir);
+
       //-- writePredictOutput --//
       template <typename ResultsT>
       static int writePredictOutput(const ResultsT& results, const QString& outputPath, const IOConfig& ioConfig,
@@ -77,29 +80,10 @@ namespace NN_CLI
     ulong actualEpochs =
       trainMetadata.epochHistory.empty() ? trainConfig.numEpochs : trainMetadata.epochHistory.back().epoch + 1;
 
-    std::string outputPathStr;
+    QString outputDir = resolveOutputDir(parser, QFileInfo(inputFilePath).absoluteDir().filePath("output"));
 
-    if (parser.isSet("output")) {
-      QString outputValue = parser.value("output");
-
-      // --output may name a directory (e.g. "output/"): generate a filename
-      // inside it rather than treating the directory itself as the target file,
-      // which makes the atomic temp-file rename fail with EISDIR.
-      if (outputValue.endsWith('/') || QFileInfo(outputValue).isDir()) {
-        QDir outputDir(outputValue);
-
-        Utils<>::ensureOutputDir(outputDir.absolutePath());
-
-        std::string filename =
-          ModelSerializer::generateTrainFilename(actualEpochs, trainMetadata.numSamples, trainMetadata.finalLoss);
-        outputPathStr = outputDir.filePath(QString::fromStdString(filename)).toStdString();
-      } else {
-        outputPathStr = outputValue.toStdString();
-      }
-    } else {
-      outputPathStr = ModelSerializer::generateDefaultOutputPath(inputFilePath, actualEpochs, trainMetadata.numSamples,
-                                                                 trainMetadata.finalLoss);
-    }
+    std::string outputPathStr = ModelSerializer::generateDefaultOutputPath(
+      outputDir, actualEpochs, trainMetadata.numSamples, trainMetadata.finalLoss);
 
     saveFn(outputPathStr);
 
@@ -113,26 +97,23 @@ namespace NN_CLI
   inline QString RunnerUtils::resolvePredictOutputPath(const QCommandLineParser& parser, const IOConfig& ioConfig)
   {
     QString inputPath = parser.value("input");
-    QString outputPath;
+    QFileInfo inputInfo(inputPath);
 
-    if (parser.isSet("output")) {
-      outputPath = parser.value("output");
-    } else {
-      QFileInfo inputInfo(inputPath);
-      QDir inputDir = inputInfo.absoluteDir();
-      QDir outputDir(inputDir.filePath("output"));
+    QString outputDir = resolveOutputDir(parser, inputInfo.absoluteDir().filePath("output"));
 
-      if (!outputDir.exists())
-        inputDir.mkdir("output");
-
-      if (ioConfig.outputType == DataType::IMAGE) {
-        outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName());
-      } else {
-        outputPath = outputDir.filePath("predict_" + inputInfo.completeBaseName() + ".json");
-      }
+    if (ioConfig.outputType == DataType::IMAGE) {
+      return QDir(outputDir).filePath("predict_" + inputInfo.completeBaseName());
     }
 
-    return outputPath;
+    return QDir(outputDir).filePath("predict_" + inputInfo.completeBaseName() + ".json");
+  }
+
+  //===================================================================================================================//
+
+  inline QString RunnerUtils::resolveOutputDir(const QCommandLineParser& parser, const QString& fallbackDir)
+  {
+    QString dir = parser.isSet("output") ? parser.value("output") : fallbackDir;
+    return Utils<>::ensureOutputDir(QDir(dir).absolutePath());
   }
 
   //===================================================================================================================//

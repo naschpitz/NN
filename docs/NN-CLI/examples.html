@@ -170,10 +170,10 @@
 
 <div class="card">
 <h3>Training &amp; Prediction</h3>
-<pre><code><span class="func">NN-CLI</span> -c image_config.json -m train -s samples.json -o trained_model.nnmodel -l info
+<pre><code><span class="func">NN-CLI</span> -c image_config.json -m train -s samples.json -o output/ -l info
 
 <span class="comment"># Predict — input.json contains: { "inputs": ["test_photo.png"] }</span>
-<span class="func">NN-CLI</span> -c trained_model.nnmodel -m predict -i input.json -o result.json</code></pre>
+<span class="func">NN-CLI</span> -c trained_model.nnmodel -m predict -i input.json -o results/</code></pre>
 </div>
 
 <div class="info-box">
@@ -306,8 +306,8 @@
 <h3>Running Calibration</h3>
 <pre><code><span class="func">NN-CLI</span> -c trained_model.nnmodel -m calibrate \
        --id-images mnist_png/training/ \
-       --ood-dir datasets/ood_samples/ -o threshold.json</code></pre>
-<p><strong>Output:</strong> A <code>threshold.json</code> file containing the free-energy threshold and diagnostic statistics (see <a href="formats.html#output-format">Output Formats</a>).</p>
+       --ood-dir datasets/ood_samples/ -o output/</code></pre>
+<p><strong>Output:</strong> A <code>threshold.json</code> file written into the output directory (<code>-o</code>), containing the free-energy threshold and diagnostic statistics (see <a href="formats.html#output-format">Output Formats</a>).</p>
 </div>
 
 <div class="tip-box">

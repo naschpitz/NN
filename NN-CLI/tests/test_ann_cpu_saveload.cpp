@@ -13,11 +13,13 @@ static void testANNSaveLoadPredictConsistency()
   TestScope _t("testANNSaveLoadPredictConsistency");
 
   // Train an ANN on XOR, predict, save, load, predict again — outputs must match
-  QString modelPath = tempDir() + "/ann_slpc_model.nnmodel.tar";
+  QString outDir = tempDir() + "/ann_slpc_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   // Step 1: Train using the existing XOR fixtures
   auto trainResult = runNNCLI({"--model", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
-                               "--samples", fixturePath("ann_train_samples.json"), "--output", modelPath});
+                               "--samples", fixturePath("ann_train_samples.json"), "--output", outDir});
 
   CHECK(trainResult.exitCode == 0, "ANN save/load predict: train exit code 0");
 
@@ -25,6 +27,8 @@ static void testANNSaveLoadPredictConsistency()
     std::cout << std::endl;
     return;
   }
+
+  QString modelPath = findTrainedModel(outDir);
 
   // Step 2: Verify the saved model is a valid .nnmodel.tar package
   QJsonObject modelJson = readModelJsonFromPackage(modelPath);
@@ -52,18 +56,24 @@ static void testANNSaveLoadPredictConsistency()
   }
 
   // Step 4: Predict with the saved model (first load from disk)
-  QString predictOutput1 = tempDir() + "/ann_slpc_predict1.json";
+  QString predictOut1 = tempDir() + "/ann_slpc_predict1_out";
+  QDir(predictOut1).removeRecursively();
+  QDir().mkpath(predictOut1);
   auto pred1Result = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
-                               predictInputPath, "--output", predictOutput1});
+                               predictInputPath, "--output", predictOut1});
 
   CHECK(pred1Result.exitCode == 0, "ANN save/load predict: predict1 exit code 0");
+  QString predictOutput1 = predictJsonPath(predictOut1, predictInputPath);
 
   // Step 5: Predict again with the same saved model (fresh load from disk)
-  QString predictOutput2 = tempDir() + "/ann_slpc_predict2.json";
+  QString predictOut2 = tempDir() + "/ann_slpc_predict2_out";
+  QDir(predictOut2).removeRecursively();
+  QDir().mkpath(predictOut2);
   auto pred2Result = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
-                               predictInputPath, "--output", predictOutput2});
+                               predictInputPath, "--output", predictOut2});
 
   CHECK(pred2Result.exitCode == 0, "ANN save/load predict: predict2 exit code 0");
+  QString predictOutput2 = predictJsonPath(predictOut2, predictInputPath);
 
   // Step 6: Compare outputs — they must be identical (same model, same input)
   if (pred1Result.exitCode == 0 && pred2Result.exitCode == 0) {

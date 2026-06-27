@@ -545,12 +545,14 @@ static void testSchedulerAppliedDuringTraining()
     }
   })");
 
-  QString modelPath = tempDir() + "/scheduler_applied_model.nnmodel.tar";
+  QString outDir = tempDir() + "/scheduler_applied_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
   auto result = runNNCLI({"--model", configPath, "--mode", "train", "--device", "cpu", "--samples",
-                          fixturePath("ann_train_samples.json"), "--output", modelPath, "--log-level", "quiet"});
+                          fixturePath("ann_train_samples.json"), "--output", outDir, "--log-level", "quiet"});
   CHECK(result.exitCode == 0, "scheduler training run exited 0");
 
-  QJsonObject modelJson = readModelJsonFromPackage(modelPath);
+  QJsonObject modelJson = readModelJsonFromPackage(findTrainedModel(outDir));
   CHECK(!modelJson.isEmpty(), "output model.json readable");
   QJsonObject trainJson = modelJson.value("train").toObject();
   CHECK(!trainJson.isEmpty(), "model.json has train block");

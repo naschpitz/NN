@@ -365,9 +365,9 @@ int ANNRunner::calibrate()
   const std::string& idImagesDir = this->parser.value("id-images").toStdString();
   const std::string oodDir = this->parser.isSet("ood-dir") ? this->parser.value("ood-dir").toStdString()
                                                            : (fs::current_path() / "extern-datasets" / "ood").string();
-  const std::string outputPath =
-    this->parser.isSet("output") ? this->parser.value("output").toStdString()
-                                 : (fs::path(this->configPath.toStdString()).parent_path() / "threshold.json").string();
+  QString configDir = QFileInfo(this->configPath).absoluteDir().absolutePath();
+  QString outputDir = NN_CLI::RunnerUtils::resolveOutputDir(this->parser, configDir);
+  const std::string outputPath = QDir(outputDir).filePath("threshold.json").toStdString();
   const ulong progressReports = this->ioConfig.progressReports;
 
   //-- Validate ID images directory ------------------------------------------
@@ -580,6 +580,9 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
   ulong batchSize = this->coreConfig.trainConfig.batchSize;
   int totalEpochs = static_cast<int>(this->coreConfig.trainConfig.numEpochs);
 
+  QString outputDir =
+    NN_CLI::RunnerUtils::resolveOutputDir(this->parser, QFileInfo(inputFilePath).absoluteDir().filePath("output"));
+
   std::shared_ptr<ANN::SampleProvider<float>> validationProviderPtr;
 
   if (validationDataLoader && validationIndices && !validationIndices->empty()) {
@@ -616,7 +619,7 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
   // before the Core starts the next epoch.
   QObject::connect(
     &this->core->getCoreSignals(), &ANN::CoreSignals::epochCompleted, this,
-    [this, inputFilePath, validationCore, trainMonitor, validationProviderPtr, validationIndices, totalEpochs](
+    [this, outputDir, validationCore, trainMonitor, validationProviderPtr, validationIndices, totalEpochs](
       ulong epoch, ulong /*signalTotalEpochs*/, double /*signalEpochLoss*/, bool isNewBest, bool stoppedEarly) {
       QMutexLocker<QMutex> lock(&this->callbackMutex);
 
@@ -624,8 +627,7 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
       // epoch + 1 is the count of completed epochs; checkpoint filenames stay
       // 1-based for human-facing numbering.
       if (this->ioConfig.saveModelInterval > 0 && (epoch + 1) % this->ioConfig.saveModelInterval == 0) {
-        std::string checkpointPath =
-          ModelSerializer::generateCheckpointPath(inputFilePath, epoch + 1, this->lastEpochLoss);
+        std::string checkpointPath = ModelSerializer::generateCheckpointPath(outputDir, epoch + 1, this->lastEpochLoss);
         ModelSerializer::saveANNModelToPackage(checkpointPath, *this->core, this->coreConfig, this->ioConfig,
                                                this->augConfig, this->buildValidationMetadata());
       }
@@ -690,7 +692,7 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
 
       // --- Best model save ---
       if (isBestEpoch) {
-        std::string bestPath = ModelSerializer::generateBestModelPath(inputFilePath);
+        std::string bestPath = ModelSerializer::generateBestModelPath(outputDir);
         ModelSerializer::saveANNModelToPackage(bestPath, *this->core, this->coreConfig, this->ioConfig, this->augConfig,
                                                this->buildValidationMetadata());
       }

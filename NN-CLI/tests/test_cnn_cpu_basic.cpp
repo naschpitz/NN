@@ -25,9 +25,12 @@ static void testCNNNetworkDetection()
   TestScope _t("testCNNNetworkDetection");
 
   // Train with tiny fixture + verbose to check detection
-  auto result = runNNCLI({"--model", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
-                          "--samples", fixturePath("cnn_train_samples.json"), "--output",
-                          tempDir() + "/cnn_detect_model.nnmodel.tar", "--log-level", "info"});
+  QString outDir = tempDir() + "/cnn_detect_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
+  auto result =
+    runNNCLI({"--model", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",
+              fixturePath("cnn_train_samples.json"), "--output", outDir, "--log-level", "info"});
 
   CHECK(result.exitCode == 0, "CNN detection: exit code 0");
   CHECK(result.stdOut.contains("Network type: CNN"), "CNN detection: 'Network type: CNN'");
@@ -38,15 +41,18 @@ static void testCNNTrain()
 {
   TestScope _t("testCNNTrain");
 
-  trainedCNNModelPath = tempDir() + "/cnn_trained_model.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_train_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result = runNNCLI({"--model", fixturePath("cnn_train_config.json"), "--mode", "train", "--device", "cpu",
-                          "--samples", fixturePath("cnn_train_samples.json"), "--output", trainedCNNModelPath});
+                          "--samples", fixturePath("cnn_train_samples.json"), "--output", outDir});
 
   CHECK(result.exitCode == 0, "CNN train: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN train: 'Training completed.'");
   CHECK(result.stdOut.contains("Model saved to:"), "CNN train: 'Model saved to:'");
-  CHECK(QFile::exists(trainedCNNModelPath), "CNN train: model file exists");
+  trainedCNNModelPath = findTrainedModel(outDir);
+  CHECK(!trainedCNNModelPath.isEmpty(), "CNN train: model file exists");
   std::cout << std::endl;
 }
 
@@ -59,13 +65,16 @@ static void testCNNPredict()
     return;
   }
 
-  QString outputPath = tempDir() + "/cnn_predict_output.json";
+  QString outDir = tempDir() + "/cnn_predict_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result = runNNCLI({"--model-package", trainedCNNModelPath, "--mode", "predict", "--device", "cpu", "--input",
-                          fixturePath("cnn_predict_input.json"), "--output", outputPath});
+                          fixturePath("cnn_predict_input.json"), "--output", outDir});
 
   CHECK(result.exitCode == 0, "CNN predict: exit code 0");
   CHECK(result.stdOut.contains("Predict result saved to:"), "CNN predict: 'Predict result saved to:'");
+  QString outputPath = predictJsonPath(outDir, fixturePath("cnn_predict_input.json"));
   CHECK(QFile::exists(outputPath), "CNN predict: output file exists");
 
   // Verify output JSON structure
@@ -119,15 +128,18 @@ static void testCNNTrainWithWeightedLoss()
 {
   TestScope _t("testCNNTrainWithWeightedLoss");
 
-  QString modelPath = tempDir() + "/cnn_weighted_model.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_weighted_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result = runNNCLI({"--model", fixturePath("cnn_train_weighted_config.json"), "--mode", "train", "--device",
-                          "cpu", "--samples", fixturePath("cnn_train_samples.json"), "--output", modelPath});
+                          "cpu", "--samples", fixturePath("cnn_train_samples.json"), "--output", outDir});
 
   CHECK(result.exitCode == 0, "CNN weighted train: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN weighted train: 'Training completed.'");
   CHECK(result.stdOut.contains("Model saved to:"), "CNN weighted train: 'Model saved to:'");
-  CHECK(QFile::exists(modelPath), "CNN weighted train: model file exists");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), "CNN weighted train: model file exists");
 
   // Verify saved model JSON contains costFunctionConfig
   QJsonObject root = readModelJsonFromPackage(modelPath);
@@ -158,19 +170,22 @@ static void testCNNTrainAndTestMNIST()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_mnist_trained.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_mnist_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   // Step 1: Train on MNIST training data on CPU (10 epochs, 60k samples, Adam + crossEntropy + instancenorm)
   auto trainResult =
     runNNCLI({"--model", fixturePath("mnist_cnn_train_config.json"), "--mode", "train", "--device", "cpu", "--idx-data",
               examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
-              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
+              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", outDir, "--log-level", "quiet"},
              3600000); // 60 min timeout
 
   CHECK(trainResult.exitCode == 0, "CNN MNIST train+test: training exit code 0");
-  CHECK(QFile::exists(modelPath), "CNN MNIST train+test: trained model file exists");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), "CNN MNIST train+test: trained model file exists");
 
-  if (trainResult.exitCode != 0 || !QFile::exists(modelPath)) {
+  if (trainResult.exitCode != 0 || modelPath.isEmpty()) {
     std::cout << "(training failed, skipping test step)" << std::endl;
     return;
   }
@@ -219,20 +234,23 @@ static void testCNNResidualMNIST()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_mnist_residual_trained.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_mnist_residual_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   // Train ResNet-like architecture on MNIST (10 epochs, 60k samples, Adam + crossEntropy + residual blocks)
   // Residual is deeper than the plain-conv MNIST test, so the training pass is markedly slower; 60min was not enough.
   auto trainResult =
     runNNCLI({"--model", fixturePath("mnist_cnn_residual_config.json"), "--mode", "train", "--device", "cpu",
               "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
-              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", modelPath, "--log-level", "quiet"},
+              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", outDir, "--log-level", "quiet"},
              7200000); // 2h timeout
 
   CHECK(trainResult.exitCode == 0, "CNN Residual MNIST: training exit code 0");
-  CHECK(QFile::exists(modelPath), "CNN Residual MNIST: trained model file exists");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), "CNN Residual MNIST: trained model file exists");
 
-  if (trainResult.exitCode != 0 || !QFile::exists(modelPath)) {
+  if (trainResult.exitCode != 0 || modelPath.isEmpty()) {
     std::cout << "(training failed exit=" << trainResult.exitCode << ", skipping test step)" << std::endl;
     return;
   }
@@ -307,15 +325,18 @@ static void testCNNTrainValidationNoDeadlock()
 {
   TestScope _t("testCNNTrainValidationNoDeadlock");
 
-  QString modelPath = tempDir() + "/cnn_validation_nodeadlock.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_validation_nodeadlock_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result =
     runNNCLI({"--model", fixturePath("cnn_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",
-              fixturePath("cnn_validation_samples.json"), "--output", modelPath, "--log-level", "quiet"},
+              fixturePath("cnn_validation_samples.json"), "--output", outDir, "--log-level", "quiet"},
              60000); // 60s deadlock guard — real train takes <1s; a hang trips the timeout
 
   CHECK(result.exitCode == 0, "CNN validation no-deadlock: training exit code 0 (timeout/-2 = deadlock)");
-  CHECK(QFile::exists(modelPath), "CNN validation no-deadlock: trained model file exists");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), "CNN validation no-deadlock: trained model file exists");
 }
 
 //===================================================================================================================//

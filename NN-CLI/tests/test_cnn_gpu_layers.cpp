@@ -129,11 +129,13 @@ static bool runGPUPredictTest(const QString& testName, const QString& convLayers
   QString configPath = writeGPUTestConfig(prefix + "_config.json", convLayersJson);
   QString samplesPath = writeGPUTestSamples(prefix + "_samples.json");
   QString inputsPath = writeGPUTestInputs(prefix + "_inputs.json");
-  QString modelPath = prefix + "_model.nnmodel.tar";
+  QString outDir = prefix + "_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   // Step 1: Train on CPU
   auto trainResult = runNNCLI(
-    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", outDir});
 
   if (trainResult.exitCode != 0) {
     std::cerr << "    [" << testName.toStdString() << "] train failed (exit=" << trainResult.exitCode << ")"
@@ -141,20 +143,28 @@ static bool runGPUPredictTest(const QString& testName, const QString& convLayers
     return false;
   }
 
+  QString modelPath = findTrainedModel(outDir);
+
   // Step 2: Predict on CPU
-  QString cpuPredPath = prefix + "_pred_cpu.json";
+  QString cpuPredOut = prefix + "_pred_cpu_out";
+  QDir(cpuPredOut).removeRecursively();
+  QDir().mkpath(cpuPredOut);
   auto cpuPred = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input", inputsPath,
-                           "--output", cpuPredPath});
+                           "--output", cpuPredOut});
 
   if (cpuPred.exitCode != 0) {
     std::cerr << "    [" << testName.toStdString() << "] CPU predict failed" << std::endl;
     return false;
   }
 
+  QString cpuPredPath = predictJsonPath(cpuPredOut, inputsPath);
+
   // Step 3: Predict on GPU
-  QString gpuPredPath = prefix + "_pred_gpu.json";
+  QString gpuPredOut = prefix + "_pred_gpu_out";
+  QDir(gpuPredOut).removeRecursively();
+  QDir().mkpath(gpuPredOut);
   auto gpuPred = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "gpu", "--input", inputsPath,
-                           "--output", gpuPredPath});
+                           "--output", gpuPredOut});
 
   if (gpuPred.exitCode != 0) {
     std::cerr << "    [" << testName.toStdString() << "] GPU predict failed (exit=" << gpuPred.exitCode << ")"
@@ -164,6 +174,8 @@ static bool runGPUPredictTest(const QString& testName, const QString& convLayers
       std::cerr << "    stderr: " << gpuPred.stdErr.toStdString() << std::endl;
     return false;
   }
+
+  QString gpuPredPath = predictJsonPath(gpuPredOut, inputsPath);
 
   // Step 4: Compare outputs
   QFile fc(cpuPredPath), fg(gpuPredPath);

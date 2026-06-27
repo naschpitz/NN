@@ -49,13 +49,13 @@
 <pre><code>NN-CLI --model &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&gt;]
        [--input &lt;file&gt;] [--input-type &lt;type&gt;]
        [--samples &lt;file&gt;] [--idx-data &lt;file&gt; --idx-labels &lt;file&gt;]
-       [--output &lt;file&gt;] [--output-type &lt;type&gt;]
+       [--output &lt;dir&gt;] [--output-type &lt;type&gt;]
        [--log-level &lt;level&gt;] [--gpu-profile]
    or
 NN-CLI --model-package &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&gt;]
        [--input &lt;file&gt;] [--input-type &lt;type&gt;]
        [--samples &lt;file&gt;] [--idx-data &lt;file&gt; --idx-labels &lt;file&gt;]
-       [--output &lt;file&gt;] [--output-type &lt;type&gt;]
+       [--output &lt;dir&gt;] [--output-type &lt;type&gt;]
        [--log-level &lt;level&gt;] [--gpu-profile]
 </code></pre>
 
@@ -71,7 +71,7 @@ NN-CLI --model-package &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&g
   <tr><td><code>--samples</code></td><td><code>-s</code></td><td>file</td><td>—</td><td>Training/test samples (JSON)</td></tr>
   <tr><td><code>--idx-data</code></td><td>—</td><td>file</td><td>—</td><td>IDX3 data file (e.g. MNIST images)</td></tr>
   <tr><td><code>--idx-labels</code></td><td>—</td><td>file</td><td>—</td><td>IDX1 labels file (requires <code>--idx-data</code>)</td></tr>
-  <tr><td><code>--output</code></td><td><code>-o</code></td><td>file</td><td>auto</td><td>Output file path</td></tr>
+  <tr><td><code>--output</code></td><td><code>-o</code></td><td>dir</td><td>auto</td><td>Output directory for all artifacts (auto-created)</td></tr>
   <tr><td><code>--output-type</code></td><td>—</td><td>string</td><td><code>vector</code></td><td><code>vector</code> or <code>image</code> (overrides config)</td></tr>
   <tr><td><code>--log-level</code></td><td><code>-l</code></td><td>string</td><td><code>error</code></td><td>Log level: <code>quiet</code>, <code>error</code>, <code>warning</code>, <code>info</code>, <code>debug</code></td></tr>
   <tr><td><code>--gpu-profile</code></td><td>—</td><td>flag</td><td>—</td><td>Enable OpenCL GPU kernel profiling (adds ~12% overhead)</td></tr>
@@ -82,7 +82,7 @@ NN-CLI --model-package &lt;file&gt; [--mode &lt;mode&gt;] [--device &lt;device&g
 
 <div class="card">
 <h3><span class="badge-blue">train</span></h3>
-<p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model <code>.nnmodel.tar</code> package to <code>--output</code> (or auto-generated path). Before training begins, a <a href="#training-summary">training summary</a> is displayed in the Model Info panel showing the full configuration. If <a href="#validation">validation</a> is enabled (the default), a stratified validation split is created and validation loss is reported during training.</p>
+<p>Trains the network on provided samples. Requires <code>--samples</code> or <code>--idx-data</code>/<code>--idx-labels</code>. Outputs a trained model <code>.nnmodel.tar</code> package to <code>--output</code> (a directory, auto-created). All artifacts — the final trained model, checkpoints, and the best model — land inside it; see <a href="#output">Output Behaviour</a> for the file layout. Before training begins, a <a href="#training-summary">training summary</a> is displayed in the Model Info panel showing the full configuration. If <a href="#validation">validation</a> is enabled (the default), a stratified validation split is created and validation loss is reported during training.</p>
 <pre><code>NN-CLI --model config.json --mode train --samples samples.json
 NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labels.idx1
 </code></pre>
@@ -91,7 +91,7 @@ NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labe
 <div class="card">
 <h3><span class="badge-green">predict</span></h3>
 <p>Runs inference on one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Requires <code>--input</code> and a <code>.nnmodel</code> package (plain JSON configs are rejected). Outputs prediction + metadata JSON. Output order matches input order.</p>
-<pre><code>NN-CLI --model-package trained_model.nnmodel --mode predict --input input.json --output result.json
+<pre><code>NN-CLI --model-package trained_model.nnmodel --mode predict --input input.json --output results/
 </code></pre>
 </div>
 
@@ -104,7 +104,7 @@ NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labe
 
 <div class="card">
 <h3><span class="badge-blue">calibrate</span></h3>
-<p>Picks a free-energy out-of-distribution threshold for the trained model. Runs predict on a random subsample of in-distribution images (<code>--id-images</code>) and a random subsample of OOD images (<code>--ood-dir</code>), computes the free-energy <code>E(x) = −log Σᵢ exp(zᵢ)</code> for each, and writes a <code>threshold.json</code> to <code>--output</code> (default: next to the model config). The threshold is taken at the chosen ID percentile (default 95th) — by construction at most that fraction of real in-distribution scans will trip the warning at runtime.</p>
+<p>Picks a free-energy out-of-distribution threshold for the trained model. Runs predict on a random subsample of in-distribution images (<code>--id-images</code>) and a random subsample of OOD images (<code>--ood-dir</code>), computes the free-energy <code>E(x) = −log Σᵢ exp(zᵢ)</code> for each, and writes a <code>threshold.json</code> inside the <code>--output</code> directory (default: the model config's directory). The threshold is taken at the chosen ID percentile (default 95th) — by construction at most that fraction of real in-distribution scans will trip the warning at runtime.</p>
 <pre><code>NN-CLI --model-package best_model.nnmodel --mode calibrate \
        --id-images train-datasets/isicMILK10k/input \
        --ood-dir extern-datasets/ood
@@ -118,7 +118,7 @@ NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labe
   <tr><td><code>--ood-sample-count</code></td><td><code>1500</code></td><td>Random subsample size for OOD set (seeded).</td></tr>
   <tr><td><code>--id-percentile</code></td><td><code>95</code></td><td>ID-distribution percentile used as the threshold.</td></tr>
   <tr><td><code>--no-fetch</code></td><td>off</td><td>Don't auto-download even if <code>--ood-dir</code> is empty.</td></tr>
-  <tr><td><code>--output</code></td><td><code>&lt;config_dir&gt;/threshold.json</code></td><td>Where to write the threshold + diagnostic stats.</td></tr>
+  <tr><td><code>--output</code></td><td><code>&lt;config_dir&gt;</code></td><td>Directory for <code>threshold.json</code> (auto-created).</td></tr>
 </table>
 <p>The score has limited discrimination on a 2-class head (<code>E ≈ −max(z₀, z₁)</code> up to a small correction). It reliably catches obvious failure modes (all-black input, very dark photos) but doesn't cleanly flag every OOD input. For tighter gating, consider a higher-capacity dense head or training with outlier exposure.</p>
 </div>
@@ -141,13 +141,16 @@ NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labe
 <h2 id="output">6. Output Behaviour</h2>
 
 <h3>Training Output</h3>
-<p>If <code>--output</code> is not specified, the trained model is saved to:</p>
-<pre><code>output/trained_E-&lt;epochs&gt;_S-&lt;samples&gt;_L-&lt;loss&gt;.nnmodel.tar
-</code></pre>
-<p>The <code>output/</code> directory is created automatically relative to the input file's location. The output is a <code>.nnmodel.tar</code> package containing <code>model.json</code> and <code>params.bin</code>.</p>
+<p>Training writes three kinds of artifact, all into the same output directory (created automatically if it does not exist):</p>
+<ul>
+  <li><strong>Final model</strong> — <code>trained_E-&lt;epochs&gt;_S-&lt;samples&gt;_L-&lt;loss&gt;.nnmodel.tar</code></li>
+  <li><strong>Best model</strong> — <code>best_model.nnmodel.tar</code> (overwritten whenever a new best loss is found)</li>
+  <li><strong>Checkpoints</strong> — <code>checkpoint_E-&lt;n&gt;_L-&lt;loss&gt;.nnmodel.tar</code> every <code>saveModelInterval</code> epochs (default 10)</li>
+</ul>
+<p>With <code>--output &lt;dir&gt;</code>, all three land inside <code>&lt;dir&gt;</code>. If <code>--output</code> is omitted, the directory defaults to <code>output/</code> next to the samples file (or the IDX data file). Each <code>.nnmodel.tar</code> package contains <code>model.json</code> and <code>params.bin</code>.</p>
 
 <h3>Predict Output</h3>
-<p>If <code>--output</code> is not specified, the result is saved to <code>output/predict_&lt;input_basename&gt;.json</code> (or a folder for image output). The <code>output/</code> directory is created automatically relative to the input file's location.</p>
+<p>The prediction result is written inside the output directory: <code>predict_&lt;input_basename&gt;.json</code> for vector output, or a <code>predict_&lt;input_basename&gt;/</code> folder for image output. With <code>--output &lt;dir&gt;</code> it lands inside <code>&lt;dir&gt;</code>; otherwise it defaults to <code>output/</code> next to the input file. The directory is created automatically.</p>
 <p>When <code>outputType</code> is <code>"vector"</code> (default), the result is JSON with prediction metadata, an <code>outputs</code> array (post-activation values, one per input) and a <code>logits</code> array (pre-activation z of the last layer, one per input). When <code>outputType</code> is <code>"image"</code>, the output vector is saved as a PNG/JPEG/BMP image file instead.</p>
 <pre><code>{
   <span class="string">"predictMetadata"</span>: {
@@ -219,7 +222,7 @@ NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labe
 <p>Detects when training has become unstable. Training is stopped immediately if the current loss exceeds <code>threshold</code> times the best recorded loss, or if the loss becomes NaN. For example, with <code>threshold: 10.0</code>, training stops if the loss grows to more than 10x the best loss seen so far.</p>
 
 <h3>Best model</h3>
-<p>Whenever a new best loss is recorded, the model is saved to <code>output/best_model.nnmodel.tar</code> (relative to the input file's location). This file is overwritten each time a new best is found, so it always contains the best model seen during training.</p>
+<p>Whenever a new best loss is recorded, the model is saved to <code>best_model.nnmodel.tar</code> inside the output directory (see <a href="#output">Output Behaviour</a>). This file is overwritten each time a new best is found, so it always contains the best model seen during training.</p>
 
 <h3>Loss source</h3>
 <p>When validation is enabled, the monitor uses the validation loss to evaluate metrics. Otherwise, it uses the training loss. This ensures the monitor tracks generalisation performance when a validation set is available.</p>

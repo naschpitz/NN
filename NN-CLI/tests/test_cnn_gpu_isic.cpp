@@ -141,11 +141,13 @@ static void testCNNISICLikeSaveLoadPredict()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_isic_model.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_isic_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   // Step 1: Train
   auto trainResult = runNNCLI(
-    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath},
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", outDir},
     300000); // 5 min timeout
 
   CHECK(trainResult.exitCode == 0, "ISIC-like CPU: train exit code 0");
@@ -153,6 +155,8 @@ static void testCNNISICLikeSaveLoadPredict()
   if (trainResult.exitCode != 0) {
     return;
   }
+
+  QString modelPath = findTrainedModel(outDir);
 
   // Step 2: Verify saved model has all 4 instancenorm layers in the config
   {
@@ -209,18 +213,24 @@ static void testCNNISICLikeSaveLoadPredict()
     }
   }
 
-  QString predictOutput1 = tempDir() + "/cnn_isic_predict1.json";
+  QString predictOut1 = tempDir() + "/cnn_isic_predict1_out";
+  QDir(predictOut1).removeRecursively();
+  QDir().mkpath(predictOut1);
   auto pred1 = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
-                         predictInputPath, "--output", predictOutput1});
+                         predictInputPath, "--output", predictOut1});
 
   CHECK(pred1.exitCode == 0, "ISIC-like CPU: predict1 exit code 0");
+  QString predictOutput1 = predictJsonPath(predictOut1, predictInputPath);
 
   // Step 4: Predict again (reload from disk) — must match
-  QString predictOutput2 = tempDir() + "/cnn_isic_predict2.json";
+  QString predictOut2 = tempDir() + "/cnn_isic_predict2_out";
+  QDir(predictOut2).removeRecursively();
+  QDir().mkpath(predictOut2);
   auto pred2 = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
-                         predictInputPath, "--output", predictOutput2});
+                         predictInputPath, "--output", predictOut2});
 
   CHECK(pred2.exitCode == 0, "ISIC-like CPU: predict2 exit code 0");
+  QString predictOutput2 = predictJsonPath(predictOut2, predictInputPath);
 
   if (pred1.exitCode == 0 && pred2.exitCode == 0) {
     QFile f1(predictOutput1);
@@ -304,11 +314,13 @@ static void testCNNISICLikeSaveLoadPredictGPU()
 
   CHECK(!configPath.isEmpty(), "ISIC-like GPU: config written");
 
-  QString modelPath = tempDir() + "/cnn_isic_gpu_model.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_isic_gpu_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   // Step 1: Train on GPU
   auto trainResult = runNNCLI(
-    {"--model", configPath, "--mode", "train", "--device", "gpu", "--samples", samplesPath, "--output", modelPath},
+    {"--model", configPath, "--mode", "train", "--device", "gpu", "--samples", samplesPath, "--output", outDir},
     300000);
 
   CHECK(trainResult.exitCode == 0, "ISIC-like GPU: train exit code 0");
@@ -316,6 +328,8 @@ static void testCNNISICLikeSaveLoadPredictGPU()
   if (trainResult.exitCode != 0) {
     return;
   }
+
+  QString modelPath = findTrainedModel(outDir);
 
   // Step 2: Verify 4 instancenorm layers in config
   {
@@ -370,18 +384,24 @@ static void testCNNISICLikeSaveLoadPredictGPU()
   }
 
   // Step 4: Predict on GPU
-  QString predictOutput1 = tempDir() + "/cnn_isic_gpu_predict1.json";
+  QString predictOut1 = tempDir() + "/cnn_isic_gpu_predict1_out";
+  QDir(predictOut1).removeRecursively();
+  QDir().mkpath(predictOut1);
   auto pred1 = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "gpu", "--input",
-                         predictInputPath, "--output", predictOutput1});
+                         predictInputPath, "--output", predictOut1});
 
   CHECK(pred1.exitCode == 0, "ISIC-like GPU: predict1 exit code 0");
+  QString predictOutput1 = predictJsonPath(predictOut1, predictInputPath);
 
   // Step 5: Predict again (reload)
-  QString predictOutput2 = tempDir() + "/cnn_isic_gpu_predict2.json";
+  QString predictOut2 = tempDir() + "/cnn_isic_gpu_predict2_out";
+  QDir(predictOut2).removeRecursively();
+  QDir().mkpath(predictOut2);
   auto pred2 = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "gpu", "--input",
-                         predictInputPath, "--output", predictOutput2});
+                         predictInputPath, "--output", predictOut2});
 
   CHECK(pred2.exitCode == 0, "ISIC-like GPU: predict2 exit code 0");
+  QString predictOutput2 = predictJsonPath(predictOut2, predictInputPath);
 
   if (pred1.exitCode == 0 && pred2.exitCode == 0) {
     QFile f1(predictOutput1);

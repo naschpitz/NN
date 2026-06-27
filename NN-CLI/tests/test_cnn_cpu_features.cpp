@@ -48,26 +48,25 @@ static void testCNNCheckpointParameters()
     return;
   }
 
-  // Copy samples to tempDir so checkpoints go to tempDir/output/
+  // Copy samples to tempDir so checkpoints go to the output dir
   // (generateCheckpointPath uses the samples file directory, not the config directory)
   QString samplesSrc = fixturePath("cnn_train_samples.json");
   QString samplesDst = tempDir() + "/cnn_ckpt_samples.json";
   QFile::remove(samplesDst);
   QFile::copy(samplesSrc, samplesDst);
 
-  // Clean up any prior checkpoint output
-  QDir(tempDir() + "/output").removeRecursively();
-
-  QString modelPath = tempDir() + "/cnn_ckpt_model.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_ckpt_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result = runNNCLI(
-    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", outDir});
 
   CHECK(result.exitCode == 0, "CNN checkpoint params: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN checkpoint params: 'Training completed.'");
 
-  // Find checkpoint files in tempDir/output/
-  QDir outputDir(tempDir() + "/output");
+  // Find checkpoint files in outDir
+  QDir outputDir(outDir);
   QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.nnmodel.tar"}, QDir::Files);
   CHECK(!checkpoints.isEmpty(), "CNN checkpoint params: checkpoint files exist");
 
@@ -97,7 +96,7 @@ static void testCNNCheckpointParameters()
   }
 
   // Cleanup checkpoint output dir
-  QDir(tempDir() + "/output").removeRecursively();
+  QDir(outDir).removeRecursively();
 }
 
 //===================================================================================================================//
@@ -142,22 +141,23 @@ static void testCNNCheckpointInstanceNormRoundTrip()
     return;
   }
 
-  // Copy samples to tempDir so checkpoints go to tempDir/output/
+  // Copy samples to tempDir so checkpoints go to the output dir
   QString samplesSrc = fixturePath("cnn_train_samples.json");
   QString samplesDst = tempDir() + "/cnn_norm_ckpt_samples.json";
   QFile::remove(samplesDst);
   QFile::copy(samplesSrc, samplesDst);
 
-  // Clean up any prior checkpoint output
-  QDir(tempDir() + "/output").removeRecursively();
-
-  QString modelPath = tempDir() + "/cnn_norm_ckpt_model.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_norm_ckpt_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result = runNNCLI(
-    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", outDir});
 
   CHECK(result.exitCode == 0, "CNN BN checkpoint: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), "CNN BN checkpoint: 'Training completed.'");
+
+  QString modelPath = findTrainedModel(outDir);
 
   // Verify the saved model has instancenorm layers in the config
   QJsonObject root = readModelJsonFromPackage(modelPath);
@@ -188,7 +188,7 @@ static void testCNNCheckpointInstanceNormRoundTrip()
   }
 
   // Cleanup
-  QDir(tempDir() + "/output").removeRecursively();
+  QDir(outDir).removeRecursively();
 }
 
 //===================================================================================================================//
@@ -267,14 +267,17 @@ static void testCNNGlobalDualPoolEndToEnd()
   }
 
   // Train
-  QString modelPath = tempDir() + "/cnn_gdp_model.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_gdp_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto trainResult = runNNCLI(
-    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", outDir});
 
   CHECK(trainResult.exitCode == 0, "CNN GDP e2e: train exit code 0");
   CHECK(trainResult.stdOut.contains("Training completed."), "CNN GDP e2e: training completed");
-  CHECK(QFile::exists(modelPath), "CNN GDP e2e: model file created");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), "CNN GDP e2e: model file created");
 
   // Predict using the trained model
   if (QFile::exists(modelPath)) {
@@ -300,12 +303,15 @@ static void testCNNGlobalDualPoolEndToEnd()
       predictFile.close();
     }
 
-    QString predictOutput = tempDir() + "/cnn_gdp_predict_output.json";
+    QString predictOut = tempDir() + "/cnn_gdp_predict_out";
+    QDir(predictOut).removeRecursively();
+    QDir().mkpath(predictOut);
 
     auto predResult = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
-                                predictPath, "--output", predictOutput});
+                                predictPath, "--output", predictOut});
 
     CHECK(predResult.exitCode == 0, "CNN GDP e2e: predict exit code 0");
+    QString predictOutput = predictJsonPath(predictOut, predictPath);
     CHECK(QFile::exists(predictOutput), "CNN GDP e2e: predict output file created");
 
     // Read predictions and check they're different for different inputs
@@ -410,14 +416,17 @@ static void testCNNResidualEndToEnd()
   }
 
   // Train
-  QString modelPath = tempDir() + "/cnn_res_model.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_res_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto trainResult = runNNCLI(
-    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", modelPath});
+    {"--model", configPath, "--mode", "train", "--device", "cpu", "--samples", samplesPath, "--output", outDir});
 
   CHECK(trainResult.exitCode == 0, "CNN Residual e2e: train exit code 0");
   CHECK(trainResult.stdOut.contains("Training completed."), "CNN Residual e2e: training completed");
-  CHECK(QFile::exists(modelPath), "CNN Residual e2e: model file created");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), "CNN Residual e2e: model file created");
 
   // Verify model JSON contains residual_start/end
   if (QFile::exists(modelPath)) {
@@ -465,12 +474,16 @@ static void testCNNResidualEndToEnd()
     predictFile.close();
   }
 
-  QString predictOutput = tempDir() + "/cnn_res_predict_output.json";
+  QString predictOut = tempDir() + "/cnn_res_predict_out";
+  QDir(predictOut).removeRecursively();
+  QDir().mkpath(predictOut);
 
   auto predResult = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
-                              predictPath, "--output", predictOutput});
+                              predictPath, "--output", predictOut});
 
   CHECK(predResult.exitCode == 0, "CNN Residual e2e: predict exit code 0");
+
+  QString predictOutput = predictJsonPath(predictOut, predictPath);
 
   if (QFile::exists(predictOutput)) {
     QFile outFile(predictOutput);

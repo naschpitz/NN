@@ -1313,47 +1313,33 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  std::string ModelSerializer::generateDefaultOutputPath(const QString& inputFilePath, ulong epochs, ulong samples,
+  std::string ModelSerializer::generateDefaultOutputPath(const QString& outputDir, ulong epochs, ulong samples,
                                                          float loss)
   {
-    QFileInfo inputInfo(inputFilePath);
-    QDir inputDir = inputInfo.absoluteDir();
-    QDir outputDir(inputDir.filePath("output"));
-
-    NN_CLI::Utils<>::ensureOutputDir(inputDir.filePath("output"));
-
-    QString outputPath = outputDir.filePath(QString::fromStdString(generateTrainFilename(epochs, samples, loss)));
+    QDir dir(outputDir);
+    QString outputPath = dir.filePath(QString::fromStdString(generateTrainFilename(epochs, samples, loss)));
     return outputPath.toStdString();
   }
 
   //===================================================================================================================//
 
-  std::string ModelSerializer::generateCheckpointPath(const QString& inputFilePath, ulong epoch, float loss)
+  std::string ModelSerializer::generateCheckpointPath(const QString& outputDir, ulong epoch, float loss)
   {
-    QFileInfo inputInfo(inputFilePath);
-    QDir inputDir = inputInfo.absoluteDir();
-    QDir outputDir(inputDir.filePath("output"));
-
-    NN_CLI::Utils<>::ensureOutputDir(inputDir.filePath("output"));
+    QDir dir(outputDir);
 
     std::ostringstream oss;
     oss << "checkpoint_E-" << epoch << "_L-" << std::fixed << std::setprecision(6) << loss << ".nnmodel.tar";
 
-    QString outputPath = outputDir.filePath(QString::fromStdString(oss.str()));
+    QString outputPath = dir.filePath(QString::fromStdString(oss.str()));
     return outputPath.toStdString();
   }
 
   //===================================================================================================================//
 
-  std::string ModelSerializer::generateBestModelPath(const QString& inputFilePath)
+  std::string ModelSerializer::generateBestModelPath(const QString& outputDir)
   {
-    QFileInfo inputInfo(inputFilePath);
-    QDir inputDir = inputInfo.absoluteDir();
-    QDir outputDir(inputDir.filePath("output"));
-
-    NN_CLI::Utils<>::ensureOutputDir(inputDir.filePath("output"));
-
-    QString outputPath = outputDir.filePath("best_model.nnmodel.tar");
+    QDir dir(outputDir);
+    QString outputPath = dir.filePath("best_model.nnmodel.tar");
     return outputPath.toStdString();
   }
 

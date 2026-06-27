@@ -1,5 +1,6 @@
 #include "test_helpers.hpp"
 
+#include <QDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -21,16 +22,20 @@ static void testTrainAndTestMNIST()
   trainedMNISTModelPath = tempDir() + "/ann_mnist_trained.nnmodel.tar";
 
   // Step 1: Train on MNIST training data on CPU (10 epochs, 60k samples, Adam + crossEntropy)
-  auto trainResult = runNNCLI({"--model", fixturePath("mnist_ann_train_config.json"), "--mode", "train", "--device",
-                               "cpu", "--idx-data", examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
-                               examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", trainedMNISTModelPath,
-                               "--log-level", "quiet"},
-                              3600000); // 60 min timeout
+  QString outDir = tempDir() + "/ann_mnist_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
+  auto trainResult =
+    runNNCLI({"--model", fixturePath("mnist_ann_train_config.json"), "--mode", "train", "--device", "cpu", "--idx-data",
+              examplePath("MNIST/train/train-images.idx3-ubyte"), "--idx-labels",
+              examplePath("MNIST/train/train-labels.idx1-ubyte"), "--output", outDir, "--log-level", "quiet"},
+             3600000); // 60 min timeout
 
   CHECK(trainResult.exitCode == 0, " MNIST train+test: training exit code 0");
-  CHECK(QFile::exists(trainedMNISTModelPath), " MNIST train+test: trained model file exists");
+  trainedMNISTModelPath = findTrainedModel(outDir);
+  CHECK(!trainedMNISTModelPath.isEmpty(), " MNIST train+test: trained model file exists");
 
-  if (trainResult.exitCode != 0 || !QFile::exists(trainedMNISTModelPath)) {
+  if (trainResult.exitCode != 0 || trainedMNISTModelPath.isEmpty()) {
     trainedMNISTModelPath.clear();
     std::cout << "(training failed, skipping test step)" << std::endl;
     return;
@@ -90,13 +95,16 @@ static void testPredictMNIST()
     return;
   }
 
-  QString outputPath = tempDir() + "/ann_predict_output.json";
+  QString outDir = tempDir() + "/ann_predict_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result = runNNCLI({"--model-package", trainedMNISTModelPath, "--mode", "predict", "--device", "cpu", "--input",
-                          examplePath("MNIST/predict/mnist_digit_2_input.json"), "--output", outputPath});
+                          examplePath("MNIST/predict/mnist_digit_2_input.json"), "--output", outDir});
 
   CHECK(result.exitCode == 0, " predict MNIST: exit code 0");
   CHECK(result.stdOut.contains("Predict result saved to:"), " predict MNIST: 'Predict result saved to:'");
+  QString outputPath = predictJsonPath(outDir, examplePath("MNIST/predict/mnist_digit_2_input.json"));
   CHECK(QFile::exists(outputPath), " predict MNIST: output file exists");
 
   // Verify output JSON structure and content

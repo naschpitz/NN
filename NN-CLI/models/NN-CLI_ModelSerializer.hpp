@@ -49,10 +49,9 @@ namespace NN_CLI
 
       //-- Output path helpers --//
       static std::string generateTrainFilename(ulong epochs, ulong samples, float loss);
-      static std::string generateDefaultOutputPath(const QString& inputFilePath, ulong epochs, ulong samples,
-                                                   float loss);
-      static std::string generateCheckpointPath(const QString& inputFilePath, ulong epoch, float loss);
-      static std::string generateBestModelPath(const QString& inputFilePath);
+      static std::string generateDefaultOutputPath(const QString& outputDir, ulong epochs, ulong samples, float loss);
+      static std::string generateCheckpointPath(const QString& outputDir, ulong epoch, float loss);
+      static std::string generateBestModelPath(const QString& outputDir);
 
     private:
       //-- JSON-building helpers --//

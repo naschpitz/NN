@@ -107,13 +107,14 @@ inline bool checkGPUAvailable()
   if (cached >= 0)
     return cached == 1;
 
-  QString modelPath = tempDir() + "/gpu_probe.nnmodel.tar";
+  QString outputDir = tempDir() + "/gpu_probe_out";
+  QDir(outputDir).removeRecursively();
 
   QProcess process;
   process.setWorkingDirectory(QCoreApplication::applicationDirPath() + "/..");
   process.start(QCoreApplication::applicationDirPath() + "/NN-CLI",
                 {"--model", projectRoot() + "/tests/fixtures/ann_train_config.json", "--mode", "train", "--device",
-                 "gpu", "--samples", projectRoot() + "/tests/fixtures/ann_train_samples.json", "--output", modelPath,
+                 "gpu", "--samples", projectRoot() + "/tests/fixtures/ann_train_samples.json", "--output", outputDir,
                  "--log-level", "quiet"});
 
   if (!process.waitForStarted(5000)) {
@@ -128,7 +129,7 @@ inline bool checkGPUAvailable()
     return false;
   }
 
-  QFile::remove(modelPath);
+  QDir(outputDir).removeRecursively();
   cached = (process.exitCode() == 0) ? 1 : 0;
   return cached == 1;
 }
@@ -212,6 +213,38 @@ inline QJsonObject readModelJsonFromPackage(const QString& packagePath)
   }
 
   return QJsonObject();
+}
+
+// --- Output-directory artifact helpers (--output is always a directory) ---
+
+// Locate the trained-model artifact (trained_E-*.nnmodel.tar) in an output dir.
+// Returns its absolute path, or an empty string if none was found.
+inline QString findTrainedModel(const QString& outputDir)
+{
+  QDir dir(outputDir);
+  QStringList matches = dir.entryList({"trained_E-*.nnmodel.tar"}, QDir::Files);
+  return matches.isEmpty() ? QString() : dir.filePath(matches.first());
+}
+
+// Locate the best-model artifact (best_model.nnmodel.tar) in an output dir.
+inline QString findBestModel(const QString& outputDir)
+{
+  QDir dir(outputDir);
+  return dir.exists("best_model.nnmodel.tar") ? dir.filePath("best_model.nnmodel.tar") : QString();
+}
+
+// Predict (JSON output) writes predict_<inputBase>.json into the output dir.
+inline QString predictJsonPath(const QString& outputDir, const QString& inputPath)
+{
+  QString base = QFileInfo(inputPath).completeBaseName();
+  return QDir(outputDir).filePath("predict_" + base + ".json");
+}
+
+// Predict (IMAGE output) writes into a predict_<inputBase> subdirectory.
+inline QString predictImageDirPath(const QString& outputDir, const QString& inputPath)
+{
+  QString base = QFileInfo(inputPath).completeBaseName();
+  return QDir(outputDir).filePath("predict_" + base);
 }
 
 // --- TestScope: RAII per-test verdict printer (project standard) ---

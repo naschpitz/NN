@@ -80,11 +80,13 @@ static void testCNNMultiInputPredictDiversity()
     return;
   }
 
-  QString modelPath = tempDir() + "/cnn_diversity_model.nnmodel.tar";
+  QString outDir = tempDir() + "/cnn_diversity_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   // Train
   auto trainResult = runNNCLI({"--model", configPath, "--mode", "train", "--device", "cpu", "--samples",
-                               fixturePath("cnn_train_samples.json"), "--output", modelPath});
+                               fixturePath("cnn_train_samples.json"), "--output", outDir});
 
   CHECK(trainResult.exitCode == 0, "CNN diversity: train exit code 0");
 
@@ -92,14 +94,19 @@ static void testCNNMultiInputPredictDiversity()
     return;
   }
 
+  QString modelPath = findTrainedModel(outDir);
+
   // Predict on multiple inputs
-  QString predictOutput = tempDir() + "/cnn_diversity_predict.json";
+  QString predictOut = tempDir() + "/cnn_diversity_predict_out";
+  QDir(predictOut).removeRecursively();
+  QDir().mkpath(predictOut);
   auto predResult = runNNCLI({"--model-package", modelPath, "--mode", "predict", "--device", "cpu", "--input",
-                              multiInputPath, "--output", predictOutput});
+                              multiInputPath, "--output", predictOut});
 
   CHECK(predResult.exitCode == 0, "CNN diversity: predict exit code 0");
 
   if (predResult.exitCode == 0) {
+    QString predictOutput = predictJsonPath(predictOut, multiInputPath);
     QFile f(predictOutput);
 
     if (f.open(QIODevice::ReadOnly)) {

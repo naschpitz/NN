@@ -1,5 +1,6 @@
 #include "test_helpers.hpp"
 
+#include <QDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -13,18 +14,21 @@ static void testTrainXOR()
 {
   TestScope _t("testTrainXOR");
 
-  trainedModelPath = tempDir() + "/ann_xor_model.nnmodel.tar";
+  QString outDir = tempDir() + "/ann_xor_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result = runNNCLI({"--model", fixturePath("ann_train_config.json"), "--mode", "train", "--device", "cpu",
-                          "--samples", fixturePath("ann_train_samples.json"), "--output", trainedModelPath});
+                          "--samples", fixturePath("ann_train_samples.json"), "--output", outDir});
 
   CHECK(result.exitCode == 0, " train XOR: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), " train XOR: 'Training completed.'");
   CHECK(result.stdOut.contains("Model saved to:"), " train XOR: 'Model saved to:'");
-  CHECK(QFile::exists(trainedModelPath), " train XOR: model file exists");
+  trainedModelPath = findTrainedModel(outDir);
+  CHECK(!trainedModelPath.isEmpty(), " train XOR: model file exists");
 
   // Clear the path if training failed so downstream tests skip gracefully
-  if (result.exitCode != 0 || !QFile::exists(trainedModelPath)) {
+  if (result.exitCode != 0 || trainedModelPath.isEmpty()) {
     trainedModelPath.clear();
   }
 }
@@ -50,8 +54,12 @@ static void testNetworkDetection()
     inputFile.close();
   }
 
+  QString outDir = tempDir() + "/ann_detect_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
+
   auto result = runNNCLI({"--model-package", trainedModelPath, "--mode", "predict", "--device", "cpu", "--input",
-                          predictInputPath, "--output", tempDir() + "/ann_detect_output.json", "--log-level", "info"});
+                          predictInputPath, "--output", outDir, "--log-level", "info"});
 
   CHECK(result.exitCode == 0, " detection: exit code 0");
   CHECK(result.stdOut.contains("Network type: "), " detection: stdout contains 'Network type: '");
@@ -78,11 +86,13 @@ static void testModeOverride()
     inputFile.close();
   }
 
-  QString outputPath = tempDir() + "/ann_override_output.json";
+  QString outDir = tempDir() + "/ann_override_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   // Trained model has mode=train; override to predict via CLI
   auto result = runNNCLI({"--model-package", trainedModelPath, "--mode", "predict", "--device", "cpu", "--input",
-                          predictInputPath, "--output", outputPath, "--log-level", "info"});
+                          predictInputPath, "--output", outDir, "--log-level", "info"});
 
   CHECK(result.exitCode == 0, " mode override: exit code 0");
   CHECK(result.stdOut.contains("Mode: predict (CLI)"), " mode override: 'Mode: predict (CLI)'");
@@ -94,15 +104,18 @@ static void testTrainWithWeightedLoss()
 {
   TestScope _t("testTrainWithWeightedLoss");
 
-  QString modelPath = tempDir() + "/ann_weighted_model.nnmodel.tar";
+  QString outDir = tempDir() + "/ann_weighted_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result = runNNCLI({"--model", fixturePath("ann_train_weighted_config.json"), "--mode", "train", "--device",
-                          "cpu", "--samples", fixturePath("ann_train_samples.json"), "--output", modelPath});
+                          "cpu", "--samples", fixturePath("ann_train_samples.json"), "--output", outDir});
 
   CHECK(result.exitCode == 0, " weighted train: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), " weighted train: 'Training completed.'");
   CHECK(result.stdOut.contains("Model saved to:"), " weighted train: 'Model saved to:'");
-  CHECK(QFile::exists(modelPath), " weighted train: model file exists");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), " weighted train: model file exists");
 
   // Verify saved model JSON contains costFunctionConfig
   QJsonObject root = readModelJsonFromPackage(modelPath);
@@ -135,15 +148,18 @@ static void testTrainValidationNoDeadlock()
 {
   TestScope _t("testTrainValidationNoDeadlock");
 
-  QString modelPath = tempDir() + "/ann_validation_nodeadlock.nnmodel.tar";
+  QString outDir = tempDir() + "/ann_validation_nodeadlock_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result =
     runNNCLI({"--model", fixturePath("ann_validation_config.json"), "--mode", "train", "--device", "cpu", "--samples",
-              fixturePath("ann_validation_samples.json"), "--output", modelPath, "--log-level", "quiet"},
+              fixturePath("ann_validation_samples.json"), "--output", outDir, "--log-level", "quiet"},
              60000); // 60s deadlock guard — real train takes <1s; a hang trips the timeout
 
   CHECK(result.exitCode == 0, " validation no-deadlock: training exit code 0 (timeout/-2 = deadlock)");
-  CHECK(QFile::exists(modelPath), " validation no-deadlock: trained model file exists");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), " validation no-deadlock: trained model file exists");
 }
 
 //===================================================================================================================//

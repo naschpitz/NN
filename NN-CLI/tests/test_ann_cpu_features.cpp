@@ -10,7 +10,7 @@ static void testCheckpointParameters()
 {
   TestScope _t("testCheckpointParameters");
 
-  // Copy config and samples to tempDir so checkpoints go to tempDir/output/
+  // Copy config and samples to tempDir so checkpoints go to the output dir
   // (generateCheckpointPath uses the samples file directory, not the config directory)
   QString configSrc = fixturePath("ann_train_config.json");
   QString configDst = tempDir() + "/ann_ckpt_config.json";
@@ -22,19 +22,18 @@ static void testCheckpointParameters()
   QFile::remove(samplesDst);
   QFile::copy(samplesSrc, samplesDst);
 
-  // Clean up any prior checkpoint output
-  QDir(tempDir() + "/output").removeRecursively();
+  QString outDir = tempDir() + "/ann_ckpt_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
-  QString modelPath = tempDir() + "/ann_ckpt_model.nnmodel.tar";
-
-  auto result = runNNCLI(
-    {"--model", configDst, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", modelPath});
+  auto result =
+    runNNCLI({"--model", configDst, "--mode", "train", "--device", "cpu", "--samples", samplesDst, "--output", outDir});
 
   CHECK(result.exitCode == 0, " checkpoint params: exit code 0");
   CHECK(result.stdOut.contains("Training completed."), " checkpoint params: 'Training completed.'");
 
-  // Find checkpoint files in tempDir/output/
-  QDir outputDir(tempDir() + "/output");
+  // Find checkpoint files in outDir
+  QDir outputDir(outDir);
   QStringList checkpoints = outputDir.entryList({"checkpoint_E-*.nnmodel.tar"}, QDir::Files);
   CHECK(!checkpoints.isEmpty(), " checkpoint params: checkpoint files exist");
 
@@ -60,7 +59,7 @@ static void testCheckpointParameters()
   }
 
   // Cleanup checkpoint output dir
-  QDir(tempDir() + "/output").removeRecursively();
+  QDir(outDir).removeRecursively();
 }
 
 //===================================================================================================================//
@@ -71,12 +70,15 @@ static void testTrainWithDropout()
 
   QString configPath = fixturePath("ann_train_dropout_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
-  QString outputPath = tempDir() + "/ann_dropout_model.nnmodel.tar";
+  QString outDir = tempDir() + "/ann_dropout_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
-  auto result = runNNCLI({"--model", configPath, "--samples", samplesPath, "--output", outputPath});
+  auto result = runNNCLI({"--model", configPath, "--samples", samplesPath, "--output", outDir});
 
   CHECK(result.exitCode == 0, " dropout training exits 0");
-  CHECK(QFile::exists(outputPath), " dropout model file created");
+  QString outputPath = findTrainedModel(outDir);
+  CHECK(!outputPath.isEmpty(), " dropout model file created");
 
   // Verify the model JSON contains dropoutRate in trainConfig
   QJsonObject json = readModelJsonFromPackage(outputPath);
@@ -94,12 +96,15 @@ static void testTrainWithAugmentation()
 
   QString configPath = fixturePath("ann_train_augment_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
-  QString outputPath = tempDir() + "/ann_augment_model.nnmodel.tar";
+  QString outDir = tempDir() + "/ann_augment_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
-  auto result = runNNCLI({"--model", configPath, "--samples", samplesPath, "--output", outputPath});
+  auto result = runNNCLI({"--model", configPath, "--samples", samplesPath, "--output", outDir});
 
   CHECK(result.exitCode == 0, " augmentation training exits 0");
-  CHECK(QFile::exists(outputPath), " augmented model file created");
+  QString outputPath = findTrainedModel(outDir);
+  CHECK(!outputPath.isEmpty(), " augmented model file created");
 
   // Verify auto class weights were applied
   QJsonObject json = readModelJsonFromPackage(outputPath);
@@ -119,13 +124,15 @@ static void testDropoutRateParsing()
   // Verify that dropoutRate=0 (default) is not saved in model JSON
   QString configPath = fixturePath("ann_train_config.json");
   QString samplesPath = fixturePath("ann_train_samples.json");
-  QString outputPath = tempDir() + "/ann_no_dropout_model.nnmodel.tar";
+  QString outDir = tempDir() + "/ann_no_dropout_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
-  auto result = runNNCLI({"--model", configPath, "--samples", samplesPath, "--output", outputPath});
+  auto result = runNNCLI({"--model", configPath, "--samples", samplesPath, "--output", outDir});
 
   CHECK(result.exitCode == 0, " no-dropout training exits 0");
 
-  QJsonObject json = readModelJsonFromPackage(outputPath);
+  QJsonObject json = readModelJsonFromPackage(findTrainedModel(outDir));
 
   auto tc = json["train"].toObject();
   CHECK(tc.contains("dropoutRate"), "dropoutRate always saved for complete snapshot");
@@ -140,18 +147,21 @@ static void testImageNetworkDetection()
   // An  config with inputType "image" and inputShape must still be detected as , not CNN.
   // Train with the ann_image_train_config fixture (which has layersConfig + inputShape + inputType "image")
   // using image samples, and verify the log says "Network type: ".
-  QString modelPath = tempDir() + "/ann_image_detect_model.nnmodel.tar";
+  QString outDir = tempDir() + "/ann_image_detect_out";
+  QDir(outDir).removeRecursively();
+  QDir().mkpath(outDir);
 
   auto result =
     runNNCLI({"--model", fixturePath("ann_image_train_config.json"), "--mode", "train", "--device", "cpu", "--samples",
-              fixturePath("ann_image_train_samples.json"), "--output", modelPath, "--log-level", "info"});
+              fixturePath("ann_image_train_samples.json"), "--output", outDir, "--log-level", "info"});
 
   CHECK(result.exitCode == 0, " image detection: exit code 0");
   CHECK(result.stdOut.contains("Network type: "), " image detection: detected as  (not CNN)");
   CHECK(!result.stdOut.contains("Network type: CNN"), " image detection: NOT detected as CNN");
   CHECK(result.stdOut.contains("Input type: image"), " image detection: input type is image");
   CHECK(result.stdOut.contains("Training completed."), " image train: training completed");
-  CHECK(QFile::exists(modelPath), " image train: model file exists");
+  QString modelPath = findTrainedModel(outDir);
+  CHECK(!modelPath.isEmpty(), " image train: model file exists");
 }
 
 //===================================================================================================================//
