@@ -275,9 +275,6 @@ namespace NN_CLI
       ulong n = loaded.fetch_add(1, std::memory_order_relaxed) + 1;
 
       if (n == count || n % reportInterval == 0) {
-        if (this->loadingCallback)
-          this->loadingCallback(n, count, batchIndex, totalBatches, loadType);
-
         emit this->dataLoaderSignals.loadingProgress(n, count, batchIndex, totalBatches, loadType);
       }
     };

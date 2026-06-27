@@ -264,10 +264,14 @@ int CNNRunner::train()
                            validationConfig.enabled ? &split.validationIndices : nullptr);
 
   if (gpuAugPool) {
-    gpuAugPool->setTimingCallback([this](bool begin) {
-      this->profiler.onEvent(CNN::TimingPhase::Augmentation, begin ? CNN::TimingEvent::Begin : CNN::TimingEvent::End,
-                             -1);
-    });
+    QObject::connect(
+      &gpuAugPool->getGpuAugmenterPoolSignals(), &GpuAugmenterPoolSignals::timingUpdate, &this->runnerSignals,
+      [this](bool active) {
+        this->profiler.onEvent(CNN::TimingPhase::Augmentation, active ? CNN::TimingEvent::Begin : CNN::TimingEvent::End,
+                               -1);
+      },
+
+      Qt::DirectConnection);
   }
 
   // Prepend loaded epoch history into the core before training starts, so
@@ -277,13 +281,16 @@ int CNNRunner::train()
     this->coreConfig.loadedTrainMetadata.epochHistory.clear();
   }
 
-  // Drive the "Samples" data-loading progress bar: the DataLoader fires this
-  // callback (from its worker threads) as each batch is loaded/augmented.
-  dataLoader.setLoadingCallback(
+  // Drive the "Samples" data-loading progress bar: the DataLoader emits this
+  // signal (from its worker threads) as each batch is loaded/augmented.
+  QObject::connect(
+    &dataLoader.getDataLoaderSignals(), &DataLoaderSignals::loadingProgress, &this->runnerSignals,
     [this](ulong current, ulong total, ulong batchIndex, ulong totalBatches, SampleLoadType loadType) {
       emit this->runnerSignals.sampleLoadProgress(current, total, batchIndex, totalBatches,
                                                   loadType == SampleLoadType::Validation);
-    });
+    },
+
+    Qt::DirectConnection);
 
   if (validationConfig.enabled) {
     auto trainProvider = dataLoader.makeSampleProvider(

@@ -14,7 +14,6 @@
 #include <QThreadPool>
 
 #include <atomic>
-#include <functional>
 #include <map>
 #include <memory>
 #include <random>
@@ -104,9 +103,9 @@ namespace NN_CLI
         this->gpuAugmenterPool = pool;
       }
 
-      void setLoadingCallback(std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> callback)
+      DataLoaderSignals& getDataLoaderSignals()
       {
-        this->loadingCallback = std::move(callback);
+        return this->dataLoaderSignals;
       }
 
     private:
@@ -122,8 +121,6 @@ namespace NN_CLI
       IOConfig ioConfig;
 
       GpuAugmenterPool* gpuAugmenterPool = nullptr;
-
-      std::function<void(ulong, ulong, ulong, ulong, SampleLoadType)> loadingCallback;
 
       // Dedicated thread pool for image loading — separate from the global pool
       // used by the training loop, so prefetch work doesn't compete with training.

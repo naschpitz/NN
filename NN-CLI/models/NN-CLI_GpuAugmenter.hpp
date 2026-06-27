@@ -69,9 +69,9 @@ namespace NN_CLI
       //-- Methods --//
       void augment(std::vector<float>& batch, ulong count, const AugmentationTransforms& transforms, float probability);
 
-      void setTimingCallback(std::function<void(bool)> callback)
+      GpuAugmenterPoolSignals& getGpuAugmenterPoolSignals()
       {
-        this->timingCallback = std::move(callback);
+        return this->gpuAugmenterPoolSignals;
       }
 
       bool empty() const
@@ -98,9 +98,6 @@ namespace NN_CLI
       //-- Synchronization --//
       QMutex mutex;
       QWaitCondition cv;
-
-      //-- Callbacks --//
-      std::function<void(bool)> timingCallback;
   };
 }
 

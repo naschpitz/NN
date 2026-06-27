@@ -462,9 +462,6 @@ namespace NN_CLI
   {
     emit this->gpuAugmenterPoolSignals.timingUpdate(true);
 
-    if (this->timingCallback)
-      this->timingCallback(true);
-
     // Acquire a free augmenter (blocks until one is available).
     int idx;
     {
@@ -499,8 +496,5 @@ namespace NN_CLI
     release();
 
     emit this->gpuAugmenterPoolSignals.timingUpdate(false);
-
-    if (this->timingCallback)
-      this->timingCallback(false);
   }
 }
