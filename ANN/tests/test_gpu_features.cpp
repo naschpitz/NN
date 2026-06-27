@@ -1,5 +1,7 @@
 #include "test_helpers.hpp"
 
+#include <QObject>
+
 //===================================================================================================================//
 
 static void testGPUTrainCallback()
@@ -20,7 +22,10 @@ static void testGPUTrainCallback()
 
   int callbackCount = 0;
   auto core = ANN::Core<float>::makeCore(config);
-  core->setTrainCallback([&callbackCount](const Common::TrainProgressEvent<float>& progress) { callbackCount++; });
+  QObject::connect(
+    &core->getCoreSignals(), &ANN::CoreSignals::trainProgress, &core->getCoreSignals(),
+    [&callbackCount](ulong, ulong, ulong, ulong, double, double, bool, bool, int, int) { callbackCount++; },
+    Qt::DirectConnection);
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -394,10 +399,14 @@ static void testGPUBatchPredictAbort()
   };
 
   // Progress callback that aborts after the first batch completes.
-  core->setProgressCallback([&core](ulong current, ulong) {
-    if (current >= 1)
-      core->requestStop();
-  });
+  QObject::connect(
+    &core->getCoreSignals(), &ANN::CoreSignals::predictProgress, &core->getCoreSignals(),
+    [&core](ulong current, ulong) {
+      if (current >= 1)
+        core->requestStop();
+    },
+
+    Qt::DirectConnection);
 
   Common::PredictResults<float> results = core->predict(inputs.size(), sliceProvider);
 
@@ -426,10 +435,14 @@ static void testGPUTrainAbort()
   auto core = ANN::Core<float>::makeCore(config);
 
   // Train callback that aborts after epoch 1 starts.
-  core->setTrainCallback([&core](const Common::TrainProgressEvent<float>& p) {
-    if (p.currentEpoch >= 1)
-      core->requestStop();
-  });
+  QObject::connect(
+    &core->getCoreSignals(), &ANN::CoreSignals::trainProgress, &core->getCoreSignals(),
+    [&core](ulong currentEpoch, ulong, ulong, ulong, double, double, bool, bool, int, int) {
+      if (currentEpoch >= 1)
+        core->requestStop();
+    },
+
+    Qt::DirectConnection);
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 

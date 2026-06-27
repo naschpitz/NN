@@ -1,5 +1,7 @@
 #include "test_helpers.hpp"
 
+#include <QObject>
+
 static void testGPUWeightedCrossEntropyTrain()
 {
   TestScope _t("testGPUWeightedCrossEntropyTrain (CNN)");
@@ -268,17 +270,21 @@ static void testGPUParametersDuringTrain()
   bool denseBiasesNonEmpty = false;
   ulong lastEpoch = 0;
 
-  core->setTrainCallback([&](const Common::TrainProgressEvent<float>& progress) {
-    if (progress.currentEpoch > lastEpoch && lastEpoch > 0 && !paramsChecked) {
-      const CNN::Parameters<float>& params = core->getParameters();
-      convFiltersNonEmpty = !params.convParams.empty() && !params.convParams[0].filters.empty();
-      denseWeightsNonEmpty = !params.denseParams.weights.empty();
-      denseBiasesNonEmpty = !params.denseParams.biases.empty();
-      paramsChecked = true;
-    }
+  QObject::connect(
+    &core->getCoreSignals(), &CNN::CoreSignals::trainProgress, &core->getCoreSignals(),
+    [&](ulong currentEpoch, ulong, ulong, ulong, double, double, bool, bool, int, int) {
+      if (currentEpoch > lastEpoch && lastEpoch > 0 && !paramsChecked) {
+        const CNN::Parameters<float>& params = core->getParameters();
+        convFiltersNonEmpty = !params.convParams.empty() && !params.convParams[0].filters.empty();
+        denseWeightsNonEmpty = !params.denseParams.weights.empty();
+        denseBiasesNonEmpty = !params.denseParams.biases.empty();
+        paramsChecked = true;
+      }
 
-    lastEpoch = progress.currentEpoch;
-  });
+      lastEpoch = currentEpoch;
+    },
+
+    Qt::DirectConnection);
 
   core->train(samples.size(), CNN::makeSampleProvider(samples));
 

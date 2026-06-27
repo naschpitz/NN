@@ -1,5 +1,7 @@
 #include "test_helpers.hpp"
 
+#include <QObject>
+
 //===================================================================================================================//
 
 static void runPredictStopRequested()
@@ -63,10 +65,14 @@ static void runPredictStopRequested()
   };
 
   // Progress callback that requests stop after the first batch completes.
-  core->setProgressCallback([&core](ulong current, ulong) {
-    if (current >= 1)
-      core->requestStop();
-  });
+  QObject::connect(
+    &core->getCoreSignals(), &CNN::CoreSignals::predictProgress, &core->getCoreSignals(),
+    [&core](ulong current, ulong) {
+      if (current >= 1)
+        core->requestStop();
+    },
+
+    Qt::DirectConnection);
 
   Common::PredictResults<double> results = core->predict(total, sliceProvider);
 
@@ -129,10 +135,14 @@ static void testTrainStopRequested()
   auto core = CNN::Core<double>::makeCore(config);
 
   // Train callback that requests stop after the first epoch's first sample fires.
-  core->setTrainCallback([&core](const Common::TrainProgressEvent<double>& p) {
-    if (p.currentEpoch >= 1)
-      core->requestStop();
-  });
+  QObject::connect(
+    &core->getCoreSignals(), &CNN::CoreSignals::trainProgress, &core->getCoreSignals(),
+    [&core](ulong currentEpoch, ulong, ulong, ulong, double, double, bool, bool, int, int) {
+      if (currentEpoch >= 1)
+        core->requestStop();
+    },
+
+    Qt::DirectConnection);
 
   core->train(samples.size(), CNN::makeSampleProvider(samples));
 

@@ -1,5 +1,7 @@
 #include "test_helpers.hpp"
 
+#include <QObject>
+
 //===================================================================================================================//
 
 //-- Multi-GPU Tests --//
@@ -85,15 +87,19 @@ static void testMultiGPUCallback()
   bool sawGPU1 = false;
 
   auto core = ANN::Core<float>::makeCore(config);
-  core->setTrainCallback([&](const Common::TrainProgressEvent<float>& progress) {
-    callbackCount++;
+  QObject::connect(
+    &core->getCoreSignals(), &ANN::CoreSignals::trainProgress, &core->getCoreSignals(),
+    [&](ulong, ulong, ulong, ulong, double, double, bool, bool, int gpuIndex, int) {
+      callbackCount++;
 
-    if (progress.gpuIndex == 0)
-      sawGPU0 = true;
+      if (gpuIndex == 0)
+        sawGPU0 = true;
 
-    if (progress.gpuIndex == 1)
-      sawGPU1 = true;
-  });
+      if (gpuIndex == 1)
+        sawGPU1 = true;
+    },
+
+    Qt::DirectConnection);
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 

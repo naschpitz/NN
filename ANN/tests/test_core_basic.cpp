@@ -1,5 +1,7 @@
 #include "test_helpers.hpp"
 
+#include <QObject>
+
 //===================================================================================================================//
 
 static void testMakeCoreCPU()
@@ -183,7 +185,10 @@ static void testTrainCallback()
 
   int callbackCount = 0;
   auto core = ANN::Core<double>::makeCore(config);
-  core->setTrainCallback([&callbackCount](const Common::TrainProgressEvent<double>& progress) { callbackCount++; });
+  QObject::connect(
+    &core->getCoreSignals(), &ANN::CoreSignals::trainProgress, &core->getCoreSignals(),
+    [&callbackCount](ulong, ulong, ulong, ulong, double, double, bool, bool, int, int) { callbackCount++; },
+    Qt::DirectConnection);
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -261,15 +266,18 @@ static void testParametersDuringTrain()
   bool weightsNonEmpty = false;
   bool biasesNonEmpty = false;
 
-  core->setTrainCallback([&](const Common::TrainProgressEvent<double>& progress) {
-    // Detect epoch-completion callback: epochLoss > 0 and sampleLoss == 0
-    if (progress.epochLoss > 0 && progress.sampleLoss == 0 && !paramsChecked) {
-      const ANN::Parameters<double>& params = core->getParameters();
-      weightsNonEmpty = !params.weights.empty();
-      biasesNonEmpty = !params.biases.empty();
-      paramsChecked = true;
-    }
-  });
+  QObject::connect(
+    &core->getCoreSignals(), &ANN::CoreSignals::trainProgress, &core->getCoreSignals(),
+    [&](ulong, ulong, ulong, ulong, double epochLoss, double sampleLoss, bool, bool, int, int) {
+      if (epochLoss > 0 && sampleLoss == 0 && !paramsChecked) {
+        const ANN::Parameters<double>& params = core->getParameters();
+        weightsNonEmpty = !params.weights.empty();
+        biasesNonEmpty = !params.biases.empty();
+        paramsChecked = true;
+      }
+    },
+
+    Qt::DirectConnection);
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
@@ -419,10 +427,14 @@ static void testBatchPredictAbort()
   // The callback receives (current, total) where `current` is the number
   // of samples already processed. After the first batch (batchSize=1)
   // `current` will be 1, so we request stop at that point.
-  core->setProgressCallback([&core](ulong current, ulong total) {
-    if (current >= 1)
-      core->requestStop();
-  });
+  QObject::connect(
+    &core->getCoreSignals(), &ANN::CoreSignals::predictProgress, &core->getCoreSignals(),
+    [&core](ulong current, ulong) {
+      if (current >= 1)
+        core->requestStop();
+    },
+
+    Qt::DirectConnection);
 
   Common::PredictResults<double> results = core->predict(inputs.size(), sliceProvider);
 
@@ -455,10 +467,14 @@ static void testTrainAbort()
   // Train callback that aborts after epoch 1 starts.
   // The callback fires per-sample during training; after the first
   // sample of epoch 1 (currentEpoch == 1) we request stop.
-  core->setTrainCallback([&core](const Common::TrainProgressEvent<double>& p) {
-    if (p.currentEpoch >= 1)
-      core->requestStop();
-  });
+  QObject::connect(
+    &core->getCoreSignals(), &ANN::CoreSignals::trainProgress, &core->getCoreSignals(),
+    [&core](ulong currentEpoch, ulong, ulong, ulong, double, double, bool, bool, int, int) {
+      if (currentEpoch >= 1)
+        core->requestStop();
+    },
+
+    Qt::DirectConnection);
 
   core->train(samples.size(), ANN::makeSampleProvider(samples));
 
