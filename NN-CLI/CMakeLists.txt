@@ -31,6 +31,7 @@ add_executable(NN-CLI
   models/NN-CLI_CNNRunner.cpp
   models/NN-CLI_Runner.cpp
   models/NN-CLI_RunnerSignals.hpp
+  models/NN-CLI_RunnerSignals.cpp
   models/NN-CLI_LossReferenceTable.cpp
   models/NN-CLI_ModelSerializer.cpp
   models/NN-CLI_PredictSummary.cpp
