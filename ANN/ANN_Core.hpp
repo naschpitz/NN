@@ -131,23 +131,6 @@ namespace ANN
         this->trainConfig.learningRate = lr;
       }
 
-      void setTrainCallback(Common::TrainCallback<T> callback)
-      {
-        trainCallback = callback;
-      }
-
-      // Invoked once per completed epoch with the 0-based epoch index. The
-      // consumer performs epoch-boundary work here (validation, checkpoints).
-      void setEpochCompletedCallback(Common::EpochCompletedCallback<T> callback)
-      {
-        epochCompletedCallback = callback;
-      }
-
-      void setProgressCallback(Common::ProgressCallback callback)
-      {
-        progressCallback = callback;
-      }
-
       // Request early training termination. The training loop checks this at epoch boundaries.
       void requestStop()
       {
@@ -219,9 +202,6 @@ namespace ANN
       ulong progressReports = 1000;
       Common::LogLevel logLevel = Common::LogLevel::ERROR;
 
-      Common::TrainCallback<T> trainCallback;
-      Common::EpochCompletedCallback<T> epochCompletedCallback;
-      Common::ProgressCallback progressCallback;
       std::atomic<bool> stopRequested{false};
 
       //-- Signal hub (Qt signals/slot surface; non-template QObject) --//

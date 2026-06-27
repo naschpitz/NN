@@ -340,7 +340,8 @@ template <typename T>
 Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>& sampleProvider)
 {
   return Common::distributeTestAcrossGPUs<T>(
-    &this->workerPool, numSamples, sampleProvider, this->numGPUs, this->testConfig.fetchSize, this->progressCallback,
+    &this->workerPool, numSamples, sampleProvider, this->numGPUs, this->testConfig.fetchSize,
+    [this](ulong current, ulong total) { this->emitPredictProgress(current, total); },
     [this](size_t gpuIdx, const Samples<T>& batch, ulong startIdx, ulong endIdx) -> std::pair<T, ulong> {
       return this->gpuWorkers[gpuIdx]->testSubset(SamplesView<T>(batch.data() + startIdx, endIdx - startIdx));
     });

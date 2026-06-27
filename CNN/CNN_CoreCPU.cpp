@@ -489,8 +489,6 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
     workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->coreConfig, this->layersConfig, this->parameters, true));
   }
 
-  QMutex callbackMutex;
-
   // Sample index indirection for shuffling
   std::vector<ulong> sampleIndices(numSamples);
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
@@ -563,7 +561,6 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
             ulong completed = ++completedSamples;
 
             {
-              QMutexLocker locker(&callbackMutex);
               Common::TrainProgressEvent<T> progress;
               progress.currentEpoch = e + 1;
               progress.totalEpochs = numEpochs;
@@ -834,8 +831,6 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
     workers.push_back(std::make_unique<CoreCPUWorker<T>>(this->coreConfig, this->layersConfig, this->parameters, true));
   }
 
-  QMutex callbackMutex;
-
   // Sample index indirection for shuffling
   std::vector<ulong> sampleIndices(numSamples);
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
@@ -1058,7 +1053,6 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
           ulong completed = ++completedSamples;
 
           {
-            QMutexLocker locker(&callbackMutex);
             Common::TrainProgressEvent<T> progress;
             progress.currentEpoch = e + 1;
             progress.totalEpochs = numEpochs;

@@ -222,8 +222,6 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
             SamplesView<T> gpuSamples(fetchSamples.data() + item.startIdx, item.endIdx - item.startIdx);
 
             // Per-batch callback that translates local indices to cumulative per-GPU counts.
-            // Built unconditionally so a signals/slot consumer is notified even when the legacy
-            // trainCallback is unset (emitTrainProgress guards the legacy call).
             Common::TrainCallback<T> callback;
             {
               ulong offset = gpuCumulativeSamples[item.gpuIdx];
@@ -238,21 +236,14 @@ void CoreGPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
               };
             }
 
-            // Wrap the timing callback so worker-phase boundaries (H2DUpload / GpuCompute)
-            // also emit through coreSignals (DirectConnection-safe from worker threads).
-            // gpuProfileCallback is passed through unchanged: a non-null value doubles as a
-            // feature flag that enables GPU profiling, so it must stay null when unset (the
-            // gpuProfile signal is wired in a later phase alongside a profiling-enable flag).
+            // Emit timing through the signal hub (DirectConnection-safe from worker threads).
             TimingCallback wrappedTiming = [this](TimingPhase phase, TimingEvent event, int gpuIndex) {
               emit this->coreSignals.timing(phase, event, gpuIndex);
-
-              if (this->timingCallback)
-                this->timingCallback(phase, event, gpuIndex);
             };
 
             gpuLosses[item.gpuIdx] += this->gpuWorkers[item.gpuIdx]->trainSubset(
               gpuSamples, numSamples, e + 1, numEpochs, callback, wrappedTiming, static_cast<int>(item.gpuIdx),
-              this->gpuProfileCallback, this->gpuProfileDumpPath);
+              GpuProfileCallback{}, this->gpuProfileDumpPath);
           });
 
         // Save training kernels after first window

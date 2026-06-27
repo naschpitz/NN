@@ -135,36 +135,6 @@ namespace CNN
         this->coreConfig.trainConfig.learningRate = lr;
       }
 
-      void setTrainCallback(Common::TrainCallback<T> callback)
-      {
-        trainCallback = callback;
-      }
-
-      // Invoked once per completed epoch with the 0-based epoch index. The
-      // consumer performs epoch-boundary work here (validation, checkpoints).
-      void setEpochCompletedCallback(Common::EpochCompletedCallback<T> callback)
-      {
-        epochCompletedCallback = callback;
-      }
-
-      void setProgressCallback(Common::ProgressCallback callback)
-      {
-        progressCallback = callback;
-      }
-
-      // Optional instrumentation hook. When set, the training loop notifies the
-      // consumer at phase boundaries (begin/end) so it can measure durations.
-      // No-op overhead when unset.
-      void setTimingCallback(TimingCallback callback)
-      {
-        timingCallback = callback;
-      }
-
-      void setGpuProfileCallback(GpuProfileCallback callback)
-      {
-        gpuProfileCallback = callback;
-      }
-
       void setGpuProfileDumpPath(const std::string& path)
       {
         gpuProfileDumpPath = path;
@@ -243,11 +213,6 @@ namespace CNN
       Common::LogLevel logLevel = Common::LogLevel::ERROR;
 
       //-- Internal state --//
-      Common::TrainCallback<T> trainCallback;
-      Common::EpochCompletedCallback<T> epochCompletedCallback;
-      Common::ProgressCallback progressCallback;
-      TimingCallback timingCallback;
-      GpuProfileCallback gpuProfileCallback;
       std::string gpuProfileDumpPath;
       std::atomic<bool> stopRequested{false};
 
@@ -258,9 +223,6 @@ namespace CNN
       // Notify the consumer that a measurable phase begins/ends. Cheap no-op when unset.
       void emitTiming(TimingPhase phase, TimingEvent event, int gpuIndex = -1) const
       {
-        if (timingCallback)
-          timingCallback(phase, event, gpuIndex);
-
         emit this->coreSignals.timing(phase, event, gpuIndex);
       }
 

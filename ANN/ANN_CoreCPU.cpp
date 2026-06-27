@@ -194,9 +194,6 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
                                                          this->costFunctionConfig, true));
   }
 
-  // Mutex for serializing callback calls (prevents I/O contention)
-  QMutex callbackMutex;
-
   // Sample index indirection for shuffling
   std::vector<ulong> sampleIndices(numSamples);
   std::iota(sampleIndices.begin(), sampleIndices.end(), 0);
@@ -267,7 +264,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
             worker.accumulate();
 
             ulong completed = ++completedSamples;
-            this->reportProgress(e + 1, numEpochs, completed, numSamples, sampleLoss, 0, callbackMutex);
+            this->reportProgress(e + 1, numEpochs, completed, numSamples, sampleLoss, 0);
           }
         });
       }
@@ -314,7 +311,7 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
       this->emitTrainProgress(progress);
     } else {
-      this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss, callbackMutex);
+      this->reportProgress(e + 1, numEpochs, numSamples, numSamples, 0, avgEpochLoss);
     }
 
     // Always track the 0-based index of the last completed epoch (matches
@@ -684,26 +681,10 @@ void CoreCPU<T>::update(ulong numSamples)
 
 template <typename T>
 void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples,
-                                T sampleLoss, T epochLoss, QMutex& callbackMutex)
+                                T sampleLoss, T epochLoss)
 {
   emit this->coreSignals.trainProgress(currentEpoch, totalEpochs, currentSample, totalSamples, epochLoss, sampleLoss,
                                        false, false, -1, 0);
-
-  if (!this->trainCallback) {
-    return;
-  }
-
-  QMutexLocker locker(&callbackMutex);
-
-  Common::TrainProgressEvent<T> progress;
-  progress.currentEpoch = currentEpoch;
-  progress.totalEpochs = totalEpochs;
-  progress.currentSample = currentSample;
-  progress.totalSamples = totalSamples;
-  progress.sampleLoss = sampleLoss;
-  progress.epochLoss = epochLoss;
-
-  this->trainCallback(progress);
 }
 
 //===================================================================================================================//

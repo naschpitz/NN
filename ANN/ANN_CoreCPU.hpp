@@ -75,7 +75,7 @@ namespace ANN
       void resetGlobalAccumulators();
       void mergeWorkerAccumulators(const CoreCPUWorker<T>& worker);
       void reportProgress(ulong currentEpoch, ulong totalEpochs, ulong currentSample, ulong totalSamples, T sampleLoss,
-                          T epochLoss, QMutex& callbackMutex);
+                          T epochLoss);
   };
 }
 
