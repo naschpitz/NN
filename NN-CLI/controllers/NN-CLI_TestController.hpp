@@ -1,7 +1,7 @@
 #ifndef NN_CLI_TESTCONTROLLER_HPP
 #define NN_CLI_TESTCONTROLLER_HPP
 
-#include "NN-CLI_RunnerSignals.hpp"
+#include "NN-CLI_RunnerBase.hpp"
 
 #include <QObject>
 
@@ -15,24 +15,24 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  // MVC Controller for test/evaluation sessions.  Bridges a concrete Runner
-  // (Model) to console output (View) via Runner signals.  Takes ownership of
-  // the runner, connects its signals, and delegates runner events to
-  // stdout/stderr.
+  // MVC Controller for test/evaluation sessions.  Bridges a Runner (Model) to
+  // console output (View) via Qt signals/slots.  Takes ownership of the
+  // runner, connects its signals, and delegates runner events to stdout/stderr.
   //
-  // Template parameter RunnerT is the concrete runner type (e.g. ANNRunner or
-  // CNNRunner).  The controller calls RunnerT::test() and prints test metrics
-  // and results to the console.
+  // The controller calls Runner::test() and prints test metrics and results
+  // to the console.  Uses Qt::DirectConnection because the main thread blocks
+  // synchronously in test() — there is no event loop to queue into.
   //
   // Usage:
   //   auto runner = std::make_unique<ANNRunner>(...);
-  //   TestController<ANNRunner> ctrl;
+  //   TestController ctrl;
   //   ctrl.init(std::move(runner));
   //   int result = ctrl.startTest();
 
-  template <typename RunnerT>
-  class TestController
+  class TestController : public QObject
   {
+      Q_OBJECT
+
     public:
       //-- Ctors / Dtors --//
 
@@ -48,17 +48,17 @@ namespace NN_CLI
 
       // Take ownership of the Runner and connect this controller to the
       // Runner's signals.
-      void init(std::unique_ptr<RunnerT> runner);
+      void init(std::unique_ptr<RunnerBase> runner);
 
       // Trigger the Runner's test process.  Returns the exit code from
-      // RunnerT::test().
+      // Runner::test().
       int startTest();
 
       //-- Accessors --//
 
-      RunnerT* getRunner() const;
+      RunnerBase* getRunner() const;
 
-    protected:
+    public slots:
       //-- Runner signal handlers --//
 
       void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
@@ -78,10 +78,7 @@ namespace NN_CLI
     private:
       //-- Members --//
 
-      std::unique_ptr<RunnerT> runner;
-
-      //-- Qt signal-connection context (thread affinity for queued delivery) --//
-      QObject signalContext;
+      std::unique_ptr<RunnerBase> runner;
   };
 
   //===================================================================================================================//

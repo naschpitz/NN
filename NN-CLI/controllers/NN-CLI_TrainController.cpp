@@ -1,7 +1,5 @@
 #include "NN-CLI_TrainController.hpp"
 
-#include "NN-CLI_ANNRunner.hpp"
-#include "NN-CLI_CNNRunner.hpp"
 #include "NN-CLI_TerminalUI_TrainWindow.hpp"
 #include "NN-CLI_LossReferenceTable.hpp"
 #include "NN-CLI_SummaryTable.hpp"
@@ -51,19 +49,17 @@ namespace NN_CLI
   //-- Ctors / Dtors --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  TrainController<RunnerT>::~TrainController()
+  TrainController::~TrainController()
   {
-    // Signal connections auto-disconnect when runnerSignals (sender) is destroyed
-    // (Runner owns runnerSignals; Controller owns Runner via unique_ptr).
+    // Signal connections auto-disconnect when the Runner (sender) is destroyed
+    // (Controller owns Runner via unique_ptr).
   }
 
   //===================================================================================================================//
   //-- Lifecycle --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::init(std::unique_ptr<RunnerT> runner)
+  void TrainController::init(std::unique_ptr<RunnerBase> runner)
   {
     this->window = std::make_unique<TerminalUI_TrainWindow>();
     this->runner = std::move(runner);
@@ -92,44 +88,16 @@ namespace NN_CLI
     // path the main thread blocks synchronously in runner->train(), so
     // queued cross-thread events would pile up unbounded.
     if (this->runner && this->window && this->window->isInitialized()) {
-      auto& hub = this->runner->getRunnerSignals();
-      auto* ctx = &this->signalContext;
-
-      QObject::connect(&hub, &RunnerSignals::sampleLoadProgress, ctx,
-                       [this](ulong current, ulong total, ulong batchIndex, ulong totalBatches, bool isValidation) {
-                         this->onSampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
-                       });
-
-      QObject::connect(&hub, &RunnerSignals::validationProgress, ctx,
-                       [this](ulong current, ulong total) { this->onValidationProgress(current, total); });
-
-      QObject::connect(&hub, &RunnerSignals::batchProgress, ctx,
-                       [this](int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
-                              const std::vector<float>& fractions) {
-                         this->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds,
-                                               fractions);
-                       });
-
-      QObject::connect(&hub, &RunnerSignals::epochCompleted, ctx,
-                       [this](int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
-                              float learningRate, const std::string& summary) {
-                         this->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate,
-                                                summary);
-                       });
-
-      QObject::connect(&hub, &RunnerSignals::trainFinished, ctx, [this](bool success, const std::string& finalSummary) {
-        this->onTrainFinished(success, finalSummary);
-      });
-
-      QObject::connect(
-        &hub, &RunnerSignals::modelInfoUpdated, ctx,
-        [this](const std::string& property, const std::string& value) { this->onModelInfoUpdated(property, value); });
-
-      QObject::connect(&hub, &RunnerSignals::logMessage, ctx,
-                       [this](const std::string& message, bool isError) { this->onLogMessage(message, isError); });
-
-      QObject::connect(&hub, &RunnerSignals::timingUpdated, ctx,
-                       [this](const std::string& metric, float value) { this->onTimingUpdated(metric, value); });
+      QObject::connect(this->runner.get(), &RunnerBase::sampleLoadProgress, this,
+                       &TrainController::onSampleLoadProgress);
+      QObject::connect(this->runner.get(), &RunnerBase::validationProgress, this,
+                       &TrainController::onValidationProgress);
+      QObject::connect(this->runner.get(), &RunnerBase::batchProgress, this, &TrainController::onBatchProgress);
+      QObject::connect(this->runner.get(), &RunnerBase::epochCompleted, this, &TrainController::onEpochCompleted);
+      QObject::connect(this->runner.get(), &RunnerBase::trainFinished, this, &TrainController::onTrainFinished);
+      QObject::connect(this->runner.get(), &RunnerBase::modelInfoUpdated, this, &TrainController::onModelInfoUpdated);
+      QObject::connect(this->runner.get(), &RunnerBase::logMessage, this, &TrainController::onLogMessage);
+      QObject::connect(this->runner.get(), &RunnerBase::timingUpdated, this, &TrainController::onTimingUpdated);
     }
 
     // Start the window's UI timer.  It fires once the QCoreApplication event
@@ -141,8 +109,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  int TrainController<RunnerT>::startTrain()
+  int TrainController::startTrain()
   {
     if (!this->runner)
       return 1;
@@ -158,7 +125,7 @@ namespace NN_CLI
     this->workResult = 0;
 
     this->workWatcher = std::make_unique<QFutureWatcher<int>>();
-    QObject::connect(this->workWatcher.get(), &QFutureWatcher<int>::finished, &this->signalContext, [this]() {
+    QObject::connect(this->workWatcher.get(), &QFutureWatcher<int>::finished, this, [this]() {
       this->workResult = this->workWatcher->result();
       this->workComplete.store(true);
     });
@@ -168,7 +135,7 @@ namespace NN_CLI
     // window's dismissed flag, which also serves as the abort signal).
     this->completionTimer = std::make_unique<QTimer>();
     this->completionTimer->setInterval(50);
-    QObject::connect(this->completionTimer.get(), &QTimer::timeout, &this->signalContext, [this]() {
+    QObject::connect(this->completionTimer.get(), &QTimer::timeout, this, [this]() {
       if (this->workComplete.load() && this->window && this->window->abortRequested()) {
         this->completionTimer->stop();
         QCoreApplication::exit(this->workResult);
@@ -186,16 +153,14 @@ namespace NN_CLI
   //-- Accessors --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  TerminalUI_TrainWindow* TrainController<RunnerT>::getWindow() const
+  TerminalUI_TrainWindow* TrainController::getWindow() const
   {
     return this->window.get();
   }
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  RunnerT* TrainController<RunnerT>::getRunner() const
+  RunnerBase* TrainController::getRunner() const
   {
     return this->runner.get();
   }
@@ -204,9 +169,8 @@ namespace NN_CLI
   //-- Runner signal handlers --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
-                                                      bool isValidation)
+  void TrainController::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
+                                             bool isValidation)
   {
     (void)batchIndex;
     (void)totalBatches;
@@ -224,8 +188,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::onValidationProgress(ulong current, ulong total)
+  void TrainController::onValidationProgress(ulong current, ulong total)
   {
     if (!this->window)
       return;
@@ -237,9 +200,8 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
-                                                 float etaSeconds, const std::vector<float>& fractions)
+  void TrainController::onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
+                                        float etaSeconds, const std::vector<float>& fractions)
   {
     (void)batchIdx;
     (void)totalBatches;
@@ -265,9 +227,8 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                  float valLoss, float learningRate, const std::string& summary)
+  void TrainController::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
+                                         float learningRate, const std::string& summary)
   {
     if (!this->window)
       return;
@@ -316,8 +277,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::onTrainFinished(bool success, const std::string& finalSummary)
+  void TrainController::onTrainFinished(bool success, const std::string& finalSummary)
   {
     if (!this->window)
       return;
@@ -329,8 +289,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::onModelInfoUpdated(const std::string& property, const std::string& value)
+  void TrainController::onModelInfoUpdated(const std::string& property, const std::string& value)
   {
     (void)property;
     (void)value;
@@ -347,8 +306,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::onLogMessage(const std::string& message, bool isError)
+  void TrainController::onLogMessage(const std::string& message, bool isError)
   {
     if (!this->window)
       return;
@@ -358,8 +316,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::onTimingUpdated(const std::string& metric, float value)
+  void TrainController::onTimingUpdated(const std::string& metric, float value)
   {
     (void)metric;
     (void)value;
@@ -373,8 +330,7 @@ namespace NN_CLI
   //-- Private — epoch label --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  std::string TrainController<RunnerT>::buildEpochLabel() const
+  std::string TrainController::buildEpochLabel() const
   {
     std::ostringstream oss;
     oss << "Epoch " << std::setw(4) << (this->currentEpoch + 1) << "/" << this->totalEpochs;
@@ -386,8 +342,7 @@ namespace NN_CLI
   //-- Private — timing panel refresh --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::refreshTimingPanel()
+  void TrainController::refreshTimingPanel()
   {
     if (!this->window || !this->runner)
       return;
@@ -406,8 +361,7 @@ namespace NN_CLI
   //-- Private — check abort --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::checkAbortRequested()
+  void TrainController::checkAbortRequested()
   {
     if (this->window && this->window->abortRequested() && !this->abortHandled) {
       this->abortHandled = true;
@@ -420,8 +374,7 @@ namespace NN_CLI
   //-- Private — model info population --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TrainController<RunnerT>::populateModelInfo()
+  void TrainController::populateModelInfo()
   {
     if (!this->window || !this->runner)
       return;
@@ -445,8 +398,5 @@ namespace NN_CLI
   //===================================================================================================================//
   //-- Explicit template instantiations --//
   //===================================================================================================================//
-
-  template class TrainController<ANNRunner>;
-  template class TrainController<CNNRunner>;
 
 } // namespace NN_CLI

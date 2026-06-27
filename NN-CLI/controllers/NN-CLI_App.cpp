@@ -197,7 +197,7 @@ int App::run()
 
     switch (this->mode) {
     case Common::ModeType::CALIBRATE: {
-      CalibrateController<ANNRunner> ctrl;
+      CalibrateController ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startCalibrate();
     }
@@ -205,20 +205,20 @@ int App::run()
     case Common::ModeType::TRAIN: {
       // TODO: Support resume-training from --model-package with --mode train
       // (load weights + optimizer state + lastEpoch from package, continue training)
-      TrainController<ANNRunner> ctrl;
+      TrainController ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTrain();
     }
 
     case Common::ModeType::TEST: {
-      TestController<ANNRunner> ctrl;
+      TestController ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTest();
     }
 
     case Common::ModeType::PREDICT:
     default: {
-      PredictController<ANNRunner> ctrl;
+      PredictController ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startPredict();
     }
@@ -229,7 +229,7 @@ int App::run()
 
     switch (this->mode) {
     case Common::ModeType::CALIBRATE: {
-      CalibrateController<CNNRunner> ctrl;
+      CalibrateController ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startCalibrate();
     }
@@ -237,20 +237,20 @@ int App::run()
     case Common::ModeType::TRAIN: {
       // TODO: Support resume-training from --model-package with --mode train
       // (load weights + optimizer state + lastEpoch from package, continue training)
-      TrainController<CNNRunner> ctrl;
+      TrainController ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTrain();
     }
 
     case Common::ModeType::TEST: {
-      TestController<CNNRunner> ctrl;
+      TestController ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startTest();
     }
 
     case Common::ModeType::PREDICT:
     default: {
-      PredictController<CNNRunner> ctrl;
+      PredictController ctrl;
       ctrl.init(std::move(runner));
       return ctrl.startPredict();
     }

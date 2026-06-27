@@ -28,11 +28,11 @@ namespace NN_CLI
    * to the appropriate Controller (TrainController, PredictController,
    * TestController, or CalibrateController) based on the selected mode.
    * Each Controller bridges a concrete Runner (Model) and a View through
-   * RunnerSignals (Qt signals/slots).
+   * Qt signals/slots (RunnerBase → Controller).
    *
    * Architecture:
    *   App -> Controller -> {Model (Runner), View (Window)}
-   *   Model -> Controller (via RunnerSignals)
+   *   Model -> Controller (via RunnerBase signals)
    *   Controller -> View (via API updates)
    */
   class App

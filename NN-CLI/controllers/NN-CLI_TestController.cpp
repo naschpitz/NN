@@ -1,8 +1,5 @@
 #include "NN-CLI_TestController.hpp"
 
-#include "NN-CLI_ANNRunner.hpp"
-#include "NN-CLI_CNNRunner.hpp"
-
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -15,18 +12,16 @@ namespace NN_CLI
   //-- Ctors / Dtors --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  TestController<RunnerT>::~TestController()
+  TestController::~TestController()
   {
-    // Signal connections auto-disconnect when runnerSignals (sender) is destroyed.
+    // Signal connections auto-disconnect when the Runner (sender) is destroyed.
   }
 
   //===================================================================================================================//
   //-- Lifecycle --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TestController<RunnerT>::init(std::unique_ptr<RunnerT> runner)
+  void TestController::init(std::unique_ptr<RunnerBase> runner)
   {
     this->runner = std::move(runner);
 
@@ -37,50 +32,23 @@ namespace NN_CLI
     // the slots inline on the emitting thread (same threading semantics as the
     // original observer pattern), so no queued events pile up while the main
     // thread is blocked in runner->test().
-    auto& hub = this->runner->getRunnerSignals();
-    auto* ctx = &this->signalContext;
-
-    QObject::connect(
-      &hub, &RunnerSignals::batchProgress, ctx,
-      [this](int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
-             const std::vector<float>& fractions) {
-        this->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
-      },
-
-      Qt::DirectConnection);
-
-    QObject::connect(
-      &hub, &RunnerSignals::epochCompleted, ctx,
-      [this](int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss, float learningRate,
-             const std::string& summary) {
-        this->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate, summary);
-      },
-
-      Qt::DirectConnection);
-
-    QObject::connect(
-      &hub, &RunnerSignals::trainFinished, ctx,
-      [this](bool success, const std::string& finalSummary) { this->onTrainFinished(success, finalSummary); },
-      Qt::DirectConnection);
-
-    QObject::connect(
-      &hub, &RunnerSignals::modelInfoUpdated, ctx,
-      [this](const std::string& property, const std::string& value) { this->onModelInfoUpdated(property, value); },
-      Qt::DirectConnection);
-
-    QObject::connect(
-      &hub, &RunnerSignals::logMessage, ctx,
-      [this](const std::string& message, bool isError) { this->onLogMessage(message, isError); }, Qt::DirectConnection);
-
-    QObject::connect(
-      &hub, &RunnerSignals::timingUpdated, ctx,
-      [this](const std::string& metric, float value) { this->onTimingUpdated(metric, value); }, Qt::DirectConnection);
+    QObject::connect(this->runner.get(), &RunnerBase::batchProgress, this, &TestController::onBatchProgress,
+                     Qt::DirectConnection);
+    QObject::connect(this->runner.get(), &RunnerBase::epochCompleted, this, &TestController::onEpochCompleted,
+                     Qt::DirectConnection);
+    QObject::connect(this->runner.get(), &RunnerBase::trainFinished, this, &TestController::onTrainFinished,
+                     Qt::DirectConnection);
+    QObject::connect(this->runner.get(), &RunnerBase::modelInfoUpdated, this, &TestController::onModelInfoUpdated,
+                     Qt::DirectConnection);
+    QObject::connect(this->runner.get(), &RunnerBase::logMessage, this, &TestController::onLogMessage,
+                     Qt::DirectConnection);
+    QObject::connect(this->runner.get(), &RunnerBase::timingUpdated, this, &TestController::onTimingUpdated,
+                     Qt::DirectConnection);
   }
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  int TestController<RunnerT>::startTest()
+  int TestController::startTest()
   {
     if (!this->runner)
       return 1;
@@ -92,8 +60,7 @@ namespace NN_CLI
   //-- Accessors --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  RunnerT* TestController<RunnerT>::getRunner() const
+  RunnerBase* TestController::getRunner() const
   {
     return this->runner.get();
   }
@@ -102,9 +69,8 @@ namespace NN_CLI
   //-- Runner signal handlers --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TestController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
-                                                float etaSeconds, const std::vector<float>& fractions)
+  void TestController::onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
+                                       float etaSeconds, const std::vector<float>& fractions)
   {
     // Test mode: batch progress maps to batch evaluation progress with loss.
     (void)samplesPerSec;
@@ -118,9 +84,8 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TestController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                 float valLoss, float learningRate, const std::string& summary)
+  void TestController::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
+                                        float learningRate, const std::string& summary)
   {
     // Test mode does not use epoch events, but print the summary for
     // interface completeness in case the runner fires one.
@@ -136,8 +101,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TestController<RunnerT>::onTrainFinished(bool success, const std::string& finalSummary)
+  void TestController::onTrainFinished(bool success, const std::string& finalSummary)
   {
     std::cout << "\n";
 
@@ -147,16 +111,14 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TestController<RunnerT>::onModelInfoUpdated(const std::string& property, const std::string& value)
+  void TestController::onModelInfoUpdated(const std::string& property, const std::string& value)
   {
     std::cout << "  " << property << ": " << value << "\n";
   }
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TestController<RunnerT>::onLogMessage(const std::string& message, bool isError)
+  void TestController::onLogMessage(const std::string& message, bool isError)
   {
     if (isError)
       std::cerr << "[ERROR] " << message << "\n";
@@ -166,8 +128,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void TestController<RunnerT>::onTimingUpdated(const std::string& metric, float value)
+  void TestController::onTimingUpdated(const std::string& metric, float value)
   {
     std::cout << "  " << metric << ": " << std::fixed << std::setprecision(2) << value << " ms\n";
   }
@@ -175,8 +136,5 @@ namespace NN_CLI
   //===================================================================================================================//
   //-- Explicit template instantiations --//
   //===================================================================================================================//
-
-  template class TestController<ANNRunner>;
-  template class TestController<CNNRunner>;
 
 } // namespace NN_CLI

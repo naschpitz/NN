@@ -1,6 +1,5 @@
 #include "test_helpers.hpp"
 
-#include "NN-CLI_CalibrateController.hpp"
 #include "NN-CLI_CalibrateUtils.hpp"
 
 #include <json.hpp>

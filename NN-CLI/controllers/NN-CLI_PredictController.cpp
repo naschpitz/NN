@@ -1,8 +1,5 @@
 #include "NN-CLI_PredictController.hpp"
 
-#include "NN-CLI_ANNRunner.hpp"
-#include "NN-CLI_CNNRunner.hpp"
-
 #include <QCoreApplication>
 #include <QFutureWatcher>
 #include <QTimer>
@@ -37,18 +34,16 @@ namespace NN_CLI
   //-- Ctors / Dtors --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  PredictController<RunnerT>::~PredictController()
+  PredictController::~PredictController()
   {
-    // Signal connections auto-disconnect when runnerSignals (sender) is destroyed.
+    // Signal connections auto-disconnect when the Runner (sender) is destroyed.
   }
 
   //===================================================================================================================//
   //-- Lifecycle --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::init(std::unique_ptr<RunnerT> runner)
+  void PredictController::init(std::unique_ptr<RunnerBase> runner)
   {
     this->window = std::make_unique<TerminalUI_PredictWindow>();
     this->runner = std::move(runner);
@@ -65,50 +60,18 @@ namespace NN_CLI
       // path the main thread blocks synchronously in runner->predict(), so
       // queued cross-thread events would pile up unbounded.
       if (this->runner) {
-        auto& hub = this->runner->getRunnerSignals();
-        auto* ctx = &this->signalContext;
-
-        QObject::connect(&hub, &RunnerSignals::sampleLoadProgress, ctx,
-                         [this](ulong current, ulong total, ulong batchIndex, ulong totalBatches, bool isValidation) {
-                           this->onSampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
-                         });
-
-        QObject::connect(&hub, &RunnerSignals::validationProgress, ctx,
-                         [this](ulong current, ulong total) { this->onValidationProgress(current, total); });
-
-        QObject::connect(&hub, &RunnerSignals::batchProgress, ctx,
-                         [this](int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
-                                float etaSeconds, const std::vector<float>& fractions) {
-                           this->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds,
-                                                 fractions);
-                         });
-
-        QObject::connect(&hub, &RunnerSignals::epochCompleted, ctx,
-                         [this](int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
-                                float learningRate, const std::string& summary) {
-                           this->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate,
-                                                  summary);
-                         });
-
-        QObject::connect(
-          &hub, &RunnerSignals::trainFinished, ctx,
-          [this](bool success, const std::string& finalSummary) { this->onTrainFinished(success, finalSummary); });
-
-        QObject::connect(&hub, &RunnerSignals::predictFinished, ctx,
-                         [this](const Common::PredictResults<float>& results, size_t numInputs, double durationSeconds,
-                                const std::string& durationFormatted, const std::string& outputPath) {
-                           this->onPredictFinished(results, numInputs, durationSeconds, durationFormatted, outputPath);
-                         });
-
-        QObject::connect(
-          &hub, &RunnerSignals::modelInfoUpdated, ctx,
-          [this](const std::string& property, const std::string& value) { this->onModelInfoUpdated(property, value); });
-
-        QObject::connect(&hub, &RunnerSignals::logMessage, ctx,
-                         [this](const std::string& message, bool isError) { this->onLogMessage(message, isError); });
-
-        QObject::connect(&hub, &RunnerSignals::timingUpdated, ctx,
-                         [this](const std::string& metric, float value) { this->onTimingUpdated(metric, value); });
+        QObject::connect(this->runner.get(), &RunnerBase::sampleLoadProgress, this,
+                         &PredictController::onSampleLoadProgress);
+        QObject::connect(this->runner.get(), &RunnerBase::validationProgress, this,
+                         &PredictController::onValidationProgress);
+        QObject::connect(this->runner.get(), &RunnerBase::batchProgress, this, &PredictController::onBatchProgress);
+        QObject::connect(this->runner.get(), &RunnerBase::epochCompleted, this, &PredictController::onEpochCompleted);
+        QObject::connect(this->runner.get(), &RunnerBase::trainFinished, this, &PredictController::onTrainFinished);
+        QObject::connect(this->runner.get(), &RunnerBase::predictFinished, this, &PredictController::onPredictFinished);
+        QObject::connect(this->runner.get(), &RunnerBase::modelInfoUpdated, this,
+                         &PredictController::onModelInfoUpdated);
+        QObject::connect(this->runner.get(), &RunnerBase::logMessage, this, &PredictController::onLogMessage);
+        QObject::connect(this->runner.get(), &RunnerBase::timingUpdated, this, &PredictController::onTimingUpdated);
       }
 
       this->window->startUiTimer();
@@ -117,8 +80,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  int PredictController<RunnerT>::startPredict()
+  int PredictController::startPredict()
   {
     if (!this->runner)
       return 1;
@@ -134,7 +96,7 @@ namespace NN_CLI
     this->workResult = 0;
 
     this->workWatcher = std::make_unique<QFutureWatcher<int>>();
-    QObject::connect(this->workWatcher.get(), &QFutureWatcher<int>::finished, &this->signalContext, [this]() {
+    QObject::connect(this->workWatcher.get(), &QFutureWatcher<int>::finished, this, [this]() {
       this->workResult = this->workWatcher->result();
       this->workComplete.store(true);
     });
@@ -144,7 +106,7 @@ namespace NN_CLI
     // window's dismissed flag, which also serves as the abort signal).
     this->completionTimer = std::make_unique<QTimer>();
     this->completionTimer->setInterval(50);
-    QObject::connect(this->completionTimer.get(), &QTimer::timeout, &this->signalContext, [this]() {
+    QObject::connect(this->completionTimer.get(), &QTimer::timeout, this, [this]() {
       if (this->workComplete.load() && this->window && this->window->abortRequested()) {
         this->completionTimer->stop();
         QCoreApplication::exit(this->workResult);
@@ -160,11 +122,10 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::shutdown()
+  void PredictController::shutdown()
   {
     if (this->runner)
-      this->runner->getRunnerSignals().disconnect(&this->signalContext);
+      this->runner->disconnect(this);
 
     this->window.reset();
   }
@@ -173,16 +134,14 @@ namespace NN_CLI
   //-- Accessors --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  RunnerT* PredictController<RunnerT>::getRunner() const
+  RunnerBase* PredictController::getRunner() const
   {
     return this->runner.get();
   }
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  TerminalUI_PredictWindow* PredictController<RunnerT>::getWindow() const
+  TerminalUI_PredictWindow* PredictController::getWindow() const
   {
     return this->window.get();
   }
@@ -191,9 +150,8 @@ namespace NN_CLI
   //-- Runner signal handlers --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex,
-                                                        ulong totalBatches, bool isValidation)
+  void PredictController::onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
+                                               bool isValidation)
   {
     (void)batchIndex;
     (void)totalBatches;
@@ -208,8 +166,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::onValidationProgress(ulong current, ulong total)
+  void PredictController::onValidationProgress(ulong current, ulong total)
   {
     if (!this->window || !this->window->isInitialized())
       return;
@@ -219,10 +176,8 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::onBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                   float samplesPerSec, float etaSeconds,
-                                                   const std::vector<float>& fractions)
+  void PredictController::onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec,
+                                          float etaSeconds, const std::vector<float>& fractions)
   {
     (void)currentLoss;
     (void)samplesPerSec;
@@ -247,9 +202,8 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
-                                                    float valLoss, float learningRate, const std::string& summary)
+  void PredictController::onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss,
+                                           float valLoss, float learningRate, const std::string& summary)
   {
     (void)epochIdx;
     (void)totalEpochs;
@@ -270,8 +224,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::onTrainFinished(bool success, const std::string& finalSummary)
+  void PredictController::onTrainFinished(bool success, const std::string& finalSummary)
   {
     if (!this->window || !this->window->isInitialized()) {
       std::string prefix = success ? "[Predict complete] " : "[Predict failed] ";
@@ -285,10 +238,9 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::onPredictFinished(const Common::PredictResults<float>& results, size_t numInputs,
-                                                     double durationSeconds, const std::string& durationFormatted,
-                                                     const std::string& outputPath)
+  void PredictController::onPredictFinished(const Common::PredictResults<float>& results, size_t numInputs,
+                                            double durationSeconds, const std::string& durationFormatted,
+                                            const std::string& outputPath)
   {
     (void)durationSeconds;
 
@@ -328,8 +280,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::onModelInfoUpdated(const std::string& property, const std::string& value)
+  void PredictController::onModelInfoUpdated(const std::string& property, const std::string& value)
   {
     (void)property;
     (void)value;
@@ -344,8 +295,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::onLogMessage(const std::string& message, bool isError)
+  void PredictController::onLogMessage(const std::string& message, bool isError)
   {
     // When the TUI is not active, fall back to console output.
     if (!this->window || !this->window->isInitialized()) {
@@ -363,8 +313,7 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::onTimingUpdated(const std::string& metric, float value)
+  void PredictController::onTimingUpdated(const std::string& metric, float value)
   {
     (void)metric;
     (void)value;
@@ -382,8 +331,7 @@ namespace NN_CLI
   //-- Private — model info population --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::populateModelInfo()
+  void PredictController::populateModelInfo()
   {
     if (!this->window || !this->window->isInitialized())
       return;
@@ -398,16 +346,14 @@ namespace NN_CLI
   //-- Private — training metadata population --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::populateTrainMeta()
+  void PredictController::populateTrainMeta()
   {
     if (!this->window || !this->window->isInitialized())
       return;
 
     if (!this->runner)
       return;
-    const auto& config = this->runner->getCoreConfig();
-    const auto& tm = config.loadedTrainMetadata;
+    const auto& tm = this->runner->getLoadedTrainMetadata();
 
     std::vector<std::string> lines;
 
@@ -427,8 +373,7 @@ namespace NN_CLI
   //-- Private — abort check --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::checkAbortRequested()
+  void PredictController::checkAbortRequested()
   {
     if (this->window && this->window->abortRequested() && !this->abortHandled) {
       this->abortHandled = true;
@@ -441,8 +386,7 @@ namespace NN_CLI
   //-- Private — progress seed --//
   //===================================================================================================================//
 
-  template <typename RunnerT>
-  void PredictController<RunnerT>::populateProgress()
+  void PredictController::populateProgress()
   {
     if (!this->window || !this->window->isInitialized())
       return;
@@ -452,8 +396,5 @@ namespace NN_CLI
   //===================================================================================================================//
   //-- Explicit template instantiations --//
   //===================================================================================================================//
-
-  template class PredictController<ANNRunner>;
-  template class PredictController<CNNRunner>;
 
 } // namespace NN_CLI

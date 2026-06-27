@@ -1,7 +1,7 @@
 #ifndef NN_CLI_TRAINCONTROLLER_HPP
 #define NN_CLI_TRAINCONTROLLER_HPP
 
-#include "NN-CLI_RunnerSignals.hpp"
+#include "NN-CLI_RunnerBase.hpp"
 #include "NN-CLI_TerminalUI_TrainWindow.hpp"
 
 #include <QObject>
@@ -21,38 +21,31 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  // MVC Controller for training sessions.  Bridges a concrete Runner (Model)
-  // and a TerminalUI_TrainWindow (View) via Runner signals.  Owns both
+  // MVC Controller for training sessions.  Bridges a Runner (Model) and a
+  // TerminalUI_TrainWindow (View) via Qt signals/slots.  Owns both
   // components and translates training events into high-level view updates —
   // the controller itself is completely free of ncurses internals.
   //
   // Threading: training runs on a QtConcurrent worker thread while the main
   // thread spins a QCoreApplication event loop (driving the UI timer).  Runner
   // signals are emitted from Core worker threads and queued for delivery on
-  // the main thread (the signalContext's thread affinity), serialized with the
-  // UI timer — no mutex is needed for view data.  Worker threads therefore
-  // never touch ncurses and can never be stalled by the terminal.
-  //
-  // Template parameter RunnerT is the concrete runner type (e.g. ANNRunner or
-  // CNNRunner).  The controller takes ownership of the runner via unique_ptr
-  // and connects its signals to receive batch, epoch, and model-info events.
-  // Each handler delegates to a single high-level call on the TrainWindow,
-  // keeping the mapping transparent and testable.
+  // the main thread — no mutex is needed for view data.  Worker threads
+  // therefore never touch ncurses and can never be stalled by the terminal.
   //
   // Usage:
   //   auto runner = std::make_unique<ANNRunner>(...);
-  //   TrainController<ANNRunner> ctrl;
+  //   TrainController ctrl;
   //   ctrl.init(std::move(runner));
   //   int result = ctrl.startTrain();
 
-  template <typename RunnerT>
-  class TrainController
+  class TrainController : public QObject
   {
+      Q_OBJECT
+
     public:
       //-- Ctors / Dtors --//
 
       TrainController() = default;
-
       ~TrainController();
 
       TrainController(const TrainController&) = delete;
@@ -64,10 +57,10 @@ namespace NN_CLI
 
       // Create the TrainWindow, take ownership of the Runner, and connect
       // this controller to the Runner's signals.
-      void init(std::unique_ptr<RunnerT> runner);
+      void init(std::unique_ptr<RunnerBase> runner);
 
       // Trigger the Runner's training process.  Returns the exit code from
-      // RunnerT::train().  With the TUI active, training runs on a
+      // Runner::train().  With the TUI active, training runs on a
       // QtConcurrent worker thread while the main thread runs a
       // QCoreApplication event loop (driving the UI timer) until the user
       // dismisses the window.  Without a TUI, training runs synchronously.
@@ -76,9 +69,9 @@ namespace NN_CLI
       //-- Accessors --//
 
       TerminalUI_TrainWindow* getWindow() const;
-      RunnerT* getRunner() const;
+      RunnerBase* getRunner() const;
 
-    protected:
+    public slots:
       //-- Runner signal handlers --//
 
       void onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches, bool isValidation);
@@ -118,7 +111,7 @@ namespace NN_CLI
       //-- Members --//
 
       std::unique_ptr<TerminalUI_TrainWindow> window;
-      std::unique_ptr<RunnerT> runner;
+      std::unique_ptr<RunnerBase> runner;
 
       //-- Async training (TUI path only) --//
 
@@ -133,9 +126,6 @@ namespace NN_CLI
       int totalEpochs = 0;
       bool isValidating = false;
       bool abortHandled = false;
-
-      //-- Qt signal-connection context (thread affinity for queued delivery) --//
-      QObject signalContext;
   };
 
   //===================================================================================================================//

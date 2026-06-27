@@ -1,7 +1,7 @@
 #ifndef NN_CLI_PREDICTCONTROLLER_HPP
 #define NN_CLI_PREDICTCONTROLLER_HPP
 
-#include "NN-CLI_RunnerSignals.hpp"
+#include "NN-CLI_RunnerBase.hpp"
 #include "NN-CLI_TerminalUI_PredictWindow.hpp"
 
 #include <QObject>
@@ -22,26 +22,26 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  // MVC Controller for prediction sessions.  Bridges a concrete Runner (Model)
-  // to TerminalUI_PredictWindow (View) via Runner signals.  Owns both
+  // MVC Controller for prediction sessions.  Bridges a Runner (Model) to
+  // TerminalUI_PredictWindow (View) via Qt signals/slots.  Owns both
   // components and translates prediction events into view updates.
   //
   // Threading: prediction runs on a QtConcurrent worker thread while the main
   // thread spins a QCoreApplication event loop (driving the UI timer).  Runner
   // signals are emitted from Core worker threads and queued for delivery on
-  // the main thread (the signalContext's thread affinity), serialized with the
-  // UI timer — no mutex is needed for view data.  Worker threads therefore
-  // never touch ncurses and can never be stalled by the terminal.
+  // the main thread — no mutex is needed for view data.  Worker threads
+  // therefore never touch ncurses and can never be stalled by the terminal.
   //
   // Usage:
   //   auto runner = std::make_unique<ANNRunner>(...);
-  //   PredictController<ANNRunner> ctrl;
+  //   PredictController ctrl;
   //   ctrl.init(std::move(runner));
   //   int result = ctrl.startPredict();
 
-  template <typename RunnerT>
-  class PredictController
+  class PredictController : public QObject
   {
+      Q_OBJECT
+
     public:
       //-- Ctors / Dtors --//
 
@@ -57,10 +57,10 @@ namespace NN_CLI
 
       // Create the PredictWindow, take ownership of the Runner, and connect
       // this controller to the Runner's signals.
-      void init(std::unique_ptr<RunnerT> runner);
+      void init(std::unique_ptr<RunnerBase> runner);
 
       // Trigger the Runner's prediction process.  Returns the exit code from
-      // RunnerT::predict().  With the TUI active, prediction runs on a
+      // Runner::predict().  With the TUI active, prediction runs on a
       // QtConcurrent worker thread while the main thread runs a
       // QCoreApplication event loop (driving the UI timer) until the user
       // dismisses the window.  Without a TUI, prediction runs synchronously.
@@ -71,10 +71,10 @@ namespace NN_CLI
 
       //-- Accessors --//
 
-      RunnerT* getRunner() const;
+      RunnerBase* getRunner() const;
       TerminalUI_PredictWindow* getWindow() const;
 
-    protected:
+    public slots:
       //-- Runner signal handlers --//
 
       void onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches, bool isValidation);
@@ -116,7 +116,7 @@ namespace NN_CLI
       //-- Members --//
 
       std::unique_ptr<TerminalUI_PredictWindow> window;
-      std::unique_ptr<RunnerT> runner;
+      std::unique_ptr<RunnerBase> runner;
 
       //-- Async prediction (TUI path only) --//
 
@@ -126,9 +126,6 @@ namespace NN_CLI
       int workResult = 0;
 
       bool abortHandled = false;
-
-      //-- Qt signal-connection context (thread affinity for Phase 2 queued delivery) --//
-      QObject signalContext;
   };
 
   //===================================================================================================================//
