@@ -31,7 +31,7 @@ MVC pattern: `App` → `Controller` → `{Model (Runner), View (Window)}`
 | Controller | `TrainController`, `PredictController`, `TestController` | Orchestrate training/prediction/test flow |
 | Model | `NN-CLI_Runner` (ANN/CNN variants) | Bridge to ANN::Core / CNN::Core |
 | View | `NN-CLI_TerminalUI_*` (Panel, Table, Window, ProgressBar) | ncurses terminal UI |
-| Observer | `IRunnerObserver` | Model → Controller notifications |
+| Signals | `RunnerSignals` (QObject hub) | Model → Controller notifications (Qt signals/slots) |
 
 ## Config format
 

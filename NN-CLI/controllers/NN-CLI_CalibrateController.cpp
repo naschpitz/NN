@@ -30,8 +30,51 @@ namespace NN_CLI
   {
     this->runner = std::move(runner);
 
-    if (this->runner)
-      connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
+    if (!this->runner)
+      return;
+
+    // Calibration runs synchronously with no event loop.  DirectConnection
+    // delivers the slots inline on the emitting thread (same threading
+    // semantics as the original observer pattern), so no queued events pile up
+    // while the main thread is blocked in runner->calibrate().
+    auto& hub = this->runner->getRunnerSignals();
+    auto* ctx = &this->signalContext;
+
+    QObject::connect(
+      &hub, &RunnerSignals::batchProgress, ctx,
+      [this](int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
+             const std::vector<float>& fractions) {
+        this->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
+      },
+
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::epochCompleted, ctx,
+      [this](int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss, float learningRate,
+             const std::string& summary) {
+        this->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate, summary);
+      },
+
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::trainFinished, ctx,
+      [this](bool success, const std::string& finalSummary) { this->onTrainFinished(success, finalSummary); },
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::modelInfoUpdated, ctx,
+      [this](const std::string& property, const std::string& value) { this->onModelInfoUpdated(property, value); },
+      Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::logMessage, ctx,
+      [this](const std::string& message, bool isError) { this->onLogMessage(message, isError); }, Qt::DirectConnection);
+
+    QObject::connect(
+      &hub, &RunnerSignals::timingUpdated, ctx,
+      [this](const std::string& metric, float value) { this->onTimingUpdated(metric, value); }, Qt::DirectConnection);
   }
 
   //===================================================================================================================//
@@ -56,7 +99,7 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- IRunnerObserver overrides --//
+  //-- Runner signal handlers --//
   //===================================================================================================================//
 
   template <typename RunnerT>

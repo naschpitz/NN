@@ -207,9 +207,9 @@ int CNNRunner::train()
   this->_numTrainSamples = numTrainSamples;
   this->_numValidationSamples = numValidationSamples;
 
-  this->notifyModelInfoUpdated("totalOriginalSamples", std::to_string(totalOriginalSamples));
-  this->notifyModelInfoUpdated("numTrainSamples", std::to_string(numTrainSamples));
-  this->notifyModelInfoUpdated("numValidationSamples", std::to_string(numValidationSamples));
+  emit this->runnerSignals.modelInfoUpdated("totalOriginalSamples", std::to_string(totalOriginalSamples));
+  emit this->runnerSignals.modelInfoUpdated("numTrainSamples", std::to_string(numTrainSamples));
+  emit this->runnerSignals.modelInfoUpdated("numValidationSamples", std::to_string(numValidationSamples));
 
   // When validation is enabled, NN-CLI handles monitoring with validation loss.
   std::shared_ptr<Common::TrainMonitor<float>> trainMonitor;
@@ -281,7 +281,8 @@ int CNNRunner::train()
   // callback (from its worker threads) as each batch is loaded/augmented.
   dataLoader.setLoadingCallback(
     [this](ulong current, ulong total, ulong batchIndex, ulong totalBatches, SampleLoadType loadType) {
-      this->notifySampleLoadProgress(current, total, batchIndex, totalBatches, loadType == SampleLoadType::Validation);
+      emit this->runnerSignals.sampleLoadProgress(current, total, batchIndex, totalBatches,
+                                                  loadType == SampleLoadType::Validation);
     });
 
   if (validationConfig.enabled) {
@@ -390,8 +391,8 @@ int CNNRunner::predict()
   double batchDurationSeconds = batchElapsed.count();
   std::string batchDurationFormatted = Common::Utils::formatDuration(batchDurationSeconds);
 
-  this->notifyPredictFinished(results, inputs.size(), batchDurationSeconds, batchDurationFormatted,
-                              outputPath.toStdString());
+  emit this->runnerSignals.predictFinished(results, inputs.size(), batchDurationSeconds, batchDurationFormatted,
+                                           outputPath.toStdString());
 
   return NN_CLI::RunnerUtils::writePredictOutput(results, outputPath, this->ioConfig, this->logLevel, startTimeStr,
                                                  endTimeStr, batchDurationSeconds, batchDurationFormatted,
@@ -417,7 +418,7 @@ int CNNRunner::calibrate()
   if (!fs::exists(idImagesDir) || !fs::is_directory(idImagesDir)) {
     std::string errMsg = "Error: --id-images " + idImagesDir + " does not exist or is not a directory.";
     std::cerr << errMsg << "\n";
-    this->notifyLogMessage(errMsg, true);
+    emit this->runnerSignals.logMessage(errMsg, true);
     return 1;
   }
 
@@ -426,15 +427,15 @@ int CNNRunner::calibrate()
     if (this->logLevel > LogLevel::QUIET) {
       std::string msg = "OOD dir is empty \u2014 fetching DTD + Places365 + synthetic.\n";
       std::cout << msg;
-      this->notifyLogMessage(msg, false);
+      emit this->runnerSignals.logMessage(msg, false);
     }
 
     NN_CLI::ensureOODDataset(oodDir, this->logLevel,
-                             [this](const std::string& m, bool err) { this->notifyLogMessage(m, err); });
+                             [this](const std::string& m, bool err) { emit this->runnerSignals.logMessage(m, err); });
   } else if (!NN_CLI::dirHasImages(oodDir)) {
     std::string errMsg = "Error: --ood-dir " + oodDir + " has no images and --no-fetch was set.";
     std::cerr << errMsg << "\n";
-    this->notifyLogMessage(errMsg, true);
+    emit this->runnerSignals.logMessage(errMsg, true);
     return 1;
   }
 
@@ -445,14 +446,14 @@ int CNNRunner::calibrate()
   if (idAll.empty()) {
     std::string errMsg = "Error: no images found under --id-images " + idImagesDir;
     std::cerr << errMsg << "\n";
-    this->notifyLogMessage(errMsg, true);
+    emit this->runnerSignals.logMessage(errMsg, true);
     return 1;
   }
 
   if (oodAll.empty()) {
     std::string errMsg = "Error: no images found under --ood-dir " + oodDir;
     std::cerr << errMsg << "\n";
-    this->notifyLogMessage(errMsg, true);
+    emit this->runnerSignals.logMessage(errMsg, true);
     return 1;
   }
 
@@ -467,7 +468,7 @@ int CNNRunner::calibrate()
                       std::to_string(oodSample.size()) + " OOD images (of " + std::to_string(oodAll.size()) +
                       " available)\n\n";
     std::cout << msg;
-    this->notifyLogMessage(msg, false);
+    emit this->runnerSignals.logMessage(msg, false);
   }
 
   //-- Predict + free-energy -------------------------------------------------
@@ -585,12 +586,12 @@ int CNNRunner::calibrate()
     std::string doneMsg = "\nCalibration done in " + Common::Utils::formatDuration(elapsed.count()) +
                           "\nThreshold written to: " + outputPath + "\n";
     std::cout << doneMsg;
-    this->notifyLogMessage(doneMsg, false);
+    emit this->runnerSignals.logMessage(doneMsg, false);
   }
 
   std::string summary = "Calibration completed | ID: " + std::to_string(idEnergies.size()) +
                         " | OOD: " + std::to_string(oodEnergies.size()) + " | Output: " + outputPath;
-  this->notifyTrainFinished(true, summary);
+  emit this->runnerSignals.trainFinished(true, summary);
 
   return 0;
 }
@@ -695,8 +696,9 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
 
       // Live "Validating" bar: route validation progress through the observer
       // instead of printing to stdout (which would corrupt the ncurses TUI).
-      validationCore->setProgressCallback(
-        [this, validationTotal](ulong current, ulong) { this->notifyValidationProgress(current, validationTotal); });
+      validationCore->setProgressCallback([this, validationTotal](ulong current, ulong) {
+        emit this->runnerSignals.validationProgress(current, validationTotal);
+      });
 
       auto validationResult = validationCore->test(validationTotal, *validationProviderPtr);
 
@@ -758,21 +760,21 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
     if (isBestEpoch)
       epochSummary += " | Best*";
 
-    this->notifyEpochCompleted(static_cast<int>(epoch), totalEpochs, this->lastEpochLoss, hasValLoss, valLoss,
-                               epochLearningRate, epochSummary);
+    emit this->runnerSignals.epochCompleted(static_cast<int>(epoch), totalEpochs, this->lastEpochLoss, hasValLoss,
+                                            valLoss, epochLearningRate, epochSummary);
 
     // --- Monitor stop requests ---
     if (monitorShouldStop) {
       std::string stopMsg = "[Monitor] Training stopped: " + trainMonitor->getStopReason();
 
-      this->notifyLogMessage(stopMsg, false);
+      emit this->runnerSignals.logMessage(stopMsg, false);
       this->core->requestStop();
     }
 
     if (completion.stoppedEarly) {
       std::string stopMsg = "[Monitor] Training stopped: " + this->core->getTrainMetadata().stopReason;
 
-      this->notifyLogMessage(stopMsg, false);
+      emit this->runnerSignals.logMessage(stopMsg, false);
       this->core->requestStop();
     }
   });

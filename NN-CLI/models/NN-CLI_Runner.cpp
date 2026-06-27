@@ -69,148 +69,6 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::applyLearningRateScheduler(ulong epoch,
 }
 
 //===================================================================================================================//
-//  Observer management
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::addObserver(NN_CLI::IRunnerObserver* observer)
-{
-  if (observer == nullptr)
-    return;
-
-  // Avoid duplicates.
-  for (auto* existing : this->observers) {
-    if (existing == observer)
-      return;
-  }
-
-  this->observers.push_back(observer);
-}
-
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::removeObserver(NN_CLI::IRunnerObserver* observer)
-{
-  if (observer == nullptr)
-    return;
-
-  auto it = std::find(this->observers.begin(), this->observers.end(), observer);
-
-  if (it != this->observers.end())
-    this->observers.erase(it);
-}
-
-//===================================================================================================================//
-//  Observer notifications
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifySampleLoadProgress(ulong current, ulong total, ulong batchIndex,
-                                                                  ulong totalBatches, bool isValidation)
-{
-  for (auto* observer : this->observers)
-    observer->onSampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
-
-  emit this->runnerSignals.sampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
-}
-
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifyValidationProgress(ulong current, ulong total)
-{
-  for (auto* observer : this->observers)
-    observer->onValidationProgress(current, total);
-
-  emit this->runnerSignals.validationProgress(current, total);
-}
-
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss,
-                                                             float samplesPerSec, float etaSeconds,
-                                                             const std::vector<float>& fractions)
-{
-  for (auto* observer : this->observers)
-    observer->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
-
-  emit this->runnerSignals.batchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds, fractions);
-}
-
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss,
-                                                              bool hasValLoss, float valLoss, float learningRate,
-                                                              const std::string& summary)
-{
-  for (auto* observer : this->observers)
-    observer->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate, summary);
-
-  emit this->runnerSignals.epochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate, summary);
-}
-
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTrainFinished(bool success, const std::string& finalSummary)
-{
-  for (auto* observer : this->observers)
-    observer->onTrainFinished(success, finalSummary);
-
-  emit this->runnerSignals.trainFinished(success, finalSummary);
-}
-
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifyPredictFinished(const Common::PredictResults<float>& results,
-                                                               size_t numInputs, double durationSeconds,
-                                                               const std::string& durationFormatted,
-                                                               const std::string& outputPath)
-{
-  for (auto* observer : this->observers)
-    observer->onPredictFinished(results, numInputs, durationSeconds, durationFormatted, outputPath);
-
-  emit this->runnerSignals.predictFinished(results, numInputs, durationSeconds, durationFormatted, outputPath);
-}
-
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifyModelInfoUpdated(const std::string& property, const std::string& value)
-{
-  for (auto* observer : this->observers)
-    observer->onModelInfoUpdated(property, value);
-
-  emit this->runnerSignals.modelInfoUpdated(property, value);
-}
-
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifyLogMessage(const std::string& message, bool isError)
-{
-  for (auto* observer : this->observers)
-    observer->onLogMessage(message, isError);
-
-  emit this->runnerSignals.logMessage(message, isError);
-}
-
-//===================================================================================================================//
-
-template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::notifyTimingUpdated(const std::string& metric, float value)
-{
-  for (auto* observer : this->observers)
-    observer->onTimingUpdated(metric, value);
-
-  emit this->runnerSignals.timingUpdated(metric, value);
-}
-
-//===================================================================================================================//
 //  Training progress handling
 //===================================================================================================================//
 
@@ -329,8 +187,8 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::handleTrainProgress(const Common::Train
 
   int batchIdx = static_cast<int>(progress.currentSample / batchSize);
   int totalBatches = static_cast<int>((progress.totalSamples + batchSize - 1) / batchSize);
-  this->notifyBatchProgress(batchIdx, totalBatches, currentLoss, static_cast<float>(rate), static_cast<float>(eta),
-                            fractions);
+  emit this->runnerSignals.batchProgress(batchIdx, totalBatches, currentLoss, static_cast<float>(rate),
+                                         static_cast<float>(eta), fractions);
 }
 
 //===================================================================================================================//
@@ -750,7 +608,7 @@ void NN_CLI::Runner<CoreT, CoreConfigT>::setupPredictProgressCallback(ulong tota
 
       float fraction = static_cast<float>(current) / static_cast<float>(total);
 
-      this->notifyBatchProgress(batchIdx, totalBatches, 0.f, 0.f, 0.f, {fraction});
+      emit this->runnerSignals.batchProgress(batchIdx, totalBatches, 0.f, 0.f, 0.f, {fraction});
     });
   }
 }
@@ -790,7 +648,7 @@ int NN_CLI::Runner<CoreT, CoreConfigT>::finishTrain(const QString& inputFilePath
                         " | Samples: " + std::to_string(trainMetadata.numSamples) +
                         " | Final loss: " + std::to_string(trainMetadata.finalLoss);
 
-  this->notifyTrainFinished(true, summary);
+  emit this->runnerSignals.trainFinished(true, summary);
 
   return NN_CLI::RunnerUtils::finishTrainCommon(this->logLevel, this->parser, inputFilePath, *this->core,
                                                 [this](const std::string& path) { this->doSaveModel(path); });

@@ -1,7 +1,7 @@
 #ifndef NN_CLI_TRAINCONTROLLER_HPP
 #define NN_CLI_TRAINCONTROLLER_HPP
 
-#include "NN-CLI_RunnerObserver.hpp"
+#include "NN-CLI_RunnerSignals.hpp"
 #include "NN-CLI_TerminalUI_TrainWindow.hpp"
 
 #include <QObject>
@@ -22,26 +22,22 @@ namespace NN_CLI
   //===================================================================================================================//
 
   // MVC Controller for training sessions.  Bridges a concrete Runner (Model)
-  // and a TerminalUI_TrainWindow (View) through the IRunnerObserver
-  // interface.  Owns both components and translates training events into
-  // high-level view updates — the controller itself is completely free of
-  // ncurses internals.
+  // and a TerminalUI_TrainWindow (View) via Runner signals.  Owns both
+  // components and translates training events into high-level view updates —
+  // the controller itself is completely free of ncurses internals.
   //
-  // Threading: observer callbacks arrive from multiple worker threads (the
-  // per-batch training callback, the data loader's loading callback, the
-  // validation callback).  Each callback only updates view data under the
-  // window's mutex and returns; all rendering, input polling, and resize
-  // handling happen on the main thread via a QTimer driven by the
-  // QCoreApplication event loop.  Training itself runs on a QtConcurrent
-  // worker thread so the main thread is free to service the event loop.
-  // Worker threads therefore never touch ncurses and can never be stalled
-  // by the terminal.
+  // Threading: training runs on a QtConcurrent worker thread while the main
+  // thread spins a QCoreApplication event loop (driving the UI timer).  Runner
+  // signals are emitted from Core worker threads and queued for delivery on
+  // the main thread (the signalContext's thread affinity), serialized with the
+  // UI timer — no mutex is needed for view data.  Worker threads therefore
+  // never touch ncurses and can never be stalled by the terminal.
   //
   // Template parameter RunnerT is the concrete runner type (e.g. ANNRunner or
   // CNNRunner).  The controller takes ownership of the runner via unique_ptr
-  // and registers itself as an observer to receive batch, epoch, and model-info
-  // events.  Each observer override delegates to a single high-level call on
-  // the TrainWindow, keeping the mapping transparent and testable.
+  // and connects its signals to receive batch, epoch, and model-info events.
+  // Each handler delegates to a single high-level call on the TrainWindow,
+  // keeping the mapping transparent and testable.
   //
   // Usage:
   //   auto runner = std::make_unique<ANNRunner>(...);
@@ -50,14 +46,14 @@ namespace NN_CLI
   //   int result = ctrl.startTrain();
 
   template <typename RunnerT>
-  class TrainController : public IRunnerObserver
+  class TrainController
   {
     public:
       //-- Ctors / Dtors --//
 
       TrainController() = default;
 
-      ~TrainController() override;
+      ~TrainController();
 
       TrainController(const TrainController&) = delete;
       TrainController& operator=(const TrainController&) = delete;
@@ -66,8 +62,8 @@ namespace NN_CLI
 
       //-- Lifecycle --//
 
-      // Create the TrainWindow, take ownership of the Runner, and register
-      // this controller as an IRunnerObserver on the Runner.
+      // Create the TrainWindow, take ownership of the Runner, and connect
+      // this controller to the Runner's signals.
       void init(std::unique_ptr<RunnerT> runner);
 
       // Trigger the Runner's training process.  Returns the exit code from
@@ -83,26 +79,25 @@ namespace NN_CLI
       RunnerT* getRunner() const;
 
     protected:
-      //-- IRunnerObserver overrides --//
+      //-- Runner signal handlers --//
 
-      void onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
-                                bool isValidation) override;
+      void onSampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches, bool isValidation);
 
-      void onValidationProgress(ulong current, ulong total) override;
+      void onValidationProgress(ulong current, ulong total);
 
       void onBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
-                           const std::vector<float>& fractions) override;
+                           const std::vector<float>& fractions);
 
       void onEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
-                            float learningRate, const std::string& summary) override;
+                            float learningRate, const std::string& summary);
 
-      void onTrainFinished(bool success, const std::string& finalSummary) override;
+      void onTrainFinished(bool success, const std::string& finalSummary);
 
-      void onModelInfoUpdated(const std::string& property, const std::string& value) override;
+      void onModelInfoUpdated(const std::string& property, const std::string& value);
 
-      void onLogMessage(const std::string& message, bool isError) override;
+      void onLogMessage(const std::string& message, bool isError);
 
-      void onTimingUpdated(const std::string& metric, float value) override;
+      void onTimingUpdated(const std::string& metric, float value);
 
     private:
       //-- Methods --//
@@ -139,7 +134,7 @@ namespace NN_CLI
       bool isValidating = false;
       bool abortHandled = false;
 
-      //-- Qt signal-connection context (thread affinity for Phase 2 queued delivery) --//
+      //-- Qt signal-connection context (thread affinity for queued delivery) --//
       QObject signalContext;
   };
 

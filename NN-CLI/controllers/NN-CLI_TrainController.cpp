@@ -91,8 +91,46 @@ namespace NN_CLI
     // Connect Runner signals only when the TUI is active.  In the no-TUI
     // path the main thread blocks synchronously in runner->train(), so
     // queued cross-thread events would pile up unbounded.
-    if (this->runner && this->window && this->window->isInitialized())
-      connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
+    if (this->runner && this->window && this->window->isInitialized()) {
+      auto& hub = this->runner->getRunnerSignals();
+      auto* ctx = &this->signalContext;
+
+      QObject::connect(&hub, &RunnerSignals::sampleLoadProgress, ctx,
+                       [this](ulong current, ulong total, ulong batchIndex, ulong totalBatches, bool isValidation) {
+                         this->onSampleLoadProgress(current, total, batchIndex, totalBatches, isValidation);
+                       });
+
+      QObject::connect(&hub, &RunnerSignals::validationProgress, ctx,
+                       [this](ulong current, ulong total) { this->onValidationProgress(current, total); });
+
+      QObject::connect(&hub, &RunnerSignals::batchProgress, ctx,
+                       [this](int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
+                              const std::vector<float>& fractions) {
+                         this->onBatchProgress(batchIdx, totalBatches, currentLoss, samplesPerSec, etaSeconds,
+                                               fractions);
+                       });
+
+      QObject::connect(&hub, &RunnerSignals::epochCompleted, ctx,
+                       [this](int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
+                              float learningRate, const std::string& summary) {
+                         this->onEpochCompleted(epochIdx, totalEpochs, epochLoss, hasValLoss, valLoss, learningRate,
+                                                summary);
+                       });
+
+      QObject::connect(&hub, &RunnerSignals::trainFinished, ctx, [this](bool success, const std::string& finalSummary) {
+        this->onTrainFinished(success, finalSummary);
+      });
+
+      QObject::connect(
+        &hub, &RunnerSignals::modelInfoUpdated, ctx,
+        [this](const std::string& property, const std::string& value) { this->onModelInfoUpdated(property, value); });
+
+      QObject::connect(&hub, &RunnerSignals::logMessage, ctx,
+                       [this](const std::string& message, bool isError) { this->onLogMessage(message, isError); });
+
+      QObject::connect(&hub, &RunnerSignals::timingUpdated, ctx,
+                       [this](const std::string& metric, float value) { this->onTimingUpdated(metric, value); });
+    }
 
     // Start the window's UI timer.  It fires once the QCoreApplication event
     // loop is entered in startTrain(); observer callbacks arrive on the same
@@ -163,7 +201,7 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
-  //-- IRunnerObserver overrides --//
+  //-- Runner signal handlers --//
   //===================================================================================================================//
 
   template <typename RunnerT>

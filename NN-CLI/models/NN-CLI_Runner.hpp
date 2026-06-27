@@ -5,7 +5,6 @@
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_LogLevel.hpp"
 #include "NN-CLI_ModelSerializer.hpp"
-#include "NN-CLI_RunnerObserver.hpp"
 #include "NN-CLI_RunnerSignals.hpp"
 #include "NN-CLI_RunnerUtils.hpp"
 #include "NN-CLI_SummaryTable.hpp"
@@ -42,10 +41,6 @@ namespace NN_CLI
              std::unique_ptr<CoreT>& core, CoreConfigT& coreConfig, const QString& configPath);
 
       virtual ~Runner() = default;
-
-      //-- Observer management --//
-      void addObserver(IRunnerObserver* observer);
-      void removeObserver(IRunnerObserver* observer);
 
       //-- Qt signals hub --//
       RunnerSignals& getRunnerSignals()
@@ -167,16 +162,16 @@ namespace NN_CLI
 
       // Shared per-batch training-progress handler, installed as the core's
       // training callback by both ANNRunner and CNNRunner: tracks per-GPU
-      // fractions (reset at epoch boundaries) and notifies observers of
-      // batch progress.  Thread-safe (locks callbackMutex).
+      // fractions (reset at epoch boundaries) and emits a batch-progress
+      // signal.  Thread-safe (locks callbackMutex).
       void handleTrainProgress(const Common::TrainProgressEvent<float>& progress, ulong batchSize);
 
-      // Install a progress callback on the core that notifies observers of
-      // batch progress during predict.  Mirrors the throttling/threshold
-      // behavior of `Utils::setupModeProgressCallback` so it is a drop-in
-      // replacement.  When `logLevel > QUIET` installs a callback that
-      // calls `notifyBatchProgress` with a fraction derived from the
-      // core's sample counter.
+      // Install a progress callback on the core that emits a batch-progress
+      // signal during predict.  Mirrors the throttling/threshold behavior of
+      // `Utils::setupModeProgressCallback` so it is a drop-in replacement.
+      // When `logLevel > QUIET` installs a callback that emits
+      // `batchProgress` with a fraction derived from the core's sample
+      // counter.
       void setupPredictProgressCallback(ulong total);
 
       // Advance the learning-rate scheduler one step at an epoch boundary and publish the
@@ -189,21 +184,6 @@ namespace NN_CLI
 
       //-- Pure virtual --//
       virtual void doSaveModel(const std::string& outputPath) = 0;
-
-      //-- Observer notifications --//
-      void notifySampleLoadProgress(ulong current, ulong total, ulong batchIndex, ulong totalBatches,
-                                    bool isValidation);
-      void notifyValidationProgress(ulong current, ulong total);
-      void notifyBatchProgress(int batchIdx, int totalBatches, float currentLoss, float samplesPerSec, float etaSeconds,
-                               const std::vector<float>& fractions);
-      void notifyEpochCompleted(int epochIdx, int totalEpochs, float epochLoss, bool hasValLoss, float valLoss,
-                                float learningRate, const std::string& summary);
-      void notifyTrainFinished(bool success, const std::string& finalSummary);
-      void notifyPredictFinished(const Common::PredictResults<float>& results, size_t numInputs, double durationSeconds,
-                                 const std::string& durationFormatted, const std::string& outputPath);
-      void notifyModelInfoUpdated(const std::string& property, const std::string& value);
-      void notifyLogMessage(const std::string& message, bool isError);
-      void notifyTimingUpdated(const std::string& metric, float value);
 
       //-- Shared state --//
       const QCommandLineParser& parser;
@@ -251,10 +231,7 @@ namespace NN_CLI
       // worker threads) against the epoch-completed callback.
       QMutex callbackMutex;
 
-      //-- Observer list --//
-      std::vector<IRunnerObserver*> observers;
-
-      //-- Qt signals hub (dual-fires with the notify*() -> IRunnerObserver path) --//
+      //-- Qt signals hub --//
       RunnerSignals runnerSignals;
   };
 

@@ -26,12 +26,10 @@ set(NNCLI_INCLUDE_DIRS
 add_executable(NN-CLI
   main.cpp
   models/NN-CLI_ANNRunner.cpp
-  models/NN-CLI_CalibrateRunner.cpp
   models/NN-CLI_CNNLoader.cpp
   models/NN-CLI_CNNRunner.cpp
   models/NN-CLI_Runner.cpp
   models/NN-CLI_RunnerSignals.hpp
-  models/NN-CLI_RunnerSignals.cpp
   models/NN-CLI_LossReferenceTable.cpp
   models/NN-CLI_ModelSerializer.cpp
   models/NN-CLI_PredictSummary.cpp

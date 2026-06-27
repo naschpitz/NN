@@ -2,7 +2,6 @@
 #define NN_CLI_RUNNERSIGNALS_HPP
 
 #include "Common/Common_PredictResult.hpp"
-#include "NN-CLI_RunnerObserver.hpp"
 #include "NN-CLI_Types.hpp"
 
 #include <QObject>
@@ -27,21 +26,27 @@ namespace NN_CLI
 
   // Non-template QObject "signals hub" owned by Runner<CoreT, CoreConfigT>.
   // Runner is a class template and moc cannot process Q_OBJECT in a template,
-  // so the signal surface lives in this non-template class. Runner holds a
-  // RunnerSignals member and emits through it, dual-firing with the legacy
-  // notify*() -> IRunnerObserver::on*() virtual dispatch.
+  // so the signal surface lives in this non-template class.  Runner holds a
+  // RunnerSignals member and emits through it.
   //
   // Connections use default AutoConnection: cross-thread emits (from Core
   // worker threads) are queued and delivered on the receiver's thread.
-  // Custom argument types are registered via qRegisterMetaType in
-  // connectRunnerSignals().
+  // Custom argument types are registered via qRegisterMetaType in the
+  // constructor.
   class RunnerSignals : public QObject
   {
       Q_OBJECT
 
     public:
       //-- Constructors --//
-      explicit RunnerSignals(QObject* parent = nullptr) : QObject(parent) {}
+      explicit RunnerSignals(QObject* parent = nullptr) : QObject(parent)
+      {
+        // Register custom types so queued (cross-thread) connections can
+        // deep-copy the arguments.  Idempotent and safe to call once per hub.
+        qRegisterMetaType<std::string>();
+        qRegisterMetaType<std::vector<float>>();
+        qRegisterMetaType<Common::PredictResults<float>>();
+      }
 
     signals:
       //-- Data-loading progress (per-batch sample load) --//
@@ -82,15 +87,6 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
-  // Connect all RunnerSignals to an IRunnerObserver-derived controller via a
-  // QObject context (for connection lifetime + thread affinity).  Uses default
-  // AutoConnection: when a signal is emitted from a worker thread (Core
-  // callback → Runner::notify*()), the slot is queued and delivered on the
-  // context object's thread (main thread), serialized with the UI timer —
-  // no mutex needed for view data.  Defined in NN-CLI_RunnerSignals.cpp.
-  void connectRunnerSignals(RunnerSignals& hub, QObject* context, IRunnerObserver* observer);
-}
-
-//===================================================================================================================//
+} // namespace NN_CLI
 
 #endif // NN_CLI_RUNNERSIGNALS_HPP
