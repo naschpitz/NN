@@ -15,7 +15,7 @@
 struct _win_st;
 typedef struct _win_st WINDOW;
 
-class QThread;
+class QTimer;
 
 namespace NN_CLI
 {
@@ -27,9 +27,9 @@ namespace NN_CLI
   // Lifecycle: call init() to start ncurses, shutdown() to tear it down.
   // Children are added via addChild() and owned via unique_ptr.
   //
-  // Threading model: after startUiThread(), a single UI thread owns all
-  // ncurses work — rendering, input, and resize handling.  It sleeps ~10 ms
-  // between ticks, drains buffered input (non-blocking), and repaints only
+  // Threading model: after startUiTimer(), the main-thread QTimer (driven by
+  // the QCoreApplication event loop) owns all ncurses work — rendering, input,
+  // and resize handling.  It fires ~every 10 ms, drains buffered input
   // when the widget tree is dirty.  Every mutating setter on a widget raises
   // that widget's dirty flag, and isDirtyTree() propagates it up, so worker
   // threads simply update widget data under getMutex() — the UI thread sees
@@ -66,14 +66,14 @@ namespace NN_CLI
         return this->initialized;
       }
 
-      // Start the dedicated UI thread.  Call after a successful init();
-      // no-op when the TUI failed to initialize or the thread already runs.
-      void startUiThread();
+      // Start the UI timer on the main thread (fires ~every 10 ms).  Call
+      // after a successful init(); no-op when the TUI failed to initialize or
+      // the timer already runs.  Requires a running QCoreApplication event
+      // loop (the timer's timeout signal is delivered through it).
+      void startUiTimer();
 
-      // Stop and join the UI thread.  Called automatically by shutdown();
-      // must not be called while holding getMutex() (the UI thread takes it
-      // each frame and the join would deadlock).
-      void stopUiThread();
+      // Stop the UI timer.  Called automatically by shutdown().
+      void stopUiTimer();
 
       // Serializes the widget tree (and ncurses) between the UI thread and
       // the data-updating threads.  Lock it around any mutation of window or
@@ -168,13 +168,6 @@ namespace NN_CLI
       // should re-render).
       bool pollAndDispatchInput();
 
-      // UI thread body: sleep ~10 ms, drain buffered input, and run draw()
-      // (resize + render) under the mutex only when needsRepaint() is true —
-      // i.e. some widget is dirty or a terminal resize is pending.  Loops
-      // until stopUiThread() clears the flag (the thread notices on its next
-      // tick).
-      void uiThreadLoop();
-
       // True when a repaint is warranted this tick: the widget tree is dirty
       // or a terminal resize was requested by the SIGWINCH handler.
       bool needsRepaint() const;
@@ -189,8 +182,7 @@ namespace NN_CLI
 
       //-- Members --//
 
-      std::unique_ptr<QThread> uiThread;
-      std::atomic<bool> uiThreadRunning{false};
+      std::unique_ptr<QTimer> uiTimer;
       QRecursiveMutex uiMutex;
 
       std::string shortcutBar;

@@ -6,9 +6,15 @@
 
 #include <QObject>
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
+
+class QTimer;
+
+template <typename T>
+class QFutureWatcher;
 
 namespace NN_CLI
 {
@@ -25,7 +31,9 @@ namespace NN_CLI
   // per-batch training callback, the data loader's loading callback, the
   // validation callback).  Each callback only updates view data under the
   // window's mutex and returns; all rendering, input polling, and resize
-  // handling happen on the window's dedicated UI thread (started in init()).
+  // handling happen on the main thread via a QTimer driven by the
+  // QCoreApplication event loop.  Training itself runs on a QtConcurrent
+  // worker thread so the main thread is free to service the event loop.
   // Worker threads therefore never touch ncurses and can never be stalled
   // by the terminal.
   //
@@ -63,8 +71,10 @@ namespace NN_CLI
       void init(std::unique_ptr<RunnerT> runner);
 
       // Trigger the Runner's training process.  Returns the exit code from
-      // RunnerT::train().  When the TUI is active, blocks on waitForDismiss()
-      // after training completes.
+      // RunnerT::train().  With the TUI active, training runs on a
+      // QtConcurrent worker thread while the main thread runs a
+      // QCoreApplication event loop (driving the UI timer) until the user
+      // dismisses the window.  Without a TUI, training runs synchronously.
       int startTrain();
 
       //-- Accessors --//
@@ -114,6 +124,13 @@ namespace NN_CLI
 
       std::unique_ptr<TerminalUI_TrainWindow> window;
       std::unique_ptr<RunnerT> runner;
+
+      //-- Async training (TUI path only) --//
+
+      std::unique_ptr<QFutureWatcher<int>> workWatcher;
+      std::unique_ptr<QTimer> completionTimer;
+      std::atomic<bool> workComplete{false};
+      int workResult = 0;
 
       //-- Training state --//
 

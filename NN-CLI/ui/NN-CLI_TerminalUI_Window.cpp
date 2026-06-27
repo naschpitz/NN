@@ -2,7 +2,7 @@
 
 // Qt headers must be included before <curses.h>: curses defines a `timeout`
 // macro that breaks Qt declarations parsed after it.
-#include <QThread>
+#include <QTimer>
 
 #include <algorithm>
 #include <clocale>
@@ -109,7 +109,7 @@ namespace NN_CLI
     if (!this->initialized)
       return;
 
-    this->stopUiThread();
+    this->stopUiTimer();
 
     this->initialized = false;
     g_activeWindow = nullptr;
@@ -128,27 +128,37 @@ namespace NN_CLI
   //-- Lifecycle --//
   //===================================================================================================================//
 
-  void TerminalUI_Window::startUiThread()
+  void TerminalUI_Window::startUiTimer()
   {
-    if (!this->initialized || this->uiThreadRunning.load())
+    if (!this->initialized || this->uiTimer)
       return;
 
-    this->uiThreadRunning.store(true);
-    this->uiThread.reset(QThread::create(&TerminalUI_Window::uiThreadLoop, this));
-    this->uiThread->start();
+    this->uiTimer = std::unique_ptr<QTimer>(new QTimer());
+    this->uiTimer->setInterval(10);
+
+    // Each tick: drain buffered input (non-blocking), repaint only when the
+    // widget tree is dirty or a terminal resize is pending.  Same logic as
+    // the former uiThreadLoop(), now driven by the main-thread event loop.
+    QObject::connect(this->uiTimer.get(), &QTimer::timeout, [this]() {
+      QMutexLocker<QRecursiveMutex> lock(&this->uiMutex);
+
+      while (this->pollAndDispatchInput()) {}
+
+      if (this->needsRepaint()) {
+        this->draw();
+      }
+    });
+
+    this->uiTimer->start();
   }
 
   //===================================================================================================================//
 
-  void TerminalUI_Window::stopUiThread()
+  void TerminalUI_Window::stopUiTimer()
   {
-    this->uiThreadRunning.store(false);
-
-    // The UI thread checks uiThreadRunning every tick (~10 ms), so wait()
-    // returns promptly without an explicit wake.
-    if (this->uiThread) {
-      this->uiThread->wait();
-      this->uiThread.reset();
+    if (this->uiTimer) {
+      this->uiTimer->stop();
+      this->uiTimer.reset();
     }
   }
 
@@ -237,33 +247,6 @@ namespace NN_CLI
   bool TerminalUI_Window::needsRepaint() const
   {
     return this->isDirtyTree() || this->resizeRequested.load(std::memory_order_relaxed);
-  }
-
-  //===================================================================================================================//
-
-  void TerminalUI_Window::uiThreadLoop()
-  {
-    // Render-on-demand loop.  The thread sleeps ~10 ms between ticks, drains
-    // buffered input (non-blocking), and repaints only when the widget tree
-    // is dirty — i.e. an observer mutated visible state (every mutating
-    // setter raises its widget's dirty flag, and isDirtyTree() propagates it)
-    // — or a terminal resize is pending.  An idle terminal therefore renders
-    // nothing and spends ~0 CPU, while worst-case event-to-paint latency is
-    // one tick (~10 ms).
-    while (this->uiThreadRunning.load()) {
-      QThread::msleep(10);
-
-      QMutexLocker<QRecursiveMutex> lock(&this->uiMutex);
-
-      // Drain all buffered input first.  Handlers mutate the affected widgets
-      // (raising their dirty flags); isDirtyTree() below catches that this
-      // same tick, so a burst of keystrokes coalesces into a single repaint.
-      while (this->pollAndDispatchInput()) {}
-
-      if (this->needsRepaint()) {
-        this->draw();
-      }
-    }
   }
 
   //===================================================================================================================//

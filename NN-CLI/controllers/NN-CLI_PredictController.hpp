@@ -6,8 +6,14 @@
 
 #include <QObject>
 
+#include <atomic>
 #include <memory>
 #include <string>
+
+class QTimer;
+
+template <typename T>
+class QFutureWatcher;
 
 //===================================================================================================================//
 
@@ -21,8 +27,11 @@ namespace NN_CLI
   // Owns both components and translates prediction events into view updates.
   //
   // Threading: observer callbacks arrive from worker threads.  Each callback
-  // updates view data under the window mutex and returns; all rendering, input
-  // polling, and resize handling happen on the window's dedicated UI thread.
+  // updates view data under the window mutex and returns; all rendering,
+  // input polling, and resize handling happen on the main thread via a
+  // QTimer driven by the QCoreApplication event loop.  Prediction itself
+  // runs on a QtConcurrent worker thread so the main thread is free to
+  // service the event loop.
   // Worker threads therefore never touch ncurses and can never be stalled
   // by the terminal.
   //
@@ -53,8 +62,10 @@ namespace NN_CLI
       void init(std::unique_ptr<RunnerT> runner);
 
       // Trigger the Runner's prediction process.  Returns the exit code from
-      // RunnerT::predict().  When the TUI is active, blocks on waitForDismiss()
-      // after the predict completes.
+      // RunnerT::predict().  With the TUI active, prediction runs on a
+      // QtConcurrent worker thread while the main thread runs a
+      // QCoreApplication event loop (driving the UI timer) until the user
+      // dismisses the window.  Without a TUI, prediction runs synchronously.
       int startPredict();
 
       // Clear observer and destroy window.
@@ -109,6 +120,14 @@ namespace NN_CLI
 
       std::unique_ptr<TerminalUI_PredictWindow> window;
       std::unique_ptr<RunnerT> runner;
+
+      //-- Async prediction (TUI path only) --//
+
+      std::unique_ptr<QFutureWatcher<int>> workWatcher;
+      std::unique_ptr<QTimer> completionTimer;
+      std::atomic<bool> workComplete{false};
+      int workResult = 0;
+
       bool abortHandled = false;
 
       //-- Qt signal-connection context (thread affinity for Phase 2 queued delivery) --//

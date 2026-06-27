@@ -8,7 +8,11 @@
 
 #include "Common/Common_Utils.hpp"
 
+#include <QCoreApplication>
+#include <QFutureWatcher>
 #include <QMutex>
+#include <QTimer>
+#include <QtConcurrent>
 
 #include <iomanip>
 #include <sstream>
@@ -87,12 +91,13 @@ namespace NN_CLI
       this->window->updateProgressSubLine("Loss: 0.000000");
     }
 
-    // Start the window's dedicated UI thread.  From here on the window
-    // redraws itself at a fixed frame rate and handles input and resize on
-    // its own thread; the observer callbacks below only update view data
+    // Start the window's UI timer.  From here on the window redraws itself at
+    // a fixed frame rate and handles input and resize on the main thread via
+    // the QTimer (which fires once the QCoreApplication event loop is entered
+    // in startTrain()); the observer callbacks below only update view data
     // under the window mutex.
     if (this->window)
-      this->window->startUiThread();
+      this->window->startUiTimer();
   }
 
   //===================================================================================================================//
@@ -103,14 +108,39 @@ namespace NN_CLI
     if (!this->runner)
       return 1;
 
-    int result = this->runner->train();
+    // No TUI → training runs synchronously on the calling thread (same as
+    // pre-Phase-2 behavior; no event loop is started).
+    if (!this->window || !this->window->isInitialized())
+      return this->runner->train();
 
-    // Block on dismiss after training completes when the TUI is active,
-    // so the user can inspect the final loss / validation table.
-    if (this->window && this->window->isInitialized())
-      this->window->waitForDismiss();
+    // TUI → training runs on a QtConcurrent worker thread while the main
+    // thread spins a QCoreApplication event loop to drive the UI timer.
+    this->workComplete.store(false);
+    this->workResult = 0;
 
-    return result;
+    this->workWatcher = std::make_unique<QFutureWatcher<int>>();
+    QObject::connect(this->workWatcher.get(), &QFutureWatcher<int>::finished, &this->signalContext, [this]() {
+      this->workResult = this->workWatcher->result();
+      this->workComplete.store(true);
+    });
+
+    // Poll for completion + dismiss.  Exits the event loop once training is
+    // done AND the user has requested dismiss/abort (pressing 'q' sets the
+    // window's dismissed flag, which also serves as the abort signal).
+    this->completionTimer = std::make_unique<QTimer>();
+    this->completionTimer->setInterval(50);
+    QObject::connect(this->completionTimer.get(), &QTimer::timeout, &this->signalContext, [this]() {
+      if (this->workComplete.load() && this->window && this->window->abortRequested()) {
+        this->completionTimer->stop();
+        QCoreApplication::exit(this->workResult);
+      }
+    });
+
+    this->completionTimer->start();
+
+    this->workWatcher->setFuture(QtConcurrent::run([this]() { return this->runner->train(); }));
+
+    return QCoreApplication::exec();
   }
 
   //===================================================================================================================//

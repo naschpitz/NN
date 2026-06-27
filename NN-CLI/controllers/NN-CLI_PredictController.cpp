@@ -3,7 +3,11 @@
 #include "NN-CLI_ANNRunner.hpp"
 #include "NN-CLI_CNNRunner.hpp"
 
+#include <QCoreApplication>
+#include <QFutureWatcher>
 #include <QMutex>
+#include <QTimer>
+#include <QtConcurrent>
 
 #include <iomanip>
 #include <iostream>
@@ -54,13 +58,13 @@ namespace NN_CLI
       connectRunnerSignals(this->runner->getRunnerSignals(), &this->signalContext, this);
 
     // Initialize the ncurses TUI.  If init fails (e.g. no TTY attached),
-    // the window gracefully degrades — the UI thread is never started, so
+    // the window gracefully degrades — the UI timer is never started, so
     // the prediction proceeds with console-only output from the Runner.
     if (this->window && this->window->init()) {
       this->populateModelInfo();
       this->populateTrainMeta();
       this->populateProgress();
-      this->window->startUiThread();
+      this->window->startUiTimer();
     }
   }
 
@@ -72,13 +76,39 @@ namespace NN_CLI
     if (!this->runner)
       return 1;
 
-    int r = this->runner->predict();
+    // No TUI → prediction runs synchronously on the calling thread (same as
+    // pre-Phase-2 behavior; no event loop is started).
+    if (!this->window || !this->window->isInitialized())
+      return this->runner->predict();
 
-    // Block on dismiss after predict completes when the TUI is active.
-    if (this->window && this->window->isInitialized())
-      this->window->waitForDismiss();
+    // TUI → prediction runs on a QtConcurrent worker thread while the main
+    // thread spins a QCoreApplication event loop to drive the UI timer.
+    this->workComplete.store(false);
+    this->workResult = 0;
 
-    return r;
+    this->workWatcher = std::make_unique<QFutureWatcher<int>>();
+    QObject::connect(this->workWatcher.get(), &QFutureWatcher<int>::finished, &this->signalContext, [this]() {
+      this->workResult = this->workWatcher->result();
+      this->workComplete.store(true);
+    });
+
+    // Poll for completion + dismiss.  Exits the event loop once prediction is
+    // done AND the user has requested dismiss/abort (pressing 'q' sets the
+    // window's dismissed flag, which also serves as the abort signal).
+    this->completionTimer = std::make_unique<QTimer>();
+    this->completionTimer->setInterval(50);
+    QObject::connect(this->completionTimer.get(), &QTimer::timeout, &this->signalContext, [this]() {
+      if (this->workComplete.load() && this->window && this->window->abortRequested()) {
+        this->completionTimer->stop();
+        QCoreApplication::exit(this->workResult);
+      }
+    });
+
+    this->completionTimer->start();
+
+    this->workWatcher->setFuture(QtConcurrent::run([this]() { return this->runner->predict(); }));
+
+    return QCoreApplication::exec();
   }
 
   //===================================================================================================================//
