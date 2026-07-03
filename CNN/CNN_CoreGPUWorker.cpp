@@ -492,25 +492,30 @@ void CoreGPUWorker<T>::reportSampleProgress(const Common::TrainCallback<T>& call
 //===================================================================================================================//
 
 template <typename T>
-std::pair<T, ulong> CoreGPUWorker<T>::testSubset(SamplesView<T> samples)
+Common::TestSubsetResult<T> CoreGPUWorker<T>::testSubset(SamplesView<T> samples)
 {
   T subsetLoss = static_cast<T>(0);
-  ulong subsetCorrect = 0;
+  Common::ConfusionMatrix<T> confusion;
 
   for (ulong s = 0; s < samples.size(); s++) {
     Output<T> predicted = this->predict(samples[s].input).output;
     subsetLoss += this->calculateLoss(predicted, samples[s].output);
 
-    // Accuracy: compare argmax of predicted vs expected
+    // Accuracy: compare argmax of predicted vs expected, and accumulate the
+    // raw confusion count (metrics computed on the aggregate).
     auto predIdx = std::distance(predicted.begin(), std::max_element(predicted.begin(), predicted.end()));
     auto expIdx =
       std::distance(samples[s].output.begin(), std::max_element(samples[s].output.begin(), samples[s].output.end()));
 
-    if (predIdx == expIdx)
-      subsetCorrect++;
+    confusion.ensureSized(static_cast<ulong>(samples[s].output.size()));
+
+    ulong pi = static_cast<ulong>(predIdx);
+    ulong ei = static_cast<ulong>(expIdx);
+    confusion.matrix[ei * confusion.numClasses + pi]++;
+    confusion.totalSamples++;
   }
 
-  return {subsetLoss, subsetCorrect};
+  return {subsetLoss, confusion};
 }
 
 //===================================================================================================================//

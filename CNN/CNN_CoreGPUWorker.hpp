@@ -7,6 +7,8 @@
 #include "CNN_GPUBufferManager.hpp"
 #include "CNN_GPUKernelBuilder.hpp"
 
+#include "Common/Common_TestSubsetResult.hpp"
+
 #include <ANN_CoreGPUWorker.hpp>
 #include <OCLW_Core.hpp>
 
@@ -47,7 +49,7 @@ namespace CNN
       void resetAccumLoss();
 
       //-- Testing --//
-      std::pair<T, ulong> testSubset(SamplesView<T> samples);
+      Common::TestSubsetResult<T> testSubset(SamplesView<T> samples);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
       Common::PredictResults<T> predictSubset(InputsView<T> inputs, const Common::ProgressCallback& callback = nullptr);

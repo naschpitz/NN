@@ -398,7 +398,7 @@ Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>
   ulong numBatches = (numSamples + fetchSize - 1) / fetchSize;
 
   T totalLoss = static_cast<T>(0);
-  ulong totalCorrect = 0;
+  Common::ConfusionMatrix<T> aggregate;
 
   for (ulong b = 0; b < numBatches; b++) {
     Samples<T> batch = sampleProvider(sampleIndices, fetchSize, b * fetchSize);
@@ -424,7 +424,7 @@ Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>
         workItems.append({gpuIdx, startIdx, endIdx});
     }
 
-    std::vector<std::pair<T, ulong>> gpuResults(this->numGPUs, {0, 0});
+    std::vector<Common::TestSubsetResult<T>> gpuResults(this->numGPUs);
 
     QtConcurrent::blockingMap(&this->workerPool, workItems, [this, &batch, &gpuResults](const GPUWorkItem& item) {
       gpuResults[item.gpuIdx] = this->gpuWorkers[item.gpuIdx]->testSubset(
@@ -432,12 +432,23 @@ Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>
     });
 
     for (size_t i = 0; i < this->numGPUs; i++) {
-      totalLoss += gpuResults[i].first;
-      totalCorrect += gpuResults[i].second;
+      totalLoss += gpuResults[i].loss;
+      Common::mergeConfusionMatrix(aggregate, gpuResults[i].confusion);
     }
 
     ulong samplesProcessed = std::min((b + 1) * fetchSize, numSamples);
     this->emitPredictProgress(samplesProcessed, numSamples);
+  }
+
+  // Derive metrics + numCorrect (trace == diagonal) from the aggregate.
+  if (!aggregate.empty()) {
+    aggregate.computeMetrics();
+  }
+
+  ulong totalCorrect = 0;
+
+  for (size_t c = 0; c < aggregate.truePositive.size(); c++) {
+    totalCorrect += aggregate.truePositive[c];
   }
 
   Common::TestResult<T> result;
@@ -447,6 +458,7 @@ Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>
   result.averageLoss = (numSamples > 0) ? totalLoss / static_cast<T>(numSamples) : static_cast<T>(0);
   result.accuracy = (numSamples > 0) ? static_cast<T>(totalCorrect) / static_cast<T>(numSamples) * static_cast<T>(100)
                                      : static_cast<T>(0);
+  result.confusionMatrix = aggregate;
 
   return result;
 }

@@ -161,6 +161,65 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+  //-- Helper: serialize a confusion matrix under parent[key] --//
+  //===================================================================================================================//
+
+  template <typename T>
+  static void serializeConfusionMatrix(nlohmann::ordered_json& parent, const std::string& key,
+                                       const Common::ConfusionMatrix<T>& cm)
+  {
+    nlohmann::ordered_json cmJson;
+    cmJson["numClasses"] = cm.numClasses;
+    cmJson["totalSamples"] = cm.totalSamples;
+
+    nlohmann::ordered_json matrixArr = nlohmann::ordered_json::array();
+
+    for (size_t i = 0; i < cm.matrix.size(); i++) {
+      matrixArr.push_back(cm.matrix[i]);
+    }
+
+    cmJson["matrix"] = matrixArr;
+    cmJson["accuracy"] = static_cast<double>(cm.accuracy);
+
+    nlohmann::ordered_json perClassArr = nlohmann::ordered_json::array();
+
+    for (size_t c = 0; c < cm.numClasses; c++) {
+      nlohmann::ordered_json pc;
+      pc["tp"] = cm.truePositive[c];
+      pc["fp"] = cm.falsePositive[c];
+      pc["fn"] = cm.falseNegative[c];
+      pc["tn"] = cm.trueNegative[c];
+      pc["precision"] = static_cast<double>(cm.precision[c]);
+      pc["recall"] = static_cast<double>(cm.recall[c]);
+      pc["f1"] = static_cast<double>(cm.f1Score[c]);
+      pc["support"] = cm.support[c];
+      perClassArr.push_back(pc);
+    }
+
+    cmJson["perClass"] = perClassArr;
+
+    nlohmann::ordered_json macroJson;
+    macroJson["precision"] = static_cast<double>(cm.macroPrecision);
+    macroJson["recall"] = static_cast<double>(cm.macroRecall);
+    macroJson["f1"] = static_cast<double>(cm.macroF1);
+    cmJson["macro"] = macroJson;
+
+    nlohmann::ordered_json microJson;
+    microJson["precision"] = static_cast<double>(cm.microPrecision);
+    microJson["recall"] = static_cast<double>(cm.microRecall);
+    microJson["f1"] = static_cast<double>(cm.microF1);
+    cmJson["micro"] = microJson;
+
+    nlohmann::ordered_json weightedJson;
+    weightedJson["precision"] = static_cast<double>(cm.weightedPrecision);
+    weightedJson["recall"] = static_cast<double>(cm.weightedRecall);
+    weightedJson["f1"] = static_cast<double>(cm.weightedF1);
+    cmJson["weighted"] = weightedJson;
+
+    parent[key] = cmJson;
+  }
+
+  //===================================================================================================================//
   //-- Helper: serialize training metadata --//
   //===================================================================================================================//
 
@@ -220,6 +279,10 @@ namespace NN_CLI
 
         recordJson["isBest"] = record.isBest;
         recordJson["completionTime"] = record.completionTime;
+
+        if (record.hasValConfusionMatrix && !record.valConfusionMatrix.empty()) {
+          serializeConfusionMatrix(recordJson, "valConfusionMatrix", record.valConfusionMatrix);
+        }
 
         epochsArr.push_back(recordJson);
       }

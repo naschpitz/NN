@@ -1,6 +1,8 @@
 #ifndef COMMON_EPOCHRECORD_HPP
 #define COMMON_EPOCHRECORD_HPP
 
+#include "Common_ConfusionMatrix.hpp"
+
 #include <cstdint>
 #include <sys/types.h>
 
@@ -19,6 +21,8 @@ namespace Common
       bool hasValLoss = false; // whether validation ran this epoch
       bool isBest = false; // whether this epoch produced the best model so far
       uint64_t completionTime = 0; // epoch completion time as unix timestamp (seconds since epoch)
+      ConfusionMatrix<T> valConfusionMatrix; // validation confusion matrix (meaningful if hasValConfusionMatrix)
+      bool hasValConfusionMatrix = false; // whether the validation confusion matrix was recorded this epoch
   };
 }
 

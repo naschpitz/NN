@@ -356,6 +356,46 @@ namespace NN_CLI
   }
 
   //===================================================================================================================//
+  //-- Helper: deserialize a confusion matrix from recordJson[key] --//
+  //===================================================================================================================//
+
+  // Loads raw counts (numClasses, totalSamples, matrix) and recomputes the
+  // derived metrics via computeMetrics(). Returns true when a valid matrix was
+  // present.
+  static bool deserializeConfusionMatrix(const nlohmann::json& recordJson, const std::string& key,
+                                         Common::ConfusionMatrix<float>& cm)
+  {
+    if (!recordJson.contains(key)) {
+      return false;
+    }
+
+    const auto& cmJson = recordJson.at(key);
+    ulong numClasses = cmJson.value("numClasses", 0UL);
+    ulong totalSamples = cmJson.value("totalSamples", 0UL);
+
+    if (numClasses == 0 || !cmJson.contains("matrix") || !cmJson.at("matrix").is_array()) {
+      return false;
+    }
+
+    const auto& matrixArr = cmJson.at("matrix");
+
+    if (matrixArr.size() != numClasses * numClasses) {
+      return false;
+    }
+
+    cm.numClasses = numClasses;
+    cm.totalSamples = totalSamples;
+    cm.matrix.resize(numClasses * numClasses);
+
+    for (size_t i = 0; i < matrixArr.size(); i++) {
+      cm.matrix[i] = matrixArr[i].get<ulong>();
+    }
+
+    cm.computeMetrics();
+    return true;
+  }
+
+  //===================================================================================================================//
 
   Common::TrainMetadata<float> Loader::loadTrainMetadata(const nlohmann::json& json)
   {
@@ -404,6 +444,10 @@ namespace NN_CLI
 
           record.isBest = recordJson.value("isBest", false);
           record.completionTime = recordJson.value("completionTime", 0UL);
+
+          if (deserializeConfusionMatrix(recordJson, "valConfusionMatrix", record.valConfusionMatrix)) {
+            record.hasValConfusionMatrix = true;
+          }
 
           md.epochHistory.push_back(record);
         }

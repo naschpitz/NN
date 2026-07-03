@@ -348,6 +348,26 @@ int CNNRunner::test()
     std::cout << "  Correct:           " << result.numCorrect << " / " << result.numSamples << "\n";
     std::cout << "  Accuracy:          " << std::fixed << std::setprecision(2) << result.accuracy << "%\n";
     std::cout.unsetf(std::ios_base::floatfield);
+
+    if (!result.confusionMatrix.empty()) {
+      const Common::ConfusionMatrix<float>& cm = result.confusionMatrix;
+      std::cout << "\nConfusion Matrix (rows = actual, columns = predicted):\n";
+
+      for (ulong c = 0; c < cm.numClasses; c++) {
+        std::cout << "  Class " << c << ": TP=" << cm.truePositive[c] << " FP=" << cm.falsePositive[c]
+                  << " FN=" << cm.falseNegative[c] << " TN=" << cm.trueNegative[c] << std::fixed << std::setprecision(4)
+                  << " | P=" << cm.precision[c] << " R=" << cm.recall[c] << " F1=" << cm.f1Score[c]
+                  << " support=" << cm.support[c] << "\n";
+      }
+
+      std::cout.unsetf(std::ios_base::floatfield);
+      std::cout << std::fixed << std::setprecision(4);
+      std::cout << "  Macro:     P=" << cm.macroPrecision << " R=" << cm.macroRecall << " F1=" << cm.macroF1 << "\n";
+      std::cout << "  Micro:     P=" << cm.microPrecision << " R=" << cm.microRecall << " F1=" << cm.microF1 << "\n";
+      std::cout << "  Weighted:  P=" << cm.weightedPrecision << " R=" << cm.weightedRecall << " F1=" << cm.weightedF1
+                << "\n";
+      std::cout.unsetf(std::ios_base::floatfield);
+    }
   }
 
   return 0;
@@ -717,6 +737,7 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
       bool monitorShouldStop = false;
       float valLoss = 0.0f;
       bool hasValLoss = false;
+      Common::ConfusionMatrix<float> valConfusionMatrix;
 
       if (this->validationState.enabled && validationCore && validationProviderPtr && validationIndices &&
           epoch % this->validationState.checkInterval == 0) {
@@ -738,6 +759,7 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
         this->validationState.lastValLoss = validationResult.averageLoss;
         valLoss = validationResult.averageLoss;
         hasValLoss = true;
+        valConfusionMatrix = validationResult.confusionMatrix;
 
         if (validationResult.averageLoss < this->validationState.bestValidationLoss) {
           this->validationState.bestValidationLoss = validationResult.averageLoss;
@@ -768,6 +790,8 @@ void CNNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
         lastRecord.isBest = isBestEpoch;
         lastRecord.hasValLoss = hasValLoss;
         lastRecord.valLoss = valLoss;
+        lastRecord.valConfusionMatrix = valConfusionMatrix;
+        lastRecord.hasValConfusionMatrix = hasValLoss;
         epochLearningRate = lastRecord.learningRate;
       }
 

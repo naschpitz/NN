@@ -1,6 +1,8 @@
 #ifndef COMMON_TESTRESULT_HPP
 #define COMMON_TESTRESULT_HPP
 
+#include "Common_ConfusionMatrix.hpp"
+
 #include <sys/types.h>
 
 //===================================================================================================================//
@@ -15,6 +17,7 @@ namespace Common
       T averageLoss; // Average loss per sample (totalLoss / numSamples)
       ulong numCorrect; // Number of correctly classified samples (argmax match)
       T accuracy; // Percentage of correct classifications (0-100)
+      ConfusionMatrix<T> confusionMatrix; // Per-class confusion matrix + derived metrics
   };
 }
 

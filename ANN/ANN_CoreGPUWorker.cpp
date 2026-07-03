@@ -152,7 +152,7 @@ T CoreGPUWorker<T>::trainSubset(SamplesView<T> batchSamples, ulong totalSamples,
 //===================================================================================================================//
 
 template <typename T>
-std::pair<T, ulong> CoreGPUWorker<T>::testSubset(SamplesView<T> samples)
+Common::TestSubsetResult<T> CoreGPUWorker<T>::testSubset(SamplesView<T> samples)
 {
   // Set up predict kernels if not done yet (forward pass only)
   if (!this->kernelBuilder->predictKernelsSetup) {
@@ -161,7 +161,7 @@ std::pair<T, ulong> CoreGPUWorker<T>::testSubset(SamplesView<T> samples)
   }
 
   T subsetLoss = 0;
-  ulong subsetCorrect = 0;
+  Common::ConfusionMatrix<T> confusion;
 
   for (ulong s = 0; s < samples.size(); s++) {
     const Input<T>& input = samples[s].input;
@@ -177,14 +177,20 @@ std::pair<T, ulong> CoreGPUWorker<T>::testSubset(SamplesView<T> samples)
     Output<T> predicted = this->bufferManager->readOutput();
     T sampleLoss = this->calculateLoss(predicted, output);
     subsetLoss += sampleLoss;
+
     auto predIdx = std::distance(predicted.begin(), std::max_element(predicted.begin(), predicted.end()));
     auto expIdx = std::distance(output.begin(), std::max_element(output.begin(), output.end()));
 
-    if (predIdx == expIdx)
-      subsetCorrect++;
+    // Accumulate raw confusion count (metrics computed on the aggregate).
+    confusion.ensureSized(static_cast<ulong>(output.size()));
+
+    ulong pi = static_cast<ulong>(predIdx);
+    ulong ei = static_cast<ulong>(expIdx);
+    confusion.matrix[ei * confusion.numClasses + pi]++;
+    confusion.totalSamples++;
   }
 
-  return {subsetLoss, subsetCorrect};
+  return {subsetLoss, confusion};
 }
 
 //===================================================================================================================//

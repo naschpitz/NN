@@ -737,7 +737,7 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
   ulong numBatches = (numSamples + fetchSize - 1) / fetchSize;
 
   T totalLoss = static_cast<T>(0);
-  ulong totalCorrect = 0;
+  Common::ConfusionMatrix<T> aggregate;
 
   for (ulong b = 0; b < numBatches; b++) {
     Samples<T> batch = sampleProvider(sampleIndices, fetchSize, b * fetchSize);
@@ -752,7 +752,7 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
 
     // Per-worker partial results
     std::vector<T> workerLoss(numThreads, static_cast<T>(0));
-    std::vector<ulong> workerCorrect(numThreads, 0);
+    std::vector<Common::ConfusionMatrix<T>> workerConfusions(numThreads);
 
     // Each worker predicts its chunk in parallel
     this->runWorkers(numThreads, [&](int workerIdx) {
@@ -773,15 +773,21 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
         auto expIdx =
           std::distance(sample.output.begin(), std::max_element(sample.output.begin(), sample.output.end()));
 
-        if (predIdx == expIdx)
-          workerCorrect[workerIdx]++;
+        // Accumulate raw confusion count (metrics computed on the aggregate).
+        Common::ConfusionMatrix<T>& confusion = workerConfusions[workerIdx];
+        confusion.ensureSized(static_cast<ulong>(sample.output.size()));
+
+        ulong pi = static_cast<ulong>(predIdx);
+        ulong ei = static_cast<ulong>(expIdx);
+        confusion.matrix[ei * confusion.numClasses + pi]++;
+        confusion.totalSamples++;
       }
     });
 
     // Aggregate worker results
     for (int i = 0; i < numThreads; i++) {
       totalLoss += workerLoss[i];
-      totalCorrect += workerCorrect[i];
+      Common::mergeConfusionMatrix(aggregate, workerConfusions[i]);
     }
 
     {
@@ -790,6 +796,15 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
     }
   }
 
+  // Derive metrics + numCorrect (trace == diagonal) from the aggregate.
+  if (!aggregate.empty())
+    aggregate.computeMetrics();
+
+  ulong totalCorrect = 0;
+
+  for (size_t c = 0; c < aggregate.truePositive.size(); c++)
+    totalCorrect += aggregate.truePositive[c];
+
   Common::TestResult<T> result;
   result.numSamples = numSamples;
   result.totalLoss = totalLoss;
@@ -797,6 +812,7 @@ Common::TestResult<T> CoreCPU<T>::test(ulong numSamples, const SampleProvider<T>
   result.averageLoss = (numSamples > 0) ? totalLoss / static_cast<T>(numSamples) : static_cast<T>(0);
   result.accuracy = (numSamples > 0) ? static_cast<T>(totalCorrect) / static_cast<T>(numSamples) * static_cast<T>(100)
                                      : static_cast<T>(0);
+  result.confusionMatrix = aggregate;
 
   return result;
 }

@@ -342,7 +342,7 @@ Common::TestResult<T> CoreGPU<T>::test(ulong numSamples, const SampleProvider<T>
   return Common::distributeTestAcrossGPUs<T>(
     &this->workerPool, numSamples, sampleProvider, this->numGPUs, this->testConfig.fetchSize,
     [this](ulong current, ulong total) { this->emitPredictProgress(current, total); },
-    [this](size_t gpuIdx, const Samples<T>& batch, ulong startIdx, ulong endIdx) -> std::pair<T, ulong> {
+    [this](size_t gpuIdx, const Samples<T>& batch, ulong startIdx, ulong endIdx) -> Common::TestSubsetResult<T> {
       return this->gpuWorkers[gpuIdx]->testSubset(SamplesView<T>(batch.data() + startIdx, endIdx - startIdx));
     });
 }

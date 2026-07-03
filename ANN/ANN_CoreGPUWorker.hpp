@@ -6,6 +6,8 @@
 #include "ANN_GPUBufferManager.hpp"
 #include "ANN_GPUKernelBuilder.hpp"
 
+#include "Common/Common_TestSubsetResult.hpp"
+
 #include <OCLW_Core.hpp>
 
 #include <memory>
@@ -41,7 +43,7 @@ namespace ANN
                     const Common::TrainCallback<T>& callback);
 
       //-- Testing (called by CoreGPU orchestrator) --//
-      std::pair<T, ulong> testSubset(SamplesView<T> samples);
+      Common::TestSubsetResult<T> testSubset(SamplesView<T> samples);
 
       //-- Batch predict (called by CoreGPU orchestrator) --//
       Common::PredictResults<T> predictSubset(InputsView<T> inputs, const Common::ProgressCallback& callback = nullptr);

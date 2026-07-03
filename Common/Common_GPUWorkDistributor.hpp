@@ -1,8 +1,10 @@
 #ifndef COMMON_GPUWORKDISTRIBUTOR_HPP
 #define COMMON_GPUWORKDISTRIBUTOR_HPP
 
+#include "Common_ConfusionMatrix.hpp"
 #include "Common_ProgressCallback.hpp"
 #include "Common_TestResult.hpp"
+#include "Common_TestSubsetResult.hpp"
 
 #include <QThreadPool>
 #include <QVector>
@@ -57,8 +59,9 @@ namespace Common
   //   T                - numeric type (float, double, int)
   //   SampleProviderFn - callable: (sampleIndices, fetchSize, batchIndex) ->
   //   BatchT TestSubsetFn     - callable: (gpuIdx, batch, startIdx, endIdx) ->
-  //   std::pair<T, ulong>
-  //                      Returns {loss, numCorrect} for the given slice.
+  //   Common::TestSubsetResult<T>
+  //                      Returns {loss, confusion} for the given slice (raw
+  //                      confusion counts; metrics computed on the aggregate).
   //
   // The function handles:
   //   - Sequential sample index creation (no shuffling for test)
@@ -83,7 +86,7 @@ namespace Common
     ulong numBatches = (numSamples + fetchSize - 1) / fetchSize;
 
     T totalLoss = static_cast<T>(0);
-    ulong totalCorrect = 0;
+    Common::ConfusionMatrix<T> aggregate;
 
     for (ulong b = 0; b < numBatches; b++) {
       auto batch = sampleProvider(sampleIndices, fetchSize, b * fetchSize);
@@ -92,21 +95,32 @@ namespace Common
       ulong batchLen = batch.size();
       QVector<GPUWorkItem> workItems = distributeBatchAcrossGPUs(batchLen, numGPUs);
 
-      std::vector<std::pair<T, ulong>> gpuResults(numGPUs, {0, 0});
+      std::vector<Common::TestSubsetResult<T>> gpuResults(numGPUs);
 
       QtConcurrent::blockingMap(pool, workItems, [&batch, &gpuResults, &testSubsetFn](const GPUWorkItem& item) {
         gpuResults[item.gpuIdx] = testSubsetFn(item.gpuIdx, batch, item.startIdx, item.endIdx);
       });
 
       for (size_t i = 0; i < numGPUs; i++) {
-        totalLoss += gpuResults[i].first;
-        totalCorrect += gpuResults[i].second;
+        totalLoss += gpuResults[i].loss;
+        Common::mergeConfusionMatrix(aggregate, gpuResults[i].confusion);
       }
 
       if (progressCallback) {
         ulong samplesProcessed = std::min((b + 1) * fetchSize, numSamples);
         progressCallback(samplesProcessed, numSamples);
       }
+    }
+
+    // Derive metrics + numCorrect (trace == diagonal) from the aggregate.
+    if (!aggregate.empty()) {
+      aggregate.computeMetrics();
+    }
+
+    ulong totalCorrect = 0;
+
+    for (size_t c = 0; c < aggregate.truePositive.size(); c++) {
+      totalCorrect += aggregate.truePositive[c];
     }
 
     TestResult<T> result;
@@ -116,6 +130,7 @@ namespace Common
     result.averageLoss = (numSamples > 0) ? totalLoss / static_cast<T>(numSamples) : static_cast<T>(0);
     result.accuracy = (numSamples > 0) ? static_cast<T>(totalCorrect) / static_cast<T>(numSamples) * static_cast<T>(100)
                                        : static_cast<T>(0);
+    result.confusionMatrix = aggregate;
 
     return result;
   }
