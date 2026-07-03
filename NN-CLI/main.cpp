@@ -29,7 +29,8 @@ void printUsage()
   std::cout << "  --samples, -s <file>     Path to JSON file with samples (train/test modes)\n";
   std::cout << "  --idx-data <file>        Path to IDX3 data file (alternative to --samples)\n";
   std::cout << "  --idx-labels <file>      Path to IDX1 labels file (requires --idx-data)\n";
-  std::cout << "  --output, -o <file>      Output file/dir (default: predict_<input>.json or threshold.json)\n";
+  std::cout << "  --output, -o <dir>       Output directory (default: <input>/output). predict_*.json, test_*.json, "
+               "threshold.json\n";
   std::cout << "  --output-type <type>     Output data type: 'vector' or 'image' (overrides config file)\n";
   std::cout << "  --log-level, -l <lvl>    Log level: quiet, error, warning, info, debug (default: error)\n";
   std::cout << "  --gpu-profile            Enable OpenCL GPU kernel profiling (adds ~12% overhead)\n";

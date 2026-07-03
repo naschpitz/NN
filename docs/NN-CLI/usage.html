@@ -97,7 +97,7 @@ NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labe
 
 <div class="card">
 <h3><span class="badge-orange">test</span></h3>
-<p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files and a <code>.nnmodel</code> package (plain JSON configs are rejected). Prints test metrics (sample count, average loss, accuracy) and, for classification tasks, a <strong>confusion matrix</strong> — a per-class table of TP/FP/FN/TN with precision, recall, F1, and support, plus macro/micro/support-weighted averages.</p>
+<p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files and a <code>.nnmodel</code> package (plain JSON configs are rejected). Prints test metrics (sample count, average loss, accuracy) and, for classification tasks, a <strong>confusion matrix</strong> — a per-class table of TP/FP/FN/TN with precision, recall, F1, and support, plus macro/micro/support-weighted averages. Results are also saved to <code>test_&lt;samples_basename&gt;.json</code> in the output directory (default: <code>output/</code> next to the samples file; override with <code>--output</code>). See <a href="formats.html#test-output">Formats → Test Output</a> for the JSON shape.</p>
 <pre><code>NN-CLI --model-package trained_model.nnmodel --mode test --samples test_samples.json
 </code></pre>
 </div>
@@ -165,6 +165,9 @@ NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labe
 }
 </code></pre>
 <p><code>logits</code> are the raw values that feed the final activation. Use them to compute calibration / out-of-distribution scores (max-logit, logit-norm, free-energy <code>−log Σ exp(zᵢ)</code>) that softmax discards because softmax is shift-invariant.</p>
+
+<h3>Test Output</h3>
+<p>Test results are written to <code>test_&lt;samples_basename&gt;.json</code> inside the output directory. With <code>--output &lt;dir&gt;</code> it lands inside <code>&lt;dir&gt;</code>; otherwise it defaults to <code>output/</code> next to the samples file (the directory is created automatically). The same metrics printed to the console — scalar test metrics plus the confusion matrix — are persisted as a single JSON object; see <a href="formats.html#test-output">Formats → Test Output</a> for the full schema.</p>
 
 <h2 id="training-summary">7. Training Summary</h2>
 <p>Before training begins, NN-CLI populates the <strong>Model Info panel</strong> (top-left quadrant of the TUI) with a summary of the full training configuration. This lets you verify that all settings are correct before committing to a potentially long training run.</p>

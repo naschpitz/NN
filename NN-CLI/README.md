@@ -38,7 +38,7 @@ NN-CLI --model-package <model_file.nnmodel> --mode test --samples <samples_file>
 | `--samples` | `-s` | Path to JSON file with samples (for train/test modes) |
 | `--idx-data` | | Path to IDX3 data file (alternative to `--samples`) |
 | `--idx-labels` | | Path to IDX1 labels file (requires `--idx-data`) |
-| `--output` | `-o` | Output file for saving trained model or prediction result |
+| `--output` | `-o` | Output directory for artifacts (default: `<input>/output`). Holds `trained_*.nnmodel`, `predict_*.json`, `test_*.json`, `threshold.json` |
 | `--output-type` | | Output data type: `vector` or `image` (overrides config file) |
 | `--log-level` | `-l` | Log level: `quiet`, `error`, `warning`, `info`, `debug` (default: `error`) |
 | `--gpu-profile` | | Enable OpenCL GPU kernel profiling (adds ~12% overhead) |
@@ -54,7 +54,7 @@ NN-CLI --model-package <model_file.nnmodel> --mode test --samples <samples_file>
 
 - **train**: Train a neural network using `--model` (architecture JSON) and samples, outputs a trained model file.
 - **predict**: Run predict using `--model-package` (trained `.nnmodel` model) with one or more inputs in parallel (across threads on CPU, across GPUs on GPU). Output order matches input order.
-- **test**: Evaluate a trained model (`--model-package`) on test samples and report the loss.
+- **test**: Evaluate a trained model (`--model-package`) on test samples and report loss, accuracy, and a confusion matrix (per-class TP/FP/FN/TN, precision/recall/F1, macro/micro/weighted averages). Results are printed to the console **and** written to `test_<samples>.json` in the `--output` directory (default: `<samples_dir>/output`).
 - **calibrate**: Pick a free-energy out-of-distribution threshold. Requires `--id-images` and optionally `--ood-dir`. Options: `--id-images` (required, directory of ID images), `--ood-dir` (OOD root, auto-populated if empty), `--id-sample-count` (default 500), `--ood-sample-count` (default 1500), `--id-percentile` (default 95), `--no-fetch` (disable auto-download), `--output` (default: `<config_dir>/threshold.json`). Requires `--model-package` pointing to a trained `.nnmodel` package.
 
 ## ANN Configuration
@@ -554,6 +554,8 @@ NN-CLI --model-package trained_model.nnmodel --mode predict --input test_input.j
 ```bash
 NN-CLI --model-package trained_model.nnmodel --mode test --samples test_data.json
 ```
+
+Metrics (loss, accuracy, confusion matrix) are printed and saved to `test_test_data.json` under `<samples_dir>/output` (override the directory with `--output`).
 
 ### Testing with IDX files
 

@@ -1,6 +1,7 @@
 #ifndef NN_CLI_RUNNERUTILS_HPP
 #define NN_CLI_RUNNERUTILS_HPP
 
+#include "Common/Common_TestResult.hpp"
 #include "NN-CLI_DataType.hpp"
 #include "NN-CLI_ImageLoader.hpp"
 #include "NN-CLI_IOConfig.hpp"
@@ -40,6 +41,9 @@ namespace NN_CLI
       //-- resolvePredictOutputPath --//
       static QString resolvePredictOutputPath(const QCommandLineParser& parser, const IOConfig& ioConfig);
 
+      //-- resolveTestOutputPath --//
+      static QString resolveTestOutputPath(const QCommandLineParser& parser, const QString& samplesPath);
+
       //-- resolveOutputDir --//
       static QString resolveOutputDir(const QCommandLineParser& parser, const QString& fallbackDir);
 
@@ -48,6 +52,12 @@ namespace NN_CLI
       static int writePredictOutput(const ResultsT& results, const QString& outputPath, const IOConfig& ioConfig,
                                     LogLevel logLevel, const std::string& startTimeStr, const std::string& endTimeStr,
                                     double durationSeconds, const std::string& durationFormatted, size_t numInputs);
+
+      //-- writeTestOutput --//
+      template <typename T>
+      static int writeTestOutput(const Common::TestResult<T>& result, const QString& outputPath, LogLevel logLevel,
+                                 const std::string& startTimeStr, const std::string& endTimeStr, double durationSeconds,
+                                 const std::string& durationFormatted);
 
       //-- loadSamplesFromOptionsCommon --//
       template <typename SamplesT, typename LoadJsonFn, typename LoadIdxFn>
@@ -106,6 +116,15 @@ namespace NN_CLI
     }
 
     return QDir(outputDir).filePath("predict_" + inputInfo.completeBaseName() + ".json");
+  }
+
+  //===================================================================================================================//
+
+  inline QString RunnerUtils::resolveTestOutputPath(const QCommandLineParser& parser, const QString& samplesPath)
+  {
+    QFileInfo samplesInfo(samplesPath);
+    QString outputDir = resolveOutputDir(parser, samplesInfo.absoluteDir().filePath("output"));
+    return QDir(outputDir).filePath("test_" + samplesInfo.completeBaseName() + ".json");
   }
 
   //===================================================================================================================//
@@ -190,6 +209,49 @@ namespace NN_CLI
 
     if (logLevel > LogLevel::QUIET)
       std::cout << "Predict result saved to: " << outputPath.toStdString() << "\n";
+    return 0;
+  }
+
+  //===================================================================================================================//
+
+  template <typename T>
+  int RunnerUtils::writeTestOutput(const Common::TestResult<T>& result, const QString& outputPath, LogLevel logLevel,
+                                   const std::string& startTimeStr, const std::string& endTimeStr,
+                                   double durationSeconds, const std::string& durationFormatted)
+  {
+    nlohmann::ordered_json resultJson;
+    nlohmann::ordered_json testMetadataJson;
+    testMetadataJson["startTime"] = startTimeStr;
+    testMetadataJson["endTime"] = endTimeStr;
+    testMetadataJson["durationSeconds"] = durationSeconds;
+    testMetadataJson["durationFormatted"] = durationFormatted;
+    testMetadataJson["numSamples"] = result.numSamples;
+    resultJson["testMetadata"] = testMetadataJson;
+
+    nlohmann::ordered_json metricsJson;
+    metricsJson["numSamples"] = result.numSamples;
+    metricsJson["totalLoss"] = static_cast<double>(result.totalLoss);
+    metricsJson["averageLoss"] = static_cast<double>(result.averageLoss);
+    metricsJson["numCorrect"] = result.numCorrect;
+    metricsJson["accuracy"] = static_cast<double>(result.accuracy);
+    resultJson["metrics"] = metricsJson;
+
+    if (!result.confusionMatrix.empty())
+      ModelSerializer::serializeConfusionMatrix(resultJson, "confusionMatrix", result.confusionMatrix);
+
+    QFile outputFile(outputPath);
+
+    if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+      std::cerr << "Error: Failed to open output file: " << outputPath.toStdString() << "\n";
+      return 1;
+    }
+
+    std::string jsonStr = resultJson.dump(2);
+    outputFile.write(jsonStr.c_str(), jsonStr.size());
+    outputFile.close();
+
+    if (logLevel > LogLevel::QUIET)
+      std::cout << "Test results saved to: " << outputPath.toStdString() << "\n";
     return 0;
   }
 

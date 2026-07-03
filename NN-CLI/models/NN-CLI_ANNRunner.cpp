@@ -288,7 +288,17 @@ int ANNRunner::test()
                                                   "Testing", dataLoader.numSamples());
 
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
+
+  auto testStart = std::chrono::system_clock::now();
+  std::string startTimeStr = Common::Utils::formatISO8601();
+
   Common::TestResult<float> result = this->core->test(dataLoader.numSamples(), sampleProvider);
+
+  auto testEnd = std::chrono::system_clock::now();
+  std::string endTimeStr = Common::Utils::formatISO8601();
+  std::chrono::duration<double> testElapsed = testEnd - testStart;
+  double testDurationSeconds = testElapsed.count();
+  std::string testDurationFormatted = Common::Utils::formatDuration(testDurationSeconds);
 
   if (this->logLevel > LogLevel::QUIET) {
     std::cout << "\nTest Results:\n";
@@ -320,7 +330,10 @@ int ANNRunner::test()
     }
   }
 
-  return 0;
+  QString outputPath = NN_CLI::RunnerUtils::resolveTestOutputPath(this->parser, inputFilePath);
+
+  return NN_CLI::RunnerUtils::writeTestOutput(result, outputPath, this->logLevel, startTimeStr, endTimeStr,
+                                              testDurationSeconds, testDurationFormatted);
 }
 
 //===================================================================================================================//

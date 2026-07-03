@@ -165,8 +165,8 @@ namespace NN_CLI
   //===================================================================================================================//
 
   template <typename T>
-  static void serializeConfusionMatrix(nlohmann::ordered_json& parent, const std::string& key,
-                                       const Common::ConfusionMatrix<T>& cm)
+  void ModelSerializer::serializeConfusionMatrix(nlohmann::ordered_json& parent, const std::string& key,
+                                                 const Common::ConfusionMatrix<T>& cm)
   {
     nlohmann::ordered_json cmJson;
     cmJson["numClasses"] = cm.numClasses;
@@ -281,7 +281,7 @@ namespace NN_CLI
         recordJson["completionTime"] = record.completionTime;
 
         if (record.hasValConfusionMatrix && !record.valConfusionMatrix.empty()) {
-          serializeConfusionMatrix(recordJson, "valConfusionMatrix", record.valConfusionMatrix);
+          ModelSerializer::serializeConfusionMatrix(recordJson, "valConfusionMatrix", record.valConfusionMatrix);
         }
 
         epochsArr.push_back(recordJson);
@@ -1405,5 +1405,12 @@ namespace NN_CLI
     QString outputPath = dir.filePath("best_model.nnmodel.tar");
     return outputPath.toStdString();
   }
+
+  //===================================================================================================================//
+  //-- Explicit template instantiations --//
+  //===================================================================================================================//
+
+  template void ModelSerializer::serializeConfusionMatrix<float>(nlohmann::ordered_json& parent, const std::string& key,
+                                                                 const Common::ConfusionMatrix<float>& cm);
 
 } // namespace NN_CLI

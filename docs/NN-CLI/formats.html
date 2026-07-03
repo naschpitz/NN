@@ -568,6 +568,42 @@
 </code></pre>
 <p>Consumers (e.g. a downstream client app) embed <code>freeEnergyThreshold</code> as a constant and flag predictions with <code>E &gt; threshold</code> as low-confidence / likely OOD. The threshold is tied to the specific trained checkpoint — retrain the model, rerun <code>--mode calibrate</code>.</p>
 
+<h3 id="test-output">Test Output (test_&lt;samples&gt;.json)</h3>
+<p><code>NN-CLI -m test</code> writes a JSON file (<code>test_&lt;samples_basename&gt;.json</code>) alongside its console output. It holds the scalar test metrics plus the full confusion matrix in a single object:</p>
+<pre><code>{
+  <span class="string">"testMetadata"</span>: {
+    <span class="string">"startTime"</span>: <span class="string">"2024-01-15 10:30:45"</span>,
+    <span class="string">"endTime"</span>: <span class="string">"2024-01-15 10:31:12"</span>,
+    <span class="string">"durationSeconds"</span>: <span class="number">27.4</span>,
+    <span class="string">"durationFormatted"</span>: <span class="string">"27.4s"</span>,
+    <span class="string">"numSamples"</span>: <span class="number">10862</span>
+  },
+  <span class="string">"metrics"</span>: {
+    <span class="string">"numSamples"</span>: <span class="number">10862</span>,
+    <span class="string">"totalLoss"</span>: <span class="number">1894.25</span>,
+    <span class="string">"averageLoss"</span>: <span class="number">0.174392</span>,
+    <span class="string">"numCorrect"</span>: <span class="number">10199</span>,
+    <span class="string">"accuracy"</span>: <span class="number">93.90</span>
+  },
+  <span class="string">"confusionMatrix"</span>: {
+    <span class="string">"numClasses"</span>: <span class="number">2</span>,
+    <span class="string">"totalSamples"</span>: <span class="number">10862</span>,
+    <span class="string">"matrix"</span>: [<span class="number">662</span>, <span class="number">13</span>, <span class="number">650</span>, <span class="number">9537</span>],
+    <span class="string">"accuracy"</span>: <span class="number">0.9390</span>,
+    <span class="string">"perClass"</span>: [
+      {<span class="string">"tp"</span>: <span class="number">662</span>, <span class="string">"fp"</span>: <span class="number">650</span>, <span class="string">"fn"</span>: <span class="number">13</span>, <span class="string">"tn"</span>: <span class="number">9537</span>,
+       <span class="string">"precision"</span>: <span class="number">0.5046</span>, <span class="string">"recall"</span>: <span class="number">0.9807</span>, <span class="string">"f1"</span>: <span class="number">0.6663</span>, <span class="string">"support"</span>: <span class="number">675</span>},
+      {<span class="string">"tp"</span>: <span class="number">9537</span>, <span class="string">"fp"</span>: <span class="number">13</span>, <span class="string">"fn"</span>: <span class="number">650</span>, <span class="string">"tn"</span>: <span class="number">662</span>,
+       <span class="string">"precision"</span>: <span class="number">0.9986</span>, <span class="string">"recall"</span>: <span class="number">0.9362</span>, <span class="string">"f1"</span>: <span class="number">0.9664</span>, <span class="string">"support"</span>: <span class="number">10187</span>}
+    ],
+    <span class="string">"macro"</span>: {<span class="string">"precision"</span>: <span class="number">0.7516</span>, <span class="string">"recall"</span>: <span class="number">0.9585</span>, <span class="string">"f1"</span>: <span class="number">0.8164</span>},
+    <span class="string">"micro"</span>: {<span class="string">"precision"</span>: <span class="number">0.9390</span>, <span class="string">"recall"</span>: <span class="number">0.9390</span>, <span class="string">"f1"</span>: <span class="number">0.9390</span>},
+    <span class="string">"weighted"</span>: {<span class="string">"precision"</span>: <span class="number">0.9679</span>, <span class="string">"recall"</span>: <span class="number">0.9390</span>, <span class="string">"f1"</span>: <span class="number">0.9478</span>}
+  }
+}
+</code></pre>
+<p>The flat <code>matrix</code> is row-major, <code>numClasses</code>×<code>numClasses</code>, indexed <code>matrix[actual * numClasses + predicted]</code> (so the diagonal is correct predictions). Note the two accuracy scales: <code>metrics.accuracy</code> is a percentage (0–100, matching the console output), while <code>confusionMatrix.accuracy</code> is a fraction (0–1). The <code>confusionMatrix</code> object is omitted entirely when the test set has no usable class labels. Its shape is identical to the per-epoch <code>valConfusionMatrix</code> written into <code>trainMetadata</code> during training.</p>
+
 <h2 id="nnmodel-format">Model Package Format (.nnmodel)</h2>
 <p>NN-CLI uses <code>.nnmodel</code> packages (tar archives) for non-train modes. Plain JSON configs are rejected for predict/test/calibrate — only <code>.nnmodel</code> or <code>.nnmodel.tar</code> files are accepted.</p>
 <p>A <code>.nnmodel</code> package contains:</p>

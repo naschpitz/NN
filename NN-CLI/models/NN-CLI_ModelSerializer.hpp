@@ -1,6 +1,7 @@
 #ifndef NN_CLI_MODELSERIALIZER_HPP
 #define NN_CLI_MODELSERIALIZER_HPP
 
+#include "Common/Common_ConfusionMatrix.hpp"
 #include "NN-CLI_AugmentationConfig.hpp"
 #include "NN-CLI_IOConfig.hpp"
 #include "NN-CLI_Types.hpp"
@@ -52,6 +53,11 @@ namespace NN_CLI
       static std::string generateDefaultOutputPath(const QString& outputDir, ulong epochs, ulong samples, float loss);
       static std::string generateCheckpointPath(const QString& outputDir, ulong epoch, float loss);
       static std::string generateBestModelPath(const QString& outputDir);
+
+      //-- Confusion matrix JSON --//
+      template <typename T>
+      static void serializeConfusionMatrix(nlohmann::ordered_json& parent, const std::string& key,
+                                           const Common::ConfusionMatrix<T>& cm);
 
     private:
       //-- JSON-building helpers --//
