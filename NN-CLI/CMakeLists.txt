@@ -33,6 +33,8 @@ add_executable(NN-CLI
   models/NN-CLI_RunnerBase.hpp
   models/NN-CLI_LossReferenceTable.cpp
   models/NN-CLI_ModelSerializer.cpp
+  models/NN-CLI_ModelSerializer_ANN.cpp
+  models/NN-CLI_ModelSerializer_CNN.cpp
   models/NN-CLI_PredictSummary.cpp
   controllers/NN-CLI_App.cpp
   ui/NN-CLI_TerminalUI_Panel.cpp
