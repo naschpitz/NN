@@ -28,8 +28,10 @@ add_executable(NN-Server
   # Model package support (tar I/O for .nnmodel files)
   ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/models/NN-CLI_ModelPackage.cpp
 
-  # Binary parameter serialization (shared with NN-CLI)
+  # Binary parameter serialization (shared with NN-CLI; split by ANN/CNN)
   ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/models/NN-CLI_ModelSerializer.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/models/NN-CLI_ModelSerializer_ANN.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/models/NN-CLI_ModelSerializer_CNN.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/models/NN-CLI_DataType.cpp
 )
 
