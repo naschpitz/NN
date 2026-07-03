@@ -23,6 +23,8 @@
   <a href="formats.html">Data Formats</a>
   <div class="section-title">Practical</div>
   <a href="examples.html">End-to-End Examples</a>
+  <div class="section-title">Guides</div>
+  <a href="class-imbalance.html">Handling Class Imbalance</a>
 </nav></aside>
 <main class="main">
 
@@ -146,7 +148,10 @@ cat &gt; xor_samples.json &lt;&lt; <span class="string">'EOF'</span>
 ├── NN-CLI_PredictController.*   <span class="comment"># Predict flow controller</span>
 ├── NN-CLI_TestController.*      <span class="comment"># Test flow controller</span>
 ├── NN-CLI_CalibrateController.* <span class="comment"># Calibrate flow controller</span>
-├── NN-CLI_ModelSerializer.*     <span class="comment"># Serialize/deserialize models to .nnmodel packages</span>
+├── NN-CLI_ModelSerializer.hpp/cpp <span class="comment"># Serialize/deserialize .nnmodel packages (shared)</span>
+├── NN-CLI_ModelSerializerDetail.hpp <span class="comment"># Internal shared helpers (templates + binary primitives)</span>
+├── NN-CLI_ModelSerializer_ANN.cpp <span class="comment"># ANN-specific serialization</span>
+├── NN-CLI_ModelSerializer_CNN.cpp <span class="comment"># CNN-specific serialization</span>
 ├── NN-CLI_ModelPackage.*        <span class="comment"># .nnmodel tar archive handling</span>
 ├── NN-CLI_NetworkType.hpp       <span class="comment"># NetworkType enum (ANN/CNN)</span>
 ├── NN-CLI_DataType.hpp/cpp      <span class="comment"># DataType enum (VECTOR/IMAGE)</span>

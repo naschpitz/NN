@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Handling Class Imbalance — NN-CLI Documentation</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('.hamburger')?.addEventListener('click',()=>{document.querySelector('.sidebar').classList.toggle('open')})});</script>
+</head>
+<body>
+<header class="site-header">
+  <button class="hamburger" aria-label="Menu">☰</button>
+  <h1>Handling Class Imbalance</h1><span class="subtitle">Strategies, evaluation, and how NN-CLI weights losses</span>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav>
+    <div class="section-title">NN Monorepo</div>
+    <a href="../index.html">Back to Docs Home</a>
+  <div class="section-title">Getting Started</div>
+  <a href="index.html">Home</a>
+  <a href="quickstart.html">Quick Start &amp; Build</a>
+  <div class="section-title">Reference</div>
+  <a href="usage.html">CLI Usage</a>
+  <a href="formats.html">Data Formats</a>
+  <div class="section-title">Practical</div>
+  <a href="examples.html">End-to-End Examples</a>
+  <div class="section-title">Guides</div>
+  <a href="class-imbalance.html" class="active">Handling Class Imbalance</a>
+</nav></aside>
+<main class="main">
+
+<h1>Handling Class Imbalance</h1>
+<p>Real-world datasets are rarely balanced. A skin-lesion classifier may see 50× more benign than malignant samples; a defect detector may have 1 defect per 1000 good parts. When one class vastly outnumbers the others, a network can reach high <strong>accuracy</strong> simply by predicting the majority class every time — while being useless for the minority class you actually care about. This guide explains the two strategies NN-CLI offers, how to evaluate them, and how validation/test losses are weighted.</p>
+
+<h2>What "imbalanced" means</h2>
+<p>A dataset is imbalanced when the per-class sample counts differ significantly. The ratio matters more than the absolute counts: a 2-class set split 50/50 is balanced; split 29 000 vs 440 000 (a ~1:15 ratio) it is heavily imbalanced. The risk is that the loss gradient becomes dominated by the majority class, so the minority class contributes almost nothing to learning unless you intervene.</p>
+
+<h2>The two strategies</h2>
+<p>NN-CLI offers two independent ways to counter imbalance. Pick <strong>one</strong> — they are alternatives, not complementary.</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin:1.5rem 0">
+  <div class="card">
+    <h3>① Oversample the minority</h3>
+    <p><strong><code>balanceAugmentation: true</code></strong> in the training config.</p>
+    <p>During data planning, the minority class is oversampled so the <em>effective</em> training distribution approaches 1:1. The network sees each class equally often. Combine with <code>fullAugmentation</code> so the oversampled copies are augmented (not identical repeats) — otherwise the network memorises them.</p>
+  </div>
+  <div class="card">
+    <h3>② Reweight the loss</h3>
+    <p><strong><code>autoClassWeights: true</code></strong> (or a manual <code>costFunction.weights</code> array).</p>
+    <p>The dataset stays at its natural prevalence, but each sample's contribution to the loss is scaled by an inverse-frequency weight: rare classes get a large weight, common classes a small one. <code>autoClassWeights</code> computes these as <code>totalSamples / (numClasses × classCount[c])</code> (the scikit-learn "balanced" formula).</p>
+  </div>
+</div>
+
+<div class="info-box">
+<strong>Don't combine them blindly.</strong> If <code>balanceAugmentation</code> already equalises the classes, the augmented outputs become ~1:1, so <code>autoClassWeights</code> computes weights that collapse to ~1.0 — a near no-op. Use one strategy, not both. Oversampling changes <em>what the network sees</em>; reweighting changes <em>how much each sample counts</em>. Either shifts the decision boundary toward the minority class.
+</div>
+
+<h2>How to evaluate an imbalanced model</h2>
+<p>Accuracy lies on imbalanced data. A 1:15 classifier that always predicts the majority class is 94% "accurate" and 0% useful. The <strong>confusion matrix</strong> (printed by <code>test</code> mode, and stored per-epoch as <code>valConfusionMatrix</code> in <code>trainMetadata</code>) gives the real picture. For each class it reports TP / FP / FN / TN plus precision, recall, and F1, using a one-vs-rest convention (for class <em>C</em>, "positive" = "is C", "negative" = "anything else").</p>
+
+<table>
+  <tr><th>Metric</th><th>What it tells you</th><th>When to trust it</th></tr>
+  <tr><td><strong>Macro</strong> (unweighted mean of per-class scores)</td><td>Treats every class equally regardless of prevalence.</td><td><strong>The headline metric for imbalanced data.</strong> Insensitive to the majority class swamping the score.</td></tr>
+  <tr><td><strong>Weighted</strong> (support-weighted mean)</td><td>Weights each class by how often it actually appears.</td><td>Deployment-realistic, <em>if</em> your deployment prevalence matches your data's.</td></tr>
+  <tr><td><strong>Micro</strong> (pooled across all samples)</td><td>Collapses to overall accuracy for single-label classification.</td><td>Useful as a sanity check; do not use as the imbalance headline.</td></tr>
+  <tr><td><strong>Per-class recall</strong></td><td>Of the true class-<em>C</em> samples, how many did you catch?</td><td>The number that matters for the minority class you care about (e.g. "did we miss any malignant cases?").</td></tr>
+  <tr><td><strong>Per-class precision</strong></td><td>Of the samples you labelled class <em>C</em>, how many really were?</td><td>The false-alarm rate. Low minority precision = many majority samples mislabelled as the minority.</td></tr>
+</table>
+
+<div class="info-box">
+<strong>Read the matrix, not just one number.</strong> A model can have great macro-F1 yet still trade many false alarms (low minority precision) for high minority recall. Decide which error costs more — a miss (FN) or a false alarm (FP) — for your application, and tune toward that.
+</div>
+
+<h2>How validation and test weight their loss</h2>
+<p>A subtle but important point: <strong>the reported loss and the reported accuracy are separate things.</strong> The confusion matrix (accuracy, precision, recall, F1) is always computed <em>unweighted</em> — argmax doesn't care about weights. But the <em>loss</em> reported during validation and test <strong>is</strong> class-weighted, computed from each set's <em>own</em> class distribution via the same balanced formula.</p>
+<ul>
+  <li><strong>Validation</strong> weights its loss unconditionally (it must use real, non-augmented held-out images, so oversampling isn't an option — weighting is the only way to keep the minority class from being drowned out of a single scalar loss).</li>
+  <li><strong>Test</strong> does the same, recomputing weights from the test set's own distribution.</li>
+</ul>
+<p>Consequence: validation loss and test loss are <strong>directly comparable only when test reuses the validation split</strong>. Run test against a different dataset and its weighted loss will differ in value even for an identical model — the <em>method</em> (class-weighted) is the invariant, the number is adaptive per dataset.</p>
+
+<h2>Worked intuition: prevalence drives the error mix</h2>
+<p>On a 1:15 dataset, even a model with a <em>lower</em> false-positive rate than false-negative <em>rate</em> can produce far more false positives in <em>absolute</em> terms, simply because there are 15× more negative samples to misclassify. If your test shows, say, a 6% false-positive rate on the majority class versus a 2% false-negative rate on the minority, the raw counts will favour FP roughly 15:2 — not because the model is biased toward FP, but because prevalence multiplies the rate. The confusion matrix's per-class recall/precision rows make this visible where a single accuracy number hides it.</p>
+
+<h2>Summary checklist</h2>
+<ul>
+  <li>Choose <strong>one</strong> imbalance strategy: <code>balanceAugmentation</code> <em>or</em> <code>autoClassWeights</code> — not both.</li>
+  <li>Evaluate with the <strong>confusion matrix</strong>; use <strong>macro</strong> as the headline, <strong>weighted</strong> for deployment realism.</li>
+  <li>Decide whether a miss or a false alarm costs more, and read per-class recall vs precision accordingly.</li>
+  <li>Remember validation/test losses are class-weighted and adaptive per dataset; compare values only on the same split.</li>
+</ul>
+
+<p>See also: <a href="formats.html">Data Formats</a> for the <code>balanceAugmentation</code> / <code>autoClassWeights</code> / <code>costFunction.weights</code> config options and the confusion-matrix JSON shape, and <a href="../ANN/math-cost.html">Cost Functions</a> for how per-output weights enter the loss.</p>
+
+</main>
+</div>
+<footer class="site-footer">NN-CLI Documentation</footer>
+</body></html>

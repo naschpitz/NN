@@ -23,6 +23,8 @@
   <a href="formats.html" class="active">Data Formats</a>
   <div class="section-title">Practical</div>
   <a href="examples.html">End-to-End Examples</a>
+  <div class="section-title">Guides</div>
+  <a href="class-imbalance.html">Handling Class Imbalance</a>
 </nav></aside>
 <main class="main">
 
@@ -170,7 +172,7 @@
   <tr><td><code>train.augmentationFactor</code></td><td>int</td><td>No</td><td>Multiply each class by N× using random transforms (default 0 = disabled)</td></tr>
   <tr><td><code>train.balanceAugmentation</code></td><td>bool</td><td>No</td><td>Oversample minority classes up to majority class count (default false). Only the oversampled copies are augmented; originals are kept as-is</td></tr>
   <tr><td><code>train.fullAugmentation</code></td><td>bool</td><td>No</td><td>Augment <em>all</em> training samples every epoch (not just the oversampled copies), for stronger regularisation (default false). Composable with balanceAugmentation/augmentationFactor; validation samples are never augmented</td></tr>
-  <tr><td><code>train.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false)</td></tr>
+  <tr><td><code>train.autoClassWeights</code></td><td>bool</td><td>No</td><td>Auto-compute inverse-frequency class weights (default false). See <a href="class-imbalance.html">Handling Class Imbalance</a> for when to use this vs <code>balanceAugmentation</code></td></tr>
   <tr><td><code>train.augmentationProbability</code></td><td>float</td><td>No</td><td>Probability of applying each enabled transform per sample (default 0.5 = 50%)</td></tr>
   <tr><td><code>train.augmentationTransforms</code></td><td>object</td><td>No</td><td>Control augmentation transform intensities (0 = disabled; defaults shown)</td></tr>
   <tr><td><code>train.augmentationTransforms.horizontalFlip</code></td><td>bool</td><td>No</td><td>Mirror along vertical axis (default true; false = disabled)</td></tr>
