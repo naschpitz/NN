@@ -334,15 +334,29 @@ int CNNRunner::test()
   if (this->logLevel > LogLevel::QUIET)
     TestSummary::printCNN(this->coreConfig, dataLoader.numSamples());
 
-  NN_CLI::Utils<float>::setupModeProgressCallback(*this->core, this->logLevel, this->ioConfig.progressReports,
-                                                  "Testing", dataLoader.numSamples());
+  // Class-weighted test core, symmetric to validation: real images stay at natural prevalence,
+  // the loss is weighted so a minority class is not drowned out of a single scalar. Mirrors the
+  // validation setup (the confusion matrix is argmax-based and unaffected — only the loss moves).
+  std::vector<std::vector<float>> testOutputs = dataLoader.getAllOutputs();
+  std::vector<float> testWeights = NN_CLI::Utils<float>::computeClassWeightsFromOutputs(testOutputs);
+
+  CNN::CoreConfig<float> testCoreConfig = this->coreConfig;
+  testCoreConfig.modeType = Common::ModeType::TEST;
+  testCoreConfig.costFunctionConfig.weights = testWeights;
+
+  std::shared_ptr<CNN::Core<float>> testCore = CNN::Core<float>::makeCore(testCoreConfig);
+  testCore->setParameters(this->core->getParameters());
+  testCore->syncParametersToGPU();
+
+  NN_CLI::Utils<float>::setupModeProgressCallback(*testCore, this->logLevel, this->ioConfig.progressReports, "Testing",
+                                                  dataLoader.numSamples());
 
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
 
   auto testStart = std::chrono::system_clock::now();
   std::string startTimeStr = Common::Utils::formatISO8601();
 
-  Common::TestResult<float> result = this->core->test(dataLoader.numSamples(), sampleProvider);
+  Common::TestResult<float> result = testCore->test(dataLoader.numSamples(), sampleProvider);
 
   auto testEnd = std::chrono::system_clock::now();
   std::string endTimeStr = Common::Utils::formatISO8601();
