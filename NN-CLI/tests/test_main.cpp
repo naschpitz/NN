@@ -14,6 +14,7 @@ void runCPUMNISTTests();
 void runCPUFeatureTests();
 void runANNCPUSaveLoadTests();
 void runGPUMNISTTests();
+void runGPUValidationTests();
 
 // CNN tests
 void runCNNCPUBasicTests();
@@ -66,6 +67,7 @@ int main(int argc, char* argv[])
   std::cout << std::endl;
   std::cout << "=== ANN GPU Tests ===" << std::endl;
   runGPUMNISTTests();
+  runGPUValidationTests();
 
   std::cout << std::endl;
   std::cout << "=== CNN CPU Tests ===" << std::endl;
