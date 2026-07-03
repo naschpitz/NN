@@ -39,6 +39,9 @@ namespace ANN
           worker->setLearningRate(lr);
       }
 
+      //-- Parameter sync: push host parameters into every worker's GPU buffers --//
+      void syncParametersToGPU() override;
+
     private:
       //-- GPU workers (one per GPU) --//
       std::vector<std::unique_ptr<CoreGPUWorker<T>>> gpuWorkers;

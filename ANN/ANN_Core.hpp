@@ -123,6 +123,9 @@ namespace ANN
         parameters = params;
       }
 
+      // Upload current host-side parameters to GPU buffers (no-op for CPU cores).
+      virtual void syncParametersToGPU() {}
+
       // Push a new learning rate into the core mid-run (LR schedulers call this at epoch
       // boundaries). Base updates the core's trainConfig; GPU backends override to also
       // propagate to their per-worker configs / compiled kernels.

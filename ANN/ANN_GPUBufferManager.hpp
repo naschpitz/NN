@@ -34,7 +34,11 @@ namespace ANN
 
       //-- Parameter synchronization --//
       void syncParametersFromGPU(); // GPU → CPU
-      void syncParametersToGPU(); // CPU → GPU
+      void syncParametersToGPU(); // CPU → GPU (for validation with updated params)
+      void setParameters(const Parameters<T>& params)
+      {
+        this->parameters = params;
+      }
 
       //-- Data I/O --//
       Output<T> readOutput();

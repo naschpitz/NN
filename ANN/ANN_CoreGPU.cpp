@@ -450,6 +450,22 @@ void CoreGPU<T>::resetAccumulators()
 }
 
 //===================================================================================================================//
+//-- Parameter sync --//
+//===================================================================================================================//
+
+template <typename T>
+void CoreGPU<T>::syncParametersToGPU()
+{
+  // Propagate core's parameters to each worker's buffer manager, then upload to GPU.
+  // Workers hold their own copy of parameters, so setParameters() on the Core doesn't
+  // automatically reach them.
+  for (auto& worker : this->gpuWorkers) {
+    worker->bufferManager->setParameters(this->parameters);
+    worker->bufferManager->syncParametersToGPU();
+  }
+}
+
+//===================================================================================================================//
 // (Optional) Explicit template instantiations.
 template class ANN::CoreGPU<int>;
 template class ANN::CoreGPU<double>;

@@ -690,6 +690,7 @@ void ANNRunner::setupTrainCallback(const QString& inputFilePath, std::shared_ptr
         ulong validationTotal = validationIndices->size();
 
         validationCore->setParameters(this->core->getParameters());
+        validationCore->syncParametersToGPU();
 
         // Live "Validating" bar: route validation progress through the observer
         // instead of printing to stdout (which would corrupt the ncurses TUI).
