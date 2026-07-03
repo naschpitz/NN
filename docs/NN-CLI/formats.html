@@ -476,10 +476,34 @@
     <span class="string">"startTime"</span>: <span class="string">"..."</span>, <span class="string">"endTime"</span>: <span class="string">"..."</span>,
     <span class="string">"durationSeconds"</span>: <span class="number">123.4</span>,
     <span class="string">"numSamples"</span>: <span class="number">60000</span>,
-    <span class="string">"finalLoss"</span>: <span class="number">0.0234</span>
+    <span class="string">"finalLoss"</span>: <span class="number">0.0234</span>,
+    <span class="string">"epochs"</span>: [
+      {
+        <span class="string">"epoch"</span>: <span class="number">0</span>,
+        <span class="string">"loss"</span>: <span class="number">0.412</span>,
+        <span class="string">"learningRate"</span>: <span class="number">0.01</span>,
+        <span class="string">"valLoss"</span>: <span class="number">0.387</span>, <span class="string">"hasValLoss"</span>: <span class="key">true</span>,
+        <span class="string">"isBest"</span>: <span class="key">true</span>,
+        <span class="string">"completionTime"</span>: <span class="string">"..."</span>,
+        <span class="string">"valConfusionMatrix"</span>: {
+          <span class="string">"numClasses"</span>: <span class="number">2</span>,
+          <span class="string">"totalSamples"</span>: <span class="number">8</span>,
+          <span class="string">"matrix"</span>: [<span class="number">4</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">1</span>],
+          <span class="string">"accuracy"</span>: <span class="number">0.625</span>,
+          <span class="string">"perClass"</span>: [
+            {<span class="string">"tp"</span>: <span class="number">4</span>, <span class="string">"fp"</span>: <span class="number">2</span>, <span class="string">"fn"</span>: <span class="number">1</span>, <span class="string">"tn"</span>: <span class="number">1</span>, <span class="string">"precision"</span>: <span class="number">0.667</span>, <span class="string">"recall"</span>: <span class="number">0.8</span>, <span class="string">"f1"</span>: <span class="number">0.727</span>, <span class="string">"support"</span>: <span class="number">5</span>},
+            {<span class="string">"tp"</span>: <span class="number">1</span>, <span class="string">"fp"</span>: <span class="number">1</span>, <span class="string">"fn"</span>: <span class="number">2</span>, <span class="string">"tn"</span>: <span class="number">4</span>, <span class="string">"precision"</span>: <span class="number">0.5</span>, <span class="string">"recall"</span>: <span class="number">0.333</span>, <span class="string">"f1"</span>: <span class="number">0.4</span>, <span class="string">"support"</span>: <span class="number">3</span>}
+          ],
+          <span class="string">"macro"</span>: {<span class="string">"precision"</span>: <span class="number">0.583</span>, <span class="string">"recall"</span>: <span class="number">0.567</span>, <span class="string">"f1"</span>: <span class="number">0.564</span>},
+          <span class="string">"micro"</span>: {<span class="string">"precision"</span>: <span class="number">0.625</span>, <span class="string">"recall"</span>: <span class="number">0.625</span>, <span class="string">"f1"</span>: <span class="number">0.625</span>},
+          <span class="string">"weighted"</span>: {<span class="string">"precision"</span>: <span class="number">0.625</span>, <span class="string">"recall"</span>: <span class="number">0.625</span>, <span class="string">"f1"</span>: <span class="number">0.625</span>}
+        }
+      }
+    ]
   }
 }
 </code></pre>
+<p>Each <code>epochs[]</code> record stores per-epoch training <code>loss</code>, <code>learningRate</code>, optional <code>valLoss</code> (with <code>hasValLoss</code>), an <code>isBest</code> flag, and a <code>completionTime</code>. When a validation set is provided, a <code>valConfusionMatrix</code> captures the classification matrix for that epoch's validation pass, letting you track how the matrix evolves over training. <code>matrix</code> is a flat array of <code>numClasses²</code> counts in row-major order (row = actual class, column = predicted class). <code>accuracy</code> is a 0–1 fraction; <code>perClass</code> gives TP/FP/FN/TN plus precision/recall/F1 and the class <code>support</code> (true count); <code>macro</code> averages metrics equally across classes, <code>weighted</code> averages them by support, and <code>micro</code> equals overall accuracy. <code>valConfusionMatrix</code> is omitted entirely when no validation set is used.</p>
 
 <h3>Predict Output (vector)</h3>
 <p>When <code>outputType</code> is <code>"vector"</code> (default), prediction produces a JSON file with an <code>"outputs"</code> array (post-activation, one entry per input), a parallel <code>"logits"</code> array (pre-activation <code>z</code> of the last layer), and batch metadata:</p>

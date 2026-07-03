@@ -294,8 +294,25 @@
   <tr><td><code>numSamples</code></td><td><code>ulong</code></td><td>Number of test samples evaluated</td></tr>
   <tr><td><code>totalLoss</code></td><td><code>T</code></td><td>Sum of losses across all samples</td></tr>
   <tr><td><code>averageLoss</code></td><td><code>T</code></td><td>Mean loss per sample</td></tr>
-  <tr><td><code>numCorrect</code></td><td><code>ulong</code></td><td>Number of correctly classified samples (argmax match)</td></tr>
+  <tr><td><code>numCorrect</code></td><td><code>ulong</code></td><td>Number of correctly classified samples (argmax match) — equals the confusion-matrix trace</td></tr>
   <tr><td><code>accuracy</code></td><td><code>T</code></td><td>Percentage of correct classifications (0–100)</td></tr>
+  <tr><td><code>confusionMatrix</code></td><td><code>ConfusionMatrix&lt;T&gt;</code></td><td>Per-class confusion matrix with derived precision/recall/F1 and averaged metrics (see below). Empty (<code>numClasses == 0</code>) when the output layer has fewer than 2 classes.</td></tr>
+</table>
+
+<h3>ConfusionMatrix&lt;T&gt; <span class="badge badge-blue">Common/Common_ConfusionMatrix.hpp</span></h3>
+<p>Accumulated from every argmax decision during <code>test()</code> (across CPU threads and GPUs), then finalised by <code>computeMetrics()</code>. The raw N×N matrix is the source of truth — <code>matrix[actual*numClasses + predicted]</code> (row-major, rows = actual class, columns = predicted class). <code>accuracy</code> here is a 0–1 fraction (unlike <code>TestResult::accuracy</code>, which is 0–100).</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>numClasses</code></td><td><code>ulong</code></td><td>Number of classes (matrix side length). 0 ⇒ empty/unset.</td></tr>
+  <tr><td><code>matrix</code></td><td><code>std::vector&lt;ulong&gt;</code></td><td>Raw counts, <code>numClasses²</code> entries, row-major (actual × predicted)</td></tr>
+  <tr><td><code>totalSamples</code></td><td><code>ulong</code></td><td>Sum of all matrix entries</td></tr>
+  <tr><td><code>truePositive / falsePositive / falseNegative / trueNegative</code></td><td><code>std::vector&lt;ulong&gt;</code></td><td>Per-class counts (one entry per class)</td></tr>
+  <tr><td><code>support</code></td><td><code>std::vector&lt;ulong&gt;</code></td><td>Per-class actual sample count (TP + FN)</td></tr>
+  <tr><td><code>precision / recall / f1Score</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Per-class metrics (undefined divisions, e.g. 0/0, evaluate to 0)</td></tr>
+  <tr><td><code>accuracy</code></td><td><code>T</code></td><td>Overall accuracy = trace / totalSamples (0–1)</td></tr>
+  <tr><td><code>macroPrecision / macroRecall / macroF1</code></td><td><code>T</code></td><td>Macro averages — unweighted mean of the per-class metrics</td></tr>
+  <tr><td><code>microPrecision / microRecall / microF1</code></td><td><code>T</code></td><td>Micro averages — computed from pooled TP/FP/FN (equal to accuracy for single-label)</td></tr>
+  <tr><td><code>weightedPrecision / weightedRecall / weightedF1</code></td><td><code>T</code></td><td>Support-weighted averages — per-class metrics weighted by their <code>support</code></td></tr>
 </table>
 
 <!-- ========== MONITORING ========== -->
@@ -354,11 +371,33 @@
   <tr><td><code>checkInterval</code></td><td><code>ulong</code></td><td>Run validation every N epochs (default 1 = every epoch)</td></tr>
 </table>
 
-<!-- ========== CALLBACKS ========== -->
-<h2 id="callbacks">3b. Callbacks &amp; Events <span class="badge badge-blue">Common/</span></h2>
+<!-- ========== SIGNALS ========== -->
+<h2 id="callbacks">3b. Events &amp; Signals <span class="badge badge-blue">Common/</span></h2>
+
+<p>Core reports training/test/predict events through a Qt signals hub rather than <code>std::function</code> callbacks. <code>Core&lt;T&gt;</code> owns a non-template <code>CoreSignals</code> QObject — it cannot live in the class template itself, since <code>moc</code> cannot process <code>Q_OBJECT</code> in a template — and emits through it. Obtain the hub via <code>getCoreSignals()</code> and connect with the usual Qt mechanism:</p>
+<pre><code><span class="keyword">auto</span> core = ANN::Core&lt;<span class="type">float</span>&gt;::makeCore(config);
+
+QObject::connect(&amp;core-&gt;getCoreSignals(), &amp;ANN::CoreSignals::epochCompleted,
+    [](<span class="type">ulong</span> epoch, <span class="type">ulong</span> totalEpochs, <span class="type">double</span> epochLoss,
+       <span class="type">bool</span> isNewBest, <span class="type">bool</span> stoppedEarly) {
+        std::cout &lt;&lt; <span class="string">"Epoch "</span> &lt;&lt; epoch &lt;&lt; <span class="string">"/"</span> &lt;&lt; totalEpochs
+                  &lt;&lt; <span class="string">" loss="</span> &lt;&lt; epochLoss &lt;&lt; <span class="string">"\n"</span>;
+    });
+</code></pre>
+<p>Loss values are widened to concrete <code>double</code> (lossless for both <code>float</code> and <code>double</code> instantiations); counts use <code>ulong</code> to match the rest of the library.</p>
+
+<h3>CoreSignals <span class="badge badge-green">ANN_CoreSignals.hpp</span></h3>
+<table>
+  <tr><th>Signal</th><th>Parameters</th><th>Emitted</th></tr>
+  <tr><td><code>trainProgress</code></td><td>(currentEpoch, totalEpochs, currentSample, totalSamples, epochLoss, sampleLoss, isNewBest, stoppedEarly, gpuIndex, totalGPUs)</td><td>At each progress-report interval during training</td></tr>
+  <tr><td><code>epochCompleted</code></td><td>(epoch, totalEpochs, epochLoss, isNewBest, stoppedEarly)</td><td>Once per finished epoch, after its record is appended to the history — the hook for validation, checkpointing, monitoring</td></tr>
+  <tr><td><code>predictProgress</code></td><td>(current, total)</td><td>During test and predict modes</td></tr>
+</table>
+<p>The <code>epochCompleted</code> <code>epoch</code> argument is 0-based, matching <code>EpochRecord::epoch</code> and the serialized epoch history (the high-frequency <code>trainProgress</code> <code>currentEpoch</code> is 1-based).</p>
+<p><em>Legacy note:</em> the <code>TrainProgressEvent&lt;T&gt;</code>, <code>EpochCompletionEvent&lt;T&gt;</code> structs and the <code>EpochCompletedCallback</code> / <code>ProgressCallback</code> aliases still exist in <code>Common/</code>, but the <code>setTrainingCallback</code> / <code>setEpochCompletedCallback</code> / <code>setProgressCallback</code> setters have been removed — connect to <code>CoreSignals</code> instead.</p>
 
 <h3>EpochCompletionEvent&lt;T&gt; <span class="badge badge-blue">Common/Common_EpochCompletionEvent.hpp</span></h3>
-<p>Passed to the epoch-completed callback. Reports the just-finished epoch with a 0-based index, matching <code>EpochRecord::epoch</code> and the serialized epochs history — unlike <code>TrainingProgressEvent</code>, whose high-frequency <code>currentEpoch</code> is 1-based.</p>
+<p>Describes a finished epoch. Its fields mirror the <code>epochCompleted</code> signal parameters above. <code>epoch</code> is a 0-based index, matching <code>EpochRecord::epoch</code> and the serialized epochs history.</p>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td><code>epoch</code></td><td><code>ulong</code></td><td>0-based index of the completed epoch</td></tr>
@@ -367,19 +406,6 @@
   <tr><td><code>isNewBest</code></td><td><code>bool</code></td><td>A core-internal monitor flagged a new best (default <code>false</code>)</td></tr>
   <tr><td><code>stoppedEarly</code></td><td><code>bool</code></td><td>A core-internal monitor requested an early stop (default <code>false</code>)</td></tr>
 </table>
-
-<h3>EpochCompletedCallback&lt;T&gt; <span class="badge badge-blue">Common/Common_EpochCompletionEvent.hpp</span></h3>
-<p>Invoked exactly once per completed epoch, after the epoch's record is appended to the training history. Distinct from the per-sample <code>TrainingCallback</code> that drives live progress display: this is the hook for epoch-boundary work (validation, checkpointing, monitoring).</p>
-<pre><code><span class="keyword">template</span> &lt;<span class="keyword">typename</span> <span class="type">T</span>&gt;
-<span class="keyword">using</span> EpochCompletedCallback =
-  std::function&lt;void(<span class="keyword">const</span> EpochCompletionEvent&lt;T&gt;&amp;)&gt;;
-</code></pre>
-
-<h3>ProgressCallback <span class="badge badge-blue">Common/Common_ProgressCallback.hpp</span></h3>
-<p>Generic progress callback for test and predict modes. Parameters: <code>(currentSample, totalSamples)</code>.</p>
-<pre><code><span class="keyword">using</span> ProgressCallback =
-  std::function&lt;void(<span class="keyword">ulong</span> currentSample, <span class="keyword">ulong</span> totalSamples)&gt;;
-</code></pre>
 
 <!-- ========== RECORDS ========== -->
 <h2 id="records">3c. Records &amp; Metadata <span class="badge badge-blue">Common/</span></h2>
@@ -392,6 +418,8 @@
   <tr><td><code>loss</code></td><td><code>T</code></td><td>Training loss (default 0)</td></tr>
   <tr><td><code>valLoss</code></td><td><code>T</code></td><td>Validation loss (only meaningful if <code>hasValLoss</code> is true, default 0)</td></tr>
   <tr><td><code>hasValLoss</code></td><td><code>bool</code></td><td>Whether validation ran this epoch (default <code>false</code>)</td></tr>
+  <tr><td><code>valConfusionMatrix</code></td><td><code>ConfusionMatrix&lt;T&gt;</code></td><td>Validation confusion matrix (mirrors <code>TestResult::confusionMatrix</code>). Only meaningful when <code>hasValConfusionMatrix</code> is true — populated "for free" because validation runs <code>test()</code> each epoch. Serialized to model JSON.</td></tr>
+  <tr><td><code>hasValConfusionMatrix</code></td><td><code>bool</code></td><td>Whether the validation confusion matrix was recorded this epoch (default <code>false</code>, tracks <code>hasValLoss</code>)</td></tr>
   <tr><td><code>isBest</code></td><td><code>bool</code></td><td>Whether this epoch produced the best model so far (default <code>false</code>)</td></tr>
   <tr><td><code>completionTime</code></td><td><code>uint64_t</code></td><td>Epoch completion time as unix timestamp in seconds (default 0)</td></tr>
 </table>
@@ -431,9 +459,7 @@
   <tr><td><code>getParameters()</code></td><td><code>const Parameters&lt;T&gt;&amp;</code></td></tr>
   <tr><td><code>getCostFunctionConfig()</code></td><td><code>const CostFunctionConfig&lt;T&gt;&amp;</code></td></tr>
   <tr><td><code>setParameters(const Parameters&lt;T&gt;&amp;)</code></td><td><code>void</code></td></tr>
-  <tr><td><code>setTrainingCallback(TrainingCallback&lt;T&gt;)</code></td><td><code>void</code></td></tr>
-  <tr><td><code>setEpochCompletedCallback(EpochCompletedCallback&lt;T&gt;)</code></td><td><code>void</code></td></tr>
-  <tr><td><code>setProgressCallback(ProgressCallback)</code></td><td><code>void</code></td></tr>
+  <tr><td><code>getCoreSignals()</code></td><td><code>CoreSignals&amp;</code></td></tr>
   <tr><td><code>requestStop()</code></td><td><code>void</code></td></tr>
   <tr><td><code>isStopRequested()</code></td><td><code>bool</code></td></tr>
   <tr><td><code>setLogLevel(LogLevel)</code></td><td><code>void</code></td></tr>

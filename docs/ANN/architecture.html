@@ -117,8 +117,8 @@
 </div>
 
 <div class="card">
-<h3>Callback Pattern</h3>
-<p>Training progress is reported via <code>TrainingCallback&lt;T&gt;</code> — a <code>std::function</code> that receives a <code>TrainingProgressEvent&lt;T&gt;</code> struct. The CLI and GUI can attach their own handlers.</p>
+<h3>Signals / Slots Pattern</h3>
+<p>Training, test, and predict events are reported through a non-template <code>CoreSignals</code> QObject hub owned by <code>Core&lt;T&gt;</code> (it cannot be a <code>Q_OBJECT</code> inside the class template, since <code>moc</code> cannot process templates). The CLI and GUI obtain it via <code>getCoreSignals()</code> and connect their handlers with <code>QObject::connect</code>.</p>
 </div>
 
 <h2 id="dataflow">3. Data Flow</h2>

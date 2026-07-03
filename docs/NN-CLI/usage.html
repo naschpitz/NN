@@ -97,7 +97,7 @@ NN-CLI --model config.json --mode train --idx-data images.idx3 --idx-labels labe
 
 <div class="card">
 <h3><span class="badge-orange">test</span></h3>
-<p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files and a <code>.nnmodel</code> package (plain JSON configs are rejected). Prints test metrics (sample count, average loss).</p>
+<p>Evaluates loss on a test set. Requires <code>--samples</code> or IDX files and a <code>.nnmodel</code> package (plain JSON configs are rejected). Prints test metrics (sample count, average loss, accuracy) and, for classification tasks, a <strong>confusion matrix</strong> — a per-class table of TP/FP/FN/TN with precision, recall, F1, and support, plus macro/micro/support-weighted averages.</p>
 <pre><code>NN-CLI --model-package trained_model.nnmodel --mode test --samples test_samples.json
 </code></pre>
 </div>

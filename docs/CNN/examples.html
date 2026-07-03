@@ -238,7 +238,7 @@ core-&gt;<span class="func">train</span>(samples.size(), CNN::<span class="func"
 
 <h2 id="step">6. Step-by-Step Training</h2>
 
-<p>Manual epoch loop with custom callbacks:</p>
+<p>Manual epoch loop (train one epoch at a time, inspecting metadata and validation loss between epochs):</p>
 
 <pre><code><span class="comment">// Configure for manual control</span>
 config.trainConfig.numEpochs = <span class="number">1</span>;  <span class="comment">// Train one epoch at a time</span>

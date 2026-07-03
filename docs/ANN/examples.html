@@ -87,12 +87,15 @@ ANN::Samples&lt;<span class="type">float</span>&gt; samples;
     samples.push_back({image, label});
 }
 
-<span class="comment">// Attach a progress callback</span>
-core-&gt;setTrainingCallback([](<span class="keyword">const</span> ANN::TrainingProgressEvent&lt;<span class="type">float</span>&gt;&amp; p) {
-    std::cout &lt;&lt; <span class="string">"Epoch "</span> &lt;&lt; p.currentEpoch &lt;&lt; <span class="string">"/"</span> &lt;&lt; p.totalEpochs
-              &lt;&lt; <span class="string">"  Sample "</span> &lt;&lt; p.currentSample &lt;&lt; <span class="string">"/"</span> &lt;&lt; p.totalSamples
-              &lt;&lt; <span class="string">"  Loss: "</span> &lt;&lt; p.epochLoss &lt;&lt; <span class="string">"\r"</span> &lt;&lt; std::flush;
-});
+<span class="comment">// Subscribe to progress via the Qt signals hub (replaces the old setTrainingCallback)</span>
+QObject::connect(&amp;core-&gt;getCoreSignals(), &amp;ANN::CoreSignals::trainProgress,
+    [](<span class="type">ulong</span> currentEpoch, <span class="type">ulong</span> totalEpochs, <span class="type">ulong</span> currentSample,
+       <span class="type">ulong</span> totalSamples, <span class="type">double</span> epochLoss, <span class="type">double</span> /*sampleLoss*/,
+       <span class="type">bool</span> /*isNewBest*/, <span class="type">bool</span> /*stoppedEarly*/, <span class="type">int</span> /*gpuIndex*/, <span class="type">int</span> /*totalGPUs*/) {
+        std::cout &lt;&lt; <span class="string">"Epoch "</span> &lt;&lt; currentEpoch &lt;&lt; <span class="string">"/"</span> &lt;&lt; totalEpochs
+                  &lt;&lt; <span class="string">"  Sample "</span> &lt;&lt; currentSample &lt;&lt; <span class="string">"/"</span> &lt;&lt; totalSamples
+                  &lt;&lt; <span class="string">"  Loss: "</span> &lt;&lt; epochLoss &lt;&lt; <span class="string">"\r"</span> &lt;&lt; std::flush;
+    });
 
 <span class="comment">// Train!</span>
 core-&gt;train(samples.size(), ANN::makeSampleProvider(samples));
@@ -129,6 +132,12 @@ std::cout &lt;&lt; <span class="string">"Predicted class: "</span> &lt;&lt; pred
 ANN::TestResult&lt;<span class="type">float</span>&gt; result = core-&gt;test(testSamples.size(), ANN::makeSampleProvider(testSamples));
 std::cout &lt;&lt; <span class="string">"Test — Samples: "</span> &lt;&lt; result.numSamples
           &lt;&lt; <span class="string">"  Avg Loss: "</span> &lt;&lt; result.averageLoss &lt;&lt; std::endl;
+
+<span class="comment">// result.confusionMatrix carries per-class TP/FP/FN/TN, precision/recall/F1,</span>
+<span class="comment">// overall accuracy (0–1), and macro/micro/weighted averages — empty if &lt; 2 classes.</span>
+<span class="keyword">if</span> (!result.confusionMatrix.empty()) {
+    std::cout &lt;&lt; <span class="string">"Accuracy: "</span> &lt;&lt; result.confusionMatrix.accuracy &lt;&lt; std::endl;
+}
 </code></pre>
 
 <h2 id="step">5. Step-by-Step Training</h2>

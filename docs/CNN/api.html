@@ -399,22 +399,34 @@
   <tr><td><code>getCostFunctionConfig()</code></td><td><code>const CostFunctionConfig&lt;T&gt;&amp;</code></td><td>Cost function type and optional weights</td></tr>
 </table>
 
-<h4>Setters &amp; Callback Registration</h4>
+<h4>Setters</h4>
 <table>
   <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
   <tr><td><code>setParameters(params)</code></td><td><code>void</code></td><td>Set conv + dense parameters (e.g. from a loaded model)</td></tr>
   <tr><td><code>syncParametersToGPU()</code></td><td><code>void</code></td><td>Upload host-side parameters to GPU buffers. No-op on CPU cores.</td></tr>
-  <tr><td><code>setTrainingCallback(cb)</code></td><td><code>void</code></td><td>Attach per-sample training progress callback</td></tr>
-  <tr><td><code>setEpochCompletedCallback(cb)</code></td><td><code>void</code></td><td>Attach per-epoch completion callback (validation, checkpointing)</td></tr>
-  <tr><td><code>setProgressCallback(cb)</code></td><td><code>void</code></td><td>Attach progress callback for predict/test modes</td></tr>
-  <tr><td><code>setTimingCallback(cb)</code></td><td><code>void</code></td><td>Attach timing instrumentation callback (phase begin/end notifications)</td></tr>
-  <tr><td><code>setGpuProfileCallback(cb)</code></td><td><code>void</code></td><td>Attach GPU kernel profiling callback (per-kernel execution times)</td></tr>
+  <tr><td><code>getCoreSignals()</code></td><td><code>CoreSignals&amp;</code></td><td>Qt signals hub for all training/test/predict, timing, and GPU-profiling events (see below). Replaces the former <code>setTrainingCallback</code> / <code>setEpochCompletedCallback</code> / <code>setProgressCallback</code> / <code>setTimingCallback</code> / <code>setGpuProfileCallback</code> setters.</td></tr>
   <tr><td><code>setLogLevel(level)</code></td><td><code>void</code></td><td>Set log verbosity (QUIET, ERROR, WARNING, INFO, DEBUG)</td></tr>
   <tr><td><code>getLogLevel()</code></td><td><code>LogLevel</code></td><td>Get current log verbosity level</td></tr>
   <tr><td><code>requestStop()</code></td><td><code>void</code></td><td>Request early training termination (checked at epoch boundaries)</td></tr>
   <tr><td><code>isStopRequested()</code></td><td><code>bool</code></td><td>Whether early stop has been requested</td></tr>
   <tr><td><code>prependEpochHistory(history)</code></td><td><code>void</code></td><td>Prepend loaded epoch history from a resumed model</td></tr>
 </table>
+
+<h4>Events &amp; Signals</h4>
+<p>Core reports events through a non-template <code>CoreSignals</code> QObject hub (it cannot live in the class template itself — <code>moc</code> cannot process <code>Q_OBJECT</code> in a template). Obtain it via <code>getCoreSignals()</code> and connect with <code>QObject::connect</code>. CNN's hub adds <code>timing</code> and <code>gpuProfile</code> signals (mirroring the former <code>TimingCallback</code> / <code>GpuProfileCallback</code>).</p>
+<pre><code>QObject::connect(&amp;core-&gt;getCoreSignals(), &amp;CNN::CoreSignals::epochCompleted,
+    [](<span class="type">ulong</span> epoch, <span class="type">ulong</span> totalEpochs, <span class="type">double</span> epochLoss,
+       <span class="type">bool</span> isNewBest, <span class="type">bool</span> stoppedEarly) { <span class="comment">/* ... */</span> });
+</code></pre>
+<table>
+  <tr><th>Signal</th><th>Parameters</th><th>Emitted</th></tr>
+  <tr><td><code>trainProgress</code></td><td>(currentEpoch, totalEpochs, currentSample, totalSamples, epochLoss, sampleLoss, isNewBest, stoppedEarly, gpuIndex, totalGPUs)</td><td>At each progress-report interval during training</td></tr>
+  <tr><td><code>epochCompleted</code></td><td>(epoch, totalEpochs, epochLoss, isNewBest, stoppedEarly)</td><td>Once per finished epoch (hook for validation, checkpointing, monitoring)</td></tr>
+  <tr><td><code>predictProgress</code></td><td>(current, total)</td><td>During test and predict modes</td></tr>
+  <tr><td><code>timing</code></td><td>(TimingPhase, TimingEvent, gpuIndex)</td><td>Host-side timing phase boundaries (orchestrator + worker scope)</td></tr>
+  <tr><td><code>gpuProfile</code></td><td>(const std::vector&lt;GpuPhaseProfile&gt;&amp;, gpuIndex)</td><td>GPU-measured per-sub-phase kernel profile (worker scope)</td></tr>
+</table>
+<p><code>epochCompleted</code>'s <code>epoch</code> is 0-based; <code>trainProgress</code>'s high-frequency <code>currentEpoch</code> is 1-based. Loss values are widened to <code>double</code>. The <code>TimingPhase</code>/<code>TimingEvent</code> enums and <code>GpuPhaseProfile</code> struct live in <code>CNN_TimingCallback.hpp</code>.</p>
 
 <h2 id="corecpu">5. CoreCPU&lt;T&gt;</h2>
 <p>CPU implementation using the ANN library as the dense-layer backend.</p>
