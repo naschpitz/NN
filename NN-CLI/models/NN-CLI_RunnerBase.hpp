@@ -10,6 +10,7 @@
 
 #include "Common/Common_LearningRateScheduler.hpp"
 #include "Common/Common_PredictResult.hpp"
+#include "Common/Common_TestResult.hpp"
 #include "Common/Common_TrainMetadata.hpp"
 #include "Common/Common_TrainProgressEvent.hpp"
 
@@ -134,6 +135,9 @@ namespace NN_CLI
 
       void predictFinished(const Common::PredictResults<float>& results, size_t numInputs, double durationSeconds,
                            const std::string& durationFormatted, const std::string& outputPath);
+
+      void testFinished(const Common::TestResult<float>& result, double durationSeconds,
+                        const std::string& durationFormatted, const std::string& outputPath);
 
       void modelInfoUpdated(const std::string& property, const std::string& value);
 

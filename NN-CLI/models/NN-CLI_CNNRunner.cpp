@@ -396,6 +396,8 @@ int CNNRunner::test()
 
   QString outputPath = NN_CLI::RunnerUtils::resolveTestOutputPath(this->parser, inputFilePath);
 
+  emit this->testFinished(result, testDurationSeconds, testDurationFormatted, outputPath.toStdString());
+
   return NN_CLI::RunnerUtils::writeTestOutput(result, outputPath, this->logLevel, startTimeStr, endTimeStr,
                                               testDurationSeconds, testDurationFormatted);
 }
