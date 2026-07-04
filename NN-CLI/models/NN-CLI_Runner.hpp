@@ -62,11 +62,11 @@ namespace NN_CLI
 
       void applyLearningRateScheduler(ulong epoch, int totalEpochs, bool hasValLoss, float valLoss) override;
 
-      // Connect a core's predictProgress signal to emit this->batchProgress,
-      // throttled by progressReports.  Shared by predict (on this->core) and
-      // test (on a local class-weighted testCore).  The core reports its own
-      // per-phase total, so a single connection serves multi-phase modes like
-      // calibrate (ID then OOD predict).
+      // Connect a core's predictProgress signal to emit this->batchProgress, throttled by
+      // progressReports.  Wired once in the ctor for this->core (so a reused Runner never stacks
+      // duplicate connections); also called from test() on its local class-weighted testCore,
+      // which is a fresh object destroyed at the end of each test() run.  The core reports its
+      // own per-phase total, so a single connection serves multi-phase modes like calibrate.
       void emitProgressFromCore(CoreT& core);
 
       void doSaveModel(const std::string& outputPath) override = 0;

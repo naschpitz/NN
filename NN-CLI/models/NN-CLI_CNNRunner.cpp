@@ -423,8 +423,6 @@ int CNNRunner::predict()
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = Common::Utils::formatISO8601();
 
-  this->emitProgressFromCore(*this->core);
-
   // The streaming predict API takes a provider that yields one batch at a
   // time. The inputs are already loaded into `inputs`, so the provider returns
   // a non-owning view over each batch slice (no per-input copy).
@@ -527,11 +525,6 @@ int CNNRunner::calibrate()
 
   //-- Predict + free-energy -------------------------------------------------
   auto t0 = std::chrono::system_clock::now();
-
-  // Wire the core's predict-progress signal to batchProgress so the TUI
-  // progress bar reflects the ID and OOD predict phases.  The core reports
-  // its own per-phase total, so one connection serves both phases.
-  this->emitProgressFromCore(*this->core);
 
   const auto& inputShape = this->coreConfig.inputShape;
   int targetC = static_cast<int>(inputShape.c);

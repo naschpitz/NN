@@ -32,6 +32,12 @@ NN_CLI::Runner<CoreT, CoreConfigT>::Runner(const QCommandLineParser& parser, NN_
   // On resume, restore the persisted scheduler state so the schedule continues (plateau needs this).
   if (coreConfig.loadedTrainMetadata.learningRateSchedulerState.initialized)
     this->learningRateSchedulerState = coreConfig.loadedTrainMetadata.learningRateSchedulerState;
+
+  // Wire the predict-progress forwarding once, for the Runner's lifetime, instead of per mode
+  // call: a reused Runner would otherwise stack duplicate connections (QObject::connect on a
+  // lambda is not idempotent and Qt::UniqueConnection does not dedupe lambdas). test() still
+  // wires its own short-lived testCore.
+  this->emitProgressFromCore(*this->core);
 }
 
 //===================================================================================================================//
