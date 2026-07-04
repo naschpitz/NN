@@ -3,6 +3,7 @@
 #include "NN-CLI_TerminalUI_TrainWindow.hpp"
 #include "NN-CLI_TerminalUI_PredictWindow.hpp"
 #include "NN-CLI_TerminalUI_TestWindow.hpp"
+#include "NN-CLI_TerminalUI_CalibrateWindow.hpp"
 
 #include <cstdio>
 #include <string>
@@ -578,6 +579,10 @@ static void testTitleBar()
   NN_CLI::TerminalUI_TestWindow tstw;
   CHECK(tstw.getTitleBar() == "---- TEST ----", "TestWindow title bar text");
   CHECK(tstw.getTitleBarColor() == 5, "TestWindow title bar color");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw;
+  CHECK(cw.getTitleBar() == "---- CALIBRATE ----", "CalibrateWindow title bar text");
+  CHECK(cw.getTitleBarColor() == 7, "CalibrateWindow title bar color");
 }
 
 //===================================================================================================================//
@@ -837,6 +842,154 @@ static void testTestWindowAbortRequested()
 
 //===================================================================================================================//
 
+static void testCalibrateWindowDefaultActivePanel()
+{
+  TestScope _t("testCalibrateWindowDefaultActivePanel");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw;
+  CHECK(cw.getActivePanel() == NN_CLI::TerminalUI_CalibrateWindow::MODEL_INFO,
+        "CalibrateWindow default active panel should be MODEL_INFO");
+}
+
+//===================================================================================================================//
+
+static void testCalibrateWindowTabCyclesPanels()
+{
+  TestScope _t("testCalibrateWindowTabCyclesPanels");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw;
+
+  // Tab cycles: MODEL_INFO(0) -> TIMING(1) -> EPOCH_HISTORY(2) -> RESULTS(3) -> PROGRESS(4) -> MODEL_INFO(0)
+  CHECK(cw.cycleActivePanel('\t'), "Tab should be consumed");
+  CHECK(cw.getActivePanel() == NN_CLI::TerminalUI_CalibrateWindow::TIMING,
+        "After one Tab, active panel should be TIMING (1)");
+
+  cw.cycleActivePanel('\t');
+  CHECK(cw.getActivePanel() == NN_CLI::TerminalUI_CalibrateWindow::EPOCH_HISTORY,
+        "After two Tabs, active panel should be EPOCH_HISTORY (2)");
+
+  cw.cycleActivePanel('\t');
+  CHECK(cw.getActivePanel() == NN_CLI::TerminalUI_CalibrateWindow::RESULTS,
+        "After three Tabs, active panel should be RESULTS (3)");
+
+  cw.cycleActivePanel('\t');
+  CHECK(cw.getActivePanel() == NN_CLI::TerminalUI_CalibrateWindow::PROGRESS,
+        "After four Tabs, active panel should be PROGRESS (4)");
+
+  cw.cycleActivePanel('\t');
+  CHECK(cw.getActivePanel() == NN_CLI::TerminalUI_CalibrateWindow::MODEL_INFO,
+        "After five Tabs, active panel should wrap back to MODEL_INFO (0)");
+
+  CHECK(!cw.cycleActivePanel('a'), "Non-Tab key should not be consumed by cycleActivePanel");
+}
+
+//===================================================================================================================//
+
+static void testCalibrateWindowScrollRouting()
+{
+  TestScope _t("testCalibrateWindowScrollRouting");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw;
+
+  populateScrollablePanel(cw.getModelInfoPanel(), 50);
+  cw.setActivePanel(NN_CLI::TerminalUI_CalibrateWindow::MODEL_INFO);
+
+  CHECK(cw.getModelInfoPanel()->scrollState().offset == 0, "Initial scroll offset should be 0");
+
+  CHECK(cw.scrollActivePanel(TestKeys::kKeyDown), "KEY_DOWN should be consumed by scrollActivePanel");
+  CHECK(cw.getModelInfoPanel()->scrollState().offset == 1, "Scroll offset should increase to 1 after KEY_DOWN");
+
+  CHECK(cw.scrollActivePanel(TestKeys::kKeyHome), "KEY_HOME should be consumed");
+  CHECK(cw.getModelInfoPanel()->scrollState().offset == 0, "KEY_HOME should reset offset to 0");
+
+  CHECK(!cw.scrollActivePanel('a'), "Non-scroll key should not be consumed by scrollActivePanel");
+}
+
+//===================================================================================================================//
+
+static void testCalibrateWindowHandleEvent()
+{
+  TestScope _t("testCalibrateWindowHandleEvent");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw;
+  populateScrollablePanel(cw.getModelInfoPanel(), 50);
+  populateScrollablePanel(cw.getTimingPanel(), 50);
+
+  CHECK(cw.handleEvent('\t'), "handleEvent should consume Tab");
+  CHECK(cw.getActivePanel() == NN_CLI::TerminalUI_CalibrateWindow::TIMING,
+        "handleEvent Tab should cycle panel to TIMING");
+
+  CHECK(cw.handleEvent(TestKeys::kKeyDown), "handleEvent should consume KEY_DOWN");
+  CHECK(cw.getTimingPanel()->scrollState().offset == 1, "handleEvent KEY_DOWN should scroll active panel");
+
+  CHECK(!cw.handleEvent(-1), "handleEvent should not consume unknown key -1");
+}
+
+//===================================================================================================================//
+
+static void testCalibrateWindowDismissOnQ()
+{
+  TestScope _t("testCalibrateWindowDismissOnQ");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw;
+  CHECK(cw.handleEvent('q'), "handleEvent 'q' should set dismissed flag and return true");
+  cw.waitForDismiss();
+  CHECK(true, "waitForDismiss returned immediately after 'q' dismiss");
+  CHECK(!cw.handleEvent('\n'), "Enter should NOT dismiss CalibrateWindow");
+}
+
+//===================================================================================================================//
+
+static void testCalibrateWindowResultsTable()
+{
+  TestScope _t("testCalibrateWindowResultsTable");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw;
+  cw.getResultsPanel()->resize(80, 10, 0, 0);
+
+  cw.setResultsColumns({"Metric", "Value"});
+  cw.addResultRow({"Free energy threshold", "1.2345"});
+  cw.addResultRow({"ID accepted", "90 (90.0%)"});
+  cw.refreshResultsContent();
+
+  auto lines = cw.getResultsPanel()->getLines();
+  CHECK(static_cast<int>(lines.size()) >= 6,
+        "Results table with 2 data rows should produce at least 6 lines (sep+hdr+sep+row1+row2+sep)");
+}
+
+//===================================================================================================================//
+
+static void testCalibrateWindowChildCount()
+{
+  TestScope _t("testCalibrateWindowChildCount");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw;
+  CHECK(cw.childCount() == 5, "CalibrateWindow should have 5 child panels");
+}
+
+//===================================================================================================================//
+
+static void testCalibrateWindowAbortRequested()
+{
+  TestScope _t("testCalibrateWindowAbortRequested");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw;
+  CHECK(!cw.abortRequested(), "abortRequested() should be false initially");
+
+  cw.handleEvent('q');
+  CHECK(cw.abortRequested(), "abortRequested() should be true after handleEvent('q')");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw2;
+  cw2.handleEvent('Q');
+  CHECK(cw2.abortRequested(), "abortRequested() should be true after handleEvent('Q')");
+
+  NN_CLI::TerminalUI_CalibrateWindow cw3;
+  cw3.handleEvent(27);
+  CHECK(cw3.abortRequested(), "abortRequested() should be true after handleEvent(27/ESC)");
+}
+
+//===================================================================================================================//
+
 void runTerminalUITests()
 {
   testTrainWindowCycleActivePanel();
@@ -867,4 +1020,12 @@ void runTerminalUITests()
   testTestWindowResultsTable();
   testTestWindowChildCount();
   testTestWindowAbortRequested();
+  testCalibrateWindowDefaultActivePanel();
+  testCalibrateWindowTabCyclesPanels();
+  testCalibrateWindowScrollRouting();
+  testCalibrateWindowHandleEvent();
+  testCalibrateWindowDismissOnQ();
+  testCalibrateWindowResultsTable();
+  testCalibrateWindowChildCount();
+  testCalibrateWindowAbortRequested();
 }

@@ -44,6 +44,7 @@ add_executable(NN-CLI
   ui/NN-CLI_TerminalUI_ResultsWindow.cpp
   ui/NN-CLI_TerminalUI_PredictWindow.cpp
   ui/NN-CLI_TerminalUI_TestWindow.cpp
+  ui/NN-CLI_TerminalUI_CalibrateWindow.cpp
   models/NN-CLI_TestSummary.cpp
   models/NN-CLI_TrainProfiler.cpp
   controllers/NN-CLI_TrainController.cpp
@@ -189,6 +190,7 @@ add_executable(test_nncli
   ui/NN-CLI_TerminalUI_ResultsWindow.cpp
   ui/NN-CLI_TerminalUI_PredictWindow.cpp
   ui/NN-CLI_TerminalUI_TestWindow.cpp
+  ui/NN-CLI_TerminalUI_CalibrateWindow.cpp
 )
 target_include_directories(test_nncli PRIVATE
     ${NNCLI_INCLUDE_DIRS}
