@@ -368,24 +368,30 @@ namespace NN_CLI
     if (!this->modelInfoPanelPtr)
       return;
 
+    auto generate = [this](int tableWidth) {
+      std::vector<SummaryTable::Section> sections;
+
+      SummaryTable::Section configSection;
+      configSection.title = this->modelInfoTitle.empty() ? "Model Configuration" : this->modelInfoTitle;
+      configSection.rows = this->modelConfigRows;
+      sections.push_back(std::move(configSection));
+
+      if (!this->lossReferenceRows.empty()) {
+        SummaryTable::Section lossSection;
+        lossSection.title = "Loss Reference";
+        lossSection.rows = this->lossReferenceRows;
+        sections.push_back(std::move(lossSection));
+      }
+
+      return SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
+    };
+
     int tableWidth = std::max(30, this->modelInfoPanelPtr->contentWidth());
+    this->modelInfoPanelPtr->setLines(generate(tableWidth));
+    int revised = std::max(30, this->modelInfoPanelPtr->contentWidth());
 
-    std::vector<SummaryTable::Section> sections;
-
-    SummaryTable::Section configSection;
-    configSection.title = this->modelInfoTitle.empty() ? "Model Configuration" : this->modelInfoTitle;
-    configSection.rows = this->modelConfigRows;
-    sections.push_back(std::move(configSection));
-
-    if (!this->lossReferenceRows.empty()) {
-      SummaryTable::Section lossSection;
-      lossSection.title = "Loss Reference";
-      lossSection.rows = this->lossReferenceRows;
-      sections.push_back(std::move(lossSection));
-    }
-
-    auto lines = SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
-    this->modelInfoPanelPtr->setLines(lines);
+    if (revised != tableWidth)
+      this->modelInfoPanelPtr->setLines(generate(revised));
     this->modelInfoPanelPtr->setScrollOffset(0);
   }
 

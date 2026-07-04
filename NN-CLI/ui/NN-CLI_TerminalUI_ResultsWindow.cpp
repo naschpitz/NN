@@ -223,17 +223,27 @@ namespace NN_CLI
     if (!this->modelInfoPanelPtr)
       return;
 
+    auto generate = [this](int tableWidth) {
+      SummaryTable::Section configSection;
+      configSection.title = "Model Configuration";
+      configSection.rows = this->modelInfoRows;
+
+      std::vector<SummaryTable::Section> sections;
+      sections.push_back(std::move(configSection));
+
+      return SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
+    };
+
+    // contentWidth() depends on the current line count, so baking at it before
+    // setLines() reads the stale width.  If the new table overflows and enables
+    // a scrollbar, the effective width drops by one and the right border is
+    // clipped — re-bake once when the scrollbar state flipped.
     int tableWidth = std::max(30, this->modelInfoPanelPtr->contentWidth());
+    this->modelInfoPanelPtr->setLines(generate(tableWidth));
+    int revised = std::max(30, this->modelInfoPanelPtr->contentWidth());
 
-    SummaryTable::Section configSection;
-    configSection.title = "Model Configuration";
-    configSection.rows = this->modelInfoRows;
-
-    std::vector<SummaryTable::Section> sections;
-    sections.push_back(std::move(configSection));
-
-    auto lines = SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
-    this->modelInfoPanelPtr->setLines(lines);
+    if (revised != tableWidth)
+      this->modelInfoPanelPtr->setLines(generate(revised));
     this->modelInfoPanelPtr->setScrollOffset(0);
   }
 
@@ -253,17 +263,25 @@ namespace NN_CLI
     if (!this->timingPanelPtr)
       return;
 
+    auto padToWidth = [this](int contentW) {
+      auto lines = this->rawTimingLines;
+
+      for (auto& line : lines) {
+        int lineLen = static_cast<int>(line.size());
+
+        if (lineLen < contentW)
+          line.append(static_cast<std::string::size_type>(contentW - lineLen), ' ');
+      }
+
+      return lines;
+    };
+
     int contentW = this->timingPanelPtr->contentWidth();
-    auto lines = this->rawTimingLines;
+    this->timingPanelPtr->setLines(padToWidth(contentW));
+    int revised = this->timingPanelPtr->contentWidth();
 
-    for (auto& line : lines) {
-      int lineLen = static_cast<int>(line.size());
-
-      if (lineLen < contentW)
-        line.append(static_cast<std::string::size_type>(contentW - lineLen), ' ');
-    }
-
-    this->timingPanelPtr->setLines(lines);
+    if (revised != contentW)
+      this->timingPanelPtr->setLines(padToWidth(revised));
   }
 
   //===================================================================================================================//
@@ -282,17 +300,25 @@ namespace NN_CLI
     if (!this->epochHistoryPanelPtr)
       return;
 
+    auto padToWidth = [this](int contentW) {
+      auto lines = this->rawEpochHistoryLines;
+
+      for (auto& line : lines) {
+        int lineLen = static_cast<int>(line.size());
+
+        if (lineLen < contentW)
+          line.append(static_cast<std::string::size_type>(contentW - lineLen), ' ');
+      }
+
+      return lines;
+    };
+
     int contentW = this->epochHistoryPanelPtr->contentWidth();
-    auto lines = this->rawEpochHistoryLines;
+    this->epochHistoryPanelPtr->setLines(padToWidth(contentW));
+    int revised = this->epochHistoryPanelPtr->contentWidth();
 
-    for (auto& line : lines) {
-      int lineLen = static_cast<int>(line.size());
-
-      if (lineLen < contentW)
-        line.append(static_cast<std::string::size_type>(contentW - lineLen), ' ');
-    }
-
-    this->epochHistoryPanelPtr->setLines(lines);
+    if (revised != contentW)
+      this->epochHistoryPanelPtr->setLines(padToWidth(revised));
   }
 
   //===================================================================================================================//
@@ -343,11 +369,17 @@ namespace NN_CLI
     if (!this->resultsPanelPtr)
       return;
 
-    int tableWidth = std::max(20, this->resultsPanelPtr->contentWidth());
-    this->resultsTable.setMaxWidth(tableWidth);
+    auto generate = [this](int tableWidth) {
+      this->resultsTable.setMaxWidth(tableWidth);
+      return this->resultsTable.render();
+    };
 
-    auto lines = this->resultsTable.render();
-    this->resultsPanelPtr->setLines(lines);
+    int tableWidth = std::max(20, this->resultsPanelPtr->contentWidth());
+    this->resultsPanelPtr->setLines(generate(tableWidth));
+    int revised = std::max(20, this->resultsPanelPtr->contentWidth());
+
+    if (revised != tableWidth)
+      this->resultsPanelPtr->setLines(generate(revised));
   }
 
   //===================================================================================================================//
