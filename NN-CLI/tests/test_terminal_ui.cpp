@@ -2,6 +2,7 @@
 
 #include "NN-CLI_TerminalUI_TrainWindow.hpp"
 #include "NN-CLI_TerminalUI_PredictWindow.hpp"
+#include "NN-CLI_TerminalUI_TestWindow.hpp"
 
 #include <cstdio>
 #include <string>
@@ -573,6 +574,10 @@ static void testTitleBar()
   NN_CLI::TerminalUI_PredictWindow pw;
   CHECK(pw.getTitleBar() == "---- PREDICT ----", "PredictWindow title bar text");
   CHECK(pw.getTitleBarColor() == 1, "PredictWindow title bar color");
+
+  NN_CLI::TerminalUI_TestWindow tstw;
+  CHECK(tstw.getTitleBar() == "---- TEST ----", "TestWindow title bar text");
+  CHECK(tstw.getTitleBarColor() == 5, "TestWindow title bar color");
 }
 
 //===================================================================================================================//
@@ -685,6 +690,153 @@ static void testPredictWindowAbortRequested()
 
 //===================================================================================================================//
 
+static void testTestWindowDefaultActivePanel()
+{
+  TestScope _t("testTestWindowDefaultActivePanel");
+
+  NN_CLI::TerminalUI_TestWindow tstw;
+  CHECK(tstw.getActivePanel() == NN_CLI::TerminalUI_TestWindow::MODEL_INFO,
+        "TestWindow default active panel should be MODEL_INFO");
+}
+
+//===================================================================================================================//
+
+static void testTestWindowTabCyclesPanels()
+{
+  TestScope _t("testTestWindowTabCyclesPanels");
+
+  NN_CLI::TerminalUI_TestWindow tstw;
+
+  // Tab cycles: MODEL_INFO(0) -> TIMING(1) -> EPOCH_HISTORY(2) -> RESULTS(3) -> PROGRESS(4) -> MODEL_INFO(0)
+  CHECK(tstw.cycleActivePanel('\t'), "Tab should be consumed");
+  CHECK(tstw.getActivePanel() == NN_CLI::TerminalUI_TestWindow::TIMING,
+        "After one Tab, active panel should be TIMING (1)");
+
+  tstw.cycleActivePanel('\t');
+  CHECK(tstw.getActivePanel() == NN_CLI::TerminalUI_TestWindow::EPOCH_HISTORY,
+        "After two Tabs, active panel should be EPOCH_HISTORY (2)");
+
+  tstw.cycleActivePanel('\t');
+  CHECK(tstw.getActivePanel() == NN_CLI::TerminalUI_TestWindow::RESULTS,
+        "After three Tabs, active panel should be RESULTS (3)");
+
+  tstw.cycleActivePanel('\t');
+  CHECK(tstw.getActivePanel() == NN_CLI::TerminalUI_TestWindow::PROGRESS,
+        "After four Tabs, active panel should be PROGRESS (4)");
+
+  tstw.cycleActivePanel('\t');
+  CHECK(tstw.getActivePanel() == NN_CLI::TerminalUI_TestWindow::MODEL_INFO,
+        "After five Tabs, active panel should wrap back to MODEL_INFO (0)");
+
+  CHECK(!tstw.cycleActivePanel('a'), "Non-Tab key should not be consumed by cycleActivePanel");
+}
+
+//===================================================================================================================//
+
+static void testTestWindowScrollRouting()
+{
+  TestScope _t("testTestWindowScrollRouting");
+
+  NN_CLI::TerminalUI_TestWindow tstw;
+
+  populateScrollablePanel(tstw.getModelInfoPanel(), 50);
+  tstw.setActivePanel(NN_CLI::TerminalUI_TestWindow::MODEL_INFO);
+
+  CHECK(tstw.getModelInfoPanel()->scrollState().offset == 0, "Initial scroll offset should be 0");
+
+  CHECK(tstw.scrollActivePanel(TestKeys::kKeyDown), "KEY_DOWN should be consumed by scrollActivePanel");
+  CHECK(tstw.getModelInfoPanel()->scrollState().offset == 1, "Scroll offset should increase to 1 after KEY_DOWN");
+
+  CHECK(tstw.scrollActivePanel(TestKeys::kKeyHome), "KEY_HOME should be consumed");
+  CHECK(tstw.getModelInfoPanel()->scrollState().offset == 0, "KEY_HOME should reset offset to 0");
+
+  CHECK(!tstw.scrollActivePanel('a'), "Non-scroll key should not be consumed by scrollActivePanel");
+}
+
+//===================================================================================================================//
+
+static void testTestWindowHandleEvent()
+{
+  TestScope _t("testTestWindowHandleEvent");
+
+  NN_CLI::TerminalUI_TestWindow tstw;
+  populateScrollablePanel(tstw.getModelInfoPanel(), 50);
+  populateScrollablePanel(tstw.getTimingPanel(), 50);
+
+  CHECK(tstw.handleEvent('\t'), "handleEvent should consume Tab");
+  CHECK(tstw.getActivePanel() == NN_CLI::TerminalUI_TestWindow::TIMING, "handleEvent Tab should cycle panel to TIMING");
+
+  CHECK(tstw.handleEvent(TestKeys::kKeyDown), "handleEvent should consume KEY_DOWN");
+  CHECK(tstw.getTimingPanel()->scrollState().offset == 1, "handleEvent KEY_DOWN should scroll active panel");
+
+  CHECK(!tstw.handleEvent(-1), "handleEvent should not consume unknown key -1");
+}
+
+//===================================================================================================================//
+
+static void testTestWindowDismissOnQ()
+{
+  TestScope _t("testTestWindowDismissOnQ");
+
+  NN_CLI::TerminalUI_TestWindow tstw;
+  CHECK(tstw.handleEvent('q'), "handleEvent 'q' should set dismissed flag and return true");
+  tstw.waitForDismiss();
+  CHECK(true, "waitForDismiss returned immediately after 'q' dismiss");
+  CHECK(!tstw.handleEvent('\n'), "Enter should NOT dismiss TestWindow");
+}
+
+//===================================================================================================================//
+
+static void testTestWindowResultsTable()
+{
+  TestScope _t("testTestWindowResultsTable");
+
+  NN_CLI::TerminalUI_TestWindow tstw;
+  tstw.getResultsPanel()->resize(80, 10, 0, 0);
+
+  tstw.setResultsColumns({"Class", "Precision", "Recall", "F1", "Support"});
+  tstw.addResultRow({"0", "0.95", "0.93", "0.94", "980"});
+  tstw.addResultRow({"1", "0.97", "0.96", "0.96", "1135"});
+  tstw.refreshResultsContent();
+
+  auto lines = tstw.getResultsPanel()->getLines();
+  CHECK(static_cast<int>(lines.size()) >= 6,
+        "Results table with 2 data rows should produce at least 6 lines (sep+hdr+sep+row1+row2+sep)");
+}
+
+//===================================================================================================================//
+
+static void testTestWindowChildCount()
+{
+  TestScope _t("testTestWindowChildCount");
+
+  NN_CLI::TerminalUI_TestWindow tstw;
+  CHECK(tstw.childCount() == 5, "TestWindow should have 5 child panels");
+}
+
+//===================================================================================================================//
+
+static void testTestWindowAbortRequested()
+{
+  TestScope _t("testTestWindowAbortRequested");
+
+  NN_CLI::TerminalUI_TestWindow tstw;
+  CHECK(!tstw.abortRequested(), "abortRequested() should be false initially");
+
+  tstw.handleEvent('q');
+  CHECK(tstw.abortRequested(), "abortRequested() should be true after handleEvent('q')");
+
+  NN_CLI::TerminalUI_TestWindow tstw2;
+  tstw2.handleEvent('Q');
+  CHECK(tstw2.abortRequested(), "abortRequested() should be true after handleEvent('Q')");
+
+  NN_CLI::TerminalUI_TestWindow tstw3;
+  tstw3.handleEvent(27);
+  CHECK(tstw3.abortRequested(), "abortRequested() should be true after handleEvent(27/ESC)");
+}
+
+//===================================================================================================================//
+
 void runTerminalUITests()
 {
   testTrainWindowCycleActivePanel();
@@ -707,4 +859,12 @@ void runTerminalUITests()
   testTrainWindowDismissOnQ();
   testTrainWindowAbortRequested();
   testPredictWindowAbortRequested();
+  testTestWindowDefaultActivePanel();
+  testTestWindowTabCyclesPanels();
+  testTestWindowScrollRouting();
+  testTestWindowHandleEvent();
+  testTestWindowDismissOnQ();
+  testTestWindowResultsTable();
+  testTestWindowChildCount();
+  testTestWindowAbortRequested();
 }
