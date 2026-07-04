@@ -64,8 +64,10 @@ namespace NN_CLI
 
       // Connect a core's predictProgress signal to emit this->batchProgress,
       // throttled by progressReports.  Shared by predict (on this->core) and
-      // test (on a local class-weighted testCore).
-      void emitProgressFromCore(CoreT& core, ulong total);
+      // test (on a local class-weighted testCore).  The core reports its own
+      // per-phase total, so a single connection serves multi-phase modes like
+      // calibrate (ID then OOD predict).
+      void emitProgressFromCore(CoreT& core);
 
       void doSaveModel(const std::string& outputPath) override = 0;
 

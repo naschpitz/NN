@@ -29,6 +29,28 @@ namespace NN_CLI
 
   //===================================================================================================================//
 
+  // Aggregate result of a calibration run, emitted via
+  // RunnerBase::calibrateFinished so the CalibrateController can render the
+  // threshold and ID/OOD acceptance/rejection figures in the TUI.  Computed
+  // by the typed Runner from the free-energy distributions of the ID and OOD
+  // image samples; not a Core-level concept, so it lives here rather than in
+  // Common.
+  struct CalibrateResult {
+      float freeEnergyThreshold = 0.0f;
+      double idPercentileUsed = 0.0;
+      std::size_t idCount = 0;
+      std::size_t oodCount = 0;
+      std::size_t idAccepted = 0;
+      std::size_t oodRejected = 0;
+      double idAcceptanceRate = 0.0;
+      double oodRejectionRate = 0.0;
+      double durationSeconds = 0.0;
+      std::string durationFormatted;
+      std::string outputPath;
+  };
+
+  //===================================================================================================================//
+
   // Non-template QObject base for Runner.  Provides the signal interface and
   // all shared state/methods that do not depend on the typed Core/CoreConfig
   // template parameters.  Controllers interact exclusively through this base,
@@ -138,6 +160,8 @@ namespace NN_CLI
 
       void testFinished(const Common::TestResult<float>& result, double durationSeconds,
                         const std::string& durationFormatted, const std::string& outputPath);
+
+      void calibrateFinished(const NN_CLI::CalibrateResult& result);
 
       void modelInfoUpdated(const std::string& property, const std::string& value);
 

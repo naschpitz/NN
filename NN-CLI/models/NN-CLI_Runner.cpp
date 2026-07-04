@@ -351,14 +351,14 @@ std::vector<NN_CLI::SummaryRow> NN_CLI::Runner<CoreT, CoreConfigT>::buildPredict
 //===================================================================================================================//
 
 template <typename CoreT, typename CoreConfigT>
-void NN_CLI::Runner<CoreT, CoreConfigT>::emitProgressFromCore(CoreT& core, ulong total)
+void NN_CLI::Runner<CoreT, CoreConfigT>::emitProgressFromCore(CoreT& core)
 {
   if (this->logLevel > LogLevel::QUIET) {
     auto& hub = core.getCoreSignals();
 
     QObject::connect(
       &hub, &std::remove_reference_t<decltype(hub)>::predictProgress, this,
-      [this, total](ulong current, ulong /*totalCb*/) {
+      [this](ulong current, ulong total) {
         if (total == 0)
           return;
 

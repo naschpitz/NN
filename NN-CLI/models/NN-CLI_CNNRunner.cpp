@@ -348,7 +348,7 @@ int CNNRunner::test()
   testCore->setParameters(this->core->getParameters());
   testCore->syncParametersToGPU();
 
-  this->emitProgressFromCore(*testCore, dataLoader.numSamples());
+  this->emitProgressFromCore(*testCore);
 
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
 
@@ -423,7 +423,7 @@ int CNNRunner::predict()
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = Common::Utils::formatISO8601();
 
-  this->emitProgressFromCore(*this->core, inputs.size());
+  this->emitProgressFromCore(*this->core);
 
   // The streaming predict API takes a provider that yields one batch at a
   // time. The inputs are already loaded into `inputs`, so the provider returns
@@ -528,6 +528,11 @@ int CNNRunner::calibrate()
   //-- Predict + free-energy -------------------------------------------------
   auto t0 = std::chrono::system_clock::now();
 
+  // Wire the core's predict-progress signal to batchProgress so the TUI
+  // progress bar reflects the ID and OOD predict phases.  The core reports
+  // its own per-phase total, so one connection serves both phases.
+  this->emitProgressFromCore(*this->core);
+
   const auto& inputShape = this->coreConfig.inputShape;
   int targetC = static_cast<int>(inputShape.c);
   int targetH = static_cast<int>(inputShape.h);
@@ -559,8 +564,13 @@ int CNNRunner::calibrate()
   std::sort(oodEnergies.begin(), oodEnergies.end());
 
   //-- Write threshold.json --------------------------------------------------
-  auto writeThreshold = [this](const std::string& outputPath, const std::vector<float>& idSorted,
-                               const std::vector<float>& oodSorted, double idPercentile) {
+  float freeEnergyThreshold = 0.0f;
+  std::size_t idAccepted = 0;
+  std::size_t oodRejected = 0;
+
+  auto writeThreshold = [this, &freeEnergyThreshold, &idAccepted,
+                         &oodRejected](const std::string& outputPath, const std::vector<float>& idSorted,
+                                       const std::vector<float>& oodSorted, double idPercentile) {
     auto stats = [](const std::vector<float>& sorted, const std::vector<double>& ps) {
       nlohmann::ordered_json out;
       out["n"] = sorted.size();
@@ -588,24 +598,20 @@ int CNNRunner::calibrate()
       return out;
     };
 
-    float threshold = NN_CLI::computePercentile(idSorted, idPercentile);
-
-    std::size_t idAccepted = 0;
+    freeEnergyThreshold = NN_CLI::computePercentile(idSorted, idPercentile);
 
     for (float e : idSorted) {
-      if (e <= threshold)
+      if (e <= freeEnergyThreshold)
         idAccepted++;
     }
 
-    std::size_t oodRejected = 0;
-
     for (float e : oodSorted) {
-      if (e > threshold)
+      if (e > freeEnergyThreshold)
         oodRejected++;
     }
 
     nlohmann::ordered_json doc;
-    doc["freeEnergyThreshold"] = NN_CLI::roundTo(threshold, 4);
+    doc["freeEnergyThreshold"] = NN_CLI::roundTo(freeEnergyThreshold, 4);
     doc["idPercentileUsed"] = idPercentile;
     doc["rule"] = "predicted_ood = (free_energy > freeEnergyThreshold)";
     doc["idStats"] = stats(idSorted, {1, 5, 50, 90, 95, 99});
@@ -643,9 +649,19 @@ int CNNRunner::calibrate()
     emit this->logMessage(doneMsg, false);
   }
 
-  std::string summary = "Calibration completed | ID: " + std::to_string(idEnergies.size()) +
-                        " | OOD: " + std::to_string(oodEnergies.size()) + " | Output: " + outputPath;
-  emit this->trainFinished(true, summary);
+  CalibrateResult result;
+  result.freeEnergyThreshold = freeEnergyThreshold;
+  result.idPercentileUsed = this->coreConfig.calibrateConfig.idPercentile;
+  result.idCount = idEnergies.size();
+  result.oodCount = oodEnergies.size();
+  result.idAccepted = idAccepted;
+  result.oodRejected = oodRejected;
+  result.idAcceptanceRate = idEnergies.empty() ? 0.0 : static_cast<double>(idAccepted) / idEnergies.size();
+  result.oodRejectionRate = oodEnergies.empty() ? 0.0 : static_cast<double>(oodRejected) / oodEnergies.size();
+  result.durationSeconds = elapsed.count();
+  result.durationFormatted = Common::Utils::formatDuration(elapsed.count());
+  result.outputPath = outputPath;
+  emit this->calibrateFinished(result);
 
   return 0;
 }
