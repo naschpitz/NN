@@ -5,8 +5,6 @@
 #include <QTimer>
 #include <QtConcurrent>
 
-#include <iomanip>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -183,13 +181,8 @@ namespace NN_CLI
     (void)samplesPerSec;
     (void)etaSeconds;
 
-    if (!this->window || !this->window->isInitialized()) {
-      // Console fallback.
-      float fraction = fractions.empty() ? 0.0f : fractions[0];
-      std::cout << "\r  Progress: " << (batchIdx + 1) << "/" << totalBatches << " (" << std::fixed
-                << std::setprecision(1) << (fraction * 100.0f) << "%)" << std::flush;
+    if (!this->window || !this->window->isInitialized())
       return;
-    }
 
     this->checkAbortRequested();
 
@@ -212,11 +205,8 @@ namespace NN_CLI
     (void)valLoss;
     (void)learningRate;
 
-    // When the TUI is not active, print to console for interface completeness.
-    if (!this->window || !this->window->isInitialized()) {
-      std::cout << summary << "\n";
+    if (!this->window || !this->window->isInitialized())
       return;
-    }
 
     // When the TUI is active these events are informational only.
     this->window->updateProgressSubLine(summary);
@@ -226,11 +216,8 @@ namespace NN_CLI
 
   void PredictController::onTrainFinished(bool success, const std::string& finalSummary)
   {
-    if (!this->window || !this->window->isInitialized()) {
-      std::string prefix = success ? "[Predict complete] " : "[Predict failed] ";
-      std::cout << "\n" << prefix << finalSummary << "\n";
+    if (!this->window || !this->window->isInitialized())
       return;
-    }
 
     std::string prefix = success ? "[Predict complete] " : "[Predict failed] ";
     this->window->updateProgressSubLine(prefix + finalSummary);
@@ -297,15 +284,8 @@ namespace NN_CLI
 
   void PredictController::onLogMessage(const std::string& message, bool isError)
   {
-    // When the TUI is not active, fall back to console output.
-    if (!this->window || !this->window->isInitialized()) {
-      if (isError)
-        std::cerr << "[ERROR] " << message << "\n";
-      else
-        std::cout << message << "\n";
-
+    if (!this->window || !this->window->isInitialized())
       return;
-    }
 
     // With an active TUI, log messages are informational only — progress and
     // results are shown via dedicated window methods.
@@ -318,10 +298,8 @@ namespace NN_CLI
     (void)metric;
     (void)value;
 
-    if (!this->window || !this->window->isInitialized()) {
-      std::cout << "  " << metric << ": " << std::fixed << std::setprecision(2) << value << " ms\n";
+    if (!this->window || !this->window->isInitialized())
       return;
-    }
 
     // Timing updates are handled through the window's dedicated timing panel
     // when the TUI is active.
