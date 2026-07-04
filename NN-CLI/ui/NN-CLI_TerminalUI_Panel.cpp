@@ -318,11 +318,11 @@ namespace NN_CLI
 
   int TerminalUI_Panel::contentWidth() const
   {
-    int cH = this->contentHeight();
-    int total = static_cast<int>(this->lines.size());
-    int pad = (total > cH) ? 5 : 4;
-
-    return std::max(1, this->width - pad);
+    // Pure geometry: content occupies x+2 .. x+width-3, the scrollbar (when
+    // shown) draws at x+width-2 and the border at x+width-1, so a usable width
+    // of width-4 never collides with either.  Not coupled to the line count so
+    // callers can bake content to this width before setLines().
+    return std::max(1, this->width - 4);
   }
 
   //===================================================================================================================//

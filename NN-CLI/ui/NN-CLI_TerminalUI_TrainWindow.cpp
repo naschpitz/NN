@@ -252,30 +252,11 @@ namespace NN_CLI
     if (!this->epochsPanelPtr)
       return;
 
-    // Compute the effective table width from the panel's content area.
-    // contentWidth() depends on whether the scrollbar is shown, which in turn
-    // depends on the number of lines currently stored in the panel.  After
-    // rendering and setting new lines the scrollbar status may flip, changing
-    // contentWidth by 1 column.  Detect that transition and re-render at the
-    // correct width so the table fills the content area precisely.
     int tableWidth = std::max(40, this->epochsPanelPtr->contentWidth());
     this->epochTable.setMaxWidth(tableWidth);
 
-    // Render the table to formatted lines.
     auto lines = this->epochTable.render();
-
     this->epochsPanelPtr->setLines(lines);
-
-    // If the new line count toggled the scrollbar, contentWidth() may have
-    // changed.  Re-render at the updated width so column alignment is exact.
-    int revisedWidth = std::max(40, this->epochsPanelPtr->contentWidth());
-
-    if (revisedWidth != tableWidth) {
-      this->epochTable.setMaxWidth(revisedWidth);
-      lines = this->epochTable.render();
-
-      this->epochsPanelPtr->setLines(lines);
-    }
   }
 
   //===================================================================================================================//
@@ -368,30 +349,24 @@ namespace NN_CLI
     if (!this->modelInfoPanelPtr)
       return;
 
-    auto generate = [this](int tableWidth) {
-      std::vector<SummaryTable::Section> sections;
-
-      SummaryTable::Section configSection;
-      configSection.title = this->modelInfoTitle.empty() ? "Model Configuration" : this->modelInfoTitle;
-      configSection.rows = this->modelConfigRows;
-      sections.push_back(std::move(configSection));
-
-      if (!this->lossReferenceRows.empty()) {
-        SummaryTable::Section lossSection;
-        lossSection.title = "Loss Reference";
-        lossSection.rows = this->lossReferenceRows;
-        sections.push_back(std::move(lossSection));
-      }
-
-      return SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
-    };
-
     int tableWidth = std::max(30, this->modelInfoPanelPtr->contentWidth());
-    this->modelInfoPanelPtr->setLines(generate(tableWidth));
-    int revised = std::max(30, this->modelInfoPanelPtr->contentWidth());
 
-    if (revised != tableWidth)
-      this->modelInfoPanelPtr->setLines(generate(revised));
+    std::vector<SummaryTable::Section> sections;
+
+    SummaryTable::Section configSection;
+    configSection.title = this->modelInfoTitle.empty() ? "Model Configuration" : this->modelInfoTitle;
+    configSection.rows = this->modelConfigRows;
+    sections.push_back(std::move(configSection));
+
+    if (!this->lossReferenceRows.empty()) {
+      SummaryTable::Section lossSection;
+      lossSection.title = "Loss Reference";
+      lossSection.rows = this->lossReferenceRows;
+      sections.push_back(std::move(lossSection));
+    }
+
+    auto lines = SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
+    this->modelInfoPanelPtr->setLines(lines);
     this->modelInfoPanelPtr->setScrollOffset(0);
   }
 
