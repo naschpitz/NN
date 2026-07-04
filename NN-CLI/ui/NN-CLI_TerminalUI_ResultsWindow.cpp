@@ -39,8 +39,9 @@ namespace NN_CLI
 
     //-- Configure panels --//
 
-    this->modelInfoPanelPtr->setAutoScroll(true);
-    this->timingPanelPtr->setAutoScroll(true);
+    // Model info + timing are static config tables set once at init: start them
+    // at the top, not pinned to the bottom.  Epoch history + results keep
+    // autoscroll to surface the latest entries during live predict.
     this->epochHistoryPanelPtr->setAutoScroll(true);
     this->resultsPanelPtr->setAutoScroll(true);
 
@@ -282,6 +283,8 @@ namespace NN_CLI
 
     if (revised != contentW)
       this->timingPanelPtr->setLines(padToWidth(revised));
+
+    this->timingPanelPtr->setScrollOffset(0);
   }
 
   //===================================================================================================================//
