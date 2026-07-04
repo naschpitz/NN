@@ -349,24 +349,24 @@ namespace NN_CLI
     if (!this->modelInfoPanelPtr)
       return;
 
-    int tableWidth = std::max(30, this->modelInfoPanelPtr->contentWidth());
+    this->modelInfoPanelPtr->setRenderedLines([this](int tableWidth) {
+      std::vector<SummaryTable::Section> sections;
 
-    std::vector<SummaryTable::Section> sections;
+      SummaryTable::Section configSection;
+      configSection.title = this->modelInfoTitle.empty() ? "Model Configuration" : this->modelInfoTitle;
+      configSection.rows = this->modelConfigRows;
+      sections.push_back(std::move(configSection));
 
-    SummaryTable::Section configSection;
-    configSection.title = this->modelInfoTitle.empty() ? "Model Configuration" : this->modelInfoTitle;
-    configSection.rows = this->modelConfigRows;
-    sections.push_back(std::move(configSection));
+      if (!this->lossReferenceRows.empty()) {
+        SummaryTable::Section lossSection;
+        lossSection.title = "Loss Reference";
+        lossSection.rows = this->lossReferenceRows;
+        sections.push_back(std::move(lossSection));
+      }
 
-    if (!this->lossReferenceRows.empty()) {
-      SummaryTable::Section lossSection;
-      lossSection.title = "Loss Reference";
-      lossSection.rows = this->lossReferenceRows;
-      sections.push_back(std::move(lossSection));
-    }
+      return SummaryTable::collectSections(sections, static_cast<ulong>(std::max(30, tableWidth)));
+    });
 
-    auto lines = SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
-    this->modelInfoPanelPtr->setLines(lines);
     this->modelInfoPanelPtr->setScrollOffset(0);
   }
 

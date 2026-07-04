@@ -318,11 +318,28 @@ namespace NN_CLI
 
   int TerminalUI_Panel::contentWidth() const
   {
-    // Pure geometry: content occupies x+2 .. x+width-3, the scrollbar (when
-    // shown) draws at x+width-2 and the border at x+width-1, so a usable width
-    // of width-4 never collides with either.  Not coupled to the line count so
-    // callers can bake content to this width before setLines().
-    return std::max(1, this->width - 4);
+    // Reserve the scrollbar column when the current content overflows so the
+    // scrollbar (drawn at x+width-2) never overlaps content.
+    int pad = (static_cast<int>(this->lines.size()) > this->contentHeight()) ? 5 : 4;
+
+    return std::max(1, this->width - pad);
+  }
+
+  //===================================================================================================================//
+
+  void TerminalUI_Panel::setRenderedLines(std::function<std::vector<std::string>(int)> generator)
+  {
+    int width = this->contentWidth();
+    this->lines = generator(width);
+
+    // Generating may flip the scrollbar state (contentWidth depends on the line
+    // count); regenerate once at the width that now accounts for the scrollbar.
+    int revised = this->contentWidth();
+
+    if (revised != width)
+      this->lines = generator(revised);
+
+    this->markDirty();
   }
 
   //===================================================================================================================//

@@ -224,17 +224,17 @@ namespace NN_CLI
     if (!this->modelInfoPanelPtr)
       return;
 
-    int tableWidth = std::max(30, this->modelInfoPanelPtr->contentWidth());
+    this->modelInfoPanelPtr->setRenderedLines([this](int tableWidth) {
+      SummaryTable::Section configSection;
+      configSection.title = "Model Configuration";
+      configSection.rows = this->modelInfoRows;
 
-    SummaryTable::Section configSection;
-    configSection.title = "Model Configuration";
-    configSection.rows = this->modelInfoRows;
+      std::vector<SummaryTable::Section> sections;
+      sections.push_back(std::move(configSection));
 
-    std::vector<SummaryTable::Section> sections;
-    sections.push_back(std::move(configSection));
+      return SummaryTable::collectSections(sections, static_cast<ulong>(std::max(30, tableWidth)));
+    });
 
-    auto lines = SummaryTable::collectSections(sections, static_cast<ulong>(tableWidth));
-    this->modelInfoPanelPtr->setLines(lines);
     this->modelInfoPanelPtr->setScrollOffset(0);
   }
 
@@ -254,17 +254,19 @@ namespace NN_CLI
     if (!this->timingPanelPtr)
       return;
 
-    int contentW = this->timingPanelPtr->contentWidth();
-    auto lines = this->rawTimingLines;
+    this->timingPanelPtr->setRenderedLines([this](int contentW) {
+      auto lines = this->rawTimingLines;
 
-    for (auto& line : lines) {
-      int lineLen = static_cast<int>(line.size());
+      for (auto& line : lines) {
+        int lineLen = static_cast<int>(line.size());
 
-      if (lineLen < contentW)
-        line.append(static_cast<std::string::size_type>(contentW - lineLen), ' ');
-    }
+        if (lineLen < contentW)
+          line.append(static_cast<std::string::size_type>(contentW - lineLen), ' ');
+      }
 
-    this->timingPanelPtr->setLines(lines);
+      return lines;
+    });
+
     this->timingPanelPtr->setScrollOffset(0);
   }
 
@@ -284,17 +286,18 @@ namespace NN_CLI
     if (!this->epochHistoryPanelPtr)
       return;
 
-    int contentW = this->epochHistoryPanelPtr->contentWidth();
-    auto lines = this->rawEpochHistoryLines;
+    this->epochHistoryPanelPtr->setRenderedLines([this](int contentW) {
+      auto lines = this->rawEpochHistoryLines;
 
-    for (auto& line : lines) {
-      int lineLen = static_cast<int>(line.size());
+      for (auto& line : lines) {
+        int lineLen = static_cast<int>(line.size());
 
-      if (lineLen < contentW)
-        line.append(static_cast<std::string::size_type>(contentW - lineLen), ' ');
-    }
+        if (lineLen < contentW)
+          line.append(static_cast<std::string::size_type>(contentW - lineLen), ' ');
+      }
 
-    this->epochHistoryPanelPtr->setLines(lines);
+      return lines;
+    });
   }
 
   //===================================================================================================================//
@@ -345,11 +348,11 @@ namespace NN_CLI
     if (!this->resultsPanelPtr)
       return;
 
-    int tableWidth = std::max(20, this->resultsPanelPtr->contentWidth());
-    this->resultsTable.setMaxWidth(tableWidth);
+    this->resultsPanelPtr->setRenderedLines([this](int tableWidth) {
+      this->resultsTable.setMaxWidth(std::max(20, tableWidth));
 
-    auto lines = this->resultsTable.render();
-    this->resultsPanelPtr->setLines(lines);
+      return this->resultsTable.render();
+    });
   }
 
   //===================================================================================================================//

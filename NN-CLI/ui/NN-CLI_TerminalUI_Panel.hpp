@@ -3,6 +3,7 @@
 
 #include "NN-CLI_TerminalUI_Widget.hpp"
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -77,6 +78,13 @@ namespace NN_CLI
 
       // Replace the content lines (copied; does not trim or reset scroll).
       void setLines(const std::vector<std::string>& lines);
+
+      // Set content produced by a width-dependent generator.  contentWidth()
+      // depends on the line count, so baking to it before the lines exist can
+      // leave the table a column too wide once a scrollbar appears.  This
+      // resolves the coupling here: generate at the current width, and if the
+      // scrollbar state then flips, regenerate once at the corrected width.
+      void setRenderedLines(std::function<std::vector<std::string>(int)> generator);
 
       // Enable or disable auto-scroll mode.  When enabled, scrollOffset() returns
       // the maximum scroll position so the view is always pinned to the bottom.
