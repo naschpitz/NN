@@ -40,6 +40,7 @@ add_executable(NN-CLI
   ui/NN-CLI_TerminalUI_Panel.cpp
   ui/NN-CLI_TerminalUI_Table.cpp
   ui/NN-CLI_TerminalUI_Window.cpp
+  ui/NN-CLI_TuiState.cpp
   ui/NN-CLI_TerminalUI_TrainWindow.cpp
   ui/NN-CLI_TerminalUI_ResultsWindow.cpp
   ui/NN-CLI_TerminalUI_PredictWindow.cpp
@@ -186,6 +187,7 @@ add_executable(test_nncli
   ui/NN-CLI_TerminalUI_Panel.cpp
   ui/NN-CLI_TerminalUI_Table.cpp
   ui/NN-CLI_TerminalUI_Window.cpp
+  ui/NN-CLI_TuiState.cpp
   ui/NN-CLI_TerminalUI_TrainWindow.cpp
   ui/NN-CLI_TerminalUI_ResultsWindow.cpp
   ui/NN-CLI_TerminalUI_PredictWindow.cpp

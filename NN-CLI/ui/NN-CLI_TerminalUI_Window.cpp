@@ -6,7 +6,6 @@
 #include <QTimer>
 
 #include <algorithm>
-#include <atomic>
 #include <clocale>
 #include <csignal>
 #include <cstdio>
@@ -20,24 +19,12 @@ namespace NN_CLI
   {
     TerminalUI_Window* g_activeWindow = nullptr;
 
-    std::atomic<bool> g_tuiActive{false};
-
     void sigwinchHandler(int)
     {
       if (g_activeWindow)
         g_activeWindow->requestResize();
     }
   } // namespace
-
-  bool isTuiActive() noexcept
-  {
-    return g_tuiActive.load(std::memory_order_acquire);
-  }
-
-  void setTuiActive(bool active) noexcept
-  {
-    g_tuiActive.store(active, std::memory_order_release);
-  }
 
   //===================================================================================================================//
   //-- Ctors / Dtors --//
