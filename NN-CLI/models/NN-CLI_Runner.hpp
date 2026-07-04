@@ -62,7 +62,10 @@ namespace NN_CLI
 
       void applyLearningRateScheduler(ulong epoch, int totalEpochs, bool hasValLoss, float valLoss) override;
 
-      void setupPredictProgressCallback(ulong total) override;
+      // Connect a core's predictProgress signal to emit this->batchProgress,
+      // throttled by progressReports.  Shared by predict (on this->core) and
+      // test (on a local class-weighted testCore).
+      void emitProgressFromCore(CoreT& core, ulong total);
 
       void doSaveModel(const std::string& outputPath) override = 0;
 

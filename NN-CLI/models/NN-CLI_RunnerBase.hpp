@@ -152,8 +152,6 @@ namespace NN_CLI
 
       virtual void applyLearningRateScheduler(ulong epoch, int totalEpochs, bool hasValLoss, float valLoss) = 0;
 
-      virtual void setupPredictProgressCallback(ulong total) = 0;
-
       virtual void doSaveModel(const std::string& outputPath) = 0;
 
       //-- Non-virtual shared helpers --//

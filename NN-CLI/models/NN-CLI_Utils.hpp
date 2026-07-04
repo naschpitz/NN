@@ -142,28 +142,6 @@ namespace NN_CLI
 
       //-- Template static methods --//
 
-      /// Set up a test/predict-mode progress callback on the core.
-      /// Prints an initial "0 / total" bar and wires a callback that prints progress
-      /// on every batch completion.
-      template <typename CoreType>
-      static void setupModeProgressCallback(CoreType& core, LogLevel logLevel, ulong progressReports,
-                                            const std::string& label, ulong total)
-      {
-        if (logLevel > LogLevel::QUIET) {
-          printLoadingProgress(label, 0, total, progressReports);
-
-          auto& hub = core.getCoreSignals();
-
-          QObject::connect(
-            &hub, &std::remove_reference_t<decltype(hub)>::predictProgress, &hub,
-            [progressReports, label](ulong current, ulong total) {
-              printLoadingProgress(label, current, total, progressReports);
-            },
-
-            Qt::DirectConnection);
-        }
-      }
-
       /// Load IDX dataset as  samples (flat input vectors)
       static ANN::Samples<T> loadIDX(const std::string& dataPath, const std::string& labelsPath,
                                      ulong progressReports = 1000);

@@ -297,8 +297,7 @@ int ANNRunner::test()
   std::shared_ptr<ANN::Core<float>> testCore = ANN::Core<float>::makeCore(testCoreConfig);
   testCore->setParameters(this->core->getParameters());
 
-  NN_CLI::Utils<float>::setupModeProgressCallback(*testCore, this->logLevel, this->ioConfig.progressReports, "Testing",
-                                                  dataLoader.numSamples());
+  this->emitProgressFromCore(*testCore, dataLoader.numSamples());
 
   auto sampleProvider = dataLoader.makeSampleProvider({}, 0.0f);
 
@@ -373,7 +372,7 @@ int ANNRunner::predict()
   auto batchStart = std::chrono::system_clock::now();
   std::string startTimeStr = Common::Utils::formatISO8601();
 
-  this->setupPredictProgressCallback(inputs.size());
+  this->emitProgressFromCore(*this->core, inputs.size());
 
   // The streaming predict API takes a provider that yields one batch at a
   // time. The inputs are already loaded into `inputs`, so the provider returns
