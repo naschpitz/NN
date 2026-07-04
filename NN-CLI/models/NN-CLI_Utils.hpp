@@ -2,6 +2,7 @@
 #define NN_CLI_UTILS_HPP
 
 #include "NN-CLI_LogLevel.hpp"
+#include "NN-CLI_TuiState.hpp"
 
 #include <ANN_Core.hpp>
 #include <CNN_Types.hpp>
@@ -70,6 +71,9 @@ namespace NN_CLI
       static void printLoadingProgress(const std::string& label, size_t current, size_t total,
                                        ulong progressReports = 1000, int barWidth = 40)
       {
+        if (isTuiActive())
+          return;
+
         ulong interval = (progressReports > 0) ? std::max(static_cast<size_t>(1), total / progressReports) : 0;
 
         if (interval == 0)

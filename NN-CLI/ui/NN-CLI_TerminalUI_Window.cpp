@@ -1,10 +1,12 @@
 #include "NN-CLI_TerminalUI_Window.hpp"
+#include "NN-CLI_TuiState.hpp"
 
 // Qt headers must be included before <curses.h>: curses defines a `timeout`
 // macro that breaks Qt declarations parsed after it.
 #include <QTimer>
 
 #include <algorithm>
+#include <atomic>
 #include <clocale>
 #include <csignal>
 #include <cstdio>
@@ -18,12 +20,24 @@ namespace NN_CLI
   {
     TerminalUI_Window* g_activeWindow = nullptr;
 
+    std::atomic<bool> g_tuiActive{false};
+
     void sigwinchHandler(int)
     {
       if (g_activeWindow)
         g_activeWindow->requestResize();
     }
   } // namespace
+
+  bool isTuiActive() noexcept
+  {
+    return g_tuiActive.load(std::memory_order_acquire);
+  }
+
+  void setTuiActive(bool active) noexcept
+  {
+    g_tuiActive.store(active, std::memory_order_release);
+  }
 
   //===================================================================================================================//
   //-- Ctors / Dtors --//
@@ -99,6 +113,7 @@ namespace NN_CLI
     std::signal(SIGWINCH, sigwinchHandler);
 
     this->initialized = true;
+    setTuiActive(true);
     return true;
   }
 
@@ -109,6 +124,7 @@ namespace NN_CLI
     if (!this->initialized)
       return;
 
+    setTuiActive(false);
     this->stopUiTimer();
 
     this->initialized = false;

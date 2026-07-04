@@ -1,4 +1,5 @@
 #include "NN-CLI_TerminalUI_ProgressBar.hpp"
+#include "NN-CLI_TuiState.hpp"
 
 #include <algorithm>
 #include <curses.h>
@@ -477,6 +478,9 @@ namespace NN_CLI
   void TerminalUI_ProgressBar::printLoadingProgress(const std::string& label, size_t current, size_t total,
                                                     ulong progressReports, int barWidth)
   {
+    if (isTuiActive())
+      return;
+
     ulong interval = (progressReports > 0) ? std::max(static_cast<size_t>(1), total / progressReports) : 0;
 
     if (interval == 0)

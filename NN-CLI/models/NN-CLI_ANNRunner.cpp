@@ -1,4 +1,5 @@
 #include "NN-CLI_ANNRunner.hpp"
+#include "NN-CLI_TuiState.hpp"
 #include "NN-CLI_ANNLoader.hpp"
 
 #include "NN-CLI_CalibrateUtils.hpp"
@@ -281,7 +282,7 @@ int ANNRunner::test()
     dataLoader.loadFromMemory(std::move(samples), inputC, inputH, inputW);
   }
 
-  if (this->logLevel > LogLevel::QUIET)
+  if (this->logLevel > LogLevel::QUIET && !isTuiActive())
     TestSummary::print(this->coreConfig, dataLoader.numSamples());
 
   // Class-weighted test core, symmetric to validation: real images stay at natural prevalence,
@@ -312,7 +313,7 @@ int ANNRunner::test()
   double testDurationSeconds = testElapsed.count();
   std::string testDurationFormatted = Common::Utils::formatDuration(testDurationSeconds);
 
-  if (this->logLevel > LogLevel::QUIET) {
+  if (this->logLevel > LogLevel::QUIET && !isTuiActive()) {
     std::cout << "\nTest Results:\n";
     std::cout << "  Samples evaluated: " << result.numSamples << "\n";
     std::cout << "  Total loss:        " << result.totalLoss << "\n";
@@ -366,7 +367,7 @@ int ANNRunner::predict()
   std::vector<ANN::Input<float>> inputs =
     ANNLoader::loadInputs(inputPath.toStdString(), this->ioConfig, displayProgressReports);
 
-  if (this->logLevel > LogLevel::QUIET)
+  if (this->logLevel > LogLevel::QUIET && !isTuiActive())
     PredictSummary::printANN(this->coreConfig, inputs.size(), inputPath.toStdString(), outputPath.toStdString());
 
   auto batchStart = std::chrono::system_clock::now();
@@ -425,7 +426,7 @@ int ANNRunner::calibrate()
 
   //-- Fetch OOD if needed ---------------------------------------------------
   if (this->coreConfig.calibrateConfig.fetchIfMissing && !NN_CLI::dirHasImages(oodDir)) {
-    if (this->logLevel > LogLevel::QUIET) {
+    if (this->logLevel > LogLevel::QUIET && !isTuiActive()) {
       std::string msg = "OOD dir is empty \u2014 fetching DTD + Places365 + synthetic.\n";
       std::cout << msg;
       emit this->logMessage(msg, false);
@@ -462,7 +463,7 @@ int ANNRunner::calibrate()
   std::vector<std::string> oodSample =
     NN_CLI::sampleImages(oodAll, this->coreConfig.calibrateConfig.oodSampleCount, 42);
 
-  if (this->logLevel > LogLevel::QUIET) {
+  if (this->logLevel > LogLevel::QUIET && !isTuiActive()) {
     std::string msg = "Sampled " + std::to_string(idSample.size()) + " ID images (of " + std::to_string(idAll.size()) +
                       " available)\n"
                       "Sampled " +
@@ -571,7 +572,7 @@ int ANNRunner::calibrate()
 
     f << doc.dump(2) << "\n";
 
-    if (this->logLevel > LogLevel::QUIET)
+    if (this->logLevel > LogLevel::QUIET && !isTuiActive())
       std::cout << doc.dump(2) << "\n";
   };
 
@@ -580,7 +581,7 @@ int ANNRunner::calibrate()
   auto t1 = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed = t1 - t0;
 
-  if (this->logLevel > LogLevel::QUIET) {
+  if (this->logLevel > LogLevel::QUIET && !isTuiActive()) {
     std::string doneMsg = "\nCalibration done in " + Common::Utils::formatDuration(elapsed.count()) +
                           "\nThreshold written to: " + outputPath + "\n";
     std::cout << doneMsg;
