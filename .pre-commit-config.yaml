@@ -6,19 +6,20 @@ repos:
         entry: python3 scripts/ensure-blank-lines.py
         language: system
         types_or: [c, c++]
-        exclude: '^(libs/|extern/)'
+        exclude: '(libs|extern)/'
 
       - id: forbid-trailing-underscore
         name: forbid trailing-underscore identifiers
         entry: python3 scripts/forbid-trailing-underscore.py
         language: system
         types_or: [c, c++]
-        exclude: '^(libs/|extern/)'
+        exclude: '(libs|extern)/'
 
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v18.1.8
     hooks:
       - id: clang-format
-        types_or: [c, c++]
-        exclude: '^(libs/|extern/)'
+        types: [file]
+        files: '\.(h|hpp|c|cpp|cl)$'
+        exclude: '(libs|extern)/'
 
