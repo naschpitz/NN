@@ -437,11 +437,15 @@ namespace NN_CLI
 
     //-- Read dense parameters --//
 
-    size_t numDenseLayers = layersConfig.denseLayers.size();
-    config.parameters.denseParams.weights.resize(numDenseLayers);
-    config.parameters.denseParams.biases.resize(numDenseLayers);
+    // The ANN core stores parameters with an entry at index 0 for the input layer
+    // (an empty placeholder — the input layer has no weights). So the binary contains
+    // denseLayers.size() + 1 weight/bias pairs. The serializer writes
+    // denseParams.weights.size() entries, which equals numLayers (input + dense).
+    size_t numDenseParamEntries = layersConfig.denseLayers.size() + 1;
+    config.parameters.denseParams.weights.resize(numDenseParamEntries);
+    config.parameters.denseParams.biases.resize(numDenseParamEntries);
 
-    for (size_t i = 0; i < numDenseLayers; ++i) {
+    for (size_t i = 0; i < numDenseParamEntries; ++i) {
       // Dense weights (ANN_WEIGHTS block)
       if (pos + BLOCK_HEADER_SIZE > data.size()) {
         throw std::runtime_error("Unexpected end of binary parameter data");

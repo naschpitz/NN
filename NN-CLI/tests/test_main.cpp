@@ -20,6 +20,7 @@ void runGPUValidationTests();
 void runCNNCPUBasicTests();
 void runCNNCPUFeatureTests();
 void runCNNCPUSaveLoadTests();
+void runCNNDenseRoundTripTests();
 void runCNNCPUPredictTests();
 void runCNNGPULayerTests();
 void runCNNGPUDiagnosticTests();
@@ -74,6 +75,7 @@ int main(int argc, char* argv[])
   runCNNCPUBasicTests();
   runCNNCPUFeatureTests();
   runCNNCPUSaveLoadTests();
+  runCNNDenseRoundTripTests();
   runCNNCPUPredictTests();
 
   std::cout << std::endl;

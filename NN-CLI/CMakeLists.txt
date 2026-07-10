@@ -32,9 +32,6 @@ add_executable(NN-CLI
   models/NN-CLI_RunnerBase.cpp
   models/NN-CLI_RunnerBase.hpp
   models/NN-CLI_LossReferenceTable.cpp
-  models/NN-CLI_ModelSerializer.cpp
-  models/NN-CLI_ModelSerializer_ANN.cpp
-  models/NN-CLI_ModelSerializer_CNN.cpp
   models/NN-CLI_PredictSummary.cpp
   controllers/NN-CLI_App.cpp
   ui/NN-CLI_TerminalUI_Panel.cpp
@@ -85,6 +82,9 @@ add_library(nncli_common OBJECT
     models/NN-CLI_ImageLoader.cpp
     models/NN-CLI_Loader.cpp
     models/NN-CLI_ModelPackage.cpp
+    models/NN-CLI_ModelSerializer.cpp
+    models/NN-CLI_ModelSerializer_ANN.cpp
+    models/NN-CLI_ModelSerializer_CNN.cpp
     ui/NN-CLI_TerminalUI_ProgressBar.cpp
     ui/NN-CLI_TerminalUI_Widget.cpp
     models/NN-CLI_SummaryTable.cpp
@@ -168,6 +168,7 @@ add_executable(test_nncli
   tests/test_cnn_cpu_basic.cpp
   tests/test_cnn_cpu_features.cpp
   tests/test_cnn_cpu_saveload.cpp
+  tests/test_cnn_dense_roundtrip.cpp
   tests/test_cnn_cpu_predict.cpp
   tests/test_cnn_gpu_layers.cpp
   tests/test_cnn_gpu_diagnostic.cpp
