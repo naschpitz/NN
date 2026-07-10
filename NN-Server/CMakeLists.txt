@@ -41,8 +41,6 @@ target_include_directories(NN-Server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/stb
     ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI
     ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/models
-    ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/ui
-    ${CMAKE_CURRENT_SOURCE_DIR}/../NN-CLI/controllers
 )
 
 # Link to CNN — ANN, OpenCLWrapper, Qt::Core, OpenCL are propagated automatically via PUBLIC
