@@ -17,7 +17,7 @@ static CNN::CoreConfig<double> makeBNTestConfig(ulong denseNeurons, ANN::ActvFun
   convLayer.config = CNN::ConvLayerConfig{1, 2, 2, 1, 1, CNN::SlidingStrategyType::VALID};
 
   CNN::CNNLayerConfig bnLayer;
-  bnLayer.type = CNN::LayerType::INSTANCENORM;
+  bnLayer.type = CNN::LayerType::BATCHNORM;
   bnLayer.config = CNN::NormLayerConfig{1e-5f, 0.1f};
 
   CNN::CNNLayerConfig reluLayer;
@@ -41,7 +41,7 @@ static CNN::CoreConfig<double> makeBNTestConfig(ulong denseNeurons, ANN::ActvFun
   initConv.biases = {0.0};
   config.parameters.convParams = {initConv};
 
-  // Preset BN parameters: 1 channel, gamma=1, beta=0, runningMean=0, runningVar=1
+  // BatchNorm parameters: 1 channel, gamma=1, beta=0, runningMean=0, runningVar=1
   CNN::NormParameters<double> initBN;
   initBN.numChannels = 1;
   initBN.gamma = {1.0};
@@ -94,7 +94,7 @@ static void testExactBNForwardBackwardCrossEntropy()
   CHECK_NEAR(p.convParams[0].filters[3], -0.099999999999998229, 1e-14, "BN-CE conv filt[3]");
   CHECK_NEAR(p.convParams[0].biases[0], 1.7763568394002505e-15, 1e-14, "BN-CE conv bias");
 
-  // InstanceNorm parameters
+  // BatchNorm parameters
   CHECK_NEAR(p.normParams[0].gamma[0], 1.0, 1e-14, "BN-CE gamma");
   CHECK_NEAR(p.normParams[0].beta[0], 0.14999999999999997, 1e-14, "BN-CE beta");
   CHECK_NEAR(p.normParams[0].runningMean[0], 0.0060000000894069655, 1e-14, "BN-CE runningMean");
@@ -148,7 +148,7 @@ static void testExactBNForwardBackwardSquaredDifference()
   CHECK_NEAR(p.convParams[0].filters[3], -0.094227196181581624, 1e-14, "BN-SD conv filt[3]");
   CHECK_NEAR(p.convParams[0].biases[0], 0.0, 1e-14, "BN-SD conv bias");
 
-  // InstanceNorm parameters
+  // BatchNorm parameters
   CHECK_NEAR(p.normParams[0].gamma[0], 1.015009290292471, 1e-14, "BN-SD gamma");
   CHECK_NEAR(p.normParams[0].beta[0], 0.048403506759260036, 1e-14, "BN-SD beta");
   CHECK_NEAR(p.normParams[0].runningMean[0], 0.0060000000894069655, 1e-14, "BN-SD runningMean");
@@ -198,7 +198,7 @@ static void testExactBNForwardBackwardWeightedCrossEntropy()
   CHECK_NEAR(p.convParams[0].filters[3], -0.10000000000000001, 1e-14, "BN-WCE conv filt[3]");
   CHECK_NEAR(p.convParams[0].biases[0], 0.0, 1e-14, "BN-WCE conv bias");
 
-  // InstanceNorm parameters
+  // BatchNorm parameters
   CHECK_NEAR(p.normParams[0].gamma[0], 0.99999999999999989, 1e-14, "BN-WCE gamma");
   CHECK_NEAR(p.normParams[0].beta[0], 0.44999999999999984, 1e-14, "BN-WCE beta");
   CHECK_NEAR(p.normParams[0].runningMean[0], 0.0060000000894069655, 1e-14, "BN-WCE runningMean");
