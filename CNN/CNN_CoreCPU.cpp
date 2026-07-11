@@ -574,48 +574,95 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
         });
       }
 
-      // Merge: update each worker's , then weighted-average their parameters
-      for (int i = 0; i < numThreads; i++)
+      // Dense-layer update strategy:
+      // 1 thread: per-worker update + weighted-average params (correct for all
+      //   optimizers — preserves exact backward compatibility).
+      // N>1 threads: merge gradients, single update on stepWorker. Required for
+      //   Adam (nonlinear: averaging params after independent Adam != single Adam
+      //   on merged gradients). SGD is linear so either approach works.
+      if (numThreads == 1) {
+        for (int i = 0; i < numThreads; i++)
 
-        if (workerSampleCounts[i] > 0)
-          workers[i]->getCore()->update(workerSampleCounts[i]);
+          if (workerSampleCounts[i] > 0)
+            workers[i]->getCore()->update(workerSampleCounts[i]);
 
-      ANN::Parameters<T> mergedParams;
-      const ANN::Parameters<T>& ref = workers[0]->getCore()->getParameters();
-      mergedParams.weights.resize(ref.weights.size());
+        ANN::Parameters<T> mergedParams;
+        const ANN::Parameters<T>& ref = workers[0]->getCore()->getParameters();
+        mergedParams.weights.resize(ref.weights.size());
 
-      for (ulong l = 0; l < ref.weights.size(); l++) {
-        mergedParams.weights[l].resize(ref.weights[l].size());
+        for (ulong l = 0; l < ref.weights.size(); l++) {
+          mergedParams.weights[l].resize(ref.weights[l].size());
 
-        for (ulong j = 0; j < ref.weights[l].size(); j++)
-          mergedParams.weights[l][j].assign(ref.weights[l][j].size(), static_cast<T>(0));
+          for (ulong j = 0; j < ref.weights[l].size(); j++)
+            mergedParams.weights[l][j].assign(ref.weights[l][j].size(), static_cast<T>(0));
+        }
+
+        mergedParams.biases.resize(ref.biases.size());
+
+        for (ulong l = 0; l < ref.biases.size(); l++)
+          mergedParams.biases[l].assign(ref.biases[l].size(), static_cast<T>(0));
+
+        for (int i = 0; i < numThreads; i++) {
+          if (workerSampleCounts[i] == 0)
+            continue;
+          T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
+          const ANN::Parameters<T>& wp = workers[i]->getCore()->getParameters();
+
+          for (ulong l = 0; l < wp.weights.size(); l++)
+
+            for (ulong j = 0; j < wp.weights[l].size(); j++)
+
+              for (ulong k = 0; k < wp.weights[l][j].size(); k++)
+                mergedParams.weights[l][j][k] += wp.weights[l][j][k] * w;
+
+          for (ulong l = 0; l < wp.biases.size(); l++)
+
+            for (ulong j = 0; j < wp.biases[l].size(); j++)
+              mergedParams.biases[l][j] += wp.biases[l][j] * w;
+        }
+
+        this->stepWorker->getCore()->setParameters(mergedParams);
+      } else {
+        ANN::Tensor3D<T> mergedDW;
+        ANN::Tensor2D<T> mergedDB;
+
+        for (int i = 0; i < numThreads; i++) {
+          if (workerSampleCounts[i] == 0)
+            continue;
+
+          T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
+
+          ANN::Tensor3D<T> workerDW;
+          ANN::Tensor2D<T> workerDB;
+          workers[i]->getCore()->readAccumulatedGradients(workerDW, workerDB);
+
+          if (mergedDW.empty()) {
+            mergedDW = workerDW;
+            mergedDB = workerDB;
+
+            for (ulong l = 1; l < mergedDW.size(); l++) {
+              for (ulong j = 0; j < mergedDW[l].size(); j++) {
+                for (ulong k = 0; k < mergedDW[l][j].size(); k++)
+                  mergedDW[l][j][k] *= w;
+
+                mergedDB[l][j] *= w;
+              }
+            }
+          } else {
+            for (ulong l = 1; l < mergedDW.size(); l++) {
+              for (ulong j = 0; j < mergedDW[l].size(); j++) {
+                for (ulong k = 0; k < mergedDW[l][j].size(); k++)
+                  mergedDW[l][j][k] += workerDW[l][j][k] * w;
+
+                mergedDB[l][j] += workerDB[l][j] * w;
+              }
+            }
+          }
+        }
+
+        this->stepWorker->getCore()->writeAccumulatedGradients(mergedDW, mergedDB);
+        this->stepWorker->getCore()->update(currentBatchSize);
       }
-
-      mergedParams.biases.resize(ref.biases.size());
-
-      for (ulong l = 0; l < ref.biases.size(); l++)
-        mergedParams.biases[l].assign(ref.biases[l].size(), static_cast<T>(0));
-
-      for (int i = 0; i < numThreads; i++) {
-        if (workerSampleCounts[i] == 0)
-          continue;
-        T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
-        const ANN::Parameters<T>& wp = workers[i]->getCore()->getParameters();
-
-        for (ulong l = 0; l < wp.weights.size(); l++)
-
-          for (ulong j = 0; j < wp.weights[l].size(); j++)
-
-            for (ulong k = 0; k < wp.weights[l][j].size(); k++)
-              mergedParams.weights[l][j][k] += wp.weights[l][j][k] * w;
-
-        for (ulong l = 0; l < wp.biases.size(); l++)
-
-          for (ulong j = 0; j < wp.biases[l].size(); j++)
-            mergedParams.biases[l][j] += wp.biases[l][j] * w;
-      }
-
-      this->stepWorker->getCore()->setParameters(mergedParams);
 
       // Merge worker CNN accumulators and update CNN parameters
       this->resetGlobalCNNAccumulators();
@@ -1281,49 +1328,91 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
         }
       }
 
-      // ---- MERGE + UPDATE ----
-      // Merge  parameters across workers (weighted average)
-      for (int i = 0; i < numThreads; i++) {
-        if (workerSampleCounts[i] > 0)
-          workers[i]->getCore()->update(workerSampleCounts[i]);
+      // ---- DENSE MERGE + UPDATE ----
+      // Same dual-path strategy as the non-BN path.
+      if (numThreads == 1) {
+        for (int i = 0; i < numThreads; i++) {
+          if (workerSampleCounts[i] > 0)
+            workers[i]->getCore()->update(workerSampleCounts[i]);
+        }
+
+        ANN::Parameters<T> mergedParams;
+        const ANN::Parameters<T>& ref = workers[0]->getCore()->getParameters();
+        mergedParams.weights.resize(ref.weights.size());
+
+        for (ulong l = 0; l < ref.weights.size(); l++) {
+          mergedParams.weights[l].resize(ref.weights[l].size());
+
+          for (ulong j = 0; j < ref.weights[l].size(); j++)
+            mergedParams.weights[l][j].assign(ref.weights[l][j].size(), static_cast<T>(0));
+        }
+
+        mergedParams.biases.resize(ref.biases.size());
+
+        for (ulong l = 0; l < ref.biases.size(); l++)
+          mergedParams.biases[l].assign(ref.biases[l].size(), static_cast<T>(0));
+
+        for (int i = 0; i < numThreads; i++) {
+          if (workerSampleCounts[i] == 0)
+            continue;
+          T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
+          const ANN::Parameters<T>& wp = workers[i]->getCore()->getParameters();
+
+          for (ulong l = 0; l < wp.weights.size(); l++)
+
+            for (ulong j = 0; j < wp.weights[l].size(); j++)
+
+              for (ulong k = 0; k < wp.weights[l][j].size(); k++)
+                mergedParams.weights[l][j][k] += wp.weights[l][j][k] * w;
+
+          for (ulong l = 0; l < wp.biases.size(); l++)
+
+            for (ulong j = 0; j < wp.biases[l].size(); j++)
+              mergedParams.biases[l][j] += wp.biases[l][j] * w;
+        }
+
+        this->stepWorker->getCore()->setParameters(mergedParams);
+      } else {
+        ANN::Tensor3D<T> bnMergedDW;
+        ANN::Tensor2D<T> bnMergedDB;
+
+        for (int i = 0; i < numThreads; i++) {
+          if (workerSampleCounts[i] == 0)
+            continue;
+
+          T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
+
+          ANN::Tensor3D<T> workerDW;
+          ANN::Tensor2D<T> workerDB;
+          workers[i]->getCore()->readAccumulatedGradients(workerDW, workerDB);
+
+          if (bnMergedDW.empty()) {
+            bnMergedDW = workerDW;
+            bnMergedDB = workerDB;
+
+            for (ulong l = 1; l < bnMergedDW.size(); l++) {
+              for (ulong j = 0; j < bnMergedDW[l].size(); j++) {
+                for (ulong k = 0; k < bnMergedDW[l][j].size(); k++)
+                  bnMergedDW[l][j][k] *= w;
+
+                bnMergedDB[l][j] *= w;
+              }
+            }
+          } else {
+            for (ulong l = 1; l < bnMergedDW.size(); l++) {
+              for (ulong j = 0; j < bnMergedDW[l].size(); j++) {
+                for (ulong k = 0; k < bnMergedDW[l][j].size(); k++)
+                  bnMergedDW[l][j][k] += workerDW[l][j][k] * w;
+
+                bnMergedDB[l][j] += workerDB[l][j] * w;
+              }
+            }
+          }
+        }
+
+        this->stepWorker->getCore()->writeAccumulatedGradients(bnMergedDW, bnMergedDB);
+        this->stepWorker->getCore()->update(currentBatchSize);
       }
-
-      ANN::Parameters<T> mergedParams;
-      const ANN::Parameters<T>& ref = workers[0]->getCore()->getParameters();
-      mergedParams.weights.resize(ref.weights.size());
-
-      for (ulong l = 0; l < ref.weights.size(); l++) {
-        mergedParams.weights[l].resize(ref.weights[l].size());
-
-        for (ulong j = 0; j < ref.weights[l].size(); j++)
-          mergedParams.weights[l][j].assign(ref.weights[l][j].size(), static_cast<T>(0));
-      }
-
-      mergedParams.biases.resize(ref.biases.size());
-
-      for (ulong l = 0; l < ref.biases.size(); l++)
-        mergedParams.biases[l].assign(ref.biases[l].size(), static_cast<T>(0));
-
-      for (int i = 0; i < numThreads; i++) {
-        if (workerSampleCounts[i] == 0)
-          continue;
-        T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
-        const ANN::Parameters<T>& wp = workers[i]->getCore()->getParameters();
-
-        for (ulong l = 0; l < wp.weights.size(); l++)
-
-          for (ulong j = 0; j < wp.weights[l].size(); j++)
-
-            for (ulong k = 0; k < wp.weights[l][j].size(); k++)
-              mergedParams.weights[l][j][k] += wp.weights[l][j][k] * w;
-
-        for (ulong l = 0; l < wp.biases.size(); l++)
-
-          for (ulong j = 0; j < wp.biases[l].size(); j++)
-            mergedParams.biases[l][j] += wp.biases[l][j] * w;
-      }
-
-      this->stepWorker->getCore()->setParameters(mergedParams);
 
       // Update CNN parameters using accumulated gradients
       this->resetGlobalCNNAccumulators();

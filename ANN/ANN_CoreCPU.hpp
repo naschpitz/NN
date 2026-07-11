@@ -34,6 +34,10 @@ namespace ANN
       void resetAccumulators() override;
       void update(ulong numSamples) override;
 
+      //-- Dense gradient I/O (for multi-threaded gradient merging in CNN) --//
+      void readAccumulatedGradients(Tensor3D<T>& dW, Tensor2D<T>& dB) const override;
+      void writeAccumulatedGradients(const Tensor3D<T>& dW, const Tensor2D<T>& dB) override;
+
     private:
       //-- Persistent worker (for predict and step-by-step training) --//
       std::unique_ptr<CoreCPUWorker<T>> stepWorker;

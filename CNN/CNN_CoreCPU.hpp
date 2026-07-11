@@ -21,6 +21,14 @@ namespace CNN
       //-- Constructor --//
       CoreCPU(const CoreConfig<T>& config);
 
+      //-- LR propagation --//
+      void setLearningRate(T lr) override
+      {
+        this->trainConfig.learningRate = lr;
+        this->coreConfig.trainConfig.learningRate = lr;
+        this->stepWorker->getCore()->setLearningRate(lr);
+      }
+
       //-- Core interface --//
       using Core<T>::predict; // Bring in the eager Inputs<T> + single-input wrappers
       Common::PredictResults<T> predict(ulong numSamples, const InputProvider<T>& provider) override;

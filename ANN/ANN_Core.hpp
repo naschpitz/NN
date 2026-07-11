@@ -55,6 +55,22 @@ namespace ANN
       virtual void resetAccumulators() = 0;
       virtual void update(ulong numSamples) = 0;
 
+      //-- Dense gradient I/O (for multi-threaded gradient merging in CNN) --//
+      // Reads the accumulated dense-layer gradients (weight + bias) from the
+      // step worker or global accumulators. Used by CNN_CoreCPU to merge
+      // gradients across threads before a single Adam/SGD update.
+      virtual void readAccumulatedGradients(Tensor3D<T>& dW, Tensor2D<T>& dB) const
+      {
+        (void)dW;
+        (void)dB;
+      }
+
+      virtual void writeAccumulatedGradients(const Tensor3D<T>& dW, const Tensor2D<T>& dB)
+      {
+        (void)dW;
+        (void)dB;
+      }
+
       //-- Getters --//
       Common::ModeType getModeType() const
       {

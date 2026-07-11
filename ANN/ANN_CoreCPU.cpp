@@ -704,6 +704,36 @@ void CoreCPU<T>::reportProgress(ulong currentEpoch, ulong totalEpochs, ulong cur
 }
 
 //===================================================================================================================//
+
+template <typename T>
+void CoreCPU<T>::readAccumulatedGradients(Tensor3D<T>& dW, Tensor2D<T>& dB) const
+{
+  // If global accumulators are populated (batch path), use them.
+  // Otherwise fall back to stepWorker's accumulators (step-by-step path).
+  if (!this->accum_dCost_dWeights.empty()) {
+    dW = this->accum_dCost_dWeights;
+    dB = this->accum_dCost_dBiases;
+  } else {
+    dW = this->stepWorker->getAccumWeights();
+    dB = this->stepWorker->getAccumBiases();
+  }
+}
+
+//===================================================================================================================//
+
+template <typename T>
+void CoreCPU<T>::writeAccumulatedGradients(const Tensor3D<T>& dW, const Tensor2D<T>& dB)
+{
+  // Ensure global accumulators are allocated
+  if (this->accum_dCost_dWeights.empty()) {
+    this->allocateGlobalAccumulators();
+  }
+
+  this->accum_dCost_dWeights = dW;
+  this->accum_dCost_dBiases = dB;
+}
+
+//===================================================================================================================//
 //-- Step-by-step training (for external orchestration) --//
 //===================================================================================================================//
 
