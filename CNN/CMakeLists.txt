@@ -120,6 +120,7 @@ add_executable(test_cnn
   tests/test_gpu_batchnorm2.cpp
   tests/test_gpu_predict_stop.cpp
   tests/test_cpu_predict_stop.cpp
+  tests/test_cpu_multithread.cpp
 )
 target_link_libraries(test_cnn PRIVATE CNN)
 

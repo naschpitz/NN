@@ -623,14 +623,15 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
 
         this->stepWorker->getCore()->setParameters(mergedParams);
       } else {
+        // Multi-thread: sum raw gradients from all workers (unweighted).
+        // update(N) will divide by N, giving the correct average gradient.
+        // Do NOT scale by sample-count weight here — that causes double division.
         ANN::Tensor3D<T> mergedDW;
         ANN::Tensor2D<T> mergedDB;
 
         for (int i = 0; i < numThreads; i++) {
           if (workerSampleCounts[i] == 0)
             continue;
-
-          T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
 
           ANN::Tensor3D<T> workerDW;
           ANN::Tensor2D<T> workerDB;
@@ -639,22 +640,13 @@ void CoreCPU<T>::train(ulong numSamples, const SampleProvider<T>& sampleProvider
           if (mergedDW.empty()) {
             mergedDW = workerDW;
             mergedDB = workerDB;
-
-            for (ulong l = 1; l < mergedDW.size(); l++) {
-              for (ulong j = 0; j < mergedDW[l].size(); j++) {
-                for (ulong k = 0; k < mergedDW[l][j].size(); k++)
-                  mergedDW[l][j][k] *= w;
-
-                mergedDB[l][j] *= w;
-              }
-            }
           } else {
             for (ulong l = 1; l < mergedDW.size(); l++) {
               for (ulong j = 0; j < mergedDW[l].size(); j++) {
                 for (ulong k = 0; k < mergedDW[l][j].size(); k++)
-                  mergedDW[l][j][k] += workerDW[l][j][k] * w;
+                  mergedDW[l][j][k] += workerDW[l][j][k];
 
-                mergedDB[l][j] += workerDB[l][j] * w;
+                mergedDB[l][j] += workerDB[l][j];
               }
             }
           }
@@ -1380,8 +1372,6 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
           if (workerSampleCounts[i] == 0)
             continue;
 
-          T w = static_cast<T>(workerSampleCounts[i]) / static_cast<T>(currentBatchSize);
-
           ANN::Tensor3D<T> workerDW;
           ANN::Tensor2D<T> workerDB;
           workers[i]->getCore()->readAccumulatedGradients(workerDW, workerDB);
@@ -1389,22 +1379,13 @@ void CoreCPU<T>::trainBatchNorm(ulong numSamples, const SampleProvider<T>& sampl
           if (bnMergedDW.empty()) {
             bnMergedDW = workerDW;
             bnMergedDB = workerDB;
-
-            for (ulong l = 1; l < bnMergedDW.size(); l++) {
-              for (ulong j = 0; j < bnMergedDW[l].size(); j++) {
-                for (ulong k = 0; k < bnMergedDW[l][j].size(); k++)
-                  bnMergedDW[l][j][k] *= w;
-
-                bnMergedDB[l][j] *= w;
-              }
-            }
           } else {
             for (ulong l = 1; l < bnMergedDW.size(); l++) {
               for (ulong j = 0; j < bnMergedDW[l].size(); j++) {
                 for (ulong k = 0; k < bnMergedDW[l][j].size(); k++)
-                  bnMergedDW[l][j][k] += workerDW[l][j][k] * w;
+                  bnMergedDW[l][j][k] += workerDW[l][j][k];
 
-                bnMergedDB[l][j] += workerDB[l][j] * w;
+                bnMergedDB[l][j] += workerDB[l][j];
               }
             }
           }
