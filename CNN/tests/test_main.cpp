@@ -34,6 +34,7 @@ void runGPUBatchNormTests2();
 void runCPUPredictStopTests();
 void runCPUTrainStopTests();
 void runMultiThreadTests();
+void runFloatPrecisionTests();
 void runGPUPredictStopTests();
 void runGPUTrainStopTests();
 
@@ -87,6 +88,7 @@ int main()
   std::cout << "=== CNN Train Stop Tests ===" << std::endl;
   runCPUTrainStopTests();
   runMultiThreadTests();
+  runFloatPrecisionTests();
 
   std::cout << std::endl;
   std::cout << "=== CNN GPU Train Stop Tests ===" << std::endl;
