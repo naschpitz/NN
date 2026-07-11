@@ -21,6 +21,8 @@ void runCNNCPUBasicTests();
 void runCNNCPUFeatureTests();
 void runCNNCPUSaveLoadTests();
 void runCNNDenseRoundTripTests();
+void runCNNSerializerTests();
+void runANNSerializerTests();
 void runCNNCPUPredictTests();
 void runCNNGPULayerTests();
 void runCNNGPUDiagnosticTests();
@@ -76,6 +78,8 @@ int main(int argc, char* argv[])
   runCNNCPUFeatureTests();
   runCNNCPUSaveLoadTests();
   runCNNDenseRoundTripTests();
+  runCNNSerializerTests();
+  runANNSerializerTests();
   runCNNCPUPredictTests();
 
   std::cout << std::endl;
