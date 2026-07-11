@@ -381,6 +381,90 @@ static void testConv2DNumericalGradient()
 
 //===================================================================================================================//
 
+static void testConv2DSamePaddingStride2()
+{
+  TestScope _t("testConv2DSamePaddingStride2");
+
+  // 1x5x5 input, 1 filter 3x3, stride 2, SAME (pad=1) → 1x3x3 output
+  // outH = (5 + 2*1 - 3)/2 + 1 = 3
+  CNN::Tensor3D<double> input({1, 5, 5});
+
+  for (ulong i = 0; i < 25; i++)
+    input.data[i] = static_cast<double>(i + 1);
+
+  CNN::ConvLayerConfig config{1, 3, 3, 2, 2, CNN::SlidingStrategyType::SAME};
+  CNN::ConvParameters<double> params;
+  params.numFilters = 1;
+  params.inputC = 1;
+  params.filterH = 3;
+  params.filterW = 3;
+  params.filters.assign(9, 1.0);
+  params.biases = {0.0};
+
+  CNN::Tensor3D<double> out = CNN::Conv2D<double>::propagate(input, config, params);
+
+  CHECK(out.shape.c == 1, "stride2 same: channels");
+  CHECK(out.shape.h == 3, "stride2 same: height = 3");
+  CHECK(out.shape.w == 3, "stride2 same: width = 3");
+
+  // Output (0,0): kernel centered at input(0,0) with pad=1
+  // Visible: pad(0) pad(0) pad(0)
+  //         pad(0) input(0,0)=1  input(0,1)=2
+  //         pad(0) input(1,0)=6  input(1,1)=7
+  // Sum of visible = 1+2+6+7 = 16
+  CHECK_NEAR(out.at(0, 0, 0), 16.0, 1e-9, "stride2 same [0,0]");
+
+  // Output (1,1): kernel at padded(2,2)–(4,4)
+  // 7  8  9
+  // 12 13 14
+  // 17 18 19
+  // Sum = 117
+  CHECK_NEAR(out.at(0, 1, 1), 117.0, 1e-9, "stride2 same [1,1]");
+
+  // Output (2,2): kernel centered at input(4,4) with pad=1
+  // Visible: 19 20 pad(0)
+  //          24 25 pad(0)
+  //          pad  pad  pad
+  // Sum = 19+20+24+25 = 88
+  CHECK_NEAR(out.at(0, 2, 2), 88.0, 1e-9, "stride2 same [2,2]");
+}
+
+//===================================================================================================================//
+
+static void testConv2DSamePaddingRejectsEvenKernel()
+{
+  TestScope _t("testConv2DSamePaddingRejectsEvenKernel");
+
+  // Even kernels with SAME padding produce output larger than input.
+  // The code should reject this with an exception.
+  bool threw = false;
+
+  try {
+    CNN::SlidingStrategy::computePadding(2, CNN::SlidingStrategyType::SAME);
+  } catch (const std::runtime_error&) {
+    threw = true;
+  }
+
+  CHECK(threw, "SAME padding rejects even kernel (2)");
+
+  threw = false;
+
+  try {
+    CNN::SlidingStrategy::computePadding(4, CNN::SlidingStrategyType::SAME);
+  } catch (const std::runtime_error&) {
+    threw = true;
+  }
+
+  CHECK(threw, "SAME padding rejects even kernel (4)");
+
+  // Odd kernels must still work
+  CHECK(CNN::SlidingStrategy::computePadding(3, CNN::SlidingStrategyType::SAME) == 1, "SAME padding odd kernel (3)");
+  CHECK(CNN::SlidingStrategy::computePadding(5, CNN::SlidingStrategyType::SAME) == 2, "SAME padding odd kernel (5)");
+  CHECK(CNN::SlidingStrategy::computePadding(7, CNN::SlidingStrategyType::SAME) == 3, "SAME padding odd kernel (7)");
+}
+
+//===================================================================================================================//
+
 void runCPUConv2DTests()
 {
   testConv2DPropagate();
@@ -391,6 +475,8 @@ void runCPUConv2DTests()
   testConv2DBackpropValues();
   testConv2DStride();
   testConv2DSamePadding();
+  testConv2DSamePaddingStride2();
+  testConv2DSamePaddingRejectsEvenKernel();
   testConv2DFullPadding();
   testConv2DNumericalGradient();
 }
