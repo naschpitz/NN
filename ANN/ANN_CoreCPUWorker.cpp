@@ -257,8 +257,9 @@ T CoreCPUWorker<T>::calc_dCost_dActv(ulong j, const Output<T>& output)
   case Common::CostFunctionType::SQUARED_DIFFERENCE:
   case Common::CostFunctionType::WEIGHTED_SQUARED_DIFFERENCE:
   default:
-    // Squared difference: dL/da_j = 2 * w * (a_j - y_j)
-    return 2 * weight * (this->actvs[l][j] - output[j]);
+    // Squared difference: dL/da_j = 2 * w * (a_j - y_j) / N
+    // The /N matches the loss normalization in Worker::calculateLoss.
+    return 2 * weight * (this->actvs[l][j] - output[j]) / static_cast<T>(output.size());
   }
 }
 

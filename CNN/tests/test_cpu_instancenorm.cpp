@@ -18,8 +18,13 @@ static void testInstanceNormInference()
   params.numChannels = 2;
   params.gamma = {2.0, 0.5};
   params.beta = {1.0, -1.0};
-  params.runningMean = {2.5, 6.5};
-  params.runningVar = {1.25, 1.25};
+
+  // CRITICAL: Set running stats to values that DO NOT match the per-sample stats.
+  // Per-sample stats: ch0 mean=2.5, var=1.25; ch1 mean=6.5, var=1.25.
+  // If InstanceNorm incorrectly uses running stats at inference (like BatchNorm),
+  // this test would produce wrong values. The running stats must be ignored.
+  params.runningMean = {99.0, -99.0};
+  params.runningVar = {50.0, 50.0};
 
   CNN::NormLayerConfig config;
   config.epsilon = 0.0;
@@ -29,6 +34,9 @@ static void testInstanceNormInference()
 
   CHECK(input.shape.c == 2 && input.shape.h == 2 && input.shape.w == 2, "instancenorm inference shape");
 
+  // Expected: InstanceNorm recomputes per-sample stats, ignoring runningMean/runningVar.
+  // ch0: mean=2.5, var=1.25 → invStd = 1/sqrt(1.25)
+  // ch1: mean=6.5, var=1.25 → invStd = 1/sqrt(1.25)
   double invStd0 = 1.0 / std::sqrt(1.25);
 
   CHECK_NEAR(input.data[0], 2.0 * (1.0 - 2.5) * invStd0 + 1.0, 1e-9, "instancenorm infer ch0 [0]");
@@ -39,8 +47,9 @@ static void testInstanceNormInference()
   CHECK_NEAR(input.data[4], 0.5 * (5.0 - 6.5) * invStd0 - 1.0, 1e-9, "instancenorm infer ch1 [0]");
   CHECK_NEAR(input.data[7], 0.5 * (8.0 - 6.5) * invStd0 - 1.0, 1e-9, "instancenorm infer ch1 [3]");
 
-  CHECK_NEAR(params.runningMean[0], 2.5, 1e-9, "instancenorm infer runningMean unchanged");
-  CHECK_NEAR(params.runningVar[0], 1.25, 1e-9, "instancenorm infer runningVar unchanged");
+  // Verify running stats are NOT modified at inference
+  CHECK_NEAR(params.runningMean[0], 99.0, 1e-9, "instancenorm infer runningMean unchanged");
+  CHECK_NEAR(params.runningVar[0], 50.0, 1e-9, "instancenorm infer runningVar unchanged");
 }
 
 //===================================================================================================================//

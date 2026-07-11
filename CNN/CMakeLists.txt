@@ -94,6 +94,7 @@ add_executable(test_cnn
   tests/test_cpu_layers.cpp
   tests/test_cpu_layers2.cpp
   tests/test_cpu_instancenorm.cpp
+  tests/test_cpu_batchnorm.cpp
   tests/test_cpu_globalavgpool.cpp
   tests/test_cpu_globaldualpool.cpp
   tests/test_cpu_residual.cpp

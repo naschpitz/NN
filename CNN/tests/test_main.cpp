@@ -7,6 +7,7 @@ void runCPUConv2DTests();
 void runCPULayerTests();
 void runCPULayerTests2();
 void runCPUInstanceNormTests();
+void runBatchNormTests();
 void runCPUGlobalAvgPoolTests();
 void runCPUGlobalDualPoolTests();
 void runCPUResidualTests();
@@ -42,6 +43,7 @@ int main()
   runCPULayerTests();
   runCPULayerTests2();
   runCPUInstanceNormTests();
+  runBatchNormTests();
   runCPUGlobalAvgPoolTests();
   runCPUGlobalDualPoolTests();
   runCPUResidualTests();
